@@ -102,6 +102,9 @@ Tables are plural (`users`, `role_assignments`, `audit_events`). The database re
 - Sign-in attempts are stored in an append-only `sign_in_events` table (the Admin Sign-ins view, later). `POST /api/auth/sign-in`, `/refresh` and `/sign-out` are public; `GET /api/auth/me` is "any signed-in user". Both lists are reviewed allowlists.
 - **Known limit, tested and documented:** after sign-out the access cookie works until it expires (at most 30 minutes).
 
+**D-025 Permission layer.** Working default. Code in `apps/api/src/core/permissions`.
+The matrix lives in code (61 actions, 8 groups, from the reviewed `permission-matrix.md` draft), and the document's tables are generated from it, with a CI check so they cannot drift. A route declares an action; no sign-in is 401, no granting role is 403, and the handler never runs. The handler gets a **grant** (institution, sections, own, assigned, class, limits, read-only) and builds its queries from it. Section-scoped Co-ordinators and Accountants narrow to their section by data, with no code change (D-004). Unknown actions, unknown roles and roles not listed are denied. Combined roles union, widest wins. Tested three ways: one generated test per row, hand-written independent rules for the sensitive actions (these caught corrupted cells that generated tests could not), and every role against every action over HTTP. Mutation-tested (9 breakages caught). **Still to do:** money, approval and publish actions re-check assignments inside their own batch (with each module in Phases 3, 6 and 7), and data-level tests per module.
+
 ---
 
 ## Open items carried forward

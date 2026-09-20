@@ -76,7 +76,7 @@ describe("route coverage (deny by default)", () => {
 
   it("detector: accepts a route that declares a permission action", () => {
     const app = new OpenAPIHono<AppEnv>();
-    defineRoute(app, { method: "get", path: "/api/students", access: { action: "student.search" }, responses: okResponse }, (c) =>
+    defineRoute(app, { method: "get", path: "/api/students", access: { action: "students.search" }, responses: okResponse }, (c) =>
       c.json({ ok: true }, 200),
     );
 
@@ -87,23 +87,36 @@ describe("route coverage (deny by default)", () => {
 });
 
 describe("deny by default", () => {
-  it("a route that needs a permission is refused until the permission layer exists", async () => {
+  async function callAs(roles: { role: string; scope: "own" | "assigned" | "section" | "institution" }[] | null) {
     const app = new OpenAPIHono<AppEnv>();
     let handlerRan = false;
-    defineRoute(app, { method: "get", path: "/api/students", access: { action: "student.search" }, responses: okResponse }, (c) => {
+    // Only a Co-ordinator (or Super Admin) may review admissions. An Admin may not.
+    defineRoute(app, { method: "get", path: "/api/review", access: { action: "admissions.review" }, responses: okResponse }, (c) => {
       handlerRan = true;
       return c.json({ ok: true }, 200);
     });
 
-    // Even a perfectly valid signed-in user is refused: no action is granted yet.
-    const now = Math.floor(Date.now() / 1000);
-    const token = await signAccessToken(env.SESSION_SECRET, {
-      sub: "u", sid: "s", name: "Admin", roles: [{ role: "admin", scope: "institution" }], iat: now, exp: now + 600,
-    });
-    const response = await app.request("/api/students", { headers: { Cookie: `__Host-access=${token}` } }, env);
+    let cookie: Record<string, string> = {};
+    if (roles) {
+      const now = Math.floor(Date.now() / 1000);
+      const token = await signAccessToken(env.SESSION_SECRET, { sub: "u", sid: "s", name: "Someone", roles, iat: now, exp: now + 600 });
+      cookie = { Cookie: `__Host-access=${token}` };
+    }
+    const response = await app.request("/api/review", { headers: cookie }, env);
+    return { status: response.status, handlerRan };
+  }
 
-    expect(response.status).toBe(401);
-    expect(handlerRan).toBe(false);
+  it("a signed-in person whose roles do not grant the action is refused, and the handler never runs", async () => {
+    expect(await callAs([{ role: "admin", scope: "institution" }])).toEqual({ status: 403, handlerRan: false });
+    expect(await callAs([{ role: "student", scope: "own" }])).toEqual({ status: 403, handlerRan: false });
+  });
+
+  it("someone who is not signed in is refused with 401, not 403", async () => {
+    expect(await callAs(null)).toEqual({ status: 401, handlerRan: false });
+  });
+
+  it("a person whose role grants the action gets through", async () => {
+    expect(await callAs([{ role: "coordinator", scope: "institution" }])).toEqual({ status: 200, handlerRan: true });
   });
 
   it("an 'any signed-in user' route refuses anonymous callers and does not run its handler", async () => {

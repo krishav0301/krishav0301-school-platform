@@ -27,6 +27,10 @@ jobs:
       - run: npm run typecheck
       - run: npm run lint
       - run: npm test
+      - name: The permission tables in the docs match the code
+        run: |
+          npm run gen:permissions
+          git diff --exit-code ../../docs/permission-matrix.md
       - name: The committed OpenAPI contract is current
         run: |
           npm run gen:openapi

@@ -63,7 +63,7 @@ Total to Royal live: about 66-91 working days, roughly 13-18 weeks. Release A is
 - [x] 1. BS date module: verified years only, disputed stretch flagged, Nepal midnight. Golden test over 30,681 days (D-022)
 - [x] 2. Migrations and the base D1 schema (school, sections, users, role assignments, audit, outbox); keyed audit hash chain with tamper tests, checked on a real D1 database (D-023). Sessions come with slice 3
 - [x] 3. Passwords (scrypt), sign-in, sign-out, refresh with theft detection, lockout and throttling, sign-in log (D-024). Password reset comes with slice 7
-- [ ] 4. Permission layer generated from `permission-matrix.md`, with a test for every role and action, under both scope settings
+- [x] 4. Permission layer: matrix in code with the document generated from it, deny by default (401/403), grants for handlers, tests for every role and action under both scope settings, plus independent rules (D-025)
 - [ ] 5. School configuration, theme with contrast check, packs (Royal Softech, sample basic school)
 - [ ] 6. Design system and app shell (tokens, components, theme swap, second-theme test)
 - [ ] 7. 2FA (authenticator app), password reset, notifications and jobs

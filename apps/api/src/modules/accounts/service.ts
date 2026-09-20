@@ -2,8 +2,9 @@ import { recordAudit } from "../../core/audit";
 import { newPublicId } from "../../core/ids";
 import { hashPassword, passwordProblems, type PasswordProblem } from "../../core/passwords";
 
-export type Role = "student" | "teacher" | "coordinator" | "accountant" | "admin" | "super_admin";
-export type Scope = "own" | "assigned" | "section" | "institution";
+import type { Role, Scope } from "../../core/roles";
+
+export type { Role, Scope };
 
 export interface RoleInput {
   role: Role;

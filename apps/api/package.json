@@ -9,6 +9,7 @@
     "typecheck": "wrangler types && tsc --noEmit",
     "lint": "eslint .",
     "gen:openapi": "tsx scripts/generate-openapi.ts",
+    "gen:permissions": "tsx scripts/generate-permission-doc.ts",
     "db:migrate:local": "wrangler d1 migrations apply school_dev --local"
   },
   "dependencies": {

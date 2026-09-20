@@ -82,7 +82,9 @@ A role assignment carries a **scope**: the whole institution, or one section (+2
 
 **Non-negotiable:**
 - One central permission layer, **deny by default**. Every permission is role + action + scope. Never check permissions in individual views.
-- The role-and-action matrix lives in one file. Generate permission tests from it. A test fails if any route lacks a declared permission.
+- The role-and-action matrix lives in one file: `apps/api/src/core/permissions/matrix.ts` (D-025). `docs/permission-matrix.md` is generated from it (`npm run gen:permissions`; CI fails on drift). To add a permission, add a row there, then declare the route with `access: { action: "the.id" }`. A test fails if any route lacks a declared permission, and an unknown action fails when the route is defined.
+- **A handler must build its queries from `c.get("grant")`.** The grant says how far the person reaches (`institution`, `sections`, `own`, `assigned`, `classOnly`, `limits`). Use `canAccessSection` / `allowedSections` and always filter by the person's own record for `own`. Never trust an id from the URL alone. Add a data-level test with each module that stores such data (Student A cannot open Student B's record; a +2 person gets nothing from Bachelor's).
+- Permission tests come in two kinds and both are required: generated from the matrix, and **independent** rules written by hand from the requirements (a corrupted cell is consistent with itself, so only the independent tests catch it).
 - Required tests: Student A cannot open Student B's fees, results, files or receipts. A section-scoped user gets nothing from the other section. Every role tries every sensitive action. Run them under both scope configurations.
 - Files are served only after a permission check, through a short-lived signed link.
 

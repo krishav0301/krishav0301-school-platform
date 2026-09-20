@@ -1,5 +1,6 @@
 import type { OpenAPIHono } from "@hono/zod-openapi";
 
+import type { Grant } from "./permissions/authorize";
 import type { RoleClaim } from "./tokens";
 
 /** What the Worker receives from its configuration. Bindings come from wrangler.jsonc. */
@@ -21,5 +22,5 @@ export interface AuthContext {
   roles: RoleClaim[];
 }
 
-export type AppEnv = { Bindings: Bindings; Variables: { auth?: AuthContext } };
+export type AppEnv = { Bindings: Bindings; Variables: { auth?: AuthContext; grant?: Grant } };
 export type App = OpenAPIHono<AppEnv>;
