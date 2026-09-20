@@ -45,7 +45,7 @@ Rules: a module calls another module's **service**, never its tables. A test enf
 
 ## Sessions
 
-- `__Host-access`: a signed token, 10 minutes, carrying the user's roles and scopes. `__Host-refresh`: an opaque token; only its hash is stored in the `session` table; rotated on every use.
+- `__Host-access`: a signed token, 30 minutes (each renewal is a database write; the free plan allows 100,000 a day), carrying the user's roles and scopes. `__Host-refresh`: an opaque token; only its hash is stored in the `session` table; rotated on every use.
 - A deactivated user or a changed role takes effect at the next refresh. **Money, approval and publish actions re-check the user's assignments inside their own batch**, so they never rely on a stale token.
 - Passwords: scrypt (N=2^15, r=8, p=1). Lockout and rate limits on sign-in and OTP. The client retries a 503.
 
@@ -70,6 +70,7 @@ Vitest running inside the Workers runtime (real D1 behaviour, simulated locally)
 ## Watch list
 
 - **Free-tier limits:** Workers 100,000 requests a day; D1 100,000 rows written and 5,000,000 read a day, and queries fail past the limit. Index queries and avoid scans.
+- **Sign-in writes.** A failed sign-in is one database write, and the free plan allows 100,000 a day. Lockout caps a single email at 5 and a single address at 30 per 15 minutes, and throttled attempts write nothing, but a spread-out attack could still add up. Add a Cloudflare rate-limiting rule on `/api/auth/sign-in` (Phase 9 or earlier) and a Turnstile check if abuse appears.
 - **Cron reliability** on the free plan (one report of triggers stopping). Add an in-app "last ran" indicator and alert.
 - **Provider rule changes.** Cloudflare has tightened free limits this year. The tripwire in `spikes/hosting-options.md` still applies.
 - **Latency:** every extra database round trip adds about 100 ms. Reviewers should count them.

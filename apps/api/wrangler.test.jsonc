@@ -8,7 +8,8 @@
     "ENVIRONMENT": "test",
     "DEMO_MODE": "false",
     // Test-only value. Real deployments set this as a secret, never in a file.
-    "AUDIT_HMAC_KEY": "test-only-audit-key-0123456789abcdef0123456789abcdef"
+    "AUDIT_HMAC_KEY": "test-only-audit-key-0123456789abcdef0123456789abcdef",
+    "SESSION_SECRET": "test-only-session-secret-0123456789abcdef0123456789abcdef"
   },
   "d1_databases": [
     {

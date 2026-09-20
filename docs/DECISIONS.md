@@ -94,9 +94,20 @@ R2 needs enabling in the Cloudflare dashboard and probably a payment method. PM 
 **D-023 Base schema and keyed audit chain.** Working default. Migration `apps/api/migrations/0001_foundation.sql`.
 Tables are plural (`users`, `role_assignments`, `audit_events`). The database refuses impossible role and scope pairs (an Admin limited to a section, a Student with institution scope), duplicate assignments, and case-different duplicate emails. The audit log is an **HMAC chain** keyed by the `AUDIT_HMAC_KEY` Worker secret, which is never stored in the database, so someone with database access alone cannot rewrite history and still verify. Triggers block edits and deletes and refuse an entry that does not link to the current head; a losing writer's whole batch, business change included, rolls back and retries. Detects an edited entry, a middle insert or delete, and a tampered head. **Known limit:** deleting the newest entries together with the head is invisible inside the database and is caught only by the daily export of `auditChainSummary` (to build in Phase 10). Tested on the simulated database and on a real, temporary D1 database.
 
+**D-024 Sign-in and sessions.** Working default. Amends D-021 (access token 10 to 30 minutes). Migration `0002_sessions.sql`.
+- Passwords: scrypt (N=2^15) with `@noble/hashes`, NFKC-normalised, stored as `scrypt$N$r$p$salt$hash`; a hash with weaker settings is upgraded at the next sign-in; stored cost parameters are capped so a tampered row cannot burn CPU. Policy: 10 to 128 characters (counted as characters, so Nepali passphrases are not penalised), not a common password, not containing the email name. **OPEN:** a fuller breached-password check.
+- Access token 30 minutes, because every renewal is a D1 write (free plan: 100,000 a day). Roles are in the token; money, approval and publish actions re-check assignments in their own batch.
+- Refresh token: random, stored only as a SHA-256 hash, rotated on every use with a conditional update (two simultaneous refreshes: one wins). Reuse of the previous token within 20 seconds is treated as two tabs racing (retry); later, as theft, and the session is revoked. Sessions end after 30 days, or 7 days unused. A deactivated user's session ends at the next refresh.
+- Lockout: 5 failures per email and 30 per address in 15 minutes. Unknown emails are locked identically, and wrong-password and unknown-email answers are identical, so nothing reveals which emails exist. Throttled attempts write nothing.
+- Sign-in attempts are stored in an append-only `sign_in_events` table (the Admin Sign-ins view, later). `POST /api/auth/sign-in`, `/refresh` and `/sign-out` are public; `GET /api/auth/me` is "any signed-in user". Both lists are reviewed allowlists.
+- **Known limit, tested and documented:** after sign-out the access cookie works until it expires (at most 30 minutes).
+
 ---
 
 ## Open items carried forward
+
+- **Secrets on deployments.** Every deployment needs `AUDIT_HMAC_KEY` and `SESSION_SECRET` set with `wrangler secret put` before sign-in or the audit log is used. Rotating `SESSION_SECRET` signs everyone out.
+- **Sign-in abuse protection.** Add a Cloudflare rate-limiting rule on `/api/auth/sign-in` and, if abuse appears, Turnstile.
 
 - **Audit key and export.** Set `AUDIT_HMAC_KEY` as a secret on every deployment before the audit log is first used. Build the daily export of the chain summary to a second location (Phase 10, or earlier if cheap).
 
