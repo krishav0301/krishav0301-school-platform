@@ -71,6 +71,9 @@ Set `CSRF_TRUSTED_ORIGINS` to the web origin in every environment. Never enable 
 **D-017 PDF documents: HTML rendered by Chromium.** Working default, partly verified. Details in `spikes/pdf-devanagari.md`.
 Devanagari renders correctly on screen; the PDF text layer is unreliable for copy and search, so the database is always the record. Embed a self-hosted Noto Sans Devanagari. Confirm in a real PDF viewer in Phase 6. WeasyPrint is the fallback.
 
+**D-018 Free-first hosting; no native app for now.** Working default, awaiting PM go on the test.
+PM: whole-project budget 50K a year (assumed NPR, about US$350), no spend on servers, run free as a starter, talk subscriptions later. Direction: start free. Run a one-day test of an all-Cloudflare build; if it passes, propose replacing the Django backend (this would supersede D-005's backend); if it fails, keep Django on free tiers (Cloudflare Pages and R2, Northflank Sandbox, Neon Singapore). Front end is static export either way. Nightly database copy to R2, because free tiers give little backup. Hosting cost moves into the yearly subscription later. No native Android app now (iOS is about a quarter of Nepal mobile use); the site is installable. Supabase not used. Research, sources and the test plan: `spikes/hosting-options.md`.
+
 ---
 
 ## Open items carried forward
