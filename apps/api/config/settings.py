@@ -101,5 +101,9 @@ SPECTACULAR_SETTINGS = {
     "TITLE": "School Platform API",
     "VERSION": "0.1.0",
     "SERVE_INCLUDE_SCHEMA": False,
+    # Pin the prefix. Left automatic, it is the common prefix of whatever routes
+    # exist, so the generated tags changed between development (which has an
+    # extra schema route) and CI.
+    "SCHEMA_PATH_PREFIX": "/api/",
     "SERVE_PERMISSIONS": ["rest_framework.permissions.AllowAny"],
 }
