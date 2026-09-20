@@ -44,6 +44,7 @@ Extension points, version 1: policies (grading, ranking and tie-break, student-I
 - Prefer boring, mainstream libraries. Add a dependency only with a reason. Never write your own crypto, date conversion tables or payment verification.
 - Do not add features that are not in the documents. Put suggestions in the final message.
 - End every task with: what changed, what you tested, what is not done, and any `OPEN:` items touched.
+- **Local state hides CI failures.** Leftover generated files (`.next`, route types) and the development environment made two CI bugs invisible on the first push. When a change touches CI, generated files or settings, replay the workflow steps in a fresh clone of the pushed commit before calling it green. Generated output must not depend on which routes or files happen to exist.
 
 ## 4. Stack (D-005)
 
