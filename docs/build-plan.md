@@ -9,7 +9,7 @@ Status: **approved by PM 2026-09-20 (D-012). Phase 0 in progress.** Decisions it
 - [x] Git repo initialised and pushed to the private GitHub repo `krishav0301/krishav0301-school-platform`
 - [x] Django API skeleton: deny-by-default permissions, route-permission test, health endpoint, 14 tests, lint, architecture check
 - [x] Next.js app skeleton: strict TypeScript, `/api` proxy, typed client generated from the OpenAPI contract
-- [x] CI workflow. First run on GitHub failed (two real bugs: unpinned OpenAPI tag, missing Next.js route types on a clean checkout). Fixed in 415d7cd. Every step passes in a fresh Windows clone; the Linux run on GitHub is still to be confirmed
+- [x] CI workflow. First run on GitHub failed (two real bugs: unpinned OpenAPI tag, missing Next.js route types on a clean checkout). Fixed in 415d7cd. Green on GitHub's Linux runners (api and web jobs) since that commit
 - [x] Spike: BS dates (`spikes/bs-dates.md`)
 - [x] Spike: Postgres-backed job queue (`spikes/job-queue.md`): Procrastinate
 - [x] Spike: session and CSRF through the Next.js proxy (`spikes/session-csrf.md`): works with trusted origins; token rotates at login
