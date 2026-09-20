@@ -1,0 +1,47 @@
+[project]
+name = "school-api"
+version = "0.1.0"
+requires-python = ">=3.12"
+dependencies = [
+    "django>=6.1.1",
+    "django-environ>=0.14.0",
+    "djangorestframework>=3.18.1",
+    "drf-spectacular>=0.30.0",
+    "psycopg[binary]>=3.3.6",
+]
+
+[dependency-groups]
+dev = [
+    "hypothesis>=6.168.0",
+    "import-linter>=2.15",
+    "pytest>=9.1.1",
+    "pytest-django>=4.14.0",
+    "ruff>=0.16.8",
+]
+
+[tool.pytest.ini_options]
+DJANGO_SETTINGS_MODULE = "config.settings"
+python_files = ["test_*.py"]
+addopts = "-ra --strict-markers"
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+extend-exclude = ["migrations"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "DJ", "S", "C4", "SIM", "RUF"]
+# DRF and Django declare class attributes as plain lists by convention.
+ignore = ["RUF012"]
+
+[tool.ruff.lint.per-file-ignores]
+"**/tests/**" = ["S101", "S105", "S106"]
+
+[tool.importlinter]
+root_packages = ["core", "config"]
+
+[[tool.importlinter.contracts]]
+name = "The core module does not depend on the project configuration"
+type = "forbidden"
+source_modules = ["core"]
+forbidden_modules = ["config"]
