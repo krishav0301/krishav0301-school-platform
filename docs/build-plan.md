@@ -58,6 +58,16 @@ Total to Royal live: about 66-91 working days, roughly 13-18 weeks. Release A is
 - **Exit:** docs approved, both apps deployed as "hello" on staging.
 
 ### Phase 1: Platform foundation
+
+**Progress** (slices, each ends with tests and a report):
+- [x] 1. BS date module: verified years only, disputed stretch flagged, Nepal midnight. Golden test over 30,681 days (D-022)
+- [ ] 2. Migrations and the base D1 schema (users, roles, sessions, audit, outbox); audit hash chain with tamper tests
+- [ ] 3. Passwords (scrypt), sign-in, sign-out, refresh, lockout, rate limits
+- [ ] 4. Permission layer generated from `permission-matrix.md`, with a test for every role and action, under both scope settings
+- [ ] 5. School configuration, theme with contrast check, packs (Royal Softech, sample basic school)
+- [ ] 6. Design system and app shell (tokens, components, theme swap, second-theme test)
+- [ ] 7. 2FA (authenticator app), password reset, notifications and jobs
+- [ ] 8. Exit check: every role signs in; wrong role or section is denied; live theme swap; both packs boot; staged
 - **Chassis:** module skeleton, API conventions (idempotency keys, one error format), OpenAPI to typed TypeScript client, CI gates (lint, types, import boundaries, every route declares a permission).
 - **Identity and access:** email and password, sessions, lockout, password reset, TOTP 2FA, role assignments carrying a scope (D-004), permission matrix with generated tests.
 - **Trust layer:** insert-only audit log, transactional event outbox, notifications framework (in-app and email), job queue, file storage with signed links.
