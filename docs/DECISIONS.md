@@ -56,11 +56,20 @@ PM: the client demo is the PM's concern. The build is the reusable product, foun
 **D-012 Build plan, installs and repo approved.** Approved (PM: "all approve").
 Phase order in `build-plan.md`, installs of Python (via `uv`) and PostgreSQL 17, and a private GitHub repo. Phase 0 started 2026-09-20.
 
-**D-013 Toolchain and API conventions.** Working default.
+**D-013 Toolchain and API conventions.** Approved (PM: "approve", 2026-09-20).
 Python 3.12 (via `uv`), Django 6.1, Django REST Framework, PostgreSQL 17, Next.js 16, strict TypeScript. Plain CSS with design tokens (no Tailwind), so colours and fonts can only come from tokens. Typed API client generated from the OpenAPI contract (`openapi-typescript`, `openapi-fetch`); CI fails if the contract or generated types are stale. Every API route ends in a slash and `APPEND_SLASH` is off, so a missing slash is a 404 and never a redirect (browsers cache redirects permanently). Requests run in a transaction (`ATOMIC_REQUESTS`); the health check opts out so it can report a database failure as 503. Every view must declare its permissions or it is denied, and a test enforces it. Demo mode is refused when `ENV=production`.
 
-**D-014 BS dates: verify by year, not by library.** Working default, awaiting PM. Details in `spikes/bs-dates.md`.
+**D-014 BS dates: verify by year, not by library.** Approved (PM: "approve", 2026-09-20). Details in `spikes/bs-dates.md`.
 The two candidate libraries agree on every BS year up to 2083 and disagree on every year from 2084, because no official calendar exists that far ahead. Use `nepali-datetime` inside a date module that converts only for verified BS years (currently 2000 to 2083) and refuses the rest. Add each year to the verified list when its official calendar is published and checked. Dates of birth store AD and BS as entered.
+
+**D-015 Job queue: Procrastinate.** Working default. Details in `spikes/job-queue.md`.
+Django 6.1 has no production task worker. Procrastinate 3.9 passed retry and duplicate-guard tests on PostgreSQL 17. Wrap it in `core.jobs`. Outbox events are written in the same transaction as the business write, and a job drains them.
+
+**D-016 Login session and CSRF rules.** Working default (proven in a spike). Details in `spikes/session-csrf.md`.
+Set `CSRF_TRUSTED_ORIGINS` to the web origin in every environment. Never enable `USE_X_FORWARDED_HOST`. The web client re-reads the `csrftoken` cookie on every request, because login rotates it. Server-side calls must forward the session cookie explicitly.
+
+**D-017 PDF documents: HTML rendered by Chromium.** Working default, partly verified. Details in `spikes/pdf-devanagari.md`.
+Devanagari renders correctly on screen; the PDF text layer is unreliable for copy and search, so the database is always the record. Embed a self-hosted Noto Sans Devanagari. Confirm in a real PDF viewer in Phase 6. WeasyPrint is the fallback.
 
 ---
 

@@ -6,14 +6,14 @@ Status: **approved by PM 2026-09-20 (D-012). Phase 0 in progress.** Decisions it
 
 - [x] Rewrite `CLAUDE.md`; decisions log; client profile; build plan
 - [x] Python (via `uv`) and PostgreSQL 17 installed and working
-- [x] Git repo initialised, first commits (local; GitHub remote pending, needs an empty private repo)
+- [x] Git repo initialised and pushed to the private GitHub repo `krishav0301/krishav0301-school-platform`
 - [x] Django API skeleton: deny-by-default permissions, route-permission test, health endpoint, 14 tests, lint, architecture check
 - [x] Next.js app skeleton: strict TypeScript, `/api` proxy, typed client generated from the OpenAPI contract
 - [x] CI workflow written (untested until the repo is on GitHub)
 - [x] Spike: BS dates (`spikes/bs-dates.md`)
-- [ ] Spike: Postgres-backed job queue
-- [ ] Spike: session and CSRF flow between Next.js and Django (the proxy is proven; login is Phase 1)
-- [ ] Spike: PDF with Devanagari
+- [x] Spike: Postgres-backed job queue (`spikes/job-queue.md`): Procrastinate
+- [x] Spike: session and CSRF through the Next.js proxy (`spikes/session-csrf.md`): works with trusted origins; token rotates at login
+- [x] Spike: PDF with Devanagari (`spikes/pdf-devanagari.md`): renders correctly; real-viewer check owed in Phase 6
 - [ ] `architecture.md`, `data-model.md`, permission-matrix draft, API conventions doc
 - [ ] Hosting accounts and a staging "hello" deploy (needs PM to create accounts)
 

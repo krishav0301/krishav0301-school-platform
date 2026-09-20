@@ -69,6 +69,12 @@ LANGUAGE_CODE = "en"
 USE_I18N = True
 
 # Cookies: same-site, because the web app and the API share one domain.
+# The browser talks to the web app's origin, which proxies to Django, so Django
+# sees the proxy's host. List the web origin(s) explicitly. Do not use
+# USE_X_FORWARDED_HOST: Django is also reachable directly, so that header could
+# be spoofed.
+CSRF_TRUSTED_ORIGINS = env.list("CSRF_TRUSTED_ORIGINS", default=[])
+
 SESSION_COOKIE_HTTPONLY = True
 SESSION_COOKIE_SAMESITE = "Lax"
 CSRF_COOKIE_SAMESITE = "Lax"

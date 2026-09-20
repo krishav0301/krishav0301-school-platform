@@ -55,6 +55,9 @@ Extension points, version 1: policies (grading, ranking and tie-break, student-I
 - Managed hosting, region Mumbai or Singapore, one deployment per school with its own database, storage, domain and configuration.
 - Excel and PDF through standard libraries. BS dates through a vetted library or table only.
 - Never introduce microservices, Kubernetes, sharding, multiple databases, or event infrastructure beyond the Postgres outbox.
+- **Sessions and CSRF (D-016):** every API route ends in a slash (the web proxy adds it). Set `CSRF_TRUSTED_ORIGINS` to the web origin in every environment. Never set `USE_X_FORWARDED_HOST`. The web client re-reads the `csrftoken` cookie on every request, because login rotates it. Server-side calls must forward the session cookie explicitly.
+- **Jobs (D-015):** Procrastinate behind `core.jobs`. Write the outbox event in the same transaction as the business write, and drain it from a job.
+- **Documents (D-017):** HTML rendered by Chromium with a self-hosted Noto Sans Devanagari. The database is the record, never the PDF.
 
 ## 5. Roles and scopes
 
