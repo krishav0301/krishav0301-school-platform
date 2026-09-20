@@ -1,0 +1,104 @@
+# Data model
+
+Status: draft for PM review, 2026-09-20. Independent of the hosting choice (D-018). Phases 1 to 5 are specified. Phases 6 to 8 are outlined only.
+
+## Conventions
+
+- **Two ids.** An internal `id` for joins, and a `public_id` (random, unguessable) in every URL and API response. Sequential ids are never exposed, so one student cannot guess another's record.
+- **Money** is a whole-number `amount_paisa`. Never a float or decimal.
+- **Dates** are stored as AD dates. Timestamps are UTC, shown in Nepal time. BS is derived for display (D-014). A date of birth also stores the BS text exactly as entered.
+- **No hard deletes.** Rows are deactivated or archived (`is_active`, `archived_at`).
+- **Every write goes through a service** and writes an `AuditEvent` in the same transaction.
+- **Nothing school-specific** in table or column names. Names such as "+2" or "BBS" are data.
+
+## Structure of the institution
+
+```
+School (one row)
+ └─ Section            "+2", "Bachelor's"        (configurable names)
+     └─ Programme      "BBS", "+2 Science"        (affiliation: NEB / PU / TU)
+         └─ Level      Grade 11, Grade 12 / Year 1..4
+             └─ Class  = academic year + programme + level (+ optional label, e.g. "Morning")
+                 └─ SubjectOffering → MarkComponent
+Student (permanent) ── Enrollment (student + academic year + class) ── year data hangs off Enrollment
+```
+
+## Phase 1: configuration, accounts, audit
+
+| Table | Key columns | Rules |
+|---|---|---|
+| `School` | name, short_name, currency, timezone, template_key, region_pack | One row per deployment |
+| `Section` | key, name, ordering | Names are data |
+| `ModuleSwitch` | key, enabled | Optional modules on or off |
+| `Theme` | tokens (JSON), logo_file, is_active | Contrast checked before save |
+| `TerminologyOverride` | key, text | For example "Co-ordinator" to another title |
+| `VerifiedBSYear` | bs_year, verified_at, source_note | Dates in other years are refused (D-014) |
+| `User` | email (unique, lowercase), password_hash, full_name, phone, is_active, must_change_password, failed_login_count, locked_until, last_login_at | Argon2 or the strongest hash the platform allows |
+| `RoleAssignment` | user, role, scope_type, section (nullable), is_active | `scope_type` is `own`, `assigned`, `section` or `institution`. Section scope requires a section. Unique per user, role, scope, section |
+| `TwoFactorDevice` | user, secret (encrypted), confirmed_at | Authenticator app (Super Admin, and staff) |
+| `TrustedDevice` | user, token_hash, expires_at | "Remember this device" 30 days |
+| `SignInEvent` | user (nullable), email_tried, success, reason, ip, user_agent, at | Insert-only. Feeds the Sign-ins view |
+| `AuditEvent` | at, actor, action, entity_type, entity_public_id, summary, before (JSON), after (JSON), reason, request_id | **Insert-only.** Super Admin actions display as "Support" |
+| `OutboxEvent` | type, payload, processed_at, attempts | Written in the same transaction as the change; a job drains it |
+
+Roles: `student`, `teacher`, `coordinator`, `accountant`, `admin`, `super_admin`. Today every Co-ordinator and Accountant has `institution` scope (D-004).
+
+## Phase 2: content and files
+
+| Table | Key columns | Rules |
+|---|---|---|
+| `ContentItem` | kind (notice, holiday, routine, vacancy, post), title, body, image_file, attachment_file, publish_on, hide_after, status (draft, waiting, live, expired), is_urgent, created_by, approved_by | Expired items hide automatically |
+| `FileObject` | storage_key, content_type (from content, not extension), size, sha256, original_name, uploaded_by, status (temp, attached, deleted), expires_at | Private. Served only through a permission check and a short-lived link. Temp uploads expire and are cleaned up |
+
+## Phase 3: academic setup and approvals
+
+| Table | Key columns | Rules |
+|---|---|---|
+| `AcademicYear` | bs_year, label, start_date, end_date, status (draft, active, closed) | Year must be verified. **A closed year rejects all writes** |
+| `Programme` | section, name, code, affiliation, is_active | Created by the Co-ordinator |
+| `Level` | programme, ordinal, name | Grade 11 and 12 for +2. Year 1 to 4 for bachelor's |
+| `Class` | academic_year, programme, level, label (nullable), class_teacher (nullable) | Unique per year, programme, level, label |
+| `Terminal` | academic_year, name, ordinal | Yearly with terminals (D-006) |
+| `Subject` | name, code, is_archived | Archived, never deleted, if it has marks or a teacher |
+| `SubjectOffering` | class, subject, credit_hours, elective_group (nullable) | `elective_group` is `OPEN:` until PM approves elective modelling |
+| `MarkComponent` | subject_offering, name, max_marks | Theory, practical, internal. Marks stored as integer hundredths |
+| `TeacherAssignment` | teacher, subject_offering | A teacher may hold many |
+| `StaffProfile` | user, designation, home_section | |
+| `ApprovalRequest` | kind (website_content, fee_structure, discount, reversal, refund), status (pending, approved, declined, stale), requested_by, subject_type, subject_id, subject_version, snapshot (JSON), decided_by, decided_at, decision_reason | Requester and decider must differ. **One pending request per subject.** Approve-and-apply runs in one locked transaction. A changed subject makes it stale |
+
+## Phase 4: admissions and the student record
+
+| Table | Key columns | Rules |
+|---|---|---|
+| `Application` | submission_token (unique), status (email_unverified, pending_review, needs_changes, approved, rejected), applicant details, programme, level, academic_year, referred_by, email_verified_at, reviewed_by, decision_reason, changes_requested (JSON), duplicate_flags (JSON), walk_in, student (set on approval) | Rate limited. Enters the queue only after email verification. Rejection is final |
+| `ApplicationDocument` | application, kind (transcript, character_certificate, citizenship, photo, other), file | Multiple typed documents (`OPEN:` until PM approves) |
+| `Student` | sid (unique, immutable), user, first_name, middle_name, last_name, dob_ad, dob_bs, phone, email, address, previous_school, guardian_name, guardian_phone, status (active, left, graduated) | **Permanent.** No year data lives here. Duplicate check on phone, or name plus date of birth |
+| `Enrollment` | student, academic_year, class, roll_no, status (active, promoted, repeated, left, graduated) | Unique per student and year. Attendance, marks, fees and receipts hang off this |
+| `SIDCounter` | next_sequence | One row, locked while assigning. SID = admission BS year + sequence, for example `2083-00123`, assigned at approval |
+| `Notification` | recipient, event_key, channel (in_app, email, sms), payload, status, attempts, sent_at, read_at | **Unique on event, recipient and channel**, so a retry never sends twice |
+
+Approval creates the `Student`, the `User`, the `Enrollment` and the SID in one transaction.
+
+## Phase 5: daily school life
+
+`StudentAttendance` (enrollment, date, present or absent, marked_by; unique per enrollment and date), `TeacherAttendance` (teacher, date, present, absent or leave, marked_by, reason for past edits), `ActivityLog` (subject_offering, teacher, date, text), `Note` (subject_offering, file, uploaded_by), `Assignment` (subject_offering, title, instructions, deadline, file), `Submission` (assignment, enrollment, file, status, marks, feedback, resubmission_requested).
+
+## Phases 6 to 8: outline only
+
+- **Fees:** `FeeStructure`, `FeeItem`, `DiscountRequest`, `LedgerEntry` (append-only; charge, discount, payment, reversal, refund, carried dues; each reversal or refund points to the original), `Receipt` (gapless per section and year, from a locked counter), `VoucherSubmission`, `PaymentAttempt` (unique gateway reference).
+- **Results:** `GradingPolicy` (per programme), `MarkEntry`, `ResultStatus` (per class, subject, terminal: draft, under review, verified, published), `MarksCardSnapshot`, `RecheckRequest`.
+- **Year lifecycle:** rollover decisions, previous dues, Left and Graduated with zero dues.
+
+## Rules the database itself must enforce
+
+1. One enrollment per student per year.
+2. A closed year rejects writes.
+3. The ledger cannot be updated or deleted.
+4. The audit log cannot be updated or deleted.
+5. A SID is unique and cannot be changed.
+6. An approval cannot be decided by its requester, and only one can be pending per subject.
+7. A notification is unique per event, recipient and channel.
+8. An application's submission token is unique.
+9. Attendance is unique per enrollment per day.
+
+**If the database is PostgreSQL,** rules 3 to 5 use triggers, and rule 4 also uses privileges so the application account can only insert. **If it is Cloudflare D1 (SQLite),** there are no database accounts, so rules 3 to 5 rely on triggers alone and on the application never running schema changes. That is a weaker guarantee, and it is one of the things the hosting test must weigh.
