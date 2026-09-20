@@ -7,7 +7,7 @@ Read at the start of every session:
 
 If this file and `DECISIONS.md` disagree, stop and ask.
 
-**Current phase: Phase 1 (Platform foundation), slices 1 to 5 done** (dates, schema and audit, sign-in, permissions, configuration and packs); slices 6 to 8 remain. Phase 0 is complete: the backend is a Cloudflare Worker (D-019 to D-021), documented in `docs/architecture.md`. Update this line when a phase closes.
+**Current phase: Phase 1 (Platform foundation), slices 1 to 6 done** (dates, schema and audit, sign-in, permissions, configuration and packs, design system and shell); slices 7 and 8 remain. Phase 0 is complete: the backend is a Cloudflare Worker (D-019 to D-021), documented in `docs/architecture.md`. Update this line when a phase closes.
 
 ## 1. What we are building
 
@@ -151,7 +151,7 @@ A role assignment carries a **scope**: the whole institution, or one section (+2
 - Important operations are idempotent (idempotency keys), transactional and have defined failure states. Ask: "What if the server finishes but the user never gets the response?"
 - Notifications: one record per event, recipient and channel with a unique key, sent from a background job with retry. SMS only for 2FA codes, account approved, fee overdue and results published. Absence alerts are in-app only, with a per-event switch. Keep SMS templates very short.
 - All UI text goes through a **translation catalog**. Do not build the Nepali toggle yet.
-- UI is built from theme tokens only. **No hardcoded colours or fonts.** Host fonts ourselves. Mobile-first, low page weight, readable contrast, visible keyboard focus. Animate transform and opacity only, and respect reduced motion.
+- UI is built from theme tokens only. **No hardcoded colours or fonts** (a web test fails the build if one appears; see D-028). Words live in `apps/web/src/i18n/messages.ts`, never in components. Host fonts ourselves. Mobile-first, low page weight, readable contrast, visible keyboard focus. Animate transform and opacity only, and respect reduced motion.
 
 **Testing (required before a slice is done)**
 - Tests **before** code for the ledger, discounts, reversals, refunds, grading, year locks and approvals. Use property-based tests for ledger invariants.

@@ -11,6 +11,7 @@
     "gen:openapi": "tsx scripts/generate-openapi.ts",
     "gen:permissions": "tsx scripts/generate-permission-doc.ts",
     "provision": "tsx scripts/provision.ts",
+    "dev:user": "tsx scripts/create-user.ts",
     "db:migrate:local": "wrangler d1 migrations apply school_dev --local"
   },
   "dependencies": {

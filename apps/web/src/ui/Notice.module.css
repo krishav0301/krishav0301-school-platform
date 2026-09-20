@@ -1,0 +1,29 @@
+.notice {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  padding: var(--space-3) var(--space-4);
+  border-left: 4px solid currentColor;
+  border-radius: var(--radius-control);
+}
+
+.title {
+  font-weight: var(--weight-bold);
+}
+
+.neutral {
+  background: var(--color-surface);
+  color: var(--color-text);
+  border-left-color: var(--color-text-muted);
+  outline: 1px solid var(--color-border);
+}
+
+.ok {
+  background: var(--color-ok-soft);
+  color: var(--color-ok);
+}
+
+.bad {
+  background: var(--color-bad-soft);
+  color: var(--color-bad);
+}

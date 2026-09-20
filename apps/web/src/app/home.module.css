@@ -1,0 +1,33 @@
+.hero {
+  gap: var(--space-5);
+  padding: var(--space-6) var(--space-5);
+}
+
+.title {
+  font-size: var(--text-2xl);
+}
+
+.intro {
+  max-width: 40rem;
+  color: var(--color-text-muted);
+  font-size: var(--text-lg);
+}
+
+.sections {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+@media (min-width: 48rem) {
+  .hero {
+    padding: var(--space-8) var(--space-7);
+  }
+
+  .title {
+    font-size: var(--text-3xl);
+  }
+}

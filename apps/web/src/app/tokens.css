@@ -1,0 +1,44 @@
+/*
+ * Design tokens that are the same for every school: spacing, type, motion, elevation.
+ * A school's own tokens (colours, font, corner radii) come from its theme (src/theme/css.ts).
+ * No colour is written here; shadows and tints are mixed from theme colours.
+ */
+:root {
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.5rem;
+  --space-6: 2rem;
+  --space-7: 3rem;
+  --space-8: 4rem;
+
+  --text-sm: 0.875rem;
+  --text-base: 1rem;
+  --text-lg: 1.125rem;
+  --text-xl: 1.375rem;
+  --text-2xl: 1.75rem;
+  --text-3xl: 2.25rem;
+  --leading-tight: 1.25;
+  --leading-normal: 1.5;
+  --weight-regular: 400;
+  --weight-medium: 500;
+  --weight-bold: 650;
+
+  --control-height: 2.75rem; /* 44px: the smallest comfortable touch target */
+  --content-width: 72rem;
+  --page-gutter: var(--space-4);
+
+  --shadow-card: 0 1px 2px color-mix(in srgb, var(--color-text) 8%, transparent),
+    0 8px 24px color-mix(in srgb, var(--color-text) 6%, transparent);
+  --focus-ring: 3px solid var(--color-primary);
+
+  --motion-fast: 120ms;
+  --motion-ease: cubic-bezier(0.2, 0, 0, 1);
+}
+
+@media (min-width: 48rem) {
+  :root {
+    --page-gutter: var(--space-6);
+  }
+}

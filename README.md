@@ -23,13 +23,16 @@ cd apps/web && npm install && npm run build      # builds the static app into ap
 cd ../api && npm install && npm run dev          # serves app and API at http://localhost:8787
 ```
 
-Before the first run, create the local database tables and the local secret:
+Before the first run, set up the local secrets, then create the school's database from its pack and a sign-in for yourself:
 
 ```bash
 cd apps/api
-cp .dev.vars.example .dev.vars      # then set AUDIT_HMAC_KEY to a long random string
-npm run db:migrate:local
+cp .dev.vars.example .dev.vars      # then set AUDIT_HMAC_KEY and SESSION_SECRET to long random strings
+npm run provision -- --pack ../../packs/royal-softech --local     # migrations + the school's pack
+USER_PASSWORD='a long passphrase' npm run dev:user -- --email you@school.example --name "Your Name" --role coordinator
 ```
+
+Applying a different pack (`packs/sample-basic-school`) to the same local database swaps the school's name, wording, modules and theme, which is a quick way to see that one build serves any school. `/design` shows every component in the current theme.
 
 For fast front-end work with hot reload, run `npm run dev` in `apps/web` as well and open http://localhost:3000. It forwards `/api/*` to the Worker on port 8787.
 
@@ -37,7 +40,8 @@ For fast front-end work with hot reload, run `npm run dev` in `apps/web` as well
 
 ```bash
 cd apps/api && npm run typecheck && npm run lint && npm test
-cd apps/web && npm run typecheck && npm run lint && npm run build
+cd apps/web && npm run typecheck && npm run lint && npm test && npm run build
+node scripts/check-boundaries.mjs        # from the repo root
 ```
 
 After changing an API route, regenerate the contract and the typed client:
@@ -56,7 +60,7 @@ Each school is one Worker and one D1 database in a Cloudflare account. Account a
 ## Conventions
 
 - API routes have no trailing slash. `/api/health/` is a 404.
-- Every API route is declared through `defineRoute` and states its permission action or `public: true`. A route that does not is caught by a test. Until the permission layer exists, every non-public route is denied.
+- Every API route is declared through `defineRoute` and states its permission action or `public: true`. A route that does not is caught by a test. The permission matrix decides who may call it (`docs/permission-matrix.md`).
 - One database round trip per request. Atomic changes are one `batch()`.
 - Requests that change data must be same-origin.
 - The core never names a school. School-specific behaviour lives in `packs/` (see `CLAUDE.md` section 2).

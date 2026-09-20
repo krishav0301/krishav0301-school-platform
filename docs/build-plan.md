@@ -65,7 +65,7 @@ Total to Royal live: about 66-91 working days, roughly 13-18 weeks. Release A is
 - [x] 3. Passwords (scrypt), sign-in, sign-out, refresh with theft detection, lockout and throttling, sign-in log (D-024). Password reset comes with slice 7
 - [x] 4. Permission layer: matrix in code with the document generated from it, deny by default (401/403), grants for handlers, tests for every role and action under both scope settings, plus independent rules (D-025)
 - [x] 5. School configuration, theme with server-side contrast check, packs (Royal Softech, sample basic school), provisioning command, layer-boundary check in CI (D-026, D-027)
-- [ ] 6. Design system and app shell (tokens, components, theme swap, second-theme test)
+- [x] 6. Design system and app shell: tokens from the theme, components, portal and public shells, sign-in page, session renewal, live theme swap, rules enforced by tests (D-028)
 - [ ] 7. 2FA (authenticator app), password reset, notifications and jobs
 - [ ] 8. Exit check: every role signs in; wrong role or section is denied; live theme swap; both packs boot; staged
 - **Chassis:** module skeleton, API conventions (idempotency keys, one error format), OpenAPI to typed TypeScript client, CI gates (lint, types, import boundaries, every route declares a permission).

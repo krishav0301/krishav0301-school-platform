@@ -49,14 +49,21 @@ jobs:
         with:
           node-version: 24
           cache: npm
-          cache-dependency-path: apps/web/package-lock.json
+          cache-dependency-path: |
+            apps/web/package-lock.json
+            apps/api/package-lock.json
       - run: npm ci
+      # The web tests check our built-in theme against the API's own readability rules, and typechecking
+      # sees those imports, so the API's packages must be installed too.
+      - run: npm ci
+        working-directory: apps/api
       - name: The generated API types are current
         run: |
           npm run gen:api
           git diff --exit-code src/api/schema.d.ts
       - run: npm run typecheck
       - run: npm run lint
+      - run: npm test
       - run: npm run build
 
   bundle:

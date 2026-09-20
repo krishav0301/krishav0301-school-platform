@@ -1,59 +1,47 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import Link from "next/link";
 
-import { createApiClient } from "@/api/client";
+import { ConfigGate } from "@/config/ConfigGate";
+import { useConfig } from "@/config/ConfigProvider";
+import { t } from "@/i18n/messages";
+import { PublicShell } from "@/shell/PublicShell";
+import { Badge, Card, buttonClass } from "@/ui";
 
-import styles from "./page.module.css";
+import styles from "./home.module.css";
 
-type Status = "ok" | "down" | "unreachable" | "checking";
+// A placeholder home page. The real public website is Phase 2; this proves the school's name,
+// sections and theme reach the page from its configuration.
+function Welcome() {
+  const { config } = useConfig();
+  if (!config) return null;
 
-async function checkApi(): Promise<{ api: Status; database: Status }> {
-  try {
-    const { data, error } = await createApiClient().GET("/api/health");
-    const body = data ?? error;
-    if (!body) return { api: "unreachable", database: "unreachable" };
-    return { api: "ok", database: body.database };
-  } catch {
-    return { api: "unreachable", database: "unreachable" };
-  }
-}
-
-function Pill({ value }: { value: Status }) {
-  const tone = value === "ok" ? styles.ok : value === "checking" ? styles.pending : styles.bad;
-  return <span className={`${styles.pill} ${tone}`}>{value}</span>;
+  return (
+    <Card className={styles.hero}>
+      <h1 className={styles.title}>{t("home.welcome", { school: config.school.name })}</h1>
+      <p className={styles.intro}>{t("home.intro")}</p>
+      <ul className={styles.sections}>
+        {config.sections.map((section) => (
+          <li key={section.key}>
+            <Badge tone="primary">{section.name}</Badge>
+          </li>
+        ))}
+      </ul>
+      <div>
+        <Link href="/sign-in" className={buttonClass()}>
+          {t("shell.signIn")}
+        </Link>
+      </div>
+    </Card>
+  );
 }
 
 export default function Home() {
-  const [state, setState] = useState<{ api: Status; database: Status }>({
-    api: "checking",
-    database: "checking",
-  });
-
-  useEffect(() => {
-    let active = true;
-    checkApi().then((result) => {
-      if (active) setState(result);
-    });
-    return () => {
-      active = false;
-    };
-  }, []);
-
   return (
-    <main className={styles.page}>
-      <section className={styles.card}>
-        <h1 className={styles.title}>School Platform</h1>
-        <p className={styles.subtitle}>Foundation check</p>
-        <div className={styles.row}>
-          <span>API</span>
-          <Pill value={state.api} />
-        </div>
-        <div className={styles.row}>
-          <span>Database</span>
-          <Pill value={state.database} />
-        </div>
-      </section>
-    </main>
+    <PublicShell>
+      <ConfigGate>
+        <Welcome />
+      </ConfigGate>
+    </PublicShell>
   );
 }

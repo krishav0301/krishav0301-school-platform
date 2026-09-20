@@ -1,0 +1,25 @@
+.title {
+  font-size: var(--text-2xl);
+}
+
+.heading {
+  font-size: var(--text-lg);
+}
+
+.roles {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.scope {
+  margin-inline-start: var(--space-2);
+  color: var(--color-text-muted);
+}
+
+.note {
+  color: var(--color-text-muted);
+}
