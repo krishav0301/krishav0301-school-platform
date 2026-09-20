@@ -7,7 +7,7 @@ Read at the start of every session:
 
 If this file and `DECISIONS.md` disagree, stop and ask.
 
-**Current phase: Phase 1 (Platform foundation), not started.** Phase 0 is complete: the backend is a Cloudflare Worker (D-019 to D-021), documented in `docs/architecture.md`. Update this line when a phase closes.
+**Current phase: Phase 1 (Platform foundation), slices 1 to 5 done** (dates, schema and audit, sign-in, permissions, configuration and packs); slices 6 to 8 remain. Phase 0 is complete: the backend is a Cloudflare Worker (D-019 to D-021), documented in `docs/architecture.md`. Update this line when a phase closes.
 
 ## 1. What we are building
 
@@ -29,6 +29,8 @@ Rules, enforced in CI:
 5. **Second-school test.** `packs/sample-basic-school` (Nursery to Grade 10, percentage grading, monthly fees, a different theme) runs every flow in CI beside Royal Softech.
 6. Portal layout is identical for every school. Slots may add dashboard cards, profile tabs and menu items. Only the public site has layout variants (2 or 3).
 7. Two requests for the same extension: promote it to the core.
+8. A school is a **pack** (`packs/<school>/pack.json`), applied with `npm run provision`. Packs only add and update, never delete, and are safe to repeat. Only known optional modules and known terms can be changed; mandatory modules cannot be switched off. A theme must pass the contrast check (server-side) before it is saved (D-026).
+9. `scripts/check-boundaries.mjs` (CI) enforces rule 1 and that modules do not reach into each other. A route's permission is checked before its body is validated (D-027).
 
 Extension points, version 1: policies (grading, ranking and tie-break, student-ID format, fee billing schedule, promotion, admission rules, attendance rules, approval policy), adapters (payment gateway, SMS, email, file storage), documents (marks card, receipt, certificate, ID card), data and UI (custom fields on Student, Application, Staff; slots), events (after-commit domain events). Some rules stay fixed in the core, such as refunds and reversals always needing Admin approval.
 

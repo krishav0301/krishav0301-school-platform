@@ -4,6 +4,7 @@ import { environmentGuard } from "./core/environment";
 import { sameOriginOnly } from "./core/same-origin";
 import type { AppEnv } from "./core/types";
 import { registerAuth } from "./modules/auth/routes";
+import { registerConfig } from "./modules/config/routes";
 import { registerHealth } from "./modules/health/routes";
 
 /**
@@ -18,6 +19,7 @@ export function createApp() {
 
   registerHealth(app);
   registerAuth(app);
+  registerConfig(app);
 
   return app;
 }

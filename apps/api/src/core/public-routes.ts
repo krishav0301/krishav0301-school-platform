@@ -6,6 +6,9 @@
 /** Open to anonymous users. */
 export const PUBLIC_ROUTES: ReadonlySet<string> = new Set([
   "GET /api/health",
+  // The school's name, wording and theme. The web app needs it before anyone signs in, and it is
+  // the same for every visitor. Nothing private is in it.
+  "GET /api/config/public",
   // Sign-in and the session endpoints identify the caller themselves (credentials or the
   // refresh cookie), and are rate-limited and locked out (see modules/auth).
   "POST /api/auth/sign-in",

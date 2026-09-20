@@ -23,6 +23,8 @@ jobs:
           cache-dependency-path: apps/api/package-lock.json
       - name: No tracked file starts with a byte-order mark
         run: node ../../scripts/check-no-bom.mjs
+      - name: Layer boundaries hold (core, modules, packs)
+        run: node ../../scripts/check-boundaries.mjs
       - run: npm ci
       - run: npm run typecheck
       - run: npm run lint

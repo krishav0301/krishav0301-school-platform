@@ -1,0 +1,50 @@
+import { ThemeSchema, type Theme } from "../theme";
+import { resolveModules } from "./modules";
+import { resolveTerms, type TermKey } from "./terminology";
+
+/** What the web app needs to draw itself for this school. Public, and the same for every visitor. */
+export interface PublicConfig {
+  school: { name: string; shortName: string; currency: string; timezone: string; region: string; template: string | null };
+  sections: { key: string; name: string }[];
+  modules: Record<string, boolean>;
+  terms: Record<TermKey, string>;
+  theme: Theme | null;
+}
+
+/**
+ * The school's configuration, or null if it has not been provisioned. All five reads go in one
+ * batch, so this is a single database round trip.
+ */
+export async function loadConfig(db: D1Database): Promise<PublicConfig | null> {
+  const [school, sections, switches, terms, theme] = await db.batch([
+    db.prepare("SELECT name, short_name, currency, timezone, region_pack, template_key FROM school WHERE id = 1"),
+    db.prepare("SELECT key, name FROM sections ORDER BY ordering, id"),
+    db.prepare("SELECT key, enabled FROM module_switches"),
+    db.prepare("SELECT key, text FROM terminology"),
+    db.prepare("SELECT tokens_json FROM themes WHERE is_active = 1"),
+  ]);
+
+  const row = school!.results[0] as
+    | { name: string; short_name: string; currency: string; timezone: string; region_pack: string; template_key: string | null }
+    | undefined;
+  if (!row) return null;
+
+  const switchMap = Object.fromEntries((switches!.results as unknown as { key: string; enabled: number }[]).map((s) => [s.key, s.enabled === 1]));
+  const termMap = Object.fromEntries((terms!.results as unknown as { key: string; text: string }[]).map((t) => [t.key, t.text]));
+
+  let parsedTheme: Theme | null = null;
+  const tokens = (theme!.results[0] as { tokens_json: string } | undefined)?.tokens_json;
+  if (tokens) {
+    // A stored theme that no longer parses is ignored rather than breaking every page.
+    const parsed = ThemeSchema.safeParse(JSON.parse(tokens));
+    parsedTheme = parsed.success ? parsed.data : null;
+  }
+
+  return {
+    school: { name: row.name, shortName: row.short_name, currency: row.currency, timezone: row.timezone, region: row.region_pack, template: row.template_key },
+    sections: sections!.results as unknown as { key: string; name: string }[],
+    modules: resolveModules(switchMap),
+    terms: resolveTerms(termMap),
+    theme: parsedTheme,
+  };
+}

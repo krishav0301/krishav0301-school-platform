@@ -119,6 +119,270 @@
           "email",
           "password"
         ]
+      },
+      "PublicConfig": {
+        "type": "object",
+        "properties": {
+          "school": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "shortName": {
+                "type": "string"
+              },
+              "currency": {
+                "type": "string"
+              },
+              "timezone": {
+                "type": "string"
+              },
+              "region": {
+                "type": "string"
+              },
+              "template": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            },
+            "required": [
+              "name",
+              "shortName",
+              "currency",
+              "timezone",
+              "region",
+              "template"
+            ]
+          },
+          "sections": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "key": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "key",
+                "name"
+              ]
+            }
+          },
+          "modules": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "boolean"
+            }
+          },
+          "terms": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            }
+          },
+          "theme": {
+            "$ref": "#/components/schemas/Theme"
+          }
+        },
+        "required": [
+          "school",
+          "sections",
+          "modules",
+          "terms",
+          "theme"
+        ]
+      },
+      "Theme": {
+        "type": [
+          "object",
+          "null"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 60
+          },
+          "font": {
+            "type": "string",
+            "enum": [
+              "system",
+              "inter",
+              "noto-sans"
+            ]
+          },
+          "shape": {
+            "type": "object",
+            "properties": {
+              "radiusCard": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 32
+              },
+              "radiusControl": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 24
+              }
+            },
+            "required": [
+              "radiusCard",
+              "radiusControl"
+            ],
+            "additionalProperties": false
+          },
+          "light": {
+            "type": "object",
+            "properties": {
+              "background": {
+                "type": "string",
+                "pattern": "^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$"
+              },
+              "surface": {
+                "type": "string",
+                "pattern": "^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$"
+              },
+              "text": {
+                "type": "string",
+                "pattern": "^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$"
+              },
+              "textMuted": {
+                "type": "string",
+                "pattern": "^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$"
+              },
+              "border": {
+                "type": "string",
+                "pattern": "^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$"
+              },
+              "primary": {
+                "type": "string",
+                "pattern": "^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$"
+              },
+              "primaryText": {
+                "type": "string",
+                "pattern": "^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$"
+              },
+              "ok": {
+                "type": "string",
+                "pattern": "^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$"
+              },
+              "okSoft": {
+                "type": "string",
+                "pattern": "^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$"
+              },
+              "bad": {
+                "type": "string",
+                "pattern": "^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$"
+              },
+              "badSoft": {
+                "type": "string",
+                "pattern": "^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$"
+              }
+            },
+            "required": [
+              "background",
+              "surface",
+              "text",
+              "textMuted",
+              "border",
+              "primary",
+              "primaryText",
+              "ok",
+              "okSoft",
+              "bad",
+              "badSoft"
+            ],
+            "additionalProperties": false
+          },
+          "dark": {
+            "type": "object",
+            "properties": {
+              "background": {
+                "type": "string",
+                "pattern": "^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$"
+              },
+              "surface": {
+                "type": "string",
+                "pattern": "^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$"
+              },
+              "text": {
+                "type": "string",
+                "pattern": "^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$"
+              },
+              "textMuted": {
+                "type": "string",
+                "pattern": "^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$"
+              },
+              "border": {
+                "type": "string",
+                "pattern": "^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$"
+              },
+              "primary": {
+                "type": "string",
+                "pattern": "^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$"
+              },
+              "primaryText": {
+                "type": "string",
+                "pattern": "^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$"
+              },
+              "ok": {
+                "type": "string",
+                "pattern": "^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$"
+              },
+              "okSoft": {
+                "type": "string",
+                "pattern": "^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$"
+              },
+              "bad": {
+                "type": "string",
+                "pattern": "^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$"
+              },
+              "badSoft": {
+                "type": "string",
+                "pattern": "^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$"
+              }
+            },
+            "required": [
+              "background",
+              "surface",
+              "text",
+              "textMuted",
+              "border",
+              "primary",
+              "primaryText",
+              "ok",
+              "okSoft",
+              "bad",
+              "badSoft"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "name",
+          "font",
+          "shape",
+          "light"
+        ],
+        "additionalProperties": false
+      },
+      "ConfigError": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "error"
+        ]
       }
     },
     "parameters": {}
@@ -290,6 +554,132 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/config/public": {
+      "get": {
+        "operationId": "public_config",
+        "tags": [
+          "config"
+        ],
+        "description": "What the web app needs to draw itself for this school: name, sections, wording, modules, theme.",
+        "responses": {
+          "200": {
+            "description": "The school's configuration",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicConfig"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "This school has not been set up yet",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConfigError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/config/theme": {
+      "put": {
+        "operationId": "save_theme",
+        "tags": [
+          "config"
+        ],
+        "description": "Replaces the school's theme. Refused unless every colour pair passes the readability check.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Theme"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Saved and active",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "theme": {
+                      "$ref": "#/components/schemas/Theme"
+                    }
+                  },
+                  "required": [
+                    "theme"
+                  ]
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "The theme is not readable. Nothing was saved.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "enum": [
+                        "contrast_check_failed"
+                      ]
+                    },
+                    "failures": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "mode": {
+                            "type": "string",
+                            "enum": [
+                              "light",
+                              "dark"
+                            ]
+                          },
+                          "rule": {
+                            "type": "string"
+                          },
+                          "label": {
+                            "type": "string"
+                          },
+                          "ratio": {
+                            "type": "number"
+                          },
+                          "minimum": {
+                            "type": "number"
+                          }
+                        },
+                        "required": [
+                          "mode",
+                          "rule",
+                          "label",
+                          "ratio",
+                          "minimum"
+                        ]
+                      }
+                    }
+                  },
+                  "required": [
+                    "error",
+                    "failures"
+                  ]
                 }
               }
             }

@@ -65,6 +65,26 @@ describe("audit chain: appending", () => {
     await expect(recordAudit(db, key, { ...event(9), actorUserId: 999_999_999 })).rejects.toThrow();
   });
 
+  it("can name the actor by public id, resolved in the same round trip as the chain head", async () => {
+    await db.prepare("INSERT INTO users (id, public_id, email, password_hash, full_name) VALUES (777, 'pub-actor-777', 'actor777@example.test', 'x', 'A')").run();
+    await recordAudit(db, key, { ...event(70), actorPublicId: "pub-actor-777" });
+
+    const row = await db.prepare("SELECT actor_user_id FROM audit_events WHERE entity_public_id = 'thing-70'").first<{ actor_user_id: number }>();
+    expect(row!.actor_user_id).toBe(777);
+    expect(await verifyAuditChain(db, key)).toMatchObject({ ok: true });
+  });
+
+  it("refuses an actor public id that does not exist, and saves neither the entry nor the change", async () => {
+    const before = await db.prepare("SELECT COUNT(*) AS n FROM audit_events").first<{ n: number }>();
+    await expect(
+      recordAudit(db, key, { ...event(71), actorPublicId: "nobody" }, [db.prepare("INSERT INTO sections (key, name) VALUES ('ghost-actor', 'x')")]),
+    ).rejects.toThrow(/actor that does not exist/);
+
+    const after = await db.prepare("SELECT COUNT(*) AS n FROM audit_events").first<{ n: number }>();
+    const section = await db.prepare("SELECT COUNT(*) AS n FROM sections WHERE key = 'ghost-actor'").first<{ n: number }>();
+    expect([after!.n, section!.n]).toEqual([before!.n, 0]);
+  });
+
   it("the chain head always points at the newest entry", async () => {
     const { hash } = await recordAudit(db, key, event(4));
     const head = await db.prepare("SELECT last_hash FROM audit_chain_head").first<{ last_hash: string }>();

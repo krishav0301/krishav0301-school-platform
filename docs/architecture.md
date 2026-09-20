@@ -59,7 +59,7 @@ Receipts and marks cards are HTML rendered by Browser Rendering. A class's marks
 
 ## Per school
 
-A school is one Worker and one D1 database in a Cloudflare account, plus a **pack**: `packs/<school>/` with its deployment config, theme, and configuration data (and, only if needed, extensions). The core is identical for every school. Deploy with `npx wrangler deploy --config <pack config>`. Ids for accounts and databases stay out of git.
+A school is one Worker and one D1 database in a Cloudflare account, plus a **pack**: `packs/<school>/` with its deployment config, theme, and configuration data (and, only if needed, extensions). The core is identical for every school. Deploy with `npx wrangler deploy --config <pack config>`. Ids for accounts and databases stay out of git. A pack is data only: `pack.json` holds the school, sections, optional-module switches, renamed words and theme; `npm run provision` applies it (D-026). The web app reads it at run time from `GET /api/config/public` and never has a school baked in.
 
 Extension points (D-008) are interfaces in `core/` with a default implementation and a contract test: policies (grading, ranking, student-ID format, fee schedule, promotion, admission rules), adapters (SMS, email, payment, storage), documents, custom fields, slots, events. The second-school fixture `packs/sample-basic-school` runs the same flows in CI.
 

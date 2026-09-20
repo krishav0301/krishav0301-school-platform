@@ -1,0 +1,36 @@
+{
+  "packVersion": 1,
+  "school": {
+    "name": "Sample Basic School",
+    "shortName": "Sample School",
+    "currency": "NPR",
+    "timezone": "Asia/Kathmandu",
+    "region": "nepal",
+    "template": "basic-school-nursery-to-10"
+  },
+  "sections": [{ "key": "school", "name": "School" }],
+  "modules": { "notes": false, "top20": false },
+  "terminology": {
+    "role.coordinator": "Vice Principal",
+    "role.student": "Pupil",
+    "term.terminal": "Exam"
+  },
+  "theme": {
+    "name": "Sample Basic School (test theme)",
+    "font": "noto-sans",
+    "shape": { "radiusCard": 4, "radiusControl": 2 },
+    "light": {
+      "background": "#fff7ed",
+      "surface": "#ffffff",
+      "text": "#431407",
+      "textMuted": "#7c2d12",
+      "border": "#fdba74",
+      "primary": "#c2410c",
+      "primaryText": "#ffffff",
+      "ok": "#166534",
+      "okSoft": "#dcfce7",
+      "bad": "#991b1b",
+      "badSoft": "#fee2e2"
+    }
+  }
+}

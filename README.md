@@ -7,7 +7,7 @@ A reusable school management platform and public website, first configured for R
 ```
 apps/api    Cloudflare Worker: the API (Hono, D1). It also serves the static web app
 apps/web    Next.js static export (public site and portals)
-packs/      One folder per school (added in Phase 1)
+packs/      One folder per school (`pack.json`: sections, modules, wording, theme)
 spikes/     Throwaway test code kept for reference
 docs/       Decisions, plan, data model, permission matrix, spikes, original requirement documents
 ```

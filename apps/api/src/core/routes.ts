@@ -1,5 +1,5 @@
 import { createRoute, type RouteConfig, type RouteHandler } from "@hono/zod-openapi";
-import type { Context } from "hono";
+import type { Context, MiddlewareHandler } from "hono";
 
 import { authorize, isKnownAction, type ActionId } from "./permissions";
 import { readAccessCookie } from "./session-cookies";
@@ -49,15 +49,9 @@ export function defineRoute<R extends RouteConfig>(
     throw new Error(`Route ${config.method.toUpperCase()} ${config.path} uses "${access.action}", which is not in the permission matrix.`);
   }
 
-  const route = createRoute(routeConfig as unknown as R);
-
-  const list = declared.get(app) ?? [];
-  list.push({ method: config.method.toUpperCase(), path: config.path, access });
-  declared.set(app, list);
-
-  // The wrapper checks access before the handler. Types are checked on `handler` above.
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  app.openapi(route, (async (c: any, next: any) => {
+  // Access is a middleware, so it runs BEFORE the body and query are validated: an outsider learns
+  // nothing about what a route expects, and always gets 401 or 403 rather than a 400.
+  const checkAccess: MiddlewareHandler<AppEnv> = async (c, next) => {
     if ("action" in access || "authenticated" in access) {
       const auth = await readAuth(c);
       const anonymousAction = "action" in access && authorize([], access.action)?.anonymous === true;
@@ -71,7 +65,14 @@ export function defineRoute<R extends RouteConfig>(
         c.set("grant", grant);
       }
     }
-    return handler(c, next);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  }) as any);
+    await next();
+  };
+
+  const route = createRoute({ ...routeConfig, middleware: checkAccess } as unknown as R);
+
+  const list = declared.get(app) ?? [];
+  list.push({ method: config.method.toUpperCase(), path: config.path, access });
+  declared.set(app, list);
+
+  app.openapi(route, handler);
 }

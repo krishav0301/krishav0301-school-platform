@@ -1,6 +1,11 @@
 import { GENESIS_HASH, hashEvent, toStored, type AuditFields } from "./chain";
 
-export type AuditEventInput = Omit<AuditFields, "at">;
+/**
+ * What to record. Name the actor by `actorUserId` (the integer) or, more conveniently, by
+ * `actorPublicId` (what the signed-in session knows). The public id is looked up in the same
+ * round trip that reads the chain head, so it costs nothing extra.
+ */
+export type AuditEventInput = Omit<AuditFields, "at"> & { actorPublicId?: string };
 
 const MAX_ATTEMPTS = 40;
 const CONTENTION = /audit chain moved|UNIQUE constraint failed: audit_events\.(prev_hash|hash)/;
@@ -16,7 +21,8 @@ const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
  * new head. Pass `businessStatements` unchanged on every attempt; they were rolled back, so
  * running them again is safe.
  *
- * Cost: one read of the chain head, then one batch: two round trips.
+ * Cost: one read of the chain head (and the actor, if named by public id), then one batch: two
+ * round trips.
  */
 export async function recordAudit(
   db: D1Database,
@@ -24,10 +30,22 @@ export async function recordAudit(
   event: AuditEventInput,
   businessStatements: D1PreparedStatement[] = [],
 ): Promise<{ hash: string }> {
+  const { actorPublicId, ...rest } = event;
+
   for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
-    const head = await db.prepare("SELECT last_hash FROM audit_chain_head WHERE id = 1").first<{ last_hash: string }>();
-    const prevHash = head?.last_hash ?? GENESIS_HASH;
-    const fields: AuditFields = { ...event, at: new Date().toISOString() };
+    const reads = [db.prepare("SELECT last_hash FROM audit_chain_head WHERE id = 1")];
+    if (actorPublicId) reads.push(db.prepare("SELECT id FROM users WHERE public_id = ?1").bind(actorPublicId));
+    const [headResult, actorResult] = await db.batch(reads);
+
+    const prevHash = (headResult!.results[0] as { last_hash: string } | undefined)?.last_hash ?? GENESIS_HASH;
+    let actorUserId = rest.actorUserId ?? null;
+    if (actorPublicId) {
+      const found = (actorResult!.results[0] as { id: number } | undefined)?.id;
+      if (found === undefined) throw new Error("Cannot record an audit entry for an actor that does not exist.");
+      actorUserId = found;
+    }
+
+    const fields: AuditFields = { ...rest, actorUserId, at: new Date().toISOString() };
     const stored = toStored(fields);
     const hash = await hashEvent(key, prevHash, fields);
 

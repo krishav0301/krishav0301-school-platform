@@ -75,12 +75,13 @@ export function needsRehash(stored: string): boolean {
 
 export type PasswordProblem = "too_short" | "too_long" | "common" | "contains_email";
 
-// A small list of the passwords people choose most. `OPEN:` a fuller breached-password check.
+// A small list of the passwords people choose most. It names no school (D-008); `OPEN:` also refuse
+// passwords built from the school's own name (read from configuration), and a fuller breached-password check.
 const COMMON = new Set([
   "password", "password1", "password12", "password123", "password1234", "passw0rd123", "12345678",
   "123456789", "1234567890", "12345678910", "qwertyuiop", "qwerty12345", "1q2w3e4r5t", "iloveyou12",
   "admin12345", "admin123456", "welcome123", "letmein123", "changeme123", "nepal12345", "nepal123456",
-  "kathmandu123", "lahan12345", "royalsoftech", "school12345", "student1234", "teacher1234",
+  "kathmandu123", "school12345", "student1234", "teacher1234",
   "abcdefghij", "abc1234567", "0123456789",
 ]);
 

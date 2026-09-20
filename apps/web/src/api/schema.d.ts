@@ -89,6 +89,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/config/public": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description What the web app needs to draw itself for this school: name, sections, wording, modules, theme. */
+        get: operations["public_config"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/config/theme": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** @description Replaces the school's theme. Refused unless every colour pair passes the readability check. */
+        put: operations["save_theme"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -120,6 +154,65 @@ export interface components {
         SignInBody: {
             email: string;
             password: string;
+        };
+        PublicConfig: {
+            school: {
+                name: string;
+                shortName: string;
+                currency: string;
+                timezone: string;
+                region: string;
+                template: string | null;
+            };
+            sections: {
+                key: string;
+                name: string;
+            }[];
+            modules: {
+                [key: string]: boolean;
+            };
+            terms: {
+                [key: string]: string;
+            };
+            theme: components["schemas"]["Theme"];
+        };
+        Theme: {
+            name: string;
+            /** @enum {string} */
+            font: "system" | "inter" | "noto-sans";
+            shape: {
+                radiusCard: number;
+                radiusControl: number;
+            };
+            light: {
+                background: string;
+                surface: string;
+                text: string;
+                textMuted: string;
+                border: string;
+                primary: string;
+                primaryText: string;
+                ok: string;
+                okSoft: string;
+                bad: string;
+                badSoft: string;
+            };
+            dark?: {
+                background: string;
+                surface: string;
+                text: string;
+                textMuted: string;
+                border: string;
+                primary: string;
+                primaryText: string;
+                ok: string;
+                okSoft: string;
+                bad: string;
+                badSoft: string;
+            };
+        } | null;
+        ConfigError: {
+            error: string;
         };
     };
     responses: never;
@@ -276,6 +369,81 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    public_config: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The school's configuration */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublicConfig"];
+                };
+            };
+            /** @description This school has not been set up yet */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConfigError"];
+                };
+            };
+        };
+    };
+    save_theme: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["Theme"];
+            };
+        };
+        responses: {
+            /** @description Saved and active */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        theme: components["schemas"]["Theme"];
+                    };
+                };
+            };
+            /** @description The theme is not readable. Nothing was saved. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        error: "contrast_check_failed";
+                        failures: {
+                            /** @enum {string} */
+                            mode: "light" | "dark";
+                            rule: string;
+                            label: string;
+                            ratio: number;
+                            minimum: number;
+                        }[];
+                    };
                 };
             };
         };
