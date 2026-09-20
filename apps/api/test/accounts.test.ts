@@ -104,3 +104,19 @@ describe("creating an account", () => {
     expect(audit!.actor_user_id).toBe(adminRow!.id);
   });
 });
+
+describe("createUser and the school's name", () => {
+  it("refuses a password built around a word the caller says to avoid, and creates nothing", async () => {
+    const before = (await env.DB.prepare("SELECT COUNT(*) AS n FROM users").first<{ n: number }>())!.n;
+    await expect(
+      createUser(env.DB, env.AUDIT_HMAC_KEY, {
+        email: "name-word@school.example",
+        password: "Royal-2083-lamp-xyz",
+        fullName: "X",
+        roles: [{ role: "student", scope: "own" }],
+        avoidWords: ["royal", "softech"],
+      }),
+    ).rejects.toMatchObject({ problems: ["contains_school_name"] });
+    expect((await env.DB.prepare("SELECT COUNT(*) AS n FROM users").first<{ n: number }>())!.n).toBe(before);
+  });
+});

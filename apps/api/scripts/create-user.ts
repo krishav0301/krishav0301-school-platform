@@ -1,6 +1,7 @@
 import { getPlatformProxy } from "wrangler";
 
 import { createUser, WeakPasswordError, type RoleInput } from "../src/modules/accounts/service";
+import { schoolNameWords } from "../src/core/passwords";
 import { ROLES, SCOPES, type Role, type Scope } from "../src/core/roles";
 
 /**
@@ -47,7 +48,10 @@ async function main() {
 
   const { env, dispose } = await getPlatformProxy<{ DB: D1Database; AUDIT_HMAC_KEY: string }>({ configPath: "wrangler.jsonc" });
   try {
-    const { publicId } = await createUser(env.DB, env.AUDIT_HMAC_KEY, { email, password, fullName: name, roles: [assignment] });
+    // A password built from the school's own name is refused, like on the sign-up and reset screens.
+    const school = await env.DB.prepare("SELECT name, short_name FROM school WHERE id = 1").first<{ name: string; short_name: string }>();
+    const avoidWords = school ? schoolNameWords([school.name, school.short_name]) : [];
+    const { publicId } = await createUser(env.DB, env.AUDIT_HMAC_KEY, { email, password, fullName: name, roles: [assignment], avoidWords });
     console.warn(`Created ${role} ${email} (${publicId}) in the local database.`);
   } finally {
     await dispose();

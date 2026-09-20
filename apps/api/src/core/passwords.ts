@@ -73,10 +73,10 @@ export function needsRehash(stored: string): boolean {
   return !parsed || parsed.n < N || parsed.r < R || parsed.p < P;
 }
 
-export type PasswordProblem = "too_short" | "too_long" | "common" | "contains_email";
+export type PasswordProblem = "too_short" | "too_long" | "common" | "contains_email" | "contains_school_name";
 
-// A small list of the passwords people choose most. It names no school (D-008); `OPEN:` also refuse
-// passwords built from the school's own name (read from configuration), and a fuller breached-password check.
+// A small list of the passwords people choose most. It names no school (D-008): a school's own name is
+// refused separately, from its configuration (`schoolNameWords`). `OPEN:` a fuller breached-password check.
 const COMMON = new Set([
   "password", "password1", "password12", "password123", "password1234", "passw0rd123", "12345678",
   "123456789", "1234567890", "12345678910", "qwertyuiop", "qwerty12345", "1q2w3e4r5t", "iloveyou12",
@@ -85,8 +85,25 @@ const COMMON = new Set([
   "abcdefghij", "abc1234567", "0123456789",
 ]);
 
-/** Empty means the password is acceptable. Length counts characters, not bytes. */
-export function passwordProblems(password: string, email?: string): PasswordProblem[] {
+// Words too common in school names to say anything about a particular school.
+const GENERIC_SCHOOL_WORDS = new Set(["school", "college", "campus", "institute", "academy", "higher", "secondary", "public", "boarding", "english", "national", "international", "memorial"]);
+
+/** The distinctive words in a school's names: lower case, at least 4 letters, not a generic school word. */
+export function schoolNameWords(names: readonly string[]): string[] {
+  const words = new Set<string>();
+  for (const name of names) {
+    for (const word of name.toLowerCase().split(/[^\p{L}\p{N}]+/u)) {
+      if ([...word].length >= 4 && !GENERIC_SCHOOL_WORDS.has(word)) words.add(word);
+    }
+  }
+  return [...words];
+}
+
+/**
+ * Empty means the password is acceptable. Length counts characters, not bytes. `avoidWords` are
+ * words the password must not contain, such as the school's name (`schoolNameWords`).
+ */
+export function passwordProblems(password: string, email?: string, avoidWords: readonly string[] = []): PasswordProblem[] {
   const text = normalise(password);
   const length = [...text].length;
   const problems: PasswordProblem[] = [];
@@ -97,6 +114,10 @@ export function passwordProblems(password: string, email?: string): PasswordProb
 
   const localPart = email?.split("@")[0]?.toLowerCase();
   if (localPart && localPart.length >= 4 && text.toLowerCase().includes(localPart)) problems.push("contains_email");
+
+  // Punctuation and spaces are ignored, so "s.p.r.i.n.g" and "Spring Field" are both caught for a school with those words.
+  const squashed = text.toLowerCase().replace(/[^\p{L}\p{N}]+/gu, "");
+  if (avoidWords.some((word) => word.length > 0 && squashed.includes(word))) problems.push("contains_school_name");
 
   return problems;
 }

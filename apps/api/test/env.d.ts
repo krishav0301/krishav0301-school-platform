@@ -8,6 +8,10 @@ declare namespace Cloudflare {
     AUDIT_HMAC_KEY: string;
     /** Test-only key for signing access tokens. Real deployments use a secret. */
     SESSION_SECRET: string;
+    /** Test-only key for sealing stored secrets. Real deployments use a secret. */
+    DATA_KEY: string;
+    EMAIL_ADAPTER?: string;
+    SITE_ORIGIN?: string;
     /** The real migrations, applied to both test databases before each test file. */
     TEST_MIGRATIONS: import("@cloudflare/vitest-pool-workers").D1Migration[];
   }

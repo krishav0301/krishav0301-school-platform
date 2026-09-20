@@ -21,6 +21,8 @@ export interface NewUser {
   roles: RoleInput[];
   /** Who is creating this account, for the audit trail. */
   actorUserId?: number;
+  /** Words the password must not contain, such as the school's name (see `schoolNameWords`). */
+  avoidWords?: readonly string[];
 }
 
 export class WeakPasswordError extends Error {
@@ -39,7 +41,7 @@ export const normaliseEmail = (email: string): string => email.trim().toLowerCas
  */
 export async function createUser(db: D1Database, auditKey: string, input: NewUser): Promise<{ publicId: string }> {
   const email = normaliseEmail(input.email);
-  const problems = passwordProblems(input.password, email);
+  const problems = passwordProblems(input.password, email, input.avoidWords);
   if (problems.length > 0) throw new WeakPasswordError(problems);
 
   const publicId = newPublicId();

@@ -2,3 +2,4 @@
 # `wrangler secret put`, never in a file. Use a different long random value for each.
 AUDIT_HMAC_KEY=change-me-to-a-long-random-string
 SESSION_SECRET=change-me-to-a-different-long-random-string
+DATA_KEY=change-me-to-a-third-long-random-string

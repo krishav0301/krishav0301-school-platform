@@ -7,8 +7,11 @@
   "compatibility_flags": ["nodejs_compat"],
   "vars": {
     "ENVIRONMENT": "development",
-    "DEMO_MODE": "true"
+    "DEMO_MODE": "true",
+    "EMAIL_ADAPTER": "dev"
   },
+  // The retry sweep for the outbox. Requests deliver what they queue at once; this catches the rest.
+  "triggers": { "crons": ["*/5 * * * *"] },
   "assets": {
     "directory": "../web/out",
     "binding": "ASSETS",

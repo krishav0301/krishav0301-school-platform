@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { hashPassword, needsRehash, passwordProblems, verifyPassword } from "../src/core/passwords";
+import { hashPassword, needsRehash, passwordProblems, schoolNameWords, verifyPassword } from "../src/core/passwords";
 
 describe("hashing", () => {
   it("stores the algorithm and parameters with the hash", () => {
@@ -75,5 +75,30 @@ describe("password policy", () => {
   it("rejects a password that contains the person's email name", () => {
     expect(passwordProblems("ramesh.sharma-2083", "ramesh.sharma@example.test")).toContain("contains_email");
     expect(passwordProblems("blue-river-lamp-2083", "ramesh.sharma@example.test")).toEqual([]);
+  });
+});
+
+describe("the school's own name is not a password", () => {
+  it("picks the distinctive words of the school's names, dropping short and generic ones", () => {
+    expect(schoolNameWords(["Royal Softech College", "Royal Softech"])).toEqual(["royal", "softech"]);
+    expect(schoolNameWords(["Sample Basic School (test)"])).toEqual(["sample", "basic", "test"]);
+    expect(schoolNameWords(["A B College of Arts"])).toEqual(["arts"]); // 'college' is generic; 'of', 'a', 'b' are short
+    expect(schoolNameWords([])).toEqual([]);
+  });
+
+  it("refuses a password built around one of those words, in any case or with anything around it", () => {
+    for (const password of ["Royal-2083-lamp", "ILOVEROYALSOFTECH", "my softech pass99", "xxRoyalxx12345"]) {
+      expect(passwordProblems(password, undefined, ["royal", "softech"]), password).toContain("contains_school_name");
+    }
+  });
+
+  it("does not object to an unrelated password, or when no words are given", () => {
+    expect(passwordProblems("blue-river-lamp-2083", undefined, ["royal", "softech"])).toEqual([]);
+    expect(passwordProblems("Royal-2083-lamp")).not.toContain("contains_school_name");
+    expect(passwordProblems("Royal-2083-lamp", undefined, [])).not.toContain("contains_school_name");
+  });
+
+  it("sees the word through spaces and punctuation someone puts inside it", () => {
+    expect(passwordProblems("r.o.y.a.l is my school", undefined, ["royal"])).toContain("contains_school_name");
   });
 });

@@ -12,6 +12,12 @@ export interface Bindings {
   AUDIT_HMAC_KEY: string;
   /** Secret. Signs access tokens. Set with `wrangler secret put`; never stored in the database. */
   SESSION_SECRET: string;
+  /** Secret. Seals values that must be stored but not readable from a database copy (D-031). */
+  DATA_KEY: string;
+  /** Which email adapter to use: "dev" (writes to the dev mailbox). Refused in production. */
+  EMAIL_ADAPTER?: string;
+  /** The address people use to reach this school's site, for links in emails, such as https://school.example. */
+  SITE_ORIGIN?: string;
 }
 
 /** Who is making the request, read from the signed access cookie. No database read. */

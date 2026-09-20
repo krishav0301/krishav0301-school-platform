@@ -9,7 +9,10 @@
     "DEMO_MODE": "false",
     // Test-only value. Real deployments set this as a secret, never in a file.
     "AUDIT_HMAC_KEY": "test-only-audit-key-0123456789abcdef0123456789abcdef",
-    "SESSION_SECRET": "test-only-session-secret-0123456789abcdef0123456789abcdef"
+    "SESSION_SECRET": "test-only-session-secret-0123456789abcdef0123456789abcdef",
+    "DATA_KEY": "test-only-data-key-0123456789abcdef0123456789abcdef",
+    "EMAIL_ADAPTER": "dev",
+    "SITE_ORIGIN": "https://school.example"
   },
   "d1_databases": [
     {
