@@ -1,6 +1,21 @@
 # Build plan: reusable school platform
 
-Status: **proposed, awaiting PM approval.** Written 2026-09-20. Decisions it rests on are in `DECISIONS.md` (D-001 to D-010).
+Status: **approved by PM 2026-09-20 (D-012). Phase 0 in progress.** Decisions it rests on are in `DECISIONS.md`.
+
+### Phase 0 progress
+
+- [x] Rewrite `CLAUDE.md`; decisions log; client profile; build plan
+- [x] Python (via `uv`) and PostgreSQL 17 installed and working
+- [x] Git repo initialised, first commits (local; GitHub remote pending, needs an empty private repo)
+- [x] Django API skeleton: deny-by-default permissions, route-permission test, health endpoint, 14 tests, lint, architecture check
+- [x] Next.js app skeleton: strict TypeScript, `/api` proxy, typed client generated from the OpenAPI contract
+- [x] CI workflow written (untested until the repo is on GitHub)
+- [x] Spike: BS dates (`spikes/bs-dates.md`)
+- [ ] Spike: Postgres-backed job queue
+- [ ] Spike: session and CSRF flow between Next.js and Django (the proxy is proven; login is Phase 1)
+- [ ] Spike: PDF with Devanagari
+- [ ] `architecture.md`, `data-model.md`, permission-matrix draft, API conventions doc
+- [ ] Hosting accounts and a staging "hello" deploy (needs PM to create accounts)
 
 ## How we build
 

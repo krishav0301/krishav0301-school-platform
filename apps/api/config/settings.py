@@ -44,6 +44,11 @@ MIDDLEWARE = [
 ]
 
 ROOT_URLCONF = "config.urls"
+
+# API only: a missing trailing slash is a 404, never a redirect. Redirects are
+# cached permanently by browsers, and a redirected POST loses its body. The web
+# app's proxy adds the slash (see apps/web/next.config.ts).
+APPEND_SLASH = False
 WSGI_APPLICATION = "config.wsgi.application"
 ASGI_APPLICATION = "config.asgi.application"
 

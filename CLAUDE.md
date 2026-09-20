@@ -126,7 +126,7 @@ A role assignment carries a **scope**: the whole institution, or one section (+2
 - Store **AD** dates. Show and accept **BS** everywhere. One date module owns all conversion.
 - Timestamps in UTC, shown in Nepal time (UTC+5:45). Day boundaries use Nepal midnight.
 - The week is Sunday to Friday. Saturday is the weekly holiday.
-- Never generate BS conversion data from memory. Use the library chosen in the Phase 0 spike and test it against known official dates, including month and year boundaries.
+- Never generate BS conversion data from memory. Convert with `nepali-datetime` inside the date module, and only for **verified BS years** (a list, currently 2000 to 2083). Beyond that the libraries disagree, so refuse the conversion and block entering dates in unverified years (D-014, `docs/spikes/bs-dates.md`). Test month and year boundaries and the round trip.
 
 ## 7. Security, reliability and quality
 

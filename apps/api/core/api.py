@@ -1,9 +1,15 @@
 from django.db import DatabaseError, connection, transaction
 from django.utils.decorators import method_decorator
-from rest_framework import status
+from drf_spectacular.utils import extend_schema
+from rest_framework import serializers, status
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
+
+
+class HealthSerializer(serializers.Serializer):
+    status = serializers.ChoiceField(choices=["ok", "degraded"])
+    database = serializers.ChoiceField(choices=["ok", "down"])
 
 
 # ATOMIC_REQUESTS opens a transaction before the view runs. If the database is
@@ -16,6 +22,10 @@ class HealthView(APIView):
     permission_classes = [AllowAny]
     authentication_classes: list = []
 
+    @extend_schema(
+        operation_id="health_check",
+        responses={200: HealthSerializer, 503: HealthSerializer},
+    )
     def get(self, request):
         try:
             with connection.cursor() as cursor:

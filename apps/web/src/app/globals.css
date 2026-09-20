@@ -1,0 +1,52 @@
+/*
+ * Placeholder tokens. Phase 1 replaces these with the real design tokens,
+ * loaded per school. Components use tokens only: no literal colours or fonts.
+ */
+:root {
+  --color-background: #f5f5f7;
+  --color-surface: #ffffff;
+  --color-text: #1d1d1f;
+  --color-text-muted: #6e6e73;
+  --color-border: #d2d2d7;
+  --color-ok: #1a7f37;
+  --color-ok-soft: #dcf5e3;
+  --color-bad: #b42318;
+  --color-bad-soft: #fde4e1;
+  --font-body: system-ui, -apple-system, "Segoe UI", sans-serif;
+  --radius-card: 18px;
+  --space-page: 16px;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-background: #000000;
+    --color-surface: #1c1c1e;
+    --color-text: #f5f5f7;
+    --color-text-muted: #98989d;
+    --color-border: #38383a;
+    --color-ok: #4ade80;
+    --color-ok-soft: #12351f;
+    --color-bad: #f97066;
+    --color-bad-soft: #3a1512;
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  background: var(--color-background);
+  color: var(--color-text);
+  font-family: var(--font-body);
+  -webkit-font-smoothing: antialiased;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation: none !important;
+    transition: none !important;
+  }
+}

@@ -53,7 +53,20 @@ PM: the client demo is the PM's concern. The build is the reusable product, foun
 
 ---
 
+**D-012 Build plan, installs and repo approved.** Approved (PM: "all approve").
+Phase order in `build-plan.md`, installs of Python (via `uv`) and PostgreSQL 17, and a private GitHub repo. Phase 0 started 2026-09-20.
+
+**D-013 Toolchain and API conventions.** Working default.
+Python 3.12 (via `uv`), Django 6.1, Django REST Framework, PostgreSQL 17, Next.js 16, strict TypeScript. Plain CSS with design tokens (no Tailwind), so colours and fonts can only come from tokens. Typed API client generated from the OpenAPI contract (`openapi-typescript`, `openapi-fetch`); CI fails if the contract or generated types are stale. Every API route ends in a slash and `APPEND_SLASH` is off, so a missing slash is a 404 and never a redirect (browsers cache redirects permanently). Requests run in a transaction (`ATOMIC_REQUESTS`); the health check opts out so it can report a database failure as 503. Every view must declare its permissions or it is denied, and a test enforces it. Demo mode is refused when `ENV=production`.
+
+**D-014 BS dates: verify by year, not by library.** Working default, awaiting PM. Details in `spikes/bs-dates.md`.
+The two candidate libraries agree on every BS year up to 2083 and disagree on every year from 2084, because no official calendar exists that far ahead. Use `nepali-datetime` inside a date module that converts only for verified BS years (currently 2000 to 2083) and refuses the rest. Add each year to the verified list when its official calendar is published and checked. Dates of birth store AD and BS as entered.
+
+---
+
 ## Open items carried forward
+
+- **Official BS calendar source.** Need one the client trusts, to check BS 2083 before go-live and to verify each later year. PM or client to supply.
 
 - **Demo link deadline (Thursday 2026-09-24): dropped** by the PM. See D-011.
 - **Exact +2 streams.** Sources disagree (see `client-profile.md`). Working list is the CollegeNP list of six.

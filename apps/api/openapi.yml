@@ -1,0 +1,55 @@
+openapi: 3.0.3
+info:
+  title: School Platform API
+  version: 0.1.0
+paths:
+  /api/health/:
+    get:
+      operationId: health_check
+      description: Liveness and database check for uptime monitoring. Reveals nothing
+        else.
+      tags:
+      - health
+      security:
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Health'
+          description: ''
+        '503':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Health'
+          description: ''
+components:
+  schemas:
+    DatabaseEnum:
+      enum:
+      - ok
+      - down
+      type: string
+      description: |-
+        * `ok` - ok
+        * `down` - down
+    Health:
+      type: object
+      properties:
+        status:
+          $ref: '#/components/schemas/StatusEnum'
+        database:
+          $ref: '#/components/schemas/DatabaseEnum'
+      required:
+      - database
+      - status
+    StatusEnum:
+      enum:
+      - ok
+      - degraded
+      type: string
+      description: |-
+        * `ok` - ok
+        * `degraded` - degraded
