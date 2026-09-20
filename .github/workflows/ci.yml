@@ -9,7 +9,8 @@ permissions:
 
 jobs:
   api:
-    runs-on: ubuntu-latest
+    # Pinned: `ubuntu-latest` moves to a new release on 19 Oct 2026.
+    runs-on: ubuntu-24.04
     services:
       postgres:
         image: postgres:17
@@ -46,7 +47,7 @@ jobs:
           git diff --exit-code openapi.yml
 
   web:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     defaults:
       run:
         working-directory: apps/web
