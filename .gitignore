@@ -52,3 +52,6 @@ wrangler.local.jsonc
 
 # Claude Code local settings
 .claude/settings.local.json
+
+# Third-party skill (reproduces Apple text); installed per developer, not redistributed
+.claude/skills/apple-design/

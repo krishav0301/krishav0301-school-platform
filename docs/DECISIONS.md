@@ -126,6 +126,8 @@ The matrix lives in code (61 actions, 8 groups, from the reviewed `permission-ma
 - **Not done, on purpose.** Self-hosted font files (Inter, Noto Sans, Noto Sans Devanagari): downloads need PM approval, so the theme names the font and the stack falls back to the device's fonts, which include Devanagari. Nepali toggle, dark/light switch (follows the device), sign-in Enter-key check by a trusted key event (the browser tool cannot send one; the form is a standard `<form>` with a submit button).
 - **Known cost.** Every page load by a visitor who is not signed in makes two quiet 401 calls (`/api/auth/me`, then `refresh`), which show as red lines in the browser console. Fine at this scale (free plan: 100,000 requests a day). **OPEN:** avoid it with a non-secret "signed-in" marker cookie.
 
+**D-029 Apple-level design standard.** PM instruction, 2026-09-20. The product is to be designed at Apple level, using the `apple-design` skill (github.com/dickwu/apple-design-skill, reviewed before install, installed per developer and git-ignored because it reproduces Apple's guideline text) through the whole build. Rules are in `CLAUDE.md` section 7 "Design quality". It is a working standard, not a licence to copy Apple: principles are translated for a responsive website, and a school's brand, the readability tests, the security rules and the phased plan take precedence. Consequence for the plan: every phase that ships screens ends with a design review, and the current placeholder look (D-028) is a first draft that the skill will be used to raise, starting with the public website in Phase 2 (a review of the existing sign-in, dashboard and gallery can be done at any time).
+
 ---
 
 ## Open items carried forward

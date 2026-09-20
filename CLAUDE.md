@@ -45,6 +45,7 @@ Extension points, version 1: policies (grading, ranking and tie-break, student-I
 - Append every decision to `docs/DECISIONS.md`.
 - Prefer boring, mainstream libraries. Add a dependency only with a reason. Never write your own crypto, date conversion tables or payment verification.
 - Do not add features that are not in the documents. Put suggestions in the final message.
+- **Design quality bar: Apple level (D-029).** Every screen and component is designed and reviewed with the `apple-design` skill. See "Design quality" in section 7.
 - End every task with: what changed, what you tested, what is not done, and any `OPEN:` items touched.
 - **Local state hides CI failures.** Leftover generated files (`.next`, route types) and the development environment made two CI bugs invisible on the first push. When a change touches CI, generated files or settings, replay the workflow steps in a fresh clone of the pushed commit before calling it green. Generated output must not depend on which routes or files happen to exist.
 
@@ -153,6 +154,15 @@ A role assignment carries a **scope**: the whole institution, or one section (+2
 - All UI text goes through a **translation catalog**. Do not build the Nepali toggle yet.
 - UI is built from theme tokens only. **No hardcoded colours or fonts** (a web test fails the build if one appears; see D-028). Words live in `apps/web/src/i18n/messages.ts`, never in components. Host fonts ourselves. Mobile-first, low page weight, readable contrast, visible keyboard focus. Animate transform and opacity only, and respect reduced motion.
 
+**Design quality: Apple level (D-029)**
+The PM's standard is that this product looks and feels like Apple made it: calm, precise, generous spacing, clear hierarchy, considered motion, nothing decorative that does not help. Use the `apple-design` skill (`.claude/skills/apple-design/`) through the whole build, not once at the end.
+- **When:** before designing or changing any screen or component, and again before calling a UI slice done. This covers the public website, the portals, forms, emails and printed documents (receipts, marks cards).
+- **How:** load the skill, then its always-load pages (accessibility, layout, typography, colour) and the pages for what is on screen. Read a page before citing it. In the final message of a UI slice, include a short review: what was checked, which guideline pages were used (`file.md › Heading`), what was fixed, what was left and why.
+- **Translate, do not copy.** The guidelines are written for apps. Apply their principles to a responsive website (touch targets of 44 px, clear focus, dynamic text size, reduced motion, dark appearance, plain language, one primary action per screen). Do not imitate Apple's look literally, and do not use Apple's logos, SF fonts or icons.
+- **What still wins over the skill:** a school's own brand comes from its theme and packs (D-008, D-026); the readability and contrast rules enforced by tests; the no-hardcoded-colours, fonts and words rules; the permission and security rules; the phased plan. If the skill conflicts with one of these, keep the rule and note it in the review.
+- **The skill is installed per developer, not committed** (it reproduces Apple's text, so `.claude/skills/apple-design/` is git-ignored). To install it: clone https://github.com/dickwu/apple-design-skill, copy `SKILL.md` and `references/` into `.claude/skills/apple-design/`, and do not run its refresh script. If it is missing, say so and ask the PM before continuing UI work.
+- Design changes must not weaken the tests: a new component still passes the guards in `apps/web/test/guards.test.ts` and gets a markup test.
+
 **Testing (required before a slice is done)**
 - Tests **before** code for the ledger, discounts, reversals, refunds, grading, year locks and approvals. Use property-based tests for ledger invariants.
 - Permission matrix tests and cross-scope tests on every change.
@@ -195,4 +205,4 @@ OCR marks entry, facial-recognition attendance, a separate parent login, a galle
 
 ## 11. Definition of done
 
-A slice is done when: the rule is implemented as written, the section 7 tests pass, permissions are covered by the matrix, the second-school test passes, `docs/DECISIONS.md` is updated, no open point was decided silently, and the final message lists what is not done.
+A slice is done when: the rule is implemented as written, the section 7 tests pass, any UI in it has had its Apple-level design review (section 7), permissions are covered by the matrix, the second-school test passes, `docs/DECISIONS.md` is updated, no open point was decided silently, and the final message lists what is not done.

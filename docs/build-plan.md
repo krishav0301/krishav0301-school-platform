@@ -27,8 +27,9 @@ Status: **approved by PM 2026-09-20 (D-012). Phase 0 in progress.** Decisions it
 1. **Foundation first, then easy and visible, then hard, paid integrations last.** Where a hard piece is a dependency of an early one (permissions, audit, approvals, dates), it is built early in its smallest generic form.
 2. **Every phase ends running on staging**, with tests, updated docs, and the second-school fixture (D-009) green. The PM sees each phase working before the next starts.
 3. **Tests before code** for permissions, approvals, the fee ledger, grading, and year locks.
-4. **Seam before builder** (D-008). Interfaces and defaults now; settings screens only when a second school needs them.
-5. **Paperwork for paid parts starts now**, even though the integration lands last (see "Start now").
+4. **Apple-level design** (D-029). Each phase that ships screens ends with a review using the `apple-design` skill, reported with the phase.
+5. **Seam before builder** (D-008). Interfaces and defaults now; settings screens only when a second school needs them.
+6. **Paperwork for paid parts starts now**, even though the integration lands last (see "Start now").
 
 **Estimates** are working days, rough (about plus or minus 40%). They assume the PM reviews within a day and the client answers on time. Recalibrate after Phase 1, when we know our real pace.
 
