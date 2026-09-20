@@ -17,9 +17,10 @@ Status: **approved by PM 2026-09-20 (D-012). Phase 0 in progress.** Decisions it
 - [x] Spike: PDF with Devanagari (`spikes/pdf-devanagari.md`): renders correctly; real-viewer check owed in Phase 6
 - [x] `data-model.md` and `permission-matrix.md` drafts (independent of hosting; awaiting PM review)
 - [x] Spike: all-Cloudflare backend (`spikes/cloudflare-test.md`): passed with caveats; D-019 recommends replacing the Django backend, awaiting PM approval
-- [ ] `architecture.md` and API conventions doc (write once D-019 is approved or rejected)
+- [x] `architecture.md` written (API conventions are in `CLAUDE.md` and `README.md`)
 - [x] Cloudflare account created by PM (free, no card); tooling logged in
-- [ ] Staging "hello" deploy of the real Worker
+- [x] Staging "hello" deploy of the real Worker: static page, API and real D1 answer on Cloudflare; a forged cross-site write is refused (403)
+- [x] **Phase 0 complete.** Phase 1 next
 
 ## How we build
 

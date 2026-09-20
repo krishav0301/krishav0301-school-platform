@@ -7,7 +7,7 @@ Read at the start of every session:
 
 If this file and `DECISIONS.md` disagree, stop and ask.
 
-**Current phase: Phase 0 (Groundwork), closing.** The backend moved from Django to Cloudflare Workers (D-019); the skeleton is being rebuilt. Update this line when a phase closes.
+**Current phase: Phase 1 (Platform foundation), not started.** Phase 0 is complete: the backend is a Cloudflare Worker (D-019 to D-021), documented in `docs/architecture.md`. Update this line when a phase closes.
 
 ## 1. What we are building
 
