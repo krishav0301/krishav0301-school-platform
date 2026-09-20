@@ -1,4 +1,4 @@
-﻿const BASE = process.env.BASE; // e.g. https://school-spike.<your-subdomain>.workers.dev
+const BASE = process.env.BASE; // e.g. https://school-spike.<your-subdomain>.workers.dev
 async function time(path, n = 12) {
   const ms = [];
   for (let i = 0; i < n; i++) { const t = performance.now(); const r = await fetch(BASE + path); await r.text(); ms.push(Math.round(performance.now() - t)); }

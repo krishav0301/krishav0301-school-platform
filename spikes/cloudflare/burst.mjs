@@ -1,4 +1,4 @@
-﻿const BASE = process.env.BASE; // e.g. https://school-spike.<your-subdomain>.workers.dev
+const BASE = process.env.BASE; // e.g. https://school-spike.<your-subdomain>.workers.dev
 async function burst(logn, n) {
   const started = performance.now();
   const results = await Promise.all(Array.from({ length: n }, async () => {

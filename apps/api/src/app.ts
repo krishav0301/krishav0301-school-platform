@@ -1,4 +1,4 @@
-﻿import { OpenAPIHono } from "@hono/zod-openapi";
+import { OpenAPIHono } from "@hono/zod-openapi";
 
 import { environmentGuard } from "./core/environment";
 import { sameOriginOnly } from "./core/same-origin";

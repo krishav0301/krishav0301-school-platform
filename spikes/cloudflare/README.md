@@ -1,4 +1,4 @@
-﻿# Cloudflare spike (throwaway reference)
+# Cloudflare spike (throwaway reference)
 
 Code used for the all-Cloudflare test on 2026-09-20. Results: `docs/spikes/cloudflare-test.md`.
 Not part of the product. To re-run: create a D1 database, fill in `wrangler.jsonc`, run
