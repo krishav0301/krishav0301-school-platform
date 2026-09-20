@@ -1,6 +1,6 @@
 # Hosting options (free-first)
 
-Date: 2026-09-20. Status: **research done; one-day test not yet run. Direction is D-018.**
+Date: 2026-09-20. Status: **research done. The one-day Cloudflare test was run and passed with caveats: see `cloudflare-test.md` and D-019. Direction is D-018.**
 
 ## Constraint
 

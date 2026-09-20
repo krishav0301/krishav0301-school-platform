@@ -1,0 +1,11 @@
+﻿{
+  "name": "school-spike",
+  "main": "src/index.js",
+  "compatibility_date": "2026-09-18",
+  "compatibility_flags": ["nodejs_compat"],
+  "account_id": "<your-cloudflare-account-id>",
+  "d1_databases": [
+    { "binding": "DB", "database_name": "school_spike", "database_id": "<created-by: wrangler d1 create school_spike --location apac>" }
+  ],
+  "browser": { "binding": "BROWSER" }
+}

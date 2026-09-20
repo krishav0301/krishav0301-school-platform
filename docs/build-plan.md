@@ -15,7 +15,8 @@ Status: **approved by PM 2026-09-20 (D-012). Phase 0 in progress.** Decisions it
 - [x] Spike: session and CSRF through the Next.js proxy (`spikes/session-csrf.md`): works with trusted origins; token rotates at login
 - [x] Spike: PDF with Devanagari (`spikes/pdf-devanagari.md`): renders correctly; real-viewer check owed in Phase 6
 - [x] `data-model.md` and `permission-matrix.md` drafts (independent of hosting; awaiting PM review)
-- [ ] `architecture.md` and API conventions doc (after the hosting test, because the backend may change)
+- [x] Spike: all-Cloudflare backend (`spikes/cloudflare-test.md`): passed with caveats; D-019 recommends replacing the Django backend, awaiting PM approval
+- [ ] `architecture.md` and API conventions doc (write once D-019 is approved or rejected)
 - [ ] Hosting accounts and a staging "hello" deploy (needs PM to create accounts)
 
 ## How we build

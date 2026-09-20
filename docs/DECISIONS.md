@@ -74,9 +74,14 @@ Devanagari renders correctly on screen; the PDF text layer is unreliable for cop
 **D-018 Free-first hosting; no native app for now.** Working default, awaiting PM go on the test.
 PM: whole-project budget 50K a year (assumed NPR, about US$350), no spend on servers, run free as a starter, talk subscriptions later. Direction: start free. Run a one-day test of an all-Cloudflare build; if it passes, propose replacing the Django backend (this would supersede D-005's backend); if it fails, keep Django on free tiers (Cloudflare Pages and R2, Northflank Sandbox, Neon Singapore). Front end is static export either way. Nightly database copy to R2, because free tiers give little backup. Hosting cost moves into the yearly subscription later. No native Android app now (iOS is about a quarter of Nepal mobile use); the site is installable. Supabase not used. Research, sources and the test plan: `spikes/hosting-options.md`.
 
+**D-019 Backend on Cloudflare (Workers + D1) instead of Django.** Working default, awaiting PM approval. Details in `spikes/cloudflare-test.md`.
+The one-day test passed on a free account: simultaneous approvals had one winner every time, receipt numbers stayed gapless through failures, Nepali PDFs render correctly and generate quickly, restore works with a 30-day window. Recommend replacing the Django backend with TypeScript Workers and D1, which would supersede the backend part of D-005 (the web front end stays Next.js, exported static). Retire the Django skeleton in `apps/api` when approved; the data model and permission matrix carry over unchanged. Mitigations: (1) hash-chain the ledger and audit rows and export them daily, because D1 cannot stop our own code from removing a guard; (2) scrypt N=2^15 for passwords, since PBKDF2 is capped at 100,000 rounds; (3) one database round trip per request (about 100 ms each); (4) R2 file storage needs enabling and possibly a payment method: PM decision needed.
+
 ---
 
 ## Open items carried forward
+
+- **R2 file storage.** Needs enabling in the Cloudflare dashboard, probably with a payment method on file. Decide: add a card and stay within the free allowance, or delay uploads.
 
 - **Official BS calendar source.** Need one the client trusts, to check BS 2083 before go-live and to verify each later year. PM or client to supply.
 

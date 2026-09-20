@@ -1,0 +1,7 @@
+﻿{
+  "name": "school-spike",
+  "private": true,
+  "type": "module",
+  "devDependencies": { "wrangler": "^4.135.0" },
+  "dependencies": { "@cloudflare/puppeteer": "*", "@noble/hashes": "*" }
+}
