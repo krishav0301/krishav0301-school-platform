@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 
@@ -8,7 +9,7 @@ import { useConfig } from "@/config/ConfigProvider";
 import { t, type MessageKey } from "@/i18n/messages";
 import { useSession, type SignInResult } from "@/session/SessionProvider";
 import { PublicShell } from "@/shell/PublicShell";
-import { Button, Card, Field, Notice, PasswordField } from "@/ui";
+import { Button, Card, Field, Notice, PasswordField, buttonClass } from "@/ui";
 
 import styles from "./sign-in.module.css";
 
@@ -88,6 +89,9 @@ function SignInForm() {
         <Button type="submit" fullWidth loading={submitting} loadingLabel={t("signIn.submitting")}>
           {submitting ? t("signIn.submitting") : t("signIn.submit")}
         </Button>
+        <Link href="/reset-password" className={buttonClass({ variant: "quiet", fullWidth: true })}>
+          {t("signIn.forgot")}
+        </Link>
       </form>
     </Card>
   );

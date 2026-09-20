@@ -14,6 +14,10 @@ export const PUBLIC_ROUTES: ReadonlySet<string> = new Set([
   "POST /api/auth/sign-in",
   "POST /api/auth/refresh",
   "POST /api/auth/sign-out",
+  // Password reset: the emailed token (256 random bits, single use) is the credential. The request
+  // endpoint answers identically for unknown addresses and is rate-limited per account and address.
+  "POST /api/auth/password-reset/request",
+  "POST /api/auth/password-reset/confirm",
 ]);
 
 /** Any signed-in user, whatever their role. For things people do to their own account. */

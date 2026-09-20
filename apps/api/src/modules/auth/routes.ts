@@ -1,8 +1,11 @@
 import { z } from "@hono/zod-openapi";
 
+import { runInBackground } from "../../core/background";
+import { runOutbox } from "../../core/notifications";
 import { defineRoute } from "../../core/routes";
 import { clearSessionCookies, readRefreshCookie, setSessionCookies } from "../../core/session-cookies";
 import type { App } from "../../core/types";
+import { confirmPasswordReset, requestPasswordReset } from "./password-reset";
 import { LOCKOUT_WINDOW_MINUTES, refreshSession, signIn, signOut } from "./service";
 
 const RoleClaimSchema = z
@@ -26,6 +29,20 @@ const SignInBody = z
     password: z.string().min(1).max(1000),
   })
   .openapi("SignInBody");
+
+const ResetRequestBody = z.strictObject({ email: z.string().min(3).max(254) }).openapi("PasswordResetRequest");
+
+const ResetConfirmBody = z
+  .strictObject({
+    token: z.string().min(1).max(200),
+    // The policy (length, common passwords, ...) is checked in the service, which says which rule failed.
+    password: z.string().min(1).max(1000),
+  })
+  .openapi("PasswordResetConfirm");
+
+const WeakPasswordSchema = z
+  .object({ error: z.literal("weak_password"), problems: z.array(z.enum(["too_short", "too_long", "common", "contains_email", "contains_school_name"])) })
+  .openapi("WeakPassword");
 
 const json = <T extends z.ZodType>(schema: T) => ({ "application/json": { schema } });
 
@@ -117,6 +134,54 @@ export function registerAuth(app: App): void {
       await signOut({ db: c.env.DB, sessionSecret: c.env.SESSION_SECRET }, readRefreshCookie(c));
       clearSessionCookies(c);
       return c.body(null, 204);
+    },
+  );
+
+  defineRoute(
+    app,
+    {
+      method: "post",
+      path: "/api/auth/password-reset/request",
+      operationId: "request_password_reset",
+      tags: ["auth"],
+      description:
+        "Asks for a password-reset email. The answer is always 202, whether or not the address has an account, so it cannot be used to find out who is registered. Limited per account and per address.",
+      access: { public: true },
+      request: { body: { required: true, content: json(ResetRequestBody) } },
+      responses: { 202: { description: "If the address has an account, an email is on its way", content: json(z.object({ accepted: z.literal(true) })) } },
+    },
+    async (c) => {
+      const body = c.req.valid("json");
+      await requestPasswordReset({ db: c.env.DB, dataKey: c.env.DATA_KEY }, { email: body.email, ip: c.req.header("CF-Connecting-IP") ?? null });
+      // Deliver now rather than wait for the sweep. If it fails, the outbox retries.
+      const pending = runInBackground(c, runOutbox(c.env));
+      if (pending) await pending;
+      return c.json({ accepted: true as const }, 202);
+    },
+  );
+
+  defineRoute(
+    app,
+    {
+      method: "post",
+      path: "/api/auth/password-reset/confirm",
+      operationId: "confirm_password_reset",
+      tags: ["auth"],
+      description: "Sets a new password with the token from the emailed link. The token works once. Ends every session the account had.",
+      access: { public: true },
+      request: { body: { required: true, content: json(ResetConfirmBody) } },
+      responses: {
+        204: { description: "Password changed" },
+        400: { description: "The link is wrong, already used or expired (the same answer for all three)", content: json(ErrorSchema) },
+        422: { description: "The new password is not acceptable; the link still works", content: json(WeakPasswordSchema) },
+      },
+    },
+    async (c) => {
+      const body = c.req.valid("json");
+      const result = await confirmPasswordReset({ db: c.env.DB, auditKey: c.env.AUDIT_HMAC_KEY }, { token: body.token, password: body.password });
+      if (result.ok) return c.body(null, 204);
+      if (result.reason === "weak_password") return c.json({ error: "weak_password" as const, problems: result.problems }, 422);
+      return c.json({ error: "invalid_or_expired_link" }, 400);
     },
   );
 
