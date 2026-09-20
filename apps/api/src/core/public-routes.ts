@@ -18,6 +18,11 @@ export const PUBLIC_ROUTES: ReadonlySet<string> = new Set([
   // endpoint answers identically for unknown addresses and is rate-limited per account and address.
   "POST /api/auth/password-reset/request",
   "POST /api/auth/password-reset/confirm",
+  // The second step of sign-in. The credential is the challenge token from a correct password (signed,
+  // five minutes, not a session), and wrong codes are locked out together with password attempts.
+  "POST /api/auth/2fa/verify",
+  "POST /api/auth/2fa/setup",
+  "POST /api/auth/2fa/enable",
 ]);
 
 /** Any signed-in user, whatever their role. For things people do to their own account. */

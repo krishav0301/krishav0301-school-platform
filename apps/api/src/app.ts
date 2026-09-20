@@ -3,6 +3,7 @@ import { OpenAPIHono } from "@hono/zod-openapi";
 import { environmentGuard } from "./core/environment";
 import { sameOriginOnly } from "./core/same-origin";
 import type { AppEnv } from "./core/types";
+import { registerAccounts } from "./modules/accounts/routes";
 import { registerAuth } from "./modules/auth/routes";
 import { registerConfig } from "./modules/config/routes";
 import { registerHealth } from "./modules/health/routes";
@@ -19,6 +20,7 @@ export function createApp() {
 
   registerHealth(app);
   registerAuth(app);
+  registerAccounts(app);
   registerConfig(app);
 
   return app;

@@ -7,6 +7,7 @@ import { ConfigContext, makeConfigValue, type PublicConfig } from "@/config/Conf
 import { NewPasswordForm, RequestForm } from "@/reset/ResetForms";
 import { tokenFromHash } from "@/reset/token";
 import { SessionContext, type SessionValue } from "@/session/SessionProvider";
+import { fakeSession } from "./session";
 import royal from "../../../packs/royal-softech/pack.json";
 
 vi.mock("next/navigation", () => ({ usePathname: () => "/", useRouter: () => ({ replace: vi.fn(), push: vi.fn() }) }));
@@ -18,7 +19,7 @@ const config: PublicConfig = {
   terms: {},
   theme: royal.theme as PublicConfig["theme"],
 };
-const session: SessionValue = { status: "signedOut", me: null, endedUnexpectedly: false, signIn: async () => ({ ok: true }), signOut: async () => {} };
+const session: SessionValue = fakeSession();
 
 const inContext = (element: React.ReactNode) =>
   renderToStaticMarkup(

@@ -1,6 +1,7 @@
 export { Badge, type Tone } from "./Badge";
 export { Button, buttonClass, type ButtonVariant } from "./Button";
 export { Card } from "./Card";
+export { CopyButton } from "./CopyButton";
 export { Field } from "./Field";
 export { Notice } from "./Notice";
 export { PasswordField } from "./PasswordField";

@@ -12,7 +12,8 @@ const okResponse = {
   200: { description: "ok", content: { "application/json": { schema: z.object({ ok: z.boolean() }) } } },
 } as const;
 
-const key = (r: { method: string; path: string }) => `${r.method} ${r.path}`;
+// Hono mounts /users/:id, OpenAPI declares /users/{id}: compare them as the same route.
+const key = (r: { method: string; path: string }) => `${r.method} ${r.path.replace(/\{(\w+)\}/g, ":$1")}`;
 
 /** Routes that are mounted on the app but were not declared through defineRoute. */
 function undeclaredRoutes(app: App): string[] {

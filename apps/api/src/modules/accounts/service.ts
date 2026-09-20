@@ -77,3 +77,39 @@ export async function createUser(db: D1Database, auditKey: string, input: NewUse
 
   return { publicId };
 }
+
+export type ResetTwoFactorResult = "done" | "not_found" | "own_account";
+
+/**
+ * Removes a person's two-step sign-in (lost phone and no recovery codes) and ends their sessions,
+ * so the next sign-in has to set it up again. Nobody resets their own: a stolen session could
+ * otherwise switch the protection off. Recorded in the audit log, naming who did it.
+ */
+export async function resetTwoFactor(
+  db: D1Database,
+  auditKey: string,
+  input: { targetPublicId: string; actorPublicId: string },
+  now: Date = new Date(),
+): Promise<ResetTwoFactorResult> {
+  if (input.targetPublicId === input.actorPublicId) return "own_account";
+  const target = await db.prepare("SELECT id FROM users WHERE public_id = ?1").bind(input.targetPublicId).first<{ id: number }>();
+  if (!target) return "not_found";
+
+  await recordAudit(
+    db,
+    auditKey,
+    {
+      action: "accounts.two_factor.reset",
+      entityType: "user",
+      entityPublicId: input.targetPublicId,
+      actorPublicId: input.actorPublicId,
+      summary: "Two-step sign-in removed; the person must set it up again",
+    },
+    [
+      db.prepare("DELETE FROM two_factor_recovery_codes WHERE user_id = ?1").bind(target.id),
+      db.prepare("DELETE FROM user_two_factor WHERE user_id = ?1").bind(target.id),
+      db.prepare("UPDATE sessions SET revoked_at = ?1, revoked_reason = 'two_factor_reset' WHERE user_id = ?2 AND revoked_at IS NULL").bind(now.toISOString(), target.id),
+    ],
+  );
+  return "done";
+}

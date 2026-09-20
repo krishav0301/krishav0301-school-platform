@@ -90,6 +90,25 @@
           "scope"
         ]
       },
+      "TwoFactorStep": {
+        "type": "object",
+        "properties": {
+          "twoFactor": {
+            "type": "string",
+            "enum": [
+              "required",
+              "setup"
+            ]
+          },
+          "challenge": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "twoFactor",
+          "challenge"
+        ]
+      },
       "ApiError": {
         "type": "object",
         "properties": {
@@ -118,6 +137,65 @@
         "required": [
           "email",
           "password"
+        ]
+      },
+      "TwoFactorCodeBody": {
+        "type": "object",
+        "properties": {
+          "challenge": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 1000
+          },
+          "code": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64
+          }
+        },
+        "required": [
+          "challenge",
+          "code"
+        ],
+        "additionalProperties": false
+      },
+      "TwoFactorSetupBody": {
+        "type": "object",
+        "properties": {
+          "challenge": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 1000
+          }
+        },
+        "required": [
+          "challenge"
+        ],
+        "additionalProperties": false
+      },
+      "SessionWithRecoveryCodes": {
+        "type": "object",
+        "properties": {
+          "user": {
+            "$ref": "#/components/schemas/SessionUser"
+          },
+          "roles": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RoleClaim"
+            }
+          },
+          "recoveryCodes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "user",
+          "roles",
+          "recoveryCodes"
         ]
       },
       "PasswordResetRequest": {
@@ -181,6 +259,17 @@
           "password"
         ],
         "additionalProperties": false
+      },
+      "AccountsError": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "error"
+        ]
       },
       "PublicConfig": {
         "type": "object",
@@ -500,6 +589,64 @@
         },
         "responses": {
           "200": {
+            "description": "Signed in (a session, with the cookies set), or the password was right and a second step is needed (a challenge, no session)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/Session"
+                    },
+                    {
+                      "$ref": "#/components/schemas/TwoFactorStep"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Wrong email or password. The same answer for an unknown email.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many recent failed attempts",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/2fa/verify": {
+      "post": {
+        "operationId": "verify_two_factor",
+        "tags": [
+          "auth"
+        ],
+        "description": "The second step of sign-in: the six-digit code from the authenticator app (or a recovery code) plus the challenge from sign-in. Sets the session cookies.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TwoFactorCodeBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
             "description": "Signed in",
             "content": {
               "application/json": {
@@ -510,7 +657,131 @@
             }
           },
           "401": {
-            "description": "Wrong email or password. The same answer for an unknown email.",
+            "description": "`invalid_code` (wrong, already used or expired) or `invalid_challenge` (start again from the password)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many recent failed attempts",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/2fa/setup": {
+      "post": {
+        "operationId": "begin_two_factor_setup",
+        "tags": [
+          "auth"
+        ],
+        "description": "Starts setting up the authenticator app: returns a new secret (to type in or scan) and the address an app can open. Asking again replaces an unconfirmed secret.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TwoFactorSetupBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The secret to add to the app",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "secret": {
+                      "type": "string"
+                    },
+                    "otpauthUri": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "secret",
+                    "otpauthUri"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "The challenge is missing, expired or for another step",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Already turned on",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/2fa/enable": {
+      "post": {
+        "operationId": "enable_two_factor",
+        "tags": [
+          "auth"
+        ],
+        "description": "Confirms the first code from the app, turns two-step sign-in on, signs the person in (cookies set) and returns ten single-use recovery codes, shown this once.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TwoFactorCodeBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Turned on and signed in",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SessionWithRecoveryCodes"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "`invalid_code` or `invalid_challenge`",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "`no_setup`: no secret was started, or it is already on",
             "content": {
               "application/json": {
                 "schema": {
@@ -702,6 +973,52 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/users/{userId}/two-factor/reset": {
+      "post": {
+        "operationId": "reset_two_factor",
+        "tags": [
+          "accounts"
+        ],
+        "description": "Removes a person's two-step sign-in and ends their sessions, so they set it up again at the next sign-in. For a lost phone with no recovery codes. Super Admin only; nobody resets their own.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 32,
+              "maxLength": 32
+            },
+            "required": true,
+            "name": "userId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Removed"
+          },
+          "400": {
+            "description": "Nobody can reset their own two-step sign-in",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccountsError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such person",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccountsError"
                 }
               }
             }

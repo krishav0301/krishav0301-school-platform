@@ -13,7 +13,18 @@ export interface Me {
   roles: RoleClaim[];
 }
 export type SessionStatus = "checking" | "signedIn" | "signedOut";
-export type SignInResult = { ok: true } | { ok: false; reason: "invalid" | "throttled" | "network" | "unexpected" };
+
+/**
+ * A finished sign-in; or the password was right and a second step is needed: enter the code from the
+ * authenticator app (`required`), or set the app up first (`setup`). The `challenge` carries the
+ * person through that step. It is not a session.
+ */
+export type SignInResult =
+  | { ok: true }
+  | { ok: true; twoFactor: "required" | "setup"; challenge: string }
+  | { ok: false; reason: "invalid" | "throttled" | "network" | "unexpected" };
+
+export type TwoFactorFailure = "invalid_code" | "invalid_challenge" | "throttled" | "network" | "unexpected";
 
 export interface SessionValue {
   status: SessionStatus;
@@ -21,6 +32,16 @@ export interface SessionValue {
   /** True when a signed-in session was ended by the server (expired or revoked), so the sign-in page can say why. */
   endedUnexpectedly: boolean;
   signIn: (email: string, password: string) => Promise<SignInResult>;
+  /** Second step for someone who already has the app: a 6-digit code or a recovery code. Signs in on success. */
+  verifyTwoFactor: (challenge: string, code: string) => Promise<{ ok: true } | { ok: false; reason: TwoFactorFailure }>;
+  /** Starts setting the app up: the key to type in, and the address an authenticator app can open. */
+  startTwoFactorSetup: (challenge: string) => Promise<{ ok: true; secret: string; otpauthUri: string } | { ok: false; reason: TwoFactorFailure | "already_enabled" }>;
+  /**
+   * Confirms the first code and turns it on. The server has signed the person in, but the page holds that
+   * back (returning `me`) until they have seen their recovery codes; `acceptSession` then lets them in.
+   */
+  enableTwoFactor: (challenge: string, code: string) => Promise<{ ok: true; recoveryCodes: string[]; me: Me } | { ok: false; reason: TwoFactorFailure | "no_setup" }>;
+  acceptSession: (me: Me) => void;
   signOut: () => Promise<void>;
 }
 
@@ -47,6 +68,15 @@ export const afterServerSignOut = (current: Pick<SessionState, "status">): Sessi
   me: null,
   ended: current.status === "signedIn",
 });
+
+/** Maps a failed second-step response to a reason the page can show. */
+export function twoFactorFailure(status: number, error: unknown): TwoFactorFailure {
+  if (status === 429) return "throttled";
+  const code = typeof error === "object" && error !== null && "error" in error ? (error as { error: unknown }).error : null;
+  if (status === 401 && code === "invalid_code") return "invalid_code";
+  if (status === 401 && code === "invalid_challenge") return "invalid_challenge";
+  return "unexpected";
+}
 
 /** Who is signed in. Renews the session on its own when the 30-minute access cookie has expired. */
 export function SessionProvider({ children }: { children: ReactNode }) {
@@ -79,6 +109,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   const signIn = useCallback<SessionValue["signIn"]>(async (email, password) => {
     try {
       const { data, response } = await api.current!.POST("/api/auth/sign-in", { body: { email, password } });
+      if (data && "twoFactor" in data) return { ok: true, twoFactor: data.twoFactor, challenge: data.challenge };
       if (data) {
         setState({ status: "signedIn", me: { name: data.user.fullName, roles: data.roles }, ended: false });
         return { ok: true };
@@ -91,6 +122,43 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
+  const verifyTwoFactor = useCallback<SessionValue["verifyTwoFactor"]>(async (challenge, code) => {
+    try {
+      const { data, response, error } = await api.current!.POST("/api/auth/2fa/verify", { body: { challenge, code } });
+      if (data) {
+        setState({ status: "signedIn", me: { name: data.user.fullName, roles: data.roles }, ended: false });
+        return { ok: true };
+      }
+      return { ok: false, reason: twoFactorFailure(response.status, error) };
+    } catch {
+      return { ok: false, reason: "network" };
+    }
+  }, []);
+
+  const startTwoFactorSetup = useCallback<SessionValue["startTwoFactorSetup"]>(async (challenge) => {
+    try {
+      const { data, response, error } = await api.current!.POST("/api/auth/2fa/setup", { body: { challenge } });
+      if (data) return { ok: true, secret: data.secret, otpauthUri: data.otpauthUri };
+      if (response.status === 409) return { ok: false, reason: "already_enabled" };
+      return { ok: false, reason: twoFactorFailure(response.status, error) };
+    } catch {
+      return { ok: false, reason: "network" };
+    }
+  }, []);
+
+  const enableTwoFactor = useCallback<SessionValue["enableTwoFactor"]>(async (challenge, code) => {
+    try {
+      const { data, response, error } = await api.current!.POST("/api/auth/2fa/enable", { body: { challenge, code } });
+      if (data) return { ok: true, recoveryCodes: data.recoveryCodes, me: { name: data.user.fullName, roles: data.roles } };
+      if (response.status === 409) return { ok: false, reason: "no_setup" };
+      return { ok: false, reason: twoFactorFailure(response.status, error) };
+    } catch {
+      return { ok: false, reason: "network" };
+    }
+  }, []);
+
+  const acceptSession = useCallback((me: Me) => setState({ status: "signedIn", me, ended: false }), []);
+
   const signOut = useCallback<SessionValue["signOut"]>(async () => {
     try {
       await api.current!.POST("/api/auth/sign-out");
@@ -101,8 +169,8 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const value = useMemo<SessionValue>(
-    () => ({ status: state.status, me: state.me, endedUnexpectedly: state.ended, signIn, signOut }),
-    [state, signIn, signOut],
+    () => ({ status: state.status, me: state.me, endedUnexpectedly: state.ended, signIn, verifyTwoFactor, startTwoFactorSetup, enableTwoFactor, acceptSession, signOut }),
+    [state, signIn, verifyTwoFactor, startTwoFactorSetup, enableTwoFactor, acceptSession, signOut],
   );
   return <SessionContext.Provider value={value}>{children}</SessionContext.Provider>;
 }

@@ -38,6 +38,57 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/auth/2fa/verify": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description The second step of sign-in: the six-digit code from the authenticator app (or a recovery code) plus the challenge from sign-in. Sets the session cookies. */
+        post: operations["verify_two_factor"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/auth/2fa/setup": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Starts setting up the authenticator app: returns a new secret (to type in or scan) and the address an app can open. Asking again replaces an unconfirmed secret. */
+        post: operations["begin_two_factor_setup"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/auth/2fa/enable": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Confirms the first code from the app, turns two-step sign-in on, signs the person in (cookies set) and returns ten single-use recovery codes, shown this once. */
+        post: operations["enable_two_factor"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/auth/refresh": {
         parameters: {
             query?: never;
@@ -123,6 +174,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/users/{userId}/two-factor/reset": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Removes a person's two-step sign-in and ends their sessions, so they set it up again at the next sign-in. For a lost phone with no recovery codes. Super Admin only; nobody resets their own. */
+        post: operations["reset_two_factor"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/config/public": {
         parameters: {
             query?: never;
@@ -182,12 +250,29 @@ export interface components {
             scope: "own" | "assigned" | "section" | "institution";
             section?: string;
         };
+        TwoFactorStep: {
+            /** @enum {string} */
+            twoFactor: "required" | "setup";
+            challenge: string;
+        };
         ApiError: {
             error: string;
         };
         SignInBody: {
             email: string;
             password: string;
+        };
+        TwoFactorCodeBody: {
+            challenge: string;
+            code: string;
+        };
+        TwoFactorSetupBody: {
+            challenge: string;
+        };
+        SessionWithRecoveryCodes: {
+            user: components["schemas"]["SessionUser"];
+            roles: components["schemas"]["RoleClaim"][];
+            recoveryCodes: string[];
         };
         PasswordResetRequest: {
             email: string;
@@ -200,6 +285,9 @@ export interface components {
         PasswordResetConfirm: {
             token: string;
             password: string;
+        };
+        AccountsError: {
+            error: string;
         };
         PublicConfig: {
             school: {
@@ -311,6 +399,48 @@ export interface operations {
             };
         };
         responses: {
+            /** @description Signed in (a session, with the cookies set), or the password was right and a second step is needed (a challenge, no session) */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Session"] | components["schemas"]["TwoFactorStep"];
+                };
+            };
+            /** @description Wrong email or password. The same answer for an unknown email. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Too many recent failed attempts */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    verify_two_factor: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TwoFactorCodeBody"];
+            };
+        };
+        responses: {
             /** @description Signed in */
             200: {
                 headers: {
@@ -320,8 +450,104 @@ export interface operations {
                     "application/json": components["schemas"]["Session"];
                 };
             };
-            /** @description Wrong email or password. The same answer for an unknown email. */
+            /** @description `invalid_code` (wrong, already used or expired) or `invalid_challenge` (start again from the password) */
             401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Too many recent failed attempts */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    begin_two_factor_setup: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TwoFactorSetupBody"];
+            };
+        };
+        responses: {
+            /** @description The secret to add to the app */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        secret: string;
+                        otpauthUri: string;
+                    };
+                };
+            };
+            /** @description The challenge is missing, expired or for another step */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Already turned on */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    enable_two_factor: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TwoFactorCodeBody"];
+            };
+        };
+        responses: {
+            /** @description Turned on and signed in */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SessionWithRecoveryCodes"];
+                };
+            };
+            /** @description `invalid_code` or `invalid_challenge` */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description `no_setup`: no secret was started, or it is already on */
+            409: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -482,6 +708,44 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    reset_two_factor: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                userId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Removed */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Nobody can reset their own two-step sign-in */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AccountsError"];
+                };
+            };
+            /** @description No such person */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AccountsError"];
                 };
             };
         };

@@ -2,13 +2,14 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useRef, useState, type FormEvent } from "react";
+import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
 
 import { ConfigGate } from "@/config/ConfigGate";
 import { useConfig } from "@/config/ConfigProvider";
 import { t, type MessageKey } from "@/i18n/messages";
-import { useSession, type SignInResult } from "@/session/SessionProvider";
+import { useSession, type Me, type SignInResult } from "@/session/SessionProvider";
 import { PublicShell } from "@/shell/PublicShell";
+import { CodeStep, RecoveryCodesStep, SetupStep } from "@/two-factor/steps";
 import { Button, Card, Field, Notice, PasswordField, buttonClass } from "@/ui";
 
 import styles from "./sign-in.module.css";
@@ -20,20 +21,21 @@ const FAILURE_MESSAGE: Record<Extract<SignInResult, { ok: false }>["reason"], Me
   unexpected: "signIn.unexpected",
 };
 
-function SignInForm() {
+/** Where the person is in signing in. The second step and the recovery codes appear only when needed. */
+type Step =
+  | { kind: "credentials"; notice?: MessageKey }
+  | { kind: "code"; challenge: string }
+  | { kind: "setup"; challenge: string }
+  | { kind: "recovery"; codes: string[]; me: Me };
+
+function CredentialsStep({ notice, onSecondStep }: { notice?: MessageKey; onSecondStep: (step: "code" | "setup", challenge: string) => void }) {
   const { config } = useConfig();
-  const { status, signIn, endedUnexpectedly } = useSession();
-  const router = useRouter();
+  const { signIn, endedUnexpectedly } = useSession();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [problem, setProblem] = useState<MessageKey | null>(null);
   const passwordInput = useRef<HTMLInputElement>(null);
-
-  // Already signed in: nothing to do here.
-  useEffect(() => {
-    if (status === "signedIn") router.replace("/portal");
-  }, [status, router]);
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -45,6 +47,10 @@ function SignInForm() {
     setProblem(null);
     setSubmitting(true);
     const result = await signIn(email.trim(), password);
+    if (result.ok && "twoFactor" in result) {
+      onSecondStep(result.twoFactor === "required" ? "code" : "setup", result.challenge);
+      return;
+    }
     if (!result.ok) {
       setProblem(FAILURE_MESSAGE[result.reason]);
       setPassword("");
@@ -61,7 +67,8 @@ function SignInForm() {
         <p className={styles.help}>{t("signIn.help")}</p>
       </div>
       <form onSubmit={submit} className={styles.form} noValidate>
-        {endedUnexpectedly && !problem ? <Notice>{t("signIn.sessionEnded")}</Notice> : null}
+        {notice && !problem ? <Notice>{t(notice)}</Notice> : null}
+        {endedUnexpectedly && !problem && !notice ? <Notice>{t("signIn.sessionEnded")}</Notice> : null}
         {problem ? <Notice tone="bad">{t(problem)}</Notice> : null}
         <Field
           label={t("signIn.email")}
@@ -97,12 +104,39 @@ function SignInForm() {
   );
 }
 
+function SignInFlow() {
+  const { config } = useConfig();
+  const { status, acceptSession } = useSession();
+  const router = useRouter();
+  const [step, setStep] = useState<Step>({ kind: "credentials" });
+
+  // Signed in (by a finished sign-in or a completed second step): nothing left to do here.
+  useEffect(() => {
+    if (status === "signedIn") router.replace("/portal");
+  }, [status, router]);
+
+  // Stable, because the setup step re-runs its effect when this changes.
+  const restart = useCallback(() => setStep({ kind: "credentials", notice: "twoFactor.expired" }), []);
+  const backToStart = useCallback(() => setStep({ kind: "credentials" }), []);
+
+  switch (step.kind) {
+    case "code":
+      return <CodeStep challenge={step.challenge} schoolName={config?.school.name ?? ""} onRestart={restart} onDifferentAccount={backToStart} />;
+    case "setup":
+      return <SetupStep challenge={step.challenge} onRestart={restart} onEnabled={(codes, me) => setStep({ kind: "recovery", codes, me })} />;
+    case "recovery":
+      return <RecoveryCodesStep codes={step.codes} onDone={() => acceptSession(step.me)} />;
+    default:
+      return <CredentialsStep notice={step.notice} onSecondStep={(kind, challenge) => setStep({ kind, challenge })} />;
+  }
+}
+
 export default function SignInPage() {
   return (
     <PublicShell showSignIn={false}>
       <div className={styles.center}>
         <ConfigGate>
-          <SignInForm />
+          <SignInFlow />
         </ConfigGate>
       </div>
     </PublicShell>

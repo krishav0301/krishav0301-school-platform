@@ -6,6 +6,7 @@ import { defineRoute } from "../../core/routes";
 import { clearSessionCookies, readRefreshCookie, setSessionCookies } from "../../core/session-cookies";
 import type { App } from "../../core/types";
 import { confirmPasswordReset, requestPasswordReset } from "./password-reset";
+import { beginTwoFactorSetup, enableTwoFactor, verifyTwoFactor, type TwoFactorDeps } from "./two-factor";
 import { LOCKOUT_WINDOW_MINUTES, refreshSession, signIn, signOut } from "./service";
 
 const RoleClaimSchema = z
@@ -21,6 +22,20 @@ const UserSchema = z.object({ id: z.string(), fullName: z.string(), email: z.str
 const SessionSchema = z.object({ user: UserSchema, roles: z.array(RoleClaimSchema) }).openapi("Session");
 
 const ErrorSchema = z.object({ error: z.string() }).openapi("ApiError");
+
+/** The password was right, but a second step is still needed: no session yet, only a challenge for that step. */
+const TwoFactorStepSchema = z.object({ twoFactor: z.enum(["required", "setup"]), challenge: z.string() }).openapi("TwoFactorStep");
+
+const ChallengeBody = z.strictObject({ challenge: z.string().min(1).max(1000) }).openapi("TwoFactorSetupBody");
+const CodeBody = z.strictObject({ challenge: z.string().min(1).max(1000), code: z.string().min(1).max(64) }).openapi("TwoFactorCodeBody");
+const RecoverySessionSchema = z.object({ user: UserSchema, roles: z.array(RoleClaimSchema), recoveryCodes: z.array(z.string()) }).openapi("SessionWithRecoveryCodes");
+
+const twoFactorDeps = (env: { DB: D1Database; SESSION_SECRET: string; DATA_KEY: string; AUDIT_HMAC_KEY: string }): TwoFactorDeps => ({
+  db: env.DB,
+  sessionSecret: env.SESSION_SECRET,
+  dataKey: env.DATA_KEY,
+  auditKey: env.AUDIT_HMAC_KEY,
+});
 
 const SignInBody = z
   .object({
@@ -58,7 +73,10 @@ export function registerAuth(app: App): void {
       access: { public: true },
       request: { body: { required: true, content: json(SignInBody) } },
       responses: {
-        200: { description: "Signed in", content: json(SessionSchema) },
+        200: {
+          description: "Signed in (a session, with the cookies set), or the password was right and a second step is needed (a challenge, no session)",
+          content: json(z.union([SessionSchema, TwoFactorStepSchema])),
+        },
         401: { description: "Wrong email or password. The same answer for an unknown email.", content: json(ErrorSchema) },
         429: { description: "Too many recent failed attempts", content: json(ErrorSchema) },
       },
@@ -83,8 +101,107 @@ export function registerAuth(app: App): void {
         return c.json({ error: "invalid_credentials" }, 401);
       }
 
+      if (result.twoFactor) return c.json({ twoFactor: result.twoFactor, challenge: result.challenge }, 200);
+
       setSessionCookies(c, result.accessToken, result.refreshToken);
       return c.json({ user: result.user, roles: result.roles }, 200);
+    },
+  );
+
+  defineRoute(
+    app,
+    {
+      method: "post",
+      path: "/api/auth/2fa/verify",
+      operationId: "verify_two_factor",
+      tags: ["auth"],
+      description: "The second step of sign-in: the six-digit code from the authenticator app (or a recovery code) plus the challenge from sign-in. Sets the session cookies.",
+      access: { public: true },
+      request: { body: { required: true, content: json(CodeBody) } },
+      responses: {
+        200: { description: "Signed in", content: json(SessionSchema) },
+        401: { description: "`invalid_code` (wrong, already used or expired) or `invalid_challenge` (start again from the password)", content: json(ErrorSchema) },
+        429: { description: "Too many recent failed attempts", content: json(ErrorSchema) },
+      },
+    },
+    async (c) => {
+      const body = c.req.valid("json");
+      const result = await verifyTwoFactor(twoFactorDeps(c.env), {
+        challenge: body.challenge,
+        code: body.code,
+        ip: c.req.header("CF-Connecting-IP") ?? null,
+        userAgent: c.req.header("User-Agent") ?? null,
+      });
+      if (!result.ok) {
+        if (result.reason === "throttled") {
+          c.header("Retry-After", String(LOCKOUT_WINDOW_MINUTES * 60));
+          return c.json({ error: "too_many_attempts" }, 429);
+        }
+        return c.json({ error: result.reason }, 401);
+      }
+      setSessionCookies(c, result.accessToken, result.refreshToken);
+      return c.json({ user: result.user, roles: result.roles }, 200);
+    },
+  );
+
+  defineRoute(
+    app,
+    {
+      method: "post",
+      path: "/api/auth/2fa/setup",
+      operationId: "begin_two_factor_setup",
+      tags: ["auth"],
+      description: "Starts setting up the authenticator app: returns a new secret (to type in or scan) and the address an app can open. Asking again replaces an unconfirmed secret.",
+      access: { public: true },
+      request: { body: { required: true, content: json(ChallengeBody) } },
+      responses: {
+        200: { description: "The secret to add to the app", content: json(z.object({ secret: z.string(), otpauthUri: z.string() })) },
+        401: { description: "The challenge is missing, expired or for another step", content: json(ErrorSchema) },
+        409: { description: "Already turned on", content: json(ErrorSchema) },
+      },
+    },
+    async (c) => {
+      const result = await beginTwoFactorSetup(twoFactorDeps(c.env), { challenge: c.req.valid("json").challenge });
+      if (!result.ok) return result.reason === "already_enabled" ? c.json({ error: "already_enabled" }, 409) : c.json({ error: "invalid_challenge" }, 401);
+      return c.json({ secret: result.secret, otpauthUri: result.otpauthUri }, 200);
+    },
+  );
+
+  defineRoute(
+    app,
+    {
+      method: "post",
+      path: "/api/auth/2fa/enable",
+      operationId: "enable_two_factor",
+      tags: ["auth"],
+      description: "Confirms the first code from the app, turns two-step sign-in on, signs the person in (cookies set) and returns ten single-use recovery codes, shown this once.",
+      access: { public: true },
+      request: { body: { required: true, content: json(CodeBody) } },
+      responses: {
+        200: { description: "Turned on and signed in", content: json(RecoverySessionSchema) },
+        401: { description: "`invalid_code` or `invalid_challenge`", content: json(ErrorSchema) },
+        409: { description: "`no_setup`: no secret was started, or it is already on", content: json(ErrorSchema) },
+        429: { description: "Too many recent failed attempts", content: json(ErrorSchema) },
+      },
+    },
+    async (c) => {
+      const body = c.req.valid("json");
+      const result = await enableTwoFactor(twoFactorDeps(c.env), {
+        challenge: body.challenge,
+        code: body.code,
+        ip: c.req.header("CF-Connecting-IP") ?? null,
+        userAgent: c.req.header("User-Agent") ?? null,
+      });
+      if (!result.ok) {
+        if (result.reason === "throttled") {
+          c.header("Retry-After", String(LOCKOUT_WINDOW_MINUTES * 60));
+          return c.json({ error: "too_many_attempts" }, 429);
+        }
+        if (result.reason === "no_setup") return c.json({ error: "no_setup" }, 409);
+        return c.json({ error: result.reason }, 401);
+      }
+      setSessionCookies(c, result.accessToken, result.refreshToken);
+      return c.json({ user: result.user, roles: result.roles, recoveryCodes: result.recoveryCodes }, 200);
     },
   );
 

@@ -1,0 +1,71 @@
+.card {
+  gap: var(--space-5);
+}
+
+.heading {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.title {
+  font-size: var(--text-2xl);
+}
+
+.body {
+  color: var(--color-text-muted);
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+}
+
+/* The setup key: large, in groups of four, and selectable with one tap, because it is typed into another app. */
+.keyBox {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-4);
+  border-radius: var(--radius-control);
+  background: var(--color-background);
+}
+
+.keyLabel {
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+}
+
+.key {
+  font-size: var(--text-lg);
+  font-weight: var(--weight-medium);
+  letter-spacing: 0.06em;
+  line-height: var(--leading-normal);
+  overflow-wrap: anywhere;
+  user-select: all;
+}
+
+.codes {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-3);
+  margin: 0;
+  padding: var(--space-4);
+  border-radius: var(--radius-control);
+  background: var(--color-background);
+  list-style: none;
+}
+
+.recoveryCode {
+  font-size: var(--text-base);
+  font-weight: var(--weight-medium);
+  letter-spacing: 0.04em;
+  user-select: all;
+}

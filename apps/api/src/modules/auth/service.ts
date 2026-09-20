@@ -6,6 +6,8 @@
  * nothing, so an attacker cannot use lockout to burn the free plan's daily write budget.
  */
 import { newPublicId } from "../../core/ids";
+import { signChallenge } from "../../core/two-factor/challenge";
+import { requiresTwoFactor } from "../../core/two-factor/policy";
 import { hashPassword, needsRehash, verifyPassword } from "../../core/passwords";
 import { IDLE_DAYS, SESSION_DAYS } from "../../core/session-cookies";
 import { ACCESS_TTL_SECONDS, newRefreshToken, sha256Hex, signAccessToken, type RoleClaim } from "../../core/tokens";
@@ -38,27 +40,45 @@ export interface Tokens {
   refreshToken: string;
 }
 
-interface RoleRow {
+export interface RoleRow {
   role: string;
   scope_type: RoleClaim["scope"];
   section_key: string | null;
 }
 
-const toClaims = (rows: RoleRow[]): RoleClaim[] =>
+export const toClaims = (rows: RoleRow[]): RoleClaim[] =>
   rows.map((r) => ({ role: r.role, scope: r.scope_type, ...(r.section_key ? { section: r.section_key } : {}) }));
 
 // Checked against when the email is unknown, so an unknown email takes as long as a wrong password.
 let dummyHash: string | undefined;
 const timingHash = (): string => (dummyHash ??= hashPassword("this-is-not-anybody's-password"));
 
-async function issueAccessToken(deps: Deps, user: PublicUser, sessionId: string, roles: RoleClaim[], now: Date): Promise<string> {
+export async function issueAccessToken(deps: Deps, user: PublicUser, sessionId: string, roles: RoleClaim[], now: Date): Promise<string> {
   const iat = Math.floor(now.getTime() / 1000);
   return signAccessToken(deps.sessionSecret, { sub: user.id, sid: sessionId, name: user.fullName, roles, iat, exp: iat + ACCESS_TTL_SECONDS });
 }
 
 // --- sign in ---------------------------------------------------------------------------------
 
-export type SignInResult = ({ ok: true } & Tokens) | { ok: false; reason: "invalid_credentials" | "throttled" };
+/**
+ * A finished sign-in (`Tokens`), or the password was right but a second step is still needed: enter
+ * the code from the authenticator app (`required`), or set the app up first (`setup`). The
+ * `challenge` is a short-lived token for that step; it is not a session.
+ */
+export type SignInResult =
+  | ({ ok: true; twoFactor?: undefined } & Tokens)
+  | { ok: true; twoFactor: "required" | "setup"; challenge: string }
+  | { ok: false; reason: "invalid_credentials" | "throttled" };
+
+/** A new session row for a user, and the refresh token that goes in their cookie. */
+export async function newSession(db: D1Database, input: { userId: number; ip: string | null; userAgent: string | null; now: Date }) {
+  const sessionId = newPublicId();
+  const refreshToken = newRefreshToken();
+  const statement = db
+    .prepare("INSERT INTO sessions (public_id, user_id, refresh_hash, created_at, last_used_at, expires_at, ip, user_agent) VALUES (?1, ?2, ?3, ?4, ?4, ?5, ?6, ?7)")
+    .bind(sessionId, input.userId, await sha256Hex(refreshToken), input.now.toISOString(), new Date(input.now.getTime() + SESSION_DAYS * DAY).toISOString(), input.ip, input.userAgent);
+  return { sessionId, refreshToken, statement };
+}
 
 export interface SignInInput {
   email: string;
@@ -82,7 +102,7 @@ export async function signIn(deps: Deps, input: SignInInput, now: Date = new Dat
   const since = new Date(now.getTime() - LOCKOUT_WINDOW_MINUTES * MINUTE).toISOString();
   const userAgent = input.userAgent?.slice(0, 300) ?? null;
 
-  const [userResult, emailFailures, ipFailures, roleResult] = await db.batch([
+  const [userResult, emailFailures, ipFailures, roleResult, twoFactorResult] = await db.batch([
     db.prepare("SELECT id, public_id, email, password_hash, full_name, is_active FROM users WHERE email = ?1").bind(email),
     db.prepare("SELECT COUNT(*) AS n FROM sign_in_events WHERE success = 0 AND email_tried = ?1 AND at > ?2").bind(email, since),
     // Without an address we cannot count by address, so that limit is skipped, not shared.
@@ -97,6 +117,7 @@ export async function signIn(deps: Deps, input: SignInInput, now: Date = new Dat
           ORDER BY ra.id`,
       )
       .bind(email),
+    db.prepare("SELECT enabled_at FROM user_two_factor WHERE user_id = (SELECT id FROM users WHERE email = ?1)").bind(email),
   ]);
 
   const failuresForEmail = (emailFailures!.results[0] as { n: number }).n;
@@ -120,12 +141,24 @@ export async function signIn(deps: Deps, input: SignInInput, now: Date = new Dat
     return { ok: false, reason: "invalid_credentials" };
   }
 
-  const sessionId = newPublicId();
-  const refreshToken = newRefreshToken();
+  const roles = toClaims(roleResult!.results as unknown as RoleRow[]);
+  const publicUser: PublicUser = { id: user.public_id, fullName: user.full_name, email: user.email };
+
+  // The password is right. If a second step is needed, no session yet: hand back a challenge instead.
+  const twoFactorEnabled = (twoFactorResult!.results[0] as { enabled_at: string | null } | undefined)?.enabled_at != null;
+  const nextStep = twoFactorEnabled ? "required" : requiresTwoFactor(roles) ? "setup" : null;
+  if (nextStep) {
+    const pending = [recordEvent(true, `password_ok_two_factor_${nextStep}`)];
+    // The password is in hand, so a hash made with weaker settings is replaced with today's.
+    if (needsRehash(user.password_hash)) pending.push(db.prepare("UPDATE users SET password_hash = ?1 WHERE id = ?2").bind(hashPassword(input.password), user.id));
+    await db.batch(pending);
+    const challenge = await signChallenge(deps.sessionSecret, { sub: user.public_id, kind: nextStep === "required" ? "verify" : "setup" });
+    return { ok: true, twoFactor: nextStep, challenge };
+  }
+
+  const { sessionId, refreshToken, statement: sessionStatement } = await newSession(db, { userId: user.id, ip: input.ip, userAgent, now });
   const statements = [
-    db
-      .prepare("INSERT INTO sessions (public_id, user_id, refresh_hash, created_at, last_used_at, expires_at, ip, user_agent) VALUES (?1, ?2, ?3, ?4, ?4, ?5, ?6, ?7)")
-      .bind(sessionId, user.id, await sha256Hex(refreshToken), now.toISOString(), new Date(now.getTime() + SESSION_DAYS * DAY).toISOString(), input.ip, userAgent),
+    sessionStatement,
     recordEvent(true, null),
     db.prepare("UPDATE users SET last_login_at = ?1, failed_login_count = 0 WHERE id = ?2").bind(now.toISOString(), user.id),
   ];
@@ -135,8 +168,6 @@ export async function signIn(deps: Deps, input: SignInInput, now: Date = new Dat
   }
   await db.batch(statements);
 
-  const publicUser: PublicUser = { id: user.public_id, fullName: user.full_name, email: user.email };
-  const roles = toClaims(roleResult!.results as unknown as RoleRow[]);
   return { ok: true, user: publicUser, roles, refreshToken, accessToken: await issueAccessToken(deps, publicUser, sessionId, roles, now) };
 }
 

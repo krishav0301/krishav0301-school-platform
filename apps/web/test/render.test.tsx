@@ -4,6 +4,7 @@ import { describe, expect, it, vi } from "vitest";
 import { ConfigGate } from "@/config/ConfigGate";
 import { ConfigContext, makeConfigValue, type PublicConfig } from "@/config/ConfigProvider";
 import { SessionContext, type Me, type SessionValue } from "@/session/SessionProvider";
+import { fakeSession } from "./session";
 import { PortalShell } from "@/shell/PortalShell";
 import { PublicShell } from "@/shell/PublicShell";
 import { Badge, Button, Field, Notice, Table } from "@/ui";
@@ -33,10 +34,9 @@ function configFor(pack: PackJson): PublicConfig {
   };
 }
 
-const noop = { signIn: async () => ({ ok: true }) as const, signOut: async () => {} };
-const signedIn = (me: Me): SessionValue => ({ status: "signedIn", me, endedUnexpectedly: false, ...noop });
-const signedOut: SessionValue = { status: "signedOut", me: null, endedUnexpectedly: false, ...noop };
-const sessionEnded: SessionValue = { ...signedOut, endedUnexpectedly: true };
+const signedIn = (me: Me): SessionValue => fakeSession({ status: "signedIn", me });
+const signedOut: SessionValue = fakeSession();
+const sessionEnded: SessionValue = fakeSession({ endedUnexpectedly: true });
 
 /** Three places to go, so the menu is shown. */
 const menuItems = [
