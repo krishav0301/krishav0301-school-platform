@@ -40,8 +40,14 @@ Two of three sites side with group A, including the most widely used one. It is 
 - **Disputed window** `2062-01-31` to `2062-02-31` is flagged by `conversionConfidence()`. A date of birth inside it should be confirmed against the certificate. It affects roughly people born between 14 May and 14 June 2005.
 - The verified range stays BS 2000 to 2083. Beyond it, refuse.
 
+## BS 2083 verified against Hamro Patro (2026-09-20)
+
+The client runs in BS 2083, so that year matters most. The first day of all 12 months and the last day of the year (13 dates) were read from Hamro Patro (`hamropatro.com/en/date/2083-M-1`). **All 13 match the module, dates and weekdays.** The year has 365 days, and Chaitra has 30. These dates are now hard-coded as evidence in `test/dates.test.ts`. No question to the client is needed for BS 2083.
+
+Limits: one source for this check (Hamro Patro), read through a summariser, and it checks month starts, not every day. The 30,681-day golden test covers every day against the Python libraries.
+
 ## Still open
 
-- **Ask the client for their trusted official calendar** to settle BS 2062 and to check BS 2083 before go-live.
-- Someone should look at the printed official calendar for BS 2062 Baisakh. If it turns out group B is right, change the golden data and the module together.
+- **BS 2084.** Its official calendar does not exist yet. When it is published (before the 2084 session starts, so by about Chaitra 2083, March 2027), check it the same way, and only then extend `VERIFIED_BS_YEARS`. Until then the system cannot create anything dated in BS 2084.
+- **BS 2062 Baisakh to Jestha** stays flagged. It only matters for dates of birth from 14 May to 14 June 2005. If someone can check a printed BS 2062 calendar, and group B turns out right, change the golden data and the module together.
 - Nepali digits and Nepali month names are not built (translation catalog, later).

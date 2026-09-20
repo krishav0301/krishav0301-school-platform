@@ -95,7 +95,7 @@ R2 needs enabling in the Cloudflare dashboard and probably a payment method. PM 
 
 ## Open items carried forward
 
-- **Official BS calendar and BS 2062.** Ask the client for the calendar they trust, to settle the disputed 2062 stretch and to check BS 2083 before go-live.
+- **BS 2083 is verified** against Hamro Patro (13 dates, 2026-09-20), so nothing to ask the client (PM: they run on BS 2083). **Still to do:** verify BS 2084 when its calendar is published (by about Chaitra 2083) before extending the verified range. BS 2062 Baisakh to Jestha stays flagged as disputed.
 
 - **R2 file storage (D-020).** On hold until needed. Blocks uploads in Phases 4 and 5.
 

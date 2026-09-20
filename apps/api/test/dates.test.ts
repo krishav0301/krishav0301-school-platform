@@ -126,6 +126,34 @@ describe("a disputed stretch is flagged, not hidden", () => {
   });
 });
 
+describe("BS 2083, Royal Softech's year, against Hamro Patro (checked 2026-09-20)", () => {
+  // The first day of every month and the last day of the year, read from hamropatro.com/en/date/.
+  const hamroPatro: [number, string, string][] = [
+    [1, "2026-04-14", "Tue"], [2, "2026-05-15", "Fri"], [3, "2026-06-15", "Mon"],
+    [4, "2026-07-17", "Fri"], [5, "2026-08-17", "Mon"], [6, "2026-09-17", "Thu"],
+    [7, "2026-10-18", "Sun"], [8, "2026-11-17", "Tue"], [9, "2026-12-16", "Wed"],
+    [10, "2027-01-15", "Fri"], [11, "2027-02-13", "Sat"], [12, "2027-03-15", "Mon"],
+  ];
+  const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+
+  it.each(hamroPatro)("1st of month %i is %s, a %s", (month, ad, name) => {
+    const bs = { year: 2083, month, day: 1 };
+    expect(bsToAd(bs)).toBe(ad);
+    expect(dayNames[weekday(bs)]).toBe(name);
+  });
+
+  it("the last day, 30 Chaitra 2083, is Tuesday 13 Apr 2027", () => {
+    const bs = { year: 2083, month: 12, day: 30 };
+    expect(bsToAd(bs)).toBe("2027-04-13");
+    expect(dayNames[weekday(bs)]).toBe("Tue");
+  });
+
+  it("the year has 365 days", () => {
+    const total = Array.from({ length: 12 }, (_, i) => daysInMonth(2083, i + 1)).reduce((a, b) => a + b);
+    expect(total).toBe(365);
+  });
+});
+
 describe("Nepal time (UTC+5:45) decides the day", () => {
   it("the day changes at Nepal midnight, which is 18:15 UTC", () => {
     expect(nepalDate(new Date("2026-09-19T18:14:59Z"))).toBe("2026-09-19");

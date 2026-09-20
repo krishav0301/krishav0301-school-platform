@@ -183,7 +183,7 @@ A role assignment carries a **scope**: the whole institution, or one section (+2
 | Programme and stream names | Working list in `docs/client-profile.md`, unconfirmed |
 | Admission documents | One certificate upload until PM approves multiple typed documents |
 | File uploads and R2 | Not enabled (D-020). Build the storage interface only; no uploads until PM says R2 is needed |
-| Disputed BS 2062 stretch | Flagged, not hidden. Ask the client for their official calendar |
+| Disputed BS 2062 stretch | Flagged, not hidden. BS 2083 is verified against Hamro Patro. Verify BS 2084 before extending the range |
 
 ## 10. Out of scope
 
