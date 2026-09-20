@@ -88,11 +88,14 @@ R2 needs enabling in the Cloudflare dashboard and probably a payment method. PM 
 - Passwords with scrypt (N=2^15). Jobs on Cloudflare Queues and Cron Triggers. PDFs on Browser Rendering, generated in batches.
 - Tests with Vitest on the Workers runtime, plus property-based tests for ledger invariants.
 
+**D-022 BS date library and the disputed stretch.** Working default. Details in `spikes/bs-dates-js.md`.
+`@inicrea/bikram-sambat-core`, pinned to exactly 0.1.3, wrapped by `core/dates`. Chosen because it matched all 30,681 reference days; seven more popular npm libraries carry a different calendar for BS 2062 Baisakh and Jestha, so popularity was not used. Golden test guards against upgrades. BS 2062 Baisakh 31 to Jestha 31 is flagged as disputed (two of three public calendars agree with us). Risk: the package is a month old with one maintainer, so the wrapper keeps it replaceable.
+
 ---
 
 ## Open items carried forward
 
-- **BS date library for TypeScript.** The spike compared Python libraries. Pick a TypeScript library and re-run the comparison (D-014's verified-years rule stands). Do this at the start of Phase 1.
+- **Official BS calendar and BS 2062.** Ask the client for the calendar they trust, to settle the disputed 2062 stretch and to check BS 2083 before go-live.
 
 - **R2 file storage (D-020).** On hold until needed. Blocks uploads in Phases 4 and 5.
 

@@ -135,7 +135,7 @@ A role assignment carries a **scope**: the whole institution, or one section (+2
 - Store **AD** dates. Show and accept **BS** everywhere. One date module owns all conversion.
 - Timestamps in UTC, shown in Nepal time (UTC+5:45). Day boundaries use Nepal midnight.
 - The week is Sunday to Friday. Saturday is the weekly holiday.
-- Never generate BS conversion data from memory. Convert inside the date module only, and only for **verified BS years** (a list, currently 2000 to 2083). Beyond that the libraries disagree, so refuse the conversion and block entering dates in unverified years (D-014, `docs/spikes/bs-dates.md`). The spike tested Python libraries; **`OPEN:` choose a TypeScript library** and re-run the comparison against the Python results before using it. Test month and year boundaries and the round trip.
+- Never generate BS conversion data from memory. Convert inside the date module only, and only for **verified BS years** (a list, currently 2000 to 2083). Beyond that the libraries disagree, so refuse the conversion and block entering dates in unverified years (D-014, `docs/spikes/bs-dates.md`). The converter is `@inicrea/bikram-sambat-core`, **pinned to exactly 0.1.3** (D-022). A golden test (`apps/api/test/fixtures/bs-golden.json`) reproduces every day of BS 2000 to 2083 and fails if an upgrade changes an answer. Use only `apps/api/src/core/dates`. BS 2062 Baisakh 31 to Jestha 31 is a disputed stretch: `conversionConfidence()` flags it, and a date of birth there is confirmed against the certificate. Never import the library elsewhere.
 
 ## 7. Security, reliability and quality
 
@@ -183,7 +183,7 @@ A role assignment carries a **scope**: the whole institution, or one section (+2
 | Programme and stream names | Working list in `docs/client-profile.md`, unconfirmed |
 | Admission documents | One certificate upload until PM approves multiple typed documents |
 | File uploads and R2 | Not enabled (D-020). Build the storage interface only; no uploads until PM says R2 is needed |
-| BS date library for TypeScript | Not chosen. Re-run the library comparison first |
+| Disputed BS 2062 stretch | Flagged, not hidden. Ask the client for their official calendar |
 
 ## 10. Out of scope
 
