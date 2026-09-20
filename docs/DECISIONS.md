@@ -91,9 +91,14 @@ R2 needs enabling in the Cloudflare dashboard and probably a payment method. PM 
 **D-022 BS date library and the disputed stretch.** Working default. Details in `spikes/bs-dates-js.md`.
 `@inicrea/bikram-sambat-core`, pinned to exactly 0.1.3, wrapped by `core/dates`. Chosen because it matched all 30,681 reference days; seven more popular npm libraries carry a different calendar for BS 2062 Baisakh and Jestha, so popularity was not used. Golden test guards against upgrades. BS 2062 Baisakh 31 to Jestha 31 is flagged as disputed (two of three public calendars agree with us). Risk: the package is a month old with one maintainer, so the wrapper keeps it replaceable.
 
+**D-023 Base schema and keyed audit chain.** Working default. Migration `apps/api/migrations/0001_foundation.sql`.
+Tables are plural (`users`, `role_assignments`, `audit_events`). The database refuses impossible role and scope pairs (an Admin limited to a section, a Student with institution scope), duplicate assignments, and case-different duplicate emails. The audit log is an **HMAC chain** keyed by the `AUDIT_HMAC_KEY` Worker secret, which is never stored in the database, so someone with database access alone cannot rewrite history and still verify. Triggers block edits and deletes and refuse an entry that does not link to the current head; a losing writer's whole batch, business change included, rolls back and retries. Detects an edited entry, a middle insert or delete, and a tampered head. **Known limit:** deleting the newest entries together with the head is invisible inside the database and is caught only by the daily export of `auditChainSummary` (to build in Phase 10). Tested on the simulated database and on a real, temporary D1 database.
+
 ---
 
 ## Open items carried forward
+
+- **Audit key and export.** Set `AUDIT_HMAC_KEY` as a secret on every deployment before the audit log is first used. Build the daily export of the chain summary to a second location (Phase 10, or earlier if cheap).
 
 - **BS 2083 is verified** against Hamro Patro (13 dates, 2026-09-20), so nothing to ask the client (PM: they run on BS 2083). **Still to do:** verify BS 2084 when its calendar is published (by about Chaitra 2083) before extending the verified range. BS 2062 Baisakh to Jestha stays flagged as disputed.
 

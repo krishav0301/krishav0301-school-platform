@@ -1,0 +1,3 @@
+# Copy to .dev.vars (git-ignored) for `npm run dev`. Real deployments set secrets with
+# `wrangler secret put`, never in a file.
+AUDIT_HMAC_KEY=change-me-to-a-long-random-string

@@ -23,6 +23,14 @@ cd apps/web && npm install && npm run build      # builds the static app into ap
 cd ../api && npm install && npm run dev          # serves app and API at http://localhost:8787
 ```
 
+Before the first run, create the local database tables and the local secret:
+
+```bash
+cd apps/api
+cp .dev.vars.example .dev.vars      # then set AUDIT_HMAC_KEY to a long random string
+npm run db:migrate:local
+```
+
 For fast front-end work with hot reload, run `npm run dev` in `apps/web` as well and open http://localhost:3000. It forwards `/api/*` to the Worker on port 8787.
 
 ## Checks

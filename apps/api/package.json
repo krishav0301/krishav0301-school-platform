@@ -8,7 +8,8 @@
     "test": "vitest run",
     "typecheck": "wrangler types && tsc --noEmit",
     "lint": "eslint .",
-    "gen:openapi": "tsx scripts/generate-openapi.ts"
+    "gen:openapi": "tsx scripts/generate-openapi.ts",
+    "db:migrate:local": "wrangler d1 migrations apply school_dev --local"
   },
   "dependencies": {
     "@hono/zod-openapi": "^1.6.3",

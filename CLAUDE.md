@@ -129,7 +129,7 @@ A role assignment carries a **scope**: the whole institution, or one section (+2
 - Top 20: name and rank only for students, ranked **per section**, only after the class is published.
 
 **Audit**
-- Insert-only audit log: triggers block update and delete, and a hash chain makes any edit detectable (D1 has no database accounts). No update or delete for anyone, including Super Admin. Every service write emits an audit event in the same batch. Sign-ins and failed 2FA go in a separate Sign-ins view.
+- Insert-only audit log: triggers block update and delete, and a keyed hash chain (HMAC-SHA256 with the `AUDIT_HMAC_KEY` Worker secret, never stored in the database) makes any edit, or any insert or delete in the middle, detectable, because D1 has no database accounts. Deleting the newest entries together with the chain head is caught only by the daily export of `auditChainSummary`. Append with `recordAudit`, in the same batch as the change, and verify with `verifyAuditChain`. No update or delete for anyone, including Super Admin. Every service write emits an audit event in the same batch. Sign-ins and failed 2FA go in a separate Sign-ins view.
 
 **Dates**
 - Store **AD** dates. Show and accept **BS** everywhere. One date module owns all conversion.

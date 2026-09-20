@@ -6,13 +6,21 @@
   "compatibility_flags": ["nodejs_compat"],
   "vars": {
     "ENVIRONMENT": "test",
-    "DEMO_MODE": "false"
+    "DEMO_MODE": "false",
+    // Test-only value. Real deployments set this as a secret, never in a file.
+    "AUDIT_HMAC_KEY": "test-only-audit-key-0123456789abcdef0123456789abcdef"
   },
   "d1_databases": [
     {
       "binding": "DB",
       "database_name": "school_test",
       "database_id": "00000000-0000-0000-0000-000000000001"
+    },
+    {
+      // A second database for tests that deliberately tamper with the audit log.
+      "binding": "SCRATCH_DB",
+      "database_name": "school_scratch",
+      "database_id": "00000000-0000-0000-0000-000000000002"
     }
   ]
 }
