@@ -1,4 +1,4 @@
-import { Badge, Button, Card, Field, Notice, Skeleton, Spinner, Table } from "@/ui";
+import { Badge, Button, Card, Field, Notice, PasswordField, Skeleton, Spinner, Table } from "@/ui";
 
 import styles from "./design.module.css";
 
@@ -66,6 +66,7 @@ export default function DesignGallery() {
         <div className={styles.fields}>
           <Field label="Full name" name="a" hint="As on the citizenship certificate." />
           <Field label="Email" name="b" type="email" defaultValue="someone@example" error="Enter a full email address." />
+          <PasswordField label="Password" name="c" defaultValue="a long passphrase" showText="Show" hideText="Hide" showLabel="Show password" hideLabel="Hide password" />
         </div>
       </Card>
 
@@ -75,7 +76,7 @@ export default function DesignGallery() {
           <Badge>Neutral</Badge>
           <Badge tone="ok">Paid</Badge>
           <Badge tone="bad">Overdue</Badge>
-          <Badge tone="primary">Bachelor&apos;s</Badge>
+          <Badge>Bachelor&apos;s</Badge>
         </div>
         <Notice title="Heads up">Neutral notices explain something without alarm.</Notice>
         <Notice tone="ok" title="Saved">The change was saved.</Notice>

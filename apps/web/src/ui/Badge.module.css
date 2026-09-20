@@ -25,7 +25,3 @@
   color: var(--color-bad);
 }
 
-.primary {
-  background: var(--color-primary);
-  color: var(--color-primary-text);
-}

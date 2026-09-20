@@ -18,6 +18,7 @@ body {
   line-height: var(--leading-normal);
   -webkit-font-smoothing: antialiased;
   text-size-adjust: 100%;
+  overflow-wrap: break-word; /* a long name or email wraps instead of widening the page */
 }
 
 h1,

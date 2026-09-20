@@ -58,8 +58,9 @@ export const CONTRAST_RULES: readonly ContrastRule[] = [
   { id: "muted-on-background", label: "Secondary text on the page", foreground: "textMuted", background: "background", minimum: 4.5 },
   { id: "muted-on-surface", label: "Secondary text on cards", foreground: "textMuted", background: "surface", minimum: 4.5 },
   { id: "primary-text", label: "Button labels", foreground: "primaryText", background: "primary", minimum: 4.5 },
-  { id: "primary-on-background", label: "Buttons and links against the page", foreground: "primary", background: "background", minimum: 3 },
-  { id: "primary-on-surface", label: "Buttons and links against cards", foreground: "primary", background: "surface", minimum: 3 },
+  // Links and quiet buttons are text in the brand colour, so they need the text minimum (D-030).
+  { id: "primary-on-background", label: "Links and quiet buttons on the page", foreground: "primary", background: "background", minimum: 4.5 },
+  { id: "primary-on-surface", label: "Links and quiet buttons on cards", foreground: "primary", background: "surface", minimum: 4.5 },
   { id: "ok-label", label: "Success labels", foreground: "ok", background: "okSoft", minimum: 4.5 },
   { id: "bad-label", label: "Error labels", foreground: "bad", background: "badSoft", minimum: 4.5 },
 ];

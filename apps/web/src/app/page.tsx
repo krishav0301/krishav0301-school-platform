@@ -23,7 +23,7 @@ function Welcome() {
       <ul className={styles.sections}>
         {config.sections.map((section) => (
           <li key={section.key}>
-            <Badge tone="primary">{section.name}</Badge>
+            <Badge>{section.name}</Badge>
           </li>
         ))}
       </ul>

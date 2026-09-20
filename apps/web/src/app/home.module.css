@@ -1,6 +1,6 @@
 .hero {
   gap: var(--space-5);
-  padding: var(--space-6) var(--space-5);
+  padding: min(var(--space-6), 7.5vw) min(var(--space-5), 7.5vw);
 }
 
 .title {

@@ -10,13 +10,14 @@ import { t } from "@/i18n/messages";
 import { useSession } from "@/session/SessionProvider";
 import { Button, Skeleton, Spinner } from "@/ui";
 
-import { NAV_ITEMS, visibleNav, type NavItem } from "./nav";
+import { NAV_ITEMS, showsMenu, visibleNav, type NavItem } from "./nav";
 import styles from "./shell.module.css";
 
 /**
  * The frame around every signed-in page: header, menu, page. The layout is the same for every
  * school (CLAUDE.md rule 6); only colours, font, corner radii, names and wording differ.
- * Someone who is not signed in is sent to the sign-in page.
+ * The menu is a bottom tab bar on a phone and a sidebar on a wide screen, and is left out while
+ * there is only one place to go. Someone who is not signed in is sent to the sign-in page.
  */
 export function PortalShell({ children, items = NAV_ITEMS }: { children: ReactNode; items?: readonly NavItem[] }) {
   const { status, me, signOut } = useSession();
@@ -40,16 +41,17 @@ export function PortalShell({ children, items = NAV_ITEMS }: { children: ReactNo
   }
 
   const menu = visibleNav(items, me.roles, config?.modules ?? {});
+  const hasMenu = showsMenu(menu);
 
   return (
-    <div className={styles.frame}>
+    <div className={`${styles.frame} ${hasMenu ? styles.withTabs : ""}`}>
       <a href="#main" className={styles.skip}>
         {t("shell.skipToContent")}
       </a>
       <header className={styles.header}>
         <div className={styles.bar}>
           <Link href="/portal" className={styles.brand}>
-            {config?.school.shortName ?? " "}
+            {config?.school.shortName ?? <Skeleton width="7rem" />}
           </Link>
           <div className={styles.actions}>
             <span className={styles.who}>{t("shell.signedInAs", { name: me.name })}</span>
@@ -60,18 +62,19 @@ export function PortalShell({ children, items = NAV_ITEMS }: { children: ReactNo
         </div>
       </header>
       <div className={styles.body}>
-        <nav className={styles.nav} aria-label={t("shell.mainNavigation")}>
-          {menu.map((item) => (
-            <Link key={item.id} href={item.href} className={styles.navLink} aria-current={pathname === item.href ? "page" : undefined}>
-              {t(item.labelKey)}
-            </Link>
-          ))}
-        </nav>
+        {hasMenu ? (
+          <nav className={styles.nav} aria-label={t("shell.mainNavigation")}>
+            {menu.map((item) => (
+              <Link key={item.id} href={item.href} className={styles.navLink} aria-current={pathname === item.href ? "page" : undefined}>
+                {t(item.labelKey)}
+              </Link>
+            ))}
+          </nav>
+        ) : null}
         <main id="main" className={styles.main}>
           <ConfigGate>{children}</ConfigGate>
         </main>
       </div>
-      <footer className={styles.footer}>{config ? t("shell.footer", { school: config.school.name }) : null}</footer>
     </div>
   );
 }

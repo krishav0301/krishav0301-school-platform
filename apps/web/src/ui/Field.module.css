@@ -8,9 +8,16 @@
   font-weight: var(--weight-medium);
 }
 
+.control {
+  position: relative;
+  display: flex;
+}
+
 /* 16px text stops phones zooming in on focus. The border uses the muted text colour, which the
    theme check guarantees is readable, so the edge of the field is always visible. */
 .input {
+  flex: 1;
+  min-width: 0;
   min-height: var(--control-height);
   padding: 0 var(--space-4);
   border: 1px solid var(--color-text-muted);
@@ -21,9 +28,38 @@
   font-size: max(1rem, 16px);
 }
 
+.withTrailing {
+  padding-inline-end: 5rem;
+}
+
 .input[aria-invalid="true"] {
   border-color: var(--color-bad);
   border-width: 2px;
+}
+
+.trailing {
+  position: absolute;
+  inset-block: 0;
+  inset-inline-end: 0;
+  display: flex;
+  align-items: stretch;
+}
+
+/* Text button in the field's edge: a 44px-tall target, brand colour (4.5:1 guaranteed on cards). */
+.toggle {
+  min-width: var(--control-height);
+  padding: 0 var(--space-4);
+  border: 0;
+  border-radius: var(--radius-control);
+  background: transparent;
+  color: var(--color-primary);
+  font: inherit;
+  font-weight: var(--weight-medium);
+  cursor: pointer;
+}
+
+.toggle:hover {
+  text-decoration: underline;
 }
 
 .hint {

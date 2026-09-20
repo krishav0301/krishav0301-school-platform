@@ -1,12 +1,14 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 
+import { ConfigGate } from "@/config/ConfigGate";
 import { ConfigContext, makeConfigValue, type PublicConfig } from "@/config/ConfigProvider";
 import { SessionContext, type Me, type SessionValue } from "@/session/SessionProvider";
 import { PortalShell } from "@/shell/PortalShell";
 import { PublicShell } from "@/shell/PublicShell";
 import { Badge, Button, Field, Notice, Table } from "@/ui";
 import DesignGallery from "@/app/design/page";
+import Home from "@/app/page";
 import PortalPage from "@/app/portal/page";
 import SignInPage from "@/app/sign-in/page";
 import royal from "../../../packs/royal-softech/pack.json";
@@ -31,8 +33,17 @@ function configFor(pack: PackJson): PublicConfig {
   };
 }
 
-const signedIn = (me: Me): SessionValue => ({ status: "signedIn", me, signIn: async () => ({ ok: true }), signOut: async () => {} });
-const signedOut: SessionValue = { status: "signedOut", me: null, signIn: async () => ({ ok: true }), signOut: async () => {} };
+const noop = { signIn: async () => ({ ok: true }) as const, signOut: async () => {} };
+const signedIn = (me: Me): SessionValue => ({ status: "signedIn", me, endedUnexpectedly: false, ...noop });
+const signedOut: SessionValue = { status: "signedOut", me: null, endedUnexpectedly: false, ...noop };
+const sessionEnded: SessionValue = { ...signedOut, endedUnexpectedly: true };
+
+/** Three places to go, so the menu is shown. */
+const menuItems = [
+  { id: "dashboard", labelKey: "nav.dashboard", href: "/portal" },
+  { id: "a", labelKey: "nav.dashboard", href: "/portal/a" },
+  { id: "b", labelKey: "nav.dashboard", href: "/portal/b" },
+] as const;
 
 function page(element: React.ReactNode, pack: PackJson, session: SessionValue) {
   return renderToStaticMarkup(
@@ -51,18 +62,35 @@ describe("the portal shell", () => {
   const royalHtml = page(<PortalPage />, royal, signedIn(coordinator));
   const sampleHtml = page(<PortalPage />, sample, signedIn(coordinator));
 
+  const withMenu = page(
+    <PortalShell items={menuItems}>
+      <h1>x</h1>
+    </PortalShell>,
+    royal,
+    signedIn(coordinator),
+  );
+
   it("has the landmarks a screen reader needs, with the skip link first", () => {
-    expect(royalHtml.indexOf('class="skip"')).toBeGreaterThan(-1);
-    expect(royalHtml.indexOf('href="#main"')).toBeLessThan(royalHtml.indexOf("<header"));
-    expect(royalHtml).toContain("<header");
-    expect(royalHtml).toMatch(/<nav[^>]*aria-label="Main navigation"/);
-    expect(royalHtml).toMatch(/<main id="main"/);
-    expect(royalHtml).toContain("<footer");
+    expect(withMenu.indexOf('class="skip"')).toBeGreaterThan(-1);
+    expect(withMenu.indexOf('href="#main"')).toBeLessThan(withMenu.indexOf("<header"));
+    expect(withMenu).toMatch(/<nav[^>]*aria-label="Main navigation"/);
+    expect(withMenu).toMatch(/<main id="main"/);
     expect(royalHtml.match(/<h1/g)).toHaveLength(1);
   });
 
+  it("does not repeat the school's name in a footer under a header that already carries it", () => {
+    expect(royalHtml).not.toContain("<footer");
+  });
+
   it("marks the current page in the menu", () => {
-    expect(royalHtml).toMatch(/<a[^>]*aria-current="page"[^>]*>Dashboard<\/a>/);
+    expect(withMenu).toMatch(/<a[^>]*aria-current="page"[^>]*>Dashboard<\/a>/);
+    expect(withMenu.match(/aria-current="page"/g)).toHaveLength(1);
+  });
+
+  it("shows no menu while there is only one place to go", () => {
+    expect(royalHtml).not.toContain("<nav");
+    expect(royalHtml).not.toContain("withTabs");
+    expect(withMenu).toContain("withTabs"); // the page leaves room for the phone tab bar
   });
 
   it("shows the school's own name and its own word for a role", () => {
@@ -107,17 +135,20 @@ describe("the portal shell", () => {
   it("hides menu entries a role should not see", () => {
     const items = [
       { id: "dashboard", labelKey: "nav.dashboard", href: "/portal" },
-      { id: "secret", labelKey: "shell.signOut", href: "/portal/x", roles: ["admin"] },
+      { id: "open", labelKey: "shell.signOut", href: "/portal/open" },
+      { id: "secret", labelKey: "shell.signIn", href: "/portal/x", roles: ["admin"] },
     ] as const;
     const html = page(<PortalShell items={items}>x</PortalShell>, royal, signedIn(coordinator));
-    expect(html).toContain("Dashboard");
+    expect(html).toContain("/portal/open");
     expect(html).not.toContain("/portal/x");
   });
 });
 
 describe("the public shell and sign-in page", () => {
-  it("offers Sign in to a visitor, and the dashboard to someone signed in", () => {
-    expect(page(<PublicShell>x</PublicShell>, royal, signedOut)).toContain('href="/sign-in"');
+  it("offers a quiet Sign in to a visitor, and the dashboard to someone signed in", () => {
+    const visitor = page(<PublicShell>x</PublicShell>, royal, signedOut);
+    expect(visitor).toContain('href="/sign-in"');
+    expect(visitor).toMatch(/<a[^>]*class="button quiet"[^>]*href="\/sign-in"|<a[^>]*href="\/sign-in"[^>]*class="button quiet"/);
     const html = page(<PublicShell>x</PublicShell>, royal, signedIn(coordinator));
     expect(html).toContain('href="/portal"');
     expect(html).not.toContain('href="/sign-in"');
@@ -138,10 +169,48 @@ describe("the public shell and sign-in page", () => {
     expect(password.toLowerCase()).toContain('autocomplete="current-password"');
   });
 
-  it("has one heading and one submit button, and names the school", () => {
+  it("has one heading that names the school, one submit button, and says where the login comes from", () => {
     expect(html.match(/<h1/g)).toHaveLength(1);
+    expect(html).toMatch(/<h1[^>]*>Sign in to Royal Softech College<\/h1>/);
     expect(html.match(/type="submit"/g)).toHaveLength(1);
-    expect(html).toContain("to Royal Softech College");
+    expect(html).toContain("Use the email and password your school gave you.");
+  });
+
+  it("has exactly one prominent button per view: the form's, with no second Sign in in the header", () => {
+    expect(html.match(/class="button primary/g)).toHaveLength(1);
+    expect(html).not.toContain('href="/sign-in"');
+  });
+
+  it("the home page also has exactly one prominent button", () => {
+    const home = page(<Home />, royal, signedOut);
+    expect(home.match(/class="button primary/g)).toHaveLength(1);
+  });
+
+  it("the password can be shown or hidden with a real button that reports its state", () => {
+    const toggle = html.match(/<button[^>]*aria-pressed[^>]*>[^<]*<\/button>/)![0];
+    expect(toggle).toContain('type="button"');
+    expect(toggle).toContain('aria-pressed="false"');
+    expect(toggle).toContain('aria-label="Show password"');
+    expect(toggle).toContain(">Show<"); // the visible text is part of the accessible name
+    expect(html).toMatch(/<input[^>]*type="password"[^>]*name="password"|<input[^>]*name="password"[^>]*type="password"/);
+  });
+
+  it("tells someone whose session ended why they are back here, and nobody else", () => {
+    expect(page(<SignInPage />, royal, sessionEnded)).toContain("Your session has ended. Sign in again to continue.");
+    expect(html).not.toContain("Your session has ended");
+  });
+
+  it("shows the shape of the page while the school's details load, instead of a lone spinner", () => {
+    const loading = renderToStaticMarkup(
+      <ConfigContext.Provider value={makeConfigValue("loading", null)}>
+        <ConfigGate>never</ConfigGate>
+      </ConfigContext.Provider>,
+    );
+    expect(loading).toContain('role="status"');
+    expect(loading).toContain("Loading…");
+    expect(loading).toContain('aria-busy="true"');
+    expect(loading.match(/aria-hidden="true"/g)!.length).toBeGreaterThanOrEqual(3); // decorative placeholders
+    expect(loading).not.toContain("never");
   });
 });
 

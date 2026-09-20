@@ -32,7 +32,7 @@ function Dashboard() {
         <ul className={styles.roles}>
           {me.roles.map((claim) => (
             <li key={`${claim.role}-${claim.scope}-${claim.section ?? ""}`}>
-              <Badge tone="primary">{roleName(claim.role)}</Badge> <span className={styles.scope}>{scopeName(claim)}</span>
+              <Badge>{roleName(claim.role)}</Badge> <span className={styles.scope}>{scopeName(claim)}</span>
             </li>
           ))}
         </ul>

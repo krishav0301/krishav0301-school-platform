@@ -27,7 +27,8 @@
 
   --control-height: 2.75rem; /* 44px: the smallest comfortable touch target */
   --content-width: 72rem;
-  --page-gutter: var(--space-4);
+  /* Capped by screen width as well, so enlarged text (which enlarges rem spacing) cannot squeeze the content on a narrow phone. */
+  --page-gutter: min(var(--space-4), 5vw);
 
   --shadow-card: 0 1px 2px color-mix(in srgb, var(--color-text) 8%, transparent),
     0 8px 24px color-mix(in srgb, var(--color-text) 6%, transparent);
@@ -39,6 +40,6 @@
 
 @media (min-width: 48rem) {
   :root {
-    --page-gutter: var(--space-6);
+    --page-gutter: min(var(--space-6), 5vw);
   }
 }

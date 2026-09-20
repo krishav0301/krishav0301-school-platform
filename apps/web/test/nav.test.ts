@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
-import { NAV_ITEMS, visibleNav, type NavItem } from "@/shell/nav";
+import { MAX_TABS, NAV_ITEMS, showsMenu, visibleNav, type NavItem } from "@/shell/nav";
+import { ROLES } from "../../api/src/core/roles";
 
 const items: NavItem[] = [
   { id: "dashboard", labelKey: "nav.dashboard", href: "/portal" },
@@ -40,6 +41,19 @@ describe("visibleNav", () => {
   it("Super Admin sees the unrestricted items but is not silently given every role's", () => {
     const superAdmin = [{ role: "super_admin", scope: "institution" as const }];
     expect(ids(visibleNav(items, superAdmin, modules))).toEqual(["dashboard"]);
+  });
+
+  it("a menu of one entry is not shown: there is nothing to choose between", () => {
+    expect(showsMenu([])).toBe(false);
+    expect(showsMenu(items.slice(0, 1))).toBe(false);
+    expect(showsMenu(items.slice(0, 2))).toBe(true);
+  });
+
+  it("no role is ever offered more than the tab bar can hold: add a More tab before adding a sixth entry", () => {
+    const everyModuleOn = Object.fromEntries(NAV_ITEMS.flatMap((i) => (i.module ? [[i.module, true]] : [])));
+    for (const role of ROLES) {
+      expect(visibleNav(NAV_ITEMS, [{ role }], everyModuleOn).length, role).toBeLessThanOrEqual(MAX_TABS);
+    }
   });
 
   it("the real list starts with the dashboard, has unique ids and hrefs, and every href is under /portal", () => {

@@ -3,7 +3,7 @@
 import type { ReactNode } from "react";
 
 import { t } from "@/i18n/messages";
-import { Button, Notice, Spinner } from "@/ui";
+import { Button, Card, Notice, Skeleton } from "@/ui";
 
 import { useConfig } from "./ConfigProvider";
 
@@ -23,5 +23,16 @@ export function ConfigGate({ children }: { children: ReactNode }) {
       </Notice>
     );
   }
-  return <Spinner label={t("config.loading")} />;
+  // Show the shape of the page straight away, so nothing jumps when the content arrives.
+  return (
+    <Card aria-busy="true">
+      <span role="status" className="sr-only">
+        {t("config.loading")}
+      </span>
+      <Skeleton width="60%" height="1.75rem" />
+      <Skeleton width="90%" />
+      <Skeleton width="75%" />
+      <Skeleton height="2.75rem" />
+    </Card>
+  );
 }

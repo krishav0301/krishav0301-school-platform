@@ -65,6 +65,18 @@ describe("readability check", () => {
     expect(failures.map((f) => f.rule)).toContain("primary-text");
   });
 
+  it("catches a brand colour too pale to read as text: links and quiet buttons are text, so they need 4.5:1, not 3:1", () => {
+    // #3b82f6 is about 3.7:1 on white: fine for a button's edge, too faint for a text link.
+    const failures = checkContrast(with_((t) => (t.light.primary = "#3b82f6")));
+    const rules = failures.filter((f) => f.rule.startsWith("primary-on-"));
+    expect(rules.map((f) => f.rule).sort()).toEqual(["primary-on-background", "primary-on-surface"]);
+    for (const f of rules) {
+      expect(f.minimum).toBe(4.5);
+      expect(f.ratio).toBeLessThan(4.5);
+      expect(f.ratio).toBeGreaterThan(3);
+    }
+  });
+
   it("catches an error label that is hard to read", () => {
     const failures = checkContrast(with_((t) => (t.light.bad = "#f5a3a3")));
     expect(failures.map((f) => f.rule)).toContain("bad-label");

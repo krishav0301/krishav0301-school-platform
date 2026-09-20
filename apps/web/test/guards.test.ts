@@ -125,3 +125,54 @@ describe("visible text goes through the message catalog", () => {
     expect(offenders).toEqual([]);
   });
 });
+
+describe("the message catalog has no dead words", () => {
+  it("every message is used by some component or page", async () => {
+    const { en } = await import("@/i18n/messages");
+    const code = sources.filter((f) => /\.tsx?$/.test(f) && rel(f) !== "i18n/messages.ts").map(read).join("\n");
+    const unused = Object.keys(en).filter((key) => !code.includes(`"${key}"`));
+    expect(unused).toEqual([]);
+  });
+});
+
+describe("touch targets", () => {
+  const css = (name: string) => read(join(src, name));
+
+  it("the brand link, menu entries and buttons are at least a full control tall (44px)", () => {
+    expect(css("shell/shell.module.css")).toMatch(/\.brand\s*\{[^}]*min-height:\s*var\(--control-height\)/);
+    expect(css("shell/shell.module.css")).toMatch(/\.navLink\s*\{[^}]*min-height:\s*3\.25rem/); // tab bar: 52px
+    expect(css("ui/Button.module.css")).toMatch(/\.button\s*\{[^}]*min-height:\s*var\(--control-height\)/);
+    expect(css("ui/Field.module.css")).toMatch(/\.input\s*\{[^}]*min-height:\s*var\(--control-height\)/);
+    expect(css("ui/Field.module.css")).toMatch(/\.toggle\s*\{[^}]*min-width:\s*var\(--control-height\)/);
+  });
+
+  it("the control height itself is 44px or more", () => {
+    const match = css("app/tokens.css").match(/--control-height:\s*([\d.]+)rem/);
+    expect(Number(match![1]) * 16).toBeGreaterThanOrEqual(44);
+  });
+});
+
+describe("large text and narrow screens", () => {
+  const css = (name: string) => read(join(src, name));
+
+  it("the page is one column exactly as wide as the screen, so enlarged text wraps instead of widening the page", () => {
+    expect(css("shell/shell.module.css")).toMatch(/\.frame\s*\{[^}]*grid-template-columns:\s*minmax\(0,\s*1fr\)/);
+  });
+
+  it("button labels stay on one line", () => {
+    expect(css("ui/Button.module.css")).toMatch(/\.button\s*\{[^}]*white-space:\s*nowrap/);
+  });
+
+  it("page and card padding are capped by screen width, because rem spacing grows with enlarged text", () => {
+    expect(css("app/tokens.css")).toMatch(/--page-gutter:\s*min\(.*vw\)/);
+    expect(css("ui/Card.module.css")).toMatch(/\.card\s*\{[^}]*padding:\s*min\(.*vw\)/);
+  });
+});
+
+describe("the brand colour means 'you can act on this'", () => {
+  it("labels (badges, notices) never use it, so a label cannot be mistaken for a button or link", () => {
+    for (const file of ["ui/Badge.module.css", "ui/Notice.module.css"]) {
+      expect(read(join(src, file)), file).not.toMatch(/--color-primary/);
+    }
+  });
+});

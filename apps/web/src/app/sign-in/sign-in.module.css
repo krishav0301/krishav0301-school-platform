@@ -3,9 +3,13 @@
   justify-content: center;
 }
 
-.card {
+/* The form card and the loading placeholder share one width, so nothing jumps when it arrives. */
+.center > * {
   width: 100%;
   max-width: 26rem;
+}
+
+.card {
   gap: var(--space-5);
 }
 
@@ -19,7 +23,7 @@
   font-size: var(--text-2xl);
 }
 
-.subtitle {
+.help {
   color: var(--color-text-muted);
 }
 
