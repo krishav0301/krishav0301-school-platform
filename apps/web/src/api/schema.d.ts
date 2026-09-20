@@ -4,7 +4,7 @@
  */
 
 export interface paths {
-    "/api/health/": {
+    "/api/health": {
         parameters: {
             query?: never;
             header?: never;
@@ -25,22 +25,12 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
-        /**
-         * @description * `ok` - ok
-         *     * `down` - down
-         * @enum {string}
-         */
-        DatabaseEnum: "ok" | "down";
         Health: {
-            status: components["schemas"]["StatusEnum"];
-            database: components["schemas"]["DatabaseEnum"];
+            /** @enum {string} */
+            status: "ok" | "degraded";
+            /** @enum {string} */
+            database: "ok" | "down";
         };
-        /**
-         * @description * `ok` - ok
-         *     * `degraded` - degraded
-         * @enum {string}
-         */
-        StatusEnum: "ok" | "degraded";
     };
     responses: never;
     parameters: never;
@@ -59,6 +49,7 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
+            /** @description Healthy */
             200: {
                 headers: {
                     [name: string]: unknown;
@@ -67,6 +58,7 @@ export interface operations {
                     "application/json": components["schemas"]["Health"];
                 };
             };
+            /** @description Database unavailable */
             503: {
                 headers: {
                     [name: string]: unknown;

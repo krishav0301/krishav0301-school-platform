@@ -44,5 +44,11 @@ Thumbs.db
 # Original zip: its contents live in docs/source
 Documentation/files.zip
 
+# Cloudflare Workers
+worker-configuration.d.ts
+.wrangler/
+.dev.vars
+wrangler.local.jsonc
+
 # Claude Code local settings
 .claude/settings.local.json

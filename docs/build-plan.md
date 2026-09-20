@@ -7,8 +7,9 @@ Status: **approved by PM 2026-09-20 (D-012). Phase 0 in progress.** Decisions it
 - [x] Rewrite `CLAUDE.md`; decisions log; client profile; build plan
 - [x] Python (via `uv`) and PostgreSQL 17 installed and working
 - [x] Git repo initialised and pushed to the private GitHub repo `krishav0301/krishav0301-school-platform`
-- [x] Django API skeleton: deny-by-default permissions, route-permission test, health endpoint, 14 tests, lint, architecture check
-- [x] Next.js app skeleton: strict TypeScript, `/api` proxy, typed client generated from the OpenAPI contract
+- [x] ~~Django API skeleton~~ retired 2026-09-20 (D-019); still in git history
+- [x] Worker API skeleton (Hono, D1): deny-by-default routes, route-coverage test, same-origin rule for writes, demo-mode guard, health check, committed OpenAPI contract; 25 tests in the Workers runtime
+- [x] Next.js static export served by the same Worker on one origin, typed client generated from the contract
 - [x] CI workflow. First run on GitHub failed (two real bugs: unpinned OpenAPI tag, missing Next.js route types on a clean checkout). Fixed in 415d7cd. Green on GitHub's Linux runners (api and web jobs) since that commit
 - [x] Spike: BS dates (`spikes/bs-dates.md`)
 - [x] Spike: Postgres-backed job queue (`spikes/job-queue.md`): Procrastinate
@@ -17,7 +18,8 @@ Status: **approved by PM 2026-09-20 (D-012). Phase 0 in progress.** Decisions it
 - [x] `data-model.md` and `permission-matrix.md` drafts (independent of hosting; awaiting PM review)
 - [x] Spike: all-Cloudflare backend (`spikes/cloudflare-test.md`): passed with caveats; D-019 recommends replacing the Django backend, awaiting PM approval
 - [ ] `architecture.md` and API conventions doc (write once D-019 is approved or rejected)
-- [ ] Hosting accounts and a staging "hello" deploy (needs PM to create accounts)
+- [x] Cloudflare account created by PM (free, no card); tooling logged in
+- [ ] Staging "hello" deploy of the real Worker
 
 ## How we build
 

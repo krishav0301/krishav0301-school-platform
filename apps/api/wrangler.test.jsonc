@@ -1,0 +1,18 @@
+{
+  // Used only by the test runner. No static assets, so tests do not depend on the web build.
+  "name": "school-platform-test",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-08-15",
+  "compatibility_flags": ["nodejs_compat"],
+  "vars": {
+    "ENVIRONMENT": "test",
+    "DEMO_MODE": "false"
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "school_test",
+      "database_id": "00000000-0000-0000-0000-000000000001"
+    }
+  ]
+}

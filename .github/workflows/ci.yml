@@ -11,40 +11,24 @@ jobs:
   api:
     # Pinned: `ubuntu-latest` moves to a new release on 19 Oct 2026.
     runs-on: ubuntu-24.04
-    services:
-      postgres:
-        image: postgres:17
-        env:
-          POSTGRES_USER: school_owner
-          POSTGRES_PASSWORD: ci-only-password
-          POSTGRES_DB: school_dev
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd "pg_isready -U school_owner"
-          --health-interval 5s
-          --health-timeout 5s
-          --health-retries 10
-    env:
-      ENV: test
-      SECRET_KEY: ci-only-not-a-secret
-      DATABASE_URL: postgres://school_owner:ci-only-password@localhost:5432/school_dev
-      ALLOWED_HOSTS: localhost
     defaults:
       run:
         working-directory: apps/api
     steps:
       - uses: actions/checkout@v4
-      - uses: astral-sh/setup-uv@v6
-      - run: uv sync --frozen
-      - run: uv run ruff check .
-      - run: uv run ruff format --check .
-      - run: uv run lint-imports
-      - run: uv run pytest
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: apps/api/package-lock.json
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm run lint
+      - run: npm test
       - name: The committed OpenAPI contract is current
         run: |
-          uv run python manage.py spectacular --file openapi.yml --validate
-          git diff --exit-code openapi.yml
+          npm run gen:openapi
+          git diff --exit-code openapi.json
 
   web:
     runs-on: ubuntu-24.04
@@ -66,3 +50,22 @@ jobs:
       - run: npm run typecheck
       - run: npm run lint
       - run: npm run build
+
+  bundle:
+    # Proves the whole thing packages as one Worker: static app plus API. No account needed.
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - run: npm ci
+        working-directory: apps/web
+      - run: npm run build
+        working-directory: apps/web
+      - run: npm ci
+        working-directory: apps/api
+      - run: npx wrangler deploy --dry-run --config wrangler.jsonc
+        working-directory: apps/api
+        env:
+          WRANGLER_SEND_METRICS: "false"

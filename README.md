@@ -5,51 +5,50 @@ A reusable school management platform and public website, first configured for R
 ## Layout
 
 ```
-apps/api    Django API (modular monolith, PostgreSQL)
-apps/web    Next.js web app (public site and portals)
+apps/api    Cloudflare Worker: the API (Hono, D1). It also serves the static web app
+apps/web    Next.js static export (public site and portals)
 packs/      One folder per school (added in Phase 1)
-docs/       Decisions, plan, spikes, original requirement documents
+spikes/     Throwaway test code kept for reference
+docs/       Decisions, plan, data model, permission matrix, spikes, original requirement documents
 ```
+
+One Worker serves both the static pages and `/api/*` on one origin (D-021), so there is no CORS and no cross-site cookie.
 
 ## Run it locally
 
-Needs Python 3.12 (through `uv`), Node 24, and PostgreSQL 17.
+Needs Node 24. No accounts, servers or databases to install: the local database is simulated.
 
 ```bash
-cd apps/api
-cp .env.example .env        # then set SECRET_KEY and DATABASE_URL
-uv sync
-uv run python manage.py migrate
-uv run python manage.py runserver 127.0.0.1:8000
+cd apps/web && npm install && npm run build      # builds the static app into apps/web/out
+cd ../api && npm install && npm run dev          # serves app and API at http://localhost:8787
 ```
 
-```bash
-cd apps/web
-cp .env.example .env.local
-npm install
-npm run dev
-```
-
-Open http://localhost:3000. The page shows the API and database status.
+For fast front-end work with hot reload, run `npm run dev` in `apps/web` as well and open http://localhost:3000. It forwards `/api/*` to the Worker on port 8787.
 
 ## Checks
 
 ```bash
-cd apps/api && uv run ruff check . && uv run ruff format --check . && uv run lint-imports && uv run pytest
+cd apps/api && npm run typecheck && npm run lint && npm test
 cd apps/web && npm run typecheck && npm run lint && npm run build
 ```
 
-After changing an API endpoint, regenerate the contract and the typed client:
+After changing an API route, regenerate the contract and the typed client:
 
 ```bash
-cd apps/api && uv run python manage.py spectacular --file openapi.yml --validate
+cd apps/api && npm run gen:openapi
 cd apps/web && npm run gen:api
 ```
 
-CI fails if either generated file is out of date.
+CI fails if either generated file is out of date, and it checks that the Worker packages.
+
+## Deploying
+
+Each school is one Worker and one D1 database in a Cloudflare account. Account and database ids stay out of git: put them in a local `apps/api/wrangler.local.jsonc` and deploy with `npx wrangler deploy --config wrangler.local.jsonc`.
 
 ## Conventions
 
-- Every API route ends in a slash. A missing slash is a 404, not a redirect.
-- Every API view declares its permissions. A view that does not is denied, and a test fails.
+- API routes have no trailing slash. `/api/health/` is a 404.
+- Every API route is declared through `defineRoute` and states its permission action or `public: true`. A route that does not is caught by a test. Until the permission layer exists, every non-public route is denied.
+- One database round trip per request. Atomic changes are one `batch()`.
+- Requests that change data must be same-origin.
 - The core never names a school. School-specific behaviour lives in `packs/` (see `CLAUDE.md` section 2).

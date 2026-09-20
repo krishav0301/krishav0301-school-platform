@@ -2,13 +2,13 @@
   "version": "0.0.1",
   "configurations": [
     {
-      "name": "api",
-      "runtimeExecutable": "uv",
-      "runtimeArgs": ["run", "--project", "apps/api", "python", "apps/api/manage.py", "runserver", "127.0.0.1:8000", "--noreload"],
-      "port": 8000
+      "name": "worker",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["--prefix", "apps/api", "run", "dev"],
+      "port": 8787
     },
     {
-      "name": "web",
+      "name": "web-dev",
       "runtimeExecutable": "npm",
       "runtimeArgs": ["--prefix", "apps/web", "run", "dev"],
       "port": 3000

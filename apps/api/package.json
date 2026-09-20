@@ -1,0 +1,28 @@
+{
+  "name": "school-api",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev --config wrangler.jsonc",
+    "test": "vitest run",
+    "typecheck": "wrangler types && tsc --noEmit",
+    "lint": "eslint .",
+    "gen:openapi": "tsx scripts/generate-openapi.ts"
+  },
+  "dependencies": {
+    "@hono/zod-openapi": "^1.6.3",
+    "hono": "^4.13.8",
+    "zod": "^4.6.5"
+  },
+  "devDependencies": {
+    "@cloudflare/vitest-pool-workers": "^0.22.0",
+    "@types/node": "^26.6.2",
+    "eslint": "^10.11.0",
+    "tsx": "^4.23.15",
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.70.0",
+    "vitest": "^4.1.11",
+    "wrangler": "^4.135.0"
+  }
+}

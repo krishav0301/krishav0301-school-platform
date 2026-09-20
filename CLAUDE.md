@@ -7,7 +7,7 @@ Read at the start of every session:
 
 If this file and `DECISIONS.md` disagree, stop and ask.
 
-**Current phase: Phase 0 (Groundwork).** Update this line when a phase closes.
+**Current phase: Phase 0 (Groundwork), closing.** The backend moved from Django to Cloudflare Workers (D-019); the skeleton is being rebuilt. Update this line when a phase closes.
 
 ## 1. What we are building
 
@@ -46,19 +46,24 @@ Extension points, version 1: policies (grading, ranking and tie-break, student-I
 - End every task with: what changed, what you tested, what is not done, and any `OPEN:` items touched.
 - **Local state hides CI failures.** Leftover generated files (`.next`, route types) and the development environment made two CI bugs invisible on the first push. When a change touches CI, generated files or settings, replay the workflow steps in a fresh clone of the pushed commit before calling it green. Generated output must not depend on which routes or files happen to exist.
 
-## 4. Stack (D-005)
+## 4. Stack (D-019, D-021; the Django plan in D-005, D-013, D-015 to D-017 is retired)
 
-- **Backend:** Django, Django REST Framework, OpenAPI schema. **PostgreSQL only, in development too.** Never SQLite: locks, triggers and constraints behave differently.
-- **Frontend:** Next.js (App Router), strict TypeScript, a typed API client generated from the OpenAPI schema. One domain, so cookies are same-site.
-- **Modular monolith.** Modules: `core` (config, theme, dates, permissions), `accounts`, `admissions`, `academics`, `attendance`, `results`, `fees`, `approvals`, `audit`, `content`, `files`, `notifications`. Each has `models`, `services` (all writes), `selectors` (all reads), `api`, `tests`. Modules call each other's services, never each other's tables.
-- Background jobs run from a **PostgreSQL-backed queue**. No Redis.
-- Files go to **private object storage** behind short-lived signed links. A CDN serves public pages only.
-- Managed hosting, region Mumbai or Singapore, one deployment per school with its own database, storage, domain and configuration.
-- Excel and PDF through standard libraries. BS dates through a vetted library or table only.
-- Never introduce microservices, Kubernetes, sharding, multiple databases, or event infrastructure beyond the Postgres outbox.
-- **Sessions and CSRF (D-016):** every API route ends in a slash (the web proxy adds it). Set `CSRF_TRUSTED_ORIGINS` to the web origin in every environment. Never set `USE_X_FORWARDED_HOST`. The web client re-reads the `csrftoken` cookie on every request, because login rotates it. Server-side calls must forward the session cookie explicitly.
-- **Jobs (D-015):** Procrastinate behind `core.jobs`. Write the outbox event in the same transaction as the business write, and drain it from a job.
-- **Documents (D-017):** HTML rendered by Chromium with a self-hosted Noto Sans Devanagari. The database is the record, never the PDF.
+- **Runtime:** Cloudflare Workers, TypeScript (strict). **One Worker per school deployment** serves both the static web app (Workers Static Assets) and the API under `/api/`. Same origin, so no CORS and no cross-site cookies.
+- **API:** Hono with `@hono/zod-openapi`. Every route is declared through one helper that requires a permission action, or an explicit public flag. Zod validates all input and output. The OpenAPI contract (`apps/api/openapi.json`) is committed, and the web app's typed client is generated from it.
+- **Web:** Next.js, strict TypeScript, **static export**. No server components with live data, no rewrites, no Next.js server.
+- **Database:** Cloudflare D1 (SQLite), one per school. Migrations are hand-written SQL run with `wrangler d1 migrations`. **No ORM**: write SQL explicitly so round trips stay visible.
+  - **One database round trip per request.** Each costs about 100 ms from Nepal. Combine reads with joins or `batch()`.
+  - **Atomic changes use one `batch()`**, which is a single all-or-nothing transaction. D1 has no interactive transactions. Approve-and-apply, ledger entries with receipt numbers, and SID assignment each run as one batch, using conditional SQL (`WHERE status = 'pending'`) so a race has exactly one winner.
+  - **D1 has no database accounts**, so our own code could remove a guard. Append-only rules use triggers **and** a hash chain (see section 6). Never run schema changes from application code.
+  - Free-tier limits to design around: 100,000 rows written and 5,000,000 rows read per day, and a query over the limit fails.
+- **Modules:** `core` (config, theme, dates, permissions, crypto, jobs), `accounts`, `admissions`, `academics`, `attendance`, `results`, `fees`, `approvals`, `audit`, `content`, `files`, `notifications`. Each is a folder under `apps/api/src/modules/<name>/` with `routes`, `service` (all writes), `queries` (all reads), `schema`, and tests. Modules call each other's services, never each other's tables. A test enforces the boundaries.
+- **Sessions and CSRF (D-021):** same-origin cookies (`__Host-` prefix, HttpOnly, Secure, SameSite=Lax). A short-lived signed access token (10 minutes) carries the user's roles and scopes. A refresh cookie is an opaque token whose hash is stored in the `session` table, rotated on every use. Deactivation and role changes take effect at the next refresh, so **money, approval and publish actions re-check the user's assignments inside their own batch**. Every non-GET request must be same-origin (`Sec-Fetch-Site: same-origin`, or an `Origin` equal to our own), otherwise 403.
+- **Passwords:** scrypt (N=2^15, r=8, p=1) through `@noble/hashes`. The runtime caps PBKDF2 at 100,000 rounds, so PBKDF2 is only a fallback. Add lockout and rate limits. The client retries a 503.
+- **Jobs:** Cloudflare Queues and Cron Triggers behind `core/jobs`. The outbox row is written in the same batch as the business write, and a job drains it. Handlers are idempotent. Watch cron reliability on the free plan.
+- **Files:** private storage behind short-lived signed links. **R2 is not enabled yet (D-020).** Build the storage interface, and hold uploads until the PM says R2 is needed.
+- **Documents:** HTML rendered with Cloudflare Browser Rendering. Generate in batches inside one browser session, because the free plan rate-limits browser starts. Embed a self-hosted Noto Sans Devanagari. The database is the record, never the PDF (its text layer is unreliable for Nepali).
+- **Hosting:** one free Cloudflare account, one Worker and one D1 database per school. Never introduce servers, Kubernetes, Redis, or a second database per school.
+- Excel export through a standard library. BS dates: see section 6.
 
 ## 5. Roles and scopes
 
@@ -89,7 +94,7 @@ A role assignment carries a **scope**: the whole institution, or one section (+2
 **Student and years**
 - The **Student** is permanent (SID, personal details, guardians, documents). The yearly **Enrollment** (student, academic year, class) holds attendance, marks, fees, submissions and receipts. Never attach year data directly to Student.
 - A closed year rejects all writes. Corrections are **new entries in the current year** that point back.
-- SID = admission year + sequence, for example `2083-00123`. One sequence for the institution, assigned at approval, never changes, never editable. Use a locked counter row. Class and roll number belong to the enrollment.
+- SID = admission year + sequence, for example `2083-00123`. One sequence for the institution, assigned at approval, never changes, never editable. Increment the counter and create the student in one batch (D1 serialises writes). Class and roll number belong to the enrollment.
 - No hard deletes. Deactivate or archive.
 - Left or Graduated only with **zero dues**.
 
@@ -99,17 +104,17 @@ A role assignment carries a **scope**: the whole institution, or one section (+2
 - "Referred by (if any)" is an optional free-text box.
 
 **Fees and money**
-- The balance is **never stored**. It is the sum of an **append-only ledger** (charge, discount, payment, reversal, refund, carried dues). Append-only is enforced by a database trigger.
+- The balance is **never stored**. It is the sum of an **append-only ledger** (charge, discount, payment, reversal, refund, carried dues). Append-only is enforced by triggers **and** a hash chain: each row stores a hash of the previous row, so an edit is detectable even if a guard is removed. A daily export of the chain is copied to a second location.
 - Money is **whole paisa integers**. Never floats or decimals. Currency NPR, shown with Nepali grouping (12,50,000).
 - A payment is never edited or deleted. Mistakes are reversed. Reversals and refunds are new entries pointing to the original.
 - Payments apply to the oldest due first. Partial payments allowed. Late fees are out of scope.
 - The gateway reference is unique, so repeated callbacks cannot double-credit.
-- Receipts come from a gapless sequence per section and year (locked counter), are generated from the ledger, and are never edited.
+- Receipts come from a gapless sequence per section and year (a counter row incremented in the same batch as the payment, so a failed payment rolls the number back), are generated from the ledger, and are never edited.
 - The Accountant owns fees. The Co-ordinator has **no Fees view**. The Accountant's student profile shows only Personal and Fees.
 
 **Approvals (Admin)**
 - Five types: website content, yearly fee structure, discount, payment reversal, refund. Any one Admin can approve.
-- Approve-and-apply is **one transaction** with a row lock. A second click or retry returns "already resolved". Nothing is applied twice.
+- Approve-and-apply is **one batch** (all or nothing) with a conditional update, so a race has exactly one winner. A second click or retry returns "already resolved". Nothing is applied twice.
 - A request goes stale if what it refers to changes. Nobody approves their own request.
 
 **Attendance**
@@ -124,13 +129,13 @@ A role assignment carries a **scope**: the whole institution, or one section (+2
 - Top 20: name and rank only for students, ranked **per section**, only after the class is published.
 
 **Audit**
-- Insert-only audit log, enforced by database privileges: no update or delete for anyone, including Super Admin. Every service write emits an event in the same transaction. Sign-ins and failed 2FA go in a separate Sign-ins view.
+- Insert-only audit log: triggers block update and delete, and a hash chain makes any edit detectable (D1 has no database accounts). No update or delete for anyone, including Super Admin. Every service write emits an audit event in the same batch. Sign-ins and failed 2FA go in a separate Sign-ins view.
 
 **Dates**
 - Store **AD** dates. Show and accept **BS** everywhere. One date module owns all conversion.
 - Timestamps in UTC, shown in Nepal time (UTC+5:45). Day boundaries use Nepal midnight.
 - The week is Sunday to Friday. Saturday is the weekly holiday.
-- Never generate BS conversion data from memory. Convert with `nepali-datetime` inside the date module, and only for **verified BS years** (a list, currently 2000 to 2083). Beyond that the libraries disagree, so refuse the conversion and block entering dates in unverified years (D-014, `docs/spikes/bs-dates.md`). Test month and year boundaries and the round trip.
+- Never generate BS conversion data from memory. Convert inside the date module only, and only for **verified BS years** (a list, currently 2000 to 2083). Beyond that the libraries disagree, so refuse the conversion and block entering dates in unverified years (D-014, `docs/spikes/bs-dates.md`). The spike tested Python libraries; **`OPEN:` choose a TypeScript library** and re-run the comparison against the Python results before using it. Test month and year boundaries and the round trip.
 
 ## 7. Security, reliability and quality
 
@@ -154,7 +159,7 @@ A role assignment carries a **scope**: the whole institution, or one section (+2
 ## 8. Operations (production)
 
 - The operator is not on call. Prefer managed services and boring choices.
-- Build in: error tracking, uptime monitoring, alerts to a named person, staging, automated backups with point-in-time recovery, and a quarterly restore drill.
+- Build in: error tracking, uptime monitoring, alerts to a named person, staging, a daily export of the database and the hash chain to a second location (D1 Time Travel restores the last 30 days), and a quarterly restore drill.
 - Money never touches the operator. The gateway merchant account is in the school's name.
 - If a change affects fees, results, permissions or the audit log, say so at the top of the final message and list the tests that cover it.
 
@@ -177,6 +182,8 @@ A role assignment carries a **scope**: the whole institution, or one section (+2
 | Homework retention | One year after the year closes |
 | Programme and stream names | Working list in `docs/client-profile.md`, unconfirmed |
 | Admission documents | One certificate upload until PM approves multiple typed documents |
+| File uploads and R2 | Not enabled (D-020). Build the storage interface only; no uploads until PM says R2 is needed |
+| BS date library for TypeScript | Not chosen. Re-run the library comparison first |
 
 ## 10. Out of scope
 

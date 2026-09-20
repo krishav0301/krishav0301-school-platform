@@ -74,14 +74,27 @@ Devanagari renders correctly on screen; the PDF text layer is unreliable for cop
 **D-018 Free-first hosting; no native app for now.** Working default, awaiting PM go on the test.
 PM: whole-project budget 50K a year (assumed NPR, about US$350), no spend on servers, run free as a starter, talk subscriptions later. Direction: start free. Run a one-day test of an all-Cloudflare build; if it passes, propose replacing the Django backend (this would supersede D-005's backend); if it fails, keep Django on free tiers (Cloudflare Pages and R2, Northflank Sandbox, Neon Singapore). Front end is static export either way. Nightly database copy to R2, because free tiers give little backup. Hosting cost moves into the yearly subscription later. No native Android app now (iOS is about a quarter of Nepal mobile use); the site is installable. Supabase not used. Research, sources and the test plan: `spikes/hosting-options.md`.
 
-**D-019 Backend on Cloudflare (Workers + D1) instead of Django.** Working default, awaiting PM approval. Details in `spikes/cloudflare-test.md`.
+**D-019 Backend on Cloudflare (Workers + D1) instead of Django.** Approved (PM: "approve 1", 2026-09-20). Details in `spikes/cloudflare-test.md`. Supersedes the Django parts of D-005 and D-013, and D-015 (Procrastinate), D-016 (CSRF proxy rules) and D-017 (Chromium PDFs), which are replaced by D-021.
 The one-day test passed on a free account: simultaneous approvals had one winner every time, receipt numbers stayed gapless through failures, Nepali PDFs render correctly and generate quickly, restore works with a 30-day window. Recommend replacing the Django backend with TypeScript Workers and D1, which would supersede the backend part of D-005 (the web front end stays Next.js, exported static). Retire the Django skeleton in `apps/api` when approved; the data model and permission matrix carry over unchanged. Mitigations: (1) hash-chain the ledger and audit rows and export them daily, because D1 cannot stop our own code from removing a guard; (2) scrypt N=2^15 for passwords, since PBKDF2 is capped at 100,000 rounds; (3) one database round trip per request (about 100 ms each); (4) R2 file storage needs enabling and possibly a payment method: PM decision needed.
+
+**D-020 File storage (R2) deferred.** Approved (PM: "hold for 2 until it's needed").
+R2 needs enabling in the Cloudflare dashboard and probably a payment method. PM said no cards for now. Build the storage interface; build no uploads until the PM says R2 is needed. Phase 4 (certificates, vouchers) and Phase 5 (notes, homework) depend on this, so ask before starting Phase 4.
+
+**D-021 Architecture on Cloudflare.** Working default. Details to go in `architecture.md`.
+- One Worker per school serves the static web app (Workers Static Assets) and the API under `/api/`, on one origin: no CORS, no cross-site cookies, no separate domain needed while testing.
+- API in Hono with `@hono/zod-openapi`; Zod for all input and output; the OpenAPI contract is committed and the web client is generated from it. Web is Next.js static export.
+- D1 with hand-written SQL migrations, **no ORM**. One database round trip per request; atomic changes in one `batch()`; ledger and audit protected by triggers and a hash chain with a daily export.
+- Sessions: `__Host-` cookies, a 10-minute signed access token, a rotating refresh session in the database. Money, approval and publish actions re-check assignments inside their own batch. Non-GET requests must be same-origin.
+- Passwords with scrypt (N=2^15). Jobs on Cloudflare Queues and Cron Triggers. PDFs on Browser Rendering, generated in batches.
+- Tests with Vitest on the Workers runtime, plus property-based tests for ledger invariants.
 
 ---
 
 ## Open items carried forward
 
-- **R2 file storage.** Needs enabling in the Cloudflare dashboard, probably with a payment method on file. Decide: add a card and stay within the free allowance, or delay uploads.
+- **BS date library for TypeScript.** The spike compared Python libraries. Pick a TypeScript library and re-run the comparison (D-014's verified-years rule stands). Do this at the start of Phase 1.
+
+- **R2 file storage (D-020).** On hold until needed. Blocks uploads in Phases 4 and 5.
 
 - **Official BS calendar source.** Need one the client trusts, to check BS 2083 before go-live and to verify each later year. PM or client to supply.
 

@@ -49,3 +49,8 @@
   color: var(--color-bad);
   background: var(--color-bad-soft);
 }
+
+.pending {
+  color: var(--color-text-muted);
+  background: var(--color-border);
+}
