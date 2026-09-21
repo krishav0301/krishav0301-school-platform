@@ -358,11 +358,12 @@ describe("the six fixed pages", () => {
   const SIX = ["/", "/programmes", "/admission", "/scholarships", "/facilities", "/contact"];
   const LINKS = ["/programmes", "/admission", "/scholarships", "/facilities", "/contact", "/notices"];
   const fixed: [string, string, string[]][] = [
-    ["/programmes", "Programmes", ["+2 Science", "Bachelor of Business Studies (BBS)", "Purbanchal University (PU)", "Biology, Mathematics, Computer Science", "Microbiology, Zoology, Botany, Chemistry, Physics"]],
-    ["/admission", "Admission", ["Counselling and enquiry", "Enrolment"]],
-    ["/scholarships", "Scholarships", ["Merit-based", "Up to 50% for Dalit students, after verification."]],
-    ["/facilities", "Facilities", ["Library", "Football, basketball, volleyball and track events."]],
-    ["/contact", "Contact", ["Lahan Municipality-3", "+977-9801561718", "+977-33-560097"]],
+    // What each page must say comes from the pack, so the test holds for any content (the real words arrive at the end).
+    ["/programmes", "Programmes", [...royalSite.programmes.map((p) => p.name), ...royalSite.programmes.map((p) => p.affiliation), ...royalSite.programmes.filter((p) => p.options.length > 0).map((p) => p.options.join(", "))]],
+    ["/admission", "Admission", royalSite.admission.steps.map((s) => s.title)],
+    ["/scholarships", "Scholarships", royalSite.scholarships.items.map((i) => i.title)],
+    ["/facilities", "Facilities", royalSite.facilities.items.flatMap((i) => (i.body ? [i.name, i.body] : [i.name]))],
+    ["/contact", "Contact", [royalSite.contact.address, ...royalSite.contact.phones]],
   ];
 
   beforeAll(async () => {
@@ -376,7 +377,7 @@ describe("the six fixed pages", () => {
     const copy = copyOf(html);
     expect(copy).toContain(`<h1>${heading}</h1>`);
     for (const link of LINKS) expect(copy, link).toContain(`<a href="${link}">`);
-    for (const text of words) expect(copy, text).toContain(text);
+    for (const text of words) expect(copy, text).toContain(escapeHtml(text));
   });
 
   it("Home leads with its headline and the way to apply, then groups the programmes by section, then the steps and the contact", async () => {
@@ -384,28 +385,28 @@ describe("the six fixed pages", () => {
     expect(copy).toContain(`<h1>${escapeHtml(royalSite.home.headline)}</h1>`);
     expect(copy).toContain('<a href="/admission">How to apply</a>');
     expect(copy.indexOf("<h3>+2</h3>")).toBeLessThan(copy.indexOf("<h3>Bachelor&#39;s</h3>"));
-    expect(copy).toContain('<a href="/programmes#bbs">');
+    expect(copy).toContain(`<a href="/programmes#${royalSite.programmes[0]!.key}">`);
     for (const step of royalSite.admission.steps) expect(copy).toContain(`<li>${escapeHtml(step.title)}</li>`);
-    expect(copy).toContain("Phone: +977-9801561718");
+    expect(copy).toContain(`Phone: ${royalSite.contact.phones[0]}`);
     expect(copy.indexOf("How to apply</h2>")).toBeLessThan(copy.indexOf("<h2>Contact</h2>"));
   });
 
   it("describes the pages in structured data, from what the pack says and nothing more", async () => {
     const programmesLd = jsonLd((await page("/programmes", { origin: "https://royal.example" })).html).find((b) => b["@type"] === "ItemList")!;
     const items = programmesLd.itemListElement as { name: string; url: string; position: number }[];
-    expect(items).toHaveLength(9);
-    expect(items[0]).toMatchObject({ position: 1, name: "+2 Science", url: "https://royal.example/programmes#plus2-science" });
+    expect(items).toHaveLength(royalSite.programmes.length);
+    expect(items[0]).toMatchObject({ position: 1, name: royalSite.programmes[0]!.name, url: `https://royal.example/programmes#${royalSite.programmes[0]!.key}` });
 
     const howTo = jsonLd((await page("/admission")).html).find((b) => b["@type"] === "HowTo")!;
     expect(howTo.name).toBe("How to apply to Royal Softech College");
-    expect((howTo.step as unknown[]).length).toBe(6);
+    expect((howTo.step as unknown[]).length).toBe(royalSite.admission.steps.length);
 
     const contactLd = jsonLd((await page("/contact")).html).find((b) => b["@type"] === "ContactPage")!;
     // It points to the organisation block (which carries the phones) instead of repeating it.
     expect(contactLd.mainEntity).toEqual({ "@id": (jsonLd((await page("/contact")).html).find((b) => b["@type"] === "EducationalOrganization")!)["@id"] });
 
     const facilitiesLd = jsonLd((await page("/facilities")).html).find((b) => b["@type"] === "ItemList")!;
-    expect((facilitiesLd.itemListElement as unknown[]).length).toBe(13);
+    expect((facilitiesLd.itemListElement as unknown[]).length).toBe(royalSite.facilities.items.length);
     for (const path of SIX) for (const block of jsonLd((await page(path)).html)) expect(block["@context"]).toBe("https://schema.org");
   });
 

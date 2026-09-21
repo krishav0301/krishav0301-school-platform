@@ -43,6 +43,6 @@ The first creates the tables in the local development database and applies the p
 
 `site` is required. It is stored by `npm run provision` as one row and replaced whole when the text changes.
 
-`OPEN:` Royal Softech's `site` block is unconfirmed third-party text (`docs/client-profile.md`, read from directory listings on 2026-09-20): the nine programmes, the admission steps, the scholarship policy (including "up to 50% for Dalit students"), the facilities and the four phone numbers. The college must confirm all of it before the site is made indexable. JSON cannot hold a comment, so the marker is here.
+`OPEN:` Royal Softech's `site` block is small placeholder text for now (D-054). The college's real content is added at the end, and the college must confirm it before the site is made indexable. The earlier draft, taken from directory listings, is in git history (for example commit `f96a6fb`) and in `docs/client-profile.md`. The logo, brand colours and photos also come at the end. JSON cannot hold a comment, so the marker is here.
 
 Whether applying a pack should remove content it no longer lists is an open question (D-026). Sections stay; the site row is replaced whole.
