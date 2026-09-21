@@ -37,16 +37,16 @@ import {
   type Failure,
 } from "./service";
 
-const json = <T extends z.ZodType>(schema: T) => ({ "application/json": { schema } });
-const ErrorSchema = z.object({ error: z.string() }).openapi("AcademicsError");
-const InvalidSchema = z.object({ error: z.literal("invalid"), message: z.string() }).openapi("AcademicsInvalid");
-const OkSchema = z.object({ ok: z.literal(true) }).openapi("AcademicsOk");
-const CreatedSchema = z.object({ id: z.string() }).openapi("AcademicsCreated");
-const IdParam = z.object({ id: PublicIdSchema });
+export const json = <T extends z.ZodType>(schema: T) => ({ "application/json": { schema } });
+export const ErrorSchema = z.object({ error: z.string() }).openapi("AcademicsError");
+export const InvalidSchema = z.object({ error: z.literal("invalid"), message: z.string() }).openapi("AcademicsInvalid");
+export const OkSchema = z.object({ ok: z.literal(true) }).openapi("AcademicsOk");
+export const CreatedSchema = z.object({ id: z.string() }).openapi("AcademicsCreated");
+export const IdParam = z.object({ id: PublicIdSchema });
 const YearQuery = z.object({ year: PublicIdSchema.optional() });
 
 /** The failure answers every write route documents. */
-const failures = {
+export const failures = {
   403: { description: "Not allowed (for example, switched off since signing in, or another section's data)", content: json(ErrorSchema) },
   404: { description: "No such item", content: json(ErrorSchema) },
   409: { description: "It conflicts with what is already there (a repeat, a closed year, another active year)", content: json(ErrorSchema) },
@@ -57,7 +57,7 @@ const failures = {
  * Turns a service refusal into the documented answer. The cast to `never` is because the handler's type is the
  * union of what each route declares, which this one function serves for all of them.
  */
-function fail(c: Context<AppEnv>, failure: Failure): never {
+export function fail(c: Context<AppEnv>, failure: Failure): never {
   switch (failure.reason) {
     case "invalid":
       return c.json({ error: "invalid" as const, message: failure.message }, 422) as never;
@@ -70,8 +70,8 @@ function fail(c: Context<AppEnv>, failure: Failure): never {
   }
 }
 
-const VIEW = { action: "setup.structure.view" } as const;
-const MANAGE = { action: "setup.structure.manage" } as const;
+export const VIEW = { action: "setup.structure.view" } as const;
+export const MANAGE = { action: "setup.structure.manage" } as const;
 
 export function registerAcademics(app: App): void {
   // --- Reads ---------------------------------------------------------------------------------------

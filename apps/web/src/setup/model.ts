@@ -84,3 +84,39 @@ export function validateYearForm(values: YearFormValues): YearFormErrors {
   if (!values.endBs.trim()) errors.endBs = "setup.error.endRequired";
   return errors;
 }
+
+// --- Subjects and the curriculum (slice 2) -----------------------------------------------------------
+
+export type Subject = components["schemas"]["Subject"];
+export type Curriculum = components["schemas"]["Curriculum"];
+export type Offering = Curriculum["offerings"][number];
+export type Group = Curriculum["groups"][number];
+export type MarkComponent = Offering["components"][number];
+
+/**
+ * Whole hundredths from what a person typed: "3" is 300, "3.5" is 350, "3.75" is 375. Null when it is not a plain number
+ * with at most two decimals ("3.756", "-1", "1e2", "3,5" and an empty box are all null). Credit hours and maximum marks
+ * are stored and sent as whole hundredths, never as decimals.
+ */
+export function parseHundredths(text: string): number | null {
+  const match = /^(\d{1,6})(?:\.(\d{1,2}))?$/.exec(text.trim());
+  if (!match) return null;
+  return Number(match[1]) * 100 + (match[2] ? Number(match[2].padEnd(2, "0")) : 0);
+}
+
+/** Whole hundredths as a person reads them: 375 is "3.75", 300 is "3", 50 is "0.5". */
+export function formatHundredths(hundredths: number): string {
+  const whole = Math.floor(hundredths / 100);
+  const fraction = hundredths % 100;
+  if (fraction === 0) return String(whole);
+  return `${whole}.${String(fraction).padStart(2, "0").replace(/0$/, "")}`;
+}
+
+/**
+ * What a level can still take: subjects that are not archived and not already on it. A subject whose offering is
+ * switched off is still on the level, so it is not offered again (it is switched back on instead).
+ */
+export function subjectChoices(subjects: readonly Subject[], offerings: readonly Offering[]): { value: string; label: string }[] {
+  const taken = new Set(offerings.map((o) => o.subject.id));
+  return subjects.filter((s) => !s.archived && !taken.has(s.id)).map((s) => ({ value: s.id, label: s.code ? `${s.name} (${s.code})` : s.name }));
+}

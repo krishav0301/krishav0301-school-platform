@@ -129,3 +129,27 @@
   align-items: flex-end;
   gap: var(--space-3);
 }
+
+.subhead {
+  font-size: var(--text-base);
+  font-weight: var(--weight-medium);
+  margin: 0;
+}
+
+/* "Add a mark component" folds away until wanted (progressive disclosure), using the browser's own disclosure. */
+.disclosure {
+  display: flex;
+  flex-direction: column;
+}
+
+.summary {
+  display: flex;
+  align-items: center;
+  min-height: var(--control-height);
+  color: var(--color-primary);
+  cursor: pointer;
+}
+
+.disclosure[open] .summary {
+  margin-bottom: var(--space-3);
+}
