@@ -323,6 +323,259 @@
           "error"
         ]
       },
+      "StaffList": {
+        "type": "object",
+        "properties": {
+          "staff": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/StaffMember"
+            }
+          }
+        },
+        "required": [
+          "staff"
+        ]
+      },
+      "StaffMember": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "fullName": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          },
+          "phone": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "roles": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "role": {
+                  "type": "string"
+                },
+                "scope": {
+                  "type": "string",
+                  "enum": [
+                    "own",
+                    "assigned",
+                    "section",
+                    "institution"
+                  ]
+                },
+                "section": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                }
+              },
+              "required": [
+                "role",
+                "scope",
+                "section"
+              ]
+            }
+          },
+          "homeSection": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "active": {
+            "type": "boolean"
+          },
+          "mustChangePassword": {
+            "type": "boolean"
+          },
+          "lastSignInAt": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "fullName",
+          "email",
+          "phone",
+          "roles",
+          "homeSection",
+          "active",
+          "mustChangePassword",
+          "lastSignInAt"
+        ]
+      },
+      "StaffCreated": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "temporaryPassword": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "temporaryPassword"
+        ]
+      },
+      "StaffError": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "error"
+        ]
+      },
+      "StaffInvalid": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "string",
+            "enum": [
+              "invalid"
+            ]
+          },
+          "message": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "error",
+          "message"
+        ]
+      },
+      "CreateStaff": {
+        "type": "object",
+        "properties": {
+          "fullName": {
+            "type": "string",
+            "minLength": 2,
+            "maxLength": 120
+          },
+          "email": {
+            "type": "string",
+            "minLength": 3,
+            "maxLength": 254,
+            "pattern": "^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$"
+          },
+          "phone": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "minLength": 5,
+            "maxLength": 30
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "coordinator",
+              "accountant"
+            ]
+          },
+          "sectionKey": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "pattern": "^[a-z][a-z0-9_]{0,30}$"
+          }
+        },
+        "required": [
+          "fullName",
+          "email",
+          "role"
+        ],
+        "additionalProperties": false
+      },
+      "CreateTeacher": {
+        "type": "object",
+        "properties": {
+          "fullName": {
+            "type": "string",
+            "minLength": 2,
+            "maxLength": 120
+          },
+          "email": {
+            "type": "string",
+            "minLength": 3,
+            "maxLength": 254,
+            "pattern": "^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$"
+          },
+          "phone": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "minLength": 5,
+            "maxLength": 30
+          },
+          "homeSectionKey": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9_]{0,30}$"
+          }
+        },
+        "required": [
+          "fullName",
+          "email",
+          "homeSectionKey"
+        ],
+        "additionalProperties": false
+      },
+      "StaffOk": {
+        "type": "object",
+        "properties": {
+          "ok": {
+            "type": "boolean",
+            "enum": [
+              true
+            ]
+          }
+        },
+        "required": [
+          "ok"
+        ]
+      },
+      "StaffChanges": {
+        "type": "object",
+        "properties": {
+          "active": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "active"
+        ],
+        "additionalProperties": false
+      },
+      "TemporaryPassword": {
+        "type": "object",
+        "properties": {
+          "temporaryPassword": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "temporaryPassword"
+        ]
+      },
       "AcademicYearList": {
         "type": "object",
         "properties": {
@@ -2661,6 +2914,321 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/AccountsError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/staff": {
+      "get": {
+        "operationId": "list_staff",
+        "tags": [
+          "accounts"
+        ],
+        "description": "The staff the person may see: an Admin sees Co-ordinators, Accountants and teachers; a Co-ordinator sees only teachers (only their own section's, if their scope is one section); a Super Admin also sees Admins. Never a Super Admin, and never a password or hash.",
+        "responses": {
+          "200": {
+            "description": "The staff",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StaffList"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "operationId": "create_staff",
+        "tags": [
+          "accounts"
+        ],
+        "description": "Adds a Co-ordinator or an Accountant, whole-school or limited to one section. The answer carries a one-time temporary password, shown to the person adding them and never again; the new person must choose their own at first sign-in.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateStaff"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Added, with the temporary password (never cached)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StaffCreated"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed (not your role, not your section, not your own account, or switched off since signing in)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StaffError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such person or section",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StaffError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "That email address is already used (`email_taken`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StaffError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "The change breaks a rule; nothing changed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StaffInvalid"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/teachers": {
+      "post": {
+        "operationId": "create_teacher",
+        "tags": [
+          "accounts"
+        ],
+        "description": "Adds a teacher with a home section. A section-scoped Co-ordinator can only choose their own section. The answer carries a one-time temporary password, as for any new person.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateTeacher"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Added, with the temporary password (never cached)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StaffCreated"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed (not your role, not your section, not your own account, or switched off since signing in)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StaffError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such person or section",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StaffError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "That email address is already used (`email_taken`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StaffError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "The change breaks a rule; nothing changed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StaffInvalid"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/staff/{id}": {
+      "patch": {
+        "operationId": "update_staff",
+        "tags": [
+          "accounts"
+        ],
+        "description": "Switches a person off or on. Switching off also ends their open sessions at once. Nobody changes their own account.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{32}$"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StaffChanges"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Done (or already so)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StaffOk"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed (not your role, not your section, not your own account, or switched off since signing in)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StaffError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such person or section",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StaffError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "That email address is already used (`email_taken`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StaffError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "The change breaks a rule; nothing changed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StaffInvalid"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/staff/{id}/temporary-password": {
+      "post": {
+        "operationId": "issue_temporary_password",
+        "tags": [
+          "accounts"
+        ],
+        "description": "Gives a person a new temporary password, for a forgotten one. Their old password stops working, their open sessions end, and they must choose a new one at once. The password is in this answer and nowhere else.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{32}$"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Issued (never cached)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TemporaryPassword"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed (not your role, not your section, not your own account, or switched off since signing in)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StaffError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such person or section",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StaffError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "That email address is already used (`email_taken`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StaffError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "The change breaks a rule; nothing changed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StaffInvalid"
                 }
               }
             }
