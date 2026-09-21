@@ -427,7 +427,9 @@ describe("signing out", () => {
     const response = await call("/api/auth/sign-out", { method: "POST", cookies: jar });
 
     expect(response.status).toBe(204);
-    expect(response.headers.getSetCookie().filter((l) => /Max-Age=0/.test(l))).toHaveLength(2);
+    // Access, refresh and the session hint (which only says "there may be a session") are all cleared.
+    const cleared = response.headers.getSetCookie().filter((l) => /Max-Age=0/.test(l)).map((l) => l.split("=")[0]);
+    expect(cleared.sort()).toEqual(["__Host-access", "__Host-refresh", "__Host-signed-in"]);
     await expectSignedOut(await refresh(jar));
   });
 

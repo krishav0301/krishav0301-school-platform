@@ -1,10 +1,11 @@
 "use client";
 
-import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useState, useSyncExternalStore, type ReactNode } from "react";
 
 import { createApiClient, type ApiClient } from "@/api/client";
 import type { components } from "@/api/schema";
 
+import { hasSessionHint } from "./hint";
 import { createRefreshingFetch } from "./refreshing-fetch";
 
 export type RoleClaim = components["schemas"]["RoleClaim"];
@@ -71,6 +72,14 @@ export const afterServerSignOut = (current: Pick<SessionState, "status">): Sessi
   ended: current.status === "signedIn",
 });
 
+/**
+ * With no session hint there is nothing to ask about: a visitor who never signed in (or whose sign-in
+ * ended) is signed out at once, with no request. `hinted` is null on the page built at deploy time, where
+ * cookies cannot be known yet. Anything already decided is left alone.
+ */
+export const settleWithoutHint = (current: SessionState, hinted: boolean | null): SessionState =>
+  current.status === "checking" && hinted === false ? { status: "signedOut", me: null, ended: false } : current;
+
 /** Maps a failed second-step response to a reason the page can show. */
 export function twoFactorFailure(status: number, error: unknown): TwoFactorFailure {
   if (status === 429) return "throttled";
@@ -82,7 +91,14 @@ export function twoFactorFailure(status: number, error: unknown): TwoFactorFailu
 
 /** Who is signed in. Renews the session on its own when the 30-minute access cookie has expired. */
 export function SessionProvider({ children }: { children: ReactNode }) {
-  const [state, setState] = useState<SessionState>({ status: "checking", me: null, ended: false });
+  const [raw, setState] = useState<SessionState>({ status: "checking", me: null, ended: false });
+  // Does this browser hold a session hint? Unknown (null) until the page is running in the browser.
+  const hinted = useSyncExternalStore(
+    () => () => {},
+    () => hasSessionHint(document.cookie),
+    () => null,
+  );
+  const state = settleWithoutHint(raw, hinted);
 
   // One client for the life of the page. It renews the session when the access cookie has expired.
   const [api] = useState(() =>
@@ -94,6 +110,8 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   );
 
   useEffect(() => {
+    // No hint, no session to look for: the check (and the renewal it would try) are two requests that could only fail.
+    if (hinted !== true) return;
     let active = true;
     (async () => {
       try {
@@ -108,7 +126,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     return () => {
       active = false;
     };
-  }, [api]);
+  }, [api, hinted]);
 
   const signIn = useCallback<SessionValue["signIn"]>(async (email, password) => {
     try {
