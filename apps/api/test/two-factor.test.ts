@@ -88,14 +88,50 @@ describe("who needs a second step", () => {
     expect(await eventsFor(person.email, "password_ok_two_factor_setup")).toBe(1);
   });
 
-  it("a Co-ordinator, an Admin: signed in as before, no second step", async () => {
-    for (const role of ["coordinator", "admin"] as const) {
-      const person = await makeUser(role);
-      const { response, body } = await passwordStep(person.email);
-      expect(response.status, role).toBe(200);
-      expect(body.twoFactor, role).toBeUndefined();
-      expect(response.headers.getSetCookie().some((c) => c.startsWith("__Host-refresh="))).toBe(true);
-    }
+  it("a Co-ordinator: signed in as before, no second step", async () => {
+    const person = await makeUser("coordinator");
+    const { response, body } = await passwordStep(person.email);
+    expect(response.status).toBe(200);
+    expect(body.twoFactor).toBeUndefined();
+    expect(response.headers.getSetCookie().some((c) => c.startsWith("__Host-refresh="))).toBe(true);
+  });
+
+  it("an Admin who has not set it up is asked to, and gets no session yet (D-038)", async () => {
+    const person = await makeUser("admin");
+    const { response, body } = await passwordStep(person.email);
+    expect(response.status).toBe(200);
+    expect(body.twoFactor).toBe("setup");
+    expect(typeof body.challenge).toBe("string");
+    expect(response.headers.getSetCookie()).toHaveLength(0);
+    expect(await eventsFor(person.email, "password_ok_two_factor_setup")).toBe(1);
+  });
+
+  it("an Admin who has set it up needs the code on every later sign-in, and is let in by it", async () => {
+    const person = await makeUser("admin");
+    const first = (await passwordStep(person.email)).body;
+    const setup = (await (await call("/api/auth/2fa/setup", { challenge: first.challenge })).json()) as { secret: string };
+    const now = Date.now();
+    const enable = await call("/api/auth/2fa/enable", { challenge: first.challenge, code: codeAt(setup.secret, now) });
+    expect(enable.status).toBe(200);
+    expect(cookiesFrom(enable)).toContain("__Host-refresh=");
+
+    const again = (await passwordStep(person.email)).body;
+    expect(again.twoFactor).toBe("required");
+    const verified = await call("/api/auth/2fa/verify", { challenge: again.challenge, code: codeAt(setup.secret, now + 30_000) });
+    expect(verified.status).toBe(200);
+    const me = (await (await call("/api/auth/me", undefined, { method: "GET", cookie: cookiesFrom(verified) })).json()) as { roles: RoleClaim[] };
+    expect(me.roles).toEqual([{ role: "admin", scope: "institution" }]);
+  });
+
+  it("a person with both an Admin and a Co-ordinator assignment is still held to it", async () => {
+    const email = uniqueEmail("both");
+    await createUser(db, env.AUDIT_HMAC_KEY, {
+      email,
+      password,
+      fullName: "Two Roles Person",
+      roles: [{ role: "coordinator", scope: "institution" }, { role: "admin", scope: "institution" }],
+    });
+    expect((await passwordStep(email)).body.twoFactor).toBe("setup");
   });
 
   it("anyone who HAS turned it on is asked for the code, whatever their role", async () => {

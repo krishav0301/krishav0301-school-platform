@@ -88,9 +88,9 @@ describe.each([
       const first = (await signIn.json()) as { twoFactor?: string; challenge?: string };
       let cookie: string;
 
-      if (name === "super_admin") {
-        // The Super Admin must set up the authenticator app before getting a session.
-        expect(first.twoFactor, "super admin is asked to set up").toBe("setup");
+      if (name === "super_admin" || name === "admin") {
+        // The Super Admin and the Admin (D-038) must set up the authenticator app before getting a session.
+        expect(first.twoFactor, `${name} is asked to set up`).toBe("setup");
         expect(signIn.headers.getSetCookie()).toHaveLength(0);
         const setup = (await (await call("/api/auth/2fa/setup", { body: { challenge: first.challenge } })).json()) as { secret: string };
         const enable = await call("/api/auth/2fa/enable", { body: { challenge: first.challenge, code: codeAt(setup.secret, Date.now()) } });
