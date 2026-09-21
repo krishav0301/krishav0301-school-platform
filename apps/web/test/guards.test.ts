@@ -179,6 +179,7 @@ describe("touch targets", () => {
   it("the notice board's filter buttons and a vacancy's contact link are full-size targets too", () => {
     expect(css("content/content.module.css")).toMatch(/\.chip\s*\{[^}]*min-height:\s*var\(--control-height\)/);
     expect(css("content/content.module.css")).toMatch(/\.contactLink\s*\{[^}]*min-height:\s*var\(--control-height\)/);
+    expect(css("site/site.module.css")).toMatch(/\.contactLink\s*\{[^}]*min-height:\s*var\(--control-height\)/);
   });
 
   it("the control height itself is 44px or more", () => {

@@ -260,6 +260,20 @@ export const en = {
   "site.scholarships.title": "Scholarships",
   "site.facilities.title": "Facilities",
   "site.contact.title": "Contact",
+  "site.affiliation": "Affiliation",
+  "site.duration": "Duration",
+  "site.options": "Options",
+  "site.step": "Step {number}",
+  "site.address": "Address",
+  "site.phone": "Phone",
+  "site.email": "Email",
+  "site.hours": "Office hours",
+  "site.admission.contact": "Contact the college",
+  "site.loading": "Loading…",
+  "site.loadFailed": "Could not load this page. Check your connection and try again.",
+  "site.retry": "Try again",
+  "site.notReadyTitle": "This page isn't ready yet",
+  "site.notReadyBody": "Please check back soon.",
 } as const;
 
 export type MessageKey = keyof typeof en;
