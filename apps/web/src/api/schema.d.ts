@@ -191,6 +191,197 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/academics/years": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Every academic year, newest first, with its days in both calendars. */
+        get: operations["list_academic_years"];
+        put?: never;
+        /** @description Adds a year as a draft. Days are AD; the BS year must be one whose calendar is verified. */
+        post: operations["create_academic_year"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/academics/programmes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description The programmes of the sections the person may see, each with its levels in order. */
+        get: operations["list_programmes"];
+        put?: never;
+        /** @description Adds a programme to a section the person may manage. */
+        post: operations["create_programme"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/academics/classes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description The classes of the sections the person may see, optionally of one year. */
+        get: operations["list_classes"];
+        put?: never;
+        /** @description Makes a class: a level in a year, with an optional label such as Morning. A repeat is 409; a closed year is 409 `year_closed`. */
+        post: operations["create_class"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/academics/terminals": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description The terminals of one year, or of every year. */
+        get: operations["list_terminals"];
+        put?: never;
+        /** @description Adds a terminal to a year, numbered after the last one. */
+        post: operations["create_terminal"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/academics/years/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** @description Changes a draft year's label or days. Send only what changes. */
+        patch: operations["update_academic_year"];
+        trace?: never;
+    };
+    "/api/academics/years/{id}/activate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Makes a draft year the active one. Refused (409) while another year is active. */
+        post: operations["activate_academic_year"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/academics/programmes/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** @description Renames a programme, changes its affiliation, or switches it off and on. Nothing is deleted. */
+        patch: operations["update_programme"];
+        trace?: never;
+    };
+    "/api/academics/programmes/{id}/levels": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Adds a level (Grade 11, Year 1) to a programme, numbered after the last one. */
+        post: operations["add_level"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/academics/levels/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** @description Renames a level or switches it off and on. Nothing is deleted. */
+        patch: operations["update_level"];
+        trace?: never;
+    };
+    "/api/academics/classes/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** @description Relabels a class or switches it off and on. A closed year cannot be changed. */
+        patch: operations["update_class"];
+        trace?: never;
+    };
+    "/api/academics/terminals/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** @description Renames a terminal. A closed year cannot be changed. */
+        patch: operations["update_terminal"];
+        trace?: never;
+    };
     "/api/config/public": {
         parameters: {
             query?: never;
@@ -426,6 +617,124 @@ export interface components {
         };
         AccountsError: {
             error: string;
+        };
+        AcademicYearList: {
+            years: components["schemas"]["AcademicYear"][];
+        };
+        AcademicYear: {
+            id: string;
+            bsYear: number;
+            label: string;
+            startDate: string;
+            endDate: string;
+            startDateBs: string | null;
+            endDateBs: string | null;
+            /** @enum {string} */
+            status: "draft" | "active" | "closed";
+        };
+        ProgrammeList: {
+            programmes: components["schemas"]["Programme"][];
+        };
+        Programme: {
+            id: string;
+            key: string;
+            name: string;
+            section: {
+                key: string;
+                name: string;
+            };
+            affiliation: string;
+            active: boolean;
+            levels: components["schemas"]["Level"][];
+        };
+        Level: {
+            id: string;
+            ordinal: number;
+            name: string;
+            active: boolean;
+        };
+        SchoolClassList: {
+            classes: components["schemas"]["SchoolClass"][];
+        };
+        SchoolClass: {
+            id: string;
+            yearId: string;
+            programmeId: string;
+            programmeName: string;
+            sectionKey: string;
+            levelId: string;
+            levelName: string;
+            label: string;
+            active: boolean;
+        };
+        TerminalList: {
+            terminals: components["schemas"]["Terminal"][];
+        };
+        Terminal: {
+            id: string;
+            yearId: string;
+            name: string;
+            ordinal: number;
+        };
+        AcademicsCreated: {
+            id: string;
+        };
+        AcademicsError: {
+            error: string;
+        };
+        AcademicsInvalid: {
+            /** @enum {string} */
+            error: "invalid";
+            message: string;
+        };
+        CreateYear: {
+            bsYear: number;
+            label?: string;
+            startDate: string;
+            endDate: string;
+        };
+        AcademicsOk: {
+            /** @enum {boolean} */
+            ok: true;
+        };
+        YearChanges: {
+            label?: string;
+            startDate?: string;
+            endDate?: string;
+        };
+        CreateProgramme: {
+            name: string;
+            sectionKey: string;
+            affiliation: string;
+        };
+        ProgrammeChanges: {
+            name?: string;
+            affiliation?: string;
+            active?: boolean;
+        };
+        CreateLevel: {
+            name: string;
+        };
+        LevelChanges: {
+            name?: string;
+            active?: boolean;
+        };
+        CreateClass: {
+            yearId: string;
+            levelId: string;
+            /** @default  */
+            label: string;
+        };
+        ClassChanges: {
+            label?: string;
+            active?: boolean;
+        };
+        CreateTerminal: {
+            yearId: string;
+            name: string;
+        };
+        TerminalChanges: {
+            name?: string;
         };
         PublicConfig: {
             school: {
@@ -1019,6 +1328,760 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AccountsError"];
+                };
+            };
+        };
+    };
+    list_academic_years: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The years */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AcademicYearList"];
+                };
+            };
+        };
+    };
+    create_academic_year: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateYear"];
+            };
+        };
+        responses: {
+            /** @description Added */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AcademicsCreated"];
+                };
+            };
+            /** @description Not allowed (for example, switched off since signing in, or another section's data) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AcademicsError"];
+                };
+            };
+            /** @description No such item */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AcademicsError"];
+                };
+            };
+            /** @description It conflicts with what is already there (a repeat, a closed year, another active year) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AcademicsError"];
+                };
+            };
+            /** @description The change breaks a rule; nothing changed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AcademicsInvalid"];
+                };
+            };
+        };
+    };
+    list_programmes: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The programmes */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProgrammeList"];
+                };
+            };
+        };
+    };
+    create_programme: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateProgramme"];
+            };
+        };
+        responses: {
+            /** @description Added */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AcademicsCreated"];
+                };
+            };
+            /** @description Not allowed (for example, switched off since signing in, or another section's data) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AcademicsError"];
+                };
+            };
+            /** @description No such item */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AcademicsError"];
+                };
+            };
+            /** @description It conflicts with what is already there (a repeat, a closed year, another active year) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AcademicsError"];
+                };
+            };
+            /** @description The change breaks a rule; nothing changed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AcademicsInvalid"];
+                };
+            };
+        };
+    };
+    list_classes: {
+        parameters: {
+            query?: {
+                year?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The classes */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SchoolClassList"];
+                };
+            };
+        };
+    };
+    create_class: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateClass"];
+            };
+        };
+        responses: {
+            /** @description Made */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AcademicsCreated"];
+                };
+            };
+            /** @description Not allowed (for example, switched off since signing in, or another section's data) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AcademicsError"];
+                };
+            };
+            /** @description No such item */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AcademicsError"];
+                };
+            };
+            /** @description It conflicts with what is already there (a repeat, a closed year, another active year) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AcademicsError"];
+                };
+            };
+            /** @description The change breaks a rule; nothing changed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AcademicsInvalid"];
+                };
+            };
+        };
+    };
+    list_terminals: {
+        parameters: {
+            query?: {
+                year?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The terminals */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TerminalList"];
+                };
+            };
+        };
+    };
+    create_terminal: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateTerminal"];
+            };
+        };
+        responses: {
+            /** @description Added */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AcademicsCreated"];
+                };
+            };
+            /** @description Not allowed (for example, switched off since signing in, or another section's data) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AcademicsError"];
+                };
+            };
+            /** @description No such item */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AcademicsError"];
+                };
+            };
+            /** @description It conflicts with what is already there (a repeat, a closed year, another active year) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AcademicsError"];
+                };
+            };
+            /** @description The change breaks a rule; nothing changed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AcademicsInvalid"];
+                };
+            };
+        };
+    };
+    update_academic_year: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["YearChanges"];
+            };
+        };
+        responses: {
+            /** @description Saved */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AcademicsOk"];
+                };
+            };
+            /** @description Not allowed (for example, switched off since signing in, or another section's data) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AcademicsError"];
+                };
+            };
+            /** @description No such item */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AcademicsError"];
+                };
+            };
+            /** @description It conflicts with what is already there (a repeat, a closed year, another active year) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AcademicsError"];
+                };
+            };
+            /** @description The change breaks a rule; nothing changed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AcademicsInvalid"];
+                };
+            };
+        };
+    };
+    activate_academic_year: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Now active */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AcademicsOk"];
+                };
+            };
+            /** @description Not allowed (for example, switched off since signing in, or another section's data) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AcademicsError"];
+                };
+            };
+            /** @description No such item */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AcademicsError"];
+                };
+            };
+            /** @description It conflicts with what is already there (a repeat, a closed year, another active year) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AcademicsError"];
+                };
+            };
+            /** @description The change breaks a rule; nothing changed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AcademicsInvalid"];
+                };
+            };
+        };
+    };
+    update_programme: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ProgrammeChanges"];
+            };
+        };
+        responses: {
+            /** @description Saved */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AcademicsOk"];
+                };
+            };
+            /** @description Not allowed (for example, switched off since signing in, or another section's data) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AcademicsError"];
+                };
+            };
+            /** @description No such item */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AcademicsError"];
+                };
+            };
+            /** @description It conflicts with what is already there (a repeat, a closed year, another active year) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AcademicsError"];
+                };
+            };
+            /** @description The change breaks a rule; nothing changed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AcademicsInvalid"];
+                };
+            };
+        };
+    };
+    add_level: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateLevel"];
+            };
+        };
+        responses: {
+            /** @description Added */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AcademicsCreated"];
+                };
+            };
+            /** @description Not allowed (for example, switched off since signing in, or another section's data) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AcademicsError"];
+                };
+            };
+            /** @description No such item */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AcademicsError"];
+                };
+            };
+            /** @description It conflicts with what is already there (a repeat, a closed year, another active year) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AcademicsError"];
+                };
+            };
+            /** @description The change breaks a rule; nothing changed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AcademicsInvalid"];
+                };
+            };
+        };
+    };
+    update_level: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LevelChanges"];
+            };
+        };
+        responses: {
+            /** @description Saved */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AcademicsOk"];
+                };
+            };
+            /** @description Not allowed (for example, switched off since signing in, or another section's data) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AcademicsError"];
+                };
+            };
+            /** @description No such item */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AcademicsError"];
+                };
+            };
+            /** @description It conflicts with what is already there (a repeat, a closed year, another active year) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AcademicsError"];
+                };
+            };
+            /** @description The change breaks a rule; nothing changed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AcademicsInvalid"];
+                };
+            };
+        };
+    };
+    update_class: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ClassChanges"];
+            };
+        };
+        responses: {
+            /** @description Saved */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AcademicsOk"];
+                };
+            };
+            /** @description Not allowed (for example, switched off since signing in, or another section's data) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AcademicsError"];
+                };
+            };
+            /** @description No such item */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AcademicsError"];
+                };
+            };
+            /** @description It conflicts with what is already there (a repeat, a closed year, another active year) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AcademicsError"];
+                };
+            };
+            /** @description The change breaks a rule; nothing changed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AcademicsInvalid"];
+                };
+            };
+        };
+    };
+    update_terminal: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TerminalChanges"];
+            };
+        };
+        responses: {
+            /** @description Saved */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AcademicsOk"];
+                };
+            };
+            /** @description Not allowed (for example, switched off since signing in, or another section's data) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AcademicsError"];
+                };
+            };
+            /** @description No such item */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AcademicsError"];
+                };
+            };
+            /** @description It conflicts with what is already there (a repeat, a closed year, another active year) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AcademicsError"];
+                };
+            };
+            /** @description The change breaks a rule; nothing changed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AcademicsInvalid"];
                 };
             };
         };

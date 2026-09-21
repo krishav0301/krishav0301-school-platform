@@ -69,3 +69,57 @@ export type TerminalInput = z.input<typeof CreateTerminalSchema>;
 
 export const TerminalChangesSchema = z.strictObject({ name: TerminalName }).partial().openapi("TerminalChanges");
 export type TerminalChanges = z.infer<typeof TerminalChangesSchema>;
+
+// --- What the screens read ---------------------------------------------------------------------------
+
+export const AcademicYearSchema = z
+  .object({
+    id: z.string(),
+    bsYear: z.number().int(),
+    label: z.string(),
+    startDate: z.string(),
+    endDate: z.string(),
+    /** The same days in Bikram Sambat, "YYYY-MM-DD"; null if a day is outside the verified years. */
+    startDateBs: z.string().nullable(),
+    endDateBs: z.string().nullable(),
+    status: z.enum(["draft", "active", "closed"]),
+  })
+  .openapi("AcademicYear");
+export const AcademicYearListSchema = z.object({ years: z.array(AcademicYearSchema) }).openapi("AcademicYearList");
+export type AcademicYearList = z.infer<typeof AcademicYearListSchema>;
+
+export const LevelSchema = z.object({ id: z.string(), ordinal: z.number().int(), name: z.string(), active: z.boolean() }).openapi("Level");
+export const ProgrammeSchema = z
+  .object({
+    id: z.string(),
+    key: z.string(),
+    name: z.string(),
+    section: z.object({ key: z.string(), name: z.string() }),
+    affiliation: z.string(),
+    active: z.boolean(),
+    levels: z.array(LevelSchema),
+  })
+  .openapi("Programme");
+export const ProgrammeListSchema = z.object({ programmes: z.array(ProgrammeSchema) }).openapi("ProgrammeList");
+export type ProgrammeList = z.infer<typeof ProgrammeListSchema>;
+
+export const SchoolClassSchema = z
+  .object({
+    id: z.string(),
+    yearId: z.string(),
+    programmeId: z.string(),
+    programmeName: z.string(),
+    sectionKey: z.string(),
+    levelId: z.string(),
+    levelName: z.string(),
+    /** Empty when the class has no label. */
+    label: z.string(),
+    active: z.boolean(),
+  })
+  .openapi("SchoolClass");
+export const SchoolClassListSchema = z.object({ classes: z.array(SchoolClassSchema) }).openapi("SchoolClassList");
+export type SchoolClassList = z.infer<typeof SchoolClassListSchema>;
+
+export const TerminalSchema = z.object({ id: z.string(), yearId: z.string(), name: z.string(), ordinal: z.number().int() }).openapi("Terminal");
+export const TerminalListSchema = z.object({ terminals: z.array(TerminalSchema) }).openapi("TerminalList");
+export type TerminalList = z.infer<typeof TerminalListSchema>;

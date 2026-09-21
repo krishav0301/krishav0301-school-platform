@@ -271,6 +271,489 @@
           "error"
         ]
       },
+      "AcademicYearList": {
+        "type": "object",
+        "properties": {
+          "years": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AcademicYear"
+            }
+          }
+        },
+        "required": [
+          "years"
+        ]
+      },
+      "AcademicYear": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "bsYear": {
+            "type": "integer"
+          },
+          "label": {
+            "type": "string"
+          },
+          "startDate": {
+            "type": "string"
+          },
+          "endDate": {
+            "type": "string"
+          },
+          "startDateBs": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "endDateBs": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "draft",
+              "active",
+              "closed"
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "bsYear",
+          "label",
+          "startDate",
+          "endDate",
+          "startDateBs",
+          "endDateBs",
+          "status"
+        ]
+      },
+      "ProgrammeList": {
+        "type": "object",
+        "properties": {
+          "programmes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Programme"
+            }
+          }
+        },
+        "required": [
+          "programmes"
+        ]
+      },
+      "Programme": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "key": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "section": {
+            "type": "object",
+            "properties": {
+              "key": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "key",
+              "name"
+            ]
+          },
+          "affiliation": {
+            "type": "string"
+          },
+          "active": {
+            "type": "boolean"
+          },
+          "levels": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Level"
+            }
+          }
+        },
+        "required": [
+          "id",
+          "key",
+          "name",
+          "section",
+          "affiliation",
+          "active",
+          "levels"
+        ]
+      },
+      "Level": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "ordinal": {
+            "type": "integer"
+          },
+          "name": {
+            "type": "string"
+          },
+          "active": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id",
+          "ordinal",
+          "name",
+          "active"
+        ]
+      },
+      "SchoolClassList": {
+        "type": "object",
+        "properties": {
+          "classes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SchoolClass"
+            }
+          }
+        },
+        "required": [
+          "classes"
+        ]
+      },
+      "SchoolClass": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "yearId": {
+            "type": "string"
+          },
+          "programmeId": {
+            "type": "string"
+          },
+          "programmeName": {
+            "type": "string"
+          },
+          "sectionKey": {
+            "type": "string"
+          },
+          "levelId": {
+            "type": "string"
+          },
+          "levelName": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "active": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id",
+          "yearId",
+          "programmeId",
+          "programmeName",
+          "sectionKey",
+          "levelId",
+          "levelName",
+          "label",
+          "active"
+        ]
+      },
+      "TerminalList": {
+        "type": "object",
+        "properties": {
+          "terminals": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Terminal"
+            }
+          }
+        },
+        "required": [
+          "terminals"
+        ]
+      },
+      "Terminal": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "yearId": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "ordinal": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "yearId",
+          "name",
+          "ordinal"
+        ]
+      },
+      "AcademicsCreated": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      },
+      "AcademicsError": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "error"
+        ]
+      },
+      "AcademicsInvalid": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "string",
+            "enum": [
+              "invalid"
+            ]
+          },
+          "message": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "error",
+          "message"
+        ]
+      },
+      "CreateYear": {
+        "type": "object",
+        "properties": {
+          "bsYear": {
+            "type": "integer"
+          },
+          "label": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 40
+          },
+          "startDate": {
+            "type": "string",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+          },
+          "endDate": {
+            "type": "string",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+          }
+        },
+        "required": [
+          "bsYear",
+          "startDate",
+          "endDate"
+        ],
+        "additionalProperties": false
+      },
+      "AcademicsOk": {
+        "type": "object",
+        "properties": {
+          "ok": {
+            "type": "boolean",
+            "enum": [
+              true
+            ]
+          }
+        },
+        "required": [
+          "ok"
+        ]
+      },
+      "YearChanges": {
+        "type": "object",
+        "properties": {
+          "label": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 40
+          },
+          "startDate": {
+            "type": "string",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+          },
+          "endDate": {
+            "type": "string",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+          }
+        },
+        "additionalProperties": false
+      },
+      "CreateProgramme": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 120
+          },
+          "sectionKey": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9_]{0,30}$"
+          },
+          "affiliation": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 120
+          }
+        },
+        "required": [
+          "name",
+          "sectionKey",
+          "affiliation"
+        ],
+        "additionalProperties": false
+      },
+      "ProgrammeChanges": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 120
+          },
+          "affiliation": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 120
+          },
+          "active": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "CreateLevel": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 60
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "additionalProperties": false
+      },
+      "LevelChanges": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 60
+          },
+          "active": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "CreateClass": {
+        "type": "object",
+        "properties": {
+          "yearId": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{32}$"
+          },
+          "levelId": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{32}$"
+          },
+          "label": {
+            "type": "string",
+            "maxLength": 40,
+            "default": ""
+          }
+        },
+        "required": [
+          "yearId",
+          "levelId"
+        ],
+        "additionalProperties": false
+      },
+      "ClassChanges": {
+        "type": "object",
+        "properties": {
+          "label": {
+            "type": "string",
+            "maxLength": 40
+          },
+          "active": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "CreateTerminal": {
+        "type": "object",
+        "properties": {
+          "yearId": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{32}$"
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 60
+          }
+        },
+        "required": [
+          "yearId",
+          "name"
+        ],
+        "additionalProperties": false
+      },
+      "TerminalChanges": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 60
+          }
+        },
+        "additionalProperties": false
+      },
       "PublicConfig": {
         "type": "object",
         "properties": {
@@ -1693,6 +2176,952 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/AccountsError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/academics/years": {
+      "get": {
+        "operationId": "list_academic_years",
+        "tags": [
+          "academics"
+        ],
+        "description": "Every academic year, newest first, with its days in both calendars.",
+        "responses": {
+          "200": {
+            "description": "The years",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AcademicYearList"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "operationId": "create_academic_year",
+        "tags": [
+          "academics"
+        ],
+        "description": "Adds a year as a draft. Days are AD; the BS year must be one whose calendar is verified.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateYear"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Added",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AcademicsCreated"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed (for example, switched off since signing in, or another section's data)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AcademicsError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such item",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AcademicsError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "It conflicts with what is already there (a repeat, a closed year, another active year)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AcademicsError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "The change breaks a rule; nothing changed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AcademicsInvalid"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/academics/programmes": {
+      "get": {
+        "operationId": "list_programmes",
+        "tags": [
+          "academics"
+        ],
+        "description": "The programmes of the sections the person may see, each with its levels in order.",
+        "responses": {
+          "200": {
+            "description": "The programmes",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProgrammeList"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "operationId": "create_programme",
+        "tags": [
+          "academics"
+        ],
+        "description": "Adds a programme to a section the person may manage.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateProgramme"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Added",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AcademicsCreated"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed (for example, switched off since signing in, or another section's data)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AcademicsError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such item",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AcademicsError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "It conflicts with what is already there (a repeat, a closed year, another active year)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AcademicsError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "The change breaks a rule; nothing changed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AcademicsInvalid"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/academics/classes": {
+      "get": {
+        "operationId": "list_classes",
+        "tags": [
+          "academics"
+        ],
+        "description": "The classes of the sections the person may see, optionally of one year.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{32}$"
+            },
+            "required": false,
+            "name": "year",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The classes",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SchoolClassList"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "operationId": "create_class",
+        "tags": [
+          "academics"
+        ],
+        "description": "Makes a class: a level in a year, with an optional label such as Morning. A repeat is 409; a closed year is 409 `year_closed`.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateClass"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Made",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AcademicsCreated"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed (for example, switched off since signing in, or another section's data)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AcademicsError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such item",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AcademicsError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "It conflicts with what is already there (a repeat, a closed year, another active year)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AcademicsError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "The change breaks a rule; nothing changed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AcademicsInvalid"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/academics/terminals": {
+      "get": {
+        "operationId": "list_terminals",
+        "tags": [
+          "academics"
+        ],
+        "description": "The terminals of one year, or of every year.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{32}$"
+            },
+            "required": false,
+            "name": "year",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The terminals",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TerminalList"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "operationId": "create_terminal",
+        "tags": [
+          "academics"
+        ],
+        "description": "Adds a terminal to a year, numbered after the last one.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateTerminal"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Added",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AcademicsCreated"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed (for example, switched off since signing in, or another section's data)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AcademicsError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such item",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AcademicsError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "It conflicts with what is already there (a repeat, a closed year, another active year)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AcademicsError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "The change breaks a rule; nothing changed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AcademicsInvalid"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/academics/years/{id}": {
+      "patch": {
+        "operationId": "update_academic_year",
+        "tags": [
+          "academics"
+        ],
+        "description": "Changes a draft year's label or days. Send only what changes.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{32}$"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/YearChanges"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Saved",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AcademicsOk"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed (for example, switched off since signing in, or another section's data)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AcademicsError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such item",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AcademicsError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "It conflicts with what is already there (a repeat, a closed year, another active year)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AcademicsError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "The change breaks a rule; nothing changed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AcademicsInvalid"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/academics/years/{id}/activate": {
+      "post": {
+        "operationId": "activate_academic_year",
+        "tags": [
+          "academics"
+        ],
+        "description": "Makes a draft year the active one. Refused (409) while another year is active.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{32}$"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Now active",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AcademicsOk"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed (for example, switched off since signing in, or another section's data)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AcademicsError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such item",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AcademicsError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "It conflicts with what is already there (a repeat, a closed year, another active year)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AcademicsError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "The change breaks a rule; nothing changed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AcademicsInvalid"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/academics/programmes/{id}": {
+      "patch": {
+        "operationId": "update_programme",
+        "tags": [
+          "academics"
+        ],
+        "description": "Renames a programme, changes its affiliation, or switches it off and on. Nothing is deleted.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{32}$"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProgrammeChanges"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Saved",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AcademicsOk"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed (for example, switched off since signing in, or another section's data)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AcademicsError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such item",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AcademicsError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "It conflicts with what is already there (a repeat, a closed year, another active year)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AcademicsError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "The change breaks a rule; nothing changed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AcademicsInvalid"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/academics/programmes/{id}/levels": {
+      "post": {
+        "operationId": "add_level",
+        "tags": [
+          "academics"
+        ],
+        "description": "Adds a level (Grade 11, Year 1) to a programme, numbered after the last one.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{32}$"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateLevel"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Added",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AcademicsCreated"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed (for example, switched off since signing in, or another section's data)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AcademicsError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such item",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AcademicsError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "It conflicts with what is already there (a repeat, a closed year, another active year)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AcademicsError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "The change breaks a rule; nothing changed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AcademicsInvalid"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/academics/levels/{id}": {
+      "patch": {
+        "operationId": "update_level",
+        "tags": [
+          "academics"
+        ],
+        "description": "Renames a level or switches it off and on. Nothing is deleted.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{32}$"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LevelChanges"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Saved",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AcademicsOk"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed (for example, switched off since signing in, or another section's data)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AcademicsError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such item",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AcademicsError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "It conflicts with what is already there (a repeat, a closed year, another active year)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AcademicsError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "The change breaks a rule; nothing changed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AcademicsInvalid"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/academics/classes/{id}": {
+      "patch": {
+        "operationId": "update_class",
+        "tags": [
+          "academics"
+        ],
+        "description": "Relabels a class or switches it off and on. A closed year cannot be changed.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{32}$"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ClassChanges"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Saved",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AcademicsOk"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed (for example, switched off since signing in, or another section's data)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AcademicsError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such item",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AcademicsError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "It conflicts with what is already there (a repeat, a closed year, another active year)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AcademicsError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "The change breaks a rule; nothing changed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AcademicsInvalid"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/academics/terminals/{id}": {
+      "patch": {
+        "operationId": "update_terminal",
+        "tags": [
+          "academics"
+        ],
+        "description": "Renames a terminal. A closed year cannot be changed.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{32}$"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TerminalChanges"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Saved",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AcademicsOk"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed (for example, switched off since signing in, or another section's data)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AcademicsError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such item",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AcademicsError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "It conflicts with what is already there (a repeat, a closed year, another active year)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AcademicsError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "The change breaks a rule; nothing changed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AcademicsInvalid"
                 }
               }
             }
