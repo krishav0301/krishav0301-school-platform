@@ -1,0 +1,244 @@
+/* The fixed public pages. Tokens only: no colour, font or motion is written out here. */
+
+.pageTitle {
+  font-size: var(--text-2xl);
+  overflow-wrap: anywhere;
+}
+
+.intro {
+  max-width: 40rem;
+  color: var(--color-text-muted);
+  font-size: var(--text-lg);
+}
+
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+
+.group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  /* Full width even inside a section that lines its children up at the start (Home's), so the programme grid can use it. */
+  width: 100%;
+}
+
+.groupTitle {
+  font-size: var(--text-xl);
+}
+
+.itemTitle {
+  font-size: var(--text-lg);
+  overflow-wrap: anywhere;
+}
+
+/* A programme card can be linked to from Home and elsewhere. */
+.anchor {
+  scroll-margin-top: var(--space-5);
+}
+
+.muted {
+  color: var(--color-text-muted);
+}
+
+/* Label and value pairs: stacked on a phone, side by side from a wider screen. */
+.facts {
+  display: grid;
+  gap: var(--space-3);
+  margin: 0;
+}
+
+.fact {
+  display: grid;
+  gap: var(--space-1);
+}
+
+.fact dt {
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+}
+
+.fact dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+@media (min-width: 40rem) {
+  .fact {
+    grid-template-columns: 10rem minmax(0, 1fr);
+    gap: var(--space-4);
+  }
+
+  .fact dt {
+    font-size: var(--text-base);
+  }
+}
+
+.steps,
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.step,
+.item {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: min(var(--space-5), 5vw);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-card);
+  background: var(--color-surface);
+}
+
+.stepNumber {
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+}
+
+.facilityList {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(14rem, 100%), 1fr));
+  gap: var(--space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.facility {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  padding: var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-card);
+  background: var(--color-surface);
+}
+
+.facilityName {
+  font-weight: var(--weight-medium);
+}
+
+.plain {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* A phone number or email is a link, so it gets a full 44px target. */
+.contactLink {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--control-height);
+  color: var(--color-primary);
+}
+
+/* Home */
+.home {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+}
+
+.hero {
+  gap: var(--space-5);
+  padding: min(var(--space-6), 7.5vw) min(var(--space-5), 7.5vw);
+}
+
+.heroTitle {
+  font-size: var(--text-2xl);
+  overflow-wrap: anywhere;
+}
+
+.heroIntro {
+  max-width: 40rem;
+  color: var(--color-text-muted);
+  font-size: var(--text-lg);
+}
+
+@media (min-width: 48rem) {
+  .hero {
+    padding: var(--space-8) var(--space-7);
+  }
+
+  .heroTitle {
+    font-size: var(--text-3xl);
+  }
+}
+
+/* The actions wrap on a narrow screen or with enlarged text. */
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+}
+
+.block {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-4);
+}
+
+.programmeList {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(16rem, 100%), 1fr));
+  gap: var(--space-3);
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* The whole card is the link, so it is a full-size target. */
+.programmeLink {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: var(--space-1);
+  min-height: var(--control-height);
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-card);
+  background: var(--color-surface);
+  color: var(--color-text);
+  text-decoration: none;
+  overflow-wrap: anywhere;
+  transition: transform var(--motion-fast) var(--motion-ease);
+}
+
+.programmeLink:active {
+  transform: scale(0.98);
+}
+
+.programmeName {
+  color: var(--color-primary);
+  font-weight: var(--weight-medium);
+}
+
+.briefSteps {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin: 0;
+  padding-inline-start: var(--space-5);
+}
+
+/* A link that looks like a button, on a narrow screen or with enlarged text: the label wraps inside the
+   button instead of widening the page (D-030). `a.` makes this win over the button's own `nowrap`, whatever
+   order the stylesheets load in. */
+a.wrapLabel {
+  max-width: 100%;
+  padding-block: var(--space-2);
+  text-align: center;
+  white-space: normal;
+}

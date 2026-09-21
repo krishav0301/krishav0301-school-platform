@@ -1,49 +1,26 @@
 "use client";
 
-import Link from "next/link";
-
 import { ConfigGate } from "@/config/ConfigGate";
 import { useConfig } from "@/config/ConfigProvider";
-import { t } from "@/i18n/messages";
 import { PublicShell } from "@/shell/PublicShell";
-import { Badge, Card, buttonClass } from "@/ui";
+import { HomeFrameView } from "@/site/HomeView";
+import { useSite } from "@/site/SiteFrame";
+import { useUrgentNotices } from "@/site/useUrgentNotices";
 
-import styles from "./home.module.css";
-
-// A placeholder home page. The real public website is Phase 2; this proves the school's name,
-// sections and theme reach the page from its configuration.
-function Welcome() {
+function Home() {
   const { config } = useConfig();
+  const { view, retry } = useSite();
+  const urgent = useUrgentNotices();
   if (!config) return null;
-
-  return (
-    <Card className={styles.hero}>
-      <h1 className={styles.title}>{t("home.welcome", { school: config.school.name })}</h1>
-      <p className={styles.intro}>{t("home.intro")}</p>
-      <ul className={styles.sections}>
-        {config.sections.map((section) => (
-          <li key={section.key}>
-            <Badge>{section.name}</Badge>
-          </li>
-        ))}
-      </ul>
-      <div className={styles.actions}>
-        <Link href="/sign-in" className={buttonClass()}>
-          {t("shell.signIn")}
-        </Link>
-        <Link href="/notices" className={buttonClass({ variant: "secondary" })}>
-          {t("home.notices")}
-        </Link>
-      </div>
-    </Card>
-  );
+  return <HomeFrameView schoolName={config.school.name} sections={config.sections} view={view} urgent={urgent} onRetry={retry} />;
 }
 
-export default function Home() {
+/** The school's front page: admissions first, from the words in its pack. Open to everyone. */
+export default function HomePage() {
   return (
     <PublicShell>
       <ConfigGate>
-        <Welcome />
+        <Home />
       </ConfigGate>
     </PublicShell>
   );

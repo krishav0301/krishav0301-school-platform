@@ -7,6 +7,7 @@
 import { z } from "@hono/zod-openapi";
 
 import { ThemeSchema, checkContrast, type ContrastFailure } from "../theme";
+import { SiteContentSchema } from "./site";
 import { isKnownModule, isMandatoryModule } from "./modules";
 import { isKnownTerm } from "./terminology";
 
@@ -30,6 +31,8 @@ export const PackSchema = z.strictObject({
   modules: z.record(z.string(), z.boolean()).default({}),
   /** Renamed words. Only known terms may be renamed. */
   terminology: z.record(z.string(), z.string().min(1).max(60)).default({}),
+  /** The words of the six fixed public pages. Required: every school has a public site (D-008). */
+  site: SiteContentSchema,
   theme: ThemeSchema,
 });
 
@@ -53,6 +56,13 @@ export function parsePack(input: unknown): Pack {
 
   const keys = pack.sections.map((s) => s.key);
   if (new Set(keys).size !== keys.length) problems.push("sections: keys must be unique");
+
+  const sectionKeys = new Set(keys);
+  const programmeKeys = pack.site.programmes.map((p) => p.key);
+  if (new Set(programmeKeys).size !== programmeKeys.length) problems.push("site.programmes: keys must be unique");
+  pack.site.programmes.forEach((programme, index) => {
+    if (!sectionKeys.has(programme.section)) problems.push(`site.programmes.${index}.section: "${programme.section}" is not one of the pack's sections`);
+  });
 
   for (const [key, on] of Object.entries(pack.modules)) {
     if (!isKnownModule(key)) problems.push(`modules.${key}: not a module`);
@@ -114,6 +124,16 @@ export function packOperations(pack: Pack): Operation[] {
       params: [key, text],
     });
   }
+
+  // The site's words: one row, replaced whole, and only when the text changed, so re-applying a pack
+  // changes nothing (not even the timestamp). An update of one document, never a delete.
+  ops.push({
+    sql: `INSERT INTO site_content (id, content_json, updated_at)
+          VALUES (1, ?, strftime('%Y-%m-%dT%H:%M:%SZ', 'now'))
+          ON CONFLICT (id) DO UPDATE SET content_json = excluded.content_json, updated_at = excluded.updated_at
+            WHERE content_json != excluded.content_json`,
+    params: [JSON.stringify(pack.site)],
+  });
 
   // Theme: add it only if no saved theme (active or not) already has these exact tokens, retire
   // the old active one, then activate the newest theme with these tokens. So re-applying a pack

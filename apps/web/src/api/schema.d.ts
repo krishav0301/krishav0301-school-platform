@@ -346,6 +346,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/site/pages": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description The words of the school's six fixed public pages (home, programmes, admission, scholarships, facilities, contact), from its pack. `site` is null before the school has been provisioned with them. The same for every visitor. */
+        get: operations["site_pages"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -558,6 +575,51 @@ export interface components {
         DateConversionFailure: {
             /** @enum {string} */
             error: "invalid_date" | "unverified_year";
+        };
+        SitePages: {
+            site: {
+                home: {
+                    headline: string;
+                    summary: string;
+                };
+                programmes: {
+                    key: string;
+                    name: string;
+                    section: string;
+                    affiliation: string;
+                    duration: string;
+                    summary: string;
+                    /** @default [] */
+                    options: string[];
+                }[];
+                admission: {
+                    intro: string;
+                    steps: {
+                        title: string;
+                        body: string;
+                    }[];
+                };
+                scholarships: {
+                    intro: string;
+                    items: {
+                        title: string;
+                        body: string;
+                    }[];
+                };
+                facilities: {
+                    intro: string;
+                    items: {
+                        name: string;
+                        body?: string;
+                    }[];
+                };
+                contact: {
+                    address: string;
+                    phones: string[];
+                    email?: string;
+                    hours?: string;
+                };
+            } | null;
         };
     };
     responses: never;
@@ -1392,6 +1454,26 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["DateConversionFailure"];
+                };
+            };
+        };
+    };
+    site_pages: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The fixed pages' words, or null */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SitePages"];
                 };
             };
         };

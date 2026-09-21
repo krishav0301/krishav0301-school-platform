@@ -15,6 +15,39 @@
     "role.student": "Pupil",
     "term.terminal": "Exam"
   },
+  "site": {
+    "home": {
+      "headline": "Sample Basic School: Nursery to Grade 10",
+      "summary": "A sample school used to test the platform. Every name, number and address on this site is made up."
+    },
+    "programmes": [
+      { "key": "early-years", "name": "Nursery and KG", "section": "school", "affiliation": "Sample Education Board", "duration": "2 years", "summary": "Play-based learning for the youngest children." },
+      { "key": "primary", "name": "Grades 1 to 5", "section": "school", "affiliation": "Sample Education Board", "duration": "5 years", "summary": "Reading, writing, number work and first science." },
+      { "key": "lower-secondary", "name": "Grades 6 to 8", "section": "school", "affiliation": "Sample Education Board", "duration": "3 years", "summary": "A wider set of subjects with regular class tests." },
+      { "key": "secondary", "name": "Grades 9 and 10", "section": "school", "affiliation": "Sample Education Board", "duration": "2 years", "summary": "Preparation for the final examination." }
+    ],
+    "admission": {
+      "intro": "Admission has three steps.",
+      "steps": [
+        { "title": "Enquiry", "body": "Ask the school office about places in the grade you need." },
+        { "title": "Application", "body": "Submit the form with the child's birth certificate and last report." },
+        { "title": "Enrolment", "body": "Pay the first month's fee and meet the class teacher." }
+      ]
+    },
+    "scholarships": {
+      "intro": "The sample school has one made-up scholarship.",
+      "items": [{ "title": "Sample support", "body": "For a child whose family needs help with fees." }]
+    },
+    "facilities": {
+      "intro": "What the sample school has.",
+      "items": [{ "name": "Playground" }, { "name": "Library" }]
+    },
+    "contact": {
+      "address": "12 Example Road, Sample Town",
+      "phones": ["+977-00-0000000"],
+      "email": "office@sample-school.example"
+    }
+  },
   "theme": {
     "name": "Sample Basic School (test theme)",
     "font": "noto-sans",

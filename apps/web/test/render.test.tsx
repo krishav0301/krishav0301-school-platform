@@ -9,7 +9,8 @@ import { PortalShell } from "@/shell/PortalShell";
 import { PublicShell } from "@/shell/PublicShell";
 import { Badge, Button, Field, Notice, Table } from "@/ui";
 import DesignGallery from "@/app/design/page";
-import Home from "@/app/page";
+import { HomeView } from "@/site/HomeView";
+import { siteFrom } from "./site-fixture";
 import PortalPage from "@/app/portal/page";
 import SignInPage from "@/app/sign-in/page";
 import royal from "../../../packs/royal-softech/pack.json";
@@ -182,7 +183,7 @@ describe("the public shell and sign-in page", () => {
   });
 
   it("the home page also has exactly one prominent button", () => {
-    const home = page(<Home />, royal, signedOut);
+    const home = page(<HomeView site={siteFrom(royal)} sections={royal.sections} urgent={[]} />, royal, signedOut);
     expect(home.match(/class="button primary/g)).toHaveLength(1);
   });
 

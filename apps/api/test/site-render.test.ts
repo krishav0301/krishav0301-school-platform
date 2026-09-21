@@ -6,11 +6,13 @@ import { nepalDate } from "../src/core/dates";
 import { createUser } from "../src/modules/accounts/service";
 import { createContent, publishContent } from "../src/modules/content/service";
 import { FILLED_PAGES, isFilledPage, renderPublicPage } from "../src/modules/site";
+import { escapeHtml } from "../src/modules/site/html";
 import royalJson from "../../../packs/royal-softech/pack.json";
 import sampleJson from "../../../packs/sample-basic-school/pack.json";
 
 const db = env.DB;
 const key = env.AUDIT_HMAC_KEY;
+const royalSite = parsePack(royalJson).site;
 
 /** What the web build gives the Worker: a static page with nothing school-specific in it. */
 const SHELL = `<!DOCTYPE html><html lang="en"><head><meta charSet="utf-8"/><meta name="viewport" content="width=device-width"/></head><body><div id="root">Loading</div><script src="/_next/app.js"></script></body></html>`;
@@ -58,7 +60,7 @@ async function post(over: Record<string, unknown>, publish = true) {
 // ---------------------------------------------------------------------------------------------
 describe("which addresses are filled in", () => {
   it("names them in one list, and knows them exactly", () => {
-    expect([...FILLED_PAGES]).toEqual(expect.arrayContaining(["/", "/notices"]));
+    expect([...FILLED_PAGES]).toEqual(expect.arrayContaining(["/", "/notices", "/programmes", "/admission", "/scholarships", "/facilities", "/contact"]));
     for (const path of FILLED_PAGES) expect(isFilledPage(path), path).toBe(true);
   });
 
@@ -90,7 +92,7 @@ describe("a set-up school", () => {
     const { html, response } = await page("/", { origin: "https://royal.example" });
     expect(response.status).toBe(200);
     expect(html).toContain(`<title>${royalJson.school.name}</title>`);
-    expect(html).toMatch(/<meta name="description" content="[^"]*Royal Softech College[^"]*"\s*\/?>/);
+    expect(html).toContain(`<meta name="description" content="${escapeHtml(royalSite.home.summary)}"/>`);
     expect(html).toContain('<link rel="canonical" href="https://royal.example/"');
   });
 
@@ -131,7 +133,7 @@ describe("a set-up school", () => {
   it("puts the real words in a plain block at the top of the body, then removes it for anyone running the app", async () => {
     const { html } = await page("/");
     const copy = copyOf(html);
-    expect(copy).toMatch(/<h1>Welcome to Royal Softech College<\/h1>/);
+    expect(copy).toContain(`<h1>${escapeHtml(royalSite.home.headline)}</h1>`);
     // Section names are written escaped (an apostrophe becomes &#39;).
     for (const section of royalJson.sections) expect(copy, section.name).toContain(section.name.replace(/'/g, "&#39;"));
     expect(copy).toContain('<a href="/notices">');
@@ -349,5 +351,189 @@ describe("cost", () => {
     // The configuration is one batch of five statements; the notices are one statement: two round trips.
     expect(batches).toBe(1);
     expect(statements).toBeLessThanOrEqual(6);
+  });
+});
+
+describe("the six fixed pages", () => {
+  const SIX = ["/", "/programmes", "/admission", "/scholarships", "/facilities", "/contact"];
+  const LINKS = ["/programmes", "/admission", "/scholarships", "/facilities", "/contact", "/notices"];
+  const fixed: [string, string, string[]][] = [
+    ["/programmes", "Programmes", ["+2 Science", "Bachelor of Business Studies (BBS)", "Purbanchal University (PU)", "Biology, Mathematics, Computer Science", "Microbiology, Zoology, Botany, Chemistry, Physics"]],
+    ["/admission", "Admission", ["Counselling and enquiry", "Enrolment"]],
+    ["/scholarships", "Scholarships", ["Merit-based", "Up to 50% for Dalit students, after verification."]],
+    ["/facilities", "Facilities", ["Library", "Football, basketball, volleyball and track events."]],
+    ["/contact", "Contact", ["Lahan Municipality-3", "+977-9801561718", "+977-33-560097"]],
+  ];
+
+  beforeAll(async () => {
+    await applyPack(db, parsePack(royalJson));
+  });
+
+  it.each(fixed)("%s has its title, canonical address, heading, links to every page and its own words", async (path, heading, words) => {
+    const { html } = await page(path, { origin: "https://royal.example" });
+    expect(html).toContain(`<title>${heading} | Royal Softech College</title>`);
+    expect(html).toContain(`rel="canonical" href="https://royal.example${path}"`);
+    const copy = copyOf(html);
+    expect(copy).toContain(`<h1>${heading}</h1>`);
+    for (const link of LINKS) expect(copy, link).toContain(`<a href="${link}">`);
+    for (const text of words) expect(copy, text).toContain(text);
+  });
+
+  it("Home leads with its headline and the way to apply, then groups the programmes by section, then the steps and the contact", async () => {
+    const copy = copyOf((await page("/")).html);
+    expect(copy).toContain(`<h1>${escapeHtml(royalSite.home.headline)}</h1>`);
+    expect(copy).toContain('<a href="/admission">How to apply</a>');
+    expect(copy.indexOf("<h3>+2</h3>")).toBeLessThan(copy.indexOf("<h3>Bachelor&#39;s</h3>"));
+    expect(copy).toContain('<a href="/programmes#bbs">');
+    for (const step of royalSite.admission.steps) expect(copy).toContain(`<li>${escapeHtml(step.title)}</li>`);
+    expect(copy).toContain("Phone: +977-9801561718");
+    expect(copy.indexOf("How to apply</h2>")).toBeLessThan(copy.indexOf("<h2>Contact</h2>"));
+  });
+
+  it("describes the pages in structured data, from what the pack says and nothing more", async () => {
+    const programmesLd = jsonLd((await page("/programmes", { origin: "https://royal.example" })).html).find((b) => b["@type"] === "ItemList")!;
+    const items = programmesLd.itemListElement as { name: string; url: string; position: number }[];
+    expect(items).toHaveLength(9);
+    expect(items[0]).toMatchObject({ position: 1, name: "+2 Science", url: "https://royal.example/programmes#plus2-science" });
+
+    const howTo = jsonLd((await page("/admission")).html).find((b) => b["@type"] === "HowTo")!;
+    expect(howTo.name).toBe("How to apply to Royal Softech College");
+    expect((howTo.step as unknown[]).length).toBe(6);
+
+    const contactLd = jsonLd((await page("/contact")).html).find((b) => b["@type"] === "ContactPage")!;
+    // It points to the organisation block (which carries the phones) instead of repeating it.
+    expect(contactLd.mainEntity).toEqual({ "@id": (jsonLd((await page("/contact")).html).find((b) => b["@type"] === "EducationalOrganization")!)["@id"] });
+
+    const facilitiesLd = jsonLd((await page("/facilities")).html).find((b) => b["@type"] === "ItemList")!;
+    expect((facilitiesLd.itemListElement as unknown[]).length).toBe(13);
+    for (const path of SIX) for (const block of jsonLd((await page(path)).html)) expect(block["@context"]).toBe("https://schema.org");
+  });
+
+  it("escapes hostile text from the pack on every page, in the block and in structured data", async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- the test deliberately edits loosely-typed pack data
+    const bad = structuredClone(royalJson) as any;
+    const script = `<script>alert("x")</script><img src=x onerror=alert(1)>`;
+    bad.site.home.headline = script;
+    bad.site.programmes[0].name = script;
+    bad.site.programmes[0].summary = script;
+    bad.site.admission.steps[0].title = script;
+    bad.site.scholarships.items[0].body = script;
+    bad.site.facilities.items[0].name = script;
+    bad.site.contact.address = script;
+    await applyPack(db, parsePack(bad));
+    for (const path of SIX) {
+      const { html } = await page(path);
+      expect(html, path).not.toContain('<script>alert("x")');
+      expect(html, path).not.toContain("<img src=x");
+      for (const block of jsonLd(html)) expect(block, path).toBeTruthy(); // every block still parses
+    }
+    expect(copyOf((await page("/contact")).html)).toContain("&lt;script&gt;alert(&quot;x&quot;)&lt;/script&gt;");
+    await applyPack(db, parsePack(royalJson));
+  });
+
+  it("another school gets its own words on every page, and none of the first school's", async () => {
+    await applyPack(db, parsePack(sampleJson));
+    for (const path of SIX) {
+      const { html } = await page(path);
+      for (const word of ["Royal", "Lahan", "Siraha", "Purbanchal", "Tribhuvan", "NEB"]) expect(html, `${path} ${word}`).not.toContain(word);
+    }
+    expect(copyOf((await page("/")).html)).toContain("Sample Basic School: Nursery to Grade 10");
+    await applyPack(db, parsePack(royalJson));
+  });
+
+  it("serves the static page untouched when the school has no site words yet (before provisioning with them)", async () => {
+    await db.prepare("DELETE FROM site_content").run();
+    for (const path of SIX) expect((await page(path)).html, path).toBe(SHELL);
+    // The notice board does not depend on them.
+    expect(copyOf((await page("/notices")).html)).toContain("<h1>Notices and updates</h1>");
+    await applyPack(db, parsePack(royalJson));
+  });
+
+  it("reads the database twice for a fixed page: the configuration batch, then one statement for the words", async () => {
+    let statements = 0;
+    let batches = 0;
+    const counting = new Proxy(db, {
+      get(target, prop, receiver) {
+        if (prop === "prepare") return (sql: string) => { statements++; return target.prepare(sql); };
+        if (prop === "batch") return async (list: D1PreparedStatement[]) => { batches++; return target.batch(list); };
+        return Reflect.get(target, prop, receiver);
+      },
+    }) as D1Database;
+    await renderPublicPage(new Request("https://school.example/programmes"), { ...env, DB: counting, ASSETS: assets().binding });
+    expect(batches).toBe(1);
+    expect(statements).toBe(6); // five in the configuration batch, one for the words
+  });
+});
+
+describe("structured data that ties the pages together", () => {
+  const ORG = "https://royal.example/#organization";
+  const PAGES = ["/", "/programmes", "/admission", "/scholarships", "/facilities", "/contact", "/notices"];
+
+  beforeAll(async () => {
+    await applyPack(db, parsePack(royalJson));
+  });
+
+  const blocks = async (path: string) => jsonLd((await page(path, { origin: "https://royal.example" })).html);
+  const orgOf = (list: Record<string, unknown>[]) => list.find((b) => b["@type"] === "EducationalOrganization")!;
+
+  it("every filled page names its organisation with the same stable @id, and only once", async () => {
+    for (const path of PAGES) {
+      const list = await blocks(path);
+      expect(orgOf(list)["@id"], path).toBe(ORG);
+      expect(list.filter((b) => b["@type"] === "EducationalOrganization"), path).toHaveLength(1);
+    }
+  });
+
+  it("Home and Contact add what the pack says about the school: its description, address and phones (and no email when it has none)", async () => {
+    for (const path of ["/", "/contact"]) {
+      const org = orgOf(await blocks(path));
+      expect(org, path).toMatchObject({
+        description: royalSite.home.summary,
+        address: { "@type": "PostalAddress", streetAddress: royalSite.contact.address },
+        telephone: royalSite.contact.phones,
+      });
+      expect(org, path).not.toHaveProperty("email");
+    }
+  });
+
+  it("the other pages keep the organisation block small: address and phones belong to Home and Contact", async () => {
+    for (const path of ["/programmes", "/admission", "/scholarships", "/facilities", "/notices"]) expect(orgOf(await blocks(path)), path).not.toHaveProperty("telephone");
+  });
+
+  it("Home describes the website and points to its organisation as the publisher", async () => {
+    const site = (await blocks("/")).find((b) => b["@type"] === "WebSite")!;
+    expect(site).toMatchObject({ "@id": "https://royal.example/#website", name: royalJson.school.name, url: "https://royal.example", publisher: { "@id": ORG } });
+  });
+
+  it.each([
+    ["/programmes", "Programmes"],
+    ["/admission", "Admission"],
+    ["/scholarships", "Scholarships"],
+    ["/facilities", "Facilities"],
+    ["/contact", "Contact"],
+    ["/notices", "Notices and updates"],
+  ])("%s has a two-step breadcrumb: the school, then the page", async (path, name) => {
+    const crumbs = (await blocks(path)).find((b) => b["@type"] === "BreadcrumbList")!;
+    expect(crumbs.itemListElement).toEqual([
+      { "@type": "ListItem", position: 1, name: royalJson.school.name, item: "https://royal.example/" },
+      { "@type": "ListItem", position: 2, name, item: `https://royal.example${path}` },
+    ]);
+  });
+
+  it("Home has no breadcrumb: it is the top", async () => {
+    expect((await blocks("/")).some((b) => b["@type"] === "BreadcrumbList")).toBe(false);
+  });
+
+  it("the contact page points to the organisation instead of repeating it", async () => {
+    const list = await blocks("/contact");
+    expect(list.find((b) => b["@type"] === "ContactPage")!.mainEntity).toEqual({ "@id": ORG });
+  });
+
+  it("another school gets its own details, not the first school's", async () => {
+    await applyPack(db, parsePack(sampleJson));
+    const org = orgOf(await blocks("/"));
+    expect(org).toMatchObject({ "@id": ORG, address: { streetAddress: sampleJson.site.contact.address }, telephone: sampleJson.site.contact.phones, email: sampleJson.site.contact.email });
+    expect(JSON.stringify(org)).not.toContain("Lahan");
+    await applyPack(db, parsePack(royalJson));
   });
 });

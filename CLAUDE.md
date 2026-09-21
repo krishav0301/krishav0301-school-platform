@@ -7,7 +7,7 @@ Read at the start of every session:
 
 If this file and `DECISIONS.md` disagree, stop and ask.
 
-**Current phase: Phase 1 (Platform foundation) is complete** (dates, schema and audit, sign-in, permissions, configuration and packs, design system and shell, notifications and jobs, password reset, two-step sign-in, exit check on both packs and on staging; D-037). **Phase 2 (public website) is in progress (D-038 to D-049): slices 0, 1, 2 and 4 are built; slice 3 (the fixed public pages) is next, then slice 5. See `docs/build-plan.md`.** Phase 0 is complete: the backend is a Cloudflare Worker (D-019 to D-021), documented in `docs/architecture.md`. Update this line when a phase closes.
+**Current phase: Phase 1 (Platform foundation) is complete** (dates, schema and audit, sign-in, permissions, configuration and packs, design system and shell, notifications and jobs, password reset, two-step sign-in, exit check on both packs and on staging; D-037). **Phase 2 (public website) is in progress (D-038 to D-049): slices 0 to 4 are built (D-038 to D-052); slice 5 (design and GEO pass, page-weight budgets, staging exit check) is next. See `docs/build-plan.md`.** Phase 0 is complete: the backend is a Cloudflare Worker (D-019 to D-021), documented in `docs/architecture.md`. Update this line when a phase closes.
 
 ## 1. What we are building
 

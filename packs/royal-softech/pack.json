@@ -14,6 +14,65 @@
   ],
   "modules": {},
   "terminology": {},
+  "site": {
+    "home": {
+      "headline": "Royal Softech College: +2 and Bachelor's education in Lahan",
+      "summary": "Accessible, practice-based education in management, science and the +2 streams. It builds subject knowledge, confidence and employability, with a sense of social responsibility."
+    },
+    "programmes": [
+      { "key": "plus2-science", "name": "+2 Science", "section": "plus2", "affiliation": "National Examinations Board (NEB)", "duration": "2 years (Grade 11 and 12)", "summary": "Grade 11 and 12 in Science under NEB, with a choice of subject options.", "options": ["Biology", "Mathematics", "Computer Science"] },
+      { "key": "plus2-management", "name": "+2 Management", "section": "plus2", "affiliation": "National Examinations Board (NEB)", "duration": "2 years (Grade 11 and 12)", "summary": "Grade 11 and 12 in Management under NEB." },
+      { "key": "plus2-hotel-management", "name": "+2 Hotel Management", "section": "plus2", "affiliation": "National Examinations Board (NEB)", "duration": "2 years (Grade 11 and 12)", "summary": "Grade 11 and 12 in Hotel Management under NEB." },
+      { "key": "plus2-law", "name": "+2 Law", "section": "plus2", "affiliation": "National Examinations Board (NEB)", "duration": "2 years (Grade 11 and 12)", "summary": "Grade 11 and 12 in Law under NEB." },
+      { "key": "plus2-humanities", "name": "+2 Humanities", "section": "plus2", "affiliation": "National Examinations Board (NEB)", "duration": "2 years (Grade 11 and 12)", "summary": "Grade 11 and 12 in Humanities under NEB." },
+      { "key": "plus2-computer-science", "name": "+2 Computer Science", "section": "plus2", "affiliation": "National Examinations Board (NEB)", "duration": "2 years (Grade 11 and 12)", "summary": "Grade 11 and 12 in Computer Science under NEB." },
+      { "key": "bbs", "name": "Bachelor of Business Studies (BBS)", "section": "bachelors", "affiliation": "Purbanchal University (PU)", "duration": "4 years", "summary": "A four-year business degree with a banking and finance focus, under Purbanchal University." },
+      { "key": "bed-it", "name": "Bachelor of Education in IT (B.Ed. IT)", "section": "bachelors", "affiliation": "Purbanchal University (PU)", "duration": "4 years", "summary": "A four-year education degree in information technology, under Purbanchal University." },
+      { "key": "bsc", "name": "Bachelor of Science (BSc)", "section": "bachelors", "affiliation": "Tribhuvan University (TU)", "duration": "4 years", "summary": "A four-year science degree under Tribhuvan University, with a choice of specialisation.", "options": ["Microbiology", "Zoology", "Botany", "Chemistry", "Physics"] }
+    ],
+    "admission": {
+      "intro": "Admission follows six steps. Requirements follow the rules of the board or university for each programme.",
+      "steps": [
+        { "title": "Counselling and enquiry", "body": "Visit the college office or admission desk to ask about programmes and get counselling." },
+        { "title": "Eligibility", "body": "For +2: SEE or equivalent with the required GPA and subject prerequisites. For a bachelor's programme: +2 or equivalent in a relevant stream, following university rules." },
+        { "title": "Application", "body": "Submit the application with your transcripts, character certificate, recent photographs and a copy of your citizenship." },
+        { "title": "Selection", "body": "Selection is merit-based under the board or university rules. Some programmes may add an interview or orientation counselling." },
+        { "title": "Scholarships", "body": "Merit-based and need-based scholarships are available. The Scholarships page says who can apply." },
+        { "title": "Enrolment", "body": "Complete the fee formalities and attend an orientation session to finalise subject choices and class schedules." }
+      ]
+    },
+    "scholarships": {
+      "intro": "Scholarships are merit-based and need-based, and are confirmed after the college verifies the details.",
+      "items": [
+        { "title": "Merit-based", "body": "Awarded on academic merit." },
+        { "title": "Need-based", "body": "Awarded to students who need financial support." },
+        { "title": "Dalit students", "body": "Up to 50% for Dalit students, after verification." },
+        { "title": "Economically weaker, Janajati and other marginalised students", "body": "Scholarships are also aimed at these students." }
+      ]
+    },
+    "facilities": {
+      "intro": "What the college offers its students.",
+      "items": [
+        { "name": "Classrooms" },
+        { "name": "Library" },
+        { "name": "Computer lab" },
+        { "name": "Science lab" },
+        { "name": "Multimedia room" },
+        { "name": "Internet" },
+        { "name": "Conference hall" },
+        { "name": "Cafeteria" },
+        { "name": "Sports", "body": "Football, basketball, volleyball and track events." },
+        { "name": "Counselling" },
+        { "name": "Journal" },
+        { "name": "Tours" },
+        { "name": "Extra-curricular activities" }
+      ]
+    },
+    "contact": {
+      "address": "Lahan Municipality-3, Siraha, Madhesh Province. On the East-West highway.",
+      "phones": ["+977-9801561718", "+977-9802061718", "+977-9801560097", "+977-33-560097"]
+    }
+  },
   "theme": {
     "name": "Royal Softech (placeholder brand)",
     "font": "inter",

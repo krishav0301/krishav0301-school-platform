@@ -25,6 +25,7 @@ packs/
 | `modules` | optional modules to switch on or off. Unlisted ones stay on. Mandatory modules (ledger, approvals, audit, results and others) cannot be switched off |
 | `terminology` | renamed words, such as `role.coordinator` |
 | `theme` | colours for light and optional dark, font from a self-hosted list, corner radii |
+| `site` | the words of the six fixed public pages: home, programmes, admission, scholarships, facilities, contact |
 
 Programmes, levels and fee structures join the pack in Phase 3 (setup) and Phase 6 (fees).
 
@@ -37,3 +38,11 @@ npm run provision -- --pack ../../packs/royal-softech --remote --config wrangler
 ```
 
 The first creates the tables in the local development database and applies the pack. The second applies it to a deployed school (the Cloudflare account ids stay in the git-ignored `wrangler.local.jsonc`). Bootstrap provisioning is outside the audit log; the first audited entry is the first Super Admin action. Later theme changes go through the API and are audited.
+
+## Site content (Phase 2, slice 3)
+
+`site` is required. It is stored by `npm run provision` as one row and replaced whole when the text changes.
+
+`OPEN:` Royal Softech's `site` block is unconfirmed third-party text (`docs/client-profile.md`, read from directory listings on 2026-09-20): the nine programmes, the admission steps, the scholarship policy (including "up to 50% for Dalit students"), the facilities and the four phone numbers. The college must confirm all of it before the site is made indexable. JSON cannot hold a comment, so the marker is here.
+
+Whether applying a pack should remove content it no longer lists is an open question (D-026). Sections stay; the site row is replaced whole.

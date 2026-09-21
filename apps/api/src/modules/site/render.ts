@@ -1,4 +1,4 @@
-import { loadConfig } from "../../core/config";
+import { loadConfig, loadSiteContent, type SiteContent } from "../../core/config";
 import type { Bindings } from "../../core/types";
 import { escapeHtml, jsonLdScript } from "./html";
 import { isProduction } from "./crawler-files";
@@ -29,10 +29,22 @@ export async function renderPublicPage(request: Request, env: Bindings): Promise
 
   const path = normalizePath(url.pathname);
   const origin = (env.SITE_ORIGIN ?? url.origin).replace(/\/+$/, "");
-  const parts = await builderFor(url.pathname)({ db: env.DB, school: config.school, sections: config.sections, origin, path });
+  let site: Promise<SiteContent | null> | undefined;
+  const parts = await builderFor(url.pathname)({
+    db: env.DB,
+    school: config.school,
+    sections: config.sections,
+    origin,
+    path,
+    // Read only by the pages that need the words, and once.
+    site: () => (site ??= loadSiteContent(env.DB)),
+  });
+  // Nothing true to say yet (the school has no site words): the static page is served as it is.
+  if (!parts) return asset;
 
   const canonical = `${origin}${path}`;
-  const organisation = { "@context": "https://schema.org", "@type": "EducationalOrganization", name: config.school.name, url: origin };
+  // One organisation block per page, with a stable @id so the other blocks (the website, a contact page) can point to it.
+  const organisation = { "@context": "https://schema.org", "@type": "EducationalOrganization", "@id": `${origin}/#organization`, name: config.school.name, url: origin, ...parts.organisation };
 
   const head =
     `<title>${escapeHtml(parts.title)}</title>` +

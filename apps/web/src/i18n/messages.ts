@@ -25,9 +25,6 @@ export const en = {
   "config.unreachableBody": "Check your internet connection and try again.",
   "config.retry": "Try again",
 
-  // Public home (a placeholder until the public website in Phase 2)
-  "home.welcome": "Welcome to {school}",
-  "home.intro": "The school website is being built. Students and staff can sign in below.",
 
   // Sign in
   "signIn.title": "Sign in to {school}",
@@ -252,6 +249,35 @@ export const en = {
   "notices.loadFailed": "Could not load the notices. Check your connection and try again.",
   "notices.retry": "Try again",
   "home.notices": "Notices and updates",
+
+  // Public site pages (Phase 2, slice 3). The titles are shared with the Worker's copy for crawlers
+  // (`modules/site/strings.ts`), so the tab title the app sets is the one the Worker wrote.
+  "site.programmes.title": "Programmes",
+  "site.admission.title": "Admission",
+  "site.scholarships.title": "Scholarships",
+  "site.facilities.title": "Facilities",
+  "site.contact.title": "Contact",
+  "site.affiliation": "Affiliation",
+  "site.duration": "Duration",
+  "site.options": "Options",
+  "site.step": "Step {number}",
+  "site.address": "Address",
+  "site.phone": "Phone",
+  "site.email": "Email",
+  "site.hours": "Office hours",
+  "site.admission.contact": "Contact the college",
+  "site.loading": "Loading…",
+  "site.loadFailed": "Could not load this page. Check your connection and try again.",
+  "site.retry": "Try again",
+  "site.notReadyTitle": "This page isn't ready yet",
+  "site.notReadyBody": "Please check back soon.",
+  "site.home.apply": "How to apply",
+  "site.home.seeProgrammes": "See every programme",
+  "site.home.seeAdmission": "Read the full admission process",
+  "site.home.seeContact": "See all contact details",
+  "site.menu": "Menu",
+  "site.navLabel": "Site pages",
+  "site.footerNavLabel": "Footer",
 } as const;
 
 export type MessageKey = keyof typeof en;

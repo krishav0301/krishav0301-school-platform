@@ -1,4 +1,4 @@
-import { loadConfig } from "../../core/config";
+import { loadConfig, loadSiteContent } from "../../core/config";
 import type { Bindings } from "../../core/types";
 import { escapeHtml } from "./html";
 import { FILLED_PAGES, pageSummary } from "./pages";
@@ -56,6 +56,8 @@ function sitemapXml(origin: string): string {
 async function llmsTxt(env: Bindings, origin: string): Promise<string | null> {
   const config = await loadConfig(env.DB);
   if (!config) return null;
+  // The school's own words, when it has them: its summary opens the file, and how to reach it closes it.
+  const site = await loadSiteContent(env.DB);
 
   const name = oneLine(config.school.name);
   const sections = config.sections.map((s) => oneLine(s.name));
@@ -66,11 +68,22 @@ async function llmsTxt(env: Bindings, origin: string): Promise<string | null> {
   return [
     `# ${name}`,
     "",
-    `> ${sections.length > 0 ? `${name}: ${sections.join(", ")}.` : `${name}.`}`,
+    `> ${site ? oneLine(site.home.summary) : sections.length > 0 ? `${name}: ${sections.join(", ")}.` : `${name}.`}`,
     "",
     `## ${say("llms.pages")}`,
     "",
     ...links,
+    ...(site
+      ? [
+          "",
+          `## ${say("llms.contact")}`,
+          "",
+          `- ${say("site.address")}: ${oneLine(site.contact.address)}`,
+          `- ${say("site.phone")}: ${site.contact.phones.map(oneLine).join(", ")}`,
+          ...(site.contact.email ? [`- ${say("site.email")}: ${oneLine(site.contact.email)}`] : []),
+          ...(site.contact.hours ? [`- ${say("site.hours")}: ${oneLine(site.contact.hours)}`] : []),
+        ]
+      : []),
     "",
   ].join("\n");
 }
