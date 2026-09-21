@@ -65,6 +65,8 @@ jobs:
       - run: npm run lint
       - run: npm test
       - run: npm run build
+      - name: Every public page is inside its page-weight budget
+        run: node ../../scripts/check-page-weight.mjs --out out --budget page-weight-budget.json
 
   bundle:
     # Proves the whole thing packages as one Worker: static app plus API. No account needed.
