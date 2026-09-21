@@ -12,7 +12,8 @@ const PURPOSE = "two-factor-challenge";
 export interface Challenge {
   /** The user's public id. */
   sub: string;
-  kind: "verify" | "setup";
+  /** `verify` and `setup` are the authenticator steps; `password` is choosing a new password after a temporary one (D-059). */
+  kind: "verify" | "setup" | "password";
 }
 
 const encoder = new TextEncoder();
@@ -36,7 +37,7 @@ export async function verifyChallenge(secret: string, token: string, nowSeconds:
 
     const body = JSON.parse(decoder.decode(fromBase64Url(parts[0]))) as Record<string, unknown>;
     if (body.p !== PURPOSE || typeof body.sub !== "string" || typeof body.exp !== "number" || body.exp <= nowSeconds) return null;
-    if (body.kind !== "verify" && body.kind !== "setup") return null;
+    if (body.kind !== "verify" && body.kind !== "setup" && body.kind !== "password") return null;
     return { sub: body.sub, kind: body.kind };
   } catch {
     return null;

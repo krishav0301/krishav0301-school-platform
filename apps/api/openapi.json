@@ -109,6 +109,24 @@
           "challenge"
         ]
       },
+      "PasswordChangeStep": {
+        "type": "object",
+        "properties": {
+          "passwordChange": {
+            "type": "string",
+            "enum": [
+              "required"
+            ]
+          },
+          "challenge": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "passwordChange",
+          "challenge"
+        ]
+      },
       "ApiError": {
         "type": "object",
         "properties": {
@@ -256,6 +274,40 @@
         },
         "required": [
           "token",
+          "password"
+        ],
+        "additionalProperties": false
+      },
+      "SamePassword": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "string",
+            "enum": [
+              "same_password"
+            ]
+          }
+        },
+        "required": [
+          "error"
+        ]
+      },
+      "ChangeRequiredPasswordBody": {
+        "type": "object",
+        "properties": {
+          "challenge": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 1000
+          },
+          "password": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 1000
+          }
+        },
+        "required": [
+          "challenge",
           "password"
         ],
         "additionalProperties": false
@@ -2098,7 +2150,7 @@
         "tags": [
           "auth"
         ],
-        "description": "Sign in with email and password. Sets the session cookies.",
+        "description": "Sign in with email and password. Sets the session cookies. If the password was a temporary one, the answer is a `passwordChange` step instead (no session, no cookies) and the person must choose a new password first.",
         "requestBody": {
           "required": true,
           "content": {
@@ -2121,6 +2173,9 @@
                     },
                     {
                       "$ref": "#/components/schemas/TwoFactorStep"
+                    },
+                    {
+                      "$ref": "#/components/schemas/PasswordChangeStep"
                     }
                   ]
                 }
@@ -2495,6 +2550,71 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/password/change-required": {
+      "post": {
+        "operationId": "change_required_password",
+        "tags": [
+          "auth"
+        ],
+        "description": "Choose a password of your own after signing in with a temporary one. Needs the challenge that sign-in returned (not a session, and it works once). Then carries on as sign-in does: an authenticator step, or the session with its cookies.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChangeRequiredPasswordBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Signed in (a session, with the cookies set), or the person still has an authenticator step to do (a challenge, no session)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/Session"
+                    },
+                    {
+                      "$ref": "#/components/schemas/TwoFactorStep"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "`invalid_challenge`: expired, already used, not for this step, or the person is switched off. Sign in again.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "The password breaks a rule (`weak_password`, saying which) or is the temporary one (`same_password`); nothing changed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/WeakPassword"
+                    },
+                    {
+                      "$ref": "#/components/schemas/SamePassword"
+                    }
+                  ]
                 }
               }
             }

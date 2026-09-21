@@ -27,6 +27,9 @@ export const PUBLIC_ROUTES: ReadonlySet<string> = new Set([
   "POST /api/auth/2fa/verify",
   "POST /api/auth/2fa/setup",
   "POST /api/auth/2fa/enable",
+  // Choosing a password after a temporary one. The credential is the challenge from a correct temporary password
+  // (signed, five minutes, works once, not a session); it opens nothing else, and no other challenge opens this.
+  "POST /api/auth/password/change-required",
 ]);
 
 /** Any signed-in user, whatever their role. For things people do to their own account. */
