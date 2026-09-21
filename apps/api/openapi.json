@@ -950,6 +950,264 @@
         "required": [
           "error"
         ]
+      },
+      "SitePages": {
+        "type": "object",
+        "properties": {
+          "site": {
+            "type": [
+              "object",
+              "null"
+            ],
+            "properties": {
+              "home": {
+                "type": "object",
+                "properties": {
+                  "headline": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 120
+                  },
+                  "summary": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 400
+                  }
+                },
+                "required": [
+                  "headline",
+                  "summary"
+                ],
+                "additionalProperties": false
+              },
+              "programmes": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "key": {
+                      "type": "string",
+                      "pattern": "^[a-z][a-z0-9-]{0,40}$"
+                    },
+                    "name": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 120
+                    },
+                    "section": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 31
+                    },
+                    "affiliation": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 80
+                    },
+                    "duration": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 60
+                    },
+                    "summary": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 500
+                    },
+                    "options": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 80
+                      },
+                      "maxItems": 12,
+                      "default": []
+                    }
+                  },
+                  "required": [
+                    "key",
+                    "name",
+                    "section",
+                    "affiliation",
+                    "duration",
+                    "summary"
+                  ],
+                  "additionalProperties": false
+                },
+                "minItems": 1,
+                "maxItems": 20
+              },
+              "admission": {
+                "type": "object",
+                "properties": {
+                  "intro": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 600
+                  },
+                  "steps": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "title": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 120
+                        },
+                        "body": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 800
+                        }
+                      },
+                      "required": [
+                        "title",
+                        "body"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "minItems": 1,
+                    "maxItems": 12
+                  }
+                },
+                "required": [
+                  "intro",
+                  "steps"
+                ],
+                "additionalProperties": false
+              },
+              "scholarships": {
+                "type": "object",
+                "properties": {
+                  "intro": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 600
+                  },
+                  "items": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "title": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 120
+                        },
+                        "body": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 800
+                        }
+                      },
+                      "required": [
+                        "title",
+                        "body"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "minItems": 1,
+                    "maxItems": 12
+                  }
+                },
+                "required": [
+                  "intro",
+                  "items"
+                ],
+                "additionalProperties": false
+              },
+              "facilities": {
+                "type": "object",
+                "properties": {
+                  "intro": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 600
+                  },
+                  "items": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "name": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 80
+                        },
+                        "body": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 300
+                        }
+                      },
+                      "required": [
+                        "name"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "minItems": 1,
+                    "maxItems": 30
+                  }
+                },
+                "required": [
+                  "intro",
+                  "items"
+                ],
+                "additionalProperties": false
+              },
+              "contact": {
+                "type": "object",
+                "properties": {
+                  "address": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 300
+                  },
+                  "phones": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 40
+                    },
+                    "minItems": 1,
+                    "maxItems": 6
+                  },
+                  "email": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 120,
+                    "pattern": "^[^\\s@<>\"?;&]+@[^\\s@<>\"?;&]+\\.[^\\s@<>\"?;&]+$"
+                  },
+                  "hours": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 200
+                  }
+                },
+                "required": [
+                  "address",
+                  "phones"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "required": [
+              "home",
+              "programmes",
+              "admission",
+              "scholarships",
+              "facilities",
+              "contact"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "site"
+        ]
       }
     },
     "parameters": {}
@@ -2097,6 +2355,27 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/DateConversionFailure"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/site/pages": {
+      "get": {
+        "operationId": "site_pages",
+        "tags": [
+          "site"
+        ],
+        "description": "The words of the school's six fixed public pages (home, programmes, admission, scholarships, facilities, contact), from its pack. `site` is null before the school has been provisioned with them. The same for every visitor.",
+        "responses": {
+          "200": {
+            "description": "The fixed pages' words, or null",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SitePages"
                 }
               }
             }

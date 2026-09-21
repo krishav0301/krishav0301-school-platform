@@ -9,6 +9,7 @@ import { registerConfig } from "./modules/config/routes";
 import { registerContent } from "./modules/content/routes";
 import { registerDates } from "./modules/dates/routes";
 import { registerHealth } from "./modules/health/routes";
+import { registerSite } from "./modules/site/routes";
 
 /**
  * Builds the API. Each module registers its own routes. A function, not a constant, so tests can
@@ -26,6 +27,7 @@ export function createApp() {
   registerConfig(app);
   registerContent(app);
   registerDates(app);
+  registerSite(app);
 
   return app;
 }
