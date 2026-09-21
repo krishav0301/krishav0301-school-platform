@@ -2,4 +2,5 @@
 export * from "./years";
 export * from "./programmes";
 export * from "./classes";
+export * from "./subjects";
 export type { Created, Done, Failure } from "./write";

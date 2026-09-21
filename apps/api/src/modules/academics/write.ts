@@ -24,6 +24,7 @@ export async function write(db: D1Database, auditKey: string, event: AuditEventI
     if (/academic year is closed/i.test(message)) return "year_closed";
     if (/UNIQUE constraint failed/i.test(message)) return "duplicate";
     if (/CHECK constraint failed/i.test(message)) return "check_failed";
+    if (/FOREIGN KEY constraint failed/i.test(message)) return "check_failed";
     throw error;
   }
 }

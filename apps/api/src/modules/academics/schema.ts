@@ -123,3 +123,15 @@ export type SchoolClassList = z.infer<typeof SchoolClassListSchema>;
 export const TerminalSchema = z.object({ id: z.string(), yearId: z.string(), name: z.string(), ordinal: z.number().int() }).openapi("Terminal");
 export const TerminalListSchema = z.object({ terminals: z.array(TerminalSchema) }).openapi("TerminalList");
 export type TerminalList = z.infer<typeof TerminalListSchema>;
+
+// --- Subjects -----------------------------------------------------------------------------------------
+
+const SubjectName = z.string().trim().min(1, "Give the subject a name").max(120, "Keep the name to 120 characters");
+const SubjectCode = z.string().trim().min(1, "Give the code at least one character").max(20, "Keep the code to 20 characters");
+
+export const CreateSubjectSchema = z.strictObject({ name: SubjectName, code: SubjectCode.nullable().optional() }).openapi("CreateSubject");
+export type SubjectInput = z.input<typeof CreateSubjectSchema>;
+
+/** `code: null` takes the code away. */
+export const SubjectChangesSchema = z.strictObject({ name: SubjectName, code: SubjectCode.nullable(), archived: z.boolean() }).partial().openapi("SubjectChanges");
+export type SubjectChanges = z.infer<typeof SubjectChangesSchema>;
