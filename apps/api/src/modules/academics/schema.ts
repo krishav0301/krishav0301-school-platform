@@ -168,3 +168,37 @@ export type ComponentInput = z.input<typeof CreateComponentSchema>;
 
 export const ComponentChangesSchema = z.strictObject({ name: ComponentName, maxHundredths: MaxMarks, active: z.boolean() }).partial().openapi("ComponentChanges");
 export type ComponentChanges = z.infer<typeof ComponentChangesSchema>;
+
+// --- What the subject screens read -------------------------------------------------------------------
+
+export const SubjectSchema = z.object({ id: z.string(), name: z.string(), code: z.string().nullable(), archived: z.boolean() }).openapi("Subject");
+export const SubjectListSchema = z.object({ subjects: z.array(SubjectSchema) }).openapi("SubjectList");
+export type SubjectList = z.infer<typeof SubjectListSchema>;
+
+export const CurriculumComponentSchema = z
+  .object({ id: z.string(), name: z.string(), maxHundredths: z.number().int(), ordinal: z.number().int(), active: z.boolean() })
+  .openapi("CurriculumComponent");
+
+export const CurriculumOfferingSchema = z
+  .object({
+    id: z.string(),
+    subject: SubjectSchema,
+    /** Credit hours in whole hundredths (375 means 3.75); null when none. */
+    creditHundredths: z.number().int().nullable(),
+    group: z.object({ id: z.string(), name: z.string() }).nullable(),
+    active: z.boolean(),
+    components: z.array(CurriculumComponentSchema),
+  })
+  .openapi("CurriculumOffering");
+
+export const CurriculumGroupSchema = z.object({ id: z.string(), name: z.string(), pickCount: z.number().int(), active: z.boolean() }).openapi("CurriculumGroup");
+
+/** One level's elective groups, subjects and mark components, in one answer. */
+export const CurriculumSchema = z
+  .object({
+    level: z.object({ id: z.string(), name: z.string(), programmeId: z.string(), programmeName: z.string() }),
+    groups: z.array(CurriculumGroupSchema),
+    offerings: z.array(CurriculumOfferingSchema),
+  })
+  .openapi("Curriculum");
+export type Curriculum = z.infer<typeof CurriculumSchema>;

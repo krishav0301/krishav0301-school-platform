@@ -1,5 +1,5 @@
 import { adToBsText } from "../../core/dates";
-import type { AcademicYearList, ProgrammeList, SchoolClassList, TerminalList } from "./schema";
+import type { AcademicYearList, Curriculum, ProgrammeList, SchoolClassList, SubjectList, TerminalList } from "./schema";
 
 /** A section filter for SQL: `null` means every section, otherwise a JSON array of section keys (used with `json_each`). */
 const sectionFilter = (sections: "all" | readonly string[]): string | null => (sections === "all" ? null : JSON.stringify(sections));
@@ -136,4 +136,104 @@ export async function listTerminals(db: D1Database, yearId?: string): Promise<Te
     .bind(yearId ?? null)
     .all<TerminalRow>();
   return { terminals: results.map((t) => ({ id: t.public_id, yearId: t.year_id, name: t.name, ordinal: t.ordinal })) };
+}
+
+interface SubjectRow {
+  public_id: string;
+  name: string;
+  code: string | null;
+  is_archived: number;
+}
+
+/** The whole catalogue, archived subjects included (they are marked), by name. One database round trip. */
+export async function listSubjects(db: D1Database): Promise<SubjectList> {
+  const { results } = await db.prepare("SELECT public_id, name, code, is_archived FROM subjects ORDER BY name COLLATE NOCASE").all<SubjectRow>();
+  return { subjects: results.map((s) => ({ id: s.public_id, name: s.name, code: s.code, archived: s.is_archived === 1 })) };
+}
+
+interface CurriculumRow {
+  offering_id: string;
+  credit_hundredths: number | null;
+  offering_active: number;
+  subject_id: string;
+  subject_name: string;
+  subject_code: string | null;
+  is_archived: number;
+  group_id: string | null;
+  group_name: string | null;
+  component_id: string | null;
+  component_name: string | null;
+  max_hundredths: number | null;
+  ordinal: number | null;
+  component_active: number | null;
+}
+
+/**
+ * One level's elective groups, subjects and mark components, in one database round trip. Null when the level does not
+ * exist or is in a section the person may not see, so a foreign level looks exactly like a missing one.
+ */
+export async function getCurriculum(db: D1Database, sections: "all" | readonly string[], levelId: string): Promise<Curriculum | null> {
+  const [levelResult, groupResult, offeringResult] = await db.batch([
+    db
+      .prepare(
+        `SELECT l.public_id, l.name, p.public_id AS programme_id, p.name AS programme_name
+           FROM levels l JOIN programmes p ON p.id = l.programme_id JOIN sections s ON s.id = p.section_id
+          WHERE l.public_id = ?1 AND (?2 IS NULL OR s.key IN (SELECT value FROM json_each(?2)))`,
+      )
+      .bind(levelId, sectionFilter(sections)),
+    db
+      .prepare(
+        `SELECT g.public_id, g.name, g.pick_count, g.is_active
+           FROM elective_groups g JOIN levels l ON l.id = g.level_id WHERE l.public_id = ?1 ORDER BY g.id`,
+      )
+      .bind(levelId),
+    db
+      .prepare(
+        `SELECT o.public_id AS offering_id, o.credit_hundredths, o.is_active AS offering_active,
+                s.public_id AS subject_id, s.name AS subject_name, s.code AS subject_code, s.is_archived,
+                g.public_id AS group_id, g.name AS group_name,
+                c.public_id AS component_id, c.name AS component_name, c.max_hundredths, c.ordinal, c.is_active AS component_active
+           FROM subject_offerings o
+           JOIN levels l ON l.id = o.level_id
+           JOIN subjects s ON s.id = o.subject_id
+           LEFT JOIN elective_groups g ON g.id = o.elective_group_id
+           LEFT JOIN mark_components c ON c.offering_id = o.id
+          WHERE l.public_id = ?1
+          ORDER BY s.name COLLATE NOCASE, o.id, c.ordinal`,
+      )
+      .bind(levelId),
+  ]);
+
+  const level = levelResult!.results[0] as { public_id: string; name: string; programme_id: string; programme_name: string } | undefined;
+  if (!level) return null;
+
+  const offerings: Curriculum["offerings"] = [];
+  for (const r of offeringResult!.results as unknown as CurriculumRow[]) {
+    let offering = offerings[offerings.length - 1];
+    if (!offering || offering.id !== r.offering_id) {
+      offering = {
+        id: r.offering_id,
+        subject: { id: r.subject_id, name: r.subject_name, code: r.subject_code, archived: r.is_archived === 1 },
+        creditHundredths: r.credit_hundredths,
+        group: r.group_id !== null ? { id: r.group_id, name: r.group_name! } : null,
+        active: r.offering_active === 1,
+        components: [],
+      };
+      offerings.push(offering);
+    }
+    if (r.component_id !== null) {
+      offering.components.push({ id: r.component_id, name: r.component_name!, maxHundredths: r.max_hundredths!, ordinal: r.ordinal!, active: r.component_active === 1 });
+    }
+  }
+
+  return {
+    level: { id: level.public_id, name: level.name, programmeId: level.programme_id, programmeName: level.programme_name },
+    groups: (groupResult!.results as { public_id: string; name: string; pick_count: number; is_active: number }[]).map((g) => ({
+      id: g.public_id,
+      name: g.name,
+      pickCount: g.pick_count,
+      active: g.is_active === 1,
+    })),
+    offerings,
+  };
 }
