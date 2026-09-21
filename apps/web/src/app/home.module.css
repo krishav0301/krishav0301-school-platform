@@ -31,3 +31,10 @@
     font-size: var(--text-3xl);
   }
 }
+
+/* The home page's actions wrap on a narrow screen or with enlarged text. */
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+}

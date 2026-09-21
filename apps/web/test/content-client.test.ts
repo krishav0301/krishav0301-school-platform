@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { createApiClient } from "@/api/client";
-import { loadContent, loadItem, saveItem, setPublished } from "@/content/client";
+import { loadContent, loadItem, loadPublic, saveItem, setPublished } from "@/content/client";
 import type { FormValues } from "@/content/model";
 
 interface Seen {
@@ -56,6 +56,19 @@ describe("loadContent with a limit", () => {
     const { api, seen } = fake(() => json(200, { items: [], todayBs: "2083-06-05" }));
     await loadContent(api, { limit: 1 });
     expect(seen[0]!.path).toBe("/api/content?limit=1");
+  });
+});
+
+describe("loadPublic", () => {
+  it("asks the public route for what is on the site, with no sign-in, and hands back the items", async () => {
+    const { api, seen } = fake(() => json(200, { items: [{ id: "a", kind: "notice" }] }));
+    expect(await loadPublic(api)).toEqual({ ok: true, items: [{ id: "a", kind: "notice" }] });
+    expect(seen[0]).toMatchObject({ method: "GET", path: "/api/site/content" });
+  });
+
+  it("says failed for any error or no network", async () => {
+    expect(await loadPublic(fake(() => json(500, {})).api)).toEqual({ ok: false });
+    expect(await loadPublic(fake(() => "offline").api)).toEqual({ ok: false });
   });
 });
 

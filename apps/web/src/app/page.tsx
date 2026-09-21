@@ -27,9 +27,12 @@ function Welcome() {
           </li>
         ))}
       </ul>
-      <div>
+      <div className={styles.actions}>
         <Link href="/sign-in" className={buttonClass()}>
           {t("shell.signIn")}
+        </Link>
+        <Link href="/notices" className={buttonClass({ variant: "secondary" })}>
+          {t("home.notices")}
         </Link>
       </div>
     </Card>

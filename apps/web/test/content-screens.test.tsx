@@ -3,12 +3,15 @@ import { describe, expect, it, vi } from "vitest";
 
 import ContentPage from "@/app/portal/content/page";
 import EditContentPage from "@/app/portal/content/edit/page";
+import Home from "@/app/page";
+import NoticesPage from "@/app/notices/page";
 import { ConfigContext, makeConfigValue, type PublicConfig } from "@/config/ConfigProvider";
 import { ContentEditor, ContentForm } from "@/content/ContentForm";
 import { ContentList } from "@/content/ContentList";
 import { BsDateField } from "@/content/BsDateField";
 import { ContentPreview } from "@/content/ContentPreview";
-import { emptyForm, type FormValues } from "@/content/model";
+import { NoticeList } from "@/content/NoticeBoard";
+import { emptyForm, type FormValues, type Kind, type PublicItem } from "@/content/model";
 import { SessionContext } from "@/session/SessionProvider";
 import { Checkbox, Select, TextArea } from "@/ui";
 import { fakeSession } from "./session";
@@ -238,6 +241,115 @@ describe("the form for an item already saved", () => {
 });
 
 // ---------------------------------------------------------------------------------------------
+describe("the public notice board", () => {
+  const item = (over: Partial<PublicItem> = {}): PublicItem => ({
+    id: "i" + Math.random().toString(16).slice(2, 10),
+    kind: "notice",
+    title: "Winter break",
+    body: "Closed on Friday.\n\nBack on Sunday.",
+    contact: null,
+    urgent: false,
+    publishedOn: "2026-09-21",
+    hideAfter: null,
+    publishedOnBs: "2083-06-05",
+    hideAfterBs: null,
+    ...over,
+  });
+  const list = (items: PublicItem[], kind: Kind | "" = "") => renderToStaticMarkup(<NoticeList items={items} kind={kind} onKind={() => {}} />);
+
+  it("draws each item as an article with a heading, paragraphs, and when it was posted", () => {
+    const html = list([item()]);
+    expect(html).toMatch(/<article[^>]*>/);
+    expect(html).toMatch(/<h2[^>]*>Winter break<\/h2>/);
+    expect(count(html, /class="[^"]*\bparagraph\b[^"]*"/g)).toBe(2);
+    expect(html).toContain("Posted 5 Ashwin 2083");
+    expect(html).toContain(">Notice<");
+  });
+
+  it("adds the last day when there is one", () => {
+    expect(list([item({ hideAfterBs: "2083-06-20" })])).toContain("Posted 5 Ashwin 2083, until 20 Ashwin 2083");
+  });
+
+  it("marks an urgent item with a word and a heavy edge, not colour alone", () => {
+    const html = list([item({ urgent: true })]);
+    expect(html).toContain(">Urgent<");
+    expect(html).toMatch(/class="[^"]*\burgentItem\b/);
+    expect(list([item()])).not.toContain(">Urgent<");
+  });
+
+  it("makes a vacancy's email or phone a link, and shows anything else as plain text", () => {
+    expect(list([item({ kind: "vacancy", contact: "jobs@school.example" })])).toMatch(/<a href="mailto:jobs@school\.example"[^>]*>jobs@school\.example<\/a>/);
+    expect(list([item({ kind: "vacancy", contact: "+977 985-1234567" })])).toMatch(/<a href="tel:\+9779851234567"[^>]*>\+977 985-1234567<\/a>/);
+    const plain = list([item({ kind: "vacancy", contact: "Ask at the office" })]);
+    expect(plain).toContain("Ask at the office");
+    expect(plain).not.toContain("<a ");
+  });
+
+  it("never turns a hostile contact into a link, and shows markup in a title or text as text", () => {
+    const html = list([item({ kind: "vacancy", contact: "javascript:alert(1)", title: "<img src=x onerror=alert(1)>", body: "<script>alert(1)</script>" })]);
+    expect(html).not.toContain("<a ");
+    expect(html).not.toContain("href=");
+    expect(html).not.toContain("<script>");
+    expect(html).not.toContain("<img");
+    expect(html).toContain("&lt;script&gt;");
+  });
+
+  it("offers filter buttons only when there is more than one kind, and only the kinds that have something", () => {
+    expect(list([item(), item()])).not.toContain("aria-pressed");
+    const html = list([item(), item({ kind: "holiday", title: "Dashain" })]);
+    expect(count(html, /<button/g)).toBe(3);
+    for (const label of ["All", "Notices", "Holidays"]) expect(html).toContain(`>${label}</button>`);
+    for (const absent of ["Routines", "Vacancies", "Posts"]) expect(html).not.toContain(absent);
+  });
+
+  it("the filter buttons say which one is pressed, and pressed is more than a colour", () => {
+    const all = list([item(), item({ kind: "holiday" })]);
+    expect(all).toMatch(/aria-pressed="true"[^>]*>All</);
+    expect(count(all, /aria-pressed="true"/g)).toBe(1);
+    const holidays = list([item({ title: "A notice" }), item({ kind: "holiday", title: "A holiday" })], "holiday");
+    expect(holidays).toMatch(/aria-pressed="true"[^>]*>Holidays</);
+    expect(holidays).toContain("A holiday");
+    expect(holidays).not.toContain("A notice");
+    expect(holidays).toContain("1 shown");
+  });
+
+  it("a filter for a kind that is no longer there falls back to showing everything", () => {
+    const html = list([item({ title: "Only notice" })], "vacancy");
+    expect(html).toContain("Only notice");
+  });
+
+  it("announces how many are shown, politely", () => {
+    const html = list([item(), item(), item()]);
+    expect(html).toMatch(/role="status"[^>]*>3 shown</);
+  });
+
+  it("the page starts on a heading and a loading placeholder, with no sign-in needed and nothing alarming", () => {
+    const html = renderToStaticMarkup(
+      <ConfigContext.Provider value={makeConfigValue("ready", config)}>
+        <SessionContext.Provider value={fakeSession()}>
+          <NoticesPage />
+        </SessionContext.Provider>
+      </ConfigContext.Provider>,
+    );
+    expect(html).toMatch(/<h1[^>]*>Notices and updates<\/h1>/);
+    expect(html).toContain("Loading notices");
+    expect(html).toContain('aria-busy="true"');
+    expect(html).not.toContain('role="alert"');
+  });
+
+  it("the home page links to it as a secondary action, leaving Sign in the one prominent button", () => {
+    const html = renderToStaticMarkup(
+      <ConfigContext.Provider value={makeConfigValue("ready", config)}>
+        <SessionContext.Provider value={fakeSession()}>
+          <Home />
+        </SessionContext.Provider>
+      </ConfigContext.Provider>,
+    );
+    expect(html).toMatch(/<a[^>]*href="\/notices"[^>]*>Notices and updates<\/a>/);
+    expect(count(html, /class="[^"]*\bprimary\b[^"]*"/g)).toBe(1);
+  });
+});
+
 describe("the preview", () => {
   const preview = (values: Partial<FormValues>) => renderToStaticMarkup(<ContentPreview values={{ ...emptyForm("2083-06-05"), ...values }} />);
 
@@ -254,7 +366,8 @@ describe("the preview", () => {
     const html = preview({ kind: "vacancy", urgent: true, contact: "jobs@school.example" });
     expect(html).toContain("Vacancy");
     expect(html).toContain("Urgent");
-    expect(html).toContain("Contact: jobs@school.example");
+    expect(html).toContain("Contact:");
+    expect(html).toMatch(/<a href="mailto:jobs@school\.example"[^>]*>jobs@school\.example<\/a>/);
     expect(preview({ kind: "notice", contact: "leftover@school.example" })).not.toContain("leftover@school.example");
   });
 

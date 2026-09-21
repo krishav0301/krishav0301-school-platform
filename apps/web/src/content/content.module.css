@@ -140,11 +140,6 @@
   border-top: 1px solid var(--color-border);
 }
 
-.previewTitle {
-  font-size: var(--text-xl);
-  overflow-wrap: anywhere;
-}
-
 /* The text is plain: keep the person's own line breaks inside a paragraph, and break long words. */
 .paragraph {
   margin: 0;
@@ -173,4 +168,79 @@
 .partLabel {
   color: var(--color-text-muted);
   font-size: var(--text-sm);
+}
+
+/* One item as the public reads it. Shared by the notice board and the Admin preview. */
+.entry {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.entryTitle {
+  font-size: var(--text-xl);
+  overflow-wrap: anywhere;
+}
+
+.contact {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0 var(--space-2);
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.contactLabel {
+  font-weight: var(--weight-medium);
+}
+
+/* A vacancy's email or phone is its main action, so it is a full-size touch target, not a line of text. */
+.contactLink {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--control-height);
+}
+
+/* The public notice board. */
+.boardHeader {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+/* Filter buttons wrap onto more lines rather than clipping or scrolling sideways. */
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+}
+
+.chip {
+  min-height: var(--control-height);
+  padding: 0 var(--space-4);
+  border: 1px solid var(--color-text-muted);
+  border-radius: 999px;
+  background: var(--color-surface);
+  color: var(--color-text);
+  font: inherit;
+  cursor: pointer;
+}
+
+.chip:focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: 2px;
+}
+
+/* Pressed is shown by a filled shape and heavier text as well as by colour. */
+.chipOn {
+  border-color: var(--color-primary);
+  background: var(--color-primary);
+  color: var(--color-primary-text);
+  font-weight: var(--weight-bold);
+}
+
+/* An urgent item is set apart by a heavy edge and its own word, not by colour alone. */
+.urgentItem {
+  border-inline-start: 0.375rem solid var(--color-text);
 }

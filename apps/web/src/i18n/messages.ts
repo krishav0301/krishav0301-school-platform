@@ -226,7 +226,26 @@ export const en = {
   "contentPreview.heading": "Preview",
   "contentPreview.note": "How this will read on the website.",
   "contentPreview.untitled": "The title appears here",
-  "contentPreview.contact": "Contact: {contact}",
+  "content.contact": "Contact:",
+
+  // Public notice board
+  "notices.title": "Notices and updates",
+  "notices.intro": "News, holidays, routines and vacancies from the school.",
+  "notices.filterLabel": "Show",
+  "notices.all": "All",
+  "notices.kind.notice": "Notices",
+  "notices.kind.holiday": "Holidays",
+  "notices.kind.routine": "Routines",
+  "notices.kind.vacancy": "Vacancies",
+  "notices.kind.post": "Posts",
+  "notices.posted": "Posted {date}",
+  "notices.postedUntil": "Posted {from}, until {until}",
+  "notices.count": "{count} shown",
+  "notices.loading": "Loading notices…",
+  "notices.empty": "Nothing to show right now. Check back soon.",
+  "notices.loadFailed": "Could not load the notices. Check your connection and try again.",
+  "notices.retry": "Try again",
+  "home.notices": "Notices and updates",
 } as const;
 
 export type MessageKey = keyof typeof en;

@@ -1,6 +1,6 @@
 import type { ApiClient } from "@/api/client";
 
-import { validateForm, type ContentItem, type ContentSummary, type FieldName, type FormErrors, type FormValues, type Kind, type State } from "./model";
+import { validateForm, type ContentItem, type ContentSummary, type PublicItem, type FieldName, type FormErrors, type FormValues, type Kind, type State } from "./model";
 
 /**
  * Everything the content screens ask of the server, with the answers turned into plain results the
@@ -118,5 +118,17 @@ export async function setPublished(api: ApiClient, id: string, publish: boolean)
     return { ok: false, reason: "failed" };
   } catch {
     return { ok: false, reason: "failed" };
+  }
+}
+
+export type PublicResult = { ok: true; items: PublicItem[] } | { ok: false };
+
+/** What the public may read today: the notices, holidays, routines, vacancies and posts on the site. No sign-in. */
+export async function loadPublic(api: ApiClient): Promise<PublicResult> {
+  try {
+    const { data } = await api.GET("/api/site/content", { params: { query: {} } });
+    return data ? { ok: true, items: data.items } : { ok: false };
+  } catch {
+    return { ok: false };
   }
 }

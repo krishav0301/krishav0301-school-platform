@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { BS_MONTH_NAMES } from "../../api/src/core/dates";
 import { en, t } from "@/i18n/messages";
-import { KINDS, STATES, emptyForm, firstInvalid, formFromItem, formatBsDate, paragraphs, joinBs, parseEditTarget, parseFlash, splitBs, validateForm, type FormValues } from "@/content/model";
+import { KINDS, STATES, contactHref, emptyForm, firstInvalid, formFromItem, formatBsDate, paragraphs, joinBs, parseEditTarget, parseFlash, splitBs, validateForm, type FormValues } from "@/content/model";
 
 const valid: FormValues = { kind: "notice", title: "Winter break", body: "Closed on Friday.", contact: "", urgent: false, publishOnBs: "2083-06-10", hideAfterBs: "" };
 const errorsOf = (over: Partial<FormValues>) => validateForm({ ...valid, ...over });
@@ -180,6 +180,33 @@ describe("parseFlash: what the list was told just happened", () => {
     expect(parseFlash("?done=created")).toBe("created");
     expect(parseFlash("?done=updated")).toBe("updated");
     for (const bad of ["", "?done=", "?done=deleted", "?done=<b>", "?done=CREATED", "?other=created"]) expect(parseFlash(bad), bad).toBeNull();
+  });
+});
+
+describe("contactHref: a vacancy's contact as a link, only when it is safe to make one", () => {
+  it("makes a mail link from an email address", () => {
+    expect(contactHref("jobs@school.example")).toBe("mailto:jobs@school.example");
+    expect(contactHref("  first.last+jobs@mail.school.example ")).toBe("mailto:first.last+jobs@mail.school.example");
+  });
+
+  it("makes a phone link from a phone number, keeping the digits and a leading plus", () => {
+    expect(contactHref("9800000000")).toBe("tel:9800000000");
+    expect(contactHref("+977 985-1234567")).toBe("tel:+9779851234567");
+    expect(contactHref("(033) 560 123")).toBe("tel:033560123");
+  });
+
+  it("makes no link from anything else, so what the Admin typed is shown as plain text", () => {
+    for (const other of ["Ask at the office", "", "  ", "123", "call 9800000000 today", "jobs@", "@school.example", "a b@school.example"]) {
+      expect(contactHref(other), JSON.stringify(other)).toBeNull();
+    }
+  });
+
+  it("never makes a link with a script or another scheme, whatever is typed", () => {
+    for (const hostile of ["javascript:alert(1)", "data:text/html,<script>alert(1)</script>", "jobs@school.example?body=<script>", "vbscript:x", "9800000000;rm", "9800000000\">"]) {
+      const href = contactHref(hostile);
+      expect(href === null || /^(mailto:[^\s<>"]+|tel:\+?\d+)$/.test(href), hostile).toBe(true);
+      expect(href ?? "").not.toMatch(/javascript|data:|script|[<>"]/i);
+    }
   });
 });
 

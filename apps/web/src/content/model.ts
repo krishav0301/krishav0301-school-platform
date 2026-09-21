@@ -173,3 +173,33 @@ export const paragraphs = (body: string): string[] =>
     .split(/\n\s*\n/)
     .map((part) => part.trim())
     .filter(Boolean);
+
+/** What the public notice board shows for one item. */
+export type PublicItem = components["schemas"]["PublicContentItem"];
+
+/** The words for the filter buttons on the public board, one per kind, in the plural. */
+export const KIND_PLURAL_LABEL: Record<Kind, MessageKey> = {
+  notice: "notices.kind.notice",
+  holiday: "notices.kind.holiday",
+  routine: "notices.kind.routine",
+  vacancy: "notices.kind.vacancy",
+  post: "notices.kind.post",
+};
+
+const EMAIL = /^[^\s@<>"?;&]+@[^\s@<>"?;&]+\.[^\s@<>"?;&]+$/;
+const PHONE = /^\+?[\d\s\-()]{7,24}$/;
+
+/**
+ * A link for a vacancy's contact, or null. Only an email address or a phone number becomes a link
+ * (`mailto:` or `tel:`, built here from characters that were checked), so nothing an Admin types can
+ * become a script or another kind of address. Anything else is shown as the plain text it is.
+ */
+export function contactHref(contact: string): string | null {
+  const text = contact.trim();
+  if (EMAIL.test(text)) return `mailto:${text}`;
+  if (PHONE.test(text)) {
+    const digits = text.replace(/\D/g, "");
+    if (digits.length >= 7) return `tel:${text.startsWith("+") ? "+" : ""}${digits}`;
+  }
+  return null;
+}

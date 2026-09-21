@@ -176,6 +176,11 @@ describe("touch targets", () => {
     expect(css("ui/Field.module.css")).toMatch(/\.toggle\s*\{[^}]*min-width:\s*var\(--control-height\)/);
   });
 
+  it("the notice board's filter buttons and a vacancy's contact link are full-size targets too", () => {
+    expect(css("content/content.module.css")).toMatch(/\.chip\s*\{[^}]*min-height:\s*var\(--control-height\)/);
+    expect(css("content/content.module.css")).toMatch(/\.contactLink\s*\{[^}]*min-height:\s*var\(--control-height\)/);
+  });
+
   it("the control height itself is 44px or more", () => {
     const match = css("app/tokens.css").match(/--control-height:\s*([\d.]+)rem/);
     expect(Number(match![1]) * 16).toBeGreaterThanOrEqual(44);

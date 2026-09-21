@@ -12,6 +12,7 @@
     "gen:permissions": "tsx scripts/generate-permission-doc.ts",
     "provision": "tsx scripts/provision.ts",
     "dev:user": "tsx scripts/create-user.ts",
+    "dev:content": "tsx scripts/dev-content.ts",
     "db:migrate:local": "wrangler d1 migrations apply school_dev --local"
   },
   "dependencies": {
