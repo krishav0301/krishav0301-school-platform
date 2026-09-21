@@ -32,7 +32,7 @@ export const STATE_LABEL: Record<State, MessageKey> = {
 };
 
 /** Month 1 (Baisakh) to month 12 (Chaitra). */
-const MONTH_LABEL: readonly MessageKey[] = [
+export const MONTH_LABEL: readonly MessageKey[] = [
   "date.month.1", "date.month.2", "date.month.3", "date.month.4", "date.month.5", "date.month.6",
   "date.month.7", "date.month.8", "date.month.9", "date.month.10", "date.month.11", "date.month.12",
 ];
@@ -120,6 +120,32 @@ export function formatBsDate(text: string | null | undefined): string {
   const [year, month, day] = [Number(match[1]), Number(match[2]), Number(match[3])] as [number, number, number];
   if (month < 1 || month > 12 || day < 1 || day > 32) return "—";
   return `${day} ${t(MONTH_LABEL[month - 1]!)} ${year}`;
+}
+
+/** A Nepali day as the three pieces a person fills in, each as typed or chosen. */
+export interface BsParts {
+  year: string;
+  month: string;
+  day: string;
+}
+
+/** Splits "2083-06-05" into pieces. Anything that is not a whole day gives blank pieces. */
+export function splitBs(text: string): BsParts {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(text);
+  if (!match) return { year: "", month: "", day: "" };
+  return { year: match[1]!, month: String(Number(match[2])), day: String(Number(match[3])) };
+}
+
+/**
+ * Joins pieces into "YYYY-MM-DD". Nothing filled in gives an empty text (an optional day left empty).
+ * Part of a day gives text that is not a whole day, so `validateForm` says a piece is missing. The month
+ * and day are padded to two digits; a wrong year or day is kept as typed so it is reported, not fixed.
+ */
+export function joinBs({ year, month, day }: BsParts): string {
+  const [y, m, d] = [year.trim(), month.trim(), day.trim()];
+  if (!y && !m && !d) return "";
+  const pad = (piece: string) => (piece.length === 1 ? `0${piece}` : piece);
+  return `${y}-${pad(m)}-${pad(d)}`;
 }
 
 export type EditTarget = { mode: "new" } | { mode: "edit"; id: string } | { mode: "invalid" };

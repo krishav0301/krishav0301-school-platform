@@ -29,6 +29,7 @@ export function ContentList() {
   const [asking, setAsking] = useState<{ id: string; publish: boolean } | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const latest = useRef(0);
+  const returnFocusTo = useRef<string | null>(null);
 
   // Only the newest request may change the screen, so a slow answer never overwrites a newer one.
   const reload = useCallback(async () => {
@@ -41,6 +42,17 @@ export function ContentList() {
   useEffect(() => {
     void reload();
   }, [reload]);
+
+  // Keep the keyboard where the person is: asking moves it to the confirming button, and answering or
+  // cancelling moves it back to the button that was pressed (which is otherwise replaced and lost).
+  useEffect(() => {
+    if (asking) {
+      document.getElementById("content-confirm")?.focus();
+    } else if (returnFocusTo.current) {
+      document.getElementById(returnFocusTo.current)?.focus();
+      returnFocusTo.current = null;
+    }
+  }, [asking]);
 
   // A form that just saved sends its outcome in the address. It is shown until the person does
   // something else on this page; anything that happens after that replaces or dismisses it.
@@ -147,11 +159,11 @@ export function ContentList() {
 
                 {asked ? (
                   <div className={styles.confirm}>
-                    <p role="alert" className={styles.confirmText}>
-                      {t(asking.publish ? "content.publishAsk" : "content.takeDownAsk")}
+                    <p id="content-confirm-text" role="alert" className={styles.confirmText}>
+                      {t(asking.publish ? "content.publishAsk" : "content.takeDownAsk", { title: item.title })}
                     </p>
                     <div className={styles.actions}>
-                      <Button variant="secondary" loading={busy === item.id} loadingLabel={t("content.working")} onClick={() => void confirm(item, asking.publish)}>
+                      <Button id="content-confirm" variant="secondary" aria-describedby="content-confirm-text" loading={busy === item.id} loadingLabel={t("content.working")} onClick={() => void confirm(item, asking.publish)}>
                         {t(asking.publish ? "content.confirmPublish" : "content.confirmTakeDown")}
                       </Button>
                       <Button variant="quiet" disabled={busy === item.id} onClick={() => setAsking(null)}>
@@ -165,9 +177,13 @@ export function ContentList() {
                       {t("content.edit")}
                     </Link>
                     <Button
+                      id={`content-action-${item.id}`}
                       variant="quiet"
                       aria-label={t(publish ? "content.publishItem" : "content.takeDownItem", { title: item.title })}
-                      onClick={() => setAsking({ id: item.id, publish })}
+                      onClick={() => {
+                        returnFocusTo.current = `content-action-${item.id}`;
+                        setAsking({ id: item.id, publish });
+                      }}
                     >
                       {t(publish ? "content.publish" : "content.takeDown")}
                     </Button>

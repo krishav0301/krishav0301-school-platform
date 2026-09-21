@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
 
 import { BS_MONTH_NAMES } from "../../api/src/core/dates";
-import { en } from "@/i18n/messages";
-import { KINDS, STATES, emptyForm, firstInvalid, formFromItem, formatBsDate, paragraphs, parseEditTarget, parseFlash, validateForm, type FormValues } from "@/content/model";
+import { en, t } from "@/i18n/messages";
+import { KINDS, STATES, emptyForm, firstInvalid, formFromItem, formatBsDate, paragraphs, joinBs, parseEditTarget, parseFlash, splitBs, validateForm, type FormValues } from "@/content/model";
 
 const valid: FormValues = { kind: "notice", title: "Winter break", body: "Closed on Friday.", contact: "", urgent: false, publishOnBs: "2083-06-10", hideAfterBs: "" };
 const errorsOf = (over: Partial<FormValues>) => validateForm({ ...valid, ...over });
@@ -116,6 +116,45 @@ describe("paragraphs", () => {
   });
 });
 
+describe("splitBs and joinBs: a day held as year, month and day pieces", () => {
+  it("splits a Nepali day into its pieces, and gives blank pieces for nothing", () => {
+    expect(splitBs("2083-06-05")).toEqual({ year: "2083", month: "6", day: "5" });
+    expect(splitBs("2083-12-30")).toEqual({ year: "2083", month: "12", day: "30" });
+    expect(splitBs("")).toEqual({ year: "", month: "", day: "" });
+  });
+
+  it("splits something that is not a whole day into blanks rather than guessing", () => {
+    for (const odd of ["garbage", "2083-6", "20830605"]) expect(splitBs(odd), odd).toEqual({ year: "", month: "", day: "" });
+  });
+
+  it("joins the pieces into year-month-day, padding the month and day to two digits", () => {
+    expect(joinBs({ year: "2083", month: "6", day: "5" })).toBe("2083-06-05");
+    expect(joinBs({ year: "2083", month: "12", day: "30" })).toBe("2083-12-30");
+  });
+
+  it("joins no pieces into nothing, so an optional day can be left empty", () => {
+    expect(joinBs({ year: "", month: "", day: "" })).toBe("");
+    expect(joinBs({ year: " ", month: "", day: "" })).toBe("");
+  });
+
+  it("joins part of a day into text that is not a whole day, so the form says what is missing", () => {
+    for (const partial of [{ year: "2083", month: "", day: "" }, { year: "", month: "6", day: "5" }, { year: "2083", month: "6", day: "" }]) {
+      const text = joinBs(partial);
+      expect(text).not.toBe("");
+      expect(validateForm({ ...valid, publishOnBs: text }).publishOnBs, JSON.stringify(partial)).toBe("contentForm.error.dateShape");
+    }
+  });
+
+  it("keeps a wrongly typed year or day so it is reported, not silently fixed", () => {
+    expect(validateForm({ ...valid, publishOnBs: joinBs({ year: "83", month: "6", day: "5" }) }).publishOnBs).toBe("contentForm.error.dateShape");
+    expect(validateForm({ ...valid, publishOnBs: joinBs({ year: "2083", month: "6", day: "123" }) }).publishOnBs).toBe("contentForm.error.dateShape");
+  });
+
+  it("is the same day after splitting and joining", () => {
+    for (const day of ["2083-01-01", "2083-06-05", "2000-12-30", "2083-10-31"]) expect(joinBs(splitBs(day))).toBe(day);
+  });
+});
+
 describe("parseEditTarget: what the edit page was asked to open", () => {
   const id = "0123456789abcdef0123456789abcdef";
 
@@ -141,6 +180,30 @@ describe("parseFlash: what the list was told just happened", () => {
     expect(parseFlash("?done=created")).toBe("created");
     expect(parseFlash("?done=updated")).toBe("updated");
     for (const bad of ["", "?done=", "?done=deleted", "?done=<b>", "?done=CREATED", "?other=created"]) expect(parseFlash(bad), bad).toBeNull();
+  });
+});
+
+describe("the words for the content screens", () => {
+  const own = Object.entries(en).filter(([key]) => key.startsWith("content") || key.startsWith("date."));
+
+  it("never speak as \"we\" or \"our\": it is unclear who that is (writing.md)", () => {
+    for (const [key, text] of own) expect(text, key).not.toMatch(/\b(we|we'll|we're|our|us)\b/i);
+  });
+
+  it("name the item in the question that asks before publishing or taking down, and say the action in the button", () => {
+    expect(t("content.publishAsk", { title: "Fee notice" })).toBe("Put “Fee notice” on the website?");
+    expect(t("content.takeDownAsk", { title: "Fee notice" })).toContain("“Fee notice”");
+    expect(en["content.confirmPublish"]).toBe("Publish");
+    expect(en["content.confirmTakeDown"]).toBe("Take down");
+  });
+
+  it("keep one name for an action from the button to the message that follows it", () => {
+    expect(en["content.publish"]).toBe("Publish");
+    expect(en["content.done.published"]).toMatch(/^Published\./);
+    expect(en["content.takeDown"]).toBe("Take down");
+    expect(en["content.done.takenDown"]).toMatch(/^Taken down\./);
+    expect(en["contentForm.save"]).toBe("Save draft");
+    expect(en["content.done.created"]).toMatch(/^Saved as a draft\./);
   });
 });
 

@@ -6,6 +6,7 @@ import EditContentPage from "@/app/portal/content/edit/page";
 import { ConfigContext, makeConfigValue, type PublicConfig } from "@/config/ConfigProvider";
 import { ContentEditor, ContentForm } from "@/content/ContentForm";
 import { ContentList } from "@/content/ContentList";
+import { BsDateField } from "@/content/BsDateField";
 import { ContentPreview } from "@/content/ContentPreview";
 import { emptyForm, type FormValues } from "@/content/model";
 import { SessionContext } from "@/session/SessionProvider";
@@ -33,7 +34,7 @@ const inContext = (element: React.ReactNode) =>
 
 const count = (html: string, pattern: RegExp) => (html.match(pattern) ?? []).length;
 const editor = (over: Partial<Parameters<typeof ContentEditor>[0]> = {}, values: Partial<FormValues> = {}) =>
-  inContext(<ContentEditor id={null} initial={{ ...emptyForm("2083-06-05"), ...values }} live={false} todayBs="2083-06-05" onSaved={() => {}} onGone={() => {}} {...over} />);
+  inContext(<ContentEditor id={null} initial={{ ...emptyForm("2083-06-05"), ...values }} live={false} onSaved={() => {}} onGone={() => {}} {...over} />);
 
 // ---------------------------------------------------------------------------------------------
 describe("the new form controls", () => {
@@ -71,6 +72,53 @@ describe("the new form controls", () => {
 });
 
 // ---------------------------------------------------------------------------------------------
+describe("BsDateField", () => {
+  const field = (props: Partial<Parameters<typeof BsDateField>[0]> = {}) => renderToStaticMarkup(<BsDateField legend="Show from" value="" onChange={() => {}} {...props} />);
+
+  it("is one group with a legend, and three labelled boxes in the order a Nepali day is read: day, month, year", () => {
+    const html = field();
+    expect(html).toMatch(/<fieldset[^>]*>\s*<legend[^>]*>Show from<\/legend>/);
+    expect(html.indexOf(">Day<")).toBeLessThan(html.indexOf(">Month<"));
+    expect(html.indexOf(">Month<")).toBeLessThan(html.indexOf(">Year<"));
+    for (const part of ["day", "month", "year"]) expect(html).toMatch(new RegExp(`<label[^>]*for="[^"]*-${part}"`));
+  });
+
+  it("offers the twelve months by name, and Choose while none is chosen", () => {
+    const html = field();
+    expect(count(html, /<option/g)).toBe(13);
+    for (const name of ["Baisakh", "Ashwin", "Poush", "Chaitra"]) expect(html).toContain(`>${name}</option>`);
+    expect(html).toMatch(/<option value="" selected="">Choose<\/option>/);
+  });
+
+  it("asks for the number keypad for the day and the year, and offers no autofill", () => {
+    const html = field();
+    expect(count(html, /inputMode="numeric"/g)).toBe(2);
+    expect(count(html, /autoComplete="off"/g)).toBe(2);
+    expect(html).toContain('maxLength="2"');
+    expect(html).toContain('maxLength="4"');
+  });
+
+  it("fills the boxes from a saved day, and leaves them empty for none", () => {
+    const filled = field({ value: "2083-10-09" });
+    expect(filled).toContain('value="9"');
+    expect(filled).toContain('value="2083"');
+    expect(filled).toMatch(/<option value="10" selected="">Magh<\/option>/);
+    // Empty for none: the day and year boxes carry no value.
+    expect(field()).toMatch(/-day"[^>]*value=""/);
+    expect(field()).toMatch(/-year"[^>]*value=""/);
+  });
+
+  it("ties the hint and the error to every box, and marks the boxes invalid only when there is an error", () => {
+    const ok = field({ hint: "Nepali date." });
+    expect(ok).toContain("Nepali date.");
+    expect(ok).not.toContain("aria-invalid");
+    const bad = field({ hint: "Nepali date.", error: "Choose the day, month and year." });
+    expect(count(bad, /aria-invalid="true"/g)).toBe(3);
+    expect(count(bad, /aria-describedby="[^"]+-hint [^"]+-error"/g)).toBe(3);
+    expect(bad).toContain("Choose the day, month and year.");
+  });
+});
+
 describe("the list of website content", () => {
   const html = inContext(<ContentList />);
 
@@ -119,17 +167,22 @@ describe("the form for a new item", () => {
   });
 
   it("lets the type be chosen, offering all five", () => {
-    expect(html).toMatch(/<label[^>]*>Type<\/label>/);
-    expect(count(html, /<option/g)).toBe(5);
+    expect(html).toMatch(/<label[^>]*>Type<\/label><select[^>]*>(?:<option[^>]*>[^<]*<\/option>){5}<\/select>/);
   });
 
-  it("starts the publish day on today's Nepali date and shows an example in the same shape", () => {
-    expect(html).toContain('value="2083-06-05"');
-    expect(html).toContain("Nepali date, year first, like 2083-06-05.");
+  it("starts the show-from day on today's Nepali date, as a day, a month by name and a year", () => {
+    expect(html).toMatch(/<legend[^>]*>Show from<\/legend>/);
+    expect(html).toContain('value="5"');
+    expect(html).toContain('value="2083"');
+    expect(html).toMatch(/<option value="6" selected="">Ashwin<\/option>/);
+    expect(html).toContain("Nepali date (Bikram Sambat).");
   });
 
   it("every box has a visible label, and there are no placeholders standing in for labels", () => {
-    for (const label of ["Title", "Text", "Show from", "Hide after (optional)"]) expect(html, label).toMatch(new RegExp(`<label[^>]*>${label.replace(/[()]/g, "\\$&")}</label>`));
+    for (const label of ["Title", "Text"]) expect(html, label).toMatch(new RegExp(`<label[^>]*>${label}</label>`));
+    // Each day has a legend naming it, and its three boxes are labelled too.
+    for (const legend of ["Show from", "Hide after (optional)"]) expect(html, legend).toMatch(new RegExp(`<legend[^>]*>${legend.replace(/[()]/g, "\\$&")}</legend>`));
+    for (const part of ["Day", "Month", "Year"]) expect(count(html, new RegExp(`<label[^>]*>${part}</label>`, "g")), part).toBe(2);
     // The checkbox's label holds its own text and hint, so it is checked on its own.
     expect(html).toMatch(/<label[^>]*><span[^>]*>Urgent<\/span>/);
     expect(html).not.toContain("placeholder=");
@@ -151,7 +204,7 @@ describe("the form for a new item", () => {
 
   it("draws the preview beside it, from what is in the form", () => {
     expect(html).toContain("Preview");
-    expect(html).toContain("Your title appears here");
+    expect(html).toContain("The title appears here");
     const filled = editor({}, { title: "Winter break", body: "Closed on Friday.\n\nBack on Sunday." });
     expect(filled).toContain("Winter break");
     expect(count(filled, /class="[^"]*\bparagraph\b[^"]*"/g)).toBe(2);
@@ -162,18 +215,22 @@ describe("the form for an item already saved", () => {
   const saved = { kind: "vacancy" as const, title: "Teacher wanted", body: "Maths", contact: "jobs@school.example", publishOnBs: "2083-01-15" };
 
   it("says it is an edit, shows the type as a fixed label instead of a choice, and keeps what was saved", () => {
-    const html = editor({ id: "0123456789abcdef0123456789abcdef", todayBs: null }, saved);
+    const html = editor({ id: "0123456789abcdef0123456789abcdef" }, saved);
     expect(html).toMatch(/<h1[^>]*>Edit item<\/h1>/);
-    expect(html).not.toContain("<select");
+    // No choice of type: it is a fixed label. (The month lists of the two days are the only selects.)
+    expect(html).not.toMatch(/<label[^>]*>Type<\/label>/);
+    expect(count(html, /<select/g)).toBe(2);
     expect(html).toContain("The type cannot be changed after the item is saved.");
     expect(html).toContain('value="Teacher wanted"');
     expect(html).toContain('value="jobs@school.example"');
-    expect(html).toContain('value="2083-01-15"');
-    expect(html).toContain("Nepali date, year first, like 2083-01-15.");
+    // The saved day, 15 Baisakh 2083, is filled into its three boxes.
+    expect(html).toContain('value="15"');
+    expect(html).toContain('value="2083"');
+    expect(html).toMatch(/<option value="1" selected="">Baisakh<\/option>/);
   });
 
   it("a live item says so, and the button says it saves changes", () => {
-    const html = editor({ id: "0123456789abcdef0123456789abcdef", live: true, todayBs: null }, saved);
+    const html = editor({ id: "0123456789abcdef0123456789abcdef", live: true }, saved);
     expect(html).toContain("This item is on the website. Saving changes updates it, and visitors see the change within about a minute.");
     expect(html).toMatch(/<button[^>]*type="submit"[^>]*>Save changes<\/button>/);
     expect(html).not.toContain(">Save draft<");

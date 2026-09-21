@@ -9,6 +9,7 @@ import { useSession } from "@/session/SessionProvider";
 import { Badge, Button, Card, Checkbox, Field, Notice, Select, Skeleton, TextArea, buttonClass } from "@/ui";
 
 import { useAddressQuery } from "./address";
+import { BsDateField } from "./BsDateField";
 import { loadContent, loadItem, saveItem } from "./client";
 import { ContentPreview } from "./ContentPreview";
 import {
@@ -26,10 +27,7 @@ import {
 } from "./model";
 import styles from "./content.module.css";
 
-/** Shown in a hint when there is no date to borrow (a date is never sent from here). */
-const EXAMPLE_DAY = "2083-06-10";
-
-type Loaded = { status: "loading" } | { status: "ready"; values: FormValues; live: boolean; todayBs: string | null } | { status: "not_found" }
+type Loaded = { status: "loading" } | { status: "ready"; values: FormValues; live: boolean } | { status: "not_found" }
   | { status: "forbidden" }
   | { status: "failed" };
 
@@ -49,13 +47,13 @@ export function ContentForm() {
       if (target.mode === "edit") {
         const result = await loadItem(api, target.id);
         if (!active) return;
-        setLoaded(result.ok ? { status: "ready", values: formFromItem(result.item), live: result.item.status === "live", todayBs: null } : { status: result.reason });
+        setLoaded(result.ok ? { status: "ready", values: formFromItem(result.item), live: result.item.status === "live" } : { status: result.reason });
         return;
       }
       // A new item starts on today's Nepali date; one light request gets it.
       const result = await loadContent(api, { limit: 1 });
       if (!active) return;
-      setLoaded(result.ok ? { status: "ready", values: emptyForm(result.todayBs), live: false, todayBs: result.todayBs } : { status: result.reason });
+      setLoaded(result.ok ? { status: "ready", values: emptyForm(result.todayBs), live: false } : { status: result.reason });
     })();
     return () => {
       active = false;
@@ -98,7 +96,6 @@ export function ContentForm() {
       id={id}
       initial={loaded.values}
       live={loaded.live}
-      todayBs={loaded.todayBs}
       onSaved={() => router.push(`/portal/content?done=${id === null ? "created" : "updated"}`)}
       onGone={() => setLoaded({ status: "not_found" })}
     />
@@ -106,7 +103,7 @@ export function ContentForm() {
 }
 
 /** The form itself, once the item (or today's date) is loaded. Exported so it can be drawn in tests without a network. */
-export function ContentEditor({ id, initial, live, todayBs, onSaved, onGone }: { id: string | null; initial: FormValues; live: boolean; todayBs: string | null; onSaved: () => void; onGone: () => void }) {
+export function ContentEditor({ id, initial, live, onSaved, onGone }: { id: string | null; initial: FormValues; live: boolean; onSaved: () => void; onGone: () => void }) {
   const { api } = useSession();
   const [values, setValues] = useState<FormValues>(initial);
   const [errors, setErrors] = useState<FormErrors>({});
@@ -128,7 +125,6 @@ export function ContentEditor({ id, initial, live, todayBs, onSaved, onGone }: {
   }, [focus]);
 
   const set = <K extends keyof FormValues>(name: K, value: FormValues[K]) => setValues((current) => ({ ...current, [name]: value }));
-  const example = todayBs ?? (initial.publishOnBs || EXAMPLE_DAY);
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -210,24 +206,20 @@ export function ContentEditor({ id, initial, live, todayBs, onSaved, onGone }: {
               />
             ) : null}
             <Checkbox label={t("contentForm.urgent")} hint={t("contentForm.urgentHint")} checked={values.urgent} onChange={(event) => set("urgent", event.target.checked)} />
-            <Field
+            <BsDateField
               ref={publishOn}
-              label={t("contentForm.publishOn")}
-              hint={t("contentForm.dateHint", { example })}
+              legend={t("contentForm.publishOn")}
+              hint={t("contentForm.dateHint")}
               value={values.publishOnBs}
-              autoComplete="off"
-              spellCheck={false}
-              onChange={(event) => set("publishOnBs", event.target.value)}
+              onChange={(text) => set("publishOnBs", text)}
               error={errors.publishOnBs ? t(errors.publishOnBs) : undefined}
             />
-            <Field
+            <BsDateField
               ref={hideAfter}
-              label={t("contentForm.hideAfter")}
-              hint={t("contentForm.hideAfterHint", { example })}
+              legend={t("contentForm.hideAfter")}
+              hint={t("contentForm.hideAfterHint")}
               value={values.hideAfterBs}
-              autoComplete="off"
-              spellCheck={false}
-              onChange={(event) => set("hideAfterBs", event.target.value)}
+              onChange={(text) => set("hideAfterBs", text)}
               error={errors.hideAfterBs ? t(errors.hideAfterBs) : undefined}
             />
 
