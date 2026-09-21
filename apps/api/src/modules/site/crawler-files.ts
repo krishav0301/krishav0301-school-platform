@@ -1,4 +1,4 @@
-import { loadConfig, loadSiteContent } from "../../core/config";
+import { loadConfigAndSite } from "../../core/config";
 import type { Bindings } from "../../core/types";
 import { escapeHtml } from "./html";
 import { FILLED_PAGES, pageSummary } from "./pages";
@@ -67,10 +67,9 @@ function sitemapXml(origin: string): string {
 }
 
 async function llmsTxt(env: Bindings, origin: string): Promise<string | null> {
-  const config = await loadConfig(env.DB);
+  // The configuration and the school's own words, in one round trip: the summary opens the file and how to reach it closes it.
+  const { config, site } = await loadConfigAndSite(env.DB);
   if (!config) return null;
-  // The school's own words, when it has them: its summary opens the file, and how to reach it closes it.
-  const site = await loadSiteContent(env.DB);
 
   const name = oneLine(config.school.name);
   const sections = config.sections.map((s) => oneLine(s.name));

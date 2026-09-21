@@ -7,7 +7,7 @@ Read at the start of every session:
 
 If this file and `DECISIONS.md` disagree, stop and ask.
 
-**Current phase: Phase 1 (Platform foundation) is complete** (dates, schema and audit, sign-in, permissions, configuration and packs, design system and shell, notifications and jobs, password reset, two-step sign-in, exit check on both packs and on staging; D-037). **Phase 2 (public website) is in progress (D-038 to D-049): slices 0 to 4 are built (D-038 to D-054); slice 5 (design and GEO pass, page-weight budgets, staging exit check) is next. See `docs/build-plan.md`.** Phase 0 is complete: the backend is a Cloudflare Worker (D-019 to D-021), documented in `docs/architecture.md`. Update this line when a phase closes.
+**Current phase: Phase 2 (public website) is complete, and Phase 3 awaits PM approval.** Phase 1 (Platform foundation) is complete (dates, schema and audit, sign-in, permissions, configuration and packs, design system and shell, notifications and jobs, password reset, two-step sign-in, exit check on both packs and on staging; D-037). **Phase 2 (public website) is complete (2026-09-21, D-038 to D-055): six slices, and the exit check passed for both schools and on staging (D-055). Phase 3 (academic setup, people and approvals) needs the PM's approval to start. See `docs/build-plan.md`.** Phase 0 is complete: the backend is a Cloudflare Worker (D-019 to D-021), documented in `docs/architecture.md`. Update this line when a phase closes.
 
 ## 1. What we are building
 
