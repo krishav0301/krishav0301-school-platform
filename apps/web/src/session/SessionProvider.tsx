@@ -6,6 +6,7 @@ import { createApiClient, type ApiClient } from "@/api/client";
 import type { components } from "@/api/schema";
 
 import { hasSessionHint } from "./hint";
+import { passwordChangeFailure, type ChangeFailure } from "./password-change";
 import { createRefreshingFetch } from "./refreshing-fetch";
 
 export type RoleClaim = components["schemas"]["RoleClaim"];
@@ -16,12 +17,13 @@ export interface Me {
 export type SessionStatus = "checking" | "signedIn" | "signedOut";
 
 /**
- * A finished sign-in; or the password was right and a second step is needed: enter the code from the
- * authenticator app (`required`), or set the app up first (`setup`). The `challenge` carries the
- * person through that step. It is not a session.
+ * A finished sign-in; or the password was right and a step is needed first: choose a new password because this one
+ * was temporary (`passwordChange`), enter the code from the authenticator app (`twoFactor: required`), or set the app up
+ * first (`twoFactor: setup`). The `challenge` carries the person through that step. It is not a session.
  */
 export type SignInResult =
   | { ok: true }
+  | { ok: true; passwordChange: "required"; challenge: string }
   | { ok: true; twoFactor: "required" | "setup"; challenge: string }
   | { ok: false; reason: "invalid" | "throttled" | "network" | "unexpected" };
 
@@ -33,6 +35,11 @@ export interface SessionValue {
   /** True when a signed-in session was ended by the server (expired or revoked), so the sign-in page can say why. */
   endedUnexpectedly: boolean;
   signIn: (email: string, password: string) => Promise<SignInResult>;
+  /**
+   * Chooses the person's own password after a temporary one. Signs in on success, or hands back the authenticator step
+   * they still have to do. A weak or reused password leaves the step usable.
+   */
+  changeRequiredPassword: (challenge: string, password: string) => Promise<{ ok: true } | { ok: true; twoFactor: "required" | "setup"; challenge: string } | ({ ok: false } & ChangeFailure)>;
   /** Second step for someone who already has the app: a 6-digit code or a recovery code. Signs in on success. */
   verifyTwoFactor: (challenge: string, code: string) => Promise<{ ok: true } | { ok: false; reason: TwoFactorFailure }>;
   /** Starts setting the app up: the key to type in, and the address an authenticator app can open. */
@@ -131,6 +138,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   const signIn = useCallback<SessionValue["signIn"]>(async (email, password) => {
     try {
       const { data, response } = await api.POST("/api/auth/sign-in", { body: { email, password } });
+      if (data && "passwordChange" in data) return { ok: true, passwordChange: data.passwordChange, challenge: data.challenge };
       if (data && "twoFactor" in data) return { ok: true, twoFactor: data.twoFactor, challenge: data.challenge };
       if (data) {
         setState({ status: "signedIn", me: { name: data.user.fullName, roles: data.roles }, ended: false });
@@ -179,6 +187,20 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     }
   }, [api]);
 
+  const changeRequiredPassword = useCallback<SessionValue["changeRequiredPassword"]>(async (challenge, password) => {
+    try {
+      const { data, response, error } = await api.POST("/api/auth/password/change-required", { body: { challenge, password } });
+      if (data && "twoFactor" in data) return { ok: true, twoFactor: data.twoFactor, challenge: data.challenge };
+      if (data) {
+        setState({ status: "signedIn", me: { name: data.user.fullName, roles: data.roles }, ended: false });
+        return { ok: true };
+      }
+      return { ok: false, ...passwordChangeFailure(response.status, error) };
+    } catch {
+      return { ok: false, reason: "network" };
+    }
+  }, [api]);
+
   const acceptSession = useCallback((me: Me) => setState({ status: "signedIn", me, ended: false }), []);
 
   const signOut = useCallback<SessionValue["signOut"]>(async () => {
@@ -191,8 +213,8 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   }, [api]);
 
   const value = useMemo<SessionValue>(
-    () => ({ status: state.status, me: state.me, endedUnexpectedly: state.ended, signIn, verifyTwoFactor, startTwoFactorSetup, enableTwoFactor, acceptSession, signOut, api }),
-    [state, signIn, verifyTwoFactor, startTwoFactorSetup, enableTwoFactor, acceptSession, signOut, api],
+    () => ({ status: state.status, me: state.me, endedUnexpectedly: state.ended, signIn, changeRequiredPassword, verifyTwoFactor, startTwoFactorSetup, enableTwoFactor, acceptSession, signOut, api }),
+    [state, signIn, changeRequiredPassword, verifyTwoFactor, startTwoFactorSetup, enableTwoFactor, acceptSession, signOut, api],
   );
   return <SessionContext.Provider value={value}>{children}</SessionContext.Provider>;
 }

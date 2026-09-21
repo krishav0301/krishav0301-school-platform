@@ -27,6 +27,8 @@ export const NAV_ITEMS: readonly NavItem[] = [
   { id: "content", labelKey: "nav.content", href: "/portal/content", roles: ["admin", "super_admin"] },
   // Phase 3: the academic structure. The Co-ordinator sets it up; the Admin can look (the API decides, D-025).
   { id: "setup", labelKey: "nav.setup", href: "/portal/setup", roles: ["coordinator", "admin", "super_admin"] },
+  // Phase 3, slice 3a: the staff. Whoever may add someone (the API decides, D-025).
+  { id: "people", labelKey: "nav.people", href: "/portal/people", roles: ["admin", "coordinator", "super_admin"] },
 ];
 
 /** True on an entry's own page and on the pages beneath it. The dashboard is only current on itself. */

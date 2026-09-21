@@ -7,6 +7,7 @@ import { useCallback, useEffect, useRef, useState, type FormEvent } from "react"
 import { ConfigGate } from "@/config/ConfigGate";
 import { useConfig } from "@/config/ConfigProvider";
 import { t, type MessageKey } from "@/i18n/messages";
+import { NewPasswordStep } from "@/session/NewPasswordStep";
 import { useSession, type Me, type SignInResult } from "@/session/SessionProvider";
 import { PublicShell } from "@/shell/PublicShell";
 import { CodeStep, RecoveryCodesStep, SetupStep } from "@/two-factor/steps";
@@ -24,11 +25,12 @@ const FAILURE_MESSAGE: Record<Extract<SignInResult, { ok: false }>["reason"], Me
 /** Where the person is in signing in. The second step and the recovery codes appear only when needed. */
 type Step =
   | { kind: "credentials"; notice?: MessageKey }
+  | { kind: "password"; challenge: string }
   | { kind: "code"; challenge: string }
   | { kind: "setup"; challenge: string }
   | { kind: "recovery"; codes: string[]; me: Me };
 
-function CredentialsStep({ notice, onSecondStep }: { notice?: MessageKey; onSecondStep: (step: "code" | "setup", challenge: string) => void }) {
+function CredentialsStep({ notice, onSecondStep }: { notice?: MessageKey; onSecondStep: (step: "code" | "setup" | "password", challenge: string) => void }) {
   const { config } = useConfig();
   const { signIn, endedUnexpectedly } = useSession();
   const [email, setEmail] = useState("");
@@ -47,6 +49,10 @@ function CredentialsStep({ notice, onSecondStep }: { notice?: MessageKey; onSeco
     setProblem(null);
     setSubmitting(true);
     const result = await signIn(email.trim(), password);
+    if (result.ok && "passwordChange" in result) {
+      onSecondStep("password", result.challenge); // a temporary password: choose your own first
+      return;
+    }
     if (result.ok && "twoFactor" in result) {
       onSecondStep(result.twoFactor === "required" ? "code" : "setup", result.challenge);
       return;
@@ -120,6 +126,8 @@ function SignInFlow() {
   const backToStart = useCallback(() => setStep({ kind: "credentials" }), []);
 
   switch (step.kind) {
+    case "password":
+      return <NewPasswordStep challenge={step.challenge} onNext={(kind, challenge) => setStep({ kind, challenge })} onRestart={restart} />;
     case "code":
       return <CodeStep challenge={step.challenge} schoolName={config?.school.name ?? ""} onRestart={restart} onDifferentAccount={backToStart} />;
     case "setup":

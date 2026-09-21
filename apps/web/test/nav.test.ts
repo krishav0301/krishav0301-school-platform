@@ -28,12 +28,12 @@ describe("isCurrent", () => {
 });
 
 describe("the real menu", () => {
-  it("shows each role its own entries: website for the Admin, setup for the Co-ordinator and the Admin", () => {
+  it("shows each role its own entries: website, setup and people for the Admin; setup and people for the Co-ordinator", () => {
     const seen = (role: string, scope: "institution" | "section" | "own" | "assigned") => visibleNav(NAV_ITEMS, [{ role, scope }], {}).map((i) => i.id);
-    expect(seen("admin", "institution")).toEqual(["dashboard", "content", "setup"]);
-    expect(seen("super_admin", "institution")).toEqual(["dashboard", "content", "setup"]);
-    expect(seen("coordinator", "institution")).toEqual(["dashboard", "setup"]);
-    expect(seen("coordinator", "section")).toEqual(["dashboard", "setup"]);
+    expect(seen("admin", "institution")).toEqual(["dashboard", "content", "setup", "people"]);
+    expect(seen("super_admin", "institution")).toEqual(["dashboard", "content", "setup", "people"]);
+    expect(seen("coordinator", "institution")).toEqual(["dashboard", "setup", "people"]);
+    expect(seen("coordinator", "section")).toEqual(["dashboard", "setup", "people"]);
     for (const [role, scope] of [["student", "own"], ["teacher", "assigned"], ["accountant", "institution"]] as const) {
       expect(seen(role, scope), role).toEqual(["dashboard"]);
     }
