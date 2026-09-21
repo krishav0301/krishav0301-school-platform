@@ -93,13 +93,46 @@ A **Setup** area in the portal (menu entry through the nav registry, shown to Co
 - Second school: the sample school's structure (single-level programmes, `school` section) runs every flow beside Royal's.
 - Mutation checks: break each guard (composite key, closed-year trigger, scope filter, role re-check) and confirm a test fails.
 
-## 5. Slice 2: subjects (outline; detailed in its own plan)
+## 5. Slice 2: subjects (detailed; approved by the PM in chat, 2026-09-21, "yes")
 
-- `subject_offerings`: a subject taught at a programme level, with credit hours; `subjects` are the school's catalogue (name, code, archived, never deleted).
-- `mark_components`: per offering, name and maximum marks, stored as integer hundredths, never floats.
-- **Elective groups (approved):** `elective_groups` belong to a programme level; a group lists its offerings and how many a student picks (default 1). Phase 3 stores groups only; a student's pick is saved when students exist (Phase 4), which is what lets a marks grid list only the students who take a subject.
-- Grading policy is **not** in Phase 3. The matrix row `setup.subjects.manage` still says "grading policy"; its label is corrected and the policy is built with results in Phase 7 (approved with this design).
-- Permissions: `setup.subjects.manage` (Co-ordinator `inst`, Super Admin `all`), plus a read row.
+Goal: the Co-ordinator can keep the school's list of subjects, say which subjects each programme level teaches, split each into mark components, and set up elective groups. Grading policy is not here (Phase 7). A student's own pick from an elective group is saved when students exist (Phase 4).
+
+### 5.1 Tables (`0010_subjects.sql`)
+
+Ids shown to clients are `public_id`. Marks and credit hours are **whole hundredths** (375 means 3.75), never floats. Nothing is deleted: rows are archived or switched off.
+
+| Table | Columns | Rules |
+|---|---|---|
+| `subjects` | `id`, `public_id`, `name` (unique, letter case ignored), `code` (optional, unique), `is_archived` | The school's catalogue. Archived, never deleted |
+| `elective_groups` | `id`, `public_id`, `level_id`, `name`, `pick_count` (1 to 10, default 1), `is_active` | Unique per level and name. `UNIQUE (id, level_id)` so an offering can point at a group and its level together |
+| `subject_offerings` | `id`, `public_id`, `level_id`, `subject_id`, `credit_hundredths` (optional, 1 to 10000), `elective_group_id` (optional), `is_active` | A subject taught at a **programme level**; a class inherits it. Unique per level and subject. Composite foreign key (`elective_group_id`, `level_id`) to the group: a group of another level is refused by the database |
+| `mark_components` | `id`, `public_id`, `offering_id`, `name`, `max_hundredths` (1 to 100000), `ordinal` (1 to 10, next free), `is_active` | Unique per offering by name and by ordinal |
+
+### 5.2 Who may do what
+
+- **Adding a subject to the catalogue:** any active Co-ordinator (even a section-scoped one) or the Super Admin, because a catalogue entry is only a name.
+- **Renaming, changing the code, archiving a subject:** a whole-school Co-ordinator or the Super Admin, because it changes the word for every section.
+- **Offerings, components, elective groups:** a Co-ordinator whose scope covers the level's section, or the Super Admin (`coordinatorForSection`, as in slice 1). A section-scoped Co-ordinator gets nothing from the other section.
+- **View:** new matrix row `setup.subjects.view` (Co-ordinator `inst`, Admin `read`, Super Admin `all`). The Admin can look, never change. The label of `setup.subjects.manage` drops "grading policy".
+- Every write is one audited batch and re-checks the person inside it (D-021), as in slice 1. An archived subject cannot be added to a level; a switched-off level or programme cannot take an offering.
+
+### 5.3 API (`/api/academics`)
+
+| Route | Action |
+|---|---|
+| `GET /subjects`, `GET /curriculum?level=` (a level's groups, offerings and components, one round trip; a level outside the person's sections is 404) | `setup.subjects.view` |
+| `POST /subjects`, `PATCH /subjects/{id}` (name, code, archived) | `setup.subjects.manage` |
+| `POST /offerings` (level, subject, credit, group), `PATCH /offerings/{id}` (credit, group or none, active) | `setup.subjects.manage` |
+| `POST /offerings/{id}/components`, `PATCH /components/{id}` (name, max marks, active) | `setup.subjects.manage` |
+| `POST /levels/{id}/groups`, `PATCH /groups/{id}` (name, pick count, active) | `setup.subjects.manage` |
+
+### 5.4 Screens
+
+Two new entries in the Setup sub-menu. **Subjects:** the catalogue (add, archive and unarchive). **Curriculum:** pick a programme level, then manage its elective groups, its subjects (with a group choice on each) and each subject's mark components, inline. Marks and credit hours are typed as decimals ("3.75") and shown as decimals; the client converts to hundredths.
+
+### 5.5 Not in this slice
+
+Seeding subjects from packs (the real list comes last, D-054; tests create subjects through the service, as the screens do); renaming components or groups on screen and editing credit hours after creation (the API supports them); a student's pick (Phase 4); anything to do with marks, verification or grading (Phases 5 and 7).
 
 ## 6. Slice 3: people (outline)
 
