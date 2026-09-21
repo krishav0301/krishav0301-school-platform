@@ -1,21 +1,9 @@
-import { contactHref } from "@/content/model";
 import { t } from "@/i18n/messages";
 import { Card } from "@/ui";
 
 import type { SiteContent } from "./model";
+import { Reach } from "./Reach";
 import styles from "./site.module.css";
-
-/** A phone number or email as a link only when it is one (`contactHref` builds `tel:` and `mailto:` from checked characters). */
-function Reach({ value }: { value: string }) {
-  const href = contactHref(value);
-  return href ? (
-    <a href={href} className={styles.contactLink}>
-      {value}
-    </a>
-  ) : (
-    <span>{value}</span>
-  );
-}
 
 export function ContactView({ site }: { site: SiteContent }) {
   const { address, phones, email, hours } = site.contact;

@@ -6,7 +6,6 @@
  * with the language toggle.
  */
 export const STRINGS = {
-  "home.welcome": "Welcome to {school}",
   "home.notices": "Notices and updates",
   "shell.signIn": "Sign in",
   "notices.title": "Notices and updates",

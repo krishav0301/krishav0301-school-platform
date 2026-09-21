@@ -180,6 +180,7 @@ describe("touch targets", () => {
     expect(css("content/content.module.css")).toMatch(/\.chip\s*\{[^}]*min-height:\s*var\(--control-height\)/);
     expect(css("content/content.module.css")).toMatch(/\.contactLink\s*\{[^}]*min-height:\s*var\(--control-height\)/);
     expect(css("site/site.module.css")).toMatch(/\.contactLink\s*\{[^}]*min-height:\s*var\(--control-height\)/);
+    expect(css("site/site.module.css")).toMatch(/\.programmeLink\s*\{[^}]*min-height:\s*var\(--control-height\)/);
   });
 
   it("the control height itself is 44px or more", () => {

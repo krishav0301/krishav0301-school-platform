@@ -3,7 +3,8 @@ import { describe, expect, it, vi } from "vitest";
 
 import ContentPage from "@/app/portal/content/page";
 import EditContentPage from "@/app/portal/content/edit/page";
-import Home from "@/app/page";
+import { HomeView } from "@/site/HomeView";
+import { siteFrom } from "./site-fixture";
 import NoticesPage from "@/app/notices/page";
 import { ConfigContext, makeConfigValue, type PublicConfig } from "@/config/ConfigProvider";
 import { ContentEditor, ContentForm } from "@/content/ContentForm";
@@ -357,11 +358,11 @@ describe("the public notice board", () => {
     expect(html).not.toContain('role="alert"');
   });
 
-  it("the home page links to it as a secondary action, leaving Sign in the one prominent button", () => {
+  it("the home page links to it as a quiet action, leaving How to apply the one prominent button", () => {
     const html = renderToStaticMarkup(
       <ConfigContext.Provider value={makeConfigValue("ready", config)}>
         <SessionContext.Provider value={fakeSession()}>
-          <Home />
+          <HomeView site={siteFrom(royal)} sections={royal.sections} urgent={[]} />
         </SessionContext.Provider>
       </ConfigContext.Provider>,
     );

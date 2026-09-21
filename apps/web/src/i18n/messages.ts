@@ -25,9 +25,6 @@ export const en = {
   "config.unreachableBody": "Check your internet connection and try again.",
   "config.retry": "Try again",
 
-  // Public home (a placeholder until the public website in Phase 2)
-  "home.welcome": "Welcome to {school}",
-  "home.intro": "The school website is being built. Students and staff can sign in below.",
 
   // Sign in
   "signIn.title": "Sign in to {school}",
@@ -274,6 +271,10 @@ export const en = {
   "site.retry": "Try again",
   "site.notReadyTitle": "This page isn't ready yet",
   "site.notReadyBody": "Please check back soon.",
+  "site.home.apply": "How to apply",
+  "site.home.seeProgrammes": "See every programme",
+  "site.home.seeAdmission": "Read the full admission process",
+  "site.home.seeContact": "See all contact details",
 } as const;
 
 export type MessageKey = keyof typeof en;
