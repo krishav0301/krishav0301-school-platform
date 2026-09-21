@@ -1,6 +1,6 @@
 # Build plan: reusable school platform
 
-Status: **approved by PM 2026-09-20 (D-012). Phases 0 and 1 complete (2026-09-21). Phase 2 awaits PM approval.** Decisions it rests on are in `DECISIONS.md`.
+Status: **approved by PM 2026-09-20 (D-012). Phases 0 and 1 complete (2026-09-21). Phase 2 approved 2026-09-21 (D-038), slices to be confirmed with the PM.** Decisions it rests on are in `DECISIONS.md`.
 
 ## Where we are, and how to start the next session (updated 2026-09-21)
 
@@ -13,6 +13,8 @@ Status: **approved by PM 2026-09-20 (D-012). Phases 0 and 1 complete (2026-09-21
 
 **Next: Phase 2, the public website and content (5 to 7 working days).** Home, the nine programmes, admission process, scholarships, facilities, contact; content types Notice, Holiday, Routine, Vacancy and Post with expiry; cached pages purged on publish; the Admin edits content directly (drafts and approval arrive in Phase 3). **Exit:** Royal's public site on staging with editable content and page-weight budgets met. It is the first visible product and the first place design choices matter most.
 
+**Answered 2026-09-21 (D-038):** 1 approved; 2 no brand assets, use the placeholder; 3 fonts approved; 4 text and design only, R2 stays held; 5 programme list stays a placeholder; 6 Admin two-step sign-in is required (QR code and pack-removal left open). The list below is kept for the record.
+
 **Before starting Phase 2, get the PM's answer to:**
 1. Approve starting Phase 2.
 2. Brand assets: has the client sent a logo, colours or photos? (Until then: a neutral wordmark and restrained accent; nothing is taken from their Facebook page without approval, D-007.)
@@ -20,6 +22,8 @@ Status: **approved by PM 2026-09-20 (D-012). Phases 0 and 1 complete (2026-09-21
 4. Photos and files: R2 is held (D-020), so the public site is text and design only unless the PM turns R2 on (it probably needs a card).
 5. Content: the programme and stream list is third-party and unconfirmed (`docs/client-profile.md`); Phase 2 uses it as a placeholder marked `OPEN:`.
 6. Small pending decisions: Admin required to use two-step sign-in (D-036); a QR code on 2FA setup; whether applying a pack should remove settings it no longer lists (D-026 open item).
+
+**Phase 2 progress (2026-09-21):** slice 0 (Admin two-step sign-in) built, D-038. Slice 1 (content model and cached public read API) built, D-039: 637 API tests and 108 web tests pass. Not yet committed or deployed to staging. Next: slice 2, the Admin editing screens.
 
 **How to run Phase 2 (rules already in `CLAUDE.md`):** design with `ui-ux-pro-max`, review with `apple-design` (report the review), run the matching `geo-*` skill for each public-site slice (schema, technical, crawlers, `llms.txt`, content, citability; D-031), use the code graph before scanning files (D-033), tests before code, break the code on purpose to check the tests, report after each slice. Suggested slices (to confirm with the PM): 1 content model and the cached public read API; 2 Admin editing screens; 3 public pages (Home, Programmes, Admissions, Scholarships, Facilities, Contact) built from theme tokens and the message catalog; 4 notices, holidays, routine, vacancies and posts with expiry; 5 design and GEO pass, page-weight budgets, staging exit check.
 

@@ -169,6 +169,62 @@ describe("audit chain: business change and audit entry are one atomic batch", ()
   });
 });
 
+describe("audit chain: an entry only for a change that happened (onlyIfLastChanged)", () => {
+  const entries = async (id: string) =>
+    (await db.prepare("SELECT COUNT(*) AS n FROM audit_events WHERE entity_public_id = ?1").bind(id).first<{ n: number }>())!.n;
+  const sectionCount = async (k: string) =>
+    (await db.prepare("SELECT COUNT(*) AS n FROM sections WHERE key = ?1").bind(k).first<{ n: number }>())!.n;
+
+  it("records the entry, and says so, when the change changed a row", async () => {
+    await db.prepare("INSERT INTO sections (key, name) VALUES ('guard-yes', 'Before')").run();
+    const result = await recordAudit(db, key, { ...event(20), entityPublicId: "guard-yes" }, [
+      db.prepare("UPDATE sections SET name = 'After' WHERE key = 'guard-yes'"),
+    ], { onlyIfLastChanged: true });
+
+    expect(result.applied).toBe(true);
+    expect(await entries("guard-yes")).toBe(1);
+    expect(await verifyAuditChain(db, key)).toMatchObject({ ok: true });
+  });
+
+  it("records nothing, and says so, when the change matched no row (a lost race or a refused check)", async () => {
+    const before = (await db.prepare("SELECT COUNT(*) AS n FROM audit_events").first<{ n: number }>())!.n;
+    const result = await recordAudit(db, key, { ...event(21), entityPublicId: "guard-no" }, [
+      db.prepare("UPDATE sections SET name = 'Never' WHERE key = 'no-such-section'"),
+    ], { onlyIfLastChanged: true });
+
+    expect(result.applied).toBe(false);
+    expect(await entries("guard-no")).toBe(0);
+    expect((await db.prepare("SELECT COUNT(*) AS n FROM audit_events").first<{ n: number }>())!.n).toBe(before);
+    expect(await verifyAuditChain(db, key)).toMatchObject({ ok: true });
+  });
+
+  it("looks at the LAST business statement only", async () => {
+    const result = await recordAudit(db, key, { ...event(22), entityPublicId: "guard-last" }, [
+      db.prepare("INSERT INTO sections (key, name) VALUES ('guard-last-a', 'Made')"),
+      db.prepare("UPDATE sections SET name = 'Never' WHERE key = 'no-such-section'"),
+    ], { onlyIfLastChanged: true });
+
+    expect(result.applied).toBe(false);
+    expect(await entries("guard-last")).toBe(0);
+    // The earlier statement is not undone: callers put the statement that decides last.
+    expect(await sectionCount("guard-last-a")).toBe(1);
+  });
+
+  it("without the option, behaves as before: always records, and says applied", async () => {
+    const result = await recordAudit(db, key, { ...event(23), entityPublicId: "guard-off" }, [
+      db.prepare("UPDATE sections SET name = 'Never' WHERE key = 'no-such-section'"),
+    ]);
+    expect(result.applied).toBe(true);
+    expect(await entries("guard-off")).toBe(1);
+  });
+
+  it("a later entry still links to the newest one after a skipped entry", async () => {
+    await recordAudit(db, key, { ...event(24), entityPublicId: "guard-skip" }, [db.prepare("UPDATE sections SET name = 'x' WHERE key = 'nope'")], { onlyIfLastChanged: true });
+    await recordAudit(db, key, { ...event(25), entityPublicId: "guard-after" });
+    expect(await verifyAuditChain(db, key)).toMatchObject({ ok: true });
+  });
+});
+
 describe("audit chain: many writers at once", () => {
   it("25 simultaneous entries all succeed, and the chain has no fork or gap", async () => {
     const before = await db.prepare("SELECT COUNT(*) AS n FROM audit_events").first<{ n: number }>();

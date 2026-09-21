@@ -6,6 +6,7 @@ import type { AppEnv } from "./core/types";
 import { registerAccounts } from "./modules/accounts/routes";
 import { registerAuth } from "./modules/auth/routes";
 import { registerConfig } from "./modules/config/routes";
+import { registerContent } from "./modules/content/routes";
 import { registerHealth } from "./modules/health/routes";
 
 /**
@@ -22,6 +23,7 @@ export function createApp() {
   registerAuth(app);
   registerAccounts(app);
   registerConfig(app);
+  registerContent(app);
 
   return app;
 }

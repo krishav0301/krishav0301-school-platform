@@ -47,7 +47,7 @@ Roles: `student`, `teacher`, `coordinator`, `accountant`, `admin`, `super_admin`
 
 | Table | Key columns | Rules |
 |---|---|---|
-| `ContentItem` | kind (notice, holiday, routine, vacancy, post), title, body, image_file, attachment_file, publish_on, hide_after, status (draft, waiting, live, expired), is_urgent, created_by, approved_by | Expired items hide automatically |
+| `ContentItem` (`content_items`, D-039) | kind (notice, holiday, routine, vacancy, post), title, body, contact (vacancy only), publish_on, hide_after (AD days by Nepal's clock), status (draft, waiting, live), is_urgent, created_by, published_by, published_at | Expired is derived from hide_after, never stored. Image and file columns come with R2 (D-020) |
 | `FileObject` | storage_key, content_type (from content, not extension), size, sha256, original_name, uploaded_by, status (temp, attached, deleted), expires_at | Private. Served only through a permission check and a short-lived link. Temp uploads expire and are cleaned up |
 
 ## Phase 3: academic setup and approvals

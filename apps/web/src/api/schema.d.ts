@@ -225,6 +225,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/site/content": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description The notices, holidays, routines, vacancies and posts the public may read today, by Nepal's clock: live items from their publish day to the end of their hide-after day. Urgent first, then newest. The same for every visitor. */
+        get: operations["site_content"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -348,6 +365,22 @@ export interface components {
         ConfigError: {
             error: string;
         };
+        PublicContent: {
+            items: components["schemas"]["PublicContentItem"][];
+        };
+        PublicContentItem: {
+            id: string;
+            kind: components["schemas"]["ContentKind"];
+            title: string;
+            /** @description Plain text. A blank line starts a new paragraph. */
+            body: string;
+            contact: string | null;
+            urgent: boolean;
+            publishedOn: string;
+            hideAfter: string | null;
+        };
+        /** @enum {string} */
+        ContentKind: "notice" | "holiday" | "routine" | "vacancy" | "post";
     };
     responses: never;
     parameters: never;
@@ -821,6 +854,28 @@ export interface operations {
                             minimum: number;
                         }[];
                     };
+                };
+            };
+        };
+    };
+    site_content: {
+        parameters: {
+            query?: {
+                kind?: components["schemas"]["ContentKind"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description What is on the site today */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublicContent"];
                 };
             };
         };

@@ -21,6 +21,11 @@ const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
  * new head. Pass `businessStatements` unchanged on every attempt; they were rolled back, so
  * running them again is safe.
  *
+ * `onlyIfLastChanged`: write the entry only if the LAST business statement changed a row (SQLite's
+ * `changes()`). For a conditional change (`UPDATE ... WHERE status = 'draft' AND <still allowed>`), a
+ * lost race or a failed re-check changes nothing, so nothing is recorded, and `applied` is false. The
+ * caller puts the statement that decides last; earlier statements in the batch are not undone.
+ *
  * Cost: one read of the chain head (and the actor, if named by public id), then one batch: two
  * round trips.
  */
@@ -29,7 +34,8 @@ export async function recordAudit(
   key: string,
   event: AuditEventInput,
   businessStatements: D1PreparedStatement[] = [],
-): Promise<{ hash: string }> {
+  options: { onlyIfLastChanged?: boolean } = {},
+): Promise<{ hash: string; applied: boolean }> {
   const { actorPublicId, ...rest } = event;
 
   for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
@@ -49,12 +55,13 @@ export async function recordAudit(
     const stored = toStored(fields);
     const hash = await hashEvent(key, prevHash, fields);
 
+    const columns = `(at, actor_user_id, action, entity_type, entity_public_id, summary,
+            before_json, after_json, reason, request_id, prev_hash, hash)`;
     const insert = db
       .prepare(
-        `INSERT INTO audit_events
-           (at, actor_user_id, action, entity_type, entity_public_id, summary,
-            before_json, after_json, reason, request_id, prev_hash, hash)
-         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12)`,
+        options.onlyIfLastChanged
+          ? `INSERT INTO audit_events ${columns} SELECT ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12 WHERE changes() > 0`
+          : `INSERT INTO audit_events ${columns} VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12)`,
       )
       .bind(
         stored.at, stored.actorUserId, stored.action, stored.entityType, stored.entityPublicId, stored.summary,
@@ -62,8 +69,9 @@ export async function recordAudit(
       );
 
     try {
-      await db.batch([...businessStatements, insert]);
-      return { hash };
+      const results = await db.batch([...businessStatements, insert]);
+      const applied = !options.onlyIfLastChanged || (results[results.length - 1]!.meta.changes ?? 0) > 0;
+      return { hash, applied };
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       if (!CONTENTION.test(message)) throw error;

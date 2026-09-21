@@ -534,6 +534,78 @@
         "required": [
           "error"
         ]
+      },
+      "PublicContent": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PublicContentItem"
+            }
+          }
+        },
+        "required": [
+          "items"
+        ]
+      },
+      "PublicContentItem": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/ContentKind"
+          },
+          "title": {
+            "type": "string"
+          },
+          "body": {
+            "type": "string",
+            "description": "Plain text. A blank line starts a new paragraph."
+          },
+          "contact": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "urgent": {
+            "type": "boolean"
+          },
+          "publishedOn": {
+            "type": "string",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+          },
+          "hideAfter": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+          }
+        },
+        "required": [
+          "id",
+          "kind",
+          "title",
+          "body",
+          "contact",
+          "urgent",
+          "publishedOn",
+          "hideAfter"
+        ]
+      },
+      "ContentKind": {
+        "type": "string",
+        "enum": [
+          "notice",
+          "holiday",
+          "routine",
+          "vacancy",
+          "post"
+        ]
       }
     },
     "parameters": {}
@@ -1145,6 +1217,37 @@
                     "error",
                     "failures"
                   ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/site/content": {
+      "get": {
+        "operationId": "site_content",
+        "tags": [
+          "site"
+        ],
+        "description": "The notices, holidays, routines, vacancies and posts the public may read today, by Nepal's clock: live items from their publish day to the end of their hide-after day. Urgent first, then newest. The same for every visitor.",
+        "parameters": [
+          {
+            "schema": {
+              "$ref": "#/components/schemas/ContentKind"
+            },
+            "required": false,
+            "name": "kind",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "What is on the site today",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicContent"
                 }
               }
             }
