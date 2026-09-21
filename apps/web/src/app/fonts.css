@@ -1,0 +1,36 @@
+/*
+ * Self-hosted fonts (D-038). The ONLY place a font file is named. Everything else asks for a font by the
+ * name in the theme's stack (src/theme/css.ts) and never mentions a file or an outside host.
+ *
+ * Inter, Noto Sans and Noto Sans Devanagari are variable fonts under the SIL Open Font License 1.1
+ * (the licences are beside the files in /fonts). Only the subsets we need are here, and the browser
+ * downloads a file only when text in its range appears: the Devanagari file is fetched for Nepali
+ * text and never for English. Files carry their version in the name and are cached for a year.
+ * `font-display: swap` shows text in the device's font at once and switches when the file arrives.
+ */
+@font-face {
+  font-family: "Inter";
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url("/fonts/inter-5.3.0-latin.woff2") format("woff2");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+  font-family: "Noto Sans";
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url("/fonts/noto-sans-5.3.0-latin.woff2") format("woff2");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+  font-family: "Noto Sans Devanagari";
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url("/fonts/noto-sans-devanagari-5.3.0-devanagari.woff2") format("woff2");
+  unicode-range: U+0900-097F, U+1CD0-1CF9, U+200C-200D, U+20A8, U+20B9, U+20F0, U+25CC, U+A830-A839, U+A8E0-A8FF, U+11B00-11B09;
+}

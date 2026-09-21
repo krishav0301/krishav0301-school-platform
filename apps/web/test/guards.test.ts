@@ -25,6 +25,8 @@ const read = (file: string) => readFileSync(file, "utf8");
 
 // The built-in default theme and the font stacks are where colours and fonts may be written out.
 const ALLOWED_LITERALS = new Set(["theme/default-theme.ts", "theme/css.ts"]);
+// The one stylesheet that names font files (self-hosted, D-038).
+const FONT_FACE_FILE = "app/fonts.css";
 
 const stripComments = (text: string) => text.replace(/\/\*[\s\S]*?\*\//g, "").replace(/^\s*\/\/.*$/gm, "");
 
@@ -53,9 +55,37 @@ describe("no hardcoded colours or fonts", () => {
     expect(offenders).toEqual([]);
   });
 
-  it("no font-family written out: fonts come from --font-body", () => {
-    const offenders = stylesheets.filter((f) => /font-family\s*:(?!\s*var\()/.test(stripComments(read(f)))).map(rel);
+  it("no font-family written out: fonts come from --font-body (the one exception is the file that declares the self-hosted fonts)", () => {
+    const offenders = stylesheets.filter((f) => rel(f) !== FONT_FACE_FILE && /font-family\s*:(?!\s*var\()/.test(stripComments(read(f)))).map(rel);
     expect(offenders).toEqual([]);
+  });
+
+  it("the font file declares only @font-face rules, from our own /fonts folder, that swap in and never name an outside host", () => {
+    const css = stripComments(read(join(src, FONT_FACE_FILE)));
+    const outside = css.replace(/@font-face\s*\{[^}]*\}/g, "").trim();
+    expect(outside, "nothing but @font-face rules").toBe("");
+
+    const blocks = css.match(/@font-face\s*\{[^}]*\}/g) ?? [];
+    expect(blocks.length).toBeGreaterThanOrEqual(3);
+    for (const block of blocks) {
+      expect(block).toMatch(/font-display:\s*swap/);
+      expect(block).toMatch(/url\("\/fonts\/[a-z0-9.-]+\.woff2"\)/);
+      expect(block).not.toMatch(/https?:|\/\//);
+    }
+  });
+
+  it("every font file named there exists, and its licence is beside it", () => {
+    const publicFonts = join(src, "..", "public", "fonts");
+    const files = readdirSync(publicFonts);
+    for (const [, name] of stripComments(read(join(src, FONT_FACE_FILE))).matchAll(/url\("\/fonts\/([^"]+)"\)/g)) {
+      expect(files, name).toContain(name);
+    }
+    expect(files.filter((f) => f.startsWith("OFL-")).length).toBeGreaterThanOrEqual(3);
+  });
+
+  it("the fonts a theme may choose are the ones that are hosted here", () => {
+    const declared = new Set([...stripComments(read(join(src, FONT_FACE_FILE))).matchAll(/font-family:\s*"([^"]+)"/g)].map((m) => m[1]));
+    for (const name of ["Inter", "Noto Sans", "Noto Sans Devanagari"]) expect(declared.has(name), name).toBe(true);
   });
 
   it("the patterns used above really do match what they are meant to catch", () => {

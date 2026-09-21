@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 
 import { DEFAULT_THEME_CSS, THEME_BOOT_SCRIPT, THEME_STYLE_ID } from "@/theme/boot";
 
+import "./fonts.css";
 import "./globals.css";
 import { Providers } from "./providers";
 
