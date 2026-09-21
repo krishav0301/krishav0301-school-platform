@@ -32,7 +32,9 @@ Rejected: adding it to `PublicConfig` (every portal page would fetch every progr
 
 `parsePack` adds checks the schema cannot express: programme keys are unique, and every programme's `section` exists in `sections`.
 
-Both packs carry a `site` block. Royal's holds the nine programmes, six admission steps, scholarship policy and fifteen facilities from `docs/client-profile.md`. That content is third-party and unconfirmed, so the pack file and the tests mark it `OPEN:`. The sample school's block is written for Nursery to Grade 10 and shares no wording with Royal's (the second-school test checks this).
+Home's `headline` is the page's h1 (the pack author writes the school's name into it); `summary` is the line beneath it, and is also the page description.
+
+Both packs carry a `site` block. Royal's holds the nine programmes, six admission steps, the scholarship policy and thirteen facilities from `docs/client-profile.md` (the listing's "conference" and "conference hall" are one item, and "scholarships" has its own page). That content is third-party and unconfirmed. JSON cannot hold a comment, so the `OPEN:` marker lives in `packs/README.md`, in the test that counts Royal's programmes, and in `DECISIONS.md`. The sample school's block is written for Nursery to Grade 10 and shares no wording with Royal's (the second-school test checks this).
 
 ### 3.2 Storage
 
@@ -43,8 +45,8 @@ Applying a pack replaces the whole row (an update of one document, never a delet
 ### 3.3 Reading
 
 - `core/config/site.ts`: `loadSiteContent(db)` returns the parsed block or `null` (one round trip; the row is re-validated on read and ignored if it no longer parses, like a stored theme).
-- `GET /api/site/pages`, in `modules/site`, declared public and listed in `PUBLIC_ROUTES` (the same for every visitor, nothing private). Output is validated by Zod and added to the committed OpenAPI contract, and the typed client is regenerated. Response is `{ ready: false }` when there is no row, otherwise `{ ready: true, ...block }`. `Cache-Control: public, max-age=60`.
-- The Worker's builders call `loadSiteContent` directly, not the HTTP route.
+- `GET /api/site/pages`, in `modules/site`, with `access: { action: "site.view" }`, the same anonymous action `GET /api/site/content` uses (the matrix already grants it to everyone; it is not a `PUBLIC_ROUTES` entry). Output is validated by Zod, added to the committed OpenAPI contract, and the typed client is regenerated. Response is `{ site: SiteContent | null }`, with `null` when there is no row. `Cache-Control: public, max-age=60`.
+- The Worker's builders call `loadSiteContent` directly, not the HTTP route. A page costs two round trips: the configuration batch, then this one read.
 
 ## 4. Public pages
 
@@ -55,7 +57,7 @@ Add `/programmes`, `/admission`, `/scholarships`, `/facilities`, `/contact` to `
 ### 4.2 Home, in order
 
 Each block shows only if it has content.
-1. Hero: school name as the h1, the pack's summary, one prominent button **How to apply** (to `/admission`), and a quiet link to `/notices`.
+1. Hero: the pack's headline as the h1, its summary, one prominent button **How to apply** (to `/admission`), and a quiet link to `/notices`.
 2. Urgent notice strip: live urgent items from the existing content API (`GET /api/site/content`).
 3. Programmes, grouped by section, each a card linking to its anchor.
 4. Admission in brief: step titles only, with a link to the full page.
@@ -67,7 +69,7 @@ The current Home's primary "Sign in" button moves to the header and footer (one 
 
 Links: Programmes, Admission, Scholarships, Facilities, Contact, Notices. The school's short name is the Home link. The current page has `aria-current="page"`. Sign in stays a quiet link (or **Dashboard** when signed in, as now).
 
-From tablet width the links sit inline. Below that, one **Menu** button opens a panel of the links: `aria-expanded` and `aria-controls`, closes on Escape and on choosing a link, focus returns to the button, controls at least 44 px, no sideways scroll at 320 px with text at 200%. The footer repeats the page links.
+The header has two rows, so the source order is also the visual order at every width. The top row is the school's name, the Menu button (below 48 rem only) and Sign in. The second row is the page links. From 48 rem the links are always shown inline. Below that they are hidden until the **Menu** button is pressed, then they stack as a list. The button has `aria-expanded` and `aria-controls`. The list closes on Escape (focus returns to the button), on choosing a link, and when the page changes. Controls are at least 44 px, with no sideways scroll at 320 px with text at 200%. The footer repeats the page links, so they are reachable without JavaScript.
 
 ### 4.4 The web pages
 
@@ -86,8 +88,8 @@ Each new page gets a builder in `modules/site/pages.ts` producing the same conte
 - **API:** the route is public and listed in `PUBLIC_ROUTES`; its output is validated; `{ ready: false }` with no row; cache header set; the OpenAPI contract is current.
 - **Crawler, per page:** title, description, canonical, parseable JSON-LD; `<script>` in pack text comes out escaped; the sample school's pages contain no Royal Softech words; staging stays `noindex`.
 - **Lists:** boundary check and summary test cover the new addresses; a new test confirms `sitemap.xml` and `llms.txt` list every page.
-- **Web:** guards (no hardcoded colours, fonts or words) pass; a markup test per page; loading, error and not-ready states; Menu behaviour (`aria-expanded`, Escape, focus return, current page); `site-strings.test.ts`; the second-theme snapshot.
-- **Break on purpose:** remove the escaping, drop a page from `PAGES`, drop the Menu's Escape handler; each must fail a test.
+- **Web:** guards (no hardcoded colours, fonts or words) pass; a markup test per page for both packs; loading, error and not-ready states; the header's markup (links in order, current page, `aria-expanded` and `aria-controls` closed and open); `site-strings.test.ts`; the second-theme snapshot. The web app has no DOM test library and adding one needs a reason and approval, so the Menu's keyboard behaviour (Escape, focus return, closing on navigation) is checked in the browser preview instead, and reported.
+- **Break on purpose:** remove the escaping, drop a page from `PAGES`, break the whole-row replace so a re-apply rewrites the timestamp; each must fail a test.
 
 Fees, results, permissions and the audit log are not touched. The permission matrix does not change (the route is public, not an action).
 
