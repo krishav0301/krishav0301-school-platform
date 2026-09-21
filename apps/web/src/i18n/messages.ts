@@ -252,6 +252,14 @@ export const en = {
   "notices.loadFailed": "Could not load the notices. Check your connection and try again.",
   "notices.retry": "Try again",
   "home.notices": "Notices and updates",
+
+  // Public site pages (Phase 2, slice 3). The titles are shared with the Worker's copy for crawlers
+  // (`modules/site/strings.ts`), so the tab title the app sets is the one the Worker wrote.
+  "site.programmes.title": "Programmes",
+  "site.admission.title": "Admission",
+  "site.scholarships.title": "Scholarships",
+  "site.facilities.title": "Facilities",
+  "site.contact.title": "Contact",
 } as const;
 
 export type MessageKey = keyof typeof en;

@@ -77,6 +77,11 @@ describe("sitemap.xml", () => {
     expect((await ask("/sitemap.xml", production)).text).not.toContain("<lastmod>");
   });
 
+  it("lists the six fixed pages and the notice board", async () => {
+    const { text } = await ask("/sitemap.xml", production);
+    for (const path of ["/", "/programmes", "/admission", "/scholarships", "/facilities", "/contact", "/notices"]) expect(text, path).toContain(`<loc>https://royal.example${path}</loc>`);
+  });
+
   it("escapes the address, so an odd site address cannot break the XML", async () => {
     const { text } = await ask("/sitemap.xml", { ...production, SITE_ORIGIN: "https://royal.example/a&b<c>" });
     expect(text).not.toMatch(/<loc>[^<]*[&](?!amp;|lt;|gt;|quot;|#39;)/);
@@ -99,6 +104,13 @@ describe("llms.txt", () => {
     expect(text).toContain("\n## Pages\n");
     for (const path of FILLED_PAGES) expect(text, path).toContain(`](https://royal.example${path})`);
     expect(text).toContain("- [Notices and updates](https://royal.example/notices): Notices, holidays, routines and vacancies from Royal Softech College.");
+  });
+
+  it("introduces every fixed page with its own line", async () => {
+    const { text } = await ask("/llms.txt", production);
+    expect(text).toContain("- [Programmes](https://royal.example/programmes): The programmes offered by Royal Softech College, with their levels, affiliations and durations.");
+    expect(text).toContain("- [Admission](https://royal.example/admission): How to apply to Royal Softech College: the admission steps, from enquiry to enrolment.");
+    for (const path of ["/scholarships", "/facilities", "/contact"]) expect(text, path).toContain(`](https://royal.example${path}): `);
   });
 
   it("says nothing before the school is set up (there is nothing true to say): 404, on a database with no school in it", async () => {

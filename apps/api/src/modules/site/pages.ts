@@ -1,28 +1,11 @@
 import { formatBs, nepalDate, type BsDate } from "../../core/dates";
 import { listPublicContent } from "../content";
 import { escapeHtml } from "./html";
+import type { Builder, PageContext, PageParts } from "./page-types";
+import { admission, contact, facilities, home, programmes, scholarships } from "./site-pages";
 import { say, type StringKey } from "./strings";
 
-/** What a page builder is given. Nothing here is trusted as markup: every value is escaped where it is written. */
-export interface PageContext {
-  db: D1Database;
-  school: { name: string; shortName: string };
-  sections: { key: string; name: string }[];
-  origin: string;
-  path: string;
-}
-
-/** What a page adds to its static shell. */
-export interface PageParts {
-  title: string;
-  description: string;
-  /** Structured data blocks, besides the organisation every page gets. */
-  structuredData: Record<string, unknown>[];
-  /** The plain HTML for the top of the body. Built only from escaped values. */
-  bodyHtml: string;
-}
-
-type Builder = (ctx: PageContext) => Promise<PageParts>;
+export type { PageContext, PageParts };
 
 const e = escapeHtml;
 
@@ -37,16 +20,6 @@ function bsWords(text: string | null): string | null {
     return null;
   }
 }
-
-const home: Builder = async ({ school, sections }) => ({
-  title: school.name,
-  description: sections.length > 0 ? `${school.name}: ${sections.map((s) => s.name).join(", ")}.` : `${school.name}.`,
-  structuredData: [],
-  bodyHtml:
-    `<h1>${e(say("home.welcome", { school: school.name }))}</h1>` +
-    (sections.length > 0 ? `<ul>${sections.map((s) => `<li>${e(s.name)}</li>`).join("")}</ul>` : "") +
-    `<nav><a href="/notices">${e(say("home.notices"))}</a> <a href="/sign-in">${e(say("shell.signIn"))}</a></nav>`,
-});
 
 const notices: Builder = async ({ db, school, origin }) => {
   const { items } = await listPublicContent(db, nepalDate(new Date()));
@@ -92,6 +65,11 @@ const notices: Builder = async ({ db, school, origin }) => {
 const PAGES: Record<string, Builder> = {
   "/": home,
   "/notices": notices,
+  "/programmes": programmes,
+  "/admission": admission,
+  "/scholarships": scholarships,
+  "/facilities": facilities,
+  "/contact": contact,
 };
 
 export const FILLED_PAGES: readonly string[] = Object.keys(PAGES);
@@ -100,6 +78,11 @@ export const FILLED_PAGES: readonly string[] = Object.keys(PAGES);
 const SUMMARIES: Record<string, (school: string) => { name: string; summary: string }> = {
   "/": (school) => ({ name: say("llms.home"), summary: say("llms.homeSummary", { school }) }),
   "/notices": (school) => ({ name: say("notices.title"), summary: say("notices.description", { school }) }),
+  "/programmes": (school) => ({ name: say("site.programmes.title"), summary: say("site.programmes.description", { school }) }),
+  "/admission": (school) => ({ name: say("site.admission.title"), summary: say("site.admission.description", { school }) }),
+  "/scholarships": (school) => ({ name: say("site.scholarships.title"), summary: say("site.scholarships.description", { school }) }),
+  "/facilities": (school) => ({ name: say("site.facilities.title"), summary: say("site.facilities.description", { school }) }),
+  "/contact": (school) => ({ name: say("site.contact.title"), summary: say("site.contact.description", { school }) }),
 };
 
 export const pageSummary = (path: string, school: string): { name: string; summary: string } => SUMMARIES[normalizePath(path)]!(school);
