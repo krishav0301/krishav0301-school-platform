@@ -192,6 +192,8 @@ describe("choosing a new password", () => {
     const { publicId } = await person("coordinator", { flagged: false });
     const challenge = await signChallenge(env.SESSION_SECRET, { sub: publicId, kind: "password" });
     expect((await change(challenge, chosen)).status).toBe(401);
+    // Refused before the password is even judged: no "too weak" answer for someone who has nothing to change.
+    expect((await change(challenge, "a")).status).toBe(401);
   });
 
   it("a bad request body is 400", async () => {

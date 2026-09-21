@@ -335,6 +335,18 @@ describe("listStaff", () => {
     for (const role of ["accountant", "teacher", "student"]) expect((await listStaff(db, [{ role, scope: "institution" }])).staff).toEqual([]);
   });
 
+  it("never shows a Super Admin, even one who also holds another role", async () => {
+    const hidden = await known("coordinator");
+    await db
+      .prepare("INSERT INTO role_assignments (user_id, role, scope_type, is_active) VALUES ((SELECT id FROM users WHERE public_id = ?1), 'super_admin', 'institution', 1)")
+      .bind(hidden.publicId)
+      .run();
+    for (const viewer of ["admin", "super_admin"]) {
+      const ids = (await listStaff(db, [{ role: viewer, scope: "institution" }])).staff.map((s) => s.id);
+      expect(ids).not.toContain(hidden.publicId);
+    }
+  });
+
   it("carries no password, hash or secret", async () => {
     await newTeacher();
     const text = JSON.stringify(await listStaff(db, [{ role: "super_admin", scope: "institution" }]));

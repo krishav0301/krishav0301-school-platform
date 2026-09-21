@@ -118,6 +118,13 @@ describe("the secrets", () => {
     expect(Object.keys(body).sort()).toEqual(["id", "temporaryPassword"]);
   });
 
+  it("a new teacher's temporary password comes back once and is never cached", async () => {
+    const response = await send("POST", "/api/teachers", teacherBody({ homeSectionKey: "plus2" }), coordinator);
+    expect(response.status).toBe(201);
+    expect(response.headers.get("Cache-Control")).toBe("no-store");
+    expect(((await response.json()) as Made).temporaryPassword).toMatch(TEMP_FORMAT);
+  });
+
   it("a new temporary password is never cached either", async () => {
     const tea = await makeTeacher();
     const response = await send("POST", `/api/staff/${tea.id}/temporary-password`, undefined, coordinator);

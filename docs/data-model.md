@@ -64,7 +64,7 @@ Roles: `student`, `teacher`, `coordinator`, `accountant`, `admin`, `super_admin`
 | `ElectiveGroup` (`elective_groups`, D-056, D-058) | public_id, level, name, pick_count (1 to 10, default 1), is_active | "Pick one of Biology, Mathematics, Computer Science", approved by the PM 2026-09-21. Unique per level and name. Only the groups are stored in Phase 3; a student's pick is saved when students exist (Phase 4) |
 | `MarkComponent` (`mark_components`) | public_id, subject_offering, name, max_hundredths (1 to 100000), ordinal (1 to 10, next free), is_active | Theory, practical, internal. Marks stored as whole hundredths (7500 = 75). Unique per offering by name and by ordinal. Switched off, never deleted |
 | `TeacherAssignment` | teacher, subject_offering | A teacher may hold many |
-| `StaffProfile` | user, designation, home_section | |
+| `StaffProfile` (`staff_profiles`, slice 3a, D-059) | user, home_section (nullable) | One row per **teacher**, holding their home section. A Co-ordinator's or Accountant's section is in their role assignment. A staff job title (designation) is not built. |
 | `ApprovalRequest` | kind (website_content, fee_structure, discount, reversal, refund), status (pending, approved, declined, stale), requested_by, subject_type, subject_id, subject_version, snapshot (JSON), decided_by, decided_at, decision_reason | Requester and decider must differ. **One pending request per subject.** Approve-and-apply runs in one locked transaction. A changed subject makes it stale |
 
 ## Phase 4: admissions and the student record
