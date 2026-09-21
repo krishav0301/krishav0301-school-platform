@@ -54,13 +54,13 @@ Roles: `student`, `teacher`, `coordinator`, `accountant`, `admin`, `super_admin`
 
 | Table | Key columns | Rules |
 |---|---|---|
-| `AcademicYear` | bs_year, label, start_date, end_date, status (draft, active, closed) | Year must be verified. **A closed year rejects all writes** |
-| `Programme` | section, name, code, affiliation, is_active | Created by the Co-ordinator |
-| `Level` | programme, ordinal, name | Grade 11 and 12 for +2. Year 1 to 4 for bachelor's |
-| `Class` | academic_year, programme, level, label (nullable), class_teacher (nullable) | Unique per year, programme, level, label |
-| `Terminal` | academic_year, name, ordinal | Yearly with terminals (D-006) |
+| `AcademicYear` (`academic_years`, built in slice 1, D-057) | public_id, bs_year (unique), label (unique), start_date, end_date (AD), status (draft, active, closed), created_at, closed_at | Year must be verified. **At most one active year** (a partial unique index). **A closed year rejects all writes**: the service refuses, and database triggers on the year and on its classes and terminals refuse again. Closing a year is Phase 8. Managed by a whole-school Co-ordinator or the Super Admin |
+| `Programme` (`programmes`) | public_id, key (unique), name, section, affiliation, ordering, is_active | Made by the Co-ordinator (key generated) or seeded from the pack's `academics` block **only where missing**, never overwritten. Switched off, never deleted. A section-scoped Co-ordinator manages only their own section's |
+| `Level` (`levels`) | public_id, programme, ordinal (1 to 20, next free), name, is_active | Grade 11 and 12 for +2. Year 1 to 4 for bachelor's. Unique per programme and ordinal |
+| `Class` (`classes`) | public_id, academic_year, programme, level, label (`''` when none, so "unique" works), is_active; `class_teacher` arrives in slice 3 | A composite foreign key ties the level to its own programme. Unique per year, level, label. Switched off, never deleted |
+| `Terminal` (`terminals`) | public_id, academic_year, name, ordinal (1 to 12, next free) | Yearly with terminals (D-006). Belongs to the whole school, so managed like a year. Shown with the school's own word for it |
 | `Subject` | name, code, is_archived | Archived, never deleted, if it has marks or a teacher |
-| `SubjectOffering` | class, subject, credit_hours, elective_group (nullable) | `elective_group` is `OPEN:` until PM approves elective modelling |
+| `SubjectOffering` | **programme level** (not class, D-056), subject, credit_hours, elective_group (nullable) | A class inherits its level's subjects, so a new year does not re-enter them. Elective groups were approved by the PM on 2026-09-21 (D-056); built in slice 2 |
 | `MarkComponent` | subject_offering, name, max_marks | Theory, practical, internal. Marks stored as integer hundredths |
 | `TeacherAssignment` | teacher, subject_offering | A teacher may hold many |
 | `StaffProfile` | user, designation, home_section | |
