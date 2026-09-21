@@ -30,11 +30,23 @@ const oneLine = (text: string): string => text.replace(/\s+/g, " ").trim();
 
 const xmlEscape = escapeHtml;
 
+/**
+ * The PM's decision (D-053): the site's content may be found by search and used to answer a person's question, but is not
+ * to be used to train AI models. `Content-Signal` is the standard way to say so (contentsignals.org); it is a statement of
+ * preference, so the crawlers that gather training data are also turned away by name, which robots.txt does enforce for
+ * those that honour it. Only crawlers their operators document as training crawlers are named here. The ones that search
+ * or answer for a person (OAI-SearchBot, ChatGPT-User, PerplexityBot, Claude-SearchBot, Claude-User, Googlebot, bingbot,
+ * Applebot) are not named, so they follow the general group. Re-check the operators' lists now and then.
+ */
+const CONTENT_SIGNAL = "search=yes, ai-input=yes, ai-train=no";
+const TRAINING_CRAWLERS = ["GPTBot", "ClaudeBot", "anthropic-ai", "CCBot", "Google-Extended", "Applebot-Extended", "Bytespider", "cohere-ai", "Meta-ExternalAgent"] as const;
+
 function robotsTxt(origin: string, indexable: boolean): string {
   if (!indexable) return "User-agent: *\nDisallow: /\n";
   return [
     "User-agent: *",
     "Allow: /",
+    `Content-Signal: ${CONTENT_SIGNAL}`,
     // Not for search or AI tools: the API, the signed-in portal, the sign-in and reset pages, the component gallery.
     "Disallow: /api/",
     "Disallow: /portal",
@@ -42,6 +54,7 @@ function robotsTxt(origin: string, indexable: boolean): string {
     "Disallow: /reset-password",
     "Disallow: /design",
     "",
+    ...TRAINING_CRAWLERS.flatMap((bot) => [`User-agent: ${bot}`, "Disallow: /", ""]),
     `Sitemap: ${origin}/sitemap.xml`,
     "",
   ].join("\n");

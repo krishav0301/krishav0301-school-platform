@@ -40,7 +40,8 @@ describe("robots.txt", () => {
     expect(text).toContain("User-agent: *\nAllow: /\n");
     for (const private_ of ["/api/", "/portal", "/sign-in", "/reset-password", "/design"]) expect(text, private_).toContain(`Disallow: ${private_}\n`);
     expect(text).toContain("Sitemap: https://royal.example/sitemap.xml");
-    expect(text).not.toMatch(/Disallow: \/\s*(\n|$)/);
+    // The general group (everyone not named below) never closes the site.
+    expect(text.split("\n\n")[0]!).not.toMatch(/Disallow: \/\s*(\n|$)/);
   });
 
   it("on any site that is not production (staging, development, tests): nobody is invited in, and there is no sitemap to follow", async () => {
@@ -56,6 +57,44 @@ describe("robots.txt", () => {
     for (const path of ["/robots.txt", "/sitemap.xml"]) {
       const { response } = await ask(path, { ...production, DB: env.SCRATCH_DB });
       expect(response.status, path).toBe(200);
+    }
+  });
+});
+
+// The PM's decision (D-053): the site's content is not to be used to train AI models. Search and answering on a person's
+// behalf stay welcome. These are the crawlers their operators document as gathering training data.
+describe("AI training", () => {
+  const TRAINING = ["GPTBot", "ClaudeBot", "anthropic-ai", "CCBot", "Google-Extended", "Applebot-Extended", "Bytespider", "cohere-ai", "Meta-ExternalAgent"];
+  const ANSWERING = ["OAI-SearchBot", "ChatGPT-User", "PerplexityBot", "Claude-SearchBot", "Claude-User", "Googlebot", "bingbot", "Applebot", "facebookexternalhit"];
+
+  it("a production site states that its content is for search and AI answers but not for training, in the general group", async () => {
+    const { text } = await ask("/robots.txt", production);
+    const general = text.split("\n\n")[0]!;
+    expect(general).toContain("User-agent: *\nAllow: /\n");
+    expect(general).toContain("Content-Signal: search=yes, ai-input=yes, ai-train=no\n");
+  });
+
+  it("turns away, by name, the crawlers that gather training data", async () => {
+    const { text } = await ask("/robots.txt", production);
+    for (const bot of TRAINING) expect(text, bot).toContain(`User-agent: ${bot}\nDisallow: /\n`);
+  });
+
+  it("leaves alone the ones that search, or answer on a person's behalf: they are not named, so they follow the general group", async () => {
+    const { text } = await ask("/robots.txt", production);
+    // Whole lines: "Applebot" must not match "Applebot-Extended".
+    const named = text.split("\n").filter((line) => /^User-agent: /i.test(line)).map((line) => line.slice("User-agent: ".length).toLowerCase());
+    for (const bot of ANSWERING) expect(named, bot).not.toContain(bot.toLowerCase());
+  });
+
+  it("keeps the private places closed to the training crawlers too, by closing the whole site to them", async () => {
+    const { text } = await ask("/robots.txt", production);
+    expect(text.match(/^User-agent: (?!\*)/gm)).toHaveLength(TRAINING.length);
+  });
+
+  it("a site that is not production keeps everyone out and states no AI preference", async () => {
+    for (const environment of ["staging", "development", "test", ""]) {
+      const { text } = await ask("/robots.txt", { ENVIRONMENT: environment, SITE_ORIGIN: "https://staging.example" });
+      expect(text, environment).toBe("User-agent: *\nDisallow: /\n");
     }
   });
 });
