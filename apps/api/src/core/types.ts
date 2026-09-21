@@ -12,7 +12,7 @@ export interface Bindings {
   AUDIT_HMAC_KEY: string;
   /** Secret. Signs access tokens. Set with `wrangler secret put`; never stored in the database. */
   SESSION_SECRET: string;
-  /** Secret. Seals values that must be stored but not readable from a database copy (D-031). */
+  /** Secret. Seals values that must be stored but not readable from a database copy (D-034). */
   DATA_KEY: string;
   /** Which email adapter to use: "dev" (writes to the dev mailbox). Refused in production. */
   EMAIL_ADAPTER?: string;

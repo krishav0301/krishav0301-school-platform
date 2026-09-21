@@ -1,5 +1,5 @@
 /**
- * The outbox and its job runner (D-031).
+ * The outbox and its job runner (D-034).
  *
  * A change that needs a notification writes an outbox row in the SAME batch as the change, so the
  * message exists if and only if the change does. A runner then delivers it. The runner is safe to

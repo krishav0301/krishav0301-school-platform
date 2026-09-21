@@ -67,8 +67,9 @@ Total to Royal live: about 66-91 working days, roughly 13-18 weeks. Release A is
 - [x] 4. Permission layer: matrix in code with the document generated from it, deny by default (401/403), grants for handlers, tests for every role and action under both scope settings, plus independent rules (D-025)
 - [x] 5. School configuration, theme with server-side contrast check, packs (Royal Softech, sample basic school), provisioning command, layer-boundary check in CI (D-026, D-027)
 - [x] 6. Design system and app shell: tokens from the theme, components, portal and public shells, sign-in page, session renewal, live theme swap, rules enforced by tests (D-028). First Apple-level design review done and applied (D-030)
-- [ ] 7. 2FA (authenticator app), password reset, notifications and jobs
-- [ ] 8. Exit check: every role signs in; wrong role or section is denied; live theme swap; both packs boot; staged
+- [x] 7. Notifications and jobs (outbox runner, sealed payloads, email adapter, cron sweep; D-034), password reset (D-035), authenticator-app 2FA for the Super Admin with recovery codes and reset (D-036), school-name password rule
+- [x] 8. Exit check: every role signs in; wrong role or section is denied; live theme swap; both packs boot; staged (automated for both packs, and run on staging; D-037)
+- [x] **Phase 1 complete (2026-09-21).** 590 API tests, 108 web tests, CI green. Phase 2 (public website) awaits PM approval
 - **Chassis:** module skeleton, API conventions (idempotency keys, one error format), OpenAPI to typed TypeScript client, CI gates (lint, types, import boundaries, every route declares a permission).
 - **Identity and access:** email and password, sessions, lockout, password reset, TOTP 2FA, role assignments carrying a scope (D-004), permission matrix with generated tests.
 - **Trust layer:** insert-only audit log, transactional event outbox, notifications framework (in-app and email), job queue, file storage with signed links.

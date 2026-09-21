@@ -27,7 +27,7 @@ Before the first run, set up the local secrets, then create the school's databas
 
 ```bash
 cd apps/api
-cp .dev.vars.example .dev.vars      # then set AUDIT_HMAC_KEY and SESSION_SECRET to long random strings
+cp .dev.vars.example .dev.vars      # then set AUDIT_HMAC_KEY, SESSION_SECRET and DATA_KEY to three different long random strings, and SITE_ORIGIN to http://localhost:3000
 npm run provision -- --pack ../../packs/royal-softech --local     # migrations + the school's pack
 USER_PASSWORD='a long passphrase' npm run dev:user -- --email you@school.example --name "Your Name" --role coordinator
 ```
@@ -55,7 +55,26 @@ CI fails if either generated file is out of date, and it checks that the Worker 
 
 ## Deploying
 
-Each school is one Worker and one D1 database in a Cloudflare account. Account and database ids stay out of git: put them in a local `apps/api/wrangler.local.jsonc` and deploy with `npx wrangler deploy --config wrangler.local.jsonc`.
+Each school is one Worker and one D1 database in a Cloudflare account. Account and database ids stay out of git: put them in a local `apps/api/wrangler.local.jsonc` (with the vars `ENVIRONMENT`, `EMAIL_ADAPTER` and `SITE_ORIGIN`, and the `triggers.crons` sweep) and deploy with `npx wrangler deploy --config wrangler.local.jsonc`.
+
+The steps for a new deployment, in order:
+
+```bash
+cd apps/api
+# 1. Secrets (three different long random values; keep them with the operator, never in git):
+npx wrangler secret put AUDIT_HMAC_KEY --config wrangler.local.jsonc
+npx wrangler secret put SESSION_SECRET --config wrangler.local.jsonc
+npx wrangler secret put DATA_KEY --config wrangler.local.jsonc
+# 2. The database: migrations and the school's pack:
+npm run provision -- --pack ../../packs/royal-softech --remote --config wrangler.local.jsonc
+# 3. Build the web app (apps/web: npm run build) and deploy:
+npx wrangler deploy --config wrangler.local.jsonc
+# 4. The first Super Admin, through the same service the screens use (audit entry included).
+#    Needs the deployment's audit key in the environment. The Super Admin sets up an authenticator app at first sign-in.
+USER_PASSWORD='...' AUDIT_HMAC_KEY='...' npm run dev:user -- --remote --config wrangler.local.jsonc --email you@school.example --name "Support" --role super_admin
+```
+
+Stop `wrangler dev` before `npm run build` in `apps/web` on Windows: it holds the `out` folder open.
 
 ## Conventions
 

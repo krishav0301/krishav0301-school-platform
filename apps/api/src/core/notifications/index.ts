@@ -1,5 +1,5 @@
 /**
- * Notifications (D-031). One outbox event per message; a job delivers it. Only email exists so
+ * Notifications (D-034). One outbox event per message; a job delivers it. Only email exists so
  * far (SMS is a Phase 9 adapter). Templates are plain text, short, and written here in one place.
  * `OPEN:` move the wording into the message catalog when Nepali is added.
  */

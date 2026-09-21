@@ -1,4 +1,4 @@
--- Password reset (D-032).
+-- Password reset (D-035).
 --
 -- Like a session, a reset token is stored only as its SHA-256 hash: the token itself is in the
 -- email link, so a copy of this table cannot be used to take over an account. A token works once

@@ -1,4 +1,4 @@
--- Notifications and jobs (D-031).
+-- Notifications and jobs (D-034).
 --
 -- The outbox already exists (0001). It gains what a job runner needs: a due time for retries, a
 -- lease so two runners never send the same message, a give-up time, and a unique key so the same

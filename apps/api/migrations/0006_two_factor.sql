@@ -1,4 +1,4 @@
--- Two-step sign-in with an authenticator app (D-033).
+-- Two-step sign-in with an authenticator app (D-036).
 --
 -- The secret behind the six-digit codes has to be readable by the server to check a code, so it is
 -- stored SEALED (encrypted with a Worker secret): a copy of this table alone cannot produce codes.

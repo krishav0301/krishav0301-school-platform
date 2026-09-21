@@ -1,5 +1,5 @@
 /**
- * Two-step sign-in with an authenticator app (D-033).
+ * Two-step sign-in with an authenticator app (D-036).
  *
  * The flow: sign-in checks the password, and if a second step is needed returns a short-lived
  * challenge instead of a session (see `signIn`). The challenge is then exchanged here, either for a
