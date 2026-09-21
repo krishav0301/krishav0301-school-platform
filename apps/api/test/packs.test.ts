@@ -238,18 +238,20 @@ describe("the site block", () => {
     expect(() => parsePack(bad)).toThrow(message);
   });
 
-  it("carries Royal's nine programmes (OPEN: unconfirmed third-party list, docs/client-profile.md) and the sample school's own, sharing no wording", () => {
+  it("carries small placeholder content for Royal (the college's real words are added at the end, D-054) and the sample school's own, sharing no wording", () => {
     const royal = parsePack(royalJson).site;
     const sample = parsePack(sampleJson).site;
-    expect(royal.programmes).toHaveLength(9);
+    expect(royal.programmes.length).toBeGreaterThan(0);
     expect(sample.programmes.length).toBeGreaterThan(0);
     const words = JSON.stringify(sample);
     for (const royalWord of ["Royal", "Lahan", "Siraha", "NEB", "Purbanchal", "Tribhuvan"]) expect(words, royalWord).not.toContain(royalWord);
   });
 
   it("fills in an empty options list", () => {
-    const pack = parsePack(royalJson);
-    expect(pack.site.programmes.find((p) => p.key === "bbs")!.options).toEqual([]);
+    // A programme written without `options` reads back with an empty list, whatever the pack's content is.
+    const bare = clone(royalJson) as any;
+    delete bare.site.programmes[0].options;
+    expect(parsePack(bare).site.programmes[0]!.options).toEqual([]);
   });
 
   it("is stored by applying the pack and reads back exactly as written, for both schools", async () => {
