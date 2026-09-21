@@ -134,13 +134,37 @@ Two new entries in the Setup sub-menu. **Subjects:** the catalogue (add, archive
 
 Seeding subjects from packs (the real list comes last, D-054; tests create subjects through the service, as the screens do); renaming components or groups on screen and editing credit hours after creation (the API supports them); a student's pick (Phase 4); anything to do with marks, verification or grading (Phases 5 and 7).
 
-## 6. Slice 3: people (outline)
+## 6. Slice 3: people (detailed; approved by the PM in chat, 2026-09-21, "yes"), built as two pull requests
 
-- Rows already in the matrix: `accounts.staff.create` (Admin), `accounts.teacher.create` (Co-ordinator), `accounts.deactivate`, `setup.assignments.manage`.
-- `teacher_assignments` (teacher, subject offering, class, academic year) and a nullable Class Teacher on `classes`; a `staff_profiles` row (designation, home section) per staff user.
-- **First password:** email is a development adapter until Phase 9, so the creator sees a **one-time temporary password on screen**, returned once with `Cache-Control: no-store`, never stored in the clear and never in the audit entry. The new user is created with `must_change_password = 1`.
-- **Found while reading the code:** `must_change_password` exists in the schema and is cleared by a password reset, but nothing enforces it at sign-in. Slice 3 builds the enforcement (a sign-in with the flag set returns a "change your password first" state, never a full session) and its tests.
-- The creator's scope narrows what they can create (a section-scoped Co-ordinator creates teachers only for their section). Deactivation ends the person's sessions at the next refresh, and money, approval and publish actions already re-check.
+**3a, accounts** and **3b, teaching**. The PM approved the split, and three defaults: one teacher per subject in a class, one Class Teacher per class, a teacher is Class Teacher of at most one class per year; a "new temporary password" action; staff details limited to name, email, phone, role and section.
+
+### 6.1 Slice 3a: staff accounts and the first password
+
+Goal: the Admin can create Co-ordinators and Accountants, the Co-ordinator can create teachers, each new person gets a one-time temporary password and must choose their own before getting any session. Whoever may deactivate a person may also deactivate, reactivate and give them a new temporary password.
+
+**Data (`0011_staff.sql`):** `staff_profiles (user_id PRIMARY KEY -> users, home_section_id -> sections, nullable)`: one row per **teacher**, holding their home section. A Co-ordinator's or Accountant's section is already in their role assignment. No other table changes.
+
+**Who may do what** (the matrix already has `accounts.staff.create`, `accounts.teacher.create`, `accounts.deactivate`; two rows are added):
+- `accounts.staff.create` (Admin, Super Admin): a Co-ordinator or an Accountant, with institution scope or one section (D-004 keeps institution the norm).
+- `accounts.teacher.create` (Co-ordinator, Super Admin): a teacher with a home section. A section-scoped Co-ordinator can only choose their own section.
+- `accounts.deactivate` (already there) also covers reactivating. The Co-ordinator manages teachers (of their section if section-scoped); the Admin manages Co-ordinators and Accountants; the Super Admin manages anyone but themselves. **Nobody changes their own account this way.**
+- New `accounts.staff.view` (Admin `read`, Co-ordinator `inst` limited to teachers, Super Admin `all`): the staff list. A section-scoped Co-ordinator sees only their own section's teachers.
+- New `accounts.password.issue` (same limits as deactivate): give a person a new temporary password. Email is a development adapter until Phase 9, so without this a forgotten password would lock someone out.
+- Every write is one audited batch that re-checks the actor inside the batch (D-021), as before. A person is never created if the email exists (409).
+
+**The temporary password:** generated on the server with Web Crypto: 16 characters from an alphabet with no look-alikes (no 0, O, 1, I, L), shown as `XXXX-XXXX-XXXX-XXXX`, checked against the password policy. It is returned **once**, in the create or issue response, with `Cache-Control: no-store`, never stored in the clear and never written to the audit log. The person is created with `must_change_password = 1`. Issuing a new one also ends their sessions and clears a lockout.
+
+**Forced change at sign-in (found while reading the code: `must_change_password` was never enforced):** when the password is right and the flag is set, sign-in returns `{ passwordChange: "required", challenge }`, never a session (the same shape as the authenticator step). The challenge is a new kind, `password`, of the existing signed five-minute token; the second-step endpoints reject it, and the new endpoint rejects their kinds. `POST /api/auth/password/change-required` takes the challenge and a new password, refuses one that fails the policy (which includes the school's name and the email) or that equals the temporary one, sets it, clears the flag, records the change, and then carries on exactly as sign-in would: an authenticator step if the person needs one, otherwise the session. A challenge cannot be used twice: once the flag is cleared it is refused.
+
+**Routes:** `GET /api/staff`; `POST /api/staff` (Co-ordinator or Accountant); `POST /api/teachers`; `PATCH /api/staff/{id}` (`active`); `POST /api/staff/{id}/temporary-password`; `POST /api/auth/password/change-required`.
+
+**Screens:** a new **People** entry in the portal menu (Admin, Co-ordinator, Super Admin) with the **Staff** screen: the list (name, role, section, whether they have signed in yet, switched off), add a person, switch off and on, new temporary password. The temporary password appears once, in a notice with a copy button and a plain warning. The sign-in screen gains a "Choose a new password" step. There is no sub-menu until 3b adds Teaching.
+
+**Not in 3a:** teacher assignments and Class Teachers (3b); creating Admins or Super Admins on screen; a second step for staff other than the Admin and Super Admin; real email delivery (Phase 9); a staff job title.
+
+### 6.2 Slice 3b: teaching (outline; detailed in its own plan)
+
+`teacher_assignments` (teacher, subject offering, class): one teacher per subject in a class; a nullable Class Teacher on `classes`, one per class, and a teacher is Class Teacher of at most one class per year. Assignments and Class Teachers in a closed year are refused by the service and by a trigger, as in slice 1. Uses the existing `setup.assignments.manage` row and adds `setup.assignments.view`. A "Teaching" screen in the People area (which then gets a sub-menu of Staff and Teaching). A section-scoped Co-ordinator only assigns their own section's teachers and classes.
 
 ## 7. Slice 4: approvals (outline)
 
