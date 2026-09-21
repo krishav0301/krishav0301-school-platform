@@ -91,7 +91,7 @@ export function TerminalsScreen() {
   return (
     <>
       <h1 className={styles.title}>{t("setup.terminals.title", words)}</h1>
-      {saved ? <Notice tone="ok">{t("setup.saved")}</Notice> : null}
+      {saved ? <Notice tone="ok">{t("setup.done.added")}</Notice> : null}
       <Gate view={years.view} onRetry={() => void years.reload()}>
         {({ years: list }) =>
           list.length === 0 ? (

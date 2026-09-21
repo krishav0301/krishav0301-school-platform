@@ -128,7 +128,7 @@ export function ClassesScreen() {
     setFlash(null);
     const result = await setClassActive(api, c.id, !c.active);
     setBusy(null);
-    setFlash(result.ok ? { tone: "ok", text: t("setup.saved") } : { tone: "bad", text: t(REASON_MESSAGE[result.reason]) });
+    setFlash(result.ok ? { tone: "ok", text: t(c.active ? "setup.done.switchedOff" : "setup.done.switchedOn") } : { tone: "bad", text: t(REASON_MESSAGE[result.reason]) });
     await classes.reload();
   }
 
@@ -153,7 +153,7 @@ export function ClassesScreen() {
                   yearId={yearId}
                   programmes={programmes.view.data.programmes}
                   onAdded={() => {
-                    setFlash({ tone: "ok", text: t("setup.saved") });
+                    setFlash({ tone: "ok", text: t("setup.done.added") });
                     void classes.reload();
                   }}
                 />

@@ -18,7 +18,7 @@ type Flash = { tone: "ok" | "bad"; text: string };
 
 /** The list of years. A draft can be made the current year, but only when no year is current (closing a year is a later phase). */
 export function YearsView({ years, canManage, busy, onActivate }: { years: readonly Year[]; canManage: boolean; busy: string | null; onActivate: (year: Year) => void }) {
-  if (years.length === 0) return <p className={styles.empty}>{t("setup.years.empty")}</p>;
+  if (years.length === 0) return <p className={styles.empty}>{t(canManage ? "setup.years.empty" : "setup.years.emptyReadOnly")}</p>;
   const noneCurrent = !years.some((y) => y.status === "active");
 
   return (
@@ -117,7 +117,7 @@ export function YearsScreen() {
     setFlash(null);
     const result = await activateYear(api, year.id);
     setBusy(null);
-    setFlash(result.ok ? { tone: "ok", text: t("setup.saved") } : { tone: "bad", text: t(REASON_MESSAGE[result.reason]) });
+    setFlash(result.ok ? { tone: "ok", text: t("setup.done.current") } : { tone: "bad", text: t(REASON_MESSAGE[result.reason]) });
     if (result.ok || result.reason === "another_active") await reload();
   }
 
@@ -131,7 +131,7 @@ export function YearsScreen() {
       {canManage ? (
         <YearForm
           onAdded={() => {
-            setFlash({ tone: "ok", text: t("setup.saved") });
+            setFlash({ tone: "ok", text: t("setup.done.added") });
             void reload();
           }}
         />

@@ -77,7 +77,13 @@ describe("the years screen", () => {
   });
 
   it("says so when there is no year yet", () => {
-    expect(inContext(<YearsView years={[]} canManage busy={null} onActivate={noop} />)).toContain("No year yet");
+    expect(inContext(<YearsView years={[]} canManage busy={null} onActivate={noop} />)).toContain("Add the first one");
+  });
+
+  it("does not invite someone who cannot add a year to add one (apple-design review: an empty state needs a next step the person can take)", () => {
+    const html = inContext(<YearsView years={[]} canManage={false} busy={null} onActivate={noop} />);
+    expect(html).toContain("No year has been set up yet.");
+    expect(html).not.toContain("Add the first one");
   });
 
   it("shows the shape of the page while it loads, and the add form to a whole-school Co-ordinator", () => {

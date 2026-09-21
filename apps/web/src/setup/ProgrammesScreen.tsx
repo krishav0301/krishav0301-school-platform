@@ -185,23 +185,23 @@ export function ProgrammesScreen() {
   const [flash, setFlash] = useState<Flash | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
 
-  const said = (result: { ok: true } | { ok: false; reason: keyof typeof REASON_MESSAGE }) =>
-    setFlash(result.ok ? { tone: "ok", text: t("setup.saved") } : { tone: "bad", text: t(REASON_MESSAGE[result.reason]) });
+  const said = (result: { ok: true } | { ok: false; reason: keyof typeof REASON_MESSAGE }, done: MessageKey) =>
+    setFlash(result.ok ? { tone: "ok", text: t(done) } : { tone: "bad", text: t(REASON_MESSAGE[result.reason]) });
 
-  async function toggle(id: string, run: () => ReturnType<typeof setProgrammeActive>) {
+  async function toggle(id: string, run: () => ReturnType<typeof setProgrammeActive>, done: MessageKey) {
     if (busy) return;
     setBusy(id);
     setFlash(null);
     const result = await run();
     setBusy(null);
-    said(result);
+    said(result, done);
     await reload();
   }
 
   async function add(programme: Programme, name: string): Promise<boolean> {
     setFlash(null);
     const result = await addLevel(api, programme.id, name);
-    said(result);
+    said(result, "setup.done.added");
     if (result.ok) await reload();
     return result.ok;
   }
@@ -216,8 +216,8 @@ export function ProgrammesScreen() {
             programmes={programmes}
             canManage={canManage}
             busy={busy}
-            onToggleProgramme={(p) => void toggle(p.id, () => setProgrammeActive(api, p.id, !p.active))}
-            onToggleLevel={(l) => void toggle(l.id, () => setLevelActive(api, l.id, !l.active))}
+            onToggleProgramme={(p) => void toggle(p.id, () => setProgrammeActive(api, p.id, !p.active), p.active ? "setup.done.switchedOff" : "setup.done.switchedOn")}
+            onToggleLevel={(l) => void toggle(l.id, () => setLevelActive(api, l.id, !l.active), l.active ? "setup.done.switchedOff" : "setup.done.switchedOn")}
             onAddLevel={add}
           />
         )}
@@ -226,7 +226,7 @@ export function ProgrammesScreen() {
         <ProgrammeForm
           sections={sections}
           onAdded={() => {
-            setFlash({ tone: "ok", text: t("setup.saved") });
+            setFlash({ tone: "ok", text: t("setup.done.added") });
             void reload();
           }}
           onProblem={(key) => setFlash({ tone: "bad", text: t(key) })}

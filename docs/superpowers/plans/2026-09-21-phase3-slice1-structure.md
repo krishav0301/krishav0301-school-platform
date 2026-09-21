@@ -5148,6 +5148,8 @@ The Admin: use the PM's already-signed-in local session at `http://localhost:300
 
 Load the `apple-design` skill (`.claude/skills/apple-design/`; if it is missing, stop and ask the PM before continuing UI work, per `CLAUDE.md`). Read its always-load pages (accessibility, layout, typography, colour) and the pages for what is on screen (forms and text fields, lists and tables, navigation and tabs, buttons, feedback and errors). Read a page before citing it. Review the four screens against the house rules from D-030 (one prominent button per view; brand colour means "you can act on this"; controls at least 44 px; 320 px and 200% text; a menu of one entry is not shown; show the shape of a page while it loads). Fix every finding that is a defect in this slice. Record for the final report: what was checked, which pages were used (`file.md › Heading`), what was fixed, what was left and why.
 
+**Applied in this run (from steps 2 to 5), so the code differs from the Task 8 and 9 listings in these ways:** (1) the generic "Saved." message is replaced by messages that name the action (`setup.done.added`, `setup.done.switchedOn`, `setup.done.switchedOff`, `setup.done.current`), following `writing.md` (an action keeps its name through the flow); (2) an empty state no longer invites someone who cannot add a year to add one (`setup.years.emptyReadOnly`, and `setup.classes.noYear` now says where years are added), following `writing.md` ("Provide clear next steps on any blank screens"); (3) a test for (2) was added to `setup-screens.test.tsx`.
+
 - [ ] **Step 6: Commit any fixes**
 
 ```bash
