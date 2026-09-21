@@ -10,6 +10,7 @@ import { ThemeSchema, checkContrast, type ContrastFailure } from "../theme";
 import { SiteContentSchema } from "./site";
 import { isKnownModule, isMandatoryModule } from "./modules";
 import { isKnownTerm } from "./terminology";
+import { newPublicId } from "../ids";
 
 const SectionKey = z.string().regex(/^[a-z][a-z0-9_]{0,30}$/, "lower-case letters, digits and underscores");
 
@@ -27,6 +28,17 @@ export const PackSchema = z.strictObject({
     .array(z.strictObject({ key: SectionKey, name: z.string().min(1).max(60) }))
     .min(1)
     .max(6),
+  /**
+   * The levels of each programme (D-056). Each entry names a programme by its key in `site.programmes`, which
+   * gives its name, section and affiliation. Seeded only where missing: a screen edit is never overwritten.
+   */
+  academics: z
+    .strictObject({
+      programmes: z
+        .array(z.strictObject({ key: z.string().min(1).max(60), levels: z.array(z.string().trim().min(1).max(60)).min(1).max(20) }))
+        .max(20),
+    })
+    .default({ programmes: [] }),
   /** Optional modules a school switches on or off. Unlisted ones stay on. */
   modules: z.record(z.string(), z.boolean()).default({}),
   /** Renamed words. Only known terms may be renamed. */
@@ -60,6 +72,12 @@ export function parsePack(input: unknown): Pack {
   const sectionKeys = new Set(keys);
   const programmeKeys = pack.site.programmes.map((p) => p.key);
   if (new Set(programmeKeys).size !== programmeKeys.length) problems.push("site.programmes: keys must be unique");
+  const academicKeys = pack.academics.programmes.map((p) => p.key);
+  if (new Set(academicKeys).size !== academicKeys.length) problems.push("academics.programmes: keys must be unique");
+  pack.academics.programmes.forEach((programme, index) => {
+    if (!programmeKeys.includes(programme.key)) problems.push(`academics.programmes.${index}.key: "${programme.key}" is not one of site.programmes`);
+    if (new Set(programme.levels).size !== programme.levels.length) problems.push(`academics.programmes.${index}.levels: names must be unique`);
+  });
   pack.site.programmes.forEach((programme, index) => {
     if (!sectionKeys.has(programme.section)) problems.push(`site.programmes.${index}.section: "${programme.section}" is not one of the pack's sections`);
   });
@@ -117,6 +135,26 @@ export function packOperations(pack: Pack): Operation[] {
       params: [key, on ? 1 : 0],
     });
   }
+
+  // Programmes and levels: added only where missing, never updated, so a Co-ordinator's edits on a screen survive
+  // a re-applied pack (D-056). Sections were added above, so each programme can find its section.
+  pack.academics.programmes.forEach((entry, index) => {
+    const site = pack.site.programmes.find((p) => p.key === entry.key)!; // `parsePack` guarantees it exists
+    ops.push({
+      sql: `INSERT INTO programmes (public_id, key, name, section_id, affiliation, ordering)
+            SELECT ?, ?, ?, s.id, ?, ? FROM sections s WHERE s.key = ?
+            ON CONFLICT (key) DO NOTHING`,
+      params: [newPublicId(), entry.key, site.name, site.affiliation, index + 1, site.section],
+    });
+    entry.levels.forEach((name, position) =>
+      ops.push({
+        sql: `INSERT INTO levels (public_id, programme_id, ordinal, name)
+              SELECT ?, p.id, ?, ? FROM programmes p WHERE p.key = ?
+              ON CONFLICT (programme_id, ordinal) DO NOTHING`,
+        params: [newPublicId(), position + 1, name, entry.key],
+      }),
+    );
+  });
 
   for (const [key, text] of Object.entries(pack.terminology)) {
     ops.push({
