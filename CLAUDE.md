@@ -7,7 +7,7 @@ Read at the start of every session:
 
 If this file and `DECISIONS.md` disagree, stop and ask.
 
-**Current phase: Phase 2 (public website) is complete, and Phase 3 awaits PM approval.** Phase 1 (Platform foundation) is complete (dates, schema and audit, sign-in, permissions, configuration and packs, design system and shell, notifications and jobs, password reset, two-step sign-in, exit check on both packs and on staging; D-037). **Phase 2 (public website) is complete (2026-09-21, D-038 to D-055): six slices, and the exit check passed for both schools and on staging (D-055). Phase 3 (academic setup, people and approvals) needs the PM's approval to start. See `docs/build-plan.md`.** Phase 0 is complete: the backend is a Cloudflare Worker (D-019 to D-021), documented in `docs/architecture.md`. Update this line when a phase closes.
+**Current phase: Phase 3 (academic setup, people and approvals) is in progress (started 2026-09-21, D-056; design in `docs/superpowers/specs/2026-09-21-phase3-academic-setup-design.md`, five slices, slice 1 first). Phase 2 (public website) is complete.** Phase 1 (Platform foundation) is complete (dates, schema and audit, sign-in, permissions, configuration and packs, design system and shell, notifications and jobs, password reset, two-step sign-in, exit check on both packs and on staging; D-037). **Phase 2 (public website) is complete (2026-09-21, D-038 to D-055): six slices, and the exit check passed for both schools and on staging (D-055). Phase 3 was approved by the PM on 2026-09-21. See `docs/build-plan.md`.** Phase 0 is complete: the backend is a Cloudflare Worker (D-019 to D-021), documented in `docs/architecture.md`. Update this line when a phase closes.
 
 ## 1. What we are building
 
@@ -189,7 +189,7 @@ The PM's standard is that this product looks and feels like Apple made it: calm,
 |---|---|
 | Payment gateway, merchant account | Not built. Interface and demo adapter only |
 | +2 to Bachelor's move: dues | Must be zero |
-| Optional subjects (+2 Science options, BSc specialisations) | Not modelled until PM approves the elective-group recommendation |
+| Optional subjects (+2 Science options, BSc specialisations) | Approved 2026-09-21 (D-056): minimal elective groups on a programme level; built in Phase 3 slice 2 |
 | Semester vs year for bachelor's | Yearly with terminals (D-006) |
 | NEB rank tie-break | Tied students share a rank |
 | Recheck notification threshold | Notify Admin on every post-publish change, with a required reason |

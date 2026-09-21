@@ -1,6 +1,6 @@
 # Build plan: reusable school platform
 
-Status: **approved by PM 2026-09-20 (D-012). Phases 0 and 1 complete (2026-09-21). Phase 2 complete (2026-09-21, D-038 to D-055). Phase 3 awaits PM approval.** Decisions it rests on are in `DECISIONS.md`.
+Status: **approved by PM 2026-09-20 (D-012). Phases 0 and 1 complete (2026-09-21). Phase 2 complete (2026-09-21, D-038 to D-055). Phase 3 approved and started 2026-09-21 (D-056).** Decisions it rests on are in `DECISIONS.md`.
 
 ## Where we are, and how to start the next session (updated 2026-09-21)
 
