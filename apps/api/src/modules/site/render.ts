@@ -43,7 +43,8 @@ export async function renderPublicPage(request: Request, env: Bindings): Promise
   if (!parts) return asset;
 
   const canonical = `${origin}${path}`;
-  const organisation = { "@context": "https://schema.org", "@type": "EducationalOrganization", name: config.school.name, url: origin };
+  // One organisation block per page, with a stable @id so the other blocks (the website, a contact page) can point to it.
+  const organisation = { "@context": "https://schema.org", "@type": "EducationalOrganization", "@id": `${origin}/#organization`, name: config.school.name, url: origin, ...parts.organisation };
 
   const head =
     `<title>${escapeHtml(parts.title)}</title>` +

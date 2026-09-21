@@ -2,7 +2,7 @@ import { formatBs, nepalDate, type BsDate } from "../../core/dates";
 import { listPublicContent } from "../content";
 import { escapeHtml } from "./html";
 import type { Builder, PageContext, PageParts } from "./page-types";
-import { admission, contact, facilities, home, programmes, scholarships } from "./site-pages";
+import { admission, breadcrumb, contact, facilities, home, programmes, scholarships } from "./site-pages";
 import { say, type StringKey } from "./strings";
 
 export type { PageContext, PageParts };
@@ -21,7 +21,8 @@ function bsWords(text: string | null): string | null {
   }
 }
 
-const notices: Builder = async ({ db, school, origin }) => {
+const notices: Builder = async (ctx) => {
+  const { db, school, origin } = ctx;
   const { items } = await listPublicContent(db, nepalDate(new Date()));
 
   const articles = items
@@ -49,6 +50,7 @@ const notices: Builder = async ({ db, school, origin }) => {
     title: `${say("notices.title")} | ${school.name}`,
     description: say("notices.description", { school: school.name }),
     structuredData: [
+      breadcrumb(ctx, "notices.title"),
       {
         "@context": "https://schema.org",
         "@type": "ItemList",

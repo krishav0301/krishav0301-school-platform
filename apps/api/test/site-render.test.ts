@@ -401,7 +401,8 @@ describe("the six fixed pages", () => {
     expect((howTo.step as unknown[]).length).toBe(6);
 
     const contactLd = jsonLd((await page("/contact")).html).find((b) => b["@type"] === "ContactPage")!;
-    expect(contactLd.mainEntity).toMatchObject({ "@type": "EducationalOrganization", telephone: royalSite.contact.phones });
+    // It points to the organisation block (which carries the phones) instead of repeating it.
+    expect(contactLd.mainEntity).toEqual({ "@id": (jsonLd((await page("/contact")).html).find((b) => b["@type"] === "EducationalOrganization")!)["@id"] });
 
     const facilitiesLd = jsonLd((await page("/facilities")).html).find((b) => b["@type"] === "ItemList")!;
     expect((facilitiesLd.itemListElement as unknown[]).length).toBe(13);
@@ -461,5 +462,78 @@ describe("the six fixed pages", () => {
     await renderPublicPage(new Request("https://school.example/programmes"), { ...env, DB: counting, ASSETS: assets().binding });
     expect(batches).toBe(1);
     expect(statements).toBe(6); // five in the configuration batch, one for the words
+  });
+});
+
+describe("structured data that ties the pages together", () => {
+  const ORG = "https://royal.example/#organization";
+  const PAGES = ["/", "/programmes", "/admission", "/scholarships", "/facilities", "/contact", "/notices"];
+
+  beforeAll(async () => {
+    await applyPack(db, parsePack(royalJson));
+  });
+
+  const blocks = async (path: string) => jsonLd((await page(path, { origin: "https://royal.example" })).html);
+  const orgOf = (list: Record<string, unknown>[]) => list.find((b) => b["@type"] === "EducationalOrganization")!;
+
+  it("every filled page names its organisation with the same stable @id, and only once", async () => {
+    for (const path of PAGES) {
+      const list = await blocks(path);
+      expect(orgOf(list)["@id"], path).toBe(ORG);
+      expect(list.filter((b) => b["@type"] === "EducationalOrganization"), path).toHaveLength(1);
+    }
+  });
+
+  it("Home and Contact add what the pack says about the school: its description, address and phones (and no email when it has none)", async () => {
+    for (const path of ["/", "/contact"]) {
+      const org = orgOf(await blocks(path));
+      expect(org, path).toMatchObject({
+        description: royalSite.home.summary,
+        address: { "@type": "PostalAddress", streetAddress: royalSite.contact.address },
+        telephone: royalSite.contact.phones,
+      });
+      expect(org, path).not.toHaveProperty("email");
+    }
+  });
+
+  it("the other pages keep the organisation block small: address and phones belong to Home and Contact", async () => {
+    for (const path of ["/programmes", "/admission", "/scholarships", "/facilities", "/notices"]) expect(orgOf(await blocks(path)), path).not.toHaveProperty("telephone");
+  });
+
+  it("Home describes the website and points to its organisation as the publisher", async () => {
+    const site = (await blocks("/")).find((b) => b["@type"] === "WebSite")!;
+    expect(site).toMatchObject({ "@id": "https://royal.example/#website", name: royalJson.school.name, url: "https://royal.example", publisher: { "@id": ORG } });
+  });
+
+  it.each([
+    ["/programmes", "Programmes"],
+    ["/admission", "Admission"],
+    ["/scholarships", "Scholarships"],
+    ["/facilities", "Facilities"],
+    ["/contact", "Contact"],
+    ["/notices", "Notices and updates"],
+  ])("%s has a two-step breadcrumb: the school, then the page", async (path, name) => {
+    const crumbs = (await blocks(path)).find((b) => b["@type"] === "BreadcrumbList")!;
+    expect(crumbs.itemListElement).toEqual([
+      { "@type": "ListItem", position: 1, name: royalJson.school.name, item: "https://royal.example/" },
+      { "@type": "ListItem", position: 2, name, item: `https://royal.example${path}` },
+    ]);
+  });
+
+  it("Home has no breadcrumb: it is the top", async () => {
+    expect((await blocks("/")).some((b) => b["@type"] === "BreadcrumbList")).toBe(false);
+  });
+
+  it("the contact page points to the organisation instead of repeating it", async () => {
+    const list = await blocks("/contact");
+    expect(list.find((b) => b["@type"] === "ContactPage")!.mainEntity).toEqual({ "@id": ORG });
+  });
+
+  it("another school gets its own details, not the first school's", async () => {
+    await applyPack(db, parsePack(sampleJson));
+    const org = orgOf(await blocks("/"));
+    expect(org).toMatchObject({ "@id": ORG, address: { streetAddress: sampleJson.site.contact.address }, telephone: sampleJson.site.contact.phones, email: sampleJson.site.contact.email });
+    expect(JSON.stringify(org)).not.toContain("Lahan");
+    await applyPack(db, parsePack(royalJson));
   });
 });

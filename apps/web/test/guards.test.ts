@@ -224,3 +224,15 @@ describe("the brand colour means 'you can act on this'", () => {
     }
   });
 });
+
+describe("caching of static files", () => {
+  const headers = readFileSync(join(src, "..", "public", "_headers"), "utf8");
+
+  it("files whose names carry a hash never change, so they are kept for a year and never re-checked (a repeat visit from far away would otherwise pay a round trip for each one)", () => {
+    expect(headers).toMatch(/\/_next\/static\/\*\s+Cache-Control:\s*public,\s*max-age=31536000,\s*immutable/);
+  });
+
+  it("the self-hosted fonts are kept the same way", () => {
+    expect(headers).toMatch(/\/fonts\/\*\s+Cache-Control:\s*public,\s*max-age=31536000,\s*immutable/);
+  });
+});

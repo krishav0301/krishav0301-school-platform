@@ -17,6 +17,8 @@ export interface PageParts {
   description: string;
   /** Structured data blocks, besides the organisation every page gets. */
   structuredData: Record<string, unknown>[];
+  /** More to say about the organisation itself (its address, phones, description), merged into the block every page carries. */
+  organisation?: Record<string, unknown>;
   /** The plain HTML for the top of the body. Built only from escaped values. */
   bodyHtml: string;
 }

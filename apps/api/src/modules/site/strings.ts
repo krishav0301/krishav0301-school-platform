@@ -33,6 +33,7 @@ export type StringKey = keyof typeof STRINGS;
 export const CRAWLER_ONLY = {
   "notices.description": "Notices, holidays, routines and vacancies from {school}.",
   "llms.pages": "Pages",
+  "llms.contact": "Contact",
   "llms.home": "Home",
   "llms.homeSummary": "The home page of {school}: its programmes, how to apply and how to get in touch.",
   "site.programmes.description": "The programmes offered by {school}, with their levels, affiliations and durations.",

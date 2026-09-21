@@ -113,6 +113,38 @@ describe("llms.txt", () => {
     for (const path of ["/scholarships", "/facilities", "/contact"]) expect(text, path).toContain(`](https://royal.example${path}): `);
   });
 
+  it("opens with the school's own summary and says how to reach it, from what the pack says", async () => {
+    const { text } = await ask("/llms.txt", production);
+    const site = parsePack(royalJson).site;
+    expect(text).toContain(`\n> ${site.home.summary}\n`);
+    expect(text).toContain("\n## Contact\n");
+    expect(text).toContain(`- Address: ${site.contact.address}`);
+    expect(text).toContain(`- Phone: ${site.contact.phones.join(", ")}`);
+    expect(text).not.toContain("- Email:"); // Royal's pack has none, so none is invented
+    expect(text.indexOf("## Pages")).toBeLessThan(text.indexOf("## Contact"));
+  });
+
+  it("keeps what the pack says on one line each, so it cannot add headings or links of its own", async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- the test deliberately edits loosely-typed pack data
+    const bad = structuredClone(royalJson) as any;
+    bad.site.home.summary = "A summary\n\n## Injected\n[click](https://evil.example)";
+    bad.site.contact.address = "12 Road\n\n## Also injected";
+    await applyPack(env.DB, parsePack(bad));
+    const { text } = await ask("/llms.txt", production);
+    expect(text).not.toMatch(/^## (Injected|Also injected)/m);
+    expect(text.match(/^# /gm)).toHaveLength(1);
+    expect(text.match(/^## /gm)).toHaveLength(2); // Pages and Contact, nothing else
+    await applyPack(env.DB, parsePack(royalJson));
+  });
+
+  it("before the school has site words, falls back to the sections line and has no Contact section", async () => {
+    await env.DB.prepare("DELETE FROM site_content").run();
+    const { text } = await ask("/llms.txt", production);
+    expect(text).toContain("\n> Royal Softech College: +2, Bachelor's.\n");
+    expect(text).not.toContain("## Contact");
+    await applyPack(env.DB, parsePack(royalJson));
+  });
+
   it("says nothing before the school is set up (there is nothing true to say): 404, on a database with no school in it", async () => {
     const { response } = await ask("/llms.txt", { ...production, DB: env.SCRATCH_DB });
     expect(response.status).toBe(404);

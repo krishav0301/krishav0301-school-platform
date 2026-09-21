@@ -25,6 +25,27 @@ const titled = (ctx: PageContext, title: Key, description: Key) => ({
 
 const LD = "https://schema.org";
 
+/** Every page's organisation block has this @id (see `render.ts`), so other blocks can refer to it. */
+const orgId = (origin: string): string => `${origin}/#organization`;
+
+/** What Home and Contact add to the organisation block: only what the pack says. An email appears only if there is one. */
+const orgDetails = (site: SiteContent): Record<string, unknown> => ({
+  description: site.home.summary,
+  address: { "@type": "PostalAddress", streetAddress: site.contact.address },
+  telephone: site.contact.phones,
+  ...(site.contact.email ? { email: site.contact.email } : {}),
+});
+
+/** The way down from the school's front page to this one: two steps. */
+export const breadcrumb = (ctx: PageContext, title: Key): Record<string, unknown> => ({
+  "@context": LD,
+  "@type": "BreadcrumbList",
+  itemListElement: [
+    { "@type": "ListItem", position: 1, name: ctx.school.name, item: `${ctx.origin}/` },
+    { "@type": "ListItem", position: 2, name: say(title), item: `${ctx.origin}${ctx.path}` },
+  ],
+});
+
 /** The programmes under each section's name, in the section's order. One whose section is unknown goes last, with no heading. */
 export function groupProgrammes(sections: { key: string; name: string }[], programmes: Programme[]): { name: string | null; items: Programme[] }[] {
   const groups = sections.map((s) => ({ name: s.name as string | null, items: programmes.filter((p) => p.section === s.key) })).filter((g) => g.items.length > 0);
@@ -44,7 +65,17 @@ export const home: Builder = async (ctx) => {
   return {
     title: ctx.school.name,
     description: site.home.summary,
-    structuredData: [],
+    structuredData: [
+      {
+        "@context": LD,
+        "@type": "WebSite",
+        "@id": `${ctx.origin}/#website`,
+        name: ctx.school.name,
+        url: ctx.origin,
+        publisher: { "@id": orgId(ctx.origin) },
+      },
+    ],
+    organisation: orgDetails(site),
     bodyHtml:
       `<h1>${e(site.home.headline)}</h1><p>${e(site.home.summary)}</p>` +
       `<p><a href="/admission">${e(say("site.home.apply"))}</a> <a href="/notices">${e(say("home.notices"))}</a></p>` +
@@ -68,6 +99,7 @@ export const programmes: Builder = async (ctx) => {
   return {
     ...titled(ctx, "site.programmes.title", "site.programmes.description"),
     structuredData: [
+      breadcrumb(ctx, "site.programmes.title"),
       {
         "@context": LD,
         "@type": "ItemList",
@@ -92,6 +124,7 @@ export const admission: Builder = async (ctx) => {
   return {
     ...titled(ctx, "site.admission.title", "site.admission.description"),
     structuredData: [
+      breadcrumb(ctx, "site.admission.title"),
       {
         "@context": LD,
         "@type": "HowTo",
@@ -112,7 +145,7 @@ export const scholarships: Builder = async (ctx) => {
   const { intro, items } = site.scholarships;
   return {
     ...titled(ctx, "site.scholarships.title", "site.scholarships.description"),
-    structuredData: [],
+    structuredData: [breadcrumb(ctx, "site.scholarships.title")],
     bodyHtml:
       `<h1>${e(say("site.scholarships.title"))}</h1><p>${e(intro)}</p>` +
       `<ul>${items.map((i) => `<li><h2>${e(i.title)}</h2><p>${e(i.body)}</p></li>`).join("")}</ul>` +
@@ -127,6 +160,7 @@ export const facilities: Builder = async (ctx) => {
   return {
     ...titled(ctx, "site.facilities.title", "site.facilities.description"),
     structuredData: [
+      breadcrumb(ctx, "site.facilities.title"),
       {
         "@context": LD,
         "@type": "ItemList",
@@ -149,21 +183,17 @@ export const contact: Builder = async (ctx) => {
   return {
     ...titled(ctx, "site.contact.title", "site.contact.description"),
     structuredData: [
+      breadcrumb(ctx, "site.contact.title"),
       {
         "@context": LD,
         "@type": "ContactPage",
         name: say("site.contact.title"),
         url: `${ctx.origin}/contact`,
-        mainEntity: {
-          "@type": "EducationalOrganization",
-          name: ctx.school.name,
-          url: ctx.origin,
-          address: { "@type": "PostalAddress", streetAddress: c.address },
-          telephone: c.phones,
-          ...(c.email ? { email: c.email } : {}),
-        },
+        // The organisation block (which carries the address and phones) is on this page too; point to it.
+        mainEntity: { "@id": orgId(ctx.origin) },
       },
     ],
+    organisation: orgDetails(site),
     bodyHtml:
       `<h1>${e(say("site.contact.title"))}</h1>` +
       `<p>${e(say("site.address"))}: ${e(c.address)}</p>` +
