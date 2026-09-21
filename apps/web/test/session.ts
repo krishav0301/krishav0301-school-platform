@@ -7,6 +7,7 @@ export const fakeSession = (overrides: Partial<SessionValue> = {}): SessionValue
   me: null,
   endedUnexpectedly: false,
   signIn: async () => ({ ok: true }),
+  changeRequiredPassword: async () => ({ ok: true }),
   verifyTwoFactor: async () => ({ ok: true }),
   startTwoFactorSetup: async () => ({ ok: true, secret: "JBSWY3DPEHPK3PXPJBSWY3DPEHPK3PXP", otpauthUri: "otpauth://totp/Example:someone@school.example?secret=JBSWY3DPEHPK3PXP" }),
   enableTwoFactor: async () => ({ ok: true, recoveryCodes: [], me: { name: "Someone", roles: [] } }),

@@ -1,0 +1,31 @@
+/* The People screen. Tokens only: no colour, font or motion is written out here. The shared list and form styles are the Setup screens'. */
+
+/* A temporary password, shown once: it must not be missed, so it sits in its own bordered box above the list. */
+.secret {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: min(var(--space-5), 5vw);
+  border: 2px solid var(--color-text);
+  border-radius: var(--radius-card);
+  background: var(--color-surface);
+}
+
+/* Large and spaced so it can be read out and copied by hand; one click selects all of it. */
+.password {
+  margin: 0;
+  font-size: var(--text-xl);
+  font-weight: var(--weight-bold);
+  letter-spacing: 0.08em;
+  overflow-wrap: anywhere;
+  user-select: all;
+}
+
+/* A long button label wraps between words and the button grows, so at 320 px with text at 200% it cannot widen the page (D-030).
+   `button.` makes this win over the button's own `nowrap`, whatever order the stylesheets load in. */
+button.wrapLabel {
+  max-width: 100%;
+  padding-block: var(--space-2);
+  text-align: center;
+  white-space: normal;
+}

@@ -5,6 +5,7 @@ import { runOutbox } from "../../core/notifications";
 import { defineRoute } from "../../core/routes";
 import { clearSessionCookies, readRefreshCookie, setSessionCookies } from "../../core/session-cookies";
 import type { App } from "../../core/types";
+import { changeRequiredPassword } from "./first-password";
 import { confirmPasswordReset, requestPasswordReset } from "./password-reset";
 import { beginTwoFactorSetup, enableTwoFactor, verifyTwoFactor, type TwoFactorDeps } from "./two-factor";
 import { LOCKOUT_WINDOW_MINUTES, refreshSession, signIn, signOut } from "./service";
@@ -25,6 +26,19 @@ const ErrorSchema = z.object({ error: z.string() }).openapi("ApiError");
 
 /** The password was right, but a second step is still needed: no session yet, only a challenge for that step. */
 const TwoFactorStepSchema = z.object({ twoFactor: z.enum(["required", "setup"]), challenge: z.string() }).openapi("TwoFactorStep");
+
+/** The password was right but it was a temporary one: no session yet, only a challenge to choose a new password (D-059). */
+const PasswordChangeStepSchema = z.object({ passwordChange: z.literal("required"), challenge: z.string() }).openapi("PasswordChangeStep");
+
+const ChangeRequiredBody = z
+  .strictObject({
+    challenge: z.string().min(1).max(1000),
+    // The policy (length, common passwords, the school's name, ...) is checked in the service, which says which rule failed.
+    password: z.string().min(1).max(1000),
+  })
+  .openapi("ChangeRequiredPasswordBody");
+
+const SamePasswordSchema = z.object({ error: z.literal("same_password") }).openapi("SamePassword");
 
 const ChallengeBody = z.strictObject({ challenge: z.string().min(1).max(1000) }).openapi("TwoFactorSetupBody");
 const CodeBody = z.strictObject({ challenge: z.string().min(1).max(1000), code: z.string().min(1).max(64) }).openapi("TwoFactorCodeBody");
@@ -69,13 +83,14 @@ export function registerAuth(app: App): void {
       path: "/api/auth/sign-in",
       operationId: "sign_in",
       tags: ["auth"],
-      description: "Sign in with email and password. Sets the session cookies.",
+      description:
+        "Sign in with email and password. Sets the session cookies. If the password was a temporary one, the answer is a `passwordChange` step instead (no session, no cookies) and the person must choose a new password first.",
       access: { public: true },
       request: { body: { required: true, content: json(SignInBody) } },
       responses: {
         200: {
           description: "Signed in (a session, with the cookies set), or the password was right and a second step is needed (a challenge, no session)",
-          content: json(z.union([SessionSchema, TwoFactorStepSchema])),
+          content: json(z.union([SessionSchema, TwoFactorStepSchema, PasswordChangeStepSchema])),
         },
         401: { description: "Wrong email or password. The same answer for an unknown email.", content: json(ErrorSchema) },
         429: { description: "Too many recent failed attempts", content: json(ErrorSchema) },
@@ -101,6 +116,7 @@ export function registerAuth(app: App): void {
         return c.json({ error: "invalid_credentials" }, 401);
       }
 
+      if (result.passwordChange) return c.json({ passwordChange: result.passwordChange, challenge: result.challenge }, 200);
       if (result.twoFactor) return c.json({ twoFactor: result.twoFactor, challenge: result.challenge }, 200);
 
       setSessionCookies(c, result.accessToken, result.refreshToken);
@@ -319,6 +335,45 @@ export function registerAuth(app: App): void {
     async (c) => {
       const auth = c.get("auth")!;
       return c.json({ name: auth.name, roles: auth.roles }, 200);
+    },
+  );
+
+  defineRoute(
+    app,
+    {
+      method: "post",
+      path: "/api/auth/password/change-required",
+      operationId: "change_required_password",
+      tags: ["auth"],
+      description:
+        "Choose a password of your own after signing in with a temporary one. Needs the challenge that sign-in returned (not a session, and it works once). Then carries on as sign-in does: an authenticator step, or the session with its cookies.",
+      access: { public: true },
+      request: { body: { required: true, content: json(ChangeRequiredBody) } },
+      responses: {
+        200: {
+          description: "Signed in (a session, with the cookies set), or the person still has an authenticator step to do (a challenge, no session)",
+          content: json(z.union([SessionSchema, TwoFactorStepSchema])),
+        },
+        401: { description: "`invalid_challenge`: expired, already used, not for this step, or the person is switched off. Sign in again.", content: json(ErrorSchema) },
+        422: { description: "The password breaks a rule (`weak_password`, saying which) or is the temporary one (`same_password`); nothing changed", content: json(z.union([WeakPasswordSchema, SamePasswordSchema])) },
+      },
+    },
+    async (c) => {
+      const body = c.req.valid("json");
+      const result = await changeRequiredPassword(
+        { db: c.env.DB, sessionSecret: c.env.SESSION_SECRET, auditKey: c.env.AUDIT_HMAC_KEY },
+        { challenge: body.challenge, password: body.password, ip: c.req.header("CF-Connecting-IP") ?? null, userAgent: c.req.header("User-Agent") ?? null },
+      );
+
+      if (!result.ok) {
+        if (result.reason === "weak_password") return c.json({ error: "weak_password" as const, problems: result.problems }, 422);
+        if (result.reason === "same_password") return c.json({ error: "same_password" as const }, 422);
+        return c.json({ error: "invalid_challenge" }, 401);
+      }
+      if (result.twoFactor) return c.json({ twoFactor: result.twoFactor, challenge: result.challenge }, 200);
+
+      setSessionCookies(c, result.accessToken, result.refreshToken);
+      return c.json({ user: result.user, roles: result.roles }, 200);
     },
   );
 }

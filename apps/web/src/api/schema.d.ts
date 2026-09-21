@@ -30,7 +30,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** @description Sign in with email and password. Sets the session cookies. */
+        /** @description Sign in with email and password. Sets the session cookies. If the password was a temporary one, the answer is a `passwordChange` step instead (no session, no cookies) and the person must choose a new password first. */
         post: operations["sign_in"];
         delete?: never;
         options?: never;
@@ -174,6 +174,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/auth/password/change-required": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Choose a password of your own after signing in with a temporary one. Needs the challenge that sign-in returned (not a session, and it works once). Then carries on as sign-in does: an authenticator step, or the session with its cookies. */
+        post: operations["change_required_password"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/users/{userId}/two-factor/reset": {
         parameters: {
             query?: never;
@@ -185,6 +202,75 @@ export interface paths {
         put?: never;
         /** @description Removes a person's two-step sign-in and ends their sessions, so they set it up again at the next sign-in. For a lost phone with no recovery codes. Super Admin only; nobody resets their own. */
         post: operations["reset_two_factor"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/staff": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description The staff the person may see: an Admin sees Co-ordinators, Accountants and teachers; a Co-ordinator sees only teachers (only their own section's, if their scope is one section); a Super Admin also sees Admins. Never a Super Admin, and never a password or hash. */
+        get: operations["list_staff"];
+        put?: never;
+        /** @description Adds a Co-ordinator or an Accountant, whole-school or limited to one section. The answer carries a one-time temporary password, shown to the person adding them and never again; the new person must choose their own at first sign-in. */
+        post: operations["create_staff"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/teachers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Adds a teacher with a home section. A section-scoped Co-ordinator can only choose their own section. The answer carries a one-time temporary password, as for any new person. */
+        post: operations["create_teacher"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/staff/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** @description Switches a person off or on. Switching off also ends their open sessions at once. Nobody changes their own account. */
+        patch: operations["update_staff"];
+        trace?: never;
+    };
+    "/api/staff/{id}/temporary-password": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Gives a person a new temporary password, for a forgotten one. Their old password stops working, their open sessions end, and they must choose a new one at once. The password is in this answer and nowhere else. */
+        post: operations["issue_temporary_password"];
         delete?: never;
         options?: never;
         head?: never;
@@ -738,6 +824,11 @@ export interface components {
             twoFactor: "required" | "setup";
             challenge: string;
         };
+        PasswordChangeStep: {
+            /** @enum {string} */
+            passwordChange: "required";
+            challenge: string;
+        };
         ApiError: {
             error: string;
         };
@@ -769,8 +860,71 @@ export interface components {
             token: string;
             password: string;
         };
+        SamePassword: {
+            /** @enum {string} */
+            error: "same_password";
+        };
+        ChangeRequiredPasswordBody: {
+            challenge: string;
+            password: string;
+        };
         AccountsError: {
             error: string;
+        };
+        StaffList: {
+            staff: components["schemas"]["StaffMember"][];
+        };
+        StaffMember: {
+            id: string;
+            fullName: string;
+            email: string;
+            phone: string | null;
+            roles: {
+                role: string;
+                /** @enum {string} */
+                scope: "own" | "assigned" | "section" | "institution";
+                section: string | null;
+            }[];
+            homeSection: string | null;
+            active: boolean;
+            mustChangePassword: boolean;
+            lastSignInAt: string | null;
+        };
+        StaffCreated: {
+            id: string;
+            temporaryPassword: string;
+        };
+        StaffError: {
+            error: string;
+        };
+        StaffInvalid: {
+            /** @enum {string} */
+            error: "invalid";
+            message: string;
+        };
+        CreateStaff: {
+            fullName: string;
+            email: string;
+            phone?: string | null;
+            /** @enum {string} */
+            role: "coordinator" | "accountant";
+            sectionKey?: string | null;
+        };
+        CreateTeacher: {
+            fullName: string;
+            email: string;
+            phone?: string | null;
+            homeSectionKey: string;
+        };
+        StaffOk: {
+            /** @enum {boolean} */
+            ok: true;
+        };
+        StaffChanges: {
+            active: boolean;
+        };
+        TemporaryPassword: {
+            temporaryPassword: string;
         };
         AcademicYearList: {
             years: components["schemas"]["AcademicYear"][];
@@ -1222,7 +1376,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["Session"] | components["schemas"]["TwoFactorStep"];
+                    "application/json": components["schemas"]["Session"] | components["schemas"]["TwoFactorStep"] | components["schemas"]["PasswordChangeStep"];
                 };
             };
             /** @description Wrong email or password. The same answer for an unknown email. */
@@ -1529,6 +1683,48 @@ export interface operations {
             };
         };
     };
+    change_required_password: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ChangeRequiredPasswordBody"];
+            };
+        };
+        responses: {
+            /** @description Signed in (a session, with the cookies set), or the person still has an authenticator step to do (a challenge, no session) */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Session"] | components["schemas"]["TwoFactorStep"];
+                };
+            };
+            /** @description `invalid_challenge`: expired, already used, not for this step, or the person is switched off. Sign in again. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description The password breaks a rule (`weak_password`, saying which) or is the temporary one (`same_password`); nothing changed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WeakPassword"] | components["schemas"]["SamePassword"];
+                };
+            };
+        };
+    };
     reset_two_factor: {
         parameters: {
             query?: never;
@@ -1563,6 +1759,266 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AccountsError"];
+                };
+            };
+        };
+    };
+    list_staff: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The staff */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StaffList"];
+                };
+            };
+        };
+    };
+    create_staff: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateStaff"];
+            };
+        };
+        responses: {
+            /** @description Added, with the temporary password (never cached) */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StaffCreated"];
+                };
+            };
+            /** @description Not allowed (not your role, not your section, not your own account, or switched off since signing in) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StaffError"];
+                };
+            };
+            /** @description No such person or section */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StaffError"];
+                };
+            };
+            /** @description That email address is already used (`email_taken`) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StaffError"];
+                };
+            };
+            /** @description The change breaks a rule; nothing changed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StaffInvalid"];
+                };
+            };
+        };
+    };
+    create_teacher: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateTeacher"];
+            };
+        };
+        responses: {
+            /** @description Added, with the temporary password (never cached) */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StaffCreated"];
+                };
+            };
+            /** @description Not allowed (not your role, not your section, not your own account, or switched off since signing in) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StaffError"];
+                };
+            };
+            /** @description No such person or section */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StaffError"];
+                };
+            };
+            /** @description That email address is already used (`email_taken`) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StaffError"];
+                };
+            };
+            /** @description The change breaks a rule; nothing changed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StaffInvalid"];
+                };
+            };
+        };
+    };
+    update_staff: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["StaffChanges"];
+            };
+        };
+        responses: {
+            /** @description Done (or already so) */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StaffOk"];
+                };
+            };
+            /** @description Not allowed (not your role, not your section, not your own account, or switched off since signing in) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StaffError"];
+                };
+            };
+            /** @description No such person or section */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StaffError"];
+                };
+            };
+            /** @description That email address is already used (`email_taken`) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StaffError"];
+                };
+            };
+            /** @description The change breaks a rule; nothing changed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StaffInvalid"];
+                };
+            };
+        };
+    };
+    issue_temporary_password: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Issued (never cached) */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TemporaryPassword"];
+                };
+            };
+            /** @description Not allowed (not your role, not your section, not your own account, or switched off since signing in) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StaffError"];
+                };
+            };
+            /** @description No such person or section */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StaffError"];
+                };
+            };
+            /** @description That email address is already used (`email_taken`) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StaffError"];
+                };
+            };
+            /** @description The change breaks a rule; nothing changed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StaffInvalid"];
                 };
             };
         };

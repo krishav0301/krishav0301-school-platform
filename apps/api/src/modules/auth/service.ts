@@ -61,13 +61,15 @@ export async function issueAccessToken(deps: Deps, user: PublicUser, sessionId: 
 // --- sign in ---------------------------------------------------------------------------------
 
 /**
- * A finished sign-in (`Tokens`), or the password was right but a second step is still needed: enter
- * the code from the authenticator app (`required`), or set the app up first (`setup`). The
- * `challenge` is a short-lived token for that step; it is not a session.
+ * A finished sign-in (`Tokens`), or the password was right but a step is still needed: choose a new password
+ * because this one was temporary (`passwordChange`, always first), enter the code from the authenticator app
+ * (`twoFactor: required`), or set the app up first (`twoFactor: setup`). The `challenge` is a short-lived token
+ * for that step; it is not a session.
  */
 export type SignInResult =
-  | ({ ok: true; twoFactor?: undefined } & Tokens)
-  | { ok: true; twoFactor: "required" | "setup"; challenge: string }
+  | ({ ok: true; twoFactor?: undefined; passwordChange?: undefined } & Tokens)
+  | { ok: true; passwordChange: "required"; challenge: string; twoFactor?: undefined }
+  | { ok: true; twoFactor: "required" | "setup"; challenge: string; passwordChange?: undefined }
   | { ok: false; reason: "invalid_credentials" | "throttled" };
 
 /** A new session row for a user, and the refresh token that goes in their cookie. */
@@ -94,6 +96,7 @@ interface UserRow {
   password_hash: string;
   full_name: string;
   is_active: number;
+  must_change_password: number;
 }
 
 export async function signIn(deps: Deps, input: SignInInput, now: Date = new Date()): Promise<SignInResult> {
@@ -103,7 +106,7 @@ export async function signIn(deps: Deps, input: SignInInput, now: Date = new Dat
   const userAgent = input.userAgent?.slice(0, 300) ?? null;
 
   const [userResult, emailFailures, ipFailures, roleResult, twoFactorResult] = await db.batch([
-    db.prepare("SELECT id, public_id, email, password_hash, full_name, is_active FROM users WHERE email = ?1").bind(email),
+    db.prepare("SELECT id, public_id, email, password_hash, full_name, is_active, must_change_password FROM users WHERE email = ?1").bind(email),
     db.prepare("SELECT COUNT(*) AS n FROM sign_in_events WHERE success = 0 AND email_tried = ?1 AND at > ?2").bind(email, since),
     // Without an address we cannot count by address, so that limit is skipped, not shared.
     db.prepare("SELECT COUNT(*) AS n FROM sign_in_events WHERE success = 0 AND ip = ?1 AND at > ?2").bind(input.ip ?? "", since),
@@ -139,6 +142,13 @@ export async function signIn(deps: Deps, input: SignInInput, now: Date = new Dat
   if (!usable || !passwordOk) {
     await recordEvent(false, !user ? "unknown_user" : !usable ? "inactive" : "bad_password").run();
     return { ok: false, reason: "invalid_credentials" };
+  }
+
+  // A temporary password was used (D-059): the person must choose their own before anything else, so no session and no
+  // second step yet, only a challenge for that. The password change endpoint carries on from there.
+  if (user.must_change_password === 1) {
+    await recordEvent(true, "password_ok_must_change").run();
+    return { ok: true, passwordChange: "required", challenge: await signChallenge(deps.sessionSecret, { sub: user.public_id, kind: "password" }) };
   }
 
   const roles = toClaims(roleResult!.results as unknown as RoleRow[]);

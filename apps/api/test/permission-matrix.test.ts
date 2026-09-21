@@ -116,6 +116,9 @@ describe("sensitive rules, stated independently (docs/source/sample-creation-inf
     // Subjects, offerings, mark components and elective groups: the same people.
     "setup.subjects.manage": ["COO", "SUP"],
     "setup.subjects.view": ["COO", "ADM", "SUP"],
+    // Staff: who sees the list, and who may give someone a new temporary password (the same people who may deactivate them).
+    "accounts.staff.view": ["COO", "ADM", "SUP"],
+    "accounts.password.issue": ["COO", "ADM", "SUP"],
   };
 
   it.each(Object.entries(exactly))("%s is allowed for exactly %j", (action, expected) => {
@@ -195,6 +198,19 @@ describe("sensitive rules, stated independently (docs/source/sample-creation-inf
     expect(authorize([claim("ADM")], "setup.subjects.manage")).toBeNull();
     expect(authorize([claim("COO")], "setup.subjects.view")!.readOnly).toBe(false);
     expect(rowFor("setup.subjects.manage")!.label).not.toMatch(/grading/i);
+  });
+
+  it("who sees staff, and who may issue a temporary password, is limited the same way as who may deactivate", () => {
+    expect(authorize([claim("COO")], "accounts.staff.view")!.limits).toEqual(["teachers"]);
+    expect(authorize([claim("ADM")], "accounts.staff.view")!.readOnly).toBe(true);
+    expect(authorize([claim("SUP")], "accounts.staff.view")!.limits).toEqual([]);
+    for (const action of ["accounts.deactivate", "accounts.password.issue"]) {
+      expect(authorize([claim("COO")], action)!.limits, action).toEqual(["teachers"]);
+      expect(authorize([claim("ADM")], action)!.limits, action).toEqual(["co-ordinators, accountants"]);
+      expect(authorize([claim("SUP")], action)!.limits, action).toEqual([]);
+    }
+    // Only the whole-school reach may issue a password: a Student, Teacher and Accountant never.
+    for (const code of ["STU", "TEA", "ACC"] as const) expect(authorize([claim(code)], "accounts.password.issue"), code).toBeNull();
   });
 });
 
