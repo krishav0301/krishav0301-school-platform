@@ -7,7 +7,7 @@ Read at the start of every session:
 
 If this file and `DECISIONS.md` disagree, stop and ask.
 
-**Current phase: Phase 1 (Platform foundation) is complete** (dates, schema and audit, sign-in, permissions, configuration and packs, design system and shell, notifications and jobs, password reset, two-step sign-in, exit check on both packs and on staging; D-037). **Phase 2 (public website) is approved (D-038); no slice is built until the PM confirms the slice list.** Phase 0 is complete: the backend is a Cloudflare Worker (D-019 to D-021), documented in `docs/architecture.md`. Update this line when a phase closes.
+**Current phase: Phase 1 (Platform foundation) is complete** (dates, schema and audit, sign-in, permissions, configuration and packs, design system and shell, notifications and jobs, password reset, two-step sign-in, exit check on both packs and on staging; D-037). **Phase 2 (public website) is in progress (D-038 to D-049): slices 0, 1, 2 and 4 are built; slice 3 (the fixed public pages) is next, then slice 5. See `docs/build-plan.md`.** Phase 0 is complete: the backend is a Cloudflare Worker (D-019 to D-021), documented in `docs/architecture.md`. Update this line when a phase closes.
 
 ## 1. What we are building
 
@@ -30,7 +30,7 @@ Rules, enforced in CI:
 6. Portal layout is identical for every school. Slots may add dashboard cards, profile tabs and menu items. Only the public site has layout variants (2 or 3).
 7. Two requests for the same extension: promote it to the core.
 8. A school is a **pack** (`packs/<school>/pack.json`), applied with `npm run provision`. Packs only add and update, never delete, and are safe to repeat. Only known optional modules and known terms can be changed; mandatory modules cannot be switched off. A theme must pass the contrast check (server-side) before it is saved (D-026).
-9. `scripts/check-boundaries.mjs` (CI) enforces rule 1 and that modules do not reach into each other. A route's permission is checked before its body is validated (D-027).
+9. `scripts/check-boundaries.mjs` (CI) enforces rule 1, that modules do not reach into each other, and that the public addresses the Worker answers itself (`PAGES` and `CRAWLER_FILES` in `modules/site`) match `run_worker_first` in `apps/api/wrangler.jsonc` (D-046, D-049). A route's permission is checked before its body is validated (D-027).
 
 Extension points, version 1: policies (grading, ranking and tie-break, student-ID format, fee billing schedule, promotion, admission rules, attendance rules, approval policy), adapters (payment gateway, SMS, email, file storage), documents (marks card, receipt, certificate, ID card), data and UI (custom fields on Student, Application, Staff; slots), events (after-commit domain events). Some rules stay fixed in the core, such as refunds and reversals always needing Admin approval.
 

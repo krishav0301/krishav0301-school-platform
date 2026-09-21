@@ -1,6 +1,6 @@
 # Build plan: reusable school platform
 
-Status: **approved by PM 2026-09-20 (D-012). Phases 0 and 1 complete (2026-09-21). Phase 2 approved 2026-09-21 (D-038), slices to be confirmed with the PM.** Decisions it rests on are in `DECISIONS.md`.
+Status: **approved by PM 2026-09-20 (D-012). Phases 0 and 1 complete (2026-09-21). Phase 2 approved 2026-09-21 (D-038): slices 0, 1, 2 and 4 built, slice 3 next.** Decisions it rests on are in `DECISIONS.md`.
 
 ## Where we are, and how to start the next session (updated 2026-09-21)
 
@@ -23,7 +23,23 @@ Status: **approved by PM 2026-09-20 (D-012). Phases 0 and 1 complete (2026-09-21
 5. Content: the programme and stream list is third-party and unconfirmed (`docs/client-profile.md`); Phase 2 uses it as a placeholder marked `OPEN:`.
 6. Small pending decisions: Admin required to use two-step sign-in (D-036); a QR code on 2FA setup; whether applying a pack should remove settings it no longer lists (D-026 open item).
 
-**Phase 2 progress (2026-09-21):** slice 0 (Admin two-step sign-in) built, D-038. Slice 1 (content model and cached public read API) built, D-039: Committed locally, not yet deployed to staging (the deploy is blocked for the agent; the PM runs it). Slice 2 (Admin content routes, D-040; Admin screens and BS date conversion, D-041) is built and tested (683 API tests, 173 web tests) and `apple-design` reviewed (D-042, 188 web tests), but still needs a person to try the screens in a browser and a staging deploy before it is called done. **Slice 4, public half (D-044): the notice board at `/notices` is built and checked in a browser** (the Admin half is slice 2). **Slice 3 is unblocked: the PM chose option A (D-046), and the Worker now fills the home page and `/notices` in for crawlers** (built, tested and checked in a browser; not yet on staging). The session hint (D-045) is done too. Slice 3's pages plug into that mechanism. The two design questions from D-042 are decided (D-048): no "are you sure" but an Undo, and Publish on the form.
+**Phase 2 progress (end of 2026-09-21).** Built, tested with mutation checks, pushed to GitHub, and (apart from the last item) deployed to staging. 742 API tests and 252 web tests pass; GitHub CI was green on 57635cd.
+- **Slice 0:** the Admin must use two-step sign-in (D-038). The PM set it up with an authenticator app, and a QR code now makes that easy on a desktop (D-047).
+- **Slice 1:** the content model and the public read API (D-039).
+- **Slice 2:** the Admin content routes (D-040), the Admin screens with Nepali (BS) date entry and the date conversion routes (D-041), and the `apple-design` review (D-042). Publish and Take down now act at once with an Undo, and the form has Publish and Save draft (D-048). The PM tried the screens: login and publish work.
+- **Slice 4:** expiry (in the API) and the public notice board at `/notices` (D-044).
+- **Across slices:** self-hosted fonts (D-043); the session hint, so signed-out visitors make no failed sign-in calls (D-045); the Worker fills the public pages in for crawlers, option A (D-046); `robots.txt`, `sitemap.xml` and `llms.txt` from the Worker, with only production indexable (D-049).
+- **Not on staging yet:** D-048 and D-049 (one more `wrangler deploy` by the PM).
+- **Not started:** slice 3 (the fixed public pages) and slice 5 (design and GEO pass, page-weight budgets, staging exit check).
+
+**Start slice 3 here (next session).** Scope: Home, Programmes (the nine; the list is unconfirmed, so placeholder content marked `OPEN:`), Admission process, Scholarships, Facilities and Contact. The words come from the school's pack (the Admin edits only the five content types, D-039); text and design only, no photos (R2 is held). Design with `ui-ux-pro-max` (no `--persist`), review with `apple-design`, and run the `geo-*` skills on the deployed staging pages, which is now possible. How the pieces fit (D-046, D-049):
+1. Extend the pack schema (`packs/<school>/pack.json`, `apps/api/src/core/config/pack.ts`) with the site content, store it (a new migration) and serve it (through the public config or a small read in `modules/site`). Both packs must have it (the sample school too), and a test covers the second school.
+2. Add each page to `PAGES` and `SUMMARIES` in `apps/api/src/modules/site/pages.ts`, and to `run_worker_first` in `apps/api/wrangler.jsonc` and the git-ignored `wrangler.local.jsonc`. `scripts/check-boundaries.mjs` (CI) fails if the lists differ, and a test fails if a page has no summary for `llms.txt`.
+3. Write the words in the web catalog (`apps/web/src/i18n/messages.ts`) and, for words the crawler copy shares, in `modules/site/strings.ts` (a web test checks they match).
+4. Build the web pages from theme tokens; the Worker writes the same content into the HTML for crawlers.
+5. Decide with the PM what Home shows (sections, urgent notices, a way to sign in) and which pages belong in the header.
+
+**Waiting on the PM (none blocks slice 3):** the staging redeploy (`cd apps\api`, then `npx wrangler deploy --config wrangler.local.jsonc`, in their own PowerShell); client inputs (logo and colours, the confirmed programme and stream list, contract and IP terms, payment gateway paperwork); approvals (the elective-group recommendation, multiple admission documents, a scholarship discount reason, the NEB rank tie-break, extension-point list v1, optional modules and editions, an official BS calendar source); smaller choices (regenerating recovery codes, whether applying a pack removes settings it no longer lists, turning on R2).
 
 **How to run Phase 2 (rules already in `CLAUDE.md`):** design with `ui-ux-pro-max`, review with `apple-design` (report the review), run the matching `geo-*` skill for each public-site slice (schema, technical, crawlers, `llms.txt`, content, citability; D-031), use the code graph before scanning files (D-033), tests before code, break the code on purpose to check the tests, report after each slice. Suggested slices (to confirm with the PM): 1 content model and the cached public read API; 2 Admin editing screens; 3 public pages (Home, Programmes, Admissions, Scholarships, Facilities, Contact) built from theme tokens and the message catalog; 4 notices, holidays, routine, vacancies and posts with expiry; 5 design and GEO pass, page-weight budgets, staging exit check.
 
