@@ -1,6 +1,6 @@
 {
   "pages": ["index", "programmes", "admission", "scholarships", "facilities", "contact", "notices", "sign-in", "reset-password"],
-  "ignore": ["404", "_not-found", "design", "portal", "portal/content", "portal/content/edit", "portal/setup", "portal/setup/programmes", "portal/setup/classes", "portal/setup/terminals"],
+  "ignore": ["404", "_not-found", "design", "portal", "portal/content", "portal/content/edit", "portal/setup", "portal/setup/programmes", "portal/setup/classes", "portal/setup/terminals", "portal/setup/subjects", "portal/setup/curriculum"],
   "htmlKb": 20,
   "assetsKb": 210,
   "scriptKb": 100

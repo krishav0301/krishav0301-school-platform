@@ -98,3 +98,37 @@ export const setClassActive = async (api: ApiClient, id: string, active: boolean
 
 export const createTerminal = async (api: ApiClient, body: { yearId: string; name: string }): Promise<CreateResult> =>
   created(await send(() => api.POST("/api/academics/terminals", { body })));
+
+// --- Subjects and the curriculum (slice 2) -----------------------------------------------------------
+
+export const loadSubjects = (api: ApiClient) => load(() => api.GET("/api/academics/subjects"));
+export const loadCurriculum = (api: ApiClient, levelId: string) => load(() => api.GET("/api/academics/curriculum", { params: { query: { level: levelId } } }));
+
+export const createSubject = async (api: ApiClient, input: { name: string; code?: string }): Promise<CreateResult> =>
+  created(await send(() => api.POST("/api/academics/subjects", { body: { name: input.name, ...(input.code ? { code: input.code } : {}) } })));
+
+export const setSubjectArchived = async (api: ApiClient, id: string, archived: boolean): Promise<WriteResult> =>
+  done(await send(() => api.PATCH("/api/academics/subjects/{id}", { params: { path: { id } }, body: { archived } })));
+
+export const createGroup = async (api: ApiClient, levelId: string, body: { name: string; pickCount: number }): Promise<CreateResult> =>
+  created(await send(() => api.POST("/api/academics/levels/{id}/groups", { params: { path: { id: levelId } }, body })));
+
+export const setGroupActive = async (api: ApiClient, id: string, active: boolean): Promise<WriteResult> =>
+  done(await send(() => api.PATCH("/api/academics/groups/{id}", { params: { path: { id } }, body: { active } })));
+
+export const addOffering = async (
+  api: ApiClient,
+  body: { levelId: string; subjectId: string; creditHundredths: number | null; groupId: string | null },
+): Promise<CreateResult> => created(await send(() => api.POST("/api/academics/offerings", { body })));
+
+export const setOfferingGroup = async (api: ApiClient, id: string, groupId: string | null): Promise<WriteResult> =>
+  done(await send(() => api.PATCH("/api/academics/offerings/{id}", { params: { path: { id } }, body: { groupId } })));
+
+export const setOfferingActive = async (api: ApiClient, id: string, active: boolean): Promise<WriteResult> =>
+  done(await send(() => api.PATCH("/api/academics/offerings/{id}", { params: { path: { id } }, body: { active } })));
+
+export const addComponent = async (api: ApiClient, offeringId: string, body: { name: string; maxHundredths: number }): Promise<CreateResult> =>
+  created(await send(() => api.POST("/api/academics/offerings/{id}/components", { params: { path: { id: offeringId } }, body })));
+
+export const setComponentActive = async (api: ApiClient, id: string, active: boolean): Promise<WriteResult> =>
+  done(await send(() => api.PATCH("/api/academics/components/{id}", { params: { path: { id } }, body: { active } })));
