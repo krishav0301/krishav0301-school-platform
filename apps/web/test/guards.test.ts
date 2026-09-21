@@ -207,6 +207,17 @@ describe("large text and narrow screens", () => {
     expect(css("site/site.module.css")).toMatch(/\.group\s*\{[^}]*width:\s*100%/);
   });
 
+  it("the long button labels on the People screen and the choose-a-password step wrap, so they cannot widen the page (button.wrapLabel beats the button's own nowrap)", () => {
+    expect(css("people/people.module.css")).toMatch(/button\.wrapLabel\s*\{[^}]*white-space:\s*normal/);
+    expect(css("session/new-password.module.css")).toMatch(/button\.wrapLabel\s*\{[^}]*white-space:\s*normal/);
+  });
+
+  it("the phone tab bar wraps onto a second row with enlarged text, so no menu entry is pushed off the screen, and the sidebar does not", () => {
+    const shell = css("shell/shell.module.css");
+    expect(shell).toMatch(/\.nav\s*\{[^}]*flex-wrap:\s*wrap/);
+    expect(shell).toMatch(/\.nav\s*\{[^}]*flex-direction:\s*column;\s*flex-wrap:\s*nowrap/);
+  });
+
   it("button labels stay on one line", () => {
     expect(css("ui/Button.module.css")).toMatch(/\.button\s*\{[^}]*white-space:\s*nowrap/);
   });

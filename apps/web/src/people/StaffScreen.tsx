@@ -40,7 +40,9 @@ export function TemporaryPasswordNotice({ name, password, onDone }: { name: stri
       <p className={setupStyles.muted}>{t("people.secret.body", { name })}</p>
       <div className={setupStyles.actions}>
         <CopyButton text={password} label={t("people.secret.copy")} copiedLabel={t("people.secret.copied")} />
-        <Button onClick={onDone}>{t("people.secret.done")}</Button>
+        <Button className={styles.wrapLabel} onClick={onDone}>
+          {t("people.secret.done")}
+        </Button>
       </div>
     </section>
   );
@@ -100,6 +102,7 @@ export function StaffView({
                 {member.active ? (
                   <Button
                     variant="quiet"
+                    className={styles.wrapLabel}
                     disabled={busy !== null}
                     aria-label={t("people.newPasswordItem", { name: member.fullName })}
                     onClick={() => onIssue(member)}

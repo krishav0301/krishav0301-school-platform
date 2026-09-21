@@ -83,7 +83,7 @@ export function NewPasswordStep({
           showLabel={t("signIn.showPassword")}
           hideLabel={t("signIn.hidePassword")}
         />
-        <Button type="submit" fullWidth loading={submitting} loadingLabel={t("signIn.newSubmitting")}>
+        <Button type="submit" fullWidth className={styles.wrapLabel} loading={submitting} loadingLabel={t("signIn.newSubmitting")}>
           {submitting ? t("signIn.newSubmitting") : t("signIn.newSubmit")}
         </Button>
       </form>
