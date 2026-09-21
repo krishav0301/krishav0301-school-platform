@@ -32,6 +32,8 @@ npm run provision -- --pack ../../packs/royal-softech --local     # migrations +
 USER_PASSWORD='a long passphrase' npm run dev:user -- --email you@school.example --name "Your Name" --role coordinator
 ```
 
+To look at the public notice board with something on it, add clearly labelled sample content for an Admin you created (local database only): `npm run dev:content -- --email you@school.example`, then open `/notices`.
+
 Applying a different pack (`packs/sample-basic-school`) to the same local database swaps the school's name, wording, modules and theme, which is a quick way to see that one build serves any school. `/design` shows every component in the current theme.
 
 For fast front-end work with hot reload, run `npm run dev` in `apps/web` as well and open http://localhost:3000. It forwards `/api/*` to the Worker on port 8787.
