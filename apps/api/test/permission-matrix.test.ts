@@ -10,6 +10,7 @@ import {
   authorize,
   canAccessSection,
   isKnownAction,
+  rowFor,
   type RoleCode,
 } from "../src/core/permissions";
 import type { RoleClaim } from "../src/core/tokens";
@@ -112,6 +113,9 @@ describe("sensitive rules, stated independently (docs/source/sample-creation-inf
     // Only the Co-ordinator sets up the academic structure. The Admin may look, never change it.
     "setup.structure.manage": ["COO", "SUP"],
     "setup.structure.view": ["COO", "ADM", "SUP"],
+    // Subjects, offerings, mark components and elective groups: the same people.
+    "setup.subjects.manage": ["COO", "SUP"],
+    "setup.subjects.view": ["COO", "ADM", "SUP"],
   };
 
   it.each(Object.entries(exactly))("%s is allowed for exactly %j", (action, expected) => {
@@ -184,6 +188,13 @@ describe("sensitive rules, stated independently (docs/source/sample-creation-inf
     expect(authorize([claim("ADM")], "setup.structure.view")!.readOnly).toBe(true);
     expect(authorize([claim("ADM")], "setup.structure.manage")).toBeNull();
     expect(authorize([claim("COO")], "setup.structure.view")!.readOnly).toBe(false);
+  });
+
+  it("the Admin can look at subjects and elective groups but not change them; grading policy is not a setup permission", () => {
+    expect(authorize([claim("ADM")], "setup.subjects.view")!.readOnly).toBe(true);
+    expect(authorize([claim("ADM")], "setup.subjects.manage")).toBeNull();
+    expect(authorize([claim("COO")], "setup.subjects.view")!.readOnly).toBe(false);
+    expect(rowFor("setup.subjects.manage")!.label).not.toMatch(/grading/i);
   });
 });
 
