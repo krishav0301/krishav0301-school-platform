@@ -242,6 +242,75 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/content": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Every item in every state, most recently touched first, at most 200. `state` says where each stands today. */
+        get: operations["list_content"];
+        put?: never;
+        /** @description Saves a new item as a draft. It is not public until it is published. */
+        post: operations["create_content"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/content/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** @description Changes some of an item's words or dates. Send only what changes. The kind and the status cannot be changed here. A live item's change is public at once. */
+        patch: operations["update_content"];
+        trace?: never;
+    };
+    "/api/content/{id}/publish": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Puts a draft on the public site, from its publish day. Two people doing it at once: one succeeds, the other gets 409. */
+        post: operations["publish_content"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/content/{id}/unpublish": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Takes an item off the public site. It goes back to a draft and can be published again. */
+        post: operations["unpublish_content"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -381,6 +450,55 @@ export interface components {
         };
         /** @enum {string} */
         ContentKind: "notice" | "holiday" | "routine" | "vacancy" | "post";
+        AdminContent: {
+            items: components["schemas"]["AdminContentItem"][];
+        };
+        AdminContentItem: {
+            id: string;
+            kind: components["schemas"]["ContentKind"];
+            title: string;
+            body: string;
+            contact: string | null;
+            urgent: boolean;
+            /** @enum {string} */
+            status: "draft" | "waiting" | "live";
+            state: components["schemas"]["ContentState"];
+            publishOn: string;
+            hideAfter: string | null;
+            createdAt: string;
+            updatedAt: string;
+            publishedAt: string | null;
+        };
+        /** @enum {string} */
+        ContentState: "draft" | "waiting" | "scheduled" | "showing" | "expired";
+        ContentError: {
+            error: string;
+        };
+        ContentInvalid: {
+            /** @enum {string} */
+            error: "invalid";
+            message: string;
+        };
+        CreateContent: {
+            kind: components["schemas"]["ContentKind"];
+            title: string;
+            body: string;
+            /** @default null */
+            contact: string | null;
+            /** @default false */
+            urgent: boolean;
+            publishOn: string;
+            /** @default null */
+            hideAfter: string | null;
+        };
+        ContentChanges: {
+            title?: string;
+            body?: string;
+            contact?: string | null;
+            urgent?: boolean;
+            publishOn?: string;
+            hideAfter?: string | null;
+        };
     };
     responses: never;
     parameters: never;
@@ -876,6 +994,233 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PublicContent"];
+                };
+            };
+        };
+    };
+    list_content: {
+        parameters: {
+            query?: {
+                kind?: components["schemas"]["ContentKind"];
+                state?: components["schemas"]["ContentState"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The items */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminContent"];
+                };
+            };
+        };
+    };
+    create_content: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateContent"];
+            };
+        };
+        responses: {
+            /** @description Saved as a draft */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        id: string;
+                    };
+                };
+            };
+            /** @description Not allowed (for example, switched off since signing in) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ContentError"];
+                };
+            };
+            /** @description The content breaks a rule */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ContentInvalid"];
+                };
+            };
+        };
+    };
+    update_content: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ContentChanges"];
+            };
+        };
+        responses: {
+            /** @description Saved */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {boolean} */
+                        ok: true;
+                    };
+                };
+            };
+            /** @description Not allowed (for example, switched off since signing in) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ContentError"];
+                };
+            };
+            /** @description No such item */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ContentError"];
+                };
+            };
+            /** @description The result would break a rule; nothing changed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ContentInvalid"];
+                };
+            };
+        };
+    };
+    publish_content: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Published */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {boolean} */
+                        ok: true;
+                    };
+                };
+            };
+            /** @description Not allowed (for example, switched off since signing in) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ContentError"];
+                };
+            };
+            /** @description No such item */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ContentError"];
+                };
+            };
+            /** @description Already live */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ContentError"];
+                };
+            };
+        };
+    };
+    unpublish_content: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Taken down */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {boolean} */
+                        ok: true;
+                    };
+                };
+            };
+            /** @description Not allowed (for example, switched off since signing in) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ContentError"];
+                };
+            };
+            /** @description No such item */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ContentError"];
+                };
+            };
+            /** @description It is not live */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ContentError"];
                 };
             };
         };

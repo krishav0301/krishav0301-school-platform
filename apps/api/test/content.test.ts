@@ -4,7 +4,7 @@ import { beforeAll, describe, expect, it } from "vitest";
 import { verifyAuditChain } from "../src/core/audit";
 import { nepalDate } from "../src/core/dates";
 import { createUser } from "../src/modules/accounts/service";
-import { listPublicContent } from "../src/modules/content/queries";
+import { listAdminContent, listPublicContent } from "../src/modules/content/queries";
 import { createContent, publishContent, unpublishContent, updateContent } from "../src/modules/content/service";
 import type { ContentInput } from "../src/modules/content/schema";
 
@@ -279,6 +279,46 @@ describe("editing", () => {
 
   it("the whole audit log is still one unbroken chain", async () => {
     expect(await verifyAuditChain(db, key)).toMatchObject({ ok: true });
+  });
+});
+
+// ---------------------------------------------------------------------------------------------
+describe("where an item stands (the Admin list)", () => {
+  it("scheduled before its day, showing on both edge days, expired the day after: in the label and in the filter", async () => {
+    const id = await live({ title: "States", publishOn: "2083-06-10", hideAfter: "2083-06-20" });
+    const expectations: [string, string][] = [["2083-06-09", "scheduled"], ["2083-06-10", "showing"], ["2083-06-20", "showing"], ["2083-06-21", "expired"]];
+
+    for (const [day, state] of expectations) {
+      const all = (await listAdminContent(db, day)).items.find((i) => i.id === id);
+      expect(all?.state, `${day} label`).toBe(state);
+      const filtered = (await listAdminContent(db, day, { state: state as never })).items.map((i) => i.id);
+      expect(filtered, `${day} filter`).toContain(id);
+      for (const other of ["scheduled", "showing", "expired"].filter((s) => s !== state)) {
+        expect((await listAdminContent(db, day, { state: other as never })).items.map((i) => i.id), `${day} not ${other}`).not.toContain(id);
+      }
+    }
+  });
+
+  it("a draft or an item waiting for approval keeps that word, whatever its dates", async () => {
+    const draft = await created({ publishOn: "2020-01-01", hideAfter: "2020-01-02" });
+    const waiting = await created({ publishOn: "2020-01-01" });
+    await db.prepare("UPDATE content_items SET status = 'waiting' WHERE public_id = ?1").bind(waiting).run();
+    const items = (await listAdminContent(db, "2099-01-01")).items;
+    expect(items.find((i) => i.id === draft)?.state).toBe("draft");
+    expect(items.find((i) => i.id === waiting)?.state).toBe("waiting");
+  });
+
+  it("reads in one round trip", async () => {
+    let prepared = 0;
+    const counting = new Proxy(db, {
+      get(target, prop, receiver) {
+        if (prop === "prepare") return (sql: string) => { prepared++; return target.prepare(sql); };
+        if (prop === "batch") return () => { throw new Error("unexpected batch"); };
+        return Reflect.get(target, prop, receiver);
+      },
+    }) as D1Database;
+    await listAdminContent(counting, TODAY);
+    expect(prepared).toBe(1);
   });
 });
 

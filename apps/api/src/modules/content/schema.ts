@@ -17,33 +17,80 @@ const Title = z.string().trim().min(1, "Give it a title").max(200, "Keep the tit
 const Body = z.string().trim().min(1, "Write some text").max(10_000, "Keep the text to 10,000 characters");
 const Contact = z.string().trim().min(1, "Give an email or phone").max(200, "Keep the contact to 200 characters");
 
-/** The whole content of an item. The rules that involve more than one field are checked here. */
-export const ContentInputSchema = z
-  .object({
+/** The rules that involve more than one field. */
+function crossFieldRules(value: { kind: ContentKind; contact: string | null; publishOn: string; hideAfter: string | null }, ctx: z.RefinementCtx) {
+  if (value.kind === "vacancy" && value.contact === null) {
+    ctx.addIssue({ code: "custom", path: ["contact"], message: "A vacancy needs an email or phone to contact" });
+  }
+  if (value.kind !== "vacancy" && value.contact !== null) {
+    ctx.addIssue({ code: "custom", path: ["contact"], message: "Only a vacancy has a contact" });
+  }
+  if (value.hideAfter !== null && value.hideAfter < value.publishOn) {
+    ctx.addIssue({ code: "custom", path: ["hideAfter"], message: "It cannot be hidden before it is shown" });
+  }
+}
+
+const Fields = {
+  title: Title,
+  body: Body,
+  /** Vacancies only: the email or phone to contact. */
+  contact: Contact.nullable(),
+  urgent: z.boolean(),
+  publishOn: CalendarDaySchema,
+  hideAfter: CalendarDaySchema.nullable(),
+};
+
+/** The whole content of an item. The service checks every write against this. */
+export const ContentInputSchema = z.object({ kind: ContentKindSchema, ...Fields }).superRefine(crossFieldRules);
+export type ContentInput = z.infer<typeof ContentInputSchema>;
+
+/** What the Admin sends to make an item. The optional parts may be left out. Anything else in the body is refused. */
+export const CreateContentSchema = z
+  .strictObject({
     kind: ContentKindSchema,
     title: Title,
     body: Body,
-    /** Vacancies only: the email or phone to contact. */
-    contact: Contact.nullable(),
+    contact: Contact.nullable().default(null),
+    urgent: z.boolean().default(false),
+    publishOn: CalendarDaySchema,
+    hideAfter: CalendarDaySchema.nullable().default(null),
+  })
+  .superRefine(crossFieldRules)
+  .openapi("CreateContent");
+
+/**
+ * What a person may change afterwards: any of these, and nothing else (a body with the kind or the
+ * status in it is refused). The whole is checked again against what is already there.
+ */
+export const ContentChangesSchema = z.strictObject(Fields).partial().openapi("ContentChanges");
+export type ContentChanges = z.infer<typeof ContentChangesSchema>;
+
+/** Where an item stands today, in plain words for the Admin screen. */
+export const CONTENT_STATES = ["draft", "waiting", "scheduled", "showing", "expired"] as const;
+export const ContentStateSchema = z.enum(CONTENT_STATES).openapi("ContentState");
+export type ContentState = z.infer<typeof ContentStateSchema>;
+
+/** What the Admin screen gets: the public words plus where the item stands. Never who wrote it. */
+export const AdminContentItemSchema = z
+  .object({
+    id: z.string(),
+    kind: ContentKindSchema,
+    title: z.string(),
+    body: z.string(),
+    contact: z.string().nullable(),
     urgent: z.boolean(),
+    status: z.enum(["draft", "waiting", "live"]),
+    state: ContentStateSchema,
     publishOn: CalendarDaySchema,
     hideAfter: CalendarDaySchema.nullable(),
+    createdAt: z.string(),
+    updatedAt: z.string(),
+    publishedAt: z.string().nullable(),
   })
-  .superRefine((value, ctx) => {
-    if (value.kind === "vacancy" && value.contact === null) {
-      ctx.addIssue({ code: "custom", path: ["contact"], message: "A vacancy needs an email or phone to contact" });
-    }
-    if (value.kind !== "vacancy" && value.contact !== null) {
-      ctx.addIssue({ code: "custom", path: ["contact"], message: "Only a vacancy has a contact" });
-    }
-    if (value.hideAfter !== null && value.hideAfter < value.publishOn) {
-      ctx.addIssue({ code: "custom", path: ["hideAfter"], message: "It cannot be hidden before it is shown" });
-    }
-  });
-export type ContentInput = z.infer<typeof ContentInputSchema>;
+  .openapi("AdminContentItem");
+export type AdminContentItem = z.infer<typeof AdminContentItemSchema>;
 
-/** What a person may change afterwards. The kind never changes; the status changes only by publishing and taking down. */
-export type ContentChanges = Partial<Omit<ContentInput, "kind">>;
+export const AdminContentSchema = z.object({ items: z.array(AdminContentItemSchema) }).openapi("AdminContent");
 
 /** What the public site gets. Nothing internal (who wrote it, its status) is in it. */
 export const PublicContentItemSchema = z
