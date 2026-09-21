@@ -51,3 +51,21 @@ export type LevelInput = z.input<typeof CreateLevelSchema>;
 
 export const LevelChangesSchema = z.strictObject({ name: LevelName, active: z.boolean() }).partial().openapi("LevelChanges");
 export type LevelChanges = z.infer<typeof LevelChangesSchema>;
+
+// --- Classes and terminals ---------------------------------------------------------------------------
+
+const ClassLabel = z.string().trim().max(40, "Keep the label to 40 characters");
+const TerminalName = z.string().trim().min(1, "Give the terminal a name").max(60, "Keep the name to 60 characters");
+
+/** A class is a level in a year. The programme is the level's own, so it is never sent. */
+export const CreateClassSchema = z.strictObject({ yearId: PublicIdSchema, levelId: PublicIdSchema, label: ClassLabel.default("") }).openapi("CreateClass");
+export type ClassInput = z.input<typeof CreateClassSchema>;
+
+export const ClassChangesSchema = z.strictObject({ label: ClassLabel, active: z.boolean() }).partial().openapi("ClassChanges");
+export type ClassChanges = z.infer<typeof ClassChangesSchema>;
+
+export const CreateTerminalSchema = z.strictObject({ yearId: PublicIdSchema, name: TerminalName }).openapi("CreateTerminal");
+export type TerminalInput = z.input<typeof CreateTerminalSchema>;
+
+export const TerminalChangesSchema = z.strictObject({ name: TerminalName }).partial().openapi("TerminalChanges");
+export type TerminalChanges = z.infer<typeof TerminalChangesSchema>;
