@@ -162,11 +162,21 @@ describe("the edit page", () => {
 describe("the form for a new item", () => {
   const html = editor();
 
-  it("says what it is, and has one prominent button: Save draft, with a quiet Cancel back to the list", () => {
+  it("says what it is, and has one prominent button: Publish, with Save draft beside it and a quiet Cancel back to the list", () => {
     expect(html).toMatch(/<h1[^>]*>New item<\/h1>/);
     expect(count(html, /class="[^"]*\bprimary\b[^"]*"/g)).toBe(1);
-    expect(html).toMatch(/<button[^>]*type="submit"[^>]*>Save draft<\/button>/);
+    expect(html).toMatch(/<button[^>]*class="[^"]*\bprimary\b[^"]*"[^>]*>Publish<\/button>/);
+    expect(html).toMatch(/<button[^>]*class="[^"]*\bsecondary\b[^"]*"[^>]*>Save draft<\/button>/);
     expect(html).toMatch(/<a[^>]*href="\/portal\/content"[^>]*>Cancel<\/a>/);
+  });
+
+  it("Enter in a box can only save a draft: Save draft is the one submit button, and Publish is a plain button after it", () => {
+    expect(count(html, /type="submit"/g)).toBe(1);
+    expect(html).toMatch(/<button[^>]*type="submit"[^>]*>Save draft<\/button>/);
+    expect(html).toMatch(/<button[^>]*type="button"[^>]*>Publish<\/button>/);
+    expect(html.indexOf(">Save draft<")).toBeLessThan(html.indexOf(">Publish<"));
+    // Cancel, then the quiet-to-prominent order, so the main action is last (Apple: primary at the trailing end).
+    expect(html.indexOf(">Cancel<")).toBeLessThan(html.indexOf(">Save draft<"));
   });
 
   it("lets the type be chosen, offering all five", () => {
@@ -237,6 +247,16 @@ describe("the form for an item already saved", () => {
     expect(html).toContain("This item is on the website. Saving changes updates it, and visitors see the change within about a minute.");
     expect(html).toMatch(/<button[^>]*type="submit"[^>]*>Save changes<\/button>/);
     expect(html).not.toContain(">Save draft<");
+    // It is already published, so there is nothing to publish: one action, and it is the prominent one.
+    expect(html).not.toContain(">Publish<");
+    expect(count(html, /class="[^"]*\bprimary\b[^"]*"/g)).toBe(1);
+  });
+
+  it("a saved draft can be saved again or published, like a new one", () => {
+    const html = editor({ id: "0123456789abcdef0123456789abcdef", live: false }, saved);
+    expect(html).toMatch(/<button[^>]*type="submit"[^>]*>Save draft<\/button>/);
+    expect(html).toMatch(/<button[^>]*type="button"[^>]*>Publish<\/button>/);
+    expect(count(html, /class="[^"]*\bprimary\b[^"]*"/g)).toBe(1);
   });
 });
 

@@ -161,10 +161,12 @@ export function parseEditTarget(search: string): EditTarget {
   return /^[0-9a-f]{32}$/.test(id) ? { mode: "edit", id } : { mode: "invalid" };
 }
 
+export type FlashKind = "created" | "updated" | "published" | "saved_unpublished";
+
 /** What the list is told a form just did (`?done=created`). Anything else is ignored. */
-export function parseFlash(search: string): "created" | "updated" | null {
+export function parseFlash(search: string): FlashKind | null {
   const done = new URLSearchParams(search).get("done");
-  return done === "created" || done === "updated" ? done : null;
+  return done === "created" || done === "updated" || done === "published" || done === "saved_unpublished" ? done : null;
 }
 
 /** The text split into paragraphs at blank lines. Nothing in it is interpreted: it is shown as typed. */

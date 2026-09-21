@@ -10,7 +10,7 @@ import { Badge, Button, Card, Checkbox, Field, Notice, Select, Skeleton, TextAre
 
 import { useAddressQuery } from "./address";
 import { BsDateField } from "./BsDateField";
-import { loadContent, loadItem, saveItem } from "./client";
+import { loadContent, loadItem, submitForm } from "./client";
 import { ContentPreview } from "./ContentPreview";
 import {
   KINDS,
@@ -21,6 +21,7 @@ import {
   parseEditTarget,
   validateForm,
   type FieldName,
+  type FlashKind,
   type FormErrors,
   type FormValues,
   type Kind,
@@ -96,19 +97,20 @@ export function ContentForm() {
       id={id}
       initial={loaded.values}
       live={loaded.live}
-      onSaved={() => router.push(`/portal/content?done=${id === null ? "created" : "updated"}`)}
+      onSaved={(outcome) => router.push(`/portal/content?done=${outcome}`)}
       onGone={() => setLoaded({ status: "not_found" })}
     />
   );
 }
 
 /** The form itself, once the item (or today's date) is loaded. Exported so it can be drawn in tests without a network. */
-export function ContentEditor({ id, initial, live, onSaved, onGone }: { id: string | null; initial: FormValues; live: boolean; onSaved: () => void; onGone: () => void }) {
+export function ContentEditor({ id, initial, live, onSaved, onGone }: { id: string | null; initial: FormValues; live: boolean; onSaved: (outcome: FlashKind) => void; onGone: () => void }) {
   const { api } = useSession();
   const [values, setValues] = useState<FormValues>(initial);
   const [errors, setErrors] = useState<FormErrors>({});
   const [failure, setFailure] = useState<MessageKey | null>(null);
-  const [saving, setSaving] = useState(false);
+  // Which button is working: saving a draft (or the changes), or saving and publishing.
+  const [pending, setPending] = useState<"draft" | "publish" | null>(null);
   const [focus, setFocus] = useState<{ field: FieldName; tick: number } | null>(null);
 
   const title = useRef<HTMLInputElement>(null);
@@ -126,23 +128,33 @@ export function ContentEditor({ id, initial, live, onSaved, onGone }: { id: stri
 
   const set = <K extends keyof FormValues>(name: K, value: FormValues[K]) => setValues((current) => ({ ...current, [name]: value }));
 
-  async function submit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    if (saving) return;
+  /**
+   * Saves, and with `publish` puts it on the website too. Pressing Enter in a box saves (a draft, or the
+   * changes to a live item): only a deliberate click on Publish goes public. If the save works but the
+   * publishing does not, the item is already saved, so the person is taken to the list and told so; staying
+   * here would let a second click make a second copy.
+   */
+  async function run(publish: boolean) {
+    if (pending) return;
     setFailure(null);
 
     const problems = validateForm(values);
     if (Object.keys(problems).length > 0) return showProblems(problems);
 
-    setSaving(true);
-    const result = await saveItem(api, id, values);
-    setSaving(false);
+    setPending(publish ? "publish" : "draft");
+    const result = await submitForm(api, id, values, publish);
 
-    if (result.ok) return onSaved();
-    if (result.reason === "fields") return showProblems(result.errors);
+    if ("done" in result) return onSaved(result.done);
+    setPending(null);
+    if ("fields" in result) return showProblems(result.fields);
+    if ("gone" in result) return onGone();
     setErrors({});
-    if (result.reason === "not_found") return onGone();
-    setFailure(result.reason === "forbidden" ? "content.forbidden" : result.reason === "rejected" ? "contentForm.error.rejected" : "contentForm.error.saveFailed");
+    setFailure(result.problem === "forbidden" ? "content.forbidden" : result.problem === "rejected" ? "contentForm.error.rejected" : "contentForm.error.saveFailed");
+  }
+
+  function submit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    void run(false);
   }
 
   function showProblems(problems: FormErrors) {
@@ -224,12 +236,25 @@ export function ContentEditor({ id, initial, live, onSaved, onGone }: { id: stri
             />
 
             <div className={styles.actions}>
-              <Button type="submit" loading={saving} loadingLabel={t("contentForm.saving")}>
-                {saving ? t("contentForm.saving") : t(live ? "contentForm.saveChanges" : "contentForm.save")}
-              </Button>
               <Link href="/portal/content" className={buttonClass({ variant: "quiet" })}>
                 {t("contentForm.cancel")}
               </Link>
+              {live ? (
+                // An item that is already on the website has one action: save the changes (they go live at once).
+                <Button type="submit" loading={pending === "draft"} loadingLabel={t("contentForm.saving")}>
+                  {pending === "draft" ? t("contentForm.saving") : t("contentForm.saveChanges")}
+                </Button>
+              ) : (
+                <>
+                  {/* Save draft comes first and is the only submit button, so Enter in a box saves and never publishes. */}
+                  <Button type="submit" variant="secondary" loading={pending === "draft"} disabled={pending === "publish"} loadingLabel={t("contentForm.saving")}>
+                    {pending === "draft" ? t("contentForm.saving") : t("contentForm.save")}
+                  </Button>
+                  <Button loading={pending === "publish"} disabled={pending === "draft"} loadingLabel={t("contentForm.publishing")} onClick={() => void run(true)}>
+                    {pending === "publish" ? t("contentForm.publishing") : t("contentForm.publish")}
+                  </Button>
+                </>
+              )}
             </div>
           </form>
         </Card>

@@ -244,3 +244,12 @@
 .urgentItem {
   border-inline-start: 0.375rem solid var(--color-text);
 }
+
+/* A message with an Undo beside it: on one line when there is room, wrapping under it when there is not. */
+.flash {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2) var(--space-4);
+}

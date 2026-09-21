@@ -176,9 +176,11 @@ describe("parseEditTarget: what the edit page was asked to open", () => {
 });
 
 describe("parseFlash: what the list was told just happened", () => {
-  it("knows the two outcomes a form can report, and nothing else", () => {
+  it("knows the four outcomes a form can report, and nothing else", () => {
     expect(parseFlash("?done=created")).toBe("created");
     expect(parseFlash("?done=updated")).toBe("updated");
+    expect(parseFlash("?done=published")).toBe("published");
+    expect(parseFlash("?done=saved_unpublished")).toBe("saved_unpublished");
     for (const bad of ["", "?done=", "?done=deleted", "?done=<b>", "?done=CREATED", "?other=created"]) expect(parseFlash(bad), bad).toBeNull();
   });
 });
@@ -217,20 +219,27 @@ describe("the words for the content screens", () => {
     for (const [key, text] of own) expect(text, key).not.toMatch(/\b(we|we'll|we're|our|us)\b/i);
   });
 
-  it("name the item in the question that asks before publishing or taking down, and say the action in the button", () => {
-    expect(t("content.publishAsk", { title: "Fee notice" })).toBe("Put “Fee notice” on the website?");
-    expect(t("content.takeDownAsk", { title: "Fee notice" })).toContain("“Fee notice”");
-    expect(en["content.confirmPublish"]).toBe("Publish");
-    expect(en["content.confirmTakeDown"]).toBe("Take down");
+  it("name the item in what they say after publishing, taking down or undoing, so it is clear which one it was", () => {
+    for (const key of ["content.done.published", "content.done.takenDown", "content.undone.draft", "content.undone.published"] as const) {
+      expect(t(key, { title: "Fee notice" }), key).toContain("“Fee notice”");
+    }
   });
 
   it("keep one name for an action from the button to the message that follows it", () => {
     expect(en["content.publish"]).toBe("Publish");
-    expect(en["content.done.published"]).toMatch(/^Published\./);
+    expect(en["content.done.published"]).toMatch(/^Published/);
+    expect(en["content.done.formPublished"]).toMatch(/^Published/);
+    expect(en["contentForm.publish"]).toBe("Publish");
     expect(en["content.takeDown"]).toBe("Take down");
-    expect(en["content.done.takenDown"]).toMatch(/^Taken down\./);
+    expect(en["content.done.takenDown"]).toMatch(/^Taken down/);
     expect(en["contentForm.save"]).toBe("Save draft");
-    expect(en["content.done.created"]).toMatch(/^Saved as a draft\./);
+    expect(en["content.done.created"]).toMatch(/^Saved as a draft/);
+    expect(en["content.done.savedNotPublished"]).toMatch(/^Saved as a draft/);
+  });
+
+  it("describe the undo precisely, as the operation being undone (undo-and-redo.md)", () => {
+    expect(en["content.undoPublish"]).toBe("Undo publish");
+    expect(en["content.undoTakeDown"]).toBe("Undo take down");
   });
 });
 

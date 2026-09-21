@@ -1,6 +1,6 @@
 import type { ApiClient } from "@/api/client";
 
-import { validateForm, type ContentItem, type ContentSummary, type PublicItem, type FieldName, type FormErrors, type FormValues, type Kind, type State } from "./model";
+import { validateForm, type ContentItem, type ContentSummary, type FlashKind, type PublicItem, type FieldName, type FormErrors, type FormValues, type Kind, type State } from "./model";
 
 /**
  * Everything the content screens ask of the server, with the answers turned into plain results the
@@ -131,4 +131,34 @@ export async function loadPublic(api: ApiClient): Promise<PublicResult> {
   } catch {
     return { ok: false };
   }
+}
+
+export type SubmitResult =
+  /** Saved (and published, if asked): go to the list and say so. */
+  | { done: FlashKind }
+  /** The form has problems: show each against its field. */
+  | { fields: FormErrors }
+  /** The save did not go through: stay on the form and say why. */
+  | { problem: "rejected" | "forbidden" | "failed" }
+  /** The item is no longer there. */
+  | { gone: true };
+
+/**
+ * What the form's buttons do. Save draft (or Save changes) saves; Publish saves and then puts the item on
+ * the website. If the save works but the publishing does not, the item IS saved, so the answer is "saved
+ * as a draft" and the person leaves the form: staying would let a second click make a second copy.
+ */
+export async function submitForm(api: ApiClient, id: string | null, values: FormValues, publish: boolean): Promise<SubmitResult> {
+  const saved = await saveItem(api, id, values);
+  if (!saved.ok) {
+    if (saved.reason === "fields") return { fields: saved.errors };
+    if (saved.reason === "not_found") return { gone: true };
+    return { problem: saved.reason };
+  }
+  if (!publish) return { done: id === null ? "created" : "updated" };
+
+  const published = await setPublished(api, saved.id, true);
+  if (published.ok || published.reason === "conflict") return { done: "published" }; // conflict: someone else already published it
+  if (published.reason === "gone") return { gone: true };
+  return { done: "saved_unpublished" };
 }

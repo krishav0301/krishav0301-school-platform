@@ -9,15 +9,26 @@ import { Badge, Button, Notice, Select, Skeleton, buttonClass } from "@/ui";
 
 import { useAddressQuery } from "./address";
 import { loadContent, setPublished } from "./client";
-import { KINDS, KIND_LABEL, STATES, STATE_LABEL, formatBsDate, parseFlash, type ContentSummary, type Kind, type State } from "./model";
+import { KINDS, KIND_LABEL, STATES, STATE_LABEL, formatBsDate, parseFlash, type ContentSummary, type FlashKind, type Kind, type State } from "./model";
+import { outcomeOfToggle, type ToggleOutcome } from "./outcome";
 import styles from "./content.module.css";
 
 type View = { status: "loading" } | { status: "ready"; items: ContentSummary[] } | { status: "failed" | "forbidden" };
-type Flash = { tone: "ok" | "bad"; text: string };
+type Flash = { tone: "ok" | "bad"; text: string; undo?: ToggleOutcome["undo"] };
 
-const FLASH_MESSAGE = { created: "content.done.created", updated: "content.done.updated" } as const;
+/** What a form that just saved tells the list (in the address), and whether it is good news. */
+const FLASH_FROM_FORM: Record<FlashKind, { tone: "ok" | "bad"; message: "content.done.created" | "content.done.updated" | "content.done.formPublished" | "content.done.savedNotPublished" }> = {
+  created: { tone: "ok", message: "content.done.created" },
+  updated: { tone: "ok", message: "content.done.updated" },
+  published: { tone: "ok", message: "content.done.formPublished" },
+  saved_unpublished: { tone: "bad", message: "content.done.savedNotPublished" },
+};
 
-/** The Admin's list of website content: filter it, add to it, and put items on the website or take them off. */
+/**
+ * The Admin's list of website content: filter it, add to it, and put items on the website or take them off.
+ * Publish and Take down act at once, with no "are you sure" (D-048): they are common and fully reversible, so
+ * the message afterwards says what happened and offers an Undo, which stays until the person does something else.
+ */
 export function ContentList() {
   const { api } = useSession();
   const [kind, setKind] = useState<Kind | "">("");
@@ -26,10 +37,8 @@ export function ContentList() {
   const [flash, setFlash] = useState<Flash | null>(null);
   const [addressFlashSeen, setAddressFlashSeen] = useState(false);
   const search = useAddressQuery();
-  const [asking, setAsking] = useState<{ id: string; publish: boolean } | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const latest = useRef(0);
-  const returnFocusTo = useRef<string | null>(null);
 
   // Only the newest request may change the screen, so a slow answer never overwrites a newer one.
   const reload = useCallback(async () => {
@@ -43,45 +52,30 @@ export function ContentList() {
     void reload();
   }, [reload]);
 
-  // Keep the keyboard where the person is: asking moves it to the confirming button, and answering or
-  // cancelling moves it back to the button that was pressed (which is otherwise replaced and lost).
-  useEffect(() => {
-    if (asking) {
-      document.getElementById("content-confirm")?.focus();
-    } else if (returnFocusTo.current) {
-      document.getElementById(returnFocusTo.current)?.focus();
-      returnFocusTo.current = null;
-    }
-  }, [asking]);
-
   // A form that just saved sends its outcome in the address. It is shown until the person does
   // something else on this page; anything that happens after that replaces or dismisses it.
   const done = search === null ? null : parseFlash(search);
-  const shownFlash: Flash | null = flash ?? (done && !addressFlashSeen ? { tone: "ok", text: t(FLASH_MESSAGE[done]) } : null);
+  const fromForm = done && !addressFlashSeen ? FLASH_FROM_FORM[done] : null;
+  const shownFlash: Flash | null = flash ?? (fromForm ? { tone: fromForm.tone, text: t(fromForm.message) } : null);
 
   function changeFilter(next: () => void) {
     setAddressFlashSeen(true);
     setFlash(null);
     next();
     setView({ status: "loading" });
-    setAsking(null);
   }
 
-  async function confirm(item: ContentSummary, publish: boolean) {
+  /** Puts an item on the website or takes it off, at once, and says what happened. */
+  async function toggle(id: string, title: string, publish: boolean, isUndo = false) {
     if (busy) return;
     setAddressFlashSeen(true);
-    setBusy(item.id);
-    const result = await setPublished(api, item.id, publish);
+    setBusy(id);
+    const result = await setPublished(api, id, publish);
     setBusy(null);
-    setAsking(null);
 
-    if (result.ok) setFlash({ tone: "ok", text: t(publish ? "content.done.published" : "content.done.takenDown") });
-    else if (result.reason === "conflict") setFlash({ tone: "bad", text: t(publish ? "content.alreadyLive" : "content.notLive") });
-    else if (result.reason === "gone") setFlash({ tone: "bad", text: t("content.gone") });
-    else if (result.reason === "forbidden") setFlash({ tone: "bad", text: t("content.forbidden") });
-    else setFlash({ tone: "bad", text: t("content.actionFailed") });
-
-    if (result.ok || result.reason === "conflict" || result.reason === "gone") await reload();
+    const outcome = outcomeOfToggle(result, { id, title, publish, isUndo });
+    setFlash({ tone: outcome.tone, text: t(outcome.message, { title }), undo: outcome.undo });
+    if (outcome.refresh) await reload();
   }
 
   const filtered = kind !== "" || state !== "";
@@ -98,7 +92,18 @@ export function ContentList() {
         </Link>
       </div>
 
-      {shownFlash ? <Notice tone={shownFlash.tone}>{shownFlash.text}</Notice> : null}
+      {shownFlash ? (
+        <Notice tone={shownFlash.tone}>
+          <div className={styles.flash}>
+            <span>{shownFlash.text}</span>
+            {shownFlash.undo ? (
+              <Button variant="quiet" disabled={busy !== null} onClick={() => void toggle(shownFlash.undo!.id, shownFlash.undo!.title, shownFlash.undo!.publish, true)}>
+                {t(shownFlash.undo.publish ? "content.undoTakeDown" : "content.undoPublish")}
+              </Button>
+            ) : null}
+          </div>
+        </Notice>
+      ) : null}
 
       <div className={styles.filters}>
         <Select
@@ -146,7 +151,6 @@ export function ContentList() {
           {view.items.map((item) => {
             const from = formatBsDate(item.publishOnBs);
             const publish = item.status !== "live";
-            const asked = asking?.id === item.id;
             return (
               <li key={item.id} className={styles.item}>
                 <h2 className={styles.itemTitle}>{item.title}</h2>
@@ -157,38 +161,21 @@ export function ContentList() {
                 </div>
                 <p className={styles.muted}>{item.hideAfterBs ? t("content.showsFromUntil", { from, until: formatBsDate(item.hideAfterBs) }) : t("content.showsFrom", { from })}</p>
 
-                {asked ? (
-                  <div className={styles.confirm}>
-                    <p id="content-confirm-text" role="alert" className={styles.confirmText}>
-                      {t(asking.publish ? "content.publishAsk" : "content.takeDownAsk", { title: item.title })}
-                    </p>
-                    <div className={styles.actions}>
-                      <Button id="content-confirm" variant="secondary" aria-describedby="content-confirm-text" loading={busy === item.id} loadingLabel={t("content.working")} onClick={() => void confirm(item, asking.publish)}>
-                        {t(asking.publish ? "content.confirmPublish" : "content.confirmTakeDown")}
-                      </Button>
-                      <Button variant="quiet" disabled={busy === item.id} onClick={() => setAsking(null)}>
-                        {t("content.cancel")}
-                      </Button>
-                    </div>
-                  </div>
-                ) : (
-                  <div className={styles.actions}>
-                    <Link href={`/portal/content/edit?id=${item.id}`} className={buttonClass({ variant: "secondary" })} aria-label={t("content.editItem", { title: item.title })}>
-                      {t("content.edit")}
-                    </Link>
-                    <Button
-                      id={`content-action-${item.id}`}
-                      variant="quiet"
-                      aria-label={t(publish ? "content.publishItem" : "content.takeDownItem", { title: item.title })}
-                      onClick={() => {
-                        returnFocusTo.current = `content-action-${item.id}`;
-                        setAsking({ id: item.id, publish });
-                      }}
-                    >
-                      {t(publish ? "content.publish" : "content.takeDown")}
-                    </Button>
-                  </div>
-                )}
+                <div className={styles.actions}>
+                  <Link href={`/portal/content/edit?id=${item.id}`} className={buttonClass({ variant: "secondary" })} aria-label={t("content.editItem", { title: item.title })}>
+                    {t("content.edit")}
+                  </Link>
+                  <Button
+                    variant="quiet"
+                    loading={busy === item.id}
+                    loadingLabel={t("content.working")}
+                    disabled={busy !== null && busy !== item.id}
+                    aria-label={t(publish ? "content.publishItem" : "content.takeDownItem", { title: item.title })}
+                    onClick={() => void toggle(item.id, item.title, publish)}
+                  >
+                    {t(publish ? "content.publish" : "content.takeDown")}
+                  </Button>
+                </div>
               </li>
             );
           })}

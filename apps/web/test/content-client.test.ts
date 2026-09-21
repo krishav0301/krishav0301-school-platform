@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { createApiClient } from "@/api/client";
-import { loadContent, loadItem, loadPublic, saveItem, setPublished } from "@/content/client";
+import { loadContent, loadItem, loadPublic, saveItem, setPublished, submitForm } from "@/content/client";
 import type { FormValues } from "@/content/model";
 
 interface Seen {
@@ -165,6 +165,69 @@ describe("saveItem: an existing item", () => {
     expect(await attempt(json(404, { error: "not_found" }))).toEqual({ ok: false, reason: "not_found" });
     expect(await attempt(json(422, { error: "invalid", message: "m" }))).toEqual({ ok: false, reason: "rejected" });
     expect(await attempt(json(403, {}))).toEqual({ ok: false, reason: "forbidden" });
+  });
+});
+
+describe("submitForm: save, and with publish also put it on the website", () => {
+  const route = (over: { save?: Response | "offline"; publish?: Response | "offline" } = {}) =>
+    fake((s) => {
+      if (s.method === "GET") return convert(s);
+      if (s.path.endsWith("/publish")) return over.publish ?? json(200, { ok: true });
+      return over.save ?? (s.method === "POST" ? json(201, { id: "new1" }) : json(200, { ok: true }));
+    });
+  const calls = (seen: Seen[]) => seen.filter((s) => s.method !== "GET").map((s) => `${s.method} ${s.path}`);
+
+  it("save only: a new item is created and an existing one updated, and nothing is published", async () => {
+    const created = route();
+    expect(await submitForm(created.api, null, values, false)).toEqual({ done: "created" });
+    expect(calls(created.seen)).toEqual(["POST /api/content"]);
+
+    const updated = route();
+    expect(await submitForm(updated.api, "abc123", values, false)).toEqual({ done: "updated" });
+    expect(calls(updated.seen)).toEqual(["PATCH /api/content/abc123"]);
+  });
+
+  it("with publish: saves first, then publishes the item it saved (a new one by its new id)", async () => {
+    const created = route();
+    expect(await submitForm(created.api, null, values, true)).toEqual({ done: "published" });
+    expect(calls(created.seen)).toEqual(["POST /api/content", "POST /api/content/new1/publish"]);
+
+    const edited = route();
+    expect(await submitForm(edited.api, "abc123", values, true)).toEqual({ done: "published" });
+    expect(calls(edited.seen)).toEqual(["PATCH /api/content/abc123", "POST /api/content/abc123/publish"]);
+  });
+
+  it("someone else already published it (409): the person still gets what they wanted", async () => {
+    const r = route({ publish: json(409, { error: "already_live" }) });
+    expect(await submitForm(r.api, "abc123", values, true)).toEqual({ done: "published" });
+  });
+
+  it("saved but could not be published (refused, or no network): reported as saved as a draft, and nothing is saved twice", async () => {
+    for (const publish of [json(403, { error: "forbidden" }), json(500, {}), "offline" as const]) {
+      const r = route({ publish });
+      expect(await submitForm(r.api, null, values, true)).toEqual({ done: "saved_unpublished" });
+      expect(calls(r.seen).filter((c) => c === "POST /api/content"), "created once").toHaveLength(1);
+    }
+  });
+
+  it("the item vanished while publishing: says gone", async () => {
+    expect(await submitForm(route({ publish: json(404, { error: "not_found" }) }).api, "abc123", values, true)).toEqual({ gone: true });
+  });
+
+  it("a save that fails stops there: nothing is published, and the person stays on the form with the reason", async () => {
+    const rejected = route({ save: json(422, { error: "invalid", message: "m" }) });
+    expect(await submitForm(rejected.api, null, values, true)).toEqual({ problem: "rejected" });
+    expect(calls(rejected.seen)).toEqual(["POST /api/content"]);
+
+    expect(await submitForm(route({ save: json(403, {}) }).api, null, values, true)).toEqual({ problem: "forbidden" });
+    expect(await submitForm(route({ save: json(500, {}) }).api, null, values, false)).toEqual({ problem: "failed" });
+    expect(await submitForm(route({ save: json(404, {}) }).api, "abc123", values, true)).toEqual({ gone: true });
+  });
+
+  it("a problem with the form itself is reported against its fields, and nothing is sent", async () => {
+    const r = route();
+    expect(await submitForm(r.api, null, { ...values, title: "" }, true)).toEqual({ fields: { title: "contentForm.error.titleRequired" } });
+    expect(r.seen).toHaveLength(0);
   });
 });
 
