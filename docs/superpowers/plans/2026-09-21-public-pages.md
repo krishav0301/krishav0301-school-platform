@@ -3152,3 +3152,18 @@ After the PM says it is deployed, on `https://school-platform-staging.k-rishav03
 - [ ] **Step 9: The final report**
 
 End with, in this order: (1) at the top: fees, results, permissions and the audit log are not touched, and the permission matrix did not change; (2) what changed; (3) what was tested (counts of API and web tests, the break-it-on-purpose checks, the clean-clone replay, the browser check of the Menu, staging); (4) the design review and the GEO findings; (5) what is not done; (6) every `OPEN:` item touched: the unconfirmed content, the whole-row replace, and the DOM test library; (7) suggestions that are not in the documents.
+
+
+---
+
+## Deviations found while executing (2026-09-21)
+
+Where the plan above and the code differ, the code is right. What changed and why:
+
+1. **Web tests never import API runtime code.** The plan's Tasks 4 to 6 tests used `parsePack` from `apps/api/src/core/config`. That pulls Cloudflare-only types (`D1Database`, `HTMLRewriter`) into the web typecheck, which then failed. The tests read the pack JSON through `apps/web/test/site-fixture.ts` (`siteFrom`, which fills in the one default the API fills in), and `site-links.test.ts` reads the `PAGES` source the way `scripts/check-boundaries.mjs` does. Pack validation stays tested in the API.
+2. **A colour check that matched a link.** `#bed-it` in a Home programme link looked like a hex colour. The Home test ignores `href` values.
+3. **Menu state.** The plan's "break it on purpose" for the Menu assumed the state was lost only because it is keyed to the page. Each page renders its own shell, so a change of page remounts the header either way. The behaviour that needs the handler is choosing the current page's own link, and that is what was checked in the browser (and broken on purpose there).
+4. **Long button labels at 320 px with 200% text** widened the page (buttons are `nowrap`), and so did the header's Menu and Dashboard row. Found by measuring against the real viewport (an earlier check compared the page with itself and passed wrongly). Fixed with `a.wrapLabel` on the public pages' button links and `flex-wrap` on the header actions, with tests.
+5. **Home's programme grid** was squeezed into one narrow column at desktop width, because the section lines its children up at the start. Fixed with `width: 100%` on `.group`, with a test.
+6. **Spacing.** The design search asked for at least 8 px between touch targets, so the stacked Menu links, the inline links and the footer rows use `--space-2` (the plan had 4 px in places). The footer links use `prefetch={false}`, because they repeat the header's.
+7. **Local production build.** `npm run build` cannot replace `apps/web/out` while another session's `wrangler dev` holds it open (Windows). The clean-clone replay runs the build in a fresh folder, and the browser checks used `next dev`.
