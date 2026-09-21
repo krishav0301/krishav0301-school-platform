@@ -135,3 +135,36 @@ export type SubjectInput = z.input<typeof CreateSubjectSchema>;
 /** `code: null` takes the code away. */
 export const SubjectChangesSchema = z.strictObject({ name: SubjectName, code: SubjectCode.nullable(), archived: z.boolean() }).partial().openapi("SubjectChanges");
 export type SubjectChanges = z.infer<typeof SubjectChangesSchema>;
+
+// --- Elective groups, offerings and mark components ----------------------------------------------------
+
+const GroupName = z.string().trim().min(1, "Give the group a name").max(60, "Keep the name to 60 characters");
+const PickCount = z.number().int("How many to pick is a whole number").min(1, "Pick at least one").max(10, "Pick at most 10");
+
+export const CreateGroupSchema = z.strictObject({ name: GroupName, pickCount: PickCount.optional() }).openapi("CreateGroup");
+export type GroupInput = z.input<typeof CreateGroupSchema>;
+
+export const GroupChangesSchema = z.strictObject({ name: GroupName, pickCount: PickCount, active: z.boolean() }).partial().openapi("GroupChanges");
+export type GroupChanges = z.infer<typeof GroupChangesSchema>;
+
+/** Credit hours in whole hundredths: 375 means 3.75. */
+const Credit = z.number().int("Credit hours are whole hundredths").min(1, "Credit hours must be more than zero").max(10000, "Credit hours are at most 100");
+
+export const CreateOfferingSchema = z
+  .strictObject({ levelId: PublicIdSchema, subjectId: PublicIdSchema, creditHundredths: Credit.nullable().optional(), groupId: PublicIdSchema.nullable().optional() })
+  .openapi("CreateOffering");
+export type OfferingInput = z.input<typeof CreateOfferingSchema>;
+
+/** `creditHundredths: null` takes the credit hours away, and `groupId: null` takes the subject out of its group. */
+export const OfferingChangesSchema = z.strictObject({ creditHundredths: Credit.nullable(), groupId: PublicIdSchema.nullable(), active: z.boolean() }).partial().openapi("OfferingChanges");
+export type OfferingChanges = z.infer<typeof OfferingChangesSchema>;
+
+const ComponentName = z.string().trim().min(1, "Give the component a name").max(60, "Keep the name to 60 characters");
+/** Maximum marks in whole hundredths: 7500 means 75. */
+const MaxMarks = z.number().int("Maximum marks are whole hundredths").min(1, "The maximum must be more than zero").max(100000, "The maximum is at most 1000");
+
+export const CreateComponentSchema = z.strictObject({ name: ComponentName, maxHundredths: MaxMarks }).openapi("CreateComponent");
+export type ComponentInput = z.input<typeof CreateComponentSchema>;
+
+export const ComponentChangesSchema = z.strictObject({ name: ComponentName, maxHundredths: MaxMarks, active: z.boolean() }).partial().openapi("ComponentChanges");
+export type ComponentChanges = z.infer<typeof ComponentChangesSchema>;
