@@ -94,6 +94,12 @@ export const MATRIX = [
     ADM: only(all, "co-ordinators, accountants"),
     SUP: all,
   }),
+  row(G.access, "accounts.staff.view", "View the staff list", 3, { COO: only(inst, "teachers"), ADM: read, SUP: all }),
+  row(G.access, "accounts.password.issue", "Give a person a new temporary password", 3, {
+    COO: only(inst, "teachers"),
+    ADM: only(all, "co-ordinators, accountants"),
+    SUP: all,
+  }),
   row(G.access, "accounts.reset_2fa", "Reset lost 2FA", 1, { SUP: all }),
   row(G.access, "branding.manage", "Change branding, signature, seal", 1, { SUP: all }),
   row(G.access, "demo.switch_persona", "Switch persona (demo mode only, logged)", 1, { SUP: all }),

@@ -32,6 +32,8 @@ Phase is the build phase where the action first exists. The action id in code fo
 | Create Co-ordinator or Accountant (`accounts.staff.create`) | — | — | — | — | ✓ | ✓ | 1 |
 | Create Teacher (`accounts.teacher.create`) | — | — | inst | — | — | ✓ | 3 |
 | Deactivate or reactivate an account (`accounts.deactivate`) | — | — | teachers | — | co-ordinators, accountants | ✓ | 1 |
+| View the staff list (`accounts.staff.view`) | — | — | teachers | — | read | ✓ | 3 |
+| Give a person a new temporary password (`accounts.password.issue`) | — | — | teachers | — | co-ordinators, accountants | ✓ | 3 |
 | Reset lost 2FA (`accounts.reset_2fa`) | — | — | — | — | — | ✓ | 1 |
 | Change branding, signature, seal (`branding.manage`) | — | — | — | — | — | ✓ | 1 |
 | Switch persona (demo mode only, logged) (`demo.switch_persona`) | — | — | — | — | — | ✓ | 1 |
