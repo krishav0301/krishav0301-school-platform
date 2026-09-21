@@ -303,6 +303,17 @@ The matrix lives in code (61 actions, 8 groups, from the reviewed `permission-ma
 - **Tested.** 252 web tests (7 new for `submitForm`, 8 for outcomes, 4 for the new form buttons and Enter behaviour). 10 breakages, 9 caught; the survivor is an equivalent change.
 - **Not verified.** A person using it in a browser (the PM used the earlier version and reported publishing works), and keyboard focus after an action: the button that was pressed stays on screen, so focus stays with it.
 
+**D-049 robots.txt, sitemap.xml and llms.txt, written by the Worker; only production is indexable.** 2026-09-21, the PM's "do as you recommend" on the choice of next build (these before slice 3). Extends D-046.
+- **Why first.** They are small, and the sitemap and `llms.txt` are built from the same list as the filled pages (`PAGES`), so every page slice 3 adds appears in them automatically; a test fails if a page has no name and summary for `llms.txt`.
+- **The rule that matters.** Only a site whose `ENVIRONMENT` is exactly `production` invites crawlers. Staging, development, tests and any typo say `User-agent: *  Disallow: /` in `robots.txt`, list no sitemap, and every filled page carries `X-Robots-Tag: noindex, nofollow`. A test tries "staging", "development", "test", "", "Production" and "prod". (The Cloudflare account's own default `robots.txt` on `workers.dev` was what staging served before.)
+- **robots.txt (production).** Everyone may read the public pages; `/api/`, `/portal`, `/sign-in`, `/reset-password` and `/design` are kept out; the sitemap address is given. No crawler is singled out: AI crawlers and search engines are treated alike, as D-031 intends.
+- **sitemap.xml.** One `<url><loc>` per filled page, on the school's own address (`SITE_ORIGIN`, or the request's own), escaped. No `<lastmod>`: a day we do not know is left out, not guessed.
+- **llms.txt.** The plain Markdown layout AI tools look for: the school's name as the one heading, a one-line summary from its sections, and a "Pages" list with a link and a sentence for each page. Names and summaries are collapsed to one line, so a hostile name cannot add headings or links. 404 until the school is set up.
+- **How.** `modules/site/crawler-files.ts`; the Worker entry answers GET and HEAD for the three addresses before anything else; cached for an hour. `CRAWLER_FILES` joins `PAGES` in the CI list check, which fails if either differs from `run_worker_first` in `wrangler.jsonc` (shown by removing one). Both wrangler files were updated.
+- **Tested.** 22 new API tests (files, escaping, one-line names, production and non-production, HEAD, POST, entry routing, the noindex header). 11 breakages, all caught.
+- **Not done, on purpose.** `<lastmod>` and per-page `priority`; separate rules for named AI crawlers (add if the PM wants to allow some and block others); `noindex` for the portal and sign-in pages themselves (they are already kept out by `robots.txt`; a page-level tag is a later hardening).
+- **Deploy.** Needs a redeploy to take effect on staging; staging will then serve `Disallow: /`.
+
 ---
 
 ## Open items carried forward

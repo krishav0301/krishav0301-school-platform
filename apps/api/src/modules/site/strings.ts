@@ -28,6 +28,9 @@ export type StringKey = keyof typeof STRINGS;
 /** Words for crawlers only, with no counterpart in the app. */
 export const CRAWLER_ONLY = {
   "notices.description": "Notices, holidays, routines and vacancies from {school}.",
+  "llms.pages": "Pages",
+  "llms.home": "Home",
+  "llms.homeSummary": "The home page of {school}, with its sections and a way to sign in.",
 } as const;
 
 /** Every key that also exists in the web catalog, and so must match it. */

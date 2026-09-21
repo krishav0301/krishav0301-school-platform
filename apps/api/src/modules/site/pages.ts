@@ -96,6 +96,15 @@ const PAGES: Record<string, Builder> = {
 
 export const FILLED_PAGES: readonly string[] = Object.keys(PAGES);
 
+/** How each page is introduced in `llms.txt`: its name and a line about it. Every filled page must be here (a test checks). */
+const SUMMARIES: Record<string, (school: string) => { name: string; summary: string }> = {
+  "/": (school) => ({ name: say("llms.home"), summary: say("llms.homeSummary", { school }) }),
+  "/notices": (school) => ({ name: say("notices.title"), summary: say("notices.description", { school }) }),
+};
+
+export const pageSummary = (path: string, school: string): { name: string; summary: string } => SUMMARIES[normalizePath(path)]!(school);
+export const pagesWithoutSummary = (): string[] => FILLED_PAGES.filter((path) => !(path in SUMMARIES));
+
 /** `/notices/` is the same page as `/notices`; the home page is `/`. Anything else is not a page we fill. */
 export function normalizePath(pathname: string): string {
   return pathname.length > 1 && pathname.endsWith("/") ? pathname.slice(0, -1) : pathname;

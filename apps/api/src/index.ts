@@ -1,7 +1,7 @@
 import { createApp } from "./app";
 import { runOutbox } from "./core/notifications";
 import type { Bindings } from "./core/types";
-import { isFilledPage, renderPublicPage } from "./modules/site";
+import { isCrawlerFile, isFilledPage, renderCrawlerFile, renderPublicPage } from "./modules/site";
 
 const app = createApp();
 
@@ -11,7 +11,11 @@ const app = createApp();
 export default {
   fetch(request: Request, env: Bindings, ctx: ExecutionContext): Response | Promise<Response> {
     const method = request.method;
-    if ((method === "GET" || method === "HEAD") && env.ASSETS && isFilledPage(new URL(request.url).pathname)) return renderPublicPage(request, env);
+    if (method === "GET" || method === "HEAD") {
+      const { pathname } = new URL(request.url);
+      if (isCrawlerFile(pathname)) return renderCrawlerFile(request, env);
+      if (env.ASSETS && isFilledPage(pathname)) return renderPublicPage(request, env);
+    }
     return app.fetch(request, env, ctx);
   },
   // The sweep (see `triggers.crons` in wrangler.jsonc). A request delivers what it queues straight

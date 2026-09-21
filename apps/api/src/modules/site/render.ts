@@ -1,6 +1,7 @@
 import { loadConfig } from "../../core/config";
 import type { Bindings } from "../../core/types";
 import { escapeHtml, jsonLdScript } from "./html";
+import { isProduction } from "./crawler-files";
 import { builderFor, isFilledPage, normalizePath } from "./pages";
 
 /** How long a browser may keep a filled page. The content can change at any time, so it is short. */
@@ -53,5 +54,7 @@ export async function renderPublicPage(request: Request, env: Bindings): Promise
   headers.delete("ETag");
   headers.delete("Content-Length");
   headers.set("Cache-Control", FILLED_PAGE_CACHE);
+  // A site that is not production (staging, development) must never reach search results.
+  if (!isProduction(env)) headers.set("X-Robots-Tag", "noindex, nofollow");
   return new Response(request.method === "HEAD" ? null : rewritten.body, { status: rewritten.status, headers });
 }

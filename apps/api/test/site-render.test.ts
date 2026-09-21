@@ -152,6 +152,16 @@ describe("a set-up school", () => {
     expect(response.headers.get("Content-Type")).toMatch(/text\/html/);
   });
 
+  it("a page on any site that is not production says not to index it (a staging site must never reach search results); production says nothing", async () => {
+    const a = assets();
+    const asProduction = await renderPublicPage(new Request("https://school.example/notices"), { ...env, ENVIRONMENT: "production", ASSETS: a.binding });
+    expect(asProduction.headers.get("X-Robots-Tag")).toBeNull();
+    for (const environment of ["staging", "development", "test", ""]) {
+      const response = await renderPublicPage(new Request("https://school.example/notices"), { ...env, ENVIRONMENT: environment, ASSETS: assets().binding });
+      expect(response.headers.get("X-Robots-Tag"), environment).toBe("noindex, nofollow");
+    }
+  });
+
   it("asks the static files for the same address, once, and passes a missing page straight through", async () => {
     const ok = assets();
     await page("/notices", { assets: ok });

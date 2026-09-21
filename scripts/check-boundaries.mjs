@@ -55,14 +55,17 @@ for (const dir of [apiSrc, webSrc]) {
   }
 }
 
-// Rule 5 (D-046): the public pages the Worker fills in must be listed twice, and the lists must agree.
-// `FILLED_PAGES` (the code) says which addresses the Worker renders; `run_worker_first` (wrangler.jsonc) is
-// what makes Cloudflare send those addresses to the Worker instead of serving the static file. A page in
-// only one list would silently be served without its words.
+// Rule 5 (D-046): the public pages the Worker fills in, and the three crawler files it writes (robots.txt,
+// sitemap.xml, llms.txt), must be listed twice, and the lists must agree.
+// `PAGES` and `CRAWLER_FILES` (the code) say which addresses the Worker answers; `run_worker_first`
+// (wrangler.jsonc) is what makes Cloudflare send those addresses to the Worker instead of serving the
+// static file. An address in only one list would silently be served without its words.
 {
   const pagesSource = readFileSync(join(apiSrc, "modules", "site", "pages.ts"), "utf8");
   const block = /const PAGES: Record<string, Builder> = \{([^}]*)\}/.exec(pagesSource)?.[1] ?? "";
-  const inCode = [...block.matchAll(/"([^"]+)"\s*:/g)].map((m) => m[1]).sort();
+  const filesSource = readFileSync(join(apiSrc, "modules", "site", "crawler-files.ts"), "utf8");
+  const filesBlock = /export const CRAWLER_FILES = \[([^\]]*)\]/.exec(filesSource)?.[1] ?? "";
+  const inCode = [...block.matchAll(/"([^"]+)"\s*:/g), ...filesBlock.matchAll(/"([^"]+)"/g)].map((m) => m[1]).sort();
 
   const wrangler = readFileSync(join(root, "apps", "api", "wrangler.jsonc"), "utf8")
     .replace(/^\s*\/\/.*$/gm, "");
@@ -71,7 +74,7 @@ for (const dir of [apiSrc, webSrc]) {
 
   if (inCode.length === 0) problems.push("modules/site/pages.ts: could not read the list of filled pages (PAGES)");
   if (JSON.stringify(inCode) !== JSON.stringify(inConfig)) {
-    problems.push(`public pages differ: FILLED_PAGES has [${inCode.join(", ")}] but run_worker_first in wrangler.jsonc has [${inConfig.join(", ")}] besides /api/*`);
+    problems.push(`public addresses differ: PAGES and CRAWLER_FILES have [${inCode.join(", ")}] but run_worker_first in wrangler.jsonc has [${inConfig.join(", ")}] besides /api/*`);
   }
   if (!first.includes('"/api/*"')) problems.push('wrangler.jsonc: run_worker_first must keep "/api/*"');
 }
