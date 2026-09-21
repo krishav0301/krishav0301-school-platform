@@ -1,6 +1,29 @@
 # Build plan: reusable school platform
 
-Status: **approved by PM 2026-09-20 (D-012). Phase 0 in progress.** Decisions it rests on are in `DECISIONS.md`.
+Status: **approved by PM 2026-09-20 (D-012). Phases 0 and 1 complete (2026-09-21). Phase 2 awaits PM approval.** Decisions it rests on are in `DECISIONS.md`.
+
+## Where we are, and how to start the next session (updated 2026-09-21)
+
+**Done (Phases 0 and 1: the foundation).** A reusable school platform on Cloudflare's free plan: one Worker per school serves the static Next.js site and the API on one origin, with one D1 database. Built and tested (590 API tests, 108 web tests, CI green on GitHub):
+- **Accounts and security:** six roles with a permission matrix (61 actions, deny by default, generated docs); sign-in with lockout, rotating sessions and theft detection; password reset by emailed link; authenticator-app two-step sign-in for the Super Admin (recovery codes, reset by another Super Admin); passwords may not contain the school's name; a keyed, tamper-evident activity log.
+- **The product model:** a school is a "pack" (`packs/<school>/pack.json`: name, sections, optional modules, wording, theme) applied with `npm run provision`. Royal Softech and a deliberately different sample school both run through the same flows in tests. Themes must pass a server-side readability check.
+- **Interface:** design system and portal shell driven by the school's theme (colours, font, radii, wording), sign-in, reset and two-step screens, `/design` gallery. Apple-level design review 1 done and applied (D-030). Tests fail the build on hardcoded colours, fonts, words, or non-transform motion.
+- **Infrastructure:** BS date module (verified 2000 to 2083); notifications and jobs (outbox, sealed payloads, dev email adapter, 5-minute cron sweep); operator tooling (`provision`, `dev:user --remote` for the first Super Admin, a wrangler D1 shim).
+- **Staging:** https://school-platform-staging.k-rishav0301.workers.dev, Royal pack, six test users (one per role). Secrets are in `C:\Users\kumar\.school-platform\`, outside the repo.
+
+**Next: Phase 2, the public website and content (5 to 7 working days).** Home, the nine programmes, admission process, scholarships, facilities, contact; content types Notice, Holiday, Routine, Vacancy and Post with expiry; cached pages purged on publish; the Admin edits content directly (drafts and approval arrive in Phase 3). **Exit:** Royal's public site on staging with editable content and page-weight budgets met. It is the first visible product and the first place design choices matter most.
+
+**Before starting Phase 2, get the PM's answer to:**
+1. Approve starting Phase 2.
+2. Brand assets: has the client sent a logo, colours or photos? (Until then: a neutral wordmark and restrained accent; nothing is taken from their Facebook page without approval, D-007.)
+3. Fonts: approval to download and self-host Inter and Noto Sans (and Noto Sans Devanagari). Until then the site uses each device's own font.
+4. Photos and files: R2 is held (D-020), so the public site is text and design only unless the PM turns R2 on (it probably needs a card).
+5. Content: the programme and stream list is third-party and unconfirmed (`docs/client-profile.md`); Phase 2 uses it as a placeholder marked `OPEN:`.
+6. Small pending decisions: Admin required to use two-step sign-in (D-036); a QR code on 2FA setup; whether applying a pack should remove settings it no longer lists (D-026 open item).
+
+**How to run Phase 2 (rules already in `CLAUDE.md`):** design with `ui-ux-pro-max`, review with `apple-design` (report the review), run the matching `geo-*` skill for each public-site slice (schema, technical, crawlers, `llms.txt`, content, citability; D-031), use the code graph before scanning files (D-033), tests before code, break the code on purpose to check the tests, report after each slice. Suggested slices (to confirm with the PM): 1 content model and the cached public read API; 2 Admin editing screens; 3 public pages (Home, Programmes, Admissions, Scholarships, Facilities, Contact) built from theme tokens and the message catalog; 4 notices, holidays, routine, vacancies and posts with expiry; 5 design and GEO pass, page-weight budgets, staging exit check.
+
+**Practical notes for the next session:** stop `wrangler dev` and `next dev` before `npm run build` in `apps/web` (Windows locks `out`); write patch scripts with the Write and Edit tools, not `sed` or `node -e` with regexes (backslashes are lost); the web tests import API code, so the web CI job installs API packages too; `gh` is at `C:\Program Files\GitHub CLI\gh.exe`.
 
 ### Phase 0 progress
 
