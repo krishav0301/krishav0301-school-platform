@@ -171,6 +171,8 @@ describe("touch targets", () => {
   it("the brand link, menu entries and buttons are at least a full control tall (44px)", () => {
     expect(css("shell/shell.module.css")).toMatch(/\.brand\s*\{[^}]*min-height:\s*var\(--control-height\)/);
     expect(css("shell/shell.module.css")).toMatch(/\.navLink\s*\{[^}]*min-height:\s*3\.25rem/); // tab bar: 52px
+    expect(css("shell/shell.module.css")).toMatch(/\.siteLink\s*\{[^}]*min-height:\s*var\(--control-height\)/);
+    expect(css("shell/shell.module.css")).toMatch(/\.footerLink\s*\{[^}]*min-height:\s*var\(--control-height\)/);
     expect(css("ui/Button.module.css")).toMatch(/\.button\s*\{[^}]*min-height:\s*var\(--control-height\)/);
     expect(css("ui/Field.module.css")).toMatch(/\.input\s*\{[^}]*min-height:\s*var\(--control-height\)/);
     expect(css("ui/Field.module.css")).toMatch(/\.toggle\s*\{[^}]*min-width:\s*var\(--control-height\)/);
@@ -194,6 +196,11 @@ describe("large text and narrow screens", () => {
 
   it("the page is one column exactly as wide as the screen, so enlarged text wraps instead of widening the page", () => {
     expect(css("shell/shell.module.css")).toMatch(/\.frame\s*\{[^}]*grid-template-columns:\s*minmax\(0,\s*1fr\)/);
+  });
+
+  it("a link that looks like a button on a public page may wrap its label, so a long one cannot widen the page (a.wrapLabel beats the button's own nowrap)", () => {
+    expect(css("site/site.module.css")).toMatch(/a\.wrapLabel\s*\{[^}]*white-space:\s*normal/);
+    expect(css("shell/shell.module.css")).toMatch(/\.actions\s*\{\s*flex-wrap:\s*wrap/);
   });
 
   it("button labels stay on one line", () => {

@@ -13,3 +13,10 @@ export const SITE_LINKS: readonly { href: string; labelKey: MessageKey }[] = [
   { href: "/contact", labelKey: "site.contact.title" },
   { href: "/notices", labelKey: "notices.title" },
 ];
+
+/** True on a link's own page. A trailing slash makes no difference; before the address is known nothing is current. */
+export function isHere(pathname: string | null, href: string): boolean {
+  if (pathname === null) return false;
+  const path = pathname.length > 1 ? pathname.replace(/\/$/, "") : pathname;
+  return path === href;
+}

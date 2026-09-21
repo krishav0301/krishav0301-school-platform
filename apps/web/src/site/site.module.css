@@ -230,3 +230,13 @@
   margin: 0;
   padding-inline-start: var(--space-5);
 }
+
+/* A link that looks like a button, on a narrow screen or with enlarged text: the label wraps inside the
+   button instead of widening the page (D-030). `a.` makes this win over the button's own `nowrap`, whatever
+   order the stylesheets load in. */
+a.wrapLabel {
+  max-width: 100%;
+  padding-block: var(--space-2);
+  text-align: center;
+  white-space: normal;
+}

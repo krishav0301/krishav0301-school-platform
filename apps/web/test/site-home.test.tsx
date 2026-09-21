@@ -31,6 +31,12 @@ describe.each([
     expect(html).toMatch(/<a[^>]*href="\/notices"[^>]*>Notices and updates<\/a>/);
   });
 
+  it("lets every button label wrap, so a long label cannot widen the page at 320px with enlarged text (D-030)", () => {
+    const buttons = html.match(/<a[^>]*class="button[^"]*"/g) ?? [];
+    expect(buttons.length).toBeGreaterThan(3);
+    for (const button of buttons) expect(button).toContain("wrapLabel");
+  });
+
   it("does not offer Sign in here: that belongs to the header and footer", () => {
     expect(html).not.toContain("/sign-in");
   });

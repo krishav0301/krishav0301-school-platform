@@ -275,6 +275,9 @@ export const en = {
   "site.home.seeProgrammes": "See every programme",
   "site.home.seeAdmission": "Read the full admission process",
   "site.home.seeContact": "See all contact details",
+  "site.menu": "Menu",
+  "site.navLabel": "Site pages",
+  "site.footerNavLabel": "Footer",
 } as const;
 
 export type MessageKey = keyof typeof en;

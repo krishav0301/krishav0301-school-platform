@@ -21,7 +21,7 @@ export function AdmissionView({ site }: { site: SiteContent }) {
         ))}
       </ol>
       <div>
-        <Link href="/contact" className={buttonClass()}>
+        <Link href="/contact" className={`${buttonClass()} ${styles.wrapLabel}`}>
           {t("site.admission.contact")}
         </Link>
       </div>

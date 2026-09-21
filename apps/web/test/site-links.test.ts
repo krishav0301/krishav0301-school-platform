@@ -4,7 +4,7 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
 import { t } from "@/i18n/messages";
-import { SITE_LINKS } from "@/shell/site-links";
+import { SITE_LINKS, isHere } from "@/shell/site-links";
 
 /**
  * The addresses the Worker fills in, read from the source of `PAGES` the way `scripts/check-boundaries.mjs` does.
@@ -25,5 +25,19 @@ describe("the links to the public pages", () => {
 
   it("each has a label from the catalog", () => {
     expect(SITE_LINKS.map((l) => t(l.labelKey))).toEqual(["Programmes", "Admission", "Scholarships", "Facilities", "Contact", "Notices and updates"]);
+  });
+});
+
+describe("isHere", () => {
+  it("is true on the page itself, with or without a trailing slash", () => {
+    expect(isHere("/programmes", "/programmes")).toBe(true);
+    expect(isHere("/programmes/", "/programmes")).toBe(true);
+  });
+
+  it("is false on every other page, on Home, and before the address is known", () => {
+    expect(isHere("/admission", "/programmes")).toBe(false);
+    expect(isHere("/", "/programmes")).toBe(false);
+    expect(isHere("/programmes-old", "/programmes")).toBe(false);
+    expect(isHere(null, "/programmes")).toBe(false);
   });
 });
