@@ -487,7 +487,7 @@ git commit -m "Slice 1: a permission to view the academic structure (Admin read-
   - `type Failure = { ok: false; reason: "not_allowed" | "not_found" | "year_closed" | "conflict" | "not_draft" | "another_active" } | { ok: false; reason: "invalid"; message: string }`, `type Done = { ok: true } | Failure`, `type Created = { ok: true; publicId: string } | Failure`.
   - `write(db, auditKey, event, statement): Promise<"done" | "not_applied" | "duplicate" | "year_closed" | "check_failed">`.
   - `firstMessage(error)`.
-  - Years: `createYear(db, auditKey, actor, input, now?)`, `updateYear(db, auditKey, actor, publicId, changes, now?)`, `activateYear(db, auditKey, actor, publicId, now?)`.
+  - Years: `createYear(db, auditKey, actor, input, now?)`, `updateYear(db, auditKey, actor, publicId, changes)`, `activateYear(db, auditKey, actor, publicId, now?)`.
   - Test helpers: `db`, `auditKey`, `app`, `seedSections()`, `person(role, scope, section?)`, `call(path, init)`, `count(sql, ...params)`.
 
 - [ ] **Step 1: Write the test helpers**
@@ -929,7 +929,7 @@ export async function createYear(db: D1Database, auditKey: string, actor: string
 }
 
 /** Changes a draft year's label or days. What is sent is merged with what is there, and the whole is checked again. */
-export async function updateYear(db: D1Database, auditKey: string, actor: string, publicId: string, changes: YearChanges, now: Date = new Date()): Promise<Done> {
+export async function updateYear(db: D1Database, auditKey: string, actor: string, publicId: string, changes: YearChanges): Promise<Done> {
   const parsedChanges = YearChangesSchema.safeParse(changes);
   if (!parsedChanges.success) return { ok: false, reason: "invalid", message: firstMessage(parsedChanges.error) };
 
