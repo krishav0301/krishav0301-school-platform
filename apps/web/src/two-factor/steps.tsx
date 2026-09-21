@@ -6,6 +6,7 @@ import { t, type MessageKey } from "@/i18n/messages";
 import { useSession, type Me, type TwoFactorFailure } from "@/session/SessionProvider";
 import { Button, Card, CopyButton, Field, Notice, Spinner, buttonClass } from "@/ui";
 
+import { QrCode } from "./qr";
 import styles from "./steps.module.css";
 
 const FAILURE_MESSAGE: Record<TwoFactorFailure, MessageKey> = {
@@ -122,7 +123,12 @@ export function SetupView({
         <h1 className={styles.title}>{t("twoFactor.setupTitle")}</h1>
         <p className={styles.body}>{t("twoFactor.setupIntro")}</p>
       </div>
+      <div className={styles.qrBox}>
+        <QrCode text={otpauthUri} label={t("twoFactor.qrLabel")} className={styles.qr} />
+        <p className={styles.body}>{t("twoFactor.scanHelp")}</p>
+      </div>
       <div className={styles.keyBox}>
+        <p className={styles.keyHelp}>{t("twoFactor.orType")}</p>
         <span className={styles.keyLabel}>{t("twoFactor.setupKeyLabel")}</span>
         <code className={styles.key}>{groupKey(secret)}</code>
         <div className={styles.actions}>

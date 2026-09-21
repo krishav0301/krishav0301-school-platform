@@ -29,6 +29,30 @@
 }
 
 /* The setup key: large, in groups of four, and selectable with one tap, because it is typed into another app. */
+/* The QR code sits on its own white square (the code itself is always black on white, see qr.tsx), centred and
+   never wider than the card, so it stays scannable on a phone and on a desktop. */
+.qrBox {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-3);
+  text-align: center;
+}
+
+.qr {
+  display: block;
+  width: min(100%, 14rem);
+  height: auto;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-control);
+}
+
+.keyHelp {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+}
+
 .keyBox {
   display: flex;
   flex-direction: column;

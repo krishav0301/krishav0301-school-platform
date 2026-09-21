@@ -93,6 +93,16 @@ describe("the setup step", () => {
     expect(html).toMatch(/<a[^>]*href="otpauth:\/\/totp\/[^"]*"[^>]*>Open in authenticator app<\/a>/);
   });
 
+  it("offers a QR code first, named for screen readers, with how to use it, and how to add the key by hand as the way round it", () => {
+    expect(html).toMatch(/<svg[^>]*role="img"[^>]*aria-label="QR code that adds this account to an authenticator app"/);
+    expect(html).toContain("Scan this code with the authenticator app on your phone.");
+    expect(html).toContain("choose Enter a setup key");
+    expect(html).toContain("Time based");
+    expect(html.indexOf("<svg")).toBeLessThan(html.indexOf("JBSW Y3DP"));
+    // Exactly one picture, and it does not repeat the key in text form.
+    expect(html.match(/<svg/g)).toHaveLength(1);
+  });
+
   it("announces the copy result to screen readers", () => {
     expect(html).toContain('role="status"');
   });
