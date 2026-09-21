@@ -9,6 +9,14 @@
     "template": "basic-school-nursery-to-10"
   },
   "sections": [{ "key": "school", "name": "School" }],
+  "academics": {
+    "programmes": [
+      { "key": "early-years", "levels": ["Nursery", "KG"] },
+      { "key": "primary", "levels": ["Grade 1", "Grade 2", "Grade 3", "Grade 4", "Grade 5"] },
+      { "key": "lower-secondary", "levels": ["Grade 6", "Grade 7", "Grade 8"] },
+      { "key": "secondary", "levels": ["Grade 9", "Grade 10"] }
+    ]
+  },
   "modules": { "notes": false, "top20": false },
   "terminology": {
     "role.coordinator": "Vice Principal",

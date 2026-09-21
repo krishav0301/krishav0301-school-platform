@@ -12,6 +12,12 @@
     { "key": "plus2", "name": "+2" },
     { "key": "bachelors", "name": "Bachelor's" }
   ],
+  "academics": {
+    "programmes": [
+      { "key": "plus2-sample", "levels": ["Grade 11", "Grade 12"] },
+      { "key": "bachelors-sample", "levels": ["Year 1", "Year 2", "Year 3", "Year 4"] }
+    ]
+  },
   "modules": {},
   "terminology": {},
   "site": {

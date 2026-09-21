@@ -109,6 +109,9 @@ describe("sensitive rules, stated independently (docs/source/sample-creation-inf
     "students.personal.correct": ["COO", "SUP"],
     "students.status.set": ["COO", "SUP"],
     "students.rollover": ["COO", "SUP"],
+    // Only the Co-ordinator sets up the academic structure. The Admin may look, never change it.
+    "setup.structure.manage": ["COO", "SUP"],
+    "setup.structure.view": ["COO", "ADM", "SUP"],
   };
 
   it.each(Object.entries(exactly))("%s is allowed for exactly %j", (action, expected) => {
@@ -175,6 +178,12 @@ describe("sensitive rules, stated independently (docs/source/sample-creation-inf
     expect(authorize([claim("COO")], "accounts.deactivate")!.limits).toEqual(["teachers"]);
     expect(authorize([claim("ADM")], "accounts.deactivate")!.limits).toEqual(["co-ordinators, accountants"]);
     expect(authorize([claim("SUP")], "accounts.deactivate")!.limits).toEqual([]);
+  });
+
+  it("the Admin can look at the academic structure but not change it", () => {
+    expect(authorize([claim("ADM")], "setup.structure.view")!.readOnly).toBe(true);
+    expect(authorize([claim("ADM")], "setup.structure.manage")).toBeNull();
+    expect(authorize([claim("COO")], "setup.structure.view")!.readOnly).toBe(false);
   });
 });
 

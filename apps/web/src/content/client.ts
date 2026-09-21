@@ -35,10 +35,10 @@ export async function loadItem(api: ApiClient, id: string): Promise<ItemResult> 
   }
 }
 
-type DateOutcome = { ok: true; ad: string } | { ok: false; error: "dateInvalid" | "dateUnverified" } | { ok: false; error: "failed" };
+export type DateOutcome = { ok: true; ad: string } | { ok: false; error: "dateInvalid" | "dateUnverified" } | { ok: false; error: "failed" };
 
 /** Asks the server to turn one Nepali day into AD. Only the date module converts (D-014). */
-async function toAd(api: ApiClient, bs: string): Promise<DateOutcome> {
+export async function toAd(api: ApiClient, bs: string): Promise<DateOutcome> {
   try {
     const { data, error, response } = await api.GET("/api/dates/to-ad", { params: { query: { bs } } });
     if (data) return { ok: true, ad: data.ad };
