@@ -1,5 +1,6 @@
 import { ThemeSchema, type Theme } from "../theme";
 import { resolveModules } from "./modules";
+import { parseSiteContent, type SiteContent } from "./site";
 import { resolveTerms, type TermKey } from "./terminology";
 
 /** What the web app needs to draw itself for this school. Public, and the same for every visitor. */
@@ -11,18 +12,17 @@ export interface PublicConfig {
   theme: Theme | null;
 }
 
-/**
- * The school's configuration, or null if it has not been provisioned. All five reads go in one
- * batch, so this is a single database round trip.
- */
-export async function loadConfig(db: D1Database): Promise<PublicConfig | null> {
-  const [school, sections, switches, terms, theme] = await db.batch([
-    db.prepare("SELECT name, short_name, currency, timezone, region_pack, template_key FROM school WHERE id = 1"),
-    db.prepare("SELECT key, name FROM sections ORDER BY ordering, id"),
-    db.prepare("SELECT key, enabled FROM module_switches"),
-    db.prepare("SELECT key, text FROM terminology"),
-    db.prepare("SELECT tokens_json FROM themes WHERE is_active = 1"),
-  ]);
+/** The five reads that make up the configuration. */
+const configStatements = (db: D1Database): D1PreparedStatement[] => [
+  db.prepare("SELECT name, short_name, currency, timezone, region_pack, template_key FROM school WHERE id = 1"),
+  db.prepare("SELECT key, name FROM sections ORDER BY ordering, id"),
+  db.prepare("SELECT key, enabled FROM module_switches"),
+  db.prepare("SELECT key, text FROM terminology"),
+  db.prepare("SELECT tokens_json FROM themes WHERE is_active = 1"),
+];
+
+function buildConfig(results: D1Result[]): PublicConfig | null {
+  const [school, sections, switches, terms, theme] = results;
 
   const row = school!.results[0] as
     | { name: string; short_name: string; currency: string; timezone: string; region_pack: string; template_key: string | null }
@@ -47,4 +47,22 @@ export async function loadConfig(db: D1Database): Promise<PublicConfig | null> {
     terms: resolveTerms(termMap),
     theme: parsedTheme,
   };
+}
+
+/**
+ * The school's configuration, or null if it has not been provisioned. All five reads go in one
+ * batch, so this is a single database round trip.
+ */
+export async function loadConfig(db: D1Database): Promise<PublicConfig | null> {
+  return buildConfig(await db.batch(configStatements(db)));
+}
+
+/**
+ * The configuration and the words of the fixed public pages, in the same single batch: a public page needs both,
+ * and each round trip costs about 200 ms from Nepal (D-052). `site` is null before the school has its words.
+ */
+export async function loadConfigAndSite(db: D1Database): Promise<{ config: PublicConfig | null; site: SiteContent | null }> {
+  const results = await db.batch([...configStatements(db), db.prepare("SELECT content_json FROM site_content WHERE id = 1")]);
+  const siteRow = results[5]!.results[0] as { content_json: string } | undefined;
+  return { config: buildConfig(results.slice(0, 5)), site: siteRow ? parseSiteContent(siteRow.content_json) : null };
 }

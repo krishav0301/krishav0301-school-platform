@@ -49,13 +49,17 @@ export const SiteContentSchema = z.strictObject({
 
 export type SiteContent = z.infer<typeof SiteContentSchema>;
 
+/** The stored text as site content, or null if it no longer parses (a later release changed the shape). */
+export function parseSiteContent(json: string): SiteContent | null {
+  const parsed = SiteContentSchema.safeParse(JSON.parse(json));
+  return parsed.success ? parsed.data : null;
+}
+
 /**
  * The stored site content, or null before a pack that has it is applied. One statement. A stored row that
- * no longer parses (a later release changed the shape) is ignored rather than breaking every public page.
+ * no longer parses is ignored rather than breaking every public page.
  */
 export async function loadSiteContent(db: D1Database): Promise<SiteContent | null> {
   const row = await db.prepare("SELECT content_json FROM site_content WHERE id = 1").first<{ content_json: string }>();
-  if (!row) return null;
-  const parsed = SiteContentSchema.safeParse(JSON.parse(row.content_json));
-  return parsed.success ? parsed.data : null;
+  return row ? parseSiteContent(row.content_json) : null;
 }

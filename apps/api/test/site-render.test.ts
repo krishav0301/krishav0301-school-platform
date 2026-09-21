@@ -348,9 +348,9 @@ describe("cost", () => {
     }) as D1Database;
     const a = assets();
     await renderPublicPage(new Request("https://school.example/notices"), { ...env, DB: counting, ASSETS: a.binding });
-    // The configuration is one batch of five statements; the notices are one statement: two round trips.
+    // The configuration and the site's words are one batch of six statements; the notices are one statement: two round trips.
     expect(batches).toBe(1);
-    expect(statements).toBeLessThanOrEqual(6);
+    expect(statements).toBeLessThanOrEqual(7);
   });
 });
 
@@ -450,19 +450,31 @@ describe("the six fixed pages", () => {
     await applyPack(db, parsePack(royalJson));
   });
 
-  it("reads the database twice for a fixed page: the configuration batch, then one statement for the words", async () => {
-    let statements = 0;
+  /**
+   * Counts the round trips to the database: one for each batch, and one for each statement run on its own. (Each costs
+   * about 200 ms from Nepal, so the count is the page's speed.) Only for statements without bound values.
+   */
+  function roundTrips(target: D1Database) {
+    const created: unknown[] = [];
+    const batched = new Set<unknown>();
     let batches = 0;
-    const counting = new Proxy(db, {
-      get(target, prop, receiver) {
-        if (prop === "prepare") return (sql: string) => { statements++; return target.prepare(sql); };
-        if (prop === "batch") return async (list: D1PreparedStatement[]) => { batches++; return target.batch(list); };
-        return Reflect.get(target, prop, receiver);
+    const proxy = new Proxy(target, {
+      get(t, prop, receiver) {
+        if (prop === "prepare") return (sql: string) => { const statement = t.prepare(sql); created.push(statement); return statement; };
+        if (prop === "batch") return async (list: D1PreparedStatement[]) => { batches++; list.forEach((s) => batched.add(s)); return t.batch(list); };
+        return Reflect.get(t, prop, receiver);
       },
     }) as D1Database;
-    await renderPublicPage(new Request("https://school.example/programmes"), { ...env, DB: counting, ASSETS: assets().binding });
-    expect(batches).toBe(1);
-    expect(statements).toBe(6); // five in the configuration batch, one for the words
+    return { db: proxy, trips: () => batches + created.filter((s) => !batched.has(s)).length, statements: () => created.length };
+  }
+
+  it("reads the database ONCE for a fixed page: the configuration and the site's words go in one batch", async () => {
+    for (const path of ["/", "/programmes", "/admission", "/scholarships", "/facilities", "/contact"]) {
+      const counter = roundTrips(db);
+      await renderPublicPage(new Request(`https://school.example${path}`), { ...env, DB: counter.db, ASSETS: assets().binding });
+      expect(counter.trips(), path).toBe(1);
+      expect(counter.statements(), path).toBe(6); // five for the configuration, one for the words
+    }
   });
 });
 
