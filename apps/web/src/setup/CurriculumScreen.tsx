@@ -202,14 +202,17 @@ export function ComponentForm({ offeringId, name: subjectName, onAdded }: { offe
   }
 
   return (
-    <form onSubmit={submit} noValidate className={styles.inline} aria-label={`${t("setup.curriculum.addMark")}: ${subjectName}`}>
-      {problem ? <Notice tone="bad">{t(problem)}</Notice> : null}
-      <Field label={t("setup.curriculum.markName")} hint={t("setup.curriculum.markNameHint")} value={name} maxLength={60} autoComplete="off" onChange={(event) => setName(event.target.value)} error={say(errors.name)} />
-      <Field label={t("setup.curriculum.maxMarks")} inputMode="decimal" autoComplete="off" value={max} onChange={(event) => setMax(event.target.value)} error={say(errors.max)} />
-      <Button type="submit" variant="secondary" loading={saving} loadingLabel={t("setup.working")} aria-label={`${t("setup.curriculum.addMark")}: ${subjectName}`}>
-        {t("setup.curriculum.addMark")}
-      </Button>
-    </form>
+    <details className={styles.disclosure}>
+      <summary className={styles.summary}>{t("setup.curriculum.addMark")}</summary>
+      <form onSubmit={submit} noValidate className={styles.inline} aria-label={`${t("setup.curriculum.addMark")}: ${subjectName}`}>
+        {problem ? <Notice tone="bad">{t(problem)}</Notice> : null}
+        <Field label={t("setup.curriculum.markName")} hint={t("setup.curriculum.markNameHint")} value={name} maxLength={60} autoComplete="off" onChange={(event) => setName(event.target.value)} error={say(errors.name)} />
+        <Field label={t("setup.curriculum.maxMarks")} inputMode="decimal" autoComplete="off" value={max} onChange={(event) => setMax(event.target.value)} error={say(errors.max)} />
+        <Button type="submit" variant="secondary" loading={saving} loadingLabel={t("setup.working")} aria-label={`${t("setup.curriculum.addMark")}: ${subjectName}`}>
+          {t("setup.curriculum.addMark")}
+        </Button>
+      </form>
+    </details>
   );
 }
 
