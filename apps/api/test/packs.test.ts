@@ -2,7 +2,7 @@
 import { env } from "cloudflare:test";
 import { describe, expect, it } from "vitest";
 
-import { InvalidPackError, applyPack, loadConfig, packOperations, parsePack, renderSql, type Pack } from "../src/core/config";
+import { InvalidPackError, applyPack, loadConfig, loadSiteContent, packOperations, parsePack, renderSql, type Pack } from "../src/core/config";
 import royalJson from "../../../packs/royal-softech/pack.json";
 import sampleJson from "../../../packs/sample-basic-school/pack.json";
 
@@ -145,6 +145,7 @@ describe.each([
         await count(getDb(), "SELECT COUNT(*) AS n FROM sections"),
         await count(getDb(), "SELECT COUNT(*) AS n FROM module_switches"),
         await count(getDb(), "SELECT COUNT(*) AS n FROM terminology"),
+        await getDb().prepare("SELECT content_json, updated_at FROM site_content").first(),
       ]);
     const before = await snapshot();
     await applyPack(getDb(), pack);
@@ -211,5 +212,85 @@ describe("applying a different pack over an existing school", () => {
     await expect(
       env.DB.prepare("INSERT INTO themes (name, tokens_json, is_active) VALUES ('second active', '{}', 1)").run(),
     ).rejects.toThrow();
+  });
+});
+
+// ---------------------------------------------------------------------------------------------
+// The site block: the words of the six fixed public pages (Phase 2, slice 3)
+// ---------------------------------------------------------------------------------------------
+describe("the site block", () => {
+  const cases: [string, (p: any) => void, RegExp][] = [
+    ["no site block", (p) => delete p.site, /site: /],
+    ["an unknown field in the site block", (p) => (p.site.blog = {}), /blog|unrecognized/i],
+    ["a programme in a section the pack does not have", (p) => (p.site.programmes[0].section = "nursery"), /site\.programmes\.0\.section: .*nursery/],
+    ["two programmes with the same key", (p) => (p.site.programmes[1].key = p.site.programmes[0].key), /site\.programmes: keys must be unique/],
+    ["a programme key that is not a slug", (p) => (p.site.programmes[0].key = "BBS Degree!"), /site\.programmes\.0\.key/],
+    ["no admission steps", (p) => (p.site.admission.steps = []), /site\.admission\.steps/],
+    ["no phone number", (p) => (p.site.contact.phones = []), /site\.contact\.phones/],
+    ["an over-long headline", (p) => (p.site.home.headline = "x".repeat(121)), /site\.home\.headline/],
+    ["a blank summary", (p) => (p.site.home.summary = "   "), /site\.home\.summary/],
+    ["a bad email address", (p) => (p.site.contact.email = "not an email"), /site\.contact\.email/],
+  ];
+  it.each(cases)("refuses %s", (_label, mutate, message) => {
+    const bad = clone(royalJson) as any;
+    mutate(bad);
+    expect(() => parsePack(bad)).toThrow(InvalidPackError);
+    expect(() => parsePack(bad)).toThrow(message);
+  });
+
+  it("carries Royal's nine programmes (OPEN: unconfirmed third-party list, docs/client-profile.md) and the sample school's own, sharing no wording", () => {
+    const royal = parsePack(royalJson).site;
+    const sample = parsePack(sampleJson).site;
+    expect(royal.programmes).toHaveLength(9);
+    expect(sample.programmes.length).toBeGreaterThan(0);
+    const words = JSON.stringify(sample);
+    for (const royalWord of ["Royal", "Lahan", "Siraha", "NEB", "Purbanchal", "Tribhuvan"]) expect(words, royalWord).not.toContain(royalWord);
+  });
+
+  it("fills in an empty options list", () => {
+    const pack = parsePack(royalJson);
+    expect(pack.site.programmes.find((p) => p.key === "bbs")!.options).toEqual([]);
+  });
+
+  it("is stored by applying the pack and reads back exactly as written, for both schools", async () => {
+    for (const [json, db] of [[royalJson, env.DB], [sampleJson, env.SCRATCH_DB]] as const) {
+      const pack = parsePack(json);
+      await applyPack(db, pack);
+      expect(await loadSiteContent(db), pack.school.name).toEqual(pack.site);
+    }
+  });
+
+  it("re-applying the same pack leaves the row, and its timestamp, untouched; changed text updates both", async () => {
+    const pack = parsePack(royalJson);
+    await applyPack(env.DB, pack);
+    await env.DB.prepare("UPDATE site_content SET updated_at = '2000-01-01T00:00:00Z'").run();
+
+    await applyPack(env.DB, pack);
+    const same = await env.DB.prepare("SELECT content_json, updated_at FROM site_content").first<{ content_json: string; updated_at: string }>();
+    expect(same!.updated_at).toBe("2000-01-01T00:00:00Z");
+    expect(JSON.parse(same!.content_json)).toEqual(pack.site);
+
+    const edited = parsePack({ ...clone(royalJson), site: { ...clone(royalJson).site, home: { headline: "A new headline", summary: "A new summary." } } });
+    await applyPack(env.DB, edited);
+    const changed = await env.DB.prepare("SELECT updated_at FROM site_content").first<{ updated_at: string }>();
+    expect(changed!.updated_at).not.toBe("2000-01-01T00:00:00Z");
+    expect((await loadSiteContent(env.DB))!.home.headline).toBe("A new headline");
+    expect(await count(env.DB, "SELECT COUNT(*) AS n FROM site_content")).toBe(1);
+    await applyPack(env.DB, pack);
+  });
+
+  it("stores text with line breaks and quotes safely, through bound parameters and through rendered SQL", async () => {
+    const base = clone(sampleJson) as any;
+    base.site.home = { headline: "Line one\nLine two", summary: "It's a \"test\"; DROP TABLE users;--" };
+    const pack = parsePack(base);
+    await applyPack(env.SCRATCH_DB, pack);
+    expect((await loadSiteContent(env.SCRATCH_DB))!.home).toEqual(pack.site.home);
+
+    base.site.home.headline = "Second\nheadline";
+    const sql = renderSql(packOperations(parsePack(base)));
+    expect(sql).not.toContain("Second\nheadline"); // the line break is a JSON escape, so it is still one SQL line per statement
+    await env.SCRATCH_DB.exec(sql);
+    expect((await loadSiteContent(env.SCRATCH_DB))!.home.headline).toBe("Second\nheadline");
+    expect(await count(env.SCRATCH_DB, "SELECT COUNT(*) AS n FROM users")).toBeGreaterThanOrEqual(0);
   });
 });
