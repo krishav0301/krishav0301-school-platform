@@ -28,11 +28,13 @@ describe("isCurrent", () => {
 });
 
 describe("the real menu", () => {
-  it("shows the Admin and the Super Admin the website entry, and no one else", () => {
-    const seen = (role: string, scope: "institution" | "own" | "assigned") => visibleNav(NAV_ITEMS, [{ role, scope }], {}).map((i) => i.id);
-    expect(seen("admin", "institution")).toEqual(["dashboard", "content"]);
-    expect(seen("super_admin", "institution")).toEqual(["dashboard", "content"]);
-    for (const [role, scope] of [["student", "own"], ["teacher", "assigned"], ["coordinator", "institution"], ["accountant", "institution"]] as const) {
+  it("shows each role its own entries: website for the Admin, setup for the Co-ordinator and the Admin", () => {
+    const seen = (role: string, scope: "institution" | "section" | "own" | "assigned") => visibleNav(NAV_ITEMS, [{ role, scope }], {}).map((i) => i.id);
+    expect(seen("admin", "institution")).toEqual(["dashboard", "content", "setup"]);
+    expect(seen("super_admin", "institution")).toEqual(["dashboard", "content", "setup"]);
+    expect(seen("coordinator", "institution")).toEqual(["dashboard", "setup"]);
+    expect(seen("coordinator", "section")).toEqual(["dashboard", "setup"]);
+    for (const [role, scope] of [["student", "own"], ["teacher", "assigned"], ["accountant", "institution"]] as const) {
       expect(seen(role, scope), role).toEqual(["dashboard"]);
     }
   });

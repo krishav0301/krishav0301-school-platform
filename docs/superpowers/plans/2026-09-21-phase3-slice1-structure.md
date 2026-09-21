@@ -3797,7 +3797,7 @@ git commit -m "Slice 1: the web model and client for setup, and the words" -m "C
 **Files:**
 - Create: `apps/web/src/setup/setup.module.css`, `useLoad.tsx`, `SetupLayout.tsx`, `YearsScreen.tsx`, `ProgrammesScreen.tsx`, `ClassesScreen.tsx`, `TerminalsScreen.tsx`
 - Create: `apps/web/src/app/portal/setup/page.tsx`, `programmes/page.tsx`, `classes/page.tsx`, `terminals/page.tsx`
-- Modify: `apps/web/src/shell/nav.ts`, `apps/web/test/nav.test.ts`, `apps/web/page-weight-budget.json`
+- Modify: `apps/web/src/shell/nav.ts`, `apps/web/test/nav.test.ts`, `apps/web/test/render.test.tsx`, `apps/web/page-weight-budget.json`
 - Test: `apps/web/test/setup-screens.test.tsx`
 
 **Interfaces:**
@@ -3902,7 +3902,7 @@ describe("the years screen", () => {
     expect(html).toContain(">Year (BS)<");
     expect(html).toContain(">First day<");
     expect(html).toContain(">Last day<");
-    expect(html).toContain('inputmode="numeric"');
+    expect(html).toContain('inputMode="numeric"');
   });
 
   it("a section-scoped Co-ordinator and the Admin see no add form, and are told why in the school's words", () => {
@@ -4168,7 +4168,7 @@ import { Button, Notice, Skeleton } from "@/ui";
 import type { Loaded } from "./client";
 import styles from "./setup.module.css";
 
-export type View<T> = { status: "loading" } | { status: "ready"; data: T } | { status: "failed" | "forbidden" };
+export type View<T> = { status: "loading" } | { status: "ready"; data: T } | { status: "failed" } | { status: "forbidden" };
 
 /** Loads something now and again on `reload`. Only the newest request may change the screen, so a slow answer never overwrites a newer one. */
 export function useLoad<T>(load: () => Promise<Loaded<T>>) {
@@ -5080,6 +5080,8 @@ In `apps/web/test/nav.test.ts`, make these four single-line edits inside the `th
 4. The line beginning `    for (const [role, scope] of [["student", "own"], ["teacher", "assigned"], ["coordinator", "institution"], ["accountant", "institution"]] as const) {` becomes the same line without `["coordinator", "institution"], `.
 
 (`seen` takes `"institution" | "own" | "assigned"`; widen its parameter type to include `"section"`: change `(role: string, scope: "institution" | "own" | "assigned")` to `(role: string, scope: "institution" | "section" | "own" | "assigned")`.)
+
+In `apps/web/test/render.test.tsx`, the test "shows no menu while there is only one place to go" used a Co-ordinator, who now has two entries. Add, after the `sampleHtml` line, `const oneEntry = page(<PortalPage />, royal, signedIn({ name: "Asha Rai", roles: [{ role: "accountant", scope: "institution" }] }));` and use `oneEntry` instead of `royalHtml` in that test's two `not.toContain` lines (`<nav` and `withTabs`).
 
 In `apps/web/page-weight-budget.json`, the `ignore` list gains the four new portal pages (a page in the build but in neither list fails the build): change the line
 

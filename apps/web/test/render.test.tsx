@@ -62,6 +62,8 @@ const coordinator: Me = { name: "Sita Sharma", roles: [{ role: "coordinator", sc
 describe("the portal shell", () => {
   const royalHtml = page(<PortalPage />, royal, signedIn(coordinator));
   const sampleHtml = page(<PortalPage />, sample, signedIn(coordinator));
+  // A role with a single menu entry (the Dashboard): the Co-ordinator now also has Setup.
+  const oneEntry = page(<PortalPage />, royal, signedIn({ name: "Asha Rai", roles: [{ role: "accountant", scope: "institution" }] }));
 
   const withMenu = page(
     <PortalShell items={menuItems}>
@@ -89,8 +91,8 @@ describe("the portal shell", () => {
   });
 
   it("shows no menu while there is only one place to go", () => {
-    expect(royalHtml).not.toContain("<nav");
-    expect(royalHtml).not.toContain("withTabs");
+    expect(oneEntry).not.toContain("<nav");
+    expect(oneEntry).not.toContain("withTabs");
     expect(withMenu).toContain("withTabs"); // the page leaves room for the phone tab bar
   });
 

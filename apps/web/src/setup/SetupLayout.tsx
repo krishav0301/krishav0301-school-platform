@@ -1,0 +1,52 @@
+"use client";
+
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import type { ReactNode } from "react";
+
+import { useConfig } from "@/config/ConfigProvider";
+import { t } from "@/i18n/messages";
+import { PortalShell } from "@/shell/PortalShell";
+
+import { termWords } from "./model";
+import styles from "./setup.module.css";
+
+/** The four setup screens. Exactly one is marked current; a trailing slash in the address makes no difference. */
+export function SetupTabs({ pathname }: { pathname: string }) {
+  const { term } = useConfig();
+  const words = termWords(term);
+  const here = pathname.length > 1 ? pathname.replace(/\/$/, "") : pathname;
+  const tabs = [
+    { href: "/portal/setup", label: t("setup.tab.years") },
+    { href: "/portal/setup/programmes", label: t("setup.tab.programmes", words) },
+    { href: "/portal/setup/classes", label: t("setup.tab.classes") },
+    { href: "/portal/setup/terminals", label: t("setup.tab.terminals", words) },
+  ];
+
+  return (
+    <nav aria-label={t("setup.tabs")}>
+      <ul className={styles.tabs}>
+        {tabs.map((tab) => (
+          <li key={tab.href}>
+            <Link href={tab.href} className={styles.tab} aria-current={here === tab.href ? "page" : undefined}>
+              {tab.label}
+            </Link>
+          </li>
+        ))}
+      </ul>
+    </nav>
+  );
+}
+
+/** The portal frame, the sub-menu, and the screen. Who may see or change what is decided by the API. */
+export function SetupLayout({ children }: { children: ReactNode }) {
+  const pathname = usePathname();
+  return (
+    <PortalShell>
+      <div className={styles.page}>
+        <SetupTabs pathname={pathname} />
+        {children}
+      </div>
+    </PortalShell>
+  );
+}

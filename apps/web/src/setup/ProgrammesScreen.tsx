@@ -1,0 +1,238 @@
+"use client";
+
+import { useCallback, useState, type FormEvent } from "react";
+
+import { useConfig } from "@/config/ConfigProvider";
+import { t, type MessageKey } from "@/i18n/messages";
+import { useSession } from "@/session/SessionProvider";
+import { Badge, Button, Field, Notice, Select } from "@/ui";
+
+import { addLevel, createProgramme, loadProgrammes, setLevelActive, setProgrammeActive } from "./client";
+import { REASON_MESSAGE, canManageStructure, manageableSections, termWords, type Level, type Programme } from "./model";
+import { Gate, useLoad } from "./useLoad";
+import styles from "./setup.module.css";
+
+type Flash = { tone: "ok" | "bad"; text: string };
+
+function LevelAdder({ programme, onAdd }: { programme: Programme; onAdd: (programme: Programme, name: string) => Promise<boolean> }) {
+  const { term } = useConfig();
+  const words = termWords(term);
+  const [name, setName] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  async function submit(event: FormEvent) {
+    event.preventDefault();
+    if (saving || !name.trim()) return;
+    setSaving(true);
+    const added = await onAdd(programme, name.trim());
+    setSaving(false);
+    if (added) setName("");
+  }
+
+  return (
+    <form onSubmit={submit} noValidate className={styles.inline}>
+      <Field label={t("setup.programmes.levelName", words)} value={name} maxLength={60} autoComplete="off" onChange={(event) => setName(event.target.value)} />
+      <Button type="submit" variant="secondary" loading={saving} loadingLabel={t("setup.working")}>
+        {t("setup.programmes.addLevel", words)}
+      </Button>
+    </form>
+  );
+}
+
+export interface ProgrammesViewProps {
+  programmes: readonly Programme[];
+  canManage: boolean;
+  busy: string | null;
+  onToggleProgramme: (programme: Programme) => void;
+  onToggleLevel: (level: Level, programme: Programme) => void;
+  onAddLevel: (programme: Programme, name: string) => Promise<boolean>;
+}
+
+/** Each programme with its levels in order. Switching off keeps the history; nothing is deleted. */
+export function ProgrammesView({ programmes, canManage, busy, onToggleProgramme, onToggleLevel, onAddLevel }: ProgrammesViewProps) {
+  const { term } = useConfig();
+  const words = termWords(term);
+  if (programmes.length === 0) return <p className={styles.empty}>{t("setup.programmes.empty", words)}</p>;
+
+  return (
+    <ul className={styles.list}>
+      {programmes.map((programme) => (
+        <li key={programme.id} className={styles.item}>
+          <h2 className={styles.itemTitle}>{programme.name}</h2>
+          <div className={styles.badges}>
+            <Badge>{programme.section.name}</Badge>
+            <Badge>{programme.affiliation}</Badge>
+            {programme.active ? null : <Badge>{t("setup.programmes.off")}</Badge>}
+          </div>
+
+          {programme.levels.length === 0 ? (
+            <p className={styles.muted}>{t("setup.programmes.noLevels", words)}</p>
+          ) : (
+            <ul className={styles.levels} aria-label={t("setup.programmes.levelsOf", { ...words, name: programme.name })}>
+              {programme.levels.map((level) => (
+                <li key={level.id} className={styles.level}>
+                  <span className={styles.levelName}>{level.name}</span>
+                  {level.active ? null : <Badge>{t("setup.programmes.off")}</Badge>}
+                  {canManage ? (
+                    <Button
+                      variant="quiet"
+                      loading={busy === level.id}
+                      loadingLabel={t("setup.working")}
+                      disabled={busy !== null && busy !== level.id}
+                      aria-label={t(level.active ? "setup.programmes.switchOffItem" : "setup.programmes.switchOnItem", { name: level.name })}
+                      onClick={() => onToggleLevel(level, programme)}
+                    >
+                      {t(level.active ? "setup.programmes.switchOff" : "setup.programmes.switchOn")}
+                    </Button>
+                  ) : null}
+                </li>
+              ))}
+            </ul>
+          )}
+
+          {canManage ? (
+            <>
+              {programme.active ? <LevelAdder programme={programme} onAdd={onAddLevel} /> : null}
+              <div className={styles.actions}>
+                <Button
+                  variant="quiet"
+                  loading={busy === programme.id}
+                  loadingLabel={t("setup.working")}
+                  disabled={busy !== null && busy !== programme.id}
+                  aria-label={t(programme.active ? "setup.programmes.switchOffItem" : "setup.programmes.switchOnItem", { name: programme.name })}
+                  onClick={() => onToggleProgramme(programme)}
+                >
+                  {t(programme.active ? "setup.programmes.switchOff" : "setup.programmes.switchOn")}
+                </Button>
+              </div>
+            </>
+          ) : null}
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+function ProgrammeForm({ sections, onAdded, onProblem }: { sections: readonly { key: string; name: string }[]; onAdded: () => void; onProblem: (key: MessageKey) => void }) {
+  const { api } = useSession();
+  const { term } = useConfig();
+  const words = termWords(term);
+  const [name, setName] = useState("");
+  const [affiliation, setAffiliation] = useState("");
+  const [sectionKey, setSectionKey] = useState(sections.length === 1 ? sections[0]!.key : "");
+  const [errors, setErrors] = useState<{ name?: MessageKey; affiliation?: MessageKey; section?: MessageKey }>({});
+  const [saving, setSaving] = useState(false);
+  const say = (key: MessageKey | undefined) => (key ? t(key, words) : undefined);
+
+  async function submit(event: FormEvent) {
+    event.preventDefault();
+    if (saving) return;
+    const found: typeof errors = {};
+    if (!name.trim()) found.name = "setup.error.nameRequired";
+    if (!affiliation.trim()) found.affiliation = "setup.error.affiliationRequired";
+    if (!sectionKey) found.section = "setup.error.sectionRequired";
+    setErrors(found);
+    if (Object.keys(found).length > 0) return;
+
+    setSaving(true);
+    const result = await createProgramme(api, { name: name.trim(), sectionKey, affiliation: affiliation.trim() });
+    setSaving(false);
+    if (result.ok) {
+      setName("");
+      setAffiliation("");
+      onAdded();
+    } else {
+      onProblem(REASON_MESSAGE[result.reason]);
+    }
+  }
+
+  return (
+    <form onSubmit={submit} noValidate className={styles.form}>
+      <h2 className={styles.formTitle}>{t("setup.programmes.add", words)}</h2>
+      <Field label={t("setup.programmes.name")} value={name} maxLength={120} autoComplete="off" onChange={(event) => setName(event.target.value)} error={say(errors.name)} />
+      <Select
+        label={t("setup.programmes.section", words)}
+        value={sectionKey}
+        onChange={(event) => setSectionKey(event.target.value)}
+        options={[{ value: "", label: t("setup.programmes.choose") }, ...sections.map((s) => ({ value: s.key, label: s.name }))]}
+        error={say(errors.section)}
+      />
+      <Field
+        label={t("setup.programmes.affiliation")}
+        hint={t("setup.programmes.affiliationHint")}
+        value={affiliation}
+        maxLength={120}
+        autoComplete="off"
+        onChange={(event) => setAffiliation(event.target.value)}
+        error={say(errors.affiliation)}
+      />
+      <Button type="submit" loading={saving} loadingLabel={t("setup.working")}>
+        {t("setup.programmes.add", words)}
+      </Button>
+    </form>
+  );
+}
+
+export function ProgrammesScreen() {
+  const { api, me } = useSession();
+  const { config, term } = useConfig();
+  const roles = me?.roles ?? [];
+  const canManage = canManageStructure(roles);
+  const sections = manageableSections(roles, config?.sections ?? []);
+  const words = termWords(term);
+  const load = useCallback(() => loadProgrammes(api), [api]);
+  const { view, reload } = useLoad(load);
+  const [flash, setFlash] = useState<Flash | null>(null);
+  const [busy, setBusy] = useState<string | null>(null);
+
+  const said = (result: { ok: true } | { ok: false; reason: keyof typeof REASON_MESSAGE }) =>
+    setFlash(result.ok ? { tone: "ok", text: t("setup.saved") } : { tone: "bad", text: t(REASON_MESSAGE[result.reason]) });
+
+  async function toggle(id: string, run: () => ReturnType<typeof setProgrammeActive>) {
+    if (busy) return;
+    setBusy(id);
+    setFlash(null);
+    const result = await run();
+    setBusy(null);
+    said(result);
+    await reload();
+  }
+
+  async function add(programme: Programme, name: string): Promise<boolean> {
+    setFlash(null);
+    const result = await addLevel(api, programme.id, name);
+    said(result);
+    if (result.ok) await reload();
+    return result.ok;
+  }
+
+  return (
+    <>
+      <h1 className={styles.title}>{t("setup.programmes.title", words)}</h1>
+      {flash ? <Notice tone={flash.tone}>{flash.text}</Notice> : null}
+      <Gate view={view} onRetry={() => void reload()}>
+        {({ programmes }) => (
+          <ProgrammesView
+            programmes={programmes}
+            canManage={canManage}
+            busy={busy}
+            onToggleProgramme={(p) => void toggle(p.id, () => setProgrammeActive(api, p.id, !p.active))}
+            onToggleLevel={(l) => void toggle(l.id, () => setLevelActive(api, l.id, !l.active))}
+            onAddLevel={add}
+          />
+        )}
+      </Gate>
+      {canManage && sections.length > 0 ? (
+        <ProgrammeForm
+          sections={sections}
+          onAdded={() => {
+            setFlash({ tone: "ok", text: t("setup.saved") });
+            void reload();
+          }}
+          onProblem={(key) => setFlash({ tone: "bad", text: t(key) })}
+        />
+      ) : null}
+      {canManage ? null : <Notice>{t("setup.readOnly", { coordinator: term("role.coordinator") })}</Notice>}
+    </>
+  );
+}
