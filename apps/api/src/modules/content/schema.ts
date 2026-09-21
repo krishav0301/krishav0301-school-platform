@@ -83,6 +83,9 @@ export const AdminContentItemSchema = z
     state: ContentStateSchema,
     publishOn: CalendarDaySchema,
     hideAfter: CalendarDaySchema.nullable(),
+    /** The same days in Bikram Sambat, "YYYY-MM-DD". Null for a day outside the verified BS years. */
+    publishOnBs: z.string().nullable(),
+    hideAfterBs: z.string().nullable(),
     createdAt: z.string(),
     updatedAt: z.string(),
     publishedAt: z.string().nullable(),
@@ -90,7 +93,17 @@ export const AdminContentItemSchema = z
   .openapi("AdminContentItem");
 export type AdminContentItem = z.infer<typeof AdminContentItemSchema>;
 
-export const AdminContentSchema = z.object({ items: z.array(AdminContentItemSchema) }).openapi("AdminContent");
+/** The list gets everything except the text and the contact, which come with one item. */
+export const AdminContentSummarySchema = AdminContentItemSchema.omit({ body: true, contact: true }).openapi("AdminContentSummary");
+export type AdminContentSummary = z.infer<typeof AdminContentSummarySchema>;
+
+export const AdminContentSchema = z
+  .object({
+    items: z.array(AdminContentSummarySchema),
+    /** Today in Bikram Sambat by Nepal's clock, "YYYY-MM-DD": what a new item's publish day starts as. Null once today is past the verified BS years. */
+    todayBs: z.string().nullable(),
+  })
+  .openapi("AdminContent");
 
 /** What the public site gets. Nothing internal (who wrote it, its status) is in it. */
 export const PublicContentItemSchema = z
@@ -103,6 +116,9 @@ export const PublicContentItemSchema = z
     urgent: z.boolean(),
     publishedOn: CalendarDaySchema,
     hideAfter: CalendarDaySchema.nullable(),
+    /** The same days in Bikram Sambat, "YYYY-MM-DD". Null for a day outside the verified BS years. */
+    publishedOnBs: z.string().nullable(),
+    hideAfterBs: z.string().nullable(),
   })
   .openapi("PublicContentItem");
 export type PublicContentItem = z.infer<typeof PublicContentItemSchema>;

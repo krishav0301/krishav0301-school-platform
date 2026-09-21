@@ -249,7 +249,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** @description Every item in every state, most recently touched first, at most 200. `state` says where each stands today. */
+        /** @description Every item in every state, most recently touched first, at most 200, WITHOUT the text (fetch one item for that). `state` says where each stands today, and `todayBs` is today in Bikram Sambat. */
         get: operations["list_content"];
         put?: never;
         /** @description Saves a new item as a draft. It is not public until it is published. */
@@ -267,7 +267,8 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get?: never;
+        /** @description One item with its text and contact, for the edit form. */
+        get: operations["get_content"];
         put?: never;
         post?: never;
         delete?: never;
@@ -305,6 +306,40 @@ export interface paths {
         put?: never;
         /** @description Takes an item off the public site. It goes back to a draft and can be published again. */
         post: operations["unpublish_content"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/dates/to-ad": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Converts a Bikram Sambat day (YYYY-MM-DD, month as a number) to AD. Refuses a day that does not exist and any year outside BS 2000 to 2083. */
+        get: operations["bs_to_ad"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/dates/to-bs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Converts an AD day (YYYY-MM-DD) to Bikram Sambat. Refuses a day that does not exist and any day outside BS 2000 to 2083. */
+        get: operations["ad_to_bs"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -447,12 +482,33 @@ export interface components {
             urgent: boolean;
             publishedOn: string;
             hideAfter: string | null;
+            publishedOnBs: string | null;
+            hideAfterBs: string | null;
         };
         /** @enum {string} */
         ContentKind: "notice" | "holiday" | "routine" | "vacancy" | "post";
         AdminContent: {
-            items: components["schemas"]["AdminContentItem"][];
+            items: components["schemas"]["AdminContentSummary"][];
+            todayBs: string | null;
         };
+        AdminContentSummary: {
+            id: string;
+            kind: components["schemas"]["ContentKind"];
+            title: string;
+            urgent: boolean;
+            /** @enum {string} */
+            status: "draft" | "waiting" | "live";
+            state: components["schemas"]["ContentState"];
+            publishOn: string;
+            hideAfter: string | null;
+            publishOnBs: string | null;
+            hideAfterBs: string | null;
+            createdAt: string;
+            updatedAt: string;
+            publishedAt: string | null;
+        };
+        /** @enum {string} */
+        ContentState: "draft" | "waiting" | "scheduled" | "showing" | "expired";
         AdminContentItem: {
             id: string;
             kind: components["schemas"]["ContentKind"];
@@ -465,12 +521,12 @@ export interface components {
             state: components["schemas"]["ContentState"];
             publishOn: string;
             hideAfter: string | null;
+            publishOnBs: string | null;
+            hideAfterBs: string | null;
             createdAt: string;
             updatedAt: string;
             publishedAt: string | null;
         };
-        /** @enum {string} */
-        ContentState: "draft" | "waiting" | "scheduled" | "showing" | "expired";
         ContentError: {
             error: string;
         };
@@ -498,6 +554,10 @@ export interface components {
             urgent?: boolean;
             publishOn?: string;
             hideAfter?: string | null;
+        };
+        DateConversionFailure: {
+            /** @enum {string} */
+            error: "invalid_date" | "unverified_year";
         };
     };
     responses: never;
@@ -1003,6 +1063,7 @@ export interface operations {
             query?: {
                 kind?: components["schemas"]["ContentKind"];
                 state?: components["schemas"]["ContentState"];
+                limit?: number;
             };
             header?: never;
             path?: never;
@@ -1061,6 +1122,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ContentInvalid"];
+                };
+            };
+        };
+    };
+    get_content: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The item */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminContentItem"];
+                };
+            };
+            /** @description No such item */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ContentError"];
                 };
             };
         };
@@ -1221,6 +1313,85 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ContentError"];
+                };
+            };
+        };
+    };
+    bs_to_ad: {
+        parameters: {
+            query: {
+                bs: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The AD day */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        ad: string;
+                        /**
+                         * @description `disputed` means public calendars disagree on this day: confirm it against the certificate.
+                         * @enum {string}
+                         */
+                        confidence: "verified" | "disputed";
+                    };
+                };
+            };
+            /** @description Not a real day, or a year that has not been verified */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DateConversionFailure"];
+                };
+            };
+        };
+    };
+    ad_to_bs: {
+        parameters: {
+            query: {
+                ad: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The BS day */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        year: number;
+                        month: number;
+                        day: number;
+                        text: string;
+                        /**
+                         * @description `disputed` means public calendars disagree on this day: confirm it against the certificate.
+                         * @enum {string}
+                         */
+                        confidence: "verified" | "disputed";
+                    };
+                };
+            };
+            /** @description Not a real day, or outside the verified years */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DateConversionFailure"];
                 };
             };
         };

@@ -9,6 +9,10 @@ export const PUBLIC_ROUTES: ReadonlySet<string> = new Set([
   // The school's name, wording and theme. The web app needs it before anyone signs in, and it is
   // the same for every visitor. Nothing private is in it.
   "GET /api/config/public",
+  // Date conversion between BS and AD. A pure function of its input, no data behind it. Screens ask
+  // here because only the date module may convert (D-014).
+  "GET /api/dates/to-ad",
+  "GET /api/dates/to-bs",
   // Sign-in and the session endpoints identify the caller themselves (credentials or the
   // refresh cookie), and are rate-limited and locked out (see modules/auth).
   "POST /api/auth/sign-in",

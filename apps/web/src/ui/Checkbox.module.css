@@ -1,0 +1,40 @@
+/* The row is at least a full control tall and the label fills it, so the whole line is the touch target. */
+.row {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  min-height: var(--control-height);
+}
+
+.box {
+  flex: none;
+  width: 1.5rem;
+  height: 1.5rem;
+  margin: calc((var(--control-height) - 1.5rem) / 2) 0 0;
+  accent-color: var(--color-primary);
+}
+
+.box:focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: 2px;
+}
+
+.text {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+  min-height: var(--control-height);
+  justify-content: center;
+  cursor: pointer;
+}
+
+.label {
+  font-weight: var(--weight-medium);
+}
+
+.hint {
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+}

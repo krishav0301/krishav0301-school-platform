@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { MAX_TABS, NAV_ITEMS, showsMenu, visibleNav, type NavItem } from "@/shell/nav";
+import { MAX_TABS, NAV_ITEMS, isCurrent, showsMenu, visibleNav, type NavItem } from "@/shell/nav";
 import { ROLES } from "../../api/src/core/roles";
 
 const items: NavItem[] = [
@@ -9,6 +9,34 @@ const items: NavItem[] = [
   { id: "homework", labelKey: "nav.dashboard", href: "/portal/homework", roles: ["teacher", "student"], module: "homework" },
 ];
 const ids = (list: NavItem[]) => list.map((i) => i.id);
+
+describe("isCurrent", () => {
+  it("marks an entry current on its own page and on pages beneath it", () => {
+    expect(isCurrent("/portal/content", "/portal/content")).toBe(true);
+    expect(isCurrent("/portal/content/edit", "/portal/content")).toBe(true);
+  });
+
+  it("the dashboard is current only on itself, not on every portal page", () => {
+    expect(isCurrent("/portal", "/portal")).toBe(true);
+    expect(isCurrent("/portal/content", "/portal")).toBe(false);
+  });
+
+  it("does not confuse a page whose name merely starts the same", () => {
+    expect(isCurrent("/portal/contents", "/portal/content")).toBe(false);
+    expect(isCurrent("/portal/content-x/edit", "/portal/content")).toBe(false);
+  });
+});
+
+describe("the real menu", () => {
+  it("shows the Admin and the Super Admin the website entry, and no one else", () => {
+    const seen = (role: string, scope: "institution" | "own" | "assigned") => visibleNav(NAV_ITEMS, [{ role, scope }], {}).map((i) => i.id);
+    expect(seen("admin", "institution")).toEqual(["dashboard", "content"]);
+    expect(seen("super_admin", "institution")).toEqual(["dashboard", "content"]);
+    for (const [role, scope] of [["student", "own"], ["teacher", "assigned"], ["coordinator", "institution"], ["accountant", "institution"]] as const) {
+      expect(seen(role, scope), role).toEqual(["dashboard"]);
+    }
+  });
+});
 
 describe("visibleNav", () => {
   const modules = { fees: true, homework: true };

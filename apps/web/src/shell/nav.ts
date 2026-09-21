@@ -21,7 +21,17 @@ export interface NavItem {
 
 export const MAX_TABS = 5;
 
-export const NAV_ITEMS: readonly NavItem[] = [{ id: "dashboard", labelKey: "nav.dashboard", href: "/portal" }];
+export const NAV_ITEMS: readonly NavItem[] = [
+  { id: "dashboard", labelKey: "nav.dashboard", href: "/portal" },
+  // Phase 2: the Admin edits the public website's content (D-040).
+  { id: "content", labelKey: "nav.content", href: "/portal/content", roles: ["admin", "super_admin"] },
+];
+
+/** True on an entry's own page and on the pages beneath it. The dashboard is only current on itself. */
+export function isCurrent(pathname: string, href: string): boolean {
+  if (href === "/portal") return pathname === href;
+  return pathname === href || pathname.startsWith(`${href}/`);
+}
 
 export function visibleNav<R extends { role: string }>(items: readonly NavItem[], roles: readonly R[], modules: Readonly<Record<string, boolean>>): NavItem[] {
   return items.filter((item) => {

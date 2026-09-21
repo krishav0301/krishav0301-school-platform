@@ -163,3 +163,20 @@ export function nepalDate(instant: Date): string {
 export function todayBs(now: Date = new Date()): BsDate {
   return adToBs(nepalDate(now));
 }
+
+/** A BS day as "YYYY-MM-DD" (numbers, zero-padded): the form the API sends and accepts. */
+export function bsToText(bs: BsDate): string {
+  return `${String(bs.year).padStart(4, "0")}-${String(bs.month).padStart(2, "0")}-${String(bs.day).padStart(2, "0")}`;
+}
+
+/**
+ * An AD day as BS text, or null when it cannot be converted (a day outside the verified years, or
+ * not a real day). For responses that carry both forms: a far-future date must not break a list.
+ */
+export function adToBsText(ad: string): string | null {
+  try {
+    return bsToText(adToBs(ad));
+  } catch {
+    return null;
+  }
+}

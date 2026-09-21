@@ -3,7 +3,7 @@ import { beforeAll, describe, expect, it } from "vitest";
 
 import { createApp } from "../src/app";
 import { verifyAuditChain } from "../src/core/audit";
-import { nepalDate } from "../src/core/dates";
+import { adToBsText, nepalDate } from "../src/core/dates";
 import { signAccessToken, type RoleClaim } from "../src/core/tokens";
 import { createUser } from "../src/modules/accounts/service";
 
@@ -48,6 +48,7 @@ const auditFor = async (id: string) =>
   (await db.prepare("SELECT a.action, u.public_id AS actor FROM audit_events a LEFT JOIN users u ON u.id = a.actor_user_id WHERE a.entity_public_id = ?1 ORDER BY a.id").bind(id).all<{ action: string; actor: string }>()).results;
 
 type Item = { id: string; kind: string; title: string; body: string; contact: string | null; urgent: boolean; status: string; state: string; publishOn: string; hideAfter: string | null; createdAt: string; updatedAt: string; publishedAt: string | null };
+const detail = async (id: string, cookie = admin.cookie) => (await (await call(`/api/content/${id}`, { cookie })).json()) as Item;
 const list = async (cookie: string, query = "") => (await (await call(`/api/content${query}`, { cookie })).json()) as { items: Item[] };
 
 let admin: Awaited<ReturnType<typeof person>>;
@@ -76,6 +77,7 @@ describe("who may use the content routes", () => {
   const id = "0".repeat(32);
   const routes: [string, string, unknown][] = [
     ["GET", "/api/content", undefined],
+    ["GET", `/api/content/${id}`, undefined],
     ["POST", "/api/content", draft()],
     ["PATCH", `/api/content/${id}`, { title: "x" }],
     ["POST", `/api/content/${id}/publish`, undefined],
@@ -136,8 +138,9 @@ describe("POST /api/content", () => {
 
     expect(response.status).toBe(201);
     expect(id).toMatch(/^[0-9a-f]{32}$/);
-    const item = (await list(admin.cookie)).items.find((i) => i.id === id)!;
+    const item = await detail(id);
     expect(item).toMatchObject({ title: "Fee reminder", status: "draft", state: "draft", contact: null, urgent: false, hideAfter: null, publishedAt: null });
+    expect((await list(admin.cookie)).items.map((i) => i.id)).toContain(id);
     expect(((await (await call("/api/site/content")).json()) as { items: { id: string }[] }).items.map((i) => i.id)).not.toContain(id);
     expect(await auditFor(id)).toEqual([{ action: "content.created", actor: admin.publicId }]);
   });
@@ -165,7 +168,7 @@ describe("POST /api/content", () => {
 
   it("takes the optional parts as they come: a vacancy with a contact, urgent, and a hide-after day", async () => {
     const id = await newDraft({ kind: "vacancy", contact: "9800000000", urgent: true, hideAfter: "2026-12-31" });
-    const item = (await list(admin.cookie)).items.find((i) => i.id === id)!;
+    const item = await detail(id);
     expect(item).toMatchObject({ kind: "vacancy", contact: "9800000000", urgent: true, hideAfter: "2026-12-31" });
   });
 });
@@ -177,7 +180,7 @@ describe("PATCH /api/content/{id}", () => {
     const response = await call(`/api/content/${id}`, { method: "PATCH", cookie: admin.cookie, body: { title: "New" } });
 
     expect(response.status).toBe(200);
-    const item = (await list(admin.cookie)).items.find((i) => i.id === id)!;
+    const item = await detail(id);
     expect(item).toMatchObject({ title: "New", body: "Old body" });
     expect((await auditFor(id)).map((a) => a.action)).toEqual(["content.created", "content.updated"]);
   });
@@ -201,7 +204,7 @@ describe("PATCH /api/content/{id}", () => {
     for (const body of [{ kind: "post" }, { status: "live" }, { id: "x" }]) {
       expect((await call(`/api/content/${id}`, { method: "PATCH", cookie: admin.cookie, body })).status, JSON.stringify(body)).toBe(400);
     }
-    expect((await list(admin.cookie)).items.find((i) => i.id === id)).toMatchObject({ kind: "notice", status: "draft" });
+    expect(await detail(id)).toMatchObject({ kind: "notice", status: "draft" });
   });
 
   it("refuses a change that breaks a rule as a whole with 422 and a message, and changes nothing", async () => {
@@ -212,7 +215,7 @@ describe("PATCH /api/content/{id}", () => {
     expect(noContact.status).toBe(422);
     expect(await noContact.json()).toEqual({ error: "invalid", message: expect.stringContaining("contact") });
     expect((await call(`/api/content/${dated}`, { method: "PATCH", cookie: admin.cookie, body: { publishOn: "2026-11-01" } })).status).toBe(422);
-    expect((await list(admin.cookie)).items.find((i) => i.id === dated)!.publishOn).toBe("2026-09-21");
+    expect((await detail(dated)).publishOn).toBe("2026-09-21");
   });
 
   it("404 for an item that does not exist, 400 for an id that cannot be one", async () => {
@@ -302,6 +305,19 @@ describe("GET /api/content", () => {
     expect(today() > "2020-01-02").toBe(true);
   });
 
+  it("gives every day in Bikram Sambat too (null beyond the verified years), and today in Bikram Sambat", async () => {
+    const far = await newDraft({ title: "Far away", publishOn: "2999-01-01" });
+    const near = await newDraft({ title: "Near", publishOn: "2020-01-01", hideAfter: "2020-02-01" });
+    const response = (await (await call("/api/content", { cookie: admin.cookie })).json()) as { items: Item[] & { publishOnBs: string | null; hideAfterBs: string | null }[]; todayBs: string | null };
+    const byId = (id: string) => response.items.find((i) => i.id === id) as unknown as { publishOnBs: string | null; hideAfterBs: string | null };
+
+    expect(byId(near).publishOnBs).toBe(adToBsText("2020-01-01"));
+    expect(byId(near).hideAfterBs).toBe(adToBsText("2020-02-01"));
+    expect(byId(far).publishOnBs).toBeNull();
+    expect(response.todayBs).toBe(adToBsText(today()));
+    expect(response.todayBs).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+  });
+
   it("narrows by kind and by state, and refuses a filter that does not exist", async () => {
     await newDraft({ kind: "post", title: "A post" });
     const posts = (await list(admin.cookie, "?kind=post")).items;
@@ -332,9 +348,51 @@ describe("GET /api/content", () => {
     expect((await positions()).second).toBeLessThan((await positions()).first);
   });
 
-  it("carries the same public words as the site plus the internal state, and never who wrote it", async () => {
+  it("carries the state but never the text, the contact or who wrote it", async () => {
     const id = await newDraft();
     const item = (await list(admin.cookie)).items.find((i) => i.id === id)!;
-    expect(Object.keys(item).sort()).toEqual(["body", "contact", "createdAt", "hideAfter", "id", "kind", "publishOn", "publishedAt", "state", "status", "title", "updatedAt", "urgent"]);
+    expect(Object.keys(item).sort()).toEqual(["createdAt", "hideAfter", "hideAfterBs", "id", "kind", "publishOn", "publishOnBs", "publishedAt", "state", "status", "title", "updatedAt", "urgent"]);
+  });
+});
+
+// ---------------------------------------------------------------------------------------------
+describe("GET /api/content/{id}", () => {
+  it("gives one item with its text and contact, in Nepali days too, and is never cached", async () => {
+    const id = await newDraft({ kind: "vacancy", title: "Teacher wanted", body: "First\n\nSecond", contact: "jobs@school.example", urgent: true, publishOn: "2020-01-01", hideAfter: "2020-02-01" });
+    const response = await call(`/api/content/${id}`, { cookie: admin.cookie });
+    const item = (await response.json()) as Item & { publishOnBs: string | null; hideAfterBs: string | null };
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("Cache-Control")).toBe("no-store");
+    expect(item).toMatchObject({ id, kind: "vacancy", title: "Teacher wanted", body: "First\n\nSecond", contact: "jobs@school.example", urgent: true, status: "draft", state: "draft", publishOn: "2020-01-01", hideAfter: "2020-02-01" });
+    expect(item.publishOnBs).toBe(adToBsText("2020-01-01"));
+    expect(item.hideAfterBs).toBe(adToBsText("2020-02-01"));
+    expect(Object.keys(item).sort()).toEqual(["body", "contact", "createdAt", "hideAfter", "hideAfterBs", "id", "kind", "publishOn", "publishOnBs", "publishedAt", "state", "status", "title", "updatedAt", "urgent"]);
+  });
+
+  it("says where a live item stands today", async () => {
+    const id = await newDraft({ publishOn: "2020-01-01" });
+    await call(`/api/content/${id}/publish`, { method: "POST", cookie: admin.cookie });
+    expect((await detail(id)).state).toBe("showing");
+  });
+
+  it("404 for an item that does not exist, 400 for an id that cannot be one", async () => {
+    expect((await call(`/api/content/${"d".repeat(32)}`, { cookie: admin.cookie })).status).toBe(404);
+    expect((await call("/api/content/not-an-id", { cookie: admin.cookie })).status).toBe(400);
+  });
+});
+
+describe("GET /api/content?limit", () => {
+  it("returns at most that many, still with today's Nepali day, and refuses a limit that makes no sense", async () => {
+    await newDraft();
+    await newDraft();
+    const one = (await (await call("/api/content?limit=1", { cookie: admin.cookie })).json()) as { items: unknown[]; todayBs: string | null };
+    expect(one.items).toHaveLength(1);
+    expect(one.todayBs).toBe(adToBsText(today()));
+
+    for (const limit of ["0", "-1", "201", "abc", "1.5"]) {
+      expect((await call(`/api/content?limit=${limit}`, { cookie: admin.cookie })).status, limit).toBe(400);
+    }
+    expect((await call("/api/content?limit=200", { cookie: admin.cookie })).status).toBe(200);
   });
 });

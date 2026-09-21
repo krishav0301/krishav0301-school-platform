@@ -2,7 +2,7 @@ import { env } from "cloudflare:test";
 import { beforeAll, describe, expect, it } from "vitest";
 
 import { createApp } from "../src/app";
-import { nepalDate } from "../src/core/dates";
+import { adToBsText, nepalDate } from "../src/core/dates";
 import { signAccessToken, type RoleClaim } from "../src/core/tokens";
 import { createUser } from "../src/modules/accounts/service";
 import { createContent, publishContent } from "../src/modules/content/service";
@@ -82,10 +82,19 @@ describe("GET /api/site/content", () => {
     const body = (await (await call("/api/site/content")).json()) as Body;
     const vacancy = body.items.find((i) => i.id === vacancyId)!;
 
-    expect(Object.keys(vacancy).sort()).toEqual(["body", "contact", "hideAfter", "id", "kind", "publishedOn", "title", "urgent"]);
+    expect(Object.keys(vacancy).sort()).toEqual(["body", "contact", "hideAfter", "hideAfterBs", "id", "kind", "publishedOn", "publishedOnBs", "title", "urgent"]);
     expect(vacancy).toMatchObject({ kind: "vacancy", title: "Teacher wanted", contact: "jobs@school.example", urgent: false, hideAfter: null });
     expect(vacancy.publishedOn).toMatch(/^\d{4}-\d{2}-\d{2}$/);
     expect(JSON.stringify(body)).not.toMatch(/created_by|published_by|"status"|users?_id/);
+  });
+
+  it("carries every day in Bikram Sambat too, so the page never converts a date itself", async () => {
+    const body = (await (await call("/api/site/content")).json()) as { items: { id: string; publishedOn: string; publishedOnBs: string | null; hideAfterBs: string | null }[] };
+    const live = body.items.find((i) => i.id === liveId)!;
+    expect(live.publishedOn).toBe("2020-01-01");
+    expect(live.publishedOnBs).toBe(adToBsText("2020-01-01"));
+    expect(live.publishedOnBs).toMatch(/^20\d\d-\d{2}-\d{2}$/);
+    expect(live.hideAfterBs).toBeNull();
   });
 
   it("can be narrowed to one kind, and refuses a kind that does not exist", async () => {

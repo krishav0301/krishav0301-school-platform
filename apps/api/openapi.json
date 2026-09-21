@@ -584,6 +584,18 @@
               "null"
             ],
             "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+          },
+          "publishedOnBs": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "hideAfterBs": {
+            "type": [
+              "string",
+              "null"
+            ]
           }
         },
         "required": [
@@ -594,7 +606,9 @@
           "contact",
           "urgent",
           "publishedOn",
-          "hideAfter"
+          "hideAfter",
+          "publishedOnBs",
+          "hideAfterBs"
         ]
       },
       "ContentKind": {
@@ -613,12 +627,107 @@
           "items": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/AdminContentItem"
+              "$ref": "#/components/schemas/AdminContentSummary"
             }
+          },
+          "todayBs": {
+            "type": [
+              "string",
+              "null"
+            ]
           }
         },
         "required": [
-          "items"
+          "items",
+          "todayBs"
+        ]
+      },
+      "AdminContentSummary": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/ContentKind"
+          },
+          "title": {
+            "type": "string"
+          },
+          "urgent": {
+            "type": "boolean"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "draft",
+              "waiting",
+              "live"
+            ]
+          },
+          "state": {
+            "$ref": "#/components/schemas/ContentState"
+          },
+          "publishOn": {
+            "type": "string",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+          },
+          "hideAfter": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+          },
+          "publishOnBs": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "hideAfterBs": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "createdAt": {
+            "type": "string"
+          },
+          "updatedAt": {
+            "type": "string"
+          },
+          "publishedAt": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "kind",
+          "title",
+          "urgent",
+          "status",
+          "state",
+          "publishOn",
+          "hideAfter",
+          "publishOnBs",
+          "hideAfterBs",
+          "createdAt",
+          "updatedAt",
+          "publishedAt"
+        ]
+      },
+      "ContentState": {
+        "type": "string",
+        "enum": [
+          "draft",
+          "waiting",
+          "scheduled",
+          "showing",
+          "expired"
         ]
       },
       "AdminContentItem": {
@@ -667,6 +776,18 @@
             ],
             "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
           },
+          "publishOnBs": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "hideAfterBs": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
           "createdAt": {
             "type": "string"
           },
@@ -691,19 +812,11 @@
           "state",
           "publishOn",
           "hideAfter",
+          "publishOnBs",
+          "hideAfterBs",
           "createdAt",
           "updatedAt",
           "publishedAt"
-        ]
-      },
-      "ContentState": {
-        "type": "string",
-        "enum": [
-          "draft",
-          "waiting",
-          "scheduled",
-          "showing",
-          "expired"
         ]
       },
       "ContentError": {
@@ -822,6 +935,21 @@
           }
         },
         "additionalProperties": false
+      },
+      "DateConversionFailure": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "string",
+            "enum": [
+              "invalid_date",
+              "unverified_year"
+            ]
+          }
+        },
+        "required": [
+          "error"
+        ]
       }
     },
     "parameters": {}
@@ -1477,7 +1605,7 @@
         "tags": [
           "content"
         ],
-        "description": "Every item in every state, most recently touched first, at most 200. `state` says where each stands today.",
+        "description": "Every item in every state, most recently touched first, at most 200, WITHOUT the text (fetch one item for that). `state` says where each stands today, and `todayBs` is today in Bikram Sambat.",
         "parameters": [
           {
             "schema": {
@@ -1493,6 +1621,16 @@
             },
             "required": false,
             "name": "state",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 200
+            },
+            "required": false,
+            "name": "limit",
             "in": "query"
           }
         ],
@@ -1568,6 +1706,46 @@
       }
     },
     "/api/content/{id}": {
+      "get": {
+        "operationId": "get_content",
+        "tags": [
+          "content"
+        ],
+        "description": "One item with its text and contact, for the edit form.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{32}$"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The item",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminContentItem"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such item",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ContentError"
+                }
+              }
+            }
+          }
+        }
+      },
       "patch": {
         "operationId": "update_content",
         "tags": [
@@ -1789,6 +1967,136 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ContentError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/dates/to-ad": {
+      "get": {
+        "operationId": "bs_to_ad",
+        "tags": [
+          "dates"
+        ],
+        "description": "Converts a Bikram Sambat day (YYYY-MM-DD, month as a number) to AD. Refuses a day that does not exist and any year outside BS 2000 to 2083.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+            },
+            "required": true,
+            "name": "bs",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The AD day",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ad": {
+                      "type": "string"
+                    },
+                    "confidence": {
+                      "type": "string",
+                      "enum": [
+                        "verified",
+                        "disputed"
+                      ],
+                      "description": "`disputed` means public calendars disagree on this day: confirm it against the certificate."
+                    }
+                  },
+                  "required": [
+                    "ad",
+                    "confidence"
+                  ]
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Not a real day, or a year that has not been verified",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DateConversionFailure"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/dates/to-bs": {
+      "get": {
+        "operationId": "ad_to_bs",
+        "tags": [
+          "dates"
+        ],
+        "description": "Converts an AD day (YYYY-MM-DD) to Bikram Sambat. Refuses a day that does not exist and any day outside BS 2000 to 2083.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+            },
+            "required": true,
+            "name": "ad",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The BS day",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "year": {
+                      "type": "number"
+                    },
+                    "month": {
+                      "type": "number"
+                    },
+                    "day": {
+                      "type": "number"
+                    },
+                    "text": {
+                      "type": "string"
+                    },
+                    "confidence": {
+                      "type": "string",
+                      "enum": [
+                        "verified",
+                        "disputed"
+                      ],
+                      "description": "`disputed` means public calendars disagree on this day: confirm it against the certificate."
+                    }
+                  },
+                  "required": [
+                    "year",
+                    "month",
+                    "day",
+                    "text",
+                    "confidence"
+                  ]
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Not a real day, or outside the verified years",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DateConversionFailure"
                 }
               }
             }

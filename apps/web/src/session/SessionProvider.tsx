@@ -1,8 +1,8 @@
 "use client";
 
-import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 
-import { createApiClient } from "@/api/client";
+import { createApiClient, type ApiClient } from "@/api/client";
 import type { components } from "@/api/schema";
 
 import { createRefreshingFetch } from "./refreshing-fetch";
@@ -43,6 +43,8 @@ export interface SessionValue {
   enableTwoFactor: (challenge: string, code: string) => Promise<{ ok: true; recoveryCodes: string[]; me: Me } | { ok: false; reason: TwoFactorFailure | "no_setup" }>;
   acceptSession: (me: Me) => void;
   signOut: () => Promise<void>;
+  /** The API client for signed-in calls. It renews the session by itself when the access cookie has expired. */
+  api: ApiClient;
 }
 
 export const SessionContext = createContext<SessionValue | null>(null);
@@ -82,19 +84,21 @@ export function twoFactorFailure(status: number, error: unknown): TwoFactorFailu
 export function SessionProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<SessionState>({ status: "checking", me: null, ended: false });
 
-  const api = useRef<ReturnType<typeof createApiClient> | null>(null);
-  api.current ??= createApiClient({
-    fetch: createRefreshingFetch((request) => fetch(request), {
-      onSignedOut: () => setState(afterServerSignOut),
+  // One client for the life of the page. It renews the session when the access cookie has expired.
+  const [api] = useState(() =>
+    createApiClient({
+      fetch: createRefreshingFetch((request) => fetch(request), {
+        onSignedOut: () => setState(afterServerSignOut),
+      }),
     }),
-  });
+  );
 
   useEffect(() => {
     let active = true;
     (async () => {
       try {
         // An expired access cookie is renewed inside this call by the refreshing fetch.
-        const { data } = await api.current!.GET("/api/auth/me");
+        const { data } = await api.GET("/api/auth/me");
         if (!active) return;
         setState((current) => (data ? { status: "signedIn", me: { name: data.name, roles: data.roles }, ended: false } : { status: "signedOut", me: null, ended: current.ended }));
       } catch {
@@ -104,11 +108,11 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     return () => {
       active = false;
     };
-  }, []);
+  }, [api]);
 
   const signIn = useCallback<SessionValue["signIn"]>(async (email, password) => {
     try {
-      const { data, response } = await api.current!.POST("/api/auth/sign-in", { body: { email, password } });
+      const { data, response } = await api.POST("/api/auth/sign-in", { body: { email, password } });
       if (data && "twoFactor" in data) return { ok: true, twoFactor: data.twoFactor, challenge: data.challenge };
       if (data) {
         setState({ status: "signedIn", me: { name: data.user.fullName, roles: data.roles }, ended: false });
@@ -120,11 +124,11 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     } catch {
       return { ok: false, reason: "network" };
     }
-  }, []);
+  }, [api]);
 
   const verifyTwoFactor = useCallback<SessionValue["verifyTwoFactor"]>(async (challenge, code) => {
     try {
-      const { data, response, error } = await api.current!.POST("/api/auth/2fa/verify", { body: { challenge, code } });
+      const { data, response, error } = await api.POST("/api/auth/2fa/verify", { body: { challenge, code } });
       if (data) {
         setState({ status: "signedIn", me: { name: data.user.fullName, roles: data.roles }, ended: false });
         return { ok: true };
@@ -133,44 +137,44 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     } catch {
       return { ok: false, reason: "network" };
     }
-  }, []);
+  }, [api]);
 
   const startTwoFactorSetup = useCallback<SessionValue["startTwoFactorSetup"]>(async (challenge) => {
     try {
-      const { data, response, error } = await api.current!.POST("/api/auth/2fa/setup", { body: { challenge } });
+      const { data, response, error } = await api.POST("/api/auth/2fa/setup", { body: { challenge } });
       if (data) return { ok: true, secret: data.secret, otpauthUri: data.otpauthUri };
       if (response.status === 409) return { ok: false, reason: "already_enabled" };
       return { ok: false, reason: twoFactorFailure(response.status, error) };
     } catch {
       return { ok: false, reason: "network" };
     }
-  }, []);
+  }, [api]);
 
   const enableTwoFactor = useCallback<SessionValue["enableTwoFactor"]>(async (challenge, code) => {
     try {
-      const { data, response, error } = await api.current!.POST("/api/auth/2fa/enable", { body: { challenge, code } });
+      const { data, response, error } = await api.POST("/api/auth/2fa/enable", { body: { challenge, code } });
       if (data) return { ok: true, recoveryCodes: data.recoveryCodes, me: { name: data.user.fullName, roles: data.roles } };
       if (response.status === 409) return { ok: false, reason: "no_setup" };
       return { ok: false, reason: twoFactorFailure(response.status, error) };
     } catch {
       return { ok: false, reason: "network" };
     }
-  }, []);
+  }, [api]);
 
   const acceptSession = useCallback((me: Me) => setState({ status: "signedIn", me, ended: false }), []);
 
   const signOut = useCallback<SessionValue["signOut"]>(async () => {
     try {
-      await api.current!.POST("/api/auth/sign-out");
+      await api.POST("/api/auth/sign-out");
     } catch {
       /* the server always ends the session; offline, the cookies simply expire */
     }
     setState({ status: "signedOut", me: null, ended: false });
-  }, []);
+  }, [api]);
 
   const value = useMemo<SessionValue>(
-    () => ({ status: state.status, me: state.me, endedUnexpectedly: state.ended, signIn, verifyTwoFactor, startTwoFactorSetup, enableTwoFactor, acceptSession, signOut }),
-    [state, signIn, verifyTwoFactor, startTwoFactorSetup, enableTwoFactor, acceptSession, signOut],
+    () => ({ status: state.status, me: state.me, endedUnexpectedly: state.ended, signIn, verifyTwoFactor, startTwoFactorSetup, enableTwoFactor, acceptSession, signOut, api }),
+    [state, signIn, verifyTwoFactor, startTwoFactorSetup, enableTwoFactor, acceptSession, signOut, api],
   );
   return <SessionContext.Provider value={value}>{children}</SessionContext.Provider>;
 }

@@ -10,7 +10,7 @@ import { t } from "@/i18n/messages";
 import { useSession } from "@/session/SessionProvider";
 import { Button, Skeleton, Spinner } from "@/ui";
 
-import { NAV_ITEMS, showsMenu, visibleNav, type NavItem } from "./nav";
+import { NAV_ITEMS, isCurrent, showsMenu, visibleNav, type NavItem } from "./nav";
 import styles from "./shell.module.css";
 
 /**
@@ -65,7 +65,7 @@ export function PortalShell({ children, items = NAV_ITEMS }: { children: ReactNo
         {hasMenu ? (
           <nav className={styles.nav} aria-label={t("shell.mainNavigation")}>
             {menu.map((item) => (
-              <Link key={item.id} href={item.href} className={styles.navLink} aria-current={pathname === item.href ? "page" : undefined}>
+              <Link key={item.id} href={item.href} className={styles.navLink} aria-current={isCurrent(pathname, item.href) ? "page" : undefined}>
                 {t(item.labelKey)}
               </Link>
             ))}

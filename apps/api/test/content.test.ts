@@ -381,7 +381,7 @@ describe("what the public sees", () => {
   it("shows exactly the public fields, and none of the internal ones", async () => {
     const id = await live({ kind: "vacancy", contact: "jobs@school.example", title: "Teacher wanted" });
     const item = (await listPublicContent(db, "2099-12-31")).items.find((i) => i.id === id)!;
-    expect(Object.keys(item).sort()).toEqual(["body", "contact", "hideAfter", "id", "kind", "publishedOn", "title", "urgent"]);
+    expect(Object.keys(item).sort()).toEqual(["body", "contact", "hideAfter", "hideAfterBs", "id", "kind", "publishedOn", "publishedOnBs", "title", "urgent"]);
     expect(item.id).toBe(id);
     expect(item.contact).toBe("jobs@school.example");
   });

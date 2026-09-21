@@ -7,6 +7,7 @@ import { registerAccounts } from "./modules/accounts/routes";
 import { registerAuth } from "./modules/auth/routes";
 import { registerConfig } from "./modules/config/routes";
 import { registerContent } from "./modules/content/routes";
+import { registerDates } from "./modules/dates/routes";
 import { registerHealth } from "./modules/health/routes";
 
 /**
@@ -24,6 +25,7 @@ export function createApp() {
   registerAccounts(app);
   registerConfig(app);
   registerContent(app);
+  registerDates(app);
 
   return app;
 }

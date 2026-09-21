@@ -1,3 +1,4 @@
+import { createApiClient } from "@/api/client";
 import type { SessionValue } from "@/session/SessionProvider";
 
 /** A session for rendering tests: signed out, and every action succeeds unless the test says otherwise. */
@@ -11,5 +12,7 @@ export const fakeSession = (overrides: Partial<SessionValue> = {}): SessionValue
   enableTwoFactor: async () => ({ ok: true, recoveryCodes: [], me: { name: "Someone", roles: [] } }),
   acceptSession: () => {},
   signOut: async () => {},
+  // No network in rendering tests: any call fails the way an offline browser does.
+  api: createApiClient({ fetch: async () => { throw new TypeError("offline"); } }),
   ...overrides,
 });

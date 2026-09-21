@@ -75,3 +75,16 @@
   font-size: var(--text-sm);
   font-weight: var(--weight-medium);
 }
+
+/* A text area grows with its text, but never below three lines, and keeps the field's padding. */
+.multiline {
+  min-height: calc(var(--control-height) * 2.5);
+  padding-block: var(--space-3);
+  line-height: var(--leading-normal);
+  resize: vertical;
+}
+
+/* A select keeps the field's box; the device draws the picker. */
+.select {
+  padding-inline-end: var(--space-3);
+}

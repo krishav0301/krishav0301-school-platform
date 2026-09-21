@@ -1,0 +1,153 @@
+/* Website content screens. Tokens only: no colour, font or motion is written out here. */
+
+.header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-4);
+}
+
+.title {
+  font-size: var(--text-2xl);
+}
+
+.muted {
+  color: var(--color-text-muted);
+}
+
+.filters {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(12rem, 100%), 1fr));
+  gap: var(--space-4);
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.item {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: min(var(--space-5), 5vw);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-card);
+  background: var(--color-surface);
+}
+
+.itemTitle {
+  font-size: var(--text-lg);
+  overflow-wrap: anywhere;
+}
+
+.badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.confirm {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.confirmText {
+  font-weight: var(--weight-medium);
+}
+
+.empty {
+  padding: var(--space-6) 0;
+  color: var(--color-text-muted);
+  text-align: center;
+}
+
+/* The form and its preview: one column on a phone, side by side once there is room. */
+.formGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-5);
+  align-items: start;
+}
+
+@media (min-width: 64rem) {
+  .formGrid {
+    grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+  }
+
+  .preview {
+    position: sticky;
+    top: var(--space-5);
+  }
+}
+
+.formCard {
+  display: block;
+}
+
+.fields {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+
+.locked {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-2);
+}
+
+.lockedLabel {
+  font-weight: var(--weight-medium);
+}
+
+.message {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-4);
+}
+
+.preview {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.previewHeading {
+  font-size: var(--text-lg);
+}
+
+.previewItem {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--color-border);
+}
+
+.previewTitle {
+  font-size: var(--text-xl);
+  overflow-wrap: anywhere;
+}
+
+/* The text is plain: keep the person's own line breaks inside a paragraph, and break long words. */
+.paragraph {
+  margin: 0;
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+}

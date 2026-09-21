@@ -3,8 +3,9 @@ import { z } from "@hono/zod-openapi";
 import { nepalDate } from "../../core/dates";
 import { defineRoute } from "../../core/routes";
 import type { App } from "../../core/types";
-import { listAdminContent, listPublicContent } from "./queries";
+import { getAdminContent, listAdminContent, listPublicContent } from "./queries";
 import {
+  AdminContentItemSchema,
   AdminContentSchema,
   ContentChangesSchema,
   ContentKindSchema,
@@ -61,16 +62,45 @@ export function registerContent(app: App): void {
       path: "/api/content",
       operationId: "list_content",
       tags: ["content"],
-      description: "Every item in every state, most recently touched first, at most 200. `state` says where each stands today.",
+      description:
+        "Every item in every state, most recently touched first, at most 200, WITHOUT the text (fetch one item for that). `state` says where each stands today, and `todayBs` is today in Bikram Sambat.",
       access: { action: "content.publish" },
-      request: { query: z.object({ kind: ContentKindSchema.optional(), state: ContentStateSchema.optional() }) },
+      request: {
+        query: z.object({
+          kind: ContentKindSchema.optional(),
+          state: ContentStateSchema.optional(),
+          limit: z.coerce.number().int().min(1).max(200).optional(),
+        }),
+      },
       responses: { 200: { description: "The items", content: json(AdminContentSchema) } },
     },
     async (c) => {
-      const { kind, state } = c.req.valid("query");
-      const content = await listAdminContent(c.env.DB, nepalDate(new Date()), { ...(kind && { kind }), ...(state && { state }) });
+      const { kind, state, limit } = c.req.valid("query");
+      const content = await listAdminContent(c.env.DB, nepalDate(new Date()), { ...(kind && { kind }), ...(state && { state }), ...(limit && { limit }) });
       c.header("Cache-Control", "no-store");
       return c.json(content, 200);
+    },
+  );
+
+  defineRoute(
+    app,
+    {
+      method: "get",
+      path: "/api/content/{id}",
+      operationId: "get_content",
+      tags: ["content"],
+      description: "One item with its text and contact, for the edit form.",
+      access: { action: "content.publish" },
+      request: { params: IdParam },
+      responses: {
+        200: { description: "The item", content: json(AdminContentItemSchema) },
+        404: { description: "No such item", content: json(ErrorSchema) },
+      },
+    },
+    async (c) => {
+      const item = await getAdminContent(c.env.DB, c.req.valid("param").id, nepalDate(new Date()));
+      c.header("Cache-Control", "no-store");
+      return item ? c.json(item, 200) : c.json({ error: "not_found" }, 404);
     },
   );
 
