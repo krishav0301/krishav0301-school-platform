@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { createApiClient } from "@/api/client";
+import { usePageTitle } from "@/config/page-title";
 import { t } from "@/i18n/messages";
 import { Button, Notice, Skeleton } from "@/ui";
 
@@ -20,6 +21,7 @@ type View = { status: "loading" } | { status: "ready"; items: PublicItem[] } | {
  * real buttons that say whether they are pressed.
  */
 export function NoticeBoard() {
+  usePageTitle(t("notices.title"));
   const [api] = useState(() => createApiClient());
   const [view, setView] = useState<View>({ status: "loading" });
   const [kind, setKind] = useState<Kind | "">("");

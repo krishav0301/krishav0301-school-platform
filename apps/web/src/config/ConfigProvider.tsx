@@ -8,6 +8,8 @@ import { t } from "@/i18n/messages";
 import { CONFIG_CACHE_KEY, applyThemeCss } from "@/theme/boot";
 import { themeToCss } from "@/theme/css";
 
+import { formatTitle, usePageTitleValue } from "./page-title";
+
 export type PublicConfig = components["schemas"]["PublicConfig"];
 export type ConfigStatus = "loading" | "ready" | "unprovisioned" | "unreachable";
 
@@ -134,11 +136,12 @@ export function ConfigProvider({ children }: { children: ReactNode }) {
   const status: ConfigStatus = config ? "ready" : fetched.status;
 
   const value = useMemo(() => makeConfigValue(status, config, retry), [status, config, retry]);
+  const pageTitle = usePageTitleValue();
   // React hoists this into <head>. It is the page's only <title>: Next's own metadata title is left
   // out, because Next rewrites it on every client-side navigation and would undo the school's name.
   return (
     <ConfigContext.Provider value={value}>
-      <title>{config?.school.name ?? t("app.defaultTitle")}</title>
+      <title>{formatTitle(pageTitle, config?.school.name ?? t("app.defaultTitle"))}</title>
       {children}
     </ConfigContext.Provider>
   );

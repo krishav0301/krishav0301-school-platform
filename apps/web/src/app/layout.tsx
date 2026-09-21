@@ -6,10 +6,9 @@ import "./fonts.css";
 import "./globals.css";
 import { Providers } from "./providers";
 
-// No title here: the page title is the school's name, set by ConfigProvider (D-008: no school in the build).
-export const metadata: Metadata = {
-  description: "A school management platform and public website.",
-};
+// No description here either: a public page gets its own from the Worker (D-046), and a page that is not
+// public (sign-in, the portal) has nothing to say to a search engine. A generic one would sit beside the real one.
+export const metadata: Metadata = {};
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (

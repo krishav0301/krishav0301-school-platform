@@ -57,7 +57,7 @@ CI fails if either generated file is out of date, and it checks that the Worker 
 
 ## Deploying
 
-Each school is one Worker and one D1 database in a Cloudflare account. Account and database ids stay out of git: put them in a local `apps/api/wrangler.local.jsonc` (with the vars `ENVIRONMENT`, `EMAIL_ADAPTER` and `SITE_ORIGIN`, and the `triggers.crons` sweep) and deploy with `npx wrangler deploy --config wrangler.local.jsonc`.
+Each school is one Worker and one D1 database in a Cloudflare account. The public pages the Worker fills in for crawlers (`FILLED_PAGES` in `apps/api/src/modules/site/pages.ts`) must also be listed in `run_worker_first`, in `wrangler.jsonc` and in your `wrangler.local.jsonc`; CI checks the first, not yours (D-046). Account and database ids stay out of git: put them in a local `apps/api/wrangler.local.jsonc` (with the vars `ENVIRONMENT`, `EMAIL_ADAPTER` and `SITE_ORIGIN`, and the `triggers.crons` sweep) and deploy with `npx wrangler deploy --config wrangler.local.jsonc`.
 
 The steps for a new deployment, in order:
 

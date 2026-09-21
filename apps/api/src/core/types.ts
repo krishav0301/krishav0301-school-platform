@@ -6,6 +6,8 @@ import type { RoleClaim } from "./tokens";
 /** What the Worker receives from its configuration. Bindings come from wrangler.jsonc. */
 export interface Bindings {
   DB: D1Database;
+  /** The Next-built static web app (Workers Static Assets). Absent in tests, which pass a stand-in. */
+  ASSETS?: Fetcher;
   ENVIRONMENT: string;
   DEMO_MODE: string;
   /** Secret. Keys the audit hash chain. Set with `wrangler secret put`; never stored in the database. */
