@@ -1139,12 +1139,12 @@ describe("createProgramme", () => {
   });
 
   it("refuses every other role, and a switched-off Co-ordinator, and writes nothing", async () => {
+    const off = await person("coordinator", "institution");
+    await db.prepare("UPDATE users SET is_active = 0 WHERE public_id = ?1").bind(off.publicId).run();
     const before = [await rows(), await audits()];
     for (const [name, who] of [["admin", admin], ["accountant", accountant], ["teacher", teacher], ["student", student]] as const) {
       expect(await createProgramme(db, auditKey, who.publicId, input()), name).toEqual({ ok: false, reason: "not_allowed" });
     }
-    const off = await person("coordinator", "institution");
-    await db.prepare("UPDATE users SET is_active = 0 WHERE public_id = ?1").bind(off.publicId).run();
     expect(await createProgramme(db, auditKey, off.publicId, input())).toEqual({ ok: false, reason: "not_allowed" });
     expect([await rows(), await audits()]).toEqual(before);
   });
@@ -1635,12 +1635,12 @@ describe("createClass", () => {
   it("refuses every other role, and a switched-off Co-ordinator, and writes nothing", async () => {
     const yearId = await newYear();
     const { levelId } = await newLevel();
+    const off = await person("coordinator", "institution");
+    await db.prepare("UPDATE users SET is_active = 0 WHERE public_id = ?1").bind(off.publicId).run();
     const before = [await classes(), await audits()];
     for (const [name, who] of [["admin", admin], ["accountant", accountant], ["teacher", teacher], ["student", student]] as const) {
       expect(await createClass(db, auditKey, who.publicId, { yearId, levelId }), name).toEqual({ ok: false, reason: "not_allowed" });
     }
-    const off = await person("coordinator", "institution");
-    await db.prepare("UPDATE users SET is_active = 0 WHERE public_id = ?1").bind(off.publicId).run();
     expect(await createClass(db, auditKey, off.publicId, { yearId, levelId })).toEqual({ ok: false, reason: "not_allowed" });
     expect([await classes(), await audits()]).toEqual(before);
   });
