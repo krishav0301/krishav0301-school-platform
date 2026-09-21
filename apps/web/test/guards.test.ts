@@ -203,6 +203,10 @@ describe("large text and narrow screens", () => {
     expect(css("shell/shell.module.css")).toMatch(/\.actions\s*\{\s*flex-wrap:\s*wrap/);
   });
 
+  it("a programme group takes the full width of its section, so Home's grid of programmes is not squeezed into one narrow column", () => {
+    expect(css("site/site.module.css")).toMatch(/\.group\s*\{[^}]*width:\s*100%/);
+  });
+
   it("button labels stay on one line", () => {
     expect(css("ui/Button.module.css")).toMatch(/\.button\s*\{[^}]*white-space:\s*nowrap/);
   });
