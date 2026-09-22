@@ -150,11 +150,17 @@ describe.each([
     expect(copy).not.toContain(later);
   });
 
-  it("only the Admin edits the website: every other role is refused, and nobody signed out can", async () => {
-    for (const role of ["student", "teacher", "coordinator"]) {
+  it("only the Admin publishes to the website directly; a Student and a Teacher are refused outright; nobody signed out can", async () => {
+    for (const role of ["student", "teacher"]) {
       expect((await call("/api/content", { method: "POST", cookie: cookies[role], body: { kind: "notice", title: "Not allowed", body: "x", publishOn: day(0) } })).status, role).toBe(403);
       expect((await call("/api/content", { cookie: cookies[role] })).status, role).toBe(403);
     }
+    // A Co-ordinator may draft (D-061), but publishing directly stays the Admin's alone.
+    const drafted = await call("/api/content", { method: "POST", cookie: cookies.coordinator, body: { kind: "notice", title: "Coordinator draft", body: "x", publishOn: day(0) } });
+    expect(drafted.status).toBe(201);
+    const draftId = ((await drafted.json()) as { id: string }).id;
+    expect((await call(`/api/content/${draftId}/publish`, { method: "POST", cookie: cookies.coordinator })).status).toBe(403);
+
     expect((await call("/api/content", { method: "POST", body: { kind: "notice", title: "Not allowed", body: "x", publishOn: day(0) } })).status).toBe(401);
     expect((await call("/api/content")).status).toBe(401);
   });

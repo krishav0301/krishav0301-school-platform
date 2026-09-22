@@ -53,15 +53,16 @@ const list = async (cookie: string, query = "") => (await (await call(`/api/cont
 
 let admin: Awaited<ReturnType<typeof person>>;
 let superAdmin: Awaited<ReturnType<typeof person>>;
+let coordinator: Awaited<ReturnType<typeof person>>;
 let outsiders: [string, Awaited<ReturnType<typeof person>>][];
 
 beforeAll(async () => {
   admin = await person("admin", "institution");
   superAdmin = await person("super_admin", "institution");
+  coordinator = await person("coordinator", "institution");
   outsiders = [
     ["student", await person("student", "own")],
     ["teacher", await person("teacher", "assigned")],
-    ["coordinator", await person("coordinator", "institution")],
     ["accountant", await person("accountant", "institution")],
   ];
 });
@@ -75,14 +76,17 @@ async function newDraft(over: Record<string, unknown> = {}) {
 // ---------------------------------------------------------------------------------------------
 describe("who may use the content routes", () => {
   const id = "0".repeat(32);
-  const routes: [string, string, unknown][] = [
+  const draftRoutes: [string, string, unknown][] = [
     ["GET", "/api/content", undefined],
     ["GET", `/api/content/${id}`, undefined],
     ["POST", "/api/content", draft()],
     ["PATCH", `/api/content/${id}`, { title: "x" }],
+  ];
+  const publishRoutes: [string, string, unknown][] = [
     ["POST", `/api/content/${id}/publish`, undefined],
     ["POST", `/api/content/${id}/unpublish`, undefined],
   ];
+  const routes = [...draftRoutes, ...publishRoutes];
 
   it("nobody who is signed out: 401, and a garbage body is not even looked at", async () => {
     for (const [method, path, body] of routes) {
@@ -95,7 +99,7 @@ describe("who may use the content routes", () => {
     expect((await call("/api/content", { cookie: "__Host-access=forged" })).status).toBe(401);
   });
 
-  it("every role except Admin and Super Admin: 403, the handler never runs, nothing is written", async () => {
+  it("a student, a teacher and an accountant: 403 everywhere, the handler never runs, nothing is written", async () => {
     const before = await contentCount();
     for (const [role, who] of outsiders) {
       for (const [method, path, body] of routes) {
@@ -105,11 +109,24 @@ describe("who may use the content routes", () => {
     expect(await contentCount()).toBe(before);
   });
 
-  it("the Admin and the Super Admin may", async () => {
+  it("the Admin and the Super Admin may do all of it", async () => {
     for (const who of [admin, superAdmin]) {
       expect((await call("/api/content", { cookie: who.cookie })).status).toBe(200);
       expect((await call("/api/content", { method: "POST", cookie: who.cookie, body: draft() })).status).toBe(201);
     }
+  });
+
+  it("a Co-ordinator may read, draft and edit (D-061), but not publish or take down", async () => {
+    for (const [method, path, body] of draftRoutes.slice(0, 2)) expect((await call(path, { method, body, cookie: coordinator.cookie })).status, `${method} ${path}`).not.toBe(403);
+    expect((await call("/api/content", { method: "POST", cookie: coordinator.cookie, body: draft() })).status).toBe(201);
+    for (const [method, path, body] of publishRoutes) expect((await call(path, { method, body, cookie: coordinator.cookie })).status, `${method} ${path}`).toBe(403);
+  });
+
+  it("a Co-ordinator may edit their own draft, but not a live item once the Admin has published it", async () => {
+    const id2 = await newDraft({ title: "Coordinator's own" });
+    expect((await call(`/api/content/${id2}`, { method: "PATCH", cookie: coordinator.cookie, body: { title: "Edited by Co-ordinator" } })).status).toBe(200);
+    await call(`/api/content/${id2}/publish`, { method: "POST", cookie: admin.cookie });
+    expect((await call(`/api/content/${id2}`, { method: "PATCH", cookie: coordinator.cookie, body: { title: "Sneaky" } })).status).toBe(403);
   });
 
   it("a write from another site is refused before anything else", async () => {
