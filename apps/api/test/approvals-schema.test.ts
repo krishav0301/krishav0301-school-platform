@@ -30,8 +30,8 @@ const addRequest = (
 ) =>
   db
     .prepare(
-      `INSERT INTO approval_requests (public_id, kind, status, requested_by, subject_type, subject_id, subject_version, snapshot, decided_by, decided_at, decision_reason, created_at)
-       VALUES (?1, 'website_content', ?2, ?3, 'website_content', ?4, ?5, '{}', ?6, ?7, ?8, ?9)`,
+      `INSERT INTO approval_requests (public_id, kind, status, requested_by, subject_type, subject_id, subject_public_id, summary, subject_version, snapshot, decided_by, decided_at, decision_reason, created_at)
+       VALUES (?1, 'website_content', ?2, ?3, 'website_content', ?4, ?1, 'A test subject', ?5, '{}', ?6, ?7, ?8, ?9)`,
     )
     .bind(
       uniq("ar"),
@@ -64,8 +64,8 @@ describe("approval_requests", () => {
     await expect(
       db
         .prepare(
-          `INSERT INTO approval_requests (public_id, kind, status, requested_by, subject_type, subject_id, subject_version, snapshot, created_at)
-           VALUES (?1, 'nonsense', 'pending', ?2, 'website_content', ?3, 1, '{}', ?4)`,
+          `INSERT INTO approval_requests (public_id, kind, status, requested_by, subject_type, subject_id, subject_public_id, summary, subject_version, snapshot, created_at)
+           VALUES (?1, 'nonsense', 'pending', ?2, 'website_content', ?3, ?1, 'Test', 1, '{}', ?4)`,
         )
         .bind(uniq("ar"), requester, subjectId, at)
         .run(),
@@ -73,8 +73,8 @@ describe("approval_requests", () => {
     await expect(
       db
         .prepare(
-          `INSERT INTO approval_requests (public_id, kind, status, requested_by, subject_type, subject_id, subject_version, snapshot, created_at)
-           VALUES (?1, 'website_content', 'nonsense', ?2, 'website_content', ?3, 1, '{}', ?4)`,
+          `INSERT INTO approval_requests (public_id, kind, status, requested_by, subject_type, subject_id, subject_public_id, summary, subject_version, snapshot, created_at)
+           VALUES (?1, 'website_content', 'nonsense', ?2, 'website_content', ?3, ?1, 'Test', 1, '{}', ?4)`,
         )
         .bind(uniq("ar"), requester, subjectId, at)
         .run(),

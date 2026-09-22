@@ -794,6 +794,92 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/approvals": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description The Admin's inbox: every pending request, oldest first. */
+        get: operations["list_pending_approvals"];
+        put?: never;
+        /** @description Sends a subject for approval: it moves to its own "waiting" state and a pending request is made, in one batch. */
+        post: operations["request_approval"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/approvals/{id}/withdraw": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description The requester takes back their own still-pending request; the subject reverts to its pre-request state. */
+        post: operations["withdraw_approval"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/approvals/mine": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description The signed-in person's own requests, any status, newest first, with the reason when declined. */
+        get: operations["list_my_approvals"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/approvals/{id}/approve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Approves a pending request, never your own. A changed subject is 409 stale. */
+        post: operations["approve_approval"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/approvals/{id}/decline": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Declines a pending request with a reason, never your own. The subject reverts to its pre-request state. A changed subject is 409 stale. */
+        post: operations["decline_approval"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/dates/to-ad": {
         parameters: {
             query?: never;
@@ -1350,6 +1436,50 @@ export interface components {
             urgent?: boolean;
             publishOn?: string;
             hideAfter?: string | null;
+        };
+        ApprovalsCreated: {
+            id: string;
+        };
+        ApprovalsError: {
+            error: string;
+        };
+        ApprovalsInvalid: {
+            /** @enum {string} */
+            error: "invalid";
+            message: string;
+        };
+        RequestApproval: {
+            kind: components["schemas"]["ApprovalKind"];
+            subjectId: string;
+        };
+        /** @enum {string} */
+        ApprovalKind: "website_content" | "fee_structure" | "discount" | "reversal" | "refund";
+        ApprovalsOk: {
+            /** @enum {boolean} */
+            ok: true;
+        };
+        ApprovalList: {
+            requests: components["schemas"]["ApprovalSummary"][];
+        };
+        ApprovalSummary: {
+            id: string;
+            kind: components["schemas"]["ApprovalKind"];
+            subjectId: string;
+            summary: string;
+            snapshot?: unknown;
+            requestedBy: string;
+            createdAt: string;
+        };
+        MyApprovalList: {
+            requests: components["schemas"]["MyApproval"][];
+        };
+        MyApproval: components["schemas"]["ApprovalSummary"] & {
+            /** @enum {string} */
+            status: "pending" | "approved" | "declined" | "stale" | "withdrawn";
+            decisionReason: string | null;
+        };
+        DeclineInput: {
+            reason: string;
         };
         DateConversionFailure: {
             /** @enum {string} */
@@ -3906,6 +4036,284 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ContentError"];
+                };
+            };
+        };
+    };
+    list_pending_approvals: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The pending requests */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApprovalList"];
+                };
+            };
+        };
+    };
+    request_approval: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RequestApproval"];
+            };
+        };
+        responses: {
+            /** @description Sent */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApprovalsCreated"];
+                };
+            };
+            /** @description Not allowed */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApprovalsError"];
+                };
+            };
+            /** @description No such request or subject */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApprovalsError"];
+                };
+            };
+            /** @description It conflicts with what is already there (already resolved, or a repeat) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApprovalsError"];
+                };
+            };
+            /** @description The request breaks a rule; nothing changed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApprovalsInvalid"];
+                };
+            };
+        };
+    };
+    withdraw_approval: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Withdrawn (or already resolved: the same answer either way) */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApprovalsOk"];
+                };
+            };
+            /** @description Not allowed */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApprovalsError"];
+                };
+            };
+            /** @description No such request or subject */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApprovalsError"];
+                };
+            };
+            /** @description It conflicts with what is already there (already resolved, or a repeat) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApprovalsError"];
+                };
+            };
+            /** @description The request breaks a rule; nothing changed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApprovalsInvalid"];
+                };
+            };
+        };
+    };
+    list_my_approvals: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Your requests */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MyApprovalList"];
+                };
+            };
+        };
+    };
+    approve_approval: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Approved */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApprovalsOk"];
+                };
+            };
+            /** @description Not allowed */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApprovalsError"];
+                };
+            };
+            /** @description No such request or subject */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApprovalsError"];
+                };
+            };
+            /** @description It conflicts with what is already there (already resolved, or a repeat) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApprovalsError"];
+                };
+            };
+            /** @description The request breaks a rule; nothing changed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApprovalsInvalid"];
+                };
+            };
+        };
+    };
+    decline_approval: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DeclineInput"];
+            };
+        };
+        responses: {
+            /** @description Declined */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApprovalsOk"];
+                };
+            };
+            /** @description Not allowed */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApprovalsError"];
+                };
+            };
+            /** @description No such request or subject */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApprovalsError"];
+                };
+            };
+            /** @description It conflicts with what is already there (already resolved, or a repeat) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApprovalsError"];
+                };
+            };
+            /** @description The request breaks a rule; nothing changed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApprovalsInvalid"];
                 };
             };
         };

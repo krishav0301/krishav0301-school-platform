@@ -10,6 +10,10 @@ CREATE TABLE approval_requests (
   requested_by INTEGER NOT NULL REFERENCES users (id),
   subject_type TEXT NOT NULL,
   subject_id INTEGER NOT NULL,
+  -- The subject's own client-facing id and a one-line summary, both taken from the handler at request
+  -- time (`describe()`), so the inbox and "my requests" reads need no second call into the handler.
+  subject_public_id TEXT NOT NULL,
+  summary TEXT NOT NULL,
   subject_version INTEGER NOT NULL,
   snapshot TEXT NOT NULL CHECK (json_valid(snapshot)),
   decided_by INTEGER REFERENCES users (id),

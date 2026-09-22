@@ -2229,6 +2229,193 @@
         },
         "additionalProperties": false
       },
+      "ApprovalsCreated": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      },
+      "ApprovalsError": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "error"
+        ]
+      },
+      "ApprovalsInvalid": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "string",
+            "enum": [
+              "invalid"
+            ]
+          },
+          "message": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "error",
+          "message"
+        ]
+      },
+      "RequestApproval": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "$ref": "#/components/schemas/ApprovalKind"
+          },
+          "subjectId": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{32}$"
+          }
+        },
+        "required": [
+          "kind",
+          "subjectId"
+        ],
+        "additionalProperties": false
+      },
+      "ApprovalKind": {
+        "type": "string",
+        "enum": [
+          "website_content",
+          "fee_structure",
+          "discount",
+          "reversal",
+          "refund"
+        ]
+      },
+      "ApprovalsOk": {
+        "type": "object",
+        "properties": {
+          "ok": {
+            "type": "boolean",
+            "enum": [
+              true
+            ]
+          }
+        },
+        "required": [
+          "ok"
+        ]
+      },
+      "ApprovalList": {
+        "type": "object",
+        "properties": {
+          "requests": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ApprovalSummary"
+            }
+          }
+        },
+        "required": [
+          "requests"
+        ]
+      },
+      "ApprovalSummary": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/ApprovalKind"
+          },
+          "subjectId": {
+            "type": "string"
+          },
+          "summary": {
+            "type": "string"
+          },
+          "snapshot": {},
+          "requestedBy": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "kind",
+          "subjectId",
+          "summary",
+          "requestedBy",
+          "createdAt"
+        ]
+      },
+      "MyApprovalList": {
+        "type": "object",
+        "properties": {
+          "requests": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MyApproval"
+            }
+          }
+        },
+        "required": [
+          "requests"
+        ]
+      },
+      "MyApproval": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ApprovalSummary"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "status": {
+                "type": "string",
+                "enum": [
+                  "pending",
+                  "approved",
+                  "declined",
+                  "stale",
+                  "withdrawn"
+                ]
+              },
+              "decisionReason": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            },
+            "required": [
+              "status",
+              "decisionReason"
+            ]
+          }
+        ]
+      },
+      "DeclineInput": {
+        "type": "object",
+        "properties": {
+          "reason": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 500
+          }
+        },
+        "required": [
+          "reason"
+        ],
+        "additionalProperties": false
+      },
       "DateConversionFailure": {
         "type": "object",
         "properties": {
@@ -5737,6 +5924,343 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ContentError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/approvals": {
+      "post": {
+        "operationId": "request_approval",
+        "tags": [
+          "approvals"
+        ],
+        "description": "Sends a subject for approval: it moves to its own \"waiting\" state and a pending request is made, in one batch.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RequestApproval"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Sent",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApprovalsCreated"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApprovalsError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such request or subject",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApprovalsError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "It conflicts with what is already there (already resolved, or a repeat)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApprovalsError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "The request breaks a rule; nothing changed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApprovalsInvalid"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "operationId": "list_pending_approvals",
+        "tags": [
+          "approvals"
+        ],
+        "description": "The Admin's inbox: every pending request, oldest first.",
+        "responses": {
+          "200": {
+            "description": "The pending requests",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApprovalList"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/approvals/{id}/withdraw": {
+      "post": {
+        "operationId": "withdraw_approval",
+        "tags": [
+          "approvals"
+        ],
+        "description": "The requester takes back their own still-pending request; the subject reverts to its pre-request state.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{32}$"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Withdrawn (or already resolved: the same answer either way)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApprovalsOk"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApprovalsError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such request or subject",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApprovalsError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "It conflicts with what is already there (already resolved, or a repeat)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApprovalsError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "The request breaks a rule; nothing changed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApprovalsInvalid"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/approvals/mine": {
+      "get": {
+        "operationId": "list_my_approvals",
+        "tags": [
+          "approvals"
+        ],
+        "description": "The signed-in person's own requests, any status, newest first, with the reason when declined.",
+        "responses": {
+          "200": {
+            "description": "Your requests",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MyApprovalList"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/approvals/{id}/approve": {
+      "post": {
+        "operationId": "approve_approval",
+        "tags": [
+          "approvals"
+        ],
+        "description": "Approves a pending request, never your own. A changed subject is 409 stale.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{32}$"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Approved",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApprovalsOk"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApprovalsError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such request or subject",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApprovalsError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "It conflicts with what is already there (already resolved, or a repeat)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApprovalsError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "The request breaks a rule; nothing changed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApprovalsInvalid"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/approvals/{id}/decline": {
+      "post": {
+        "operationId": "decline_approval",
+        "tags": [
+          "approvals"
+        ],
+        "description": "Declines a pending request with a reason, never your own. The subject reverts to its pre-request state. A changed subject is 409 stale.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{32}$"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DeclineInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Declined",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApprovalsOk"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApprovalsError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such request or subject",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApprovalsError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "It conflicts with what is already there (already resolved, or a repeat)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApprovalsError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "The request breaks a rule; nothing changed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApprovalsInvalid"
                 }
               }
             }

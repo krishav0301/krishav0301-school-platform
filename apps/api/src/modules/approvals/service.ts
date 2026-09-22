@@ -61,11 +61,11 @@ export async function requestApproval(db: D1Database, auditKey: string, actor: s
   const publicId = newPublicId();
   const insert = db
     .prepare(
-      `INSERT INTO approval_requests (public_id, kind, status, requested_by, subject_type, subject_id, subject_version, snapshot, created_at)
-       SELECT ?1, ?2, 'pending', u.id, ?2, ?3, ?4, ?5, ?6
-         FROM users u WHERE u.public_id = ?7 AND ${mayRequest(7)} AND changes() > 0`,
+      `INSERT INTO approval_requests (public_id, kind, status, requested_by, subject_type, subject_id, subject_public_id, summary, subject_version, snapshot, created_at)
+       SELECT ?1, ?2, 'pending', u.id, ?2, ?3, ?4, ?5, ?6, ?7, ?8
+         FROM users u WHERE u.public_id = ?9 AND ${mayRequest(9)} AND changes() > 0`,
     )
-    .bind(publicId, kind, subjectId, version, JSON.stringify(described.snapshot), new Date().toISOString(), actor);
+    .bind(publicId, kind, subjectId, described.subjectPublicId, described.summary, version, JSON.stringify(described.snapshot), new Date().toISOString(), actor);
 
   const outcome = await write(
     db,
