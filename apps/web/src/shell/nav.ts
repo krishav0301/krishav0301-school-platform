@@ -32,6 +32,11 @@ export const NAV_ITEMS: readonly NavItem[] = [
   { id: "people", labelKey: "nav.people", href: "/portal/people", roles: ["admin", "coordinator", "super_admin"] },
   // Phase 3, slice 4: the Admin's inbox for a Co-ordinator's draft sent for approval (D-061).
   { id: "approvals", labelKey: "nav.approvals", href: "/portal/approvals", roles: ["admin", "super_admin"] },
+  // Phase 4: applications, the review queue, walk-ins and student search. Not the Admin or Super
+  // Admin: both are already at MAX_TABS, and neither registers or reviews students (D-063).
+  // `OPEN:` an Admin's read-only reach into student search has no menu entry yet, the same
+  // overflow gap `visibleNav`'s own test already flags for a sixth entry.
+  { id: "admissions", labelKey: "nav.admissions", href: "/portal/admissions", roles: ["coordinator", "accountant"] },
 ];
 
 /** True on an entry's own page and on the pages beneath it. The dashboard is only current on itself. */

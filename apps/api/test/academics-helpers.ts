@@ -38,7 +38,7 @@ export async function person(role: string, scope: string, section?: string): Pro
   return { publicId, cookie: `__Host-access=${token}` };
 }
 
-export const call = (path: string, init: { method?: string; body?: unknown; cookie?: string } = {}) =>
+export const call = (path: string, init: { method?: string; body?: unknown; cookie?: string; headers?: Record<string, string> } = {}) =>
   app.request(
     `https://school.example${path}`,
     {
@@ -47,6 +47,7 @@ export const call = (path: string, init: { method?: string; body?: unknown; cook
         "Sec-Fetch-Site": "same-origin",
         ...(init.body !== undefined ? { "Content-Type": "application/json" } : {}),
         ...(init.cookie ? { Cookie: init.cookie } : {}),
+        ...init.headers,
       },
       body: init.body !== undefined ? JSON.stringify(init.body) : undefined,
     },

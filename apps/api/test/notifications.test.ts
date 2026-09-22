@@ -41,6 +41,30 @@ describe("renderEmail", () => {
   });
 });
 
+describe("renderEmail: admission_verify (D-063)", () => {
+  it("links to /apply, the real page, with the token after a #", () => {
+    const rendered = renderEmail({ template: "admission_verify", to: "sita@school.example", data: { token: "TOKEN123" } }, base);
+    expect(rendered.subject).toBe("Confirm your application to Royal Softech College");
+    expect(rendered.body).toContain("https://royal.example/apply#token=TOKEN123");
+    expect(rendered.body).not.toMatch(/apply\/verify/); // the page is /apply itself, not a separate route
+  });
+});
+
+describe("renderEmail: admission_decision (D-063)", () => {
+  it("tells an approved applicant their SID", () => {
+    const rendered = renderEmail({ template: "admission_decision", to: "sita@school.example", data: { decision: "approved", reason: "", sid: "2083-00001" } }, base);
+    expect(rendered.subject).toContain("admitted");
+    expect(rendered.body).toContain("2083-00001");
+  });
+
+  it("gives the reason for needing changes, and for a rejection", () => {
+    const changes = renderEmail({ template: "admission_decision", to: "a@b.c", data: { decision: "needs_changes", reason: "The phone number looks incomplete." } }, base);
+    expect(changes.body).toContain("The phone number looks incomplete.");
+    const rejected = renderEmail({ template: "admission_decision", to: "a@b.c", data: { decision: "rejected", reason: "Missing documents" } }, base);
+    expect(rejected.body).toContain("Missing documents");
+  });
+});
+
 describe("sending through the outbox", () => {
   it("delivers a queued email through the adapter, with the event's key as its idempotency key", async () => {
     await applyPack(db, parsePack(royalJson));

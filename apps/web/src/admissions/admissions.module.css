@@ -1,0 +1,57 @@
+/* Admissions and the student record (Phase 4). Tokens only: no colour, font or motion is written out here. */
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  max-width: 32rem;
+}
+
+.queueItem {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.queueMeta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+}
+
+.decideActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+}
+
+.detailGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(14rem, 100%), 1fr));
+  gap: var(--space-3) var(--space-5);
+}
+
+.detailLabel {
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+}
+
+.detailValue {
+  overflow-wrap: anywhere;
+}
+
+/*
+ * A honeypot field for the anonymous apply form: present in the DOM for a script that fills every
+ * field it finds, but off-screen and out of the tab order so no person, sighted or using a screen
+ * reader, ever reaches it. `display: none` and `visibility: hidden` are skipped by some bots, so this
+ * moves the field off-screen instead.
+ */
+.honeypot {
+  position: absolute;
+  left: -9999px;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+}

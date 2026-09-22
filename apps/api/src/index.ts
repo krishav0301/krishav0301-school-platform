@@ -1,6 +1,7 @@
 import { createApp } from "./app";
 import { runOutbox } from "./core/notifications";
 import type { Bindings } from "./core/types";
+import { expireStaleApplications } from "./modules/admissions/service";
 import { isCrawlerFile, isFilledPage, renderCrawlerFile, renderPublicPage } from "./modules/site";
 
 const app = createApp();
@@ -20,7 +21,10 @@ export default {
   },
   // The sweep (see `triggers.crons` in wrangler.jsonc). A request delivers what it queues straight
   // away; this retries whatever failed or was left behind, so nothing depends on a single attempt.
+  // The same 5-minute schedule also expires abandoned, never-verified applications (D-063): both are
+  // cheap, low-volume housekeeping, so neither needs a cron trigger of its own.
   async scheduled(_controller: ScheduledController, env: Bindings, ctx: ExecutionContext): Promise<void> {
     ctx.waitUntil(runOutbox(env).then((result) => console.warn(`Outbox sweep: ${JSON.stringify(result)}`)));
+    ctx.waitUntil(expireStaleApplications(env.DB).then((result) => console.warn(`Application expiry sweep: ${JSON.stringify(result)}`)));
   },
 };

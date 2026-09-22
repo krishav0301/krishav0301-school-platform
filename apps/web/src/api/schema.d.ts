@@ -897,6 +897,227 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/admissions/levels": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Every open level, for the public application form's picker. Anonymous, the same reach as applying itself. */
+        get: operations["list_open_levels"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admissions/apply": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Applies for admission. Anonymous, rate limited. A submission token makes a retried request change nothing new. Enters the queue once the email is verified. */
+        post: operations["apply_for_admission"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admissions/verify": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Confirms the applicant's email from the link sent to them, and puts the application in the queue. */
+        post: operations["verify_admission_email"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admissions/walk-ins": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description The Co-ordinator registers a walk-in and places them straight into a class. Auto-approved. */
+        post: operations["register_walk_in"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admissions/register": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description The Accountant registers a student. Goes to the Co-ordinator's review queue like a public applicant who has verified their email. */
+        post: operations["register_student"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admissions/queue": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Applications waiting on a decision, oldest first, scoped to the person's sections. */
+        get: operations["list_admission_queue"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admissions/applications/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description One application in full, for the review screen. Outside the person's sections is 404, the same as a missing one. */
+        get: operations["get_application"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admissions/applications/{id}/request-changes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Asks the applicant to change one or more fields, with a reason. The applicant is emailed. */
+        post: operations["request_application_changes"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admissions/applications/{id}/reject": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Rejects the application, with a reason. Final: the applicant must reapply. */
+        post: operations["reject_application"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admissions/applications/{id}/approve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Approves the application: assigns the SID, creates the student and their login, and enrolls them in the given class. The class must be active and of the application's own level. */
+        post: operations["approve_application"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/students": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description By name, SID or phone, scoped to the person's sections. */
+        get: operations["search_students"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/students/me": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description The signed-in student's own record. */
+        get: operations["get_own_student"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/students/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description One student's personal details, for staff. Outside the person's sections is 404, the same as a missing one. */
+        get: operations["get_student"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/dates/to-ad": {
         parameters: {
             query?: never;
@@ -1506,6 +1727,139 @@ export interface components {
         };
         DeclineInput: {
             reason: string;
+        };
+        OpenLevelList: {
+            levels: components["schemas"]["OpenLevel"][];
+        };
+        OpenLevel: {
+            id: string;
+            name: string;
+            programmeName: string;
+            sectionKey: string;
+            sectionName: string;
+        };
+        AdmissionsCreated: {
+            id: string;
+        };
+        AdmissionsError: {
+            error: string;
+        };
+        AdmissionsInvalid: {
+            /** @enum {string} */
+            error: "invalid";
+            message: string;
+        };
+        ApplyInput: {
+            firstName: string;
+            middleName?: string;
+            lastName: string;
+            dob: string;
+            phone: string;
+            /** Format: email */
+            email: string;
+            guardianName: string;
+            guardianPhone: string;
+            previousSchool?: string;
+            referredBy?: string;
+            levelId: string;
+            submissionToken: string;
+            website?: string;
+        };
+        AdmissionsOk: {
+            /** @enum {boolean} */
+            ok: true;
+        };
+        VerifyEmailInput: {
+            token: string;
+        };
+        WalkInInput: {
+            firstName: string;
+            middleName?: string;
+            lastName: string;
+            dob: string;
+            phone: string;
+            /** Format: email */
+            email: string;
+            guardianName: string;
+            guardianPhone: string;
+            previousSchool?: string;
+            referredBy?: string;
+            levelId: string;
+        };
+        ApplicationQueue: {
+            applications: components["schemas"]["ApplicationSummary"][];
+        };
+        ApplicationSummary: {
+            id: string;
+            firstName: string;
+            lastName: string;
+            status: components["schemas"]["ApplicationStatus"];
+            walkIn: boolean;
+            levelId: string;
+            levelName: string;
+            programmeName: string;
+            sectionKey: string;
+            duplicateFlags: string[];
+            createdAt: string;
+        };
+        /** @enum {string} */
+        ApplicationStatus: "email_unverified" | "pending_review" | "needs_changes" | "approved" | "rejected" | "expired";
+        ApplicationDetail: components["schemas"]["ApplicationSummary"] & {
+            middleName: string | null;
+            dob: string;
+            dobBs: string | null;
+            phone: string;
+            email: string;
+            guardianName: string;
+            guardianPhone: string;
+            previousSchool: string | null;
+            referredBy: string | null;
+            changesRequested: {
+                fields: string[];
+                reason: string;
+            } | null;
+            decisionReason: string | null;
+        };
+        RequestChanges: {
+            fields: string[];
+            reason: string;
+        };
+        RejectInput: {
+            reason: string;
+        };
+        ApproveInput: {
+            classId: string;
+            rollNo?: number;
+        };
+        StudentList: {
+            students: components["schemas"]["StudentSummary"][];
+        };
+        StudentSummary: {
+            id: string;
+            sid: string;
+            firstName: string;
+            lastName: string;
+            /** @enum {string} */
+            status: "active" | "left" | "graduated";
+            className: string | null;
+        };
+        StudentDetail: {
+            id: string;
+            sid: string;
+            firstName: string;
+            middleName: string | null;
+            lastName: string;
+            dob: string;
+            dobBs: string | null;
+            phone: string | null;
+            email: string | null;
+            guardianName: string;
+            guardianPhone: string;
+            previousSchool: string | null;
+            /** @enum {string} */
+            status: "active" | "left" | "graduated";
+            className: string | null;
+            createdAt: string;
         };
         DateConversionFailure: {
             /** @enum {string} */
@@ -4360,6 +4714,556 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ApprovalsInvalid"];
+                };
+            };
+        };
+    };
+    list_open_levels: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The open levels */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OpenLevelList"];
+                };
+            };
+        };
+    };
+    apply_for_admission: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ApplyInput"];
+            };
+        };
+        responses: {
+            /** @description Received */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdmissionsCreated"];
+                };
+            };
+            /** @description No such level, or no active year */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdmissionsError"];
+                };
+            };
+            /** @description The change breaks a rule; nothing changed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdmissionsInvalid"];
+                };
+            };
+            /** @description Too many recent attempts */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdmissionsError"];
+                };
+            };
+        };
+    };
+    verify_admission_email: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["VerifyEmailInput"];
+            };
+        };
+        responses: {
+            /** @description Confirmed */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdmissionsOk"];
+                };
+            };
+            /** @description The link has expired or was already used */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdmissionsError"];
+                };
+            };
+        };
+    };
+    register_walk_in: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WalkInInput"] & {
+                    classId: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Admitted */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdmissionsCreated"];
+                };
+            };
+            /** @description Not allowed */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdmissionsError"];
+                };
+            };
+            /** @description No such item */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdmissionsError"];
+                };
+            };
+            /** @description It conflicts with what is already there */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdmissionsError"];
+                };
+            };
+            /** @description The change breaks a rule; nothing changed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdmissionsInvalid"];
+                };
+            };
+        };
+    };
+    register_student: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WalkInInput"];
+            };
+        };
+        responses: {
+            /** @description Sent to the queue */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdmissionsCreated"];
+                };
+            };
+            /** @description Not allowed */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdmissionsError"];
+                };
+            };
+            /** @description No such item */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdmissionsError"];
+                };
+            };
+            /** @description It conflicts with what is already there */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdmissionsError"];
+                };
+            };
+            /** @description The change breaks a rule; nothing changed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdmissionsInvalid"];
+                };
+            };
+        };
+    };
+    list_admission_queue: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The queue */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApplicationQueue"];
+                };
+            };
+        };
+    };
+    get_application: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The application */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApplicationDetail"];
+                };
+            };
+            /** @description No such application, or not one the person may see */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdmissionsError"];
+                };
+            };
+        };
+    };
+    request_application_changes: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RequestChanges"];
+            };
+        };
+        responses: {
+            /** @description Sent */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdmissionsOk"];
+                };
+            };
+            /** @description Not allowed */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdmissionsError"];
+                };
+            };
+            /** @description No such item */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdmissionsError"];
+                };
+            };
+            /** @description It conflicts with what is already there */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdmissionsError"];
+                };
+            };
+            /** @description The change breaks a rule; nothing changed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdmissionsInvalid"];
+                };
+            };
+        };
+    };
+    reject_application: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RejectInput"];
+            };
+        };
+        responses: {
+            /** @description Rejected */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdmissionsOk"];
+                };
+            };
+            /** @description Not allowed */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdmissionsError"];
+                };
+            };
+            /** @description No such item */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdmissionsError"];
+                };
+            };
+            /** @description It conflicts with what is already there */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdmissionsError"];
+                };
+            };
+            /** @description The change breaks a rule; nothing changed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdmissionsInvalid"];
+                };
+            };
+        };
+    };
+    approve_application: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ApproveInput"];
+            };
+        };
+        responses: {
+            /** @description Admitted */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {boolean} */
+                        ok: true;
+                        sid: string;
+                        studentId: string;
+                    };
+                };
+            };
+            /** @description Not allowed */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdmissionsError"];
+                };
+            };
+            /** @description No such item */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdmissionsError"];
+                };
+            };
+            /** @description It conflicts with what is already there */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdmissionsError"];
+                };
+            };
+            /** @description The change breaks a rule; nothing changed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdmissionsInvalid"];
+                };
+            };
+        };
+    };
+    search_students: {
+        parameters: {
+            query: {
+                q: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Matches */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StudentList"];
+                };
+            };
+        };
+    };
+    get_own_student: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The record */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StudentDetail"];
+                };
+            };
+            /** @description No student record for this sign-in */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdmissionsError"];
+                };
+            };
+        };
+    };
+    get_student: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The record */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StudentDetail"];
+                };
+            };
+            /** @description No such student, or not one the person may see */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdmissionsError"];
                 };
             };
         };
