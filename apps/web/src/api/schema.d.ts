@@ -349,6 +349,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/academics/checklist": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description A Co-ordinator's setup checklist: what is done and what is left, computed fresh each time. Nothing is stored. */
+        get: operations["get_setup_checklist"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/academics/years/{id}": {
         parameters: {
             query?: never;
@@ -1120,6 +1137,15 @@ export interface components {
             yearId: string;
             name: string;
             ordinal: number;
+        };
+        SetupChecklist: {
+            year: boolean;
+            structure: boolean;
+            classes: boolean;
+            terminals: boolean;
+            subjects: boolean;
+            teachers: boolean;
+            classTeachers: boolean;
         };
         AcademicsCreated: {
             id: string;
@@ -2554,6 +2580,26 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AcademicsInvalid"];
+                };
+            };
+        };
+    };
+    get_setup_checklist: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The checklist */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SetupChecklist"];
                 };
             };
         };

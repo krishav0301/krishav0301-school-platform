@@ -821,6 +821,41 @@
           "ordinal"
         ]
       },
+      "SetupChecklist": {
+        "type": "object",
+        "properties": {
+          "year": {
+            "type": "boolean"
+          },
+          "structure": {
+            "type": "boolean"
+          },
+          "classes": {
+            "type": "boolean"
+          },
+          "terminals": {
+            "type": "boolean"
+          },
+          "subjects": {
+            "type": "boolean"
+          },
+          "teachers": {
+            "type": "boolean"
+          },
+          "classTeachers": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "year",
+          "structure",
+          "classes",
+          "terminals",
+          "subjects",
+          "teachers",
+          "classTeachers"
+        ]
+      },
       "AcademicsCreated": {
         "type": "object",
         "properties": {
@@ -3938,6 +3973,27 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/AcademicsInvalid"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/academics/checklist": {
+      "get": {
+        "operationId": "get_setup_checklist",
+        "tags": [
+          "academics"
+        ],
+        "description": "A Co-ordinator's setup checklist: what is done and what is left, computed fresh each time. Nothing is stored.",
+        "responses": {
+          "200": {
+            "description": "The checklist",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SetupChecklist"
                 }
               }
             }
