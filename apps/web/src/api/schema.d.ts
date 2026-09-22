@@ -468,6 +468,57 @@ export interface paths {
         patch: operations["update_terminal"];
         trace?: never;
     };
+    "/api/academics/classes/{id}/teaching": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description One class's subjects with their current teacher, its Class Teacher, and the teachers the person may pick from. A class outside the person's sections is 404, the same as a missing one. */
+        get: operations["get_teaching"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/academics/assignments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Assigns a teacher to a subject in a class, or (teacherId null) removes the assignment. Ends any earlier assignment for the same subject in the same class. */
+        post: operations["set_assignment"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/academics/classes/{id}/class-teacher": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Sets or (teacherId null) clears a class's Class Teacher. A teacher already Class Teacher of another class this year is 409. */
+        post: operations["set_class_teacher"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/academics/subjects": {
         parameters: {
             query?: never;
@@ -1043,6 +1094,31 @@ export interface components {
         };
         TerminalChanges: {
             name?: string;
+        };
+        Teaching: {
+            classId: string;
+            classLabel: string;
+            levelName: string;
+            classTeacher: components["schemas"]["TeachableTeacher"];
+            assignments: components["schemas"]["TeachingAssignment"][];
+            teachers: components["schemas"]["TeachableTeacher"][];
+        };
+        TeachableTeacher: {
+            id: string;
+            fullName: string;
+        } | null;
+        TeachingAssignment: {
+            offeringId: string;
+            subjectName: string;
+            teacher: components["schemas"]["TeachableTeacher"];
+        };
+        AssignmentInput: {
+            classId: string;
+            offeringId: string;
+            teacherId: string | null;
+        };
+        ClassTeacherInput: {
+            teacherId: string | null;
         };
         SubjectList: {
             subjects: components["schemas"]["Subject"][];
@@ -2727,6 +2803,159 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": components["schemas"]["TerminalChanges"];
+            };
+        };
+        responses: {
+            /** @description Saved */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AcademicsOk"];
+                };
+            };
+            /** @description Not allowed (for example, switched off since signing in, or another section's data) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AcademicsError"];
+                };
+            };
+            /** @description No such item */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AcademicsError"];
+                };
+            };
+            /** @description It conflicts with what is already there (a repeat, a closed year, another active year) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AcademicsError"];
+                };
+            };
+            /** @description The change breaks a rule; nothing changed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AcademicsInvalid"];
+                };
+            };
+        };
+    };
+    get_teaching: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The class's teaching */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Teaching"];
+                };
+            };
+            /** @description No such class, or not one the person may see */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AcademicsError"];
+                };
+            };
+        };
+    };
+    set_assignment: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AssignmentInput"];
+            };
+        };
+        responses: {
+            /** @description Saved */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AcademicsOk"];
+                };
+            };
+            /** @description Not allowed (for example, switched off since signing in, or another section's data) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AcademicsError"];
+                };
+            };
+            /** @description No such item */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AcademicsError"];
+                };
+            };
+            /** @description It conflicts with what is already there (a repeat, a closed year, another active year) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AcademicsError"];
+                };
+            };
+            /** @description The change breaks a rule; nothing changed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AcademicsInvalid"];
+                };
+            };
+        };
+    };
+    set_class_teacher: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ClassTeacherInput"];
             };
         };
         responses: {

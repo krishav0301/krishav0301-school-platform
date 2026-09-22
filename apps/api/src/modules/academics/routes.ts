@@ -4,10 +4,12 @@ import type { Context } from "hono";
 import { allowedSections } from "../../core/permissions";
 import { defineRoute } from "../../core/routes";
 import type { App, AppEnv } from "../../core/types";
-import { listClasses, listProgrammes, listTerminals, listYears } from "./queries";
+import { getTeaching, listClasses, listProgrammes, listTerminals, listYears } from "./queries";
 import {
   AcademicYearListSchema,
+  AssignmentInputSchema,
   ClassChangesSchema,
+  ClassTeacherInputSchema,
   CreateClassSchema,
   CreateLevelSchema,
   CreateProgrammeSchema,
@@ -18,6 +20,7 @@ import {
   ProgrammeListSchema,
   PublicIdSchema,
   SchoolClassListSchema,
+  TeachingSchema,
   TerminalChangesSchema,
   TerminalListSchema,
   YearChangesSchema,
@@ -29,6 +32,8 @@ import {
   createProgramme,
   createTerminal,
   createYear,
+  setAssignment,
+  setClassTeacher,
   updateClass,
   updateLevel,
   updateProgramme,
@@ -343,6 +348,65 @@ export function registerAcademics(app: App): void {
     },
     async (c) => {
       const result = await updateTerminal(c.env.DB, c.env.AUDIT_HMAC_KEY, c.get("auth")!.userPublicId, c.req.valid("param").id, c.req.valid("json"));
+      return result.ok ? c.json({ ok: true as const }, 200) : fail(c, result);
+    },
+  );
+
+  // --- Teaching (D-060) ---------------------------------------------------------------------------------
+  const VIEW_ASSIGNMENTS = { action: "setup.assignments.view" } as const;
+  const MANAGE_ASSIGNMENTS = { action: "setup.assignments.manage" } as const;
+
+  defineRoute(
+    app,
+    {
+      method: "get",
+      path: "/api/academics/classes/{id}/teaching",
+      operationId: "get_teaching",
+      tags: ["academics"],
+      description: "One class's subjects with their current teacher, its Class Teacher, and the teachers the person may pick from. A class outside the person's sections is 404, the same as a missing one.",
+      access: VIEW_ASSIGNMENTS,
+      request: { params: IdParam },
+      responses: { 200: { description: "The class's teaching", content: json(TeachingSchema) }, 404: { description: "No such class, or not one the person may see", content: json(ErrorSchema) } },
+    },
+    async (c) => {
+      c.header("Cache-Control", "no-store");
+      const teaching = await getTeaching(c.env.DB, allowedSections(c.get("grant")!), c.req.valid("param").id);
+      return teaching ? c.json(teaching, 200) : c.json({ error: "not_found" }, 404);
+    },
+  );
+
+  defineRoute(
+    app,
+    {
+      method: "post",
+      path: "/api/academics/assignments",
+      operationId: "set_assignment",
+      tags: ["academics"],
+      description: "Assigns a teacher to a subject in a class, or (teacherId null) removes the assignment. Ends any earlier assignment for the same subject in the same class.",
+      access: MANAGE_ASSIGNMENTS,
+      request: { body: { required: true, content: json(AssignmentInputSchema) } },
+      responses: { 200: { description: "Saved", content: json(OkSchema) }, ...failures },
+    },
+    async (c) => {
+      const result = await setAssignment(c.env.DB, c.env.AUDIT_HMAC_KEY, c.get("auth")!.userPublicId, c.req.valid("json"));
+      return result.ok ? c.json({ ok: true as const }, 200) : fail(c, result);
+    },
+  );
+
+  defineRoute(
+    app,
+    {
+      method: "post",
+      path: "/api/academics/classes/{id}/class-teacher",
+      operationId: "set_class_teacher",
+      tags: ["academics"],
+      description: "Sets or (teacherId null) clears a class's Class Teacher. A teacher already Class Teacher of another class this year is 409.",
+      access: MANAGE_ASSIGNMENTS,
+      request: { params: IdParam, body: { required: true, content: json(ClassTeacherInputSchema) } },
+      responses: { 200: { description: "Saved", content: json(OkSchema) }, ...failures },
+    },
+    async (c) => {
+      const result = await setClassTeacher(c.env.DB, c.env.AUDIT_HMAC_KEY, c.get("auth")!.userPublicId, c.req.valid("param").id, c.req.valid("json").teacherId);
       return result.ok ? c.json({ ok: true as const }, 200) : fail(c, result);
     },
   );

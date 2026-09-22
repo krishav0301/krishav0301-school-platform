@@ -1059,6 +1059,122 @@
         },
         "additionalProperties": false
       },
+      "Teaching": {
+        "type": "object",
+        "properties": {
+          "classId": {
+            "type": "string"
+          },
+          "classLabel": {
+            "type": "string"
+          },
+          "levelName": {
+            "type": "string"
+          },
+          "classTeacher": {
+            "$ref": "#/components/schemas/TeachableTeacher"
+          },
+          "assignments": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TeachingAssignment"
+            }
+          },
+          "teachers": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TeachableTeacher"
+            }
+          }
+        },
+        "required": [
+          "classId",
+          "classLabel",
+          "levelName",
+          "classTeacher",
+          "assignments",
+          "teachers"
+        ]
+      },
+      "TeachableTeacher": {
+        "type": [
+          "object",
+          "null"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "fullName": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "fullName"
+        ]
+      },
+      "TeachingAssignment": {
+        "type": "object",
+        "properties": {
+          "offeringId": {
+            "type": "string"
+          },
+          "subjectName": {
+            "type": "string"
+          },
+          "teacher": {
+            "$ref": "#/components/schemas/TeachableTeacher"
+          }
+        },
+        "required": [
+          "offeringId",
+          "subjectName",
+          "teacher"
+        ]
+      },
+      "AssignmentInput": {
+        "type": "object",
+        "properties": {
+          "classId": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{32}$"
+          },
+          "offeringId": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{32}$"
+          },
+          "teacherId": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "pattern": "^[0-9a-f]{32}$"
+          }
+        },
+        "required": [
+          "classId",
+          "offeringId",
+          "teacherId"
+        ],
+        "additionalProperties": false
+      },
+      "ClassTeacherInput": {
+        "type": "object",
+        "properties": {
+          "teacherId": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "pattern": "^[0-9a-f]{32}$"
+          }
+        },
+        "required": [
+          "teacherId"
+        ],
+        "additionalProperties": false
+      },
       "SubjectList": {
         "type": "object",
         "properties": {
@@ -4124,6 +4240,201 @@
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/TerminalChanges"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Saved",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AcademicsOk"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed (for example, switched off since signing in, or another section's data)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AcademicsError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such item",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AcademicsError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "It conflicts with what is already there (a repeat, a closed year, another active year)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AcademicsError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "The change breaks a rule; nothing changed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AcademicsInvalid"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/academics/classes/{id}/teaching": {
+      "get": {
+        "operationId": "get_teaching",
+        "tags": [
+          "academics"
+        ],
+        "description": "One class's subjects with their current teacher, its Class Teacher, and the teachers the person may pick from. A class outside the person's sections is 404, the same as a missing one.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{32}$"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The class's teaching",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Teaching"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such class, or not one the person may see",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AcademicsError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/academics/assignments": {
+      "post": {
+        "operationId": "set_assignment",
+        "tags": [
+          "academics"
+        ],
+        "description": "Assigns a teacher to a subject in a class, or (teacherId null) removes the assignment. Ends any earlier assignment for the same subject in the same class.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AssignmentInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Saved",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AcademicsOk"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed (for example, switched off since signing in, or another section's data)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AcademicsError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such item",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AcademicsError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "It conflicts with what is already there (a repeat, a closed year, another active year)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AcademicsError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "The change breaks a rule; nothing changed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AcademicsInvalid"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/academics/classes/{id}/class-teacher": {
+      "post": {
+        "operationId": "set_class_teacher",
+        "tags": [
+          "academics"
+        ],
+        "description": "Sets or (teacherId null) clears a class's Class Teacher. A teacher already Class Teacher of another class this year is 409.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{32}$"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ClassTeacherInput"
               }
             }
           }
