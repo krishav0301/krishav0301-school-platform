@@ -138,6 +138,22 @@ export async function verifyApplicationEmail(db: D1Database, token: string, now:
   return meta.changes > 0 ? { ok: true } : { ok: false, reason: "invalid_or_expired" };
 }
 
+/**
+ * The cleanup sweep (D-063): an application that never got its email verified in time is marked
+ * `expired`, the same status the duplicate check already excludes, so an abandoned attempt stops
+ * flagging every later real applicant who shares its phone or name and date of birth. No actor and
+ * no audit entry, matching `applyForAdmission` and `verifyApplicationEmail` — this touches only an
+ * anonymous, pre-account row, and it is not a staff decision. Called from the existing 5-minute
+ * cron sweep alongside the outbox (`src/index.ts`); needs no cron of its own.
+ */
+export async function expireStaleApplications(db: D1Database, now: Date = new Date()): Promise<{ expired: number }> {
+  const { meta } = await db
+    .prepare(`UPDATE applications SET status = 'expired', updated_at = ?1 WHERE status = 'email_unverified' AND verification_expires_at <= ?1`)
+    .bind(now.toISOString())
+    .run();
+  return { expired: meta.changes ?? 0 };
+}
+
 // --- Staff-entered applications --------------------------------------------------------------------
 
 export type RegisterResult = { ok: true; publicId: string } | WriteFailure | Invalid | { ok: false; reason: "already_resolved" };

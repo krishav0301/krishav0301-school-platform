@@ -2,6 +2,7 @@ import { beforeAll, describe, expect, it } from "vitest";
 
 import { verifyAuditChain } from "../src/core/audit";
 import { bsToAd, daysInMonth } from "../src/core/dates";
+import { expireStaleApplications } from "../src/modules/admissions/service";
 import { auditKey, call, count, db, person, seedSections, type Person } from "./academics-helpers";
 
 let coordinator: Person, plus2Coordinator: Person, bachelorsCoordinator: Person, admin: Person, accountant: Person, teacher: Person, student: Person, superAdmin: Person;
@@ -163,6 +164,44 @@ describe("applying, verifying, and the review queue", () => {
     await verify(await verificationTokenFor(id));
     const seen = (await (await detail(id, coordinator)).json()) as { duplicateFlags: string[] };
     expect(seen.duplicateFlags).toContain("phone");
+  });
+});
+
+// ---------------------------------------------------------------------------------------------
+describe("the cleanup sweep: expiring an abandoned application (D-063)", () => {
+  it("expires an unverified application once its window has passed, and stops flagging later applicants", async () => {
+    const shared = applyBody();
+    const { id } = (await (await apply(shared)).json()) as { id: string };
+    // Back-date the window instead of waiting 24 real hours.
+    await db.prepare("UPDATE applications SET verification_expires_at = '2000-01-01T00:00:00.000Z' WHERE public_id = ?1").bind(id).run();
+
+    const result = await expireStaleApplications(db);
+    expect(result.expired).toBeGreaterThanOrEqual(1);
+    const row = await db.prepare("SELECT status FROM applications WHERE public_id = ?1").bind(id).first<{ status: string }>();
+    expect(row!.status).toBe("expired");
+
+    // A later applicant sharing the same phone is no longer flagged: the abandoned attempt no longer counts.
+    const second = await apply(applyBody({ phone: shared.phone }));
+    expect(second.status).toBe(201);
+    const { id: secondId } = (await second.json()) as { id: string };
+    await verify(await verificationTokenFor(secondId));
+    const seen = (await (await detail(secondId, coordinator)).json()) as { duplicateFlags: string[] };
+    expect(seen.duplicateFlags).not.toContain("phone");
+  });
+
+  it("leaves an application inside its window alone, and never touches one already past email_unverified", async () => {
+    const { id: freshId } = (await (await apply(applyBody())).json()) as { id: string };
+    const pendingBody = applyBody();
+    const { id: pendingId } = (await (await apply(pendingBody)).json()) as { id: string };
+    await verify(await verificationTokenFor(pendingId));
+    await db.prepare("UPDATE applications SET verification_expires_at = '2000-01-01T00:00:00.000Z' WHERE public_id = ?1").bind(pendingId).run();
+
+    await expireStaleApplications(db);
+
+    const fresh = await db.prepare("SELECT status FROM applications WHERE public_id = ?1").bind(freshId).first<{ status: string }>();
+    expect(fresh!.status).toBe("email_unverified"); // still inside its window
+    const pending = await db.prepare("SELECT status FROM applications WHERE public_id = ?1").bind(pendingId).first<{ status: string }>();
+    expect(pending!.status).toBe("pending_review"); // already verified before its (now-backdated) window mattered
   });
 });
 
