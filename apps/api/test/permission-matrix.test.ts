@@ -77,8 +77,8 @@ describe("sensitive rules, stated independently (docs/source/sample-creation-inf
     "fees.discount.approve": ["ADM"],
     "fees.reversal.approve": ["ADM"],
     "fees.refund.approve": ["ADM"],
-    "content.approve": ["ADM", "SUP"],
     "approvals.decide": ["ADM", "SUP"],
+    "approvals.request": ["COO", "ADM", "SUP"],
     // The Accountant owns fees and payments. Nobody else touches them.
     "fees.structure.draft": ["ACC"],
     "fees.voucher.verify": ["ACC"],

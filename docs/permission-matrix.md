@@ -45,7 +45,6 @@ Phase is the build phase where the action first exists. The action id in code fo
 | View public site (anyone, no sign-in) (`site.view`) | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | 2 |
 | Draft content (notice, holiday, routine, vacancy, post) (`content.draft`) | — | — | inst | — | ✓ | ✓ | 2 |
 | Publish content directly (`content.publish`) | — | — | — | — | ✓ | ✓ | 2 |
-| Approve a Co-ordinator's draft (`content.approve`) | — | — | — | — | ✓ | ✓ | 3 |
 
 ### Setup
 
@@ -125,6 +124,8 @@ The Co-ordinator has **no** fees access at all.
 | Action | STU | TEA | COO | ACC | ADM | SUP | Phase |
 |---|---|---|---|---|---|---|---|
 | Approvals inbox: decide (never your own request) (`approvals.decide`) | — | — | — | — | ✓ | ✓ | 3 |
+| Send a draft for approval (`approvals.request`) | — | — | inst | — | ✓ | ✓ | 3 |
+| View your own approval requests (`approvals.view.own`) | — | — | own | — | — | — | 3 |
 | View activity audit trail and sign-ins (`audit.view`) | — | — | — | — | ✓ | ✓ | 1 |
 | Edit or delete an audit entry (`audit.edit`) | — | — | — | — | — | — | 1 |
 | Reports and Excel export (students) (`reports.students`) | — | — | inst | — | inst | ✓ | 4 |
