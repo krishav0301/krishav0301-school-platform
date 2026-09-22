@@ -23,12 +23,15 @@ export const MAX_TABS = 5;
 
 export const NAV_ITEMS: readonly NavItem[] = [
   { id: "dashboard", labelKey: "nav.dashboard", href: "/portal" },
-  // Phase 2: the Admin edits the public website's content (D-040).
-  { id: "content", labelKey: "nav.content", href: "/portal/content", roles: ["admin", "super_admin"] },
+  // Phase 2: the Admin edits the public website's content (D-040). Phase 3, slice 4: a Co-ordinator
+  // drafts too, and sends a draft for approval instead of publishing it (D-061).
+  { id: "content", labelKey: "nav.content", href: "/portal/content", roles: ["coordinator", "admin", "super_admin"] },
   // Phase 3: the academic structure. The Co-ordinator sets it up; the Admin can look (the API decides, D-025).
   { id: "setup", labelKey: "nav.setup", href: "/portal/setup", roles: ["coordinator", "admin", "super_admin"] },
   // Phase 3, slice 3a: the staff. Whoever may add someone (the API decides, D-025).
   { id: "people", labelKey: "nav.people", href: "/portal/people", roles: ["admin", "coordinator", "super_admin"] },
+  // Phase 3, slice 4: the Admin's inbox for a Co-ordinator's draft sent for approval (D-061).
+  { id: "approvals", labelKey: "nav.approvals", href: "/portal/approvals", roles: ["admin", "super_admin"] },
 ];
 
 /** True on an entry's own page and on the pages beneath it. The dashboard is only current on itself. */

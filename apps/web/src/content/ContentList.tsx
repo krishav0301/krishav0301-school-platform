@@ -3,6 +3,9 @@
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 
+import { sendForApproval } from "@/approvals/client";
+import { REASON_MESSAGE as APPROVAL_REASON_MESSAGE } from "@/approvals/model";
+import { RequestsPanel } from "@/approvals/RequestsPanel";
 import { t } from "@/i18n/messages";
 import { useSession } from "@/session/SessionProvider";
 import { Badge, Button, Notice, Select, Skeleton, buttonClass } from "@/ui";
@@ -30,7 +33,8 @@ const FLASH_FROM_FORM: Record<FlashKind, { tone: "ok" | "bad"; message: "content
  * the message afterwards says what happened and offers an Undo, which stays until the person does something else.
  */
 export function ContentList() {
-  const { api } = useSession();
+  const { api, me } = useSession();
+  const canPublish = (me?.roles ?? []).some((r) => r.role === "admin" || r.role === "super_admin");
   const [kind, setKind] = useState<Kind | "">("");
   const [state, setState] = useState<State | "">("");
   const [view, setView] = useState<View>({ status: "loading" });
@@ -76,6 +80,17 @@ export function ContentList() {
     const outcome = outcomeOfToggle(result, { id, title, publish, isUndo });
     setFlash({ tone: outcome.tone, text: t(outcome.message, { title }), undo: outcome.undo });
     if (outcome.refresh) await reload();
+  }
+
+  /** A Co-ordinator sends their own draft for approval, instead of publishing it directly (D-061). */
+  async function send(id: string, title: string) {
+    if (busy) return;
+    setAddressFlashSeen(true);
+    setBusy(id);
+    const result = await sendForApproval(api, id);
+    setBusy(null);
+    setFlash(result.ok ? { tone: "ok", text: t("content.done.sentForApproval", { title }) } : { tone: "bad", text: t(APPROVAL_REASON_MESSAGE[result.reason]) });
+    if (result.ok) await reload();
   }
 
   const filtered = kind !== "" || state !== "";
@@ -151,6 +166,7 @@ export function ContentList() {
           {view.items.map((item) => {
             const from = formatBsDate(item.publishOnBs);
             const publish = item.status !== "live";
+            const canEdit = canPublish || item.status !== "live"; // a Co-ordinator may edit up to it going live (D-061)
             return (
               <li key={item.id} className={styles.item}>
                 <h2 className={styles.itemTitle}>{item.title}</h2>
@@ -162,25 +178,41 @@ export function ContentList() {
                 <p className={styles.muted}>{item.hideAfterBs ? t("content.showsFromUntil", { from, until: formatBsDate(item.hideAfterBs) }) : t("content.showsFrom", { from })}</p>
 
                 <div className={styles.actions}>
-                  <Link href={`/portal/content/edit?id=${item.id}`} className={buttonClass({ variant: "secondary" })} aria-label={t("content.editItem", { title: item.title })}>
-                    {t("content.edit")}
-                  </Link>
-                  <Button
-                    variant="quiet"
-                    loading={busy === item.id}
-                    loadingLabel={t("content.working")}
-                    disabled={busy !== null && busy !== item.id}
-                    aria-label={t(publish ? "content.publishItem" : "content.takeDownItem", { title: item.title })}
-                    onClick={() => void toggle(item.id, item.title, publish)}
-                  >
-                    {t(publish ? "content.publish" : "content.takeDown")}
-                  </Button>
+                  {canEdit ? (
+                    <Link href={`/portal/content/edit?id=${item.id}`} className={buttonClass({ variant: "secondary" })} aria-label={t("content.editItem", { title: item.title })}>
+                      {t("content.edit")}
+                    </Link>
+                  ) : null}
+                  {canPublish ? (
+                    <Button
+                      variant="quiet"
+                      loading={busy === item.id}
+                      loadingLabel={t("content.working")}
+                      disabled={busy !== null && busy !== item.id}
+                      aria-label={t(publish ? "content.publishItem" : "content.takeDownItem", { title: item.title })}
+                      onClick={() => void toggle(item.id, item.title, publish)}
+                    >
+                      {t(publish ? "content.publish" : "content.takeDown")}
+                    </Button>
+                  ) : item.status === "draft" ? (
+                    <Button
+                      variant="quiet"
+                      loading={busy === item.id}
+                      loadingLabel={t("content.working")}
+                      disabled={busy !== null && busy !== item.id}
+                      aria-label={t("content.sendForApprovalItem", { title: item.title })}
+                      onClick={() => void send(item.id, item.title)}
+                    >
+                      {t("content.sendForApproval")}
+                    </Button>
+                  ) : null}
                 </div>
               </li>
             );
           })}
         </ul>
       ) : null}
+      {!canPublish ? <RequestsPanel /> : null}
     </>
   );
 }
