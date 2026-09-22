@@ -78,9 +78,14 @@ describe("creating content", () => {
     expect(result.ok).toBe(true);
   });
 
-  it("everyone else is refused, and nothing is written (Co-ordinator drafts arrive in Phase 3)", async () => {
+  it("a Co-ordinator may also draft (D-061: sent for approval, not published directly)", async () => {
+    const result = await createContent(db, key, people.coordinator, notice());
+    expect(result.ok).toBe(true);
+  });
+
+  it("a Teacher and a Student are refused, and nothing is written", async () => {
     const before = (await db.prepare("SELECT COUNT(*) AS n FROM content_items").first<{ n: number }>())!.n;
-    for (const who of ["coordinator", "teacher", "student"] as const) {
+    for (const who of ["teacher", "student"] as const) {
       const result = await createContent(db, key, people[who], notice());
       expect(result, who).toEqual({ ok: false, reason: "not_allowed" });
     }
@@ -256,6 +261,14 @@ describe("editing", () => {
     expect(await versionOf(id)).toBe(2);
     expect(await updateContent(db, key, people.admin, id, { body: "New body" })).toEqual({ ok: true });
     expect(await versionOf(id)).toBe(3);
+  });
+
+  it("a Co-ordinator may edit their own draft, but not once it is live (D-061)", async () => {
+    const id = await created({ title: "Draft" }, people.coordinator);
+    expect(await updateContent(db, key, people.coordinator, id, { title: "Still a draft" })).toEqual({ ok: true });
+    expect(await publishContent(db, key, people.admin, id)).toEqual({ ok: true });
+    expect(await updateContent(db, key, people.coordinator, id, { title: "Too late" })).toEqual({ ok: false, reason: "not_allowed" });
+    expect(await updateContent(db, key, people.admin, id, { title: "Admin still can" })).toEqual({ ok: true });
   });
 
   it("editing live content is an Admin's act, and the change is public at once", async () => {
