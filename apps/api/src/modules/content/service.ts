@@ -151,7 +151,7 @@ export async function updateContent(
       db
         .prepare(
           `UPDATE content_items
-              SET title = ?2, body = ?3, contact = ?4, is_urgent = ?5, publish_on = ?6, hide_after = ?7, updated_at = ?8
+              SET title = ?2, body = ?3, contact = ?4, is_urgent = ?5, publish_on = ?6, hide_after = ?7, updated_at = ?8, version = version + 1
             WHERE public_id = ?1 AND ${isPublisher(9)}`,
         )
         .bind(publicId, after.title, after.body, after.contact, after.urgent ? 1 : 0, after.publishOn, after.hideAfter, now.toISOString(), actorPublicId),

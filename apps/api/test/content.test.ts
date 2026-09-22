@@ -46,6 +46,8 @@ const auditRows = async (publicId: string) =>
   (await db.prepare("SELECT action, summary, before_json, after_json FROM audit_events WHERE entity_public_id = ?1 ORDER BY id").bind(publicId).all<{ action: string; summary: string; before_json: string | null; after_json: string | null }>()).results;
 const statusOf = async (publicId: string) =>
   (await db.prepare("SELECT status FROM content_items WHERE public_id = ?1").bind(publicId).first<{ status: string }>())?.status;
+const versionOf = async (publicId: string) =>
+  (await db.prepare("SELECT version FROM content_items WHERE public_id = ?1").bind(publicId).first<{ version: number }>())!.version;
 
 async function created(input: Partial<ContentInput> = {}, actor = people.admin) {
   const result = await createContent(db, key, actor, notice(input));
@@ -243,6 +245,17 @@ describe("editing", () => {
     expect(last.action).toBe("content.updated");
     expect(JSON.parse(last.before_json!)).toMatchObject({ title: "Old" });
     expect(JSON.parse(last.after_json!)).toMatchObject({ title: "New" });
+  });
+
+  it("bumps the version on every real edit, but not on a no-op edit (D-061's staleness fingerprint)", async () => {
+    const id = await created({ title: "Old" });
+    expect(await versionOf(id)).toBe(1);
+    expect(await updateContent(db, key, people.admin, id, { title: "New" })).toEqual({ ok: true });
+    expect(await versionOf(id)).toBe(2);
+    expect(await updateContent(db, key, people.admin, id, { title: "New" })).toEqual({ ok: true }); // no-op: same title
+    expect(await versionOf(id)).toBe(2);
+    expect(await updateContent(db, key, people.admin, id, { body: "New body" })).toEqual({ ok: true });
+    expect(await versionOf(id)).toBe(3);
   });
 
   it("editing live content is an Admin's act, and the change is public at once", async () => {
