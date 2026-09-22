@@ -7,9 +7,11 @@ import { registerAcademics } from "./modules/academics/routes";
 import { registerSubjects } from "./modules/academics/subject-routes";
 import { registerAccounts } from "./modules/accounts/routes";
 import { registerStaff } from "./modules/accounts/staff-routes";
+import { registerApprovals } from "./modules/approvals/routes";
 import { registerAuth } from "./modules/auth/routes";
 import { registerConfig } from "./modules/config/routes";
 import { registerContent } from "./modules/content/routes";
+import { registerContentApprovalHandler } from "./modules/content";
 import { registerDates } from "./modules/dates/routes";
 import { registerHealth } from "./modules/health/routes";
 import { registerSite } from "./modules/site/routes";
@@ -24,6 +26,10 @@ export function createApp() {
   app.use("*", environmentGuard);
   app.use("/api/*", sameOriginOnly);
 
+  // The composition root: each kind's handler is registered here, so the generic `approvals` engine
+  // never imports a specific kind's module (D-061).
+  registerContentApprovalHandler();
+
   registerHealth(app);
   registerAuth(app);
   registerAccounts(app);
@@ -32,6 +38,7 @@ export function createApp() {
   registerSubjects(app);
   registerConfig(app);
   registerContent(app);
+  registerApprovals(app);
   registerDates(app);
   registerSite(app);
 

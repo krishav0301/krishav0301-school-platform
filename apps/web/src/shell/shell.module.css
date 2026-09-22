@@ -89,6 +89,11 @@
 
 .navLink {
   flex: 1 1 auto;
+  /* A flex item's implied minimum is its own content's width, not 0, so without this two labels sharing
+     a row could refuse to shrink and push the bar past the viewport at large text sizes (found at 320 px,
+     200%, once a fifth entry changed how the four others pair up). `min-width: 0` lets a long label wrap
+     onto a second line inside its own tab instead, which only makes that tab taller. */
+  min-width: 0;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -98,6 +103,7 @@
   font-size: var(--text-sm);
   font-weight: var(--weight-medium);
   text-decoration: none;
+  text-align: center;
   transition: transform var(--motion-fast) var(--motion-ease);
 }
 

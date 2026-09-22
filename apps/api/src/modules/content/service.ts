@@ -1,10 +1,11 @@
 import { recordAudit } from "../../core/audit";
 import { newPublicId } from "../../core/ids";
+import { registerApprovalHandler, type ApprovalHandler } from "../approvals/service";
 import { ContentInputSchema, type ContentChanges, type ContentInput, type ContentKind } from "./schema";
 
 /**
- * All writes to website content. Only an Admin or the Super Admin may write (D-039); Co-ordinator
- * drafts and approval arrive in Phase 3.
+ * All writes to website content. A Co-ordinator may draft and edit (D-061; sent for approval, never
+ * published directly); only an Admin or the Super Admin may publish, take down, or touch a live item.
  *
  * The person is re-checked INSIDE each write, from the database, never from the sign-in token: the
  * token can outlive a deactivation by up to 30 minutes (D-021, D-024), and publishing is one of the
@@ -22,6 +23,15 @@ const KIND_LABEL: Record<ContentKind, string> = { notice: "Notice", holiday: "Ho
 const isPublisher = (n: number) =>
   `EXISTS (SELECT 1 FROM users pu WHERE pu.public_id = ?${n} AND pu.is_active = 1
              AND EXISTS (SELECT 1 FROM role_assignments pra WHERE pra.user_id = pu.id AND pra.is_active = 1 AND pra.role IN ('admin', 'super_admin')))`;
+
+/**
+ * True for an active Co-ordinator, Admin or Super Admin (D-061): who may draft or edit content. Content
+ * is whole-school, so drafting needs no section. Publishing and taking down stay `isPublisher`-only
+ * (D-039): the Admin keeps publishing directly, and approval only gates the Co-ordinator's own path there.
+ */
+const mayDraft = (n: number) =>
+  `EXISTS (SELECT 1 FROM users du WHERE du.public_id = ?${n} AND du.is_active = 1
+             AND EXISTS (SELECT 1 FROM role_assignments dra WHERE dra.user_id = du.id AND dra.is_active = 1 AND dra.role IN ('coordinator', 'admin', 'super_admin')))`;
 
 interface ItemRow {
   kind: ContentKind;
@@ -44,10 +54,10 @@ const toInput = (row: ItemRow): ContentInput => ({
   hideAfter: row.hide_after,
 });
 
-/** One round trip: is the person allowed, and what is the item now? */
-async function inspect(db: D1Database, publicId: string, actorPublicId: string) {
+/** One round trip: is the person allowed (by the given guard), and what is the item now? */
+async function inspect(db: D1Database, publicId: string, actorPublicId: string, guard: (n: number) => string = isPublisher) {
   const [allowed, item] = await db.batch([
-    db.prepare(`SELECT ${isPublisher(1)} AS ok`).bind(actorPublicId),
+    db.prepare(`SELECT ${guard(1)} AS ok`).bind(actorPublicId),
     db
       .prepare("SELECT kind, title, body, contact, is_urgent, status, publish_on, hide_after FROM content_items WHERE public_id = ?1")
       .bind(publicId),
@@ -56,6 +66,27 @@ async function inspect(db: D1Database, publicId: string, actorPublicId: string) 
     allowed: (allowed!.results[0] as { ok: number } | undefined)?.ok === 1,
     item: (item!.results[0] as unknown as ItemRow | undefined) ?? null,
   };
+}
+
+/**
+ * One round trip: may this person edit this item, given both what they are and what the item is now?
+ * A publisher may edit anything; a drafting Co-ordinator may edit a draft or a waiting item, but a live
+ * item stays the publisher's alone (D-039 keeps the Admin publishing directly, and an unreviewed edit to
+ * something already public would undo the point of gating the way there).
+ */
+async function inspectForEdit(db: D1Database, publicId: string, actorPublicId: string) {
+  const [publisher, drafter, item] = await db.batch([
+    db.prepare(`SELECT ${isPublisher(1)} AS ok`).bind(actorPublicId),
+    db.prepare(`SELECT ${mayDraft(1)} AS ok`).bind(actorPublicId),
+    db
+      .prepare("SELECT kind, title, body, contact, is_urgent, status, publish_on, hide_after FROM content_items WHERE public_id = ?1")
+      .bind(publicId),
+  ]);
+  const isPublisherActor = (publisher!.results[0] as { ok: number } | undefined)?.ok === 1;
+  const isDrafterActor = (drafter!.results[0] as { ok: number } | undefined)?.ok === 1;
+  const row = (item!.results[0] as unknown as ItemRow | undefined) ?? null;
+  const allowed = isPublisherActor || (isDrafterActor && row !== null && row.status !== "live");
+  return { allowed, item: row };
 }
 
 const firstMessage = (error: { issues: { message: string }[] }) => error.issues[0]?.message ?? "That is not valid";
@@ -93,7 +124,7 @@ export async function createContent(
           `INSERT INTO content_items
              (public_id, kind, title, body, contact, is_urgent, status, publish_on, hide_after, created_by, created_at, updated_at)
            SELECT ?1, ?2, ?3, ?4, ?5, ?6, 'draft', ?7, ?8, u.id, ?9, ?9
-             FROM users u WHERE u.public_id = ?10 AND ${isPublisher(10)}`,
+             FROM users u WHERE u.public_id = ?10 AND ${mayDraft(10)}`,
         )
         .bind(publicId, c.kind, c.title, c.body, c.contact, c.urgent ? 1 : 0, c.publishOn, c.hideAfter, at, actorPublicId),
     ],
@@ -114,7 +145,7 @@ export async function updateContent(
   changes: ContentChanges,
   now: Date = new Date(),
 ): Promise<UpdateResult> {
-  const { allowed, item } = await inspect(db, publicId, actorPublicId);
+  const { allowed, item } = await inspectForEdit(db, publicId, actorPublicId);
   if (!allowed) return { ok: false, reason: "not_allowed" };
   if (!item) return { ok: false, reason: "not_found" };
 
@@ -151,8 +182,8 @@ export async function updateContent(
       db
         .prepare(
           `UPDATE content_items
-              SET title = ?2, body = ?3, contact = ?4, is_urgent = ?5, publish_on = ?6, hide_after = ?7, updated_at = ?8
-            WHERE public_id = ?1 AND ${isPublisher(9)}`,
+              SET title = ?2, body = ?3, contact = ?4, is_urgent = ?5, publish_on = ?6, hide_after = ?7, updated_at = ?8, version = version + 1
+            WHERE public_id = ?1 AND (${isPublisher(9)} OR (${mayDraft(9)} AND status <> 'live'))`,
         )
         .bind(publicId, after.title, after.body, after.contact, after.urgent ? 1 : 0, after.publishOn, after.hideAfter, now.toISOString(), actorPublicId),
     ],
@@ -248,4 +279,46 @@ export async function unpublishContent(
   const second = await inspect(db, publicId, actorPublicId);
   if (!second.allowed) return { ok: false, reason: "not_allowed" };
   return second.item ? { ok: false, reason: "not_live" } : { ok: false, reason: "not_found" };
+}
+
+// --- The approval handler (D-061) ---------------------------------------------------------------------
+
+interface HandlerRow {
+  public_id: string;
+  kind: ContentKind;
+  title: string;
+  version: number;
+}
+
+/**
+ * How `content` plugs into the generic approvals engine. `onRequested`/`onApproved`/`onResolved` each
+ * change only `status`, conditioned on the item's own current status: the two tables' statuses move in
+ * lockstep by construction (a pending request exists exactly while its content item is `waiting`), so
+ * neither statement needs to reference the other's table.
+ */
+export const contentApprovalHandler: ApprovalHandler = {
+  async resolveId(db, publicId) {
+    const row = await db.prepare("SELECT id FROM content_items WHERE public_id = ?1").bind(publicId).first<{ id: number }>();
+    return row?.id ?? null;
+  },
+  async describe(db, id) {
+    const row = await db.prepare("SELECT public_id, kind, title, version FROM content_items WHERE id = ?1").bind(id).first<HandlerRow>();
+    if (!row) return null;
+    return { snapshot: { title: row.title, kind: row.kind }, summary: `${KIND_LABEL[row.kind]} "${row.title}"`, subjectPublicId: row.public_id };
+  },
+  async currentVersion(db, id) {
+    const row = await db.prepare("SELECT version FROM content_items WHERE id = ?1").bind(id).first<{ version: number }>();
+    return row?.version ?? null;
+  },
+  onRequested: (db, id) => [db.prepare("UPDATE content_items SET status = 'waiting' WHERE id = ?1 AND status = 'draft'").bind(id)],
+  onApproved: (db, id) =>
+    // The approver is the Admin who decided, not attributed here as `published_by`: this is a small,
+    // deliberate gap (D-061), since direct publish already has its own attribution and the design does
+    // not ask for a second one.
+    [db.prepare("UPDATE content_items SET status = 'live', published_at = ?2 WHERE id = ?1 AND status = 'waiting'").bind(id, new Date().toISOString())],
+  onResolved: (db, id) => [db.prepare("UPDATE content_items SET status = 'draft' WHERE id = ?1 AND status = 'waiting'").bind(id)],
+};
+
+export function registerContentApprovalHandler(): void {
+  registerApprovalHandler("website_content", contentApprovalHandler);
 }

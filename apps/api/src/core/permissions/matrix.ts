@@ -111,7 +111,6 @@ export const MATRIX = [
   }),
   row(G.site, "content.draft", "Draft content (notice, holiday, routine, vacancy, post)", 2, { COO: inst, ADM: all, SUP: all }),
   row(G.site, "content.publish", "Publish content directly", 2, { ADM: all, SUP: all }),
-  row(G.site, "content.approve", "Approve a Co-ordinator's draft", 3, { ADM: all, SUP: all }),
 
   // --- Setup
   row(G.setup, "setup.structure.manage", "Manage academic years, programmes, levels, classes, terminals", 3, { COO: inst, SUP: all }),
@@ -179,6 +178,8 @@ export const MATRIX = [
 
   // --- Oversight
   row(G.oversight, "approvals.decide", "Approvals inbox: decide (never your own request)", 3, { ADM: all, SUP: all }),
+  row(G.oversight, "approvals.request", "Send a draft for approval", 3, { COO: inst, ADM: all, SUP: all }),
+  row(G.oversight, "approvals.view.own", "View your own approval requests", 3, { COO: own }),
   row(G.oversight, "audit.view", "View activity audit trail and sign-ins", 1, { ADM: all, SUP: all }),
   row(G.oversight, "audit.edit", "Edit or delete an audit entry", 1, {}),
   row(G.oversight, "reports.students", "Reports and Excel export (students)", 4, { COO: inst, ADM: inst, SUP: all }),
