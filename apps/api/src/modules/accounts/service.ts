@@ -35,6 +35,20 @@ export class WeakPasswordError extends Error {
 export const normaliseEmail = (email: string): string => email.trim().toLowerCase();
 
 /**
+ * True when the actor may treat this teacher as their own (D-059's Co-ordinator branch, reused by the
+ * `academics` module for teaching assignments, D-060): a Super Admin, or an active Co-ordinator who is
+ * institution-wide or whose one section is the teacher's home section. `a` and `t` are `?a`/`?t` public ids.
+ */
+export const teacherManageableBy = (a: number, t: number): string =>
+  `EXISTS (SELECT 1 FROM users mu JOIN role_assignments ma ON ma.user_id = mu.id
+            WHERE mu.public_id = ?${a} AND mu.is_active = 1 AND ma.is_active = 1
+              AND (ma.role = 'super_admin'
+                   OR (ma.role = 'coordinator' AND EXISTS (
+                         SELECT 1 FROM users tv JOIN role_assignments tb ON tb.user_id = tv.id LEFT JOIN staff_profiles tp ON tp.user_id = tv.id
+                          WHERE tv.public_id = ?${t} AND tb.is_active = 1 AND tb.role = 'teacher'
+                            AND (ma.scope_type = 'institution' OR tp.home_section_id = ma.section_id)))))`;
+
+/**
  * Creates a user and their role assignments in one batch, with the audit entry that records it.
  * The database refuses impossible role and scope pairs, unknown sections, and duplicate emails,
  * and then neither the user nor the audit entry is saved.
