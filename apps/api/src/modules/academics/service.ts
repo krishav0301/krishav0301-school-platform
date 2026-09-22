@@ -4,4 +4,5 @@ export * from "./programmes";
 export * from "./classes";
 export * from "./subjects";
 export * from "./curriculum";
+export * from "./teaching";
 export type { Created, Done, Failure } from "./write";

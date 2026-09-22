@@ -48,3 +48,7 @@ export const componentSection = (n: number): string =>
 
 export const groupSection = (n: number): string =>
   `(SELECT pv.section_id FROM elective_groups eg JOIN levels lv ON lv.id = eg.level_id JOIN programmes pv ON pv.id = lv.programme_id WHERE eg.public_id = ?${n})`;
+
+/** The section id of a CLASS, given its public id as parameter `?n` (D-060, teaching assignments). */
+export const classSection = (n: number): string =>
+  `(SELECT pv.section_id FROM classes cl JOIN levels lv ON lv.id = cl.level_id JOIN programmes pv ON pv.id = lv.programme_id WHERE cl.public_id = ?${n})`;

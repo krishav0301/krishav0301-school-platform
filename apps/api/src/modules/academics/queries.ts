@@ -1,5 +1,5 @@
 import { adToBsText } from "../../core/dates";
-import type { AcademicYearList, Curriculum, ProgrammeList, SchoolClassList, SubjectList, TerminalList } from "./schema";
+import type { AcademicYearList, Curriculum, ProgrammeList, SchoolClassList, SubjectList, Teaching, TerminalList } from "./schema";
 
 /** A section filter for SQL: `null` means every section, otherwise a JSON array of section keys (used with `json_each`). */
 const sectionFilter = (sections: "all" | readonly string[]): string | null => (sections === "all" ? null : JSON.stringify(sections));
@@ -235,5 +235,85 @@ export async function getCurriculum(db: D1Database, sections: "all" | readonly s
       active: g.is_active === 1,
     })),
     offerings,
+  };
+}
+
+interface TeachingClassRow {
+  public_id: string;
+  label: string;
+  level_name: string;
+  ct_id: string | null;
+  ct_name: string | null;
+}
+interface TeachingAssignmentRow {
+  offering_id: string;
+  subject_name: string;
+  teacher_id: string | null;
+  teacher_name: string | null;
+}
+interface TeachingTeacherRow {
+  public_id: string;
+  full_name: string;
+}
+
+/**
+ * One class's teaching, in one database round trip: its offerings with their current teacher (or none),
+ * its Class Teacher, and the teachers this viewer may pick from (institution-wide sees every teacher;
+ * section-scoped sees only their own section's, so the dropdown never offers a teacher the write would
+ * then refuse). Null when the class does not exist or is outside the viewer's sections, same as a missing one.
+ */
+export async function getTeaching(db: D1Database, sections: "all" | readonly string[], classId: string): Promise<Teaching | null> {
+  const [classResult, assignmentResult, teacherResult] = await db.batch([
+    db
+      .prepare(
+        `SELECT c.public_id, c.label, l.name AS level_name, tu.public_id AS ct_id, tu.full_name AS ct_name
+           FROM classes c
+           JOIN levels l ON l.id = c.level_id
+           JOIN programmes p ON p.id = l.programme_id
+           JOIN sections s ON s.id = p.section_id
+           LEFT JOIN users tu ON tu.id = c.class_teacher_user_id
+          WHERE c.public_id = ?1 AND (?2 IS NULL OR s.key IN (SELECT value FROM json_each(?2)))`,
+      )
+      .bind(classId, sectionFilter(sections)),
+    db
+      .prepare(
+        `SELECT o.public_id AS offering_id, s.name AS subject_name, tu.public_id AS teacher_id, tu.full_name AS teacher_name
+           FROM subject_offerings o
+           JOIN classes c ON c.level_id = o.level_id
+           JOIN subjects s ON s.id = o.subject_id
+           LEFT JOIN teacher_assignments ta ON ta.class_id = c.id AND ta.offering_id = o.id AND ta.is_active = 1
+           LEFT JOIN users tu ON tu.id = ta.teacher_user_id
+          WHERE c.public_id = ?1 AND o.is_active = 1
+          ORDER BY s.name COLLATE NOCASE`,
+      )
+      .bind(classId),
+    db
+      .prepare(
+        `SELECT DISTINCT u.public_id, u.full_name
+           FROM users u
+           JOIN role_assignments ra ON ra.user_id = u.id AND ra.is_active = 1 AND ra.role = 'teacher'
+           JOIN classes c ON c.public_id = ?1
+           JOIN levels l ON l.id = c.level_id JOIN programmes p ON p.id = l.programme_id
+           LEFT JOIN staff_profiles sp ON sp.user_id = u.id
+          WHERE u.is_active = 1 AND (?2 = 1 OR sp.home_section_id = p.section_id)
+          ORDER BY u.full_name COLLATE NOCASE`,
+      )
+      .bind(classId, sections === "all" ? 1 : 0),
+  ]);
+
+  const cls = classResult!.results[0] as unknown as TeachingClassRow | undefined;
+  if (!cls) return null;
+
+  return {
+    classId: cls.public_id,
+    classLabel: cls.label,
+    levelName: cls.level_name,
+    classTeacher: cls.ct_id ? { id: cls.ct_id, fullName: cls.ct_name! } : null,
+    assignments: (assignmentResult!.results as unknown as TeachingAssignmentRow[]).map((r) => ({
+      offeringId: r.offering_id,
+      subjectName: r.subject_name,
+      teacher: r.teacher_id ? { id: r.teacher_id, fullName: r.teacher_name! } : null,
+    })),
+    teachers: (teacherResult!.results as unknown as TeachingTeacherRow[]).map((r) => ({ id: r.public_id, fullName: r.full_name })),
   };
 }

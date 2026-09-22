@@ -202,3 +202,30 @@ export const CurriculumSchema = z
   })
   .openapi("Curriculum");
 export type Curriculum = z.infer<typeof CurriculumSchema>;
+
+// --- Teaching (D-060): who teaches what in a class, and the Class Teacher --------------------------
+
+export const AssignmentInputSchema = z.strictObject({ classId: PublicIdSchema, offeringId: PublicIdSchema, teacherId: PublicIdSchema.nullable() }).openapi("AssignmentInput");
+export type AssignmentInput = z.infer<typeof AssignmentInputSchema>;
+
+export const ClassTeacherInputSchema = z.strictObject({ teacherId: PublicIdSchema.nullable() }).openapi("ClassTeacherInput");
+export type ClassTeacherInput = z.infer<typeof ClassTeacherInputSchema>;
+
+export const TeachableTeacherSchema = z.object({ id: z.string(), fullName: z.string() }).openapi("TeachableTeacher");
+export const TeachingAssignmentSchema = z
+  .object({ offeringId: z.string(), subjectName: z.string(), teacher: TeachableTeacherSchema.nullable() })
+  .openapi("TeachingAssignment");
+
+/** One class's teaching: its subjects with their current teacher, its Class Teacher, and who may be picked. */
+export const TeachingSchema = z
+  .object({
+    classId: z.string(),
+    classLabel: z.string(),
+    levelName: z.string(),
+    classTeacher: TeachableTeacherSchema.nullable(),
+    assignments: z.array(TeachingAssignmentSchema),
+    /** The teachers this viewer may pick from, for both dropdowns. */
+    teachers: z.array(TeachableTeacherSchema),
+  })
+  .openapi("Teaching");
+export type Teaching = z.infer<typeof TeachingSchema>;
