@@ -28,6 +28,7 @@ export function ApplyScreen() {
   const [pending, setPending] = useState(false);
   const [failure, setFailure] = useState<string | null>(null);
   const [done, setDone] = useState(false);
+  const [website, setWebsite] = useState("");
   const token = useRef(newSubmissionToken());
   const firstNameRef = useRef<HTMLInputElement>(null);
   const dobRef = useRef<HTMLInputElement>(null);
@@ -64,7 +65,7 @@ export function ApplyScreen() {
       setErrors({ dobBs: converted.error === "dateUnverified" ? "admissions.error.dobUnverified" : "admissions.error.dobInvalid" });
       return;
     }
-    const result = await apply(api, values, converted.ad, token.current);
+    const result = await apply(api, values, converted.ad, token.current, website);
     setPending(false);
     if (result.ok) return setDone(true);
     if (result.reason === "throttled") setFailure(t("admissions.error.throttled"));
@@ -106,6 +107,10 @@ export function ApplyScreen() {
             }}
           >
             <ApplicantFields values={values} errors={errors} levels={levels.levels} onChange={set} fieldRefs={{ firstName: firstNameRef, dobBs: dobRef, levelId: levelRef }} />
+            <div className={admissionsStyles.honeypot} aria-hidden="true">
+              <label htmlFor="admissions-website">Website</label>
+              <input id="admissions-website" name="website" type="text" tabIndex={-1} autoComplete="off" value={website} onChange={(e) => setWebsite(e.target.value)} />
+            </div>
             <Button type="submit" loading={pending} loadingLabel={t("admissions.apply.submitting")}>
               {t("admissions.apply.submit")}
             </Button>

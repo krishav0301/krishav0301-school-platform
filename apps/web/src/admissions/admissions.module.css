@@ -41,3 +41,17 @@
 .detailValue {
   overflow-wrap: anywhere;
 }
+
+/*
+ * A honeypot field for the anonymous apply form: present in the DOM for a script that fills every
+ * field it finds, but off-screen and out of the tab order so no person, sighted or using a screen
+ * reader, ever reaches it. `display: none` and `visibility: hidden` are skipped by some bots, so this
+ * moves the field off-screen instead.
+ */
+.honeypot {
+  position: absolute;
+  left: -9999px;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+}

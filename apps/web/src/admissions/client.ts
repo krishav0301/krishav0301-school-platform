@@ -40,10 +40,13 @@ function applicantBody(values: ApplicantForm, dob: string) {
   };
 }
 
-/** Anonymous. `website` is the honeypot: always sent empty by a real visitor, since the field is never shown. */
-export async function apply(api: ApiClient, values: ApplicantForm, dob: string, submissionToken: string): Promise<ApplyOutcome> {
+/**
+ * Anonymous. `website` is the honeypot: a field off-screen and out of the tab order (see
+ * ApplyScreen), so a real visitor never fills it, but a script that fills every field it finds does.
+ */
+export async function apply(api: ApiClient, values: ApplicantForm, dob: string, submissionToken: string, website: string): Promise<ApplyOutcome> {
   try {
-    const { data, response, error } = await api.POST("/api/admissions/apply", { body: { ...applicantBody(values, dob), submissionToken, website: "" } });
+    const { data, response, error } = await api.POST("/api/admissions/apply", { body: { ...applicantBody(values, dob), submissionToken, website } });
     if (data) return { ok: true, id: data.id };
     if (response.status === 429) return { ok: false, reason: "throttled" };
     if (response.status === 404) return { ok: false, reason: "not_found" };
