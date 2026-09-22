@@ -6,12 +6,13 @@ import { runOutbox } from "../../core/notifications";
 import { allowedSections } from "../../core/permissions";
 import { defineRoute } from "../../core/routes";
 import type { App, AppEnv } from "../../core/types";
-import { getApplication, getOwnStudent, getStudent, listQueue, searchStudents } from "./queries";
+import { getApplication, getOwnStudent, getStudent, listOpenLevels, listQueue, searchStudents } from "./queries";
 import {
   ApplicationDetailSchema,
   ApplicationQueueSchema,
   ApplySchema,
   ApproveSchema,
+  OpenLevelListSchema,
   PublicIdSchema,
   RejectSchema,
   RequestChangesSchema,
@@ -59,6 +60,23 @@ const VIEW_ACTION = { action: "students.personal.view" } as const;
 
 export function registerAdmissions(app: App): void {
   // --- The public application ------------------------------------------------------------------
+  defineRoute(
+    app,
+    {
+      method: "get",
+      path: "/api/admissions/levels",
+      operationId: "list_open_levels",
+      tags: ["admissions"],
+      description: "Every open level, for the public application form's picker. Anonymous, the same reach as applying itself.",
+      access: APPLY_ACTION,
+      responses: { 200: { description: "The open levels", content: json(OpenLevelListSchema) } },
+    },
+    async (c) => {
+      c.header("Cache-Control", "no-store");
+      return c.json(await listOpenLevels(c.env.DB), 200);
+    },
+  );
+
   defineRoute(
     app,
     {

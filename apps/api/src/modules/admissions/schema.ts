@@ -69,6 +69,7 @@ export const ApplicationSummarySchema = z
     lastName: z.string(),
     status: ApplicationStatusSchema,
     walkIn: z.boolean(),
+    levelId: z.string(),
     levelName: z.string(),
     programmeName: z.string(),
     sectionKey: z.string(),
@@ -106,6 +107,11 @@ export const StudentSummarySchema = z
   .openapi("StudentSummary");
 export const StudentListSchema = z.object({ students: z.array(StudentSummarySchema) }).openapi("StudentList");
 export type StudentList = z.infer<typeof StudentListSchema>;
+
+/** What the level picker on the public application form offers: every open level, whichever section. */
+export const OpenLevelSchema = z.object({ id: z.string(), name: z.string(), programmeName: z.string(), sectionKey: z.string(), sectionName: z.string() }).openapi("OpenLevel");
+export const OpenLevelListSchema = z.object({ levels: z.array(OpenLevelSchema) }).openapi("OpenLevelList");
+export type OpenLevelList = z.infer<typeof OpenLevelListSchema>;
 
 export const StudentDetailSchema = z
   .object({

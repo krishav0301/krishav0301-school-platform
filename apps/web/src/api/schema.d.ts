@@ -897,6 +897,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/admissions/levels": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Every open level, for the public application form's picker. Anonymous, the same reach as applying itself. */
+        get: operations["list_open_levels"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/admissions/apply": {
         parameters: {
             query?: never;
@@ -1711,6 +1728,16 @@ export interface components {
         DeclineInput: {
             reason: string;
         };
+        OpenLevelList: {
+            levels: components["schemas"]["OpenLevel"][];
+        };
+        OpenLevel: {
+            id: string;
+            name: string;
+            programmeName: string;
+            sectionKey: string;
+            sectionName: string;
+        };
         AdmissionsCreated: {
             id: string;
         };
@@ -1768,6 +1795,7 @@ export interface components {
             lastName: string;
             status: components["schemas"]["ApplicationStatus"];
             walkIn: boolean;
+            levelId: string;
             levelName: string;
             programmeName: string;
             sectionKey: string;
@@ -4686,6 +4714,26 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ApprovalsInvalid"];
+                };
+            };
+        };
+    };
+    list_open_levels: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The open levels */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OpenLevelList"];
                 };
             };
         };

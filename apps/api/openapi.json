@@ -2451,6 +2451,47 @@
         ],
         "additionalProperties": false
       },
+      "OpenLevelList": {
+        "type": "object",
+        "properties": {
+          "levels": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OpenLevel"
+            }
+          }
+        },
+        "required": [
+          "levels"
+        ]
+      },
+      "OpenLevel": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "programmeName": {
+            "type": "string"
+          },
+          "sectionKey": {
+            "type": "string"
+          },
+          "sectionName": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "programmeName",
+          "sectionKey",
+          "sectionName"
+        ]
+      },
       "AdmissionsCreated": {
         "type": "object",
         "properties": {
@@ -2690,6 +2731,9 @@
           "walkIn": {
             "type": "boolean"
           },
+          "levelId": {
+            "type": "string"
+          },
           "levelName": {
             "type": "string"
           },
@@ -2715,6 +2759,7 @@
           "lastName",
           "status",
           "walkIn",
+          "levelId",
           "levelName",
           "programmeName",
           "sectionKey",
@@ -6888,6 +6933,27 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ApprovalsInvalid"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admissions/levels": {
+      "get": {
+        "operationId": "list_open_levels",
+        "tags": [
+          "admissions"
+        ],
+        "description": "Every open level, for the public application form's picker. Anonymous, the same reach as applying itself.",
+        "responses": {
+          "200": {
+            "description": "The open levels",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OpenLevelList"
                 }
               }
             }

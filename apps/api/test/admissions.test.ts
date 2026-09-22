@@ -77,6 +77,17 @@ async function verificationTokenFor(applicationId: string): Promise<string> {
 }
 
 // ---------------------------------------------------------------------------------------------
+describe("the open levels picker", () => {
+  it("is anonymous, and lists the fixture's open level", async () => {
+    const response = await call("/api/admissions/levels");
+    expect(response.status).toBe(200);
+    expect(response.headers.get("Cache-Control")).toBe("no-store");
+    const body = (await response.json()) as { levels: { id: string; name: string; sectionKey: string }[] };
+    expect(body.levels.find((l) => l.id === levelId)).toMatchObject({ name: "Grade 11", sectionKey: "plus2" });
+  });
+});
+
+// ---------------------------------------------------------------------------------------------
 describe("applying, verifying, and the review queue", () => {
   it("the whole flow: apply, verify, appear in the queue, and get approved", async () => {
     const body = applyBody();

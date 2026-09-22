@@ -46,7 +46,7 @@ export function renderEmail(payload: EmailPayload, context: RenderContext): { su
   if (payload.template === "admission_verify") {
     const token = payload.data.token;
     if (typeof token !== "string" || !SAFE_TOKEN.test(token)) throw new Error("The admission verification email needs a plain token.");
-    const link = `${context.siteOrigin.replace(/\/+$/, "")}/apply/verify#token=${token}`;
+    const link = `${context.siteOrigin.replace(/\/+$/, "")}/apply#token=${token}`;
     return {
       subject: `Confirm your application to ${context.schoolName}`,
       body: [
