@@ -118,6 +118,7 @@ export const MATRIX = [
   row(G.setup, "setup.structure.view", "View academic years, programmes, levels, classes, terminals", 3, { COO: inst, ADM: read, SUP: all }),
   row(G.setup, "setup.subjects.view", "View subjects, offerings, mark components, elective groups", 3, { COO: inst, ADM: read, SUP: all }),
   row(G.setup, "setup.subjects.manage", "Manage subjects, offerings, mark components, elective groups", 3, { COO: inst, SUP: all }),
+  row(G.setup, "setup.assignments.view", "View teacher assignments and Class Teachers", 3, { COO: inst, ADM: read, SUP: all }),
   row(G.setup, "setup.assignments.manage", "Assign teachers to subjects; pick the Class Teacher", 3, { COO: inst, SUP: all }),
 
   // --- Admissions and students
