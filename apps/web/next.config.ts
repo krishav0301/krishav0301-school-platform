@@ -11,6 +11,10 @@ const workerOrigin = process.env.WORKER_ORIGIN ?? "http://localhost:8787";
 const nextConfig: NextConfig = isProduction
   ? { output: "export" }
   : {
+      // Next blocks dev-only requests (HMR, assets) from a hostname other than the one the server
+      // started on. `localhost` is allowed by default; `127.0.0.1` is a different hostname to it
+      // and needs its own entry, or the dev client falls back to reloading the page in a loop.
+      allowedDevOrigins: ["127.0.0.1"],
       async rewrites() {
         return [{ source: "/api/:path*", destination: `${workerOrigin}/api/:path*` }];
       },

@@ -170,9 +170,13 @@
   align-items: center;
   justify-content: space-between;
   gap: var(--space-3);
-  min-height: var(--control-height);
 }
 
+/* The link fills its own height (not just the row's), so its tap target is the full 44px, not the
+   text's own line height: found reviewing this card against accessibility.md's control-size guidance. */
 .checklistLink {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--control-height);
   color: var(--color-primary);
 }
