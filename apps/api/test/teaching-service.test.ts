@@ -6,13 +6,12 @@ import { addLevel, createOffering, createProgramme, createSubject, setAssignment
 import { getTeaching } from "../src/modules/academics/queries";
 import { auditKey, count, db, person, seedSections, type Person } from "./academics-helpers";
 
-let coordinator: Person, plus2Coordinator: Person, bachelorsCoordinator: Person, admin: Person, accountant: Person, superAdmin: Person, student: Person;
+let coordinator: Person, plus2Coordinator: Person, bachelorsCoordinator: Person, accountant: Person, superAdmin: Person, student: Person;
 beforeAll(async () => {
   await seedSections();
   coordinator = await person("coordinator", "institution");
   plus2Coordinator = await person("coordinator", "section", "plus2");
   bachelorsCoordinator = await person("coordinator", "section", "bachelors");
-  admin = await person("admin", "institution");
   accountant = await person("accountant", "institution");
   superAdmin = await person("super_admin", "institution");
   student = await person("student", "own");

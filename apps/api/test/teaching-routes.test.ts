@@ -4,12 +4,11 @@ import { addLevel, createOffering, createProgramme, createSubject } from "../src
 import { newPublicId } from "../src/core/ids";
 import { auditKey, call, count, db, person, seedSections, type Person } from "./academics-helpers";
 
-let coordinator: Person, plus2Coordinator: Person, bachelorsCoordinator: Person, admin: Person, accountant: Person, teacher: Person, student: Person, superAdmin: Person;
+let coordinator: Person, plus2Coordinator: Person, admin: Person, accountant: Person, teacher: Person, student: Person, superAdmin: Person;
 beforeAll(async () => {
   await seedSections();
   coordinator = await person("coordinator", "institution");
   plus2Coordinator = await person("coordinator", "section", "plus2");
-  bachelorsCoordinator = await person("coordinator", "section", "bachelors");
   admin = await person("admin", "institution");
   accountant = await person("accountant", "institution");
   teacher = await person("teacher", "assigned");
