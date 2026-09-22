@@ -74,13 +74,13 @@ The Co-ordinator's setup checklist (slice 5, D-062) stores nothing: `GET /api/ac
 | Table | Key columns | Rules |
 |---|---|---|
 | `Application` | submission_token (unique), status (email_unverified, pending_review, needs_changes, approved, rejected), applicant details, programme, level, academic_year, referred_by, email_verified_at, reviewed_by, decision_reason, changes_requested (JSON), duplicate_flags (JSON), walk_in, student (set on approval) | Rate limited. Enters the queue only after email verification. Rejection is final |
-| `ApplicationDocument` | application, kind (transcript, character_certificate, citizenship, photo, other), file | Multiple typed documents (`OPEN:` until PM approves) |
+| `ApplicationDocument` | application, kind (transcript, character_certificate, citizenship, photo, other), file | Multiple typed documents (`OPEN:` until PM approves). **Not built in slice 1** — no upload of any kind exists yet, since R2 is not enabled (D-020) |
 | `Student` | sid (unique, immutable), user, first_name, middle_name, last_name, dob_ad, dob_bs, phone, email, address, previous_school, guardian_name, guardian_phone, status (active, left, graduated) | **Permanent.** No year data lives here. Duplicate check on phone, or name plus date of birth |
 | `Enrollment` | student, academic_year, class, roll_no, status (active, promoted, repeated, left, graduated) | Unique per student and year. Attendance, marks, fees and receipts hang off this |
 | `SIDCounter` | next_sequence | One row, locked while assigning. SID = admission BS year + sequence, for example `2083-00123`, assigned at approval |
-| `Notification` | recipient, event_key, channel (in_app, email, sms), payload, status, attempts, sent_at, read_at | **Unique on event, recipient and channel**, so a retry never sends twice |
+| `Notification` | recipient, event_key, channel (in_app, email, sms), payload, status, attempts, sent_at, read_at | Sketch only; slice 1 sends admissions email through the existing `core/jobs` outbox (D-034) directly, with no separate `Notification` table |
 
-Approval creates the `Student`, the `User`, the `Enrollment` and the SID in one transaction.
+Approval creates the `Student`, the `User`, the `Enrollment` and the SID in one transaction (D-063: one seven-statement `batch()`, chained with `changes()`).
 
 ## Phase 5: daily school life
 
