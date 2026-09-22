@@ -19,10 +19,10 @@ export function ClassPicker({ levelId, value, onChange }: { levelId: string; val
     if (!yearId) return { ok: true as const, data: { classes: [] } };
     return loadClasses(api, yearId);
   }, [api]);
-  const { view } = useLoad(loadNow);
+  const { view, reload } = useLoad(loadNow);
 
   return (
-    <Gate view={view} onRetry={() => {}}>
+    <Gate view={view} onRetry={() => void reload()}>
       {(data) => {
         const options = data.classes.filter((c) => c.levelId === levelId && c.active).map((c) => ({ value: c.id, label: classTitle(c) }));
         return options.length === 0 ? (

@@ -68,10 +68,10 @@ function ReviewPanel({ id, onDecided }: { id: string; onDecided: () => void }) {
     const result = await loadApplication(api, id);
     return result.ok ? result : { ok: false as const, reason: result.reason === "not_found" ? ("failed" as const) : result.reason };
   }, [api, id]);
-  const { view } = useLoad(loadNow);
+  const { view, reload } = useLoad(loadNow);
 
   return (
-    <Gate view={view} onRetry={() => {}}>
+    <Gate view={view} onRetry={() => void reload()}>
       {(detail) => <ReviewForm detail={detail} onDecided={onDecided} />}
     </Gate>
   );

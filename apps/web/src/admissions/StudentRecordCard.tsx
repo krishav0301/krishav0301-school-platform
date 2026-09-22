@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback } from "react";
+import { useCallback, useState } from "react";
 
 import { t } from "@/i18n/messages";
 import { useSession } from "@/session/SessionProvider";
@@ -12,19 +12,20 @@ import styles from "./admissions.module.css";
 import { loadOwnStudent, type Loaded } from "./client";
 import type { StudentDetail } from "./model";
 
-/** Adapts `loadOwnStudent`'s three-way result to the generic `Loaded<T>` `Gate` expects: no record is treated as failure, and the card simply does not render. */
-async function loadForCard(api: Parameters<typeof loadOwnStudent>[0]): Promise<Loaded<StudentDetail>> {
-  const result = await loadOwnStudent(api);
-  return result.ok ? result : { ok: false, reason: "failed" };
-}
-
 /** A Student's own record: personal details and current class, read-only (D-063). They cannot edit anything. */
 export function StudentRecordCard() {
   const { api } = useSession();
-  const loadNow = useCallback(() => loadForCard(api), [api]);
+  const [notAStudent, setNotAStudent] = useState(false);
+  const loadNow = useCallback(async (): Promise<Loaded<StudentDetail>> => {
+    const result = await loadOwnStudent(api);
+    setNotAStudent(!result.ok && result.reason === "not_found");
+    return result.ok ? result : { ok: false, reason: "failed" };
+  }, [api]);
   const { view, reload } = useLoad(loadNow);
 
-  if (view.status === "failed") return null; // no student record for this sign-in: nothing to show
+  // No student record for this sign-in: nothing to show. A genuine load failure still shows the
+  // card, with its own retry, so a real problem is never mistaken for "not a student".
+  if (view.status === "failed" && notAStudent) return null;
 
   return (
     <Card aria-labelledby="student-record-heading">
