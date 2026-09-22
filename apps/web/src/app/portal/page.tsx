@@ -3,6 +3,7 @@
 import { useConfig } from "@/config/ConfigProvider";
 import { t } from "@/i18n/messages";
 import { useSession, type RoleClaim } from "@/session/SessionProvider";
+import { ChecklistCard } from "@/setup/ChecklistCard";
 import { PortalShell } from "@/shell/PortalShell";
 import { Badge, Card } from "@/ui";
 
@@ -37,7 +38,7 @@ function Dashboard() {
           ))}
         </ul>
       </Card>
-      <p className={styles.note}>{t("portal.nothingYet")}</p>
+      {me.roles.some((r) => r.role === "coordinator") ? <ChecklistCard /> : <p className={styles.note}>{t("portal.nothingYet")}</p>}
     </>
   );
 }

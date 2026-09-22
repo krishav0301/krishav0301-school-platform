@@ -234,3 +234,18 @@ export const TeachingSchema = z
   })
   .openapi("Teaching");
 export type Teaching = z.infer<typeof TeachingSchema>;
+
+// --- Setup checklist (D-062): nothing stored, computed fresh from the data --------------------------
+
+export const SetupChecklistSchema = z
+  .object({
+    year: z.boolean(),
+    structure: z.boolean(),
+    classes: z.boolean(),
+    terminals: z.boolean(),
+    subjects: z.boolean(),
+    teachers: z.boolean(),
+    classTeachers: z.boolean(),
+  })
+  .openapi("SetupChecklist");
+export type SetupChecklist = z.infer<typeof SetupChecklistSchema>;

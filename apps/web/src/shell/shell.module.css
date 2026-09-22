@@ -132,9 +132,11 @@
   margin: 0;
 }
 
-/* Keep the last of the page clear of the fixed tab bar, which may take two rows. */
+/* Keep the last of the page clear of the fixed tab bar. Two rows is the common case, but at 320 px
+   width and 200% text even four one-word labels can wrap to three (found reviewing the setup
+   checklist, D-062), so the reserve covers three rows with a little to spare. */
 .withTabs .main {
-  padding-bottom: calc(6.5rem + env(safe-area-inset-bottom) + var(--space-6));
+  padding-bottom: calc(10.5rem + env(safe-area-inset-bottom) + var(--space-6));
 }
 
 .footer {

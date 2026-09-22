@@ -4,7 +4,7 @@ import type { Context } from "hono";
 import { allowedSections } from "../../core/permissions";
 import { defineRoute } from "../../core/routes";
 import type { App, AppEnv } from "../../core/types";
-import { getTeaching, listClasses, listProgrammes, listTerminals, listYears } from "./queries";
+import { getSetupChecklist, getTeaching, listClasses, listProgrammes, listTerminals, listYears } from "./queries";
 import {
   AcademicYearListSchema,
   AssignmentInputSchema,
@@ -20,6 +20,7 @@ import {
   ProgrammeListSchema,
   PublicIdSchema,
   SchoolClassListSchema,
+  SetupChecklistSchema,
   TeachingSchema,
   TerminalChangesSchema,
   TerminalListSchema,
@@ -147,6 +148,23 @@ export function registerAcademics(app: App): void {
     async (c) => {
       c.header("Cache-Control", "no-store");
       return c.json(await listTerminals(c.env.DB, c.req.valid("query").year), 200);
+    },
+  );
+
+  defineRoute(
+    app,
+    {
+      method: "get",
+      path: "/api/academics/checklist",
+      operationId: "get_setup_checklist",
+      tags: ["academics"],
+      description: "A Co-ordinator's setup checklist: what is done and what is left, computed fresh each time. Nothing is stored.",
+      access: VIEW,
+      responses: { 200: { description: "The checklist", content: json(SetupChecklistSchema) } },
+    },
+    async (c) => {
+      c.header("Cache-Control", "no-store");
+      return c.json(await getSetupChecklist(c.env.DB, allowedSections(c.get("grant")!)), 200);
     },
   );
 

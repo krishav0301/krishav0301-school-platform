@@ -51,9 +51,10 @@ export function registerContent(app: App): void {
     },
   );
 
-  // --- The Admin's editing routes ------------------------------------------------------------------
-  // Phase 2: only the Admin and the Super Admin, so all use `content.publish`. When Co-ordinator
-  // drafts arrive (Phase 3), creating and editing move to `content.draft`.
+  // --- The editing routes (D-061) -------------------------------------------------------------------
+  // Reading, creating and editing use `content.draft` (Co-ordinator, Admin, Super Admin): the service
+  // itself keeps a live item the publisher's alone (`inspectForEdit`). Publishing and taking down stay
+  // `content.publish` (Admin, Super Admin only): a Co-ordinator's only way there is an approval.
 
   defineRoute(
     app,
@@ -64,7 +65,7 @@ export function registerContent(app: App): void {
       tags: ["content"],
       description:
         "Every item in every state, most recently touched first, at most 200, WITHOUT the text (fetch one item for that). `state` says where each stands today, and `todayBs` is today in Bikram Sambat.",
-      access: { action: "content.publish" },
+      access: { action: "content.draft" },
       request: {
         query: z.object({
           kind: ContentKindSchema.optional(),
@@ -90,7 +91,7 @@ export function registerContent(app: App): void {
       operationId: "get_content",
       tags: ["content"],
       description: "One item with its text and contact, for the edit form.",
-      access: { action: "content.publish" },
+      access: { action: "content.draft" },
       request: { params: IdParam },
       responses: {
         200: { description: "The item", content: json(AdminContentItemSchema) },
@@ -112,7 +113,7 @@ export function registerContent(app: App): void {
       operationId: "create_content",
       tags: ["content"],
       description: "Saves a new item as a draft. It is not public until it is published.",
-      access: { action: "content.publish" },
+      access: { action: "content.draft" },
       request: { body: { required: true, content: json(CreateContentSchema) } },
       responses: {
         201: { description: "Saved as a draft", content: json(z.object({ id: z.string() })) },
@@ -137,7 +138,7 @@ export function registerContent(app: App): void {
       tags: ["content"],
       description:
         "Changes some of an item's words or dates. Send only what changes. The kind and the status cannot be changed here. A live item's change is public at once.",
-      access: { action: "content.publish" },
+      access: { action: "content.draft" },
       request: { params: IdParam, body: { required: true, content: json(ContentChangesSchema) } },
       responses: {
         200: { description: "Saved", content: json(z.object({ ok: z.literal(true) })) },

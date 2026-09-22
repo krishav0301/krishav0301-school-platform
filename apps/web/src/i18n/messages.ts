@@ -118,6 +118,18 @@ export const en = {
   "portal.support": "Support",
   "portal.nothingYet": "Nothing here yet. More will appear as your school adds it.",
 
+  // Portal: the Co-ordinator's setup checklist (D-062)
+  "portal.checklist.title": "Setup checklist",
+  "portal.checklist.year": "Set an active academic year",
+  "portal.checklist.structure": "Add programmes and levels",
+  "portal.checklist.classes": "Create a class",
+  "portal.checklist.terminals": "Add a terminal",
+  "portal.checklist.subjects": "Add subjects to a class",
+  "portal.checklist.teachers": "Add a teacher",
+  "portal.checklist.classTeachers": "Assign a Class Teacher to every class",
+  "portal.checklist.done": "Done",
+  "portal.checklist.notDone": "Not done",
+
   // Nepali (Bikram Sambat) month names, written in Latin letters. Month 1 is Baisakh.
   "date.month.1": "Baisakh",
   "date.month.2": "Jestha",
