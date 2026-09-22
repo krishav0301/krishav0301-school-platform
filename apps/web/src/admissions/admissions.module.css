@@ -1,0 +1,43 @@
+/* Admissions and the student record (Phase 4). Tokens only: no colour, font or motion is written out here. */
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  max-width: 32rem;
+}
+
+.queueItem {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.queueMeta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+}
+
+.decideActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+}
+
+.detailGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(14rem, 100%), 1fr));
+  gap: var(--space-3) var(--space-5);
+}
+
+.detailLabel {
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+}
+
+.detailValue {
+  overflow-wrap: anywhere;
+}
