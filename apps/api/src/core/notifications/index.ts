@@ -9,7 +9,7 @@ import type { Bindings } from "../types";
 
 export const EMAIL_EVENT = "email";
 
-export type EmailTemplate = "password_reset";
+export type EmailTemplate = "password_reset" | "admission_verify" | "admission_decision";
 
 export interface EmailPayload {
   template: EmailTemplate;
@@ -41,6 +41,46 @@ export function renderEmail(payload: EmailPayload, context: RenderContext): { su
         "",
         "If you did not ask for this, ignore this message. Your password will not change.",
       ].join("\n"),
+    };
+  }
+  if (payload.template === "admission_verify") {
+    const token = payload.data.token;
+    if (typeof token !== "string" || !SAFE_TOKEN.test(token)) throw new Error("The admission verification email needs a plain token.");
+    const link = `${context.siteOrigin.replace(/\/+$/, "")}/apply/verify#token=${token}`;
+    return {
+      subject: `Confirm your application to ${context.schoolName}`,
+      body: [
+        `Thanks for applying to ${context.schoolName}.`,
+        "",
+        "To confirm your email and put your application in the queue, open this link:",
+        link,
+        "",
+        "If you did not apply, ignore this message.",
+      ].join("\n"),
+    };
+  }
+  if (payload.template === "admission_decision") {
+    const decision = payload.data.decision;
+    if (decision === "approved") {
+      return {
+        subject: `You are admitted to ${context.schoolName}`,
+        body: [
+          `Congratulations — your application to ${context.schoolName} has been approved.`,
+          `Your student id (SID) is ${payload.data.sid}.`,
+          "",
+          "Sign in with this email and the temporary password given to you, and choose your own password.",
+        ].join("\n"),
+      };
+    }
+    if (decision === "needs_changes") {
+      return {
+        subject: `A change is needed on your application to ${context.schoolName}`,
+        body: [`${context.schoolName} asked for a change to your application:`, "", payload.data.reason, "", "Reply to this email, or visit the school, to make the change."].join("\n"),
+      };
+    }
+    return {
+      subject: `About your application to ${context.schoolName}`,
+      body: [`${context.schoolName} was not able to approve your application.`, "", `Reason: ${payload.data.reason}`].join("\n"),
     };
   }
   throw new Error(`Unknown email template "${String(payload.template)}".`);

@@ -1,0 +1,192 @@
+import { adToBsText } from "../../core/dates";
+import type { ApplicationDetail, ApplicationQueue, StudentDetail, StudentList } from "./schema";
+
+const sectionFilter = (sections: "all" | readonly string[]): string | null => (sections === "all" ? null : JSON.stringify(sections));
+
+interface QueueRow {
+  public_id: string;
+  first_name: string;
+  last_name: string;
+  status: string;
+  walk_in: number;
+  level_name: string;
+  programme_name: string;
+  section_key: string;
+  duplicate_flags: string | null;
+  created_at: string;
+}
+
+const toSummary = (r: QueueRow) => ({
+  id: r.public_id,
+  firstName: r.first_name,
+  lastName: r.last_name,
+  status: r.status as ApplicationQueue["applications"][number]["status"],
+  walkIn: r.walk_in === 1,
+  levelName: r.level_name,
+  programmeName: r.programme_name,
+  sectionKey: r.section_key,
+  duplicateFlags: r.duplicate_flags ? (JSON.parse(r.duplicate_flags) as string[]) : [],
+  createdAt: r.created_at,
+});
+
+/** The Co-ordinator's queue: applications waiting on a decision, oldest first. */
+export async function listQueue(db: D1Database, sections: "all" | readonly string[]): Promise<ApplicationQueue> {
+  const { results } = await db
+    .prepare(
+      `SELECT ap.public_id, ap.first_name, ap.last_name, ap.status, ap.walk_in, lv.name AS level_name, pv.name AS programme_name,
+              s.key AS section_key, ap.duplicate_flags, ap.created_at
+         FROM applications ap JOIN levels lv ON lv.id = ap.level_id JOIN programmes pv ON pv.id = lv.programme_id JOIN sections s ON s.id = pv.section_id
+        WHERE ap.status IN ('pending_review', 'needs_changes') AND (?1 IS NULL OR s.key IN (SELECT value FROM json_each(?1)))
+        ORDER BY ap.created_at`,
+    )
+    .bind(sectionFilter(sections))
+    .all<QueueRow>();
+  return { applications: results.map(toSummary) };
+}
+
+interface DetailRow extends QueueRow {
+  middle_name: string | null;
+  dob_ad: string;
+  phone: string;
+  email: string;
+  guardian_name: string;
+  guardian_phone: string;
+  previous_school: string | null;
+  referred_by: string | null;
+  changes_requested: string | null;
+  decision_reason: string | null;
+}
+
+/** One application, in full, for the review screen. Scoped to the viewer's sections. */
+export async function getApplication(db: D1Database, sections: "all" | readonly string[], publicId: string): Promise<ApplicationDetail | null> {
+  const row = await db
+    .prepare(
+      `SELECT ap.public_id, ap.first_name, ap.middle_name, ap.last_name, ap.status, ap.walk_in, ap.dob_ad, ap.phone, ap.email,
+              ap.guardian_name, ap.guardian_phone, ap.previous_school, ap.referred_by, ap.changes_requested, ap.decision_reason,
+              lv.name AS level_name, pv.name AS programme_name, s.key AS section_key, ap.duplicate_flags, ap.created_at
+         FROM applications ap JOIN levels lv ON lv.id = ap.level_id JOIN programmes pv ON pv.id = lv.programme_id JOIN sections s ON s.id = pv.section_id
+        WHERE ap.public_id = ?1 AND (?2 IS NULL OR s.key IN (SELECT value FROM json_each(?2)))`,
+    )
+    .bind(publicId, sectionFilter(sections))
+    .first<DetailRow>();
+  if (!row) return null;
+  return {
+    ...toSummary(row),
+    middleName: row.middle_name,
+    dob: row.dob_ad,
+    dobBs: adToBsText(row.dob_ad),
+    phone: row.phone,
+    email: row.email,
+    guardianName: row.guardian_name,
+    guardianPhone: row.guardian_phone,
+    previousSchool: row.previous_school,
+    referredBy: row.referred_by,
+    changesRequested: row.changes_requested ? (JSON.parse(row.changes_requested) as { fields: string[]; reason: string }) : null,
+    decisionReason: row.decision_reason,
+  };
+}
+
+interface StudentRow {
+  public_id: string;
+  sid: string;
+  first_name: string;
+  last_name: string;
+  status: string;
+  class_name: string | null;
+}
+
+/** By name, SID or phone, scoped to the viewer's sections through the student's most recent enrollment. */
+export async function searchStudents(db: D1Database, sections: "all" | readonly string[], query: string): Promise<StudentList> {
+  const like = `%${query.trim()}%`;
+  const { results } = await db
+    .prepare(
+      `SELECT st.public_id, st.sid, st.first_name, st.last_name, st.status,
+              pv.name || ' - ' || lv.name AS class_name
+         FROM students st
+         LEFT JOIN enrollments en ON en.student_id = st.id AND en.academic_year_id = (SELECT id FROM academic_years WHERE status = 'active')
+         LEFT JOIN classes cl ON cl.id = en.class_id
+         LEFT JOIN levels lv ON lv.id = cl.level_id
+         LEFT JOIN programmes pv ON pv.id = lv.programme_id
+         LEFT JOIN sections s ON s.id = pv.section_id
+        WHERE (st.first_name LIKE ?1 OR st.last_name LIKE ?1 OR st.sid LIKE ?1 OR st.phone LIKE ?1)
+          AND (?2 IS NULL OR s.key IS NULL OR s.key IN (SELECT value FROM json_each(?2)))
+        ORDER BY st.last_name, st.first_name
+        LIMIT 50`,
+    )
+    .bind(like, sectionFilter(sections))
+    .all<StudentRow>();
+  return { students: results.map((r) => ({ id: r.public_id, sid: r.sid, firstName: r.first_name, lastName: r.last_name, status: r.status as StudentList["students"][number]["status"], className: r.class_name })) };
+}
+
+interface StudentDetailRow {
+  public_id: string;
+  sid: string;
+  first_name: string;
+  middle_name: string | null;
+  last_name: string;
+  dob_ad: string;
+  phone: string | null;
+  email: string | null;
+  guardian_name: string;
+  guardian_phone: string;
+  previous_school: string | null;
+  status: string;
+  class_name: string | null;
+  created_at: string;
+}
+
+async function studentDetailFrom(db: D1Database, where: string, param: string): Promise<StudentDetail | null> {
+  const row = await db
+    .prepare(
+      `SELECT st.public_id, st.sid, st.first_name, st.middle_name, st.last_name, st.dob_ad, st.phone, st.email,
+              st.guardian_name, st.guardian_phone, st.previous_school, st.status, st.created_at,
+              pv.name || ' - ' || lv.name AS class_name
+         FROM students st
+         LEFT JOIN enrollments en ON en.student_id = st.id AND en.academic_year_id = (SELECT id FROM academic_years WHERE status = 'active')
+         LEFT JOIN classes cl ON cl.id = en.class_id
+         LEFT JOIN levels lv ON lv.id = cl.level_id
+         LEFT JOIN programmes pv ON pv.id = lv.programme_id
+        WHERE ${where}`,
+    )
+    .bind(param)
+    .first<StudentDetailRow>();
+  if (!row) return null;
+  return {
+    id: row.public_id,
+    sid: row.sid,
+    firstName: row.first_name,
+    middleName: row.middle_name,
+    lastName: row.last_name,
+    dob: row.dob_ad,
+    dobBs: adToBsText(row.dob_ad),
+    phone: row.phone,
+    email: row.email,
+    guardianName: row.guardian_name,
+    guardianPhone: row.guardian_phone,
+    previousSchool: row.previous_school,
+    status: row.status as StudentDetail["status"],
+    className: row.class_name,
+    createdAt: row.created_at,
+  };
+}
+
+/** By public id, scoped to the viewer's sections (checked separately for a `own`-scope student, see the route). */
+export async function getStudent(db: D1Database, sections: "all" | readonly string[], publicId: string): Promise<StudentDetail | null> {
+  if (sections === "all") return studentDetailFrom(db, "st.public_id = ?1", publicId);
+  const row = await db
+    .prepare(
+      `SELECT 1 FROM students st
+         LEFT JOIN enrollments en ON en.student_id = st.id AND en.academic_year_id = (SELECT id FROM academic_years WHERE status = 'active')
+         LEFT JOIN classes cl ON cl.id = en.class_id LEFT JOIN levels lv ON lv.id = cl.level_id LEFT JOIN programmes pv ON pv.id = lv.programme_id LEFT JOIN sections s ON s.id = pv.section_id
+        WHERE st.public_id = ?1 AND (s.key IS NULL OR s.key IN (SELECT value FROM json_each(?2)))`,
+    )
+    .bind(publicId, JSON.stringify(sections))
+    .first();
+  if (!row) return null;
+  return studentDetailFrom(db, "st.public_id = ?1", publicId);
+}
+
+/** The signed-in student's own record. */
+export async function getOwnStudent(db: D1Database, userPublicId: string): Promise<StudentDetail | null> {
+  return studentDetailFrom(db, "st.user_id = (SELECT id FROM users WHERE public_id = ?1)", userPublicId);
+}

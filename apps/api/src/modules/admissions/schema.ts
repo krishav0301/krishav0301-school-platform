@@ -1,0 +1,129 @@
+import { z } from "@hono/zod-openapi";
+
+export const PublicIdSchema = z.string().regex(/^[0-9a-f]{32}$/, "That is not a valid id");
+
+/** An AD calendar day, "YYYY-MM-DD", checked against the real calendar. Each module keeps its own copy (modules do not reach into each other). */
+export const CalendarDaySchema = z
+  .string()
+  .regex(/^\d{4}-\d{2}-\d{2}$/, "Use the form YYYY-MM-DD")
+  .refine((value) => {
+    const date = new Date(`${value}T00:00:00Z`);
+    return !Number.isNaN(date.getTime()) && date.toISOString().startsWith(value);
+  }, "That day does not exist");
+
+const Name = z.string().trim().min(1, "This is required").max(60, "Keep it to 60 characters");
+const Phone = z.string().trim().regex(/^[0-9+\-() ]{7,20}$/, "That does not look like a phone number");
+const Email = z.string().trim().min(1, "Give an email address").max(200).email("That does not look like an email address");
+
+/** What the public applies with, or what a Co-ordinator/Accountant types in for a walk-in. */
+export const ApplicantDetailsSchema = z.strictObject({
+  firstName: Name,
+  middleName: Name.optional(),
+  lastName: Name,
+  dob: CalendarDaySchema,
+  phone: Phone,
+  email: Email,
+  guardianName: z.string().trim().min(1, "Give the guardian's name").max(120, "Keep it to 120 characters"),
+  guardianPhone: Phone,
+  previousSchool: z.string().trim().max(120).optional(),
+  /** "Referred by (if any)": optional free text. */
+  referredBy: z.string().trim().max(120).optional(),
+  levelId: PublicIdSchema,
+});
+export type ApplicantDetails = z.infer<typeof ApplicantDetailsSchema>;
+
+/** The public application form. A submission token makes a repeat click (or a retried request) change nothing new. */
+export const ApplySchema = ApplicantDetailsSchema.extend({
+  submissionToken: z.string().trim().regex(/^[A-Za-z0-9_-]{16,100}$/, "That is not a valid submission token"),
+  /** A field no real visitor sees or fills; a script that fills every field trips it. Never rejected here: a
+   * validation error would teach a bot exactly which field to leave empty. The service silently no-ops instead. */
+  website: z.string().optional(),
+}).openapi("ApplyInput");
+export type ApplyInput = z.infer<typeof ApplySchema>;
+
+export const WalkInSchema = ApplicantDetailsSchema.openapi("WalkInInput");
+export type WalkInInput = z.infer<typeof WalkInSchema>;
+
+export const VerifyEmailSchema = z.strictObject({ token: z.string().trim().regex(/^[A-Za-z0-9_-]{16,200}$/, "That is not a valid token") }).openapi("VerifyEmailInput");
+
+export const RequestChangesSchema = z.strictObject({
+  fields: z.array(z.string().trim().min(1)).min(1, "Pick at least one field"),
+  reason: z.string().trim().min(1, "Give a reason").max(500, "Keep the reason to 500 characters"),
+}).openapi("RequestChanges");
+export type RequestChanges = z.infer<typeof RequestChangesSchema>;
+
+export const RejectSchema = z.strictObject({ reason: z.string().trim().min(1, "Give a reason").max(500, "Keep the reason to 500 characters") }).openapi("RejectInput");
+export type RejectInput = z.infer<typeof RejectSchema>;
+
+export const ApproveSchema = z.strictObject({ classId: PublicIdSchema, rollNo: z.number().int().min(1).max(999).optional() }).openapi("ApproveInput");
+export type ApproveInput = z.infer<typeof ApproveSchema>;
+
+// --- What the screens read ---------------------------------------------------------------------------
+
+export const ApplicationStatusSchema = z.enum(["email_unverified", "pending_review", "needs_changes", "approved", "rejected", "expired"]).openapi("ApplicationStatus");
+
+export const ApplicationSummarySchema = z
+  .object({
+    id: z.string(),
+    firstName: z.string(),
+    lastName: z.string(),
+    status: ApplicationStatusSchema,
+    walkIn: z.boolean(),
+    levelName: z.string(),
+    programmeName: z.string(),
+    sectionKey: z.string(),
+    duplicateFlags: z.array(z.string()),
+    createdAt: z.string(),
+  })
+  .openapi("ApplicationSummary");
+export const ApplicationQueueSchema = z.object({ applications: z.array(ApplicationSummarySchema) }).openapi("ApplicationQueue");
+export type ApplicationQueue = z.infer<typeof ApplicationQueueSchema>;
+
+export const ApplicationDetailSchema = ApplicationSummarySchema.extend({
+  middleName: z.string().nullable(),
+  dob: z.string(),
+  dobBs: z.string().nullable(),
+  phone: z.string(),
+  email: z.string(),
+  guardianName: z.string(),
+  guardianPhone: z.string(),
+  previousSchool: z.string().nullable(),
+  referredBy: z.string().nullable(),
+  changesRequested: z.object({ fields: z.array(z.string()), reason: z.string() }).nullable(),
+  decisionReason: z.string().nullable(),
+}).openapi("ApplicationDetail");
+export type ApplicationDetail = z.infer<typeof ApplicationDetailSchema>;
+
+export const StudentSummarySchema = z
+  .object({
+    id: z.string(),
+    sid: z.string(),
+    firstName: z.string(),
+    lastName: z.string(),
+    status: z.enum(["active", "left", "graduated"]),
+    className: z.string().nullable(),
+  })
+  .openapi("StudentSummary");
+export const StudentListSchema = z.object({ students: z.array(StudentSummarySchema) }).openapi("StudentList");
+export type StudentList = z.infer<typeof StudentListSchema>;
+
+export const StudentDetailSchema = z
+  .object({
+    id: z.string(),
+    sid: z.string(),
+    firstName: z.string(),
+    middleName: z.string().nullable(),
+    lastName: z.string(),
+    dob: z.string(),
+    dobBs: z.string().nullable(),
+    phone: z.string().nullable(),
+    email: z.string().nullable(),
+    guardianName: z.string(),
+    guardianPhone: z.string(),
+    previousSchool: z.string().nullable(),
+    status: z.enum(["active", "left", "graduated"]),
+    className: z.string().nullable(),
+    createdAt: z.string(),
+  })
+  .openapi("StudentDetail");
+export type StudentDetail = z.infer<typeof StudentDetailSchema>;

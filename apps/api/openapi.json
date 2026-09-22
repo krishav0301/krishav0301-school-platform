@@ -2451,6 +2451,577 @@
         ],
         "additionalProperties": false
       },
+      "AdmissionsCreated": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      },
+      "AdmissionsError": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "error"
+        ]
+      },
+      "AdmissionsInvalid": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "string",
+            "enum": [
+              "invalid"
+            ]
+          },
+          "message": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "error",
+          "message"
+        ]
+      },
+      "ApplyInput": {
+        "type": "object",
+        "properties": {
+          "firstName": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 60
+          },
+          "middleName": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 60
+          },
+          "lastName": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 60
+          },
+          "dob": {
+            "type": "string",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+          },
+          "phone": {
+            "type": "string",
+            "pattern": "^[0-9+\\-() ]{7,20}$"
+          },
+          "email": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "format": "email"
+          },
+          "guardianName": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 120
+          },
+          "guardianPhone": {
+            "type": "string",
+            "pattern": "^[0-9+\\-() ]{7,20}$"
+          },
+          "previousSchool": {
+            "type": "string",
+            "maxLength": 120
+          },
+          "referredBy": {
+            "type": "string",
+            "maxLength": 120
+          },
+          "levelId": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{32}$"
+          },
+          "submissionToken": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9_-]{16,100}$"
+          },
+          "website": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "firstName",
+          "lastName",
+          "dob",
+          "phone",
+          "email",
+          "guardianName",
+          "guardianPhone",
+          "levelId",
+          "submissionToken"
+        ],
+        "additionalProperties": false
+      },
+      "AdmissionsOk": {
+        "type": "object",
+        "properties": {
+          "ok": {
+            "type": "boolean",
+            "enum": [
+              true
+            ]
+          }
+        },
+        "required": [
+          "ok"
+        ]
+      },
+      "VerifyEmailInput": {
+        "type": "object",
+        "properties": {
+          "token": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9_-]{16,200}$"
+          }
+        },
+        "required": [
+          "token"
+        ],
+        "additionalProperties": false
+      },
+      "WalkInInput": {
+        "type": "object",
+        "properties": {
+          "firstName": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 60
+          },
+          "middleName": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 60
+          },
+          "lastName": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 60
+          },
+          "dob": {
+            "type": "string",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+          },
+          "phone": {
+            "type": "string",
+            "pattern": "^[0-9+\\-() ]{7,20}$"
+          },
+          "email": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "format": "email"
+          },
+          "guardianName": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 120
+          },
+          "guardianPhone": {
+            "type": "string",
+            "pattern": "^[0-9+\\-() ]{7,20}$"
+          },
+          "previousSchool": {
+            "type": "string",
+            "maxLength": 120
+          },
+          "referredBy": {
+            "type": "string",
+            "maxLength": 120
+          },
+          "levelId": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{32}$"
+          }
+        },
+        "required": [
+          "firstName",
+          "lastName",
+          "dob",
+          "phone",
+          "email",
+          "guardianName",
+          "guardianPhone",
+          "levelId"
+        ],
+        "additionalProperties": false
+      },
+      "ApplicationQueue": {
+        "type": "object",
+        "properties": {
+          "applications": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ApplicationSummary"
+            }
+          }
+        },
+        "required": [
+          "applications"
+        ]
+      },
+      "ApplicationSummary": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "firstName": {
+            "type": "string"
+          },
+          "lastName": {
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/ApplicationStatus"
+          },
+          "walkIn": {
+            "type": "boolean"
+          },
+          "levelName": {
+            "type": "string"
+          },
+          "programmeName": {
+            "type": "string"
+          },
+          "sectionKey": {
+            "type": "string"
+          },
+          "duplicateFlags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "createdAt": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "firstName",
+          "lastName",
+          "status",
+          "walkIn",
+          "levelName",
+          "programmeName",
+          "sectionKey",
+          "duplicateFlags",
+          "createdAt"
+        ]
+      },
+      "ApplicationStatus": {
+        "type": "string",
+        "enum": [
+          "email_unverified",
+          "pending_review",
+          "needs_changes",
+          "approved",
+          "rejected",
+          "expired"
+        ]
+      },
+      "ApplicationDetail": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ApplicationSummary"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "middleName": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "dob": {
+                "type": "string"
+              },
+              "dobBs": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "phone": {
+                "type": "string"
+              },
+              "email": {
+                "type": "string"
+              },
+              "guardianName": {
+                "type": "string"
+              },
+              "guardianPhone": {
+                "type": "string"
+              },
+              "previousSchool": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "referredBy": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "changesRequested": {
+                "type": [
+                  "object",
+                  "null"
+                ],
+                "properties": {
+                  "fields": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "reason": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "fields",
+                  "reason"
+                ]
+              },
+              "decisionReason": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            },
+            "required": [
+              "middleName",
+              "dob",
+              "dobBs",
+              "phone",
+              "email",
+              "guardianName",
+              "guardianPhone",
+              "previousSchool",
+              "referredBy",
+              "changesRequested",
+              "decisionReason"
+            ]
+          }
+        ]
+      },
+      "RequestChanges": {
+        "type": "object",
+        "properties": {
+          "fields": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            },
+            "minItems": 1
+          },
+          "reason": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 500
+          }
+        },
+        "required": [
+          "fields",
+          "reason"
+        ],
+        "additionalProperties": false
+      },
+      "RejectInput": {
+        "type": "object",
+        "properties": {
+          "reason": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 500
+          }
+        },
+        "required": [
+          "reason"
+        ],
+        "additionalProperties": false
+      },
+      "ApproveInput": {
+        "type": "object",
+        "properties": {
+          "classId": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{32}$"
+          },
+          "rollNo": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 999
+          }
+        },
+        "required": [
+          "classId"
+        ],
+        "additionalProperties": false
+      },
+      "StudentList": {
+        "type": "object",
+        "properties": {
+          "students": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/StudentSummary"
+            }
+          }
+        },
+        "required": [
+          "students"
+        ]
+      },
+      "StudentSummary": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "sid": {
+            "type": "string"
+          },
+          "firstName": {
+            "type": "string"
+          },
+          "lastName": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "active",
+              "left",
+              "graduated"
+            ]
+          },
+          "className": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "sid",
+          "firstName",
+          "lastName",
+          "status",
+          "className"
+        ]
+      },
+      "StudentDetail": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "sid": {
+            "type": "string"
+          },
+          "firstName": {
+            "type": "string"
+          },
+          "middleName": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "lastName": {
+            "type": "string"
+          },
+          "dob": {
+            "type": "string"
+          },
+          "dobBs": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "phone": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "email": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "guardianName": {
+            "type": "string"
+          },
+          "guardianPhone": {
+            "type": "string"
+          },
+          "previousSchool": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "active",
+              "left",
+              "graduated"
+            ]
+          },
+          "className": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "createdAt": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "sid",
+          "firstName",
+          "middleName",
+          "lastName",
+          "dob",
+          "dobBs",
+          "phone",
+          "email",
+          "guardianName",
+          "guardianPhone",
+          "previousSchool",
+          "status",
+          "className",
+          "createdAt"
+        ]
+      },
       "DateConversionFailure": {
         "type": "object",
         "properties": {
@@ -6317,6 +6888,700 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ApprovalsInvalid"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admissions/apply": {
+      "post": {
+        "operationId": "apply_for_admission",
+        "tags": [
+          "admissions"
+        ],
+        "description": "Applies for admission. Anonymous, rate limited. A submission token makes a retried request change nothing new. Enters the queue once the email is verified.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ApplyInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Received",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdmissionsCreated"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such level, or no active year",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdmissionsError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "The change breaks a rule; nothing changed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdmissionsInvalid"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many recent attempts",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdmissionsError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admissions/verify": {
+      "post": {
+        "operationId": "verify_admission_email",
+        "tags": [
+          "admissions"
+        ],
+        "description": "Confirms the applicant's email from the link sent to them, and puts the application in the queue.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VerifyEmailInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Confirmed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdmissionsOk"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "The link has expired or was already used",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdmissionsError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admissions/walk-ins": {
+      "post": {
+        "operationId": "register_walk_in",
+        "tags": [
+          "admissions"
+        ],
+        "description": "The Co-ordinator registers a walk-in and places them straight into a class. Auto-approved.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/WalkInInput"
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "classId": {
+                        "type": "string",
+                        "pattern": "^[0-9a-f]{32}$"
+                      }
+                    },
+                    "required": [
+                      "classId"
+                    ],
+                    "additionalProperties": false
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Admitted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdmissionsCreated"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdmissionsError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such item",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdmissionsError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "It conflicts with what is already there",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdmissionsError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "The change breaks a rule; nothing changed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdmissionsInvalid"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admissions/register": {
+      "post": {
+        "operationId": "register_student",
+        "tags": [
+          "admissions"
+        ],
+        "description": "The Accountant registers a student. Goes to the Co-ordinator's review queue like a public applicant who has verified their email.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WalkInInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Sent to the queue",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdmissionsCreated"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdmissionsError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such item",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdmissionsError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "It conflicts with what is already there",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdmissionsError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "The change breaks a rule; nothing changed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdmissionsInvalid"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admissions/queue": {
+      "get": {
+        "operationId": "list_admission_queue",
+        "tags": [
+          "admissions"
+        ],
+        "description": "Applications waiting on a decision, oldest first, scoped to the person's sections.",
+        "responses": {
+          "200": {
+            "description": "The queue",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApplicationQueue"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admissions/applications/{id}": {
+      "get": {
+        "operationId": "get_application",
+        "tags": [
+          "admissions"
+        ],
+        "description": "One application in full, for the review screen. Outside the person's sections is 404, the same as a missing one.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{32}$"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The application",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApplicationDetail"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such application, or not one the person may see",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdmissionsError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admissions/applications/{id}/request-changes": {
+      "post": {
+        "operationId": "request_application_changes",
+        "tags": [
+          "admissions"
+        ],
+        "description": "Asks the applicant to change one or more fields, with a reason. The applicant is emailed.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{32}$"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RequestChanges"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Sent",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdmissionsOk"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdmissionsError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such item",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdmissionsError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "It conflicts with what is already there",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdmissionsError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "The change breaks a rule; nothing changed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdmissionsInvalid"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admissions/applications/{id}/reject": {
+      "post": {
+        "operationId": "reject_application",
+        "tags": [
+          "admissions"
+        ],
+        "description": "Rejects the application, with a reason. Final: the applicant must reapply.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{32}$"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RejectInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Rejected",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdmissionsOk"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdmissionsError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such item",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdmissionsError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "It conflicts with what is already there",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdmissionsError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "The change breaks a rule; nothing changed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdmissionsInvalid"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admissions/applications/{id}/approve": {
+      "post": {
+        "operationId": "approve_application",
+        "tags": [
+          "admissions"
+        ],
+        "description": "Approves the application: assigns the SID, creates the student and their login, and enrolls them in the given class. The class must be active and of the application's own level.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{32}$"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ApproveInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Admitted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": {
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
+                    },
+                    "sid": {
+                      "type": "string"
+                    },
+                    "studentId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "ok",
+                    "sid",
+                    "studentId"
+                  ]
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdmissionsError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such item",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdmissionsError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "It conflicts with what is already there",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdmissionsError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "The change breaks a rule; nothing changed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdmissionsInvalid"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/students": {
+      "get": {
+        "operationId": "search_students",
+        "tags": [
+          "students"
+        ],
+        "description": "By name, SID or phone, scoped to the person's sections.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            },
+            "required": true,
+            "name": "q",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Matches",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StudentList"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/students/me": {
+      "get": {
+        "operationId": "get_own_student",
+        "tags": [
+          "students"
+        ],
+        "description": "The signed-in student's own record.",
+        "responses": {
+          "200": {
+            "description": "The record",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StudentDetail"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No student record for this sign-in",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdmissionsError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/students/{id}": {
+      "get": {
+        "operationId": "get_student",
+        "tags": [
+          "students"
+        ],
+        "description": "One student's personal details, for staff. Outside the person's sections is 404, the same as a missing one.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{32}$"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The record",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StudentDetail"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such student, or not one the person may see",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdmissionsError"
                 }
               }
             }

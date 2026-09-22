@@ -30,6 +30,9 @@ export const PUBLIC_ROUTES: ReadonlySet<string> = new Set([
   // Choosing a password after a temporary one. The credential is the challenge from a correct temporary password
   // (signed, five minutes, works once, not a session); it opens nothing else, and no other challenge opens this.
   "POST /api/auth/password/change-required",
+  // Confirms an applicant's email from the emailed link. The credential is the token (256 random
+  // bits, hash-only, single-use, 24 hours), the same shape as password reset's own confirm step.
+  "POST /api/admissions/verify",
 ]);
 
 /** Any signed-in user, whatever their role. For things people do to their own account. */
