@@ -25,7 +25,10 @@ function DeclineForm({ request, busy, onDecline }: { request: ApprovalSummary; b
   return (
     <details className={setupStyles.disclosure}>
       <summary className={setupStyles.summary}>{t("approvals.decline")}</summary>
-      <form onSubmit={submit} className={setupStyles.inline} aria-label={t("approvals.declineItem", { summary: request.summary })}>
+      {/* `.form`, not `.inline`: `.inline` is a wrapping row for short side-by-side fields (Curriculum's
+          credit/group inputs), and a multi-line TextArea's intrinsic width breaks out of a flex row at
+          large text sizes (found at 320 px, 200%) since nothing there constrains it to the row's own width. */}
+      <form onSubmit={submit} className={setupStyles.form} aria-label={t("approvals.declineItem", { summary: request.summary })}>
         <TextArea
           label={t("approvals.declineReason")}
           hint={t("approvals.declineReasonHint")}
