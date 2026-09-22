@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import { t } from "@/i18n/messages";
 import { useSession } from "@/session/SessionProvider";
@@ -11,17 +11,23 @@ import styles from "./admissions.module.css";
 import { searchStudents } from "./client";
 import type { StudentSummary } from "./model";
 
+/** How long to wait, after the last keystroke, before searching. Keeps a fast typer from firing a request per letter. */
+const DEBOUNCE_MS = 300;
+
 /** By name, SID or phone, scoped to the person's sections (D-063). */
 export function SearchScreen() {
   const { api } = useSession();
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<StudentSummary[] | null>(null);
   const [failure, setFailure] = useState<string | null>(null);
+  const latest = useRef(0);
 
   const run = useCallback(
     async (q: string) => {
+      const mine = ++latest.current;
       if (!q.trim()) return setResults(null);
       const result = await searchStudents(api, q.trim());
+      if (mine !== latest.current) return; // a newer search has since started; drop this stale answer
       if (result.ok) {
         setFailure(null);
         setResults(result.data);
@@ -32,18 +38,15 @@ export function SearchScreen() {
     [api],
   );
 
+  useEffect(() => {
+    const id = setTimeout(() => void run(query), DEBOUNCE_MS);
+    return () => clearTimeout(id);
+  }, [query, run]);
+
   return (
     <>
       <h1 className={setupStyles.title}>{t("admissions.search.title")}</h1>
-      <Field
-        label={t("admissions.search.label")}
-        hint={t("admissions.search.hint")}
-        value={query}
-        onChange={(event) => {
-          setQuery(event.target.value);
-          void run(event.target.value);
-        }}
-      />
+      <Field label={t("admissions.search.label")} hint={t("admissions.search.hint")} value={query} onChange={(event) => setQuery(event.target.value)} />
       {failure ? <Notice tone="bad">{failure}</Notice> : null}
       {results !== null ? (
         results.length === 0 ? (
