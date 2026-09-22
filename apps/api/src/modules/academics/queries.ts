@@ -1,5 +1,5 @@
 import { adToBsText } from "../../core/dates";
-import type { AcademicYearList, Curriculum, ProgrammeList, SchoolClassList, SubjectList, Teaching, TerminalList } from "./schema";
+import type { AcademicYearList, Curriculum, ProgrammeList, SchoolClassList, SetupChecklist, SubjectList, Teaching, TerminalList } from "./schema";
 
 /** A section filter for SQL: `null` means every section, otherwise a JSON array of section keys (used with `json_each`). */
 const sectionFilter = (sections: "all" | readonly string[]): string | null => (sections === "all" ? null : JSON.stringify(sections));
@@ -316,4 +316,41 @@ export async function getTeaching(db: D1Database, sections: "all" | readonly str
     })),
     teachers: (teacherResult!.results as unknown as TeachingTeacherRow[]).map((r) => ({ id: r.public_id, fullName: r.full_name })),
   };
+}
+
+/**
+ * A Co-ordinator's setup checklist (D-062): nothing is stored, this is computed fresh from the data,
+ * scoped to the sections the viewer may see. One round trip: each item is a single EXISTS/NOT EXISTS
+ * subquery bound to the active year (most items depend on there being one at all).
+ */
+export async function getSetupChecklist(db: D1Database, sections: "all" | readonly string[]): Promise<SetupChecklist> {
+  const filter = sectionFilter(sections);
+  const row = await db
+    .prepare(
+      `SELECT
+         EXISTS (SELECT 1 FROM academic_years WHERE status = 'active') AS year,
+         EXISTS (SELECT 1 FROM programmes p JOIN sections s ON s.id = p.section_id
+                  WHERE p.is_active = 1 AND (?1 IS NULL OR s.key IN (SELECT value FROM json_each(?1)))
+                    AND EXISTS (SELECT 1 FROM levels l WHERE l.programme_id = p.id AND l.is_active = 1)) AS structure,
+         EXISTS (SELECT 1 FROM classes c JOIN academic_years y ON y.id = c.academic_year_id
+                  JOIN programmes p ON p.id = c.programme_id JOIN sections s ON s.id = p.section_id
+                  WHERE y.status = 'active' AND c.is_active = 1 AND (?1 IS NULL OR s.key IN (SELECT value FROM json_each(?1)))) AS classes,
+         EXISTS (SELECT 1 FROM terminals t JOIN academic_years y ON y.id = t.academic_year_id WHERE y.status = 'active') AS terminals,
+         EXISTS (SELECT 1 FROM subject_offerings o JOIN levels l ON l.id = o.level_id JOIN programmes p ON p.id = l.programme_id
+                  JOIN sections s ON s.id = p.section_id
+                  WHERE o.is_active = 1 AND (?1 IS NULL OR s.key IN (SELECT value FROM json_each(?1)))) AS subjects,
+         EXISTS (SELECT 1 FROM users u JOIN role_assignments ra ON ra.user_id = u.id
+                  WHERE u.is_active = 1 AND ra.is_active = 1 AND ra.role = 'teacher') AS teachers,
+         NOT EXISTS (SELECT 1 FROM classes c JOIN academic_years y ON y.id = c.academic_year_id
+                      JOIN programmes p ON p.id = c.programme_id JOIN sections s ON s.id = p.section_id
+                      WHERE y.status = 'active' AND c.is_active = 1 AND c.class_teacher_user_id IS NULL
+                        AND (?1 IS NULL OR s.key IN (SELECT value FROM json_each(?1))))
+                AND EXISTS (SELECT 1 FROM classes c JOIN academic_years y ON y.id = c.academic_year_id
+                      JOIN programmes p ON p.id = c.programme_id JOIN sections s ON s.id = p.section_id
+                      WHERE y.status = 'active' AND c.is_active = 1 AND (?1 IS NULL OR s.key IN (SELECT value FROM json_each(?1)))) AS classTeachers`,
+    )
+    .bind(filter)
+    .first<Record<string, number>>();
+  const r = row!;
+  return { year: r.year === 1, structure: r.structure === 1, classes: r.classes === 1, terminals: r.terminals === 1, subjects: r.subjects === 1, teachers: r.teachers === 1, classTeachers: r.classTeachers === 1 };
 }
