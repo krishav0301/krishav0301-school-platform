@@ -3,16 +3,16 @@
 import { usePathname } from "next/navigation";
 
 import { PeopleTabs } from "@/people/PeopleTabs";
-import { StaffScreen } from "@/people/StaffScreen";
+import { TeachingScreen } from "@/people/TeachingScreen";
 import { PortalShell } from "@/shell/PortalShell";
 
-/** The staff: who runs the school's accounts. Who may see or change what is decided by the API; the menu entry is only tidiness. */
-export default function PeoplePage() {
+/** Teaching (D-060): one teacher per subject in a class, and each class's Class Teacher. */
+export default function TeachingPage() {
   const pathname = usePathname();
   return (
     <PortalShell>
       <PeopleTabs pathname={pathname} />
-      <StaffScreen />
+      <TeachingScreen />
     </PortalShell>
   );
 }

@@ -1072,7 +1072,22 @@
             "type": "string"
           },
           "classTeacher": {
-            "$ref": "#/components/schemas/TeachableTeacher"
+            "type": [
+              "object",
+              "null"
+            ],
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "fullName": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "fullName"
+            ]
           },
           "assignments": {
             "type": "array",
@@ -1083,7 +1098,19 @@
           "teachers": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/TeachableTeacher"
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "fullName": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "id",
+                "fullName"
+              ]
             }
           }
         },
@@ -1096,24 +1123,6 @@
           "teachers"
         ]
       },
-      "TeachableTeacher": {
-        "type": [
-          "object",
-          "null"
-        ],
-        "properties": {
-          "id": {
-            "type": "string"
-          },
-          "fullName": {
-            "type": "string"
-          }
-        },
-        "required": [
-          "id",
-          "fullName"
-        ]
-      },
       "TeachingAssignment": {
         "type": "object",
         "properties": {
@@ -1124,7 +1133,22 @@
             "type": "string"
           },
           "teacher": {
-            "$ref": "#/components/schemas/TeachableTeacher"
+            "type": [
+              "object",
+              "null"
+            ],
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "fullName": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "fullName"
+            ]
           }
         },
         "required": [

@@ -1099,18 +1099,23 @@ export interface components {
             classId: string;
             classLabel: string;
             levelName: string;
-            classTeacher: components["schemas"]["TeachableTeacher"];
+            classTeacher: {
+                id: string;
+                fullName: string;
+            } | null;
             assignments: components["schemas"]["TeachingAssignment"][];
-            teachers: components["schemas"]["TeachableTeacher"][];
+            teachers: {
+                id: string;
+                fullName: string;
+            }[];
         };
-        TeachableTeacher: {
-            id: string;
-            fullName: string;
-        } | null;
         TeachingAssignment: {
             offeringId: string;
             subjectName: string;
-            teacher: components["schemas"]["TeachableTeacher"];
+            teacher: {
+                id: string;
+                fullName: string;
+            } | null;
         };
         AssignmentInput: {
             classId: string;
