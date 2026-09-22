@@ -202,3 +202,35 @@ export const CurriculumSchema = z
   })
   .openapi("Curriculum");
 export type Curriculum = z.infer<typeof CurriculumSchema>;
+
+// --- Teaching (D-060): who teaches what in a class, and the Class Teacher --------------------------
+
+export const AssignmentInputSchema = z.strictObject({ classId: PublicIdSchema, offeringId: PublicIdSchema, teacherId: PublicIdSchema.nullable() }).openapi("AssignmentInput");
+export type AssignmentInput = z.infer<typeof AssignmentInputSchema>;
+
+export const ClassTeacherInputSchema = z.strictObject({ teacherId: PublicIdSchema.nullable() }).openapi("ClassTeacherInput");
+export type ClassTeacherInput = z.infer<typeof ClassTeacherInputSchema>;
+
+/**
+ * A person, named for a teacher picker. Deliberately not a named `.openapi()` component: registering it once
+ * and calling `.nullable()` on it elsewhere merges the null into the shared component (`type: ["object", "null"]`),
+ * which then makes the never-null `teachers` list wrongly nullable too. Left as a plain anonymous shape, inlined
+ * wherever it is used, non-nullably here and with `.nullable()` at the two call sites that need it.
+ */
+const teacherShape = () => z.object({ id: z.string(), fullName: z.string() });
+
+export const TeachingAssignmentSchema = z.object({ offeringId: z.string(), subjectName: z.string(), teacher: teacherShape().nullable() }).openapi("TeachingAssignment");
+
+/** One class's teaching: its subjects with their current teacher, its Class Teacher, and who may be picked. */
+export const TeachingSchema = z
+  .object({
+    classId: z.string(),
+    classLabel: z.string(),
+    levelName: z.string(),
+    classTeacher: teacherShape().nullable(),
+    assignments: z.array(TeachingAssignmentSchema),
+    /** The teachers this viewer may pick from, for both dropdowns. Never contains a null entry. */
+    teachers: z.array(teacherShape()),
+  })
+  .openapi("Teaching");
+export type Teaching = z.infer<typeof TeachingSchema>;

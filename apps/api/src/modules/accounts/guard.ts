@@ -2,8 +2,11 @@
  * Who may create and manage staff (D-059), written as SQL so it is re-checked INSIDE every write from the database,
  * never from the sign-in token (the token can outlive a switch-off by up to 30 minutes, D-021). `?a` is the actor's
  * public id and `?t` the target's. The aliases (`mu`, `ma`, `tu`, `ta`, `tv`, `tb`, `tp`) are reserved for these
- * fragments: do not reuse them in the statement around one.
+ * fragments: do not reuse them in the statement around one. The Co-ordinator-over-teacher branch is
+ * `teacherManageableBy` in `service.ts` (shared with `academics` for teaching assignments, D-060; a module may
+ * import another module's `service`, never its internals, so it lives there rather than here).
  */
+import { teacherManageableBy } from "./service";
 
 /**
  * May the actor manage this person (switch them off or on, give them a new temporary password)?
@@ -21,10 +24,7 @@ export const actorMayManage = (a: number, t: number): string =>
           OR (ma.role = 'admin' AND EXISTS (
                 SELECT 1 FROM users tu JOIN role_assignments ta ON ta.user_id = tu.id
                  WHERE tu.public_id = ?${t} AND ta.is_active = 1 AND ta.role IN ('coordinator', 'accountant')))
-          OR (ma.role = 'coordinator' AND EXISTS (
-                SELECT 1 FROM users tv JOIN role_assignments tb ON tb.user_id = tv.id LEFT JOIN staff_profiles tp ON tp.user_id = tv.id
-                 WHERE tv.public_id = ?${t} AND tb.is_active = 1 AND tb.role = 'teacher'
-                   AND (ma.scope_type = 'institution' OR tp.home_section_id = ma.section_id)))
+          OR ${teacherManageableBy(a, t)}
         )
    )`;
 
