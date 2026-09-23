@@ -43,6 +43,12 @@ export function PublicShell({ children, showSignIn = true }: { children: ReactNo
           </ul>
         </nav>
         {school ? <p>{t("shell.footer", { school: school.name })}</p> : null}
+        {/* Not part of SITE_LINKS: a legal page, not one of the Worker's crawler-filled pages (site-links.test.ts checks that list exactly). */}
+        <p>
+          <Link href="/privacy" prefetch={false} className={styles.footerLink}>
+            {t("shell.privacy")}
+          </Link>
+        </p>
       </footer>
     </div>
   );

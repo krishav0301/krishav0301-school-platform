@@ -1,11 +1,12 @@
 "use client";
 
+import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { toAd } from "@/content/client";
 import { t } from "@/i18n/messages";
 import { useSession } from "@/session/SessionProvider";
-import { Button, Card, Notice, Skeleton } from "@/ui";
+import { Button, Card, Checkbox, Notice, Skeleton } from "@/ui";
 
 import { ApplicantFields } from "./ApplicantFields";
 import admissionsStyles from "./admissions.module.css";
@@ -29,6 +30,7 @@ export function ApplyScreen() {
   const [failure, setFailure] = useState<string | null>(null);
   const [done, setDone] = useState(false);
   const [website, setWebsite] = useState("");
+  const [consent, setConsent] = useState(false);
   const token = useRef(newSubmissionToken());
   const firstNameRef = useRef<HTMLInputElement>(null);
   const dobRef = useRef<HTMLInputElement>(null);
@@ -58,6 +60,7 @@ export function ApplyScreen() {
       else if (first === "levelId") levelRef.current?.focus();
       return;
     }
+    if (!consent) return setFailure(t("admissions.error.consentRequired"));
     setPending(true);
     const converted = await toAd(api, values.dobBs);
     if (!converted.ok) {
@@ -111,6 +114,10 @@ export function ApplyScreen() {
               <label htmlFor="admissions-website">Website</label>
               <input id="admissions-website" name="website" type="text" tabIndex={-1} autoComplete="off" value={website} onChange={(e) => setWebsite(e.target.value)} />
             </div>
+            <p>
+              <Link href="/privacy">{t("admissions.apply.privacyLink")}</Link>
+            </p>
+            <Checkbox label={t("admissions.apply.privacyConsent")} checked={consent} onChange={(e) => setConsent(e.target.checked)} />
             <Button type="submit" loading={pending} loadingLabel={t("admissions.apply.submitting")}>
               {t("admissions.apply.submit")}
             </Button>

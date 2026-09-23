@@ -1,6 +1,7 @@
 import { OpenAPIHono } from "@hono/zod-openapi";
 
 import { environmentGuard } from "./core/environment";
+import { logUnhandledError, unhandledErrorResponse } from "./core/error-handler";
 import { sameOriginOnly } from "./core/same-origin";
 import type { AppEnv } from "./core/types";
 import { registerAcademics } from "./modules/academics/routes";
@@ -43,6 +44,15 @@ export function createApp() {
   registerAdmissions(app);
   registerDates(app);
   registerSite(app);
+
+  // An unhandled exception is otherwise silent: Hono answers it, but nothing records that it happened
+  // (Release A go-live checklist, D-067). This is the free half of "error alerts" — the log line a
+  // real alerting service (Sentry or similar) would forward once the PM chooses one and gives it a
+  // secret to read; until then, the error is at least visible in the Worker's own logs.
+  app.onError((err, c) => {
+    logUnhandledError(err, c.req.method, c.req.path);
+    return unhandledErrorResponse(c);
+  });
 
   return app;
 }

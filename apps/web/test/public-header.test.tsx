@@ -101,8 +101,10 @@ describe("the footer", () => {
   it("repeats the page links in its own labelled navigation, so they are reachable without the Menu, and names the school", () => {
     const html = footer(shell("/programmes"));
     expect(html).toMatch(/<nav[^>]*aria-label="Footer"/);
-    expect([...html.matchAll(/<a[^>]*href="([^"]+)"/g)].map((m) => m[1])).toEqual(HREFS);
+    // Privacy is a legal page, not one of the Worker's crawler-filled pages, so it is added separately from SITE_LINKS/HREFS.
+    expect([...html.matchAll(/<a[^>]*href="([^"]+)"/g)].map((m) => m[1])).toEqual([...HREFS, "/privacy"]);
     for (const label of LABELS) expect(html).toContain(`>${label}</a>`);
+    expect(html).toContain(">Privacy</a>");
     expect(html).toContain("Royal Softech College");
   });
 
