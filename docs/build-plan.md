@@ -1,6 +1,6 @@
 # Build plan: reusable school platform
 
-Status: **approved by PM 2026-09-20 (D-012). Phases 0 and 1 complete (2026-09-21). Phase 2 complete (2026-09-21, D-038 to D-055). Phase 3 complete (2026-09-22, D-056 to D-062): the exit test passes for both schools through the real API. Phase 4 is in progress (2026-09-22, D-063): slice 1 (application, verification, review queue, walk-ins, SID and student/enrollment creation, search, student record, a cleanup sweep for abandoned applications) is built; upload hardening remains, blocked on R2 (D-020), noted as open in `DECISIONS.md`.** Decisions it rests on are in `DECISIONS.md`.
+Status: **approved by PM 2026-09-20 (D-012). Phases 0 and 1 complete (2026-09-21). Phase 2 complete (2026-09-21, D-038 to D-055). Phase 3 complete (2026-09-22, D-056 to D-062): the exit test passes for both schools through the real API. Phase 4 slice 1 is complete (2026-09-22 to 2026-09-23, D-063 to D-066): application, verification, review queue, walk-ins, SID and student/enrollment creation, search, student record, a cleanup sweep for abandoned applications, and the file storage interface; the exit test passes for both schools through the real API. Upload hardening (blocked on R2, D-020) and the Release A go-live checklist remain, both needing the PM, noted as open in `DECISIONS.md`.** Decisions it rests on are in `DECISIONS.md`.
 
 ## Where we are, and how to start the next session (updated 2026-09-21)
 
