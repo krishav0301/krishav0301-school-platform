@@ -3,6 +3,7 @@
 import { useCallback, useState } from "react";
 
 import { t } from "@/i18n/messages";
+import { TemporaryPasswordNotice } from "@/people/StaffScreen";
 import { useSession } from "@/session/SessionProvider";
 import setupStyles from "@/setup/setup.module.css";
 import { Gate, useLoad } from "@/setup/useLoad";
@@ -84,6 +85,7 @@ function ReviewForm({ detail, onDecided }: { detail: ApplicationDetail; onDecide
   const [classId, setClassId] = useState("");
   const [pending, setPending] = useState(false);
   const [failure, setFailure] = useState<string | null>(null);
+  const [secret, setSecret] = useState<string | null>(null);
 
   async function submitChanges() {
     if (!reason.trim()) return setFailure(t("admissions.error.reasonRequired"));
@@ -106,8 +108,12 @@ function ReviewForm({ detail, onDecided }: { detail: ApplicationDetail; onDecide
     setPending(true);
     const result = await approveApplication(api, detail.id, classId.trim(), null);
     setPending(false);
-    if (result.ok) return onDecided();
+    if (result.ok) return setSecret(result.temporaryPassword);
     setFailure(result.reason === "invalid" ? result.message : t("admissions.error.failed"));
+  }
+
+  if (secret) {
+    return <TemporaryPasswordNotice name={`${detail.firstName} ${detail.lastName}`} password={secret} onDone={onDecided} />;
   }
 
   return (

@@ -599,7 +599,6 @@ export const en = {
   "admissions.decide.classId": "Class",
   "admissions.decide.confirmApprove": "Confirm approve",
   "admissions.decide.noClasses": "No open class of this level yet. Add one in Setup first.",
-  "admissions.register.doneWalkIn": "Admitted. The student's SID and temporary password are ready in Search.",
   "admissions.register.doneQueue": "Registered. It is now in the Co-ordinator's queue.",
   "admissions.register.walkInTitle": "Register a walk-in",
   "admissions.register.walkInIntro": "Auto-approved: the student is admitted as soon as you submit this.",

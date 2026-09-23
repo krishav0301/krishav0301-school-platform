@@ -157,6 +157,9 @@ export async function expireStaleApplications(db: D1Database, now: Date = new Da
 // --- Staff-entered applications --------------------------------------------------------------------
 
 export type RegisterResult = { ok: true; publicId: string } | WriteFailure | Invalid | { ok: false; reason: "already_resolved" };
+/** A walk-in is auto-approved in the same request, so it carries what `approveApplication` returns: the SID and the
+ * one-time temporary password the Co-ordinator must hand the student standing in front of them. */
+export type WalkInResult = { ok: true; publicId: string; sid: string; temporaryPassword: string } | WriteFailure | Invalid | { ok: false; reason: "already_resolved" };
 
 /** The Co-ordinator's walk-in: auto-approved (D-021 domain rule), placed straight into a class. */
 export async function registerWalkIn(
@@ -166,12 +169,12 @@ export async function registerWalkIn(
   actor: string,
   input: WalkInInput & { classId: string },
   now: Date = new Date(),
-): Promise<RegisterResult> {
+): Promise<WalkInResult> {
   const { classId, ...applicantOnly } = input; // ApplicantDetailsSchema is strict: classId is approve's, not the applicant's
   const registered = await registerApplication(db, auditKey, actor, "walkin", applicantOnly, now);
   if (!registered.ok) return registered;
   const approved = await approveApplication(db, auditKey, dataKey, actor, registered.publicId, { classId }, now);
-  return approved.ok ? { ok: true, publicId: registered.publicId } : approved;
+  return approved.ok ? { ok: true, publicId: registered.publicId, sid: approved.sid, temporaryPassword: approved.temporaryPassword } : approved;
 }
 
 /** The Accountant's registration: goes to the queue like a public applicant who has verified their email. */
@@ -302,6 +305,8 @@ async function classifyDecideFailure(db: D1Database, actor: string, applicationP
   return { ok: false, reason: "already_resolved" };
 }
 
+/** Never pass the temporary password here: it must reach the outbox and its queue table for no one but the Co-ordinator who
+ * approved it to see, so it goes back in the API response instead (`ApproveResult`), the same way staff accounts do (D-059). */
 async function notifyDecision(db: D1Database, dataKey: string, applicationPublicId: string, decision: "needs_changes" | "rejected" | "approved", reason: string, sid?: string): Promise<void> {
   const app = await db.prepare("SELECT email FROM applications WHERE public_id = ?1").bind(applicationPublicId).first<{ email: string }>();
   if (!app) return;
@@ -315,7 +320,8 @@ async function notifyDecision(db: D1Database, dataKey: string, applicationPublic
   ]);
 }
 
-export type ApproveResult = { ok: true; sid: string; studentId: string } | WriteFailure | { ok: false; reason: "already_resolved" } | { ok: false; reason: "invalid"; message: string };
+/** `temporaryPassword` is returned here and nowhere else (never emailed, never logged, D-059's own rule for a secret like this): shown once to the Co-ordinator who approved it, who must relay it to the new student some other way. */
+export type ApproveResult = { ok: true; sid: string; studentId: string; temporaryPassword: string } | WriteFailure | { ok: false; reason: "already_resolved" } | { ok: false; reason: "invalid"; message: string };
 
 /**
  * Approve-and-apply is one batch (D-063, the same shape D-061's approvals engine uses): the FIRST
@@ -386,7 +392,7 @@ export async function approveApplication(
   if (outcome === "done") {
     const created = await db.prepare("SELECT sid FROM students WHERE public_id = ?1").bind(studentPublicId).first<{ sid: string }>();
     await notifyDecision(db, dataKey, applicationPublicId, "approved", "", created!.sid);
-    return { ok: true, sid: created!.sid, studentId: studentPublicId };
+    return { ok: true, sid: created!.sid, studentId: studentPublicId, temporaryPassword };
   }
   if (outcome === "check_failed") return { ok: false, reason: "invalid", message: "That class is not open, or is not of the application's level." };
   return await classifyApproveFailure(db, actor, applicationPublicId, input.classId);
