@@ -23,31 +23,44 @@
   "site": {
     "home": {
       "headline": "Royal Softech College, Lahan",
-      "summary": "Sample text for the school website. The college's own words will replace it."
+      "summary": "A private college on the East-West Highway in Lahan, Siraha, offering NEB-affiliated +2 and university bachelor's programmes since 2068 BS."
     },
     "programmes": [
-      { "key": "plus2-sample", "name": "Sample +2 programme", "section": "plus2", "affiliation": "Sample board", "duration": "2 years (Grade 11 and 12)", "summary": "Sample text about a +2 programme.", "options": ["Sample option A", "Sample option B"] },
-      { "key": "bachelors-sample", "name": "Sample bachelor programme", "section": "bachelors", "affiliation": "Sample university", "duration": "4 years", "summary": "Sample text about a bachelor programme." }
+      { "key": "plus2-sample", "name": "+2 Programmes", "section": "plus2", "affiliation": "National Examinations Board (NEB)", "duration": "2 years (Grade 11 and 12)", "summary": "Grade 11 and 12 under the National Examinations Board, with streams in Science, Management and Computer Science.", "options": ["Science", "Management", "Computer Science"] },
+      { "key": "bachelors-sample", "name": "Bachelor's Degrees", "section": "bachelors", "affiliation": "Purbanchal University and Tribhuvan University", "duration": "4 years", "summary": "Four-year bachelor's degrees in business studies, IT education and science, affiliated with Purbanchal University and Tribhuvan University." }
     ],
     "admission": {
-      "intro": "Sample text about how to apply.",
+      "intro": "Admission runs in five steps, from your first enquiry to the start of classes.",
       "steps": [
-        { "title": "Sample step one", "body": "Sample text for the first step." },
-        { "title": "Sample step two", "body": "Sample text for the second step." },
-        { "title": "Sample step three", "body": "Sample text for the third step." }
+        { "title": "Enquiry and counselling", "body": "Visit the admission desk or call the college office to discuss the programme that fits you." },
+        { "title": "Check eligibility", "body": "+2 needs an SEE (or equivalent) result meeting the programme's GPA and subject requirements. Bachelor's needs +2 or equivalent in a relevant stream." },
+        { "title": "Submit your application", "body": "Apply with your transcripts, character certificate, recent photographs and a copy of your citizenship." },
+        { "title": "Selection", "body": "Applications are reviewed on merit under the board's or university's own rules; some programmes include a short interview." },
+        { "title": "Enrol", "body": "Complete the fee formalities and attend orientation to confirm your subjects and class schedule." }
       ]
     },
     "scholarships": {
-      "intro": "Sample text about scholarships.",
-      "items": [{ "title": "Sample scholarship", "body": "Sample text about who can apply." }]
+      "intro": "Royal Softech offers merit- and need-based support to students who qualify.",
+      "items": [
+        { "title": "Merit scholarship", "body": "Awarded to top-ranking students in the entrance and board examinations." },
+        { "title": "Need-based support", "body": "For students from economically weaker, Janajati and other marginalised backgrounds, including fee support for Dalit students after verification." }
+      ]
     },
     "facilities": {
-      "intro": "Sample text about the facilities.",
-      "items": [{ "name": "Sample facility A" }, { "name": "Sample facility B", "body": "Sample detail." }, { "name": "Sample facility C" }]
+      "intro": "The campus is built for both study and student life.",
+      "items": [
+        { "name": "Library" },
+        { "name": "Science and computer laboratories", "body": "Equipped for +2 Science practicals and BSc specialisations." },
+        { "name": "Sports ground", "body": "Football, basketball, volleyball and track events." },
+        { "name": "Cafeteria" },
+        { "name": "Multimedia hall" }
+      ]
     },
     "contact": {
-      "address": "Sample address, Lahan, Nepal",
-      "phones": ["+977-00-000000"]
+      "address": "Lahan Municipality-3, Siraha, Madhesh Province",
+      "phones": ["+977-33-561234", "+977-9801234567"],
+      "email": "info@royalsoftech.edu.np",
+      "hours": "Sunday to Friday, 10:00 am to 4:00 pm"
     }
   },
   "theme": {
