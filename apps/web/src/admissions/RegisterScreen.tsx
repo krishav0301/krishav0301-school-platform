@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 
 import { toAd } from "@/content/client";
 import { t } from "@/i18n/messages";
+import { TemporaryPasswordNotice } from "@/people/StaffScreen";
 import { useSession } from "@/session/SessionProvider";
 import setupStyles from "@/setup/setup.module.css";
 import { Button, Notice, Skeleton } from "@/ui";
@@ -29,7 +30,8 @@ export function RegisterScreen({ canPlace }: { canPlace: boolean }) {
   const [classId, setClassId] = useState("");
   const [pending, setPending] = useState(false);
   const [failure, setFailure] = useState<string | null>(null);
-  const [done, setDone] = useState<{ id: string; sid?: string } | null>(null);
+  const [done, setDone] = useState<{ id: string } | null>(null);
+  const [secret, setSecret] = useState<{ name: string; password: string } | null>(null);
   const firstNameRef = useRef<HTMLInputElement>(null);
   const dobRef = useRef<HTMLInputElement>(null);
   const levelRef = useRef<HTMLSelectElement>(null);
@@ -66,7 +68,16 @@ export function RegisterScreen({ canPlace }: { canPlace: boolean }) {
       setErrors({ dobBs: converted.error === "dateUnverified" ? "admissions.error.dobUnverified" : "admissions.error.dobInvalid" });
       return;
     }
-    const result = canPlace ? await registerWalkIn(api, values, converted.ad, classId) : await registerForQueue(api, values, converted.ad);
+    if (canPlace) {
+      const result = await registerWalkIn(api, values, converted.ad, classId);
+      setPending(false);
+      if (result.ok) return setSecret({ name: `${values.firstName} ${values.lastName}`, password: result.temporaryPassword });
+      if (result.reason === "invalid") setFailure(result.message);
+      else if (result.reason === "forbidden") setFailure(t("content.forbidden"));
+      else setFailure(t("admissions.error.failed"));
+      return;
+    }
+    const result = await registerForQueue(api, values, converted.ad);
     setPending(false);
     if (result.ok) return setDone({ id: result.id });
     if (result.reason === "invalid") setFailure(result.message);
@@ -74,12 +85,22 @@ export function RegisterScreen({ canPlace }: { canPlace: boolean }) {
     else setFailure(t("admissions.error.failed"));
   }
 
-  if (done) {
+  if (secret) {
     return (
-      <Notice tone="ok">
-        {canPlace ? t("admissions.register.doneWalkIn") : t("admissions.register.doneQueue")}
-      </Notice>
+      <TemporaryPasswordNotice
+        name={secret.name}
+        password={secret.password}
+        onDone={() => {
+          setSecret(null);
+          setValues(emptyApplicantForm());
+          setClassId("");
+        }}
+      />
     );
+  }
+
+  if (done) {
+    return <Notice tone="ok">{t("admissions.register.doneQueue")}</Notice>;
   }
 
   return (

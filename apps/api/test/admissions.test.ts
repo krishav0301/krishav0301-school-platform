@@ -110,12 +110,19 @@ describe("applying, verifying, and the review queue", () => {
 
     const approved = await approve(id, { classId }, coordinator);
     expect(approved.status).toBe(200);
-    const { sid, studentId } = (await approved.json()) as { sid: string; studentId: string };
+    expect(approved.headers.get("Cache-Control")).toBe("no-store"); // a one-time secret in the body: never cached
+    const { sid, studentId, temporaryPassword } = (await approved.json()) as { sid: string; studentId: string; temporaryPassword: string };
     expect(sid).toMatch(/^\d{4}-\d{5}$/);
+    expect(temporaryPassword).toMatch(/^[A-Z2-9]{4}-[A-Z2-9]{4}-[A-Z2-9]{4}-[A-Z2-9]{4}$/); // shown here, and nowhere else (D-059)
 
     // The new student can be found by search and by their own sign-in.
     const found = (await (await call(`/api/students?q=${encodeURIComponent(body.lastName)}`, { cookie: coordinator.cookie })).json()) as { students: { id: string; sid: string }[] };
     expect(found.students.map((s) => s.id)).toContain(studentId);
+
+    // The temporary password actually works: sign-in accepts it and asks for a change, proving it is not lost.
+    const signIn = await call("/api/auth/sign-in", { method: "POST", body: { email: body.email, password: temporaryPassword } });
+    expect(signIn.status).toBe(200);
+    expect((await signIn.json()) as { passwordChange?: string }).toMatchObject({ passwordChange: "required" });
 
     const gone = await queue(coordinator);
     const stillThere = (await gone.json()) as { applications: { id: string }[] };
@@ -241,13 +248,19 @@ describe("ask for changes, and reject", () => {
 
 // ---------------------------------------------------------------------------------------------
 describe("walk-ins and staff registration", () => {
-  it("a Co-ordinator's walk-in is admitted at once, in one request", async () => {
-    const response = await walkIn({ ...applicant(), classId }, coordinator);
+  it("a Co-ordinator's walk-in is admitted at once, in one request, with a working temporary password", async () => {
+    const body = { ...applicant(), classId };
+    const response = await walkIn(body, coordinator);
     expect(response.status).toBe(201);
-    const { id } = (await response.json()) as { id: string };
+    expect(response.headers.get("Cache-Control")).toBe("no-store");
+    const { id, sid, temporaryPassword } = (await response.json()) as { id: string; sid: string; temporaryPassword: string };
+    expect(sid).toMatch(/^\d{4}-\d{5}$/);
     // It never sat in the queue: it was approved before this request returned.
     const inQueue = (await (await queue(coordinator)).json()) as { applications: { id: string }[] };
     expect(inQueue.applications.map((a) => a.id)).not.toContain(id);
+    // The Co-ordinator needs this password to hand to the student standing in front of them; prove it actually works.
+    const signIn = await call("/api/auth/sign-in", { method: "POST", body: { email: body.email, password: temporaryPassword } });
+    expect((await signIn.json()) as { passwordChange?: string }).toMatchObject({ passwordChange: "required" });
   });
 
   it("an Accountant's registration goes to the queue, not auto-approved", async () => {

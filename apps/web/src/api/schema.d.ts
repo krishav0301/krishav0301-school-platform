@@ -957,7 +957,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** @description The Co-ordinator registers a walk-in and places them straight into a class. Auto-approved. */
+        /** @description The Co-ordinator registers a walk-in and places them straight into a class. Auto-approved: the answer carries the one-time temporary password, shown here and nowhere else, for the Co-ordinator to hand the student in front of them. */
         post: operations["register_walk_in"];
         delete?: never;
         options?: never;
@@ -1059,7 +1059,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** @description Approves the application: assigns the SID, creates the student and their login, and enrolls them in the given class. The class must be active and of the application's own level. */
+        /** @description Approves the application: assigns the SID, creates the student and their login, and enrolls them in the given class. The class must be active and of the application's own level. The answer carries the one-time temporary password, shown here and nowhere else, for the Co-ordinator to relay to the new student. */
         post: operations["approve_application"];
         delete?: never;
         options?: never;
@@ -1771,6 +1771,11 @@ export interface components {
         };
         VerifyEmailInput: {
             token: string;
+        };
+        Admitted: {
+            id: string;
+            sid: string;
+            temporaryPassword: string;
         };
         WalkInInput: {
             firstName: string;
@@ -4837,13 +4842,13 @@ export interface operations {
             };
         };
         responses: {
-            /** @description Admitted */
+            /** @description Admitted, with the temporary password (never cached) */
             201: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["AdmissionsCreated"];
+                    "application/json": components["schemas"]["Admitted"];
                 };
             };
             /** @description Not allowed */
@@ -5134,7 +5139,7 @@ export interface operations {
             };
         };
         responses: {
-            /** @description Admitted */
+            /** @description Admitted, with the temporary password (never cached) */
             200: {
                 headers: {
                     [name: string]: unknown;
@@ -5145,6 +5150,7 @@ export interface operations {
                         ok: true;
                         sid: string;
                         studentId: string;
+                        temporaryPassword: string;
                     };
                 };
             };

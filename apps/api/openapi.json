@@ -2633,6 +2633,25 @@
         ],
         "additionalProperties": false
       },
+      "Admitted": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "sid": {
+            "type": "string"
+          },
+          "temporaryPassword": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "sid",
+          "temporaryPassword"
+        ]
+      },
       "WalkInInput": {
         "type": "object",
         "properties": {
@@ -7069,7 +7088,7 @@
         "tags": [
           "admissions"
         ],
-        "description": "The Co-ordinator registers a walk-in and places them straight into a class. Auto-approved.",
+        "description": "The Co-ordinator registers a walk-in and places them straight into a class. Auto-approved: the answer carries the one-time temporary password, shown here and nowhere else, for the Co-ordinator to hand the student in front of them.",
         "requestBody": {
           "required": true,
           "content": {
@@ -7099,11 +7118,11 @@
         },
         "responses": {
           "201": {
-            "description": "Admitted",
+            "description": "Admitted, with the temporary password (never cached)",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/AdmissionsCreated"
+                  "$ref": "#/components/schemas/Admitted"
                 }
               }
             }
@@ -7455,7 +7474,7 @@
         "tags": [
           "admissions"
         ],
-        "description": "Approves the application: assigns the SID, creates the student and their login, and enrolls them in the given class. The class must be active and of the application's own level.",
+        "description": "Approves the application: assigns the SID, creates the student and their login, and enrolls them in the given class. The class must be active and of the application's own level. The answer carries the one-time temporary password, shown here and nowhere else, for the Co-ordinator to relay to the new student.",
         "parameters": [
           {
             "schema": {
@@ -7479,7 +7498,7 @@
         },
         "responses": {
           "200": {
-            "description": "Admitted",
+            "description": "Admitted, with the temporary password (never cached)",
             "content": {
               "application/json": {
                 "schema": {
@@ -7496,12 +7515,16 @@
                     },
                     "studentId": {
                       "type": "string"
+                    },
+                    "temporaryPassword": {
+                      "type": "string"
                     }
                   },
                   "required": [
                     "ok",
                     "sid",
-                    "studentId"
+                    "studentId",
+                    "temporaryPassword"
                   ]
                 }
               }

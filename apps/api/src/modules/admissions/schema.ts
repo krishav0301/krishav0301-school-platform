@@ -133,3 +133,6 @@ export const StudentDetailSchema = z
   })
   .openapi("StudentDetail");
 export type StudentDetail = z.infer<typeof StudentDetailSchema>;
+
+/** Returned once, on the request that creates the login, and nowhere else (D-059's rule for a temporary password: never emailed, never logged). */
+export const AdmittedSchema = z.object({ id: z.string(), sid: z.string(), temporaryPassword: z.string() }).openapi("Admitted");

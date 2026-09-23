@@ -69,11 +69,14 @@ export async function verifyEmail(api: ApiClient, token: string): Promise<Verify
 }
 
 export type RegisterOutcome = { ok: true; id: string } | { ok: false; reason: "forbidden" | "not_found" | "failed" } | { ok: false; reason: "invalid"; message: string };
+/** A walk-in is admitted in the same request, so the answer also carries the SID and the one-time temporary
+ * password: shown here and nowhere else (never emailed), for the Co-ordinator to hand the student in front of them. */
+export type WalkInOutcome = { ok: true; id: string; sid: string; temporaryPassword: string } | { ok: false; reason: "forbidden" | "not_found" | "failed" } | { ok: false; reason: "invalid"; message: string };
 
-export async function registerWalkIn(api: ApiClient, values: ApplicantForm, dob: string, classId: string): Promise<RegisterOutcome> {
+export async function registerWalkIn(api: ApiClient, values: ApplicantForm, dob: string, classId: string): Promise<WalkInOutcome> {
   try {
     const { data, response, error } = await api.POST("/api/admissions/walk-ins", { body: { ...applicantBody(values, dob), classId } });
-    if (data) return { ok: true, id: data.id };
+    if (data) return { ok: true, id: data.id, sid: data.sid, temporaryPassword: data.temporaryPassword };
     if (response.status === 422 && error && "message" in error) return { ok: false, reason: "invalid", message: error.message };
     return { ok: false, reason: response.status === 403 ? "forbidden" : response.status === 404 ? "not_found" : "failed" };
   } catch {
@@ -136,12 +139,13 @@ export async function rejectApplication(api: ApiClient, id: string, reason: stri
   }
 }
 
-export type ApproveOutcome = { ok: true; sid: string } | { ok: false; reason: "forbidden" | "not_found" | "conflict" | "failed" } | { ok: false; reason: "invalid"; message: string };
+/** `temporaryPassword` is shown here and nowhere else (never emailed): the Co-ordinator must relay it to the new student some other way. */
+export type ApproveOutcome = { ok: true; sid: string; temporaryPassword: string } | { ok: false; reason: "forbidden" | "not_found" | "conflict" | "failed" } | { ok: false; reason: "invalid"; message: string };
 
 export async function approveApplication(api: ApiClient, id: string, classId: string, rollNo: number | null): Promise<ApproveOutcome> {
   try {
     const { data, response, error } = await api.POST("/api/admissions/applications/{id}/approve", { params: { path: { id } }, body: { classId, ...(rollNo ? { rollNo } : {}) } });
-    if (data) return { ok: true, sid: data.sid };
+    if (data) return { ok: true, sid: data.sid, temporaryPassword: data.temporaryPassword };
     if (response.status === 422 && error && "message" in error) return { ok: false, reason: "invalid", message: error.message };
     return { ok: false, reason: response.status === 403 ? "forbidden" : response.status === 404 ? "not_found" : response.status === 409 ? "conflict" : "failed" };
   } catch {

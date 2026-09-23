@@ -8,6 +8,7 @@ import { defineRoute } from "../../core/routes";
 import type { App, AppEnv } from "../../core/types";
 import { getApplication, getOwnStudent, getStudent, listOpenLevels, listQueue, searchStudents } from "./queries";
 import {
+  AdmittedSchema,
   ApplicationDetailSchema,
   ApplicationQueueSchema,
   ApplySchema,
@@ -124,16 +125,17 @@ export function registerAdmissions(app: App): void {
       path: "/api/admissions/walk-ins",
       operationId: "register_walk_in",
       tags: ["admissions"],
-      description: "The Co-ordinator registers a walk-in and places them straight into a class. Auto-approved.",
+      description: "The Co-ordinator registers a walk-in and places them straight into a class. Auto-approved: the answer carries the one-time temporary password, shown here and nowhere else, for the Co-ordinator to hand the student in front of them.",
       access: WALKIN_ACTION,
       request: { body: { required: true, content: json(WalkInSchema.extend({ classId: PublicIdSchema })) } },
-      responses: { 201: { description: "Admitted", content: json(CreatedSchema) }, ...failures },
+      responses: { 201: { description: "Admitted, with the temporary password (never cached)", content: json(AdmittedSchema) }, ...failures },
     },
     async (c) => {
       const result = await registerWalkIn(c.env.DB, c.env.AUDIT_HMAC_KEY, c.env.DATA_KEY, c.get("auth")!.userPublicId, c.req.valid("json"));
       if (!result.ok) return fail(c, result);
       await deliver(c);
-      return c.json({ id: result.publicId }, 201);
+      c.header("Cache-Control", "no-store");
+      return c.json({ id: result.publicId, sid: result.sid, temporaryPassword: result.temporaryPassword }, 201);
     },
   );
 
@@ -239,16 +241,18 @@ export function registerAdmissions(app: App): void {
       path: "/api/admissions/applications/{id}/approve",
       operationId: "approve_application",
       tags: ["admissions"],
-      description: "Approves the application: assigns the SID, creates the student and their login, and enrolls them in the given class. The class must be active and of the application's own level.",
+      description:
+        "Approves the application: assigns the SID, creates the student and their login, and enrolls them in the given class. The class must be active and of the application's own level. The answer carries the one-time temporary password, shown here and nowhere else, for the Co-ordinator to relay to the new student.",
       access: REVIEW_ACTION,
       request: { params: IdParam, body: { required: true, content: json(ApproveSchema) } },
-      responses: { 200: { description: "Admitted", content: json(z.object({ ok: z.literal(true), sid: z.string(), studentId: z.string() })) }, ...failures },
+      responses: { 200: { description: "Admitted, with the temporary password (never cached)", content: json(z.object({ ok: z.literal(true), sid: z.string(), studentId: z.string(), temporaryPassword: z.string() })) }, ...failures },
     },
     async (c) => {
       const result = await approveApplication(c.env.DB, c.env.AUDIT_HMAC_KEY, c.env.DATA_KEY, c.get("auth")!.userPublicId, c.req.valid("param").id, c.req.valid("json"));
       if (!result.ok) return fail(c, result);
       await deliver(c);
-      return c.json({ ok: true as const, sid: result.sid, studentId: result.studentId }, 200);
+      c.header("Cache-Control", "no-store");
+      return c.json({ ok: true as const, sid: result.sid, studentId: result.studentId, temporaryPassword: result.temporaryPassword }, 200);
     },
   );
 
