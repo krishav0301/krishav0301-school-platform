@@ -8,6 +8,7 @@ import { SessionContext } from "@/session/SessionProvider";
 import { AdmissionView } from "@/site/AdmissionView";
 import { ContactView } from "@/site/ContactView";
 import { FacilitiesView } from "@/site/FacilitiesView";
+import { PrivacyView } from "@/site/PrivacyView";
 import { ProgrammesView } from "@/site/ProgrammesView";
 import { ScholarshipsView } from "@/site/ScholarshipsView";
 import { SiteFrameView } from "@/site/SiteFrame";
@@ -74,11 +75,21 @@ describe.each([
     expect(count(html, /href="mailto:/g)).toBe(site.contact.email ? 1 : 0);
   });
 
+  it("Privacy: names the school and gives a way to reach it, the same as Contact", () => {
+    const html = renderToStaticMarkup(<PrivacyView schoolName={json.school.name} site={site} />);
+    expect(count(html, new RegExp(esc(json.school.name), "g"))).toBeGreaterThanOrEqual(3); // the intro and more than one section name it
+    for (const phone of site.contact.phones) expect(html).toContain(`href="tel:${phone.startsWith("+") ? "+" : ""}${phone.replace(/\D/g, "")}"`);
+    expect(count(html, /href="mailto:/g)).toBe(site.contact.email ? 1 : 0);
+    // Every section has a heading and a body: nothing is left blank.
+    expect(count(html, /<h2/g)).toBeGreaterThanOrEqual(7);
+  });
+
   it("carries no colour of its own: nothing but theme variables can colour it", () => {
     const html = [
       renderToStaticMarkup(<ProgrammesView site={site} sections={pack.sections} />),
       renderToStaticMarkup(<AdmissionView site={site} />),
       renderToStaticMarkup(<ContactView site={site} />),
+      renderToStaticMarkup(<PrivacyView schoolName={json.school.name} site={site} />),
     ].join("");
     expect(html).not.toMatch(/#[0-9a-fA-F]{3,8}\b/);
     expect(html).not.toMatch(/style="[^"]*(?:color|background)\s*:/);
