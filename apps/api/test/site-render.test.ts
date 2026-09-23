@@ -497,16 +497,26 @@ describe("structured data that ties the pages together", () => {
     }
   });
 
-  it("Home and Contact add what the pack says about the school: its description, address and phones (and no email when it has none)", async () => {
+  it("Home and Contact add what the pack says about the school: its description, address, phones and email", async () => {
     for (const path of ["/", "/contact"]) {
       const org = orgOf(await blocks(path));
       expect(org, path).toMatchObject({
         description: royalSite.home.summary,
         address: { "@type": "PostalAddress", streetAddress: royalSite.contact.address },
         telephone: royalSite.contact.phones,
+        email: royalSite.contact.email,
       });
-      expect(org, path).not.toHaveProperty("email");
     }
+  });
+
+  it("no email is invented when the pack has none", async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- the test deliberately edits loosely-typed pack data
+    const bad = structuredClone(royalJson) as any;
+    delete bad.site.contact.email;
+    await applyPack(db, parsePack(bad));
+    const org = orgOf(await blocks("/"));
+    expect(org).not.toHaveProperty("email");
+    await applyPack(db, parsePack(royalJson));
   });
 
   it("the other pages keep the organisation block small: address and phones belong to Home and Contact", async () => {

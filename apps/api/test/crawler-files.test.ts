@@ -159,7 +159,7 @@ describe("llms.txt", () => {
     expect(text).toContain("\n## Contact\n");
     expect(text).toContain(`- Address: ${site.contact.address}`);
     expect(text).toContain(`- Phone: ${site.contact.phones.join(", ")}`);
-    expect(text).not.toContain("- Email:"); // Royal's pack has none, so none is invented
+    expect(text).toContain(`- Email: ${site.contact.email}`); // Royal's pack now has one
     expect(text.indexOf("## Pages")).toBeLessThan(text.indexOf("## Contact"));
   });
 
