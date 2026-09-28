@@ -32,17 +32,17 @@ describe("the real menu", () => {
     visibleNav(NAV_ITEMS, [{ role, scope }], modules).map((i) => i.id);
 
   it("shows each role its own entries", () => {
-    expect(seen("admin", "institution")).toEqual(["dashboard", "content", "setup", "people", "approvals", "attendance"]);
-    expect(seen("super_admin", "institution")).toEqual(["dashboard", "content", "setup", "people", "approvals", "attendance"]);
-    expect(seen("coordinator", "institution")).toEqual(["dashboard", "content", "setup", "people", "admissions", "attendance"]);
-    expect(seen("coordinator", "section")).toEqual(["dashboard", "content", "setup", "people", "admissions", "attendance"]);
+    expect(seen("admin", "institution")).toEqual(["dashboard", "content", "setup", "people", "approvals", "attendance", "classwork"]);
+    expect(seen("super_admin", "institution")).toEqual(["dashboard", "content", "setup", "people", "approvals", "attendance", "classwork"]);
+    expect(seen("coordinator", "institution")).toEqual(["dashboard", "content", "setup", "people", "admissions", "attendance", "classwork"]);
+    expect(seen("coordinator", "section")).toEqual(["dashboard", "content", "setup", "people", "admissions", "attendance", "classwork"]);
     expect(seen("accountant", "institution")).toEqual(["dashboard", "admissions"]);
-    expect(seen("teacher", "assigned")).toEqual(["dashboard", "attendance"]);
-    expect(seen("student", "own")).toEqual(["dashboard"]);
+    expect(seen("teacher", "assigned")).toEqual(["dashboard", "attendance", "classwork"]);
+    expect(seen("student", "own")).toEqual(["dashboard", "classwork"]);
   });
 
   it("a school that switched attendance off does not see it in the menu", () => {
-    expect(seen("teacher", "assigned", { attendance: false })).toEqual(["dashboard"]);
+    expect(seen("teacher", "assigned", { attendance: false })).toEqual(["dashboard", "classwork"]);
   });
 
   it("on a phone the daily places stay tabs and the rarely visited ones move into More", () => {
@@ -50,8 +50,8 @@ describe("the real menu", () => {
       const { tabs, more } = splitNav(visibleNav(NAV_ITEMS, [{ role, scope }], { attendance: true }));
       return { tabs: tabs.map((i) => i.id), more: more.map((i) => i.id) };
     };
-    expect(split("coordinator", "institution")).toEqual({ tabs: ["dashboard", "content", "admissions", "attendance"], more: ["setup", "people"] });
-    expect(split("admin", "institution")).toEqual({ tabs: ["dashboard", "content", "approvals", "attendance"], more: ["setup", "people"] });
+    expect(split("coordinator", "institution")).toEqual({ tabs: ["dashboard", "admissions", "attendance", "classwork"], more: ["content", "setup", "people"] });
+    expect(split("admin", "institution")).toEqual({ tabs: ["dashboard", "approvals", "attendance", "classwork"], more: ["content", "setup", "people"] });
   });
 });
 

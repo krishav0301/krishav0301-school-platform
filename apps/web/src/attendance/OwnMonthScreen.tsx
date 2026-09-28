@@ -31,11 +31,11 @@ export function OwnMonthScreen() {
         {(data) => (
           <>
             <div className={styles.saveBar}>
-              <Button variant="secondary" onClick={() => setMonth(shiftMonth(data.month, -1))}>
+              <Button className={styles.wrapLabel} variant="secondary" onClick={() => setMonth(shiftMonth(data.month, -1))}>
                 {t("attendance.mine.previous")}
               </Button>
               <p className={styles.tally}>{data.month}</p>
-              <Button variant="secondary" onClick={() => setMonth(shiftMonth(data.month, 1))}>
+              <Button className={styles.wrapLabel} variant="secondary" onClick={() => setMonth(shiftMonth(data.month, 1))}>
                 {t("attendance.mine.next")}
               </Button>
             </div>

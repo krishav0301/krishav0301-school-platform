@@ -62,9 +62,15 @@ const coordinator: Me = { name: "Sita Sharma", roles: [{ role: "coordinator", sc
 describe("the portal shell", () => {
   const royalHtml = page(<PortalPage />, royal, signedIn(coordinator));
   const sampleHtml = page(<PortalPage />, sample, signedIn(coordinator));
-  // A role with a single menu entry (the Dashboard): the Accountant now also has Admissions (D-063), and the
-  // Teacher Attendance (D-069); the Student still has only the Dashboard.
-  const oneEntry = page(<PortalPage />, royal, signedIn({ name: "Asha Rai", roles: [{ role: "student", scope: "own" }] }));
+  // A menu of a single entry (the Dashboard). Every real role now has at least two places (the Student has
+  // Classwork, D-071), so the case is built from a one-entry menu.
+  const oneEntry = page(
+    <PortalShell items={[{ id: "dashboard", labelKey: "nav.dashboard", href: "/portal" }]}>
+      <h1>x</h1>
+    </PortalShell>,
+    royal,
+    signedIn({ name: "Asha Rai", roles: [{ role: "student", scope: "own" }] }),
+  );
 
   const withMenu = page(
     <PortalShell items={menuItems}>

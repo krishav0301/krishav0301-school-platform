@@ -10,7 +10,7 @@ import { t } from "@/i18n/messages";
 import { useSession } from "@/session/SessionProvider";
 import setupStyles from "@/setup/setup.module.css";
 import { Gate, useLoad } from "@/setup/useLoad";
-import { Badge, Button, Notice, Table } from "@/ui";
+import { Badge, Button, Notice } from "@/ui";
 
 import styles from "./attendance.module.css";
 import { gateFailure, loadDay, loadSummary } from "./client";
@@ -59,35 +59,25 @@ export function ClassAttendanceScreen() {
                   {t("attendance.class.dayTitle")}
                 </h2>
                 <div className={styles.dayPicker}>
-                  <BsDateField legend={t("attendance.class.pickDay")} hint={t("attendance.class.pickDayHint")} error={badDay ? t("attendance.class.badDay") : undefined} value={bs} onChange={setBs} />
-                  <Button variant="secondary" onClick={() => void show()}>
+                  <BsDateField legend={t("attendance.class.otherDay")} hint={t("attendance.class.pickDayHint")} error={badDay ? t("attendance.class.badDay") : undefined} value={bs} onChange={setBs} />
+                  <Button className={styles.wrapLabel} variant="secondary" onClick={() => void show()}>
                     {t("attendance.class.show")}
                   </Button>
                 </div>
                 <p className={setupStyles.muted}>{day.dateBs ?? day.date}</p>
                 {day.marked ? (
-                  <Table caption={t("attendance.class.dayTitle")}>
-                    <thead>
-                      <tr>
-                        <th scope="col">{t("attendance.class.name")}</th>
-                        <th scope="col">{t("attendance.class.status")}</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {day.students.map((s) => (
-                        <tr key={s.enrollmentId}>
-                          <td>
-                            {s.name}
-                            <br />
-                            <span className={setupStyles.muted}>{studentMeta(s)}</span>
-                          </td>
-                          <td>
-                            {s.status === "absent" ? <Badge tone="bad">{t("attendance.class.absent")}</Badge> : s.status === "present" ? t("attendance.class.present") : t("attendance.class.none")}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </Table>
+                  <ul className={styles.roster}>
+                    {day.students.map((s) => (
+                      <li key={s.enrollmentId} className={`${styles.rosterRow} ${styles.readRow}`}>
+                        <span>
+                          {s.name}
+                          <br />
+                          <span className={setupStyles.muted}>{studentMeta(s)}</span>
+                        </span>
+                        <span>{s.status === "absent" ? <Badge tone="bad">{t("attendance.class.absent")}</Badge> : s.status === "present" ? t("attendance.class.present") : t("attendance.class.none")}</span>
+                      </li>
+                    ))}
+                  </ul>
                 ) : (
                   <p className={setupStyles.empty}>{t("attendance.class.notMarked")}</p>
                 )}
@@ -112,40 +102,32 @@ function SummaryTable({ summary }: { summary: AttendanceSummary }) {
         <p className={setupStyles.muted}>{t("attendance.summary.intro", { threshold: summary.threshold })}</p>
       </div>
       {flagged > 0 ? <Notice>{t("attendance.summary.flagged", { count: flagged, threshold: summary.threshold })}</Notice> : null}
-      <Table caption={t("attendance.summary.title")}>
-        <thead>
-          <tr>
-            <th scope="col">{t("attendance.class.name")}</th>
-            <th scope="col" className={styles.numeric}>
-              {t("attendance.summary.days")}
-            </th>
-            <th scope="col" className={styles.numeric}>
-              {t("attendance.summary.percent")}
-            </th>
-          </tr>
-        </thead>
-        <tbody>
-          {summary.students.map((s) => (
-            <tr key={s.enrollmentId}>
-              <td>
-                {s.name}
-                <br />
-                <span className={setupStyles.muted}>{studentMeta(s)}</span>
-              </td>
-              <td className={styles.numeric}>{t("attendance.register.counts", { present: s.present, absent: s.absent })}</td>
-              <td className={styles.numeric}>
-                {s.percent === null ? t("attendance.summary.noDays") : `${s.percent}%`}
-                {s.below ? (
-                  <>
-                    <br />
-                    <Badge tone="bad">{t("attendance.summary.below", { threshold: summary.threshold })}</Badge>
-                  </>
-                ) : null}
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </Table>
+      <ul className={`${styles.register} ${styles.roster}`}>
+        {summary.students.map((s) => (
+          <li key={s.enrollmentId} className={`${styles.rosterRow} ${styles.readRow}`}>
+            <span>
+              {s.name}
+              <br />
+              <span className={setupStyles.muted}>{studentMeta(s)}</span>
+            </span>
+            <span className={styles.numeric}>
+              {s.percent === null ? t("attendance.summary.noDays") : `${s.percent}%`}
+              {s.percent === null ? null : (
+                <>
+                  <br />
+                  <span className={setupStyles.muted}>{t("attendance.summary.daysOf", { present: s.present, marked: s.present + s.absent })}</span>
+                </>
+              )}
+              {s.below ? (
+                <>
+                  <br />
+                  <Badge tone="bad">{t("attendance.summary.below", { threshold: summary.threshold })}</Badge>
+                </>
+              ) : null}
+            </span>
+          </li>
+        ))}
+      </ul>
     </section>
   );
 }

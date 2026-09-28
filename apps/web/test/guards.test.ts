@@ -212,6 +212,11 @@ describe("large text and narrow screens", () => {
     expect(css("session/new-password.module.css")).toMatch(/button\.wrapLabel\s*\{[^}]*white-space:\s*normal/);
   });
 
+  it("the attendance and classwork buttons wrap their labels too (found at 320 px and 200% in the Phase 5 review, D-073)", () => {
+    expect(css("attendance/attendance.module.css")).toMatch(/button\.wrapLabel\s*\{[^}]*white-space:\s*normal/);
+    expect(css("classwork/classwork.module.css")).toMatch(/button\.wrapLabel\s*\{[^}]*white-space:\s*normal/);
+  });
+
   it("the phone tab bar wraps onto a second row with enlarged text, so no menu entry is pushed off the screen, and the sidebar does not", () => {
     const shell = css("shell/shell.module.css");
     expect(shell).toMatch(/\.nav\s*\{[^}]*flex-wrap:\s*wrap/);

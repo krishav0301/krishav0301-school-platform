@@ -74,7 +74,7 @@ export function Register({ day, onSaved }: { day: AttendanceDay; onSaved?: () =>
             <p className={styles.tally} aria-live="polite">
               {t("attendance.register.counts", tally)}
             </p>
-            <Button onClick={() => void save()} loading={saving} loadingLabel={t("attendance.register.saving")}>
+            <Button className={styles.wrapLabel} onClick={() => void save()} loading={saving} loadingLabel={t("attendance.register.saving")}>
               {t("attendance.register.save")}
             </Button>
           </div>

@@ -43,8 +43,8 @@ export function TeacherDayScreen() {
     <>
       <h1 className={setupStyles.title}>{t("attendance.teachers.title")}</h1>
       <div className={styles.dayPicker}>
-        <BsDateField legend={t("attendance.class.pickDay")} hint={t("attendance.teachers.pickHint")} error={badDay ? t("attendance.class.badDay") : undefined} value={bs} onChange={setBs} />
-        <Button variant="secondary" onClick={() => void show()}>
+        <BsDateField legend={t("attendance.class.otherDay")} hint={t("attendance.teachers.pickHint")} error={badDay ? t("attendance.class.badDay") : undefined} value={bs} onChange={setBs} />
+        <Button className={styles.wrapLabel} variant="secondary" onClick={() => void show()}>
           {t("attendance.class.show")}
         </Button>
       </div>
@@ -116,7 +116,7 @@ function TeacherList({ day, canMark, onSaved }: { day: TeacherDay; canMark: bool
                 leave: exceptions.filter((e) => e.status === "leave").length,
               })}
             </p>
-            <Button onClick={() => void save()} loading={saving} loadingLabel={t("attendance.register.saving")}>
+            <Button className={styles.wrapLabel} onClick={() => void save()} loading={saving} loadingLabel={t("attendance.register.saving")}>
               {t("attendance.teachers.save")}
             </Button>
           </div>

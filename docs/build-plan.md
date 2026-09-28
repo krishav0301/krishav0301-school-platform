@@ -135,9 +135,10 @@ Student attendance by the Class Teacher, teacher attendance by the Co-ordinator,
 **Progress** (approved 2026-09-28 with Phase 7; no uploads until R2, D-069; design in `docs/superpowers/specs/2026-09-28-phase5-daily-school-life-design.md`):
 - [x] 1. Student attendance: the Class Teacher's register (pre-filled Present, same-day edits), class and student views with the 75% flag, the student's card, the "More" menu overflow (D-069)
 - [x] 2. Teacher attendance: the Co-ordinator's daily list pre-filled Present, past days with a reason, the teacher's own month (D-070)
-- [ ] 3. Daily activity log
-- [ ] 4. Notes, question papers and homework (text and links)
-- [ ] 5. Dashboards and the exit test
+- [x] 3. Daily activity log: one entry per class, subject and day, the teacher's and the Co-ordinator's reminders, the student's two weeks (D-071)
+- [x] 4. Notes, question papers and homework (text and links, no uploads until R2): share and withdraw, the watermark, set, submit, review, resubmission (D-072)
+- [x] 5. Dashboards, the 320 px / 200% browser check, and the exit test for both schools (D-073)
+- [x] **Phase 5 complete (2026-09-28).** Not done: uploads (R2), reports and Excel export, notification records, holidays; see D-073
 
 ### Phase 6: Fees and ledger
 Tests first. Fee structure with Admin approval, charge generation through the billing-schedule policy, append-only ledger, voucher queue, cash entry, gapless receipts with PDF, discounts, reversals, refunds, previous dues, dues list, overdue reminders, payment-attempt model and gateway interface with a demo adapter, fee reports and Excel export.

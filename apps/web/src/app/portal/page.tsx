@@ -2,6 +2,7 @@
 
 import { StudentRecordCard } from "@/admissions/StudentRecordCard";
 import { OwnAttendanceCard } from "@/attendance/OwnAttendanceCard";
+import { SchoolDayCard, StudentTodayCard, TeacherTodayCard } from "@/dashboard/TodayCards";
 import { useConfig } from "@/config/ConfigProvider";
 import { t } from "@/i18n/messages";
 import { useSession, type RoleClaim } from "@/session/SessionProvider";
@@ -40,10 +41,13 @@ function Dashboard() {
           ))}
         </ul>
       </Card>
+      {me.roles.some((r) => r.role === "teacher") ? <TeacherTodayCard /> : null}
+      {me.roles.some((r) => r.role === "coordinator") ? <SchoolDayCard /> : null}
       {me.roles.some((r) => r.role === "coordinator") ? <ChecklistCard /> : null}
       {me.roles.some((r) => r.role === "student") ? <StudentRecordCard /> : null}
       {me.roles.some((r) => r.role === "student") && config?.modules.attendance ? <OwnAttendanceCard /> : null}
-      {me.roles.some((r) => r.role === "coordinator" || r.role === "student") ? null : <p className={styles.note}>{t("portal.nothingYet")}</p>}
+      {me.roles.some((r) => r.role === "student") ? <StudentTodayCard /> : null}
+      {me.roles.some((r) => r.role === "coordinator" || r.role === "student" || r.role === "teacher") ? null : <p className={styles.note}>{t("portal.nothingYet")}</p>}
     </>
   );
 }

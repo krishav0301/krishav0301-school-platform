@@ -3637,6 +3637,1003 @@
           "days"
         ]
       },
+      "MyActivityToday": {
+        "type": "object",
+        "properties": {
+          "date": {
+            "type": "string"
+          },
+          "dateBs": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "subjects": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "classId": {
+                  "type": "string"
+                },
+                "offeringId": {
+                  "type": "string"
+                },
+                "subjectName": {
+                  "type": "string"
+                },
+                "programmeName": {
+                  "type": "string"
+                },
+                "levelName": {
+                  "type": "string"
+                },
+                "label": {
+                  "type": "string"
+                },
+                "body": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                }
+              },
+              "required": [
+                "classId",
+                "offeringId",
+                "subjectName",
+                "programmeName",
+                "levelName",
+                "label",
+                "body"
+              ]
+            }
+          }
+        },
+        "required": [
+          "date",
+          "dateBs",
+          "subjects"
+        ]
+      },
+      "ClassworkError": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "error"
+        ]
+      },
+      "ClassworkInvalid": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "string",
+            "enum": [
+              "invalid"
+            ]
+          },
+          "message": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "error",
+          "message"
+        ]
+      },
+      "WriteActivity": {
+        "type": "object",
+        "properties": {
+          "body": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 2000
+          }
+        },
+        "required": [
+          "body"
+        ],
+        "additionalProperties": false
+      },
+      "ClassActivityDay": {
+        "type": "object",
+        "properties": {
+          "classId": {
+            "type": "string"
+          },
+          "programmeName": {
+            "type": "string"
+          },
+          "levelName": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "date": {
+            "type": "string"
+          },
+          "dateBs": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "entries": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "offeringId": {
+                  "type": "string"
+                },
+                "subjectName": {
+                  "type": "string"
+                },
+                "teacherName": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "body": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "updatedAt": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                }
+              },
+              "required": [
+                "offeringId",
+                "subjectName",
+                "teacherName",
+                "body",
+                "updatedAt"
+              ]
+            }
+          }
+        },
+        "required": [
+          "classId",
+          "programmeName",
+          "levelName",
+          "label",
+          "date",
+          "dateBs",
+          "entries"
+        ]
+      },
+      "OwnActivity": {
+        "type": "object",
+        "properties": {
+          "days": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "date": {
+                  "type": "string"
+                },
+                "dateBs": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "entries": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "subjectName": {
+                        "type": "string"
+                      },
+                      "teacherName": {
+                        "type": "string"
+                      },
+                      "body": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "subjectName",
+                      "teacherName",
+                      "body"
+                    ]
+                  }
+                }
+              },
+              "required": [
+                "date",
+                "dateBs",
+                "entries"
+              ]
+            }
+          }
+        },
+        "required": [
+          "days"
+        ]
+      },
+      "MissingActivity": {
+        "type": "object",
+        "properties": {
+          "date": {
+            "type": "string"
+          },
+          "dateBs": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "classes": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "classId": {
+                  "type": "string"
+                },
+                "programmeName": {
+                  "type": "string"
+                },
+                "levelName": {
+                  "type": "string"
+                },
+                "label": {
+                  "type": "string"
+                },
+                "missing": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "subjectName": {
+                        "type": "string"
+                      },
+                      "teacherName": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "subjectName",
+                      "teacherName"
+                    ]
+                  }
+                }
+              },
+              "required": [
+                "classId",
+                "programmeName",
+                "levelName",
+                "label",
+                "missing"
+              ]
+            }
+          }
+        },
+        "required": [
+          "date",
+          "dateBs",
+          "classes"
+        ]
+      },
+      "ActivityClassList": {
+        "type": "object",
+        "properties": {
+          "date": {
+            "type": "string"
+          },
+          "dateBs": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "classes": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "classId": {
+                  "type": "string"
+                },
+                "programmeName": {
+                  "type": "string"
+                },
+                "levelName": {
+                  "type": "string"
+                },
+                "label": {
+                  "type": "string"
+                },
+                "expected": {
+                  "type": "integer"
+                },
+                "written": {
+                  "type": "integer"
+                }
+              },
+              "required": [
+                "classId",
+                "programmeName",
+                "levelName",
+                "label",
+                "expected",
+                "written"
+              ]
+            }
+          }
+        },
+        "required": [
+          "date",
+          "dateBs",
+          "classes"
+        ]
+      },
+      "ShareNote": {
+        "type": "object",
+        "properties": {
+          "classId": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{32}$"
+          },
+          "offeringId": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{32}$"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "note",
+              "question_paper"
+            ]
+          },
+          "title": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 120
+          },
+          "body": {
+            "type": "string",
+            "maxLength": 5000
+          },
+          "link": {
+            "type": "string",
+            "maxLength": 500
+          }
+        },
+        "required": [
+          "classId",
+          "offeringId",
+          "kind",
+          "title"
+        ],
+        "additionalProperties": false
+      },
+      "TeacherNotes": {
+        "type": "object",
+        "properties": {
+          "notes": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "kind": {
+                  "type": "string",
+                  "enum": [
+                    "note",
+                    "question_paper"
+                  ]
+                },
+                "title": {
+                  "type": "string"
+                },
+                "body": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "link": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "subjectName": {
+                  "type": "string"
+                },
+                "createdAt": {
+                  "type": "string"
+                },
+                "classId": {
+                  "type": "string"
+                },
+                "programmeName": {
+                  "type": "string"
+                },
+                "levelName": {
+                  "type": "string"
+                },
+                "label": {
+                  "type": "string"
+                },
+                "withdrawn": {
+                  "type": "boolean"
+                }
+              },
+              "required": [
+                "id",
+                "kind",
+                "title",
+                "body",
+                "link",
+                "subjectName",
+                "createdAt",
+                "classId",
+                "programmeName",
+                "levelName",
+                "label",
+                "withdrawn"
+              ]
+            }
+          }
+        },
+        "required": [
+          "notes"
+        ]
+      },
+      "StudentNotes": {
+        "type": "object",
+        "properties": {
+          "watermark": {
+            "type": "string"
+          },
+          "notes": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "kind": {
+                  "type": "string",
+                  "enum": [
+                    "note",
+                    "question_paper"
+                  ]
+                },
+                "title": {
+                  "type": "string"
+                },
+                "body": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "link": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "subjectName": {
+                  "type": "string"
+                },
+                "createdAt": {
+                  "type": "string"
+                },
+                "teacherName": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "id",
+                "kind",
+                "title",
+                "body",
+                "link",
+                "subjectName",
+                "createdAt",
+                "teacherName"
+              ]
+            }
+          }
+        },
+        "required": [
+          "watermark",
+          "notes"
+        ]
+      },
+      "SetAssignment": {
+        "type": "object",
+        "properties": {
+          "classId": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{32}$"
+          },
+          "offeringId": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{32}$"
+          },
+          "title": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 120
+          },
+          "instructions": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 5000
+          },
+          "link": {
+            "type": "string",
+            "maxLength": 500
+          },
+          "dueAt": {
+            "type": "string"
+          },
+          "maxMarks": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 1000
+          }
+        },
+        "required": [
+          "classId",
+          "offeringId",
+          "title",
+          "instructions",
+          "dueAt"
+        ],
+        "additionalProperties": false
+      },
+      "TeacherAssignments": {
+        "type": "object",
+        "properties": {
+          "assignments": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "title": {
+                  "type": "string"
+                },
+                "instructions": {
+                  "type": "string"
+                },
+                "link": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "dueAt": {
+                  "type": "string"
+                },
+                "dueDateBs": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "maxMarks": {
+                  "type": [
+                    "integer",
+                    "null"
+                  ]
+                },
+                "subjectName": {
+                  "type": "string"
+                },
+                "classId": {
+                  "type": "string"
+                },
+                "programmeName": {
+                  "type": "string"
+                },
+                "levelName": {
+                  "type": "string"
+                },
+                "label": {
+                  "type": "string"
+                },
+                "withdrawn": {
+                  "type": "boolean"
+                },
+                "students": {
+                  "type": "integer"
+                },
+                "submitted": {
+                  "type": "integer"
+                },
+                "toReview": {
+                  "type": "integer"
+                },
+                "requests": {
+                  "type": "integer"
+                }
+              },
+              "required": [
+                "id",
+                "title",
+                "instructions",
+                "link",
+                "dueAt",
+                "dueDateBs",
+                "maxMarks",
+                "subjectName",
+                "classId",
+                "programmeName",
+                "levelName",
+                "label",
+                "withdrawn",
+                "students",
+                "submitted",
+                "toReview",
+                "requests"
+              ]
+            }
+          }
+        },
+        "required": [
+          "assignments"
+        ]
+      },
+      "StudentAssignments": {
+        "type": "object",
+        "properties": {
+          "assignments": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "title": {
+                  "type": "string"
+                },
+                "instructions": {
+                  "type": "string"
+                },
+                "link": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "dueAt": {
+                  "type": "string"
+                },
+                "dueDateBs": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "maxMarks": {
+                  "type": [
+                    "integer",
+                    "null"
+                  ]
+                },
+                "subjectName": {
+                  "type": "string"
+                },
+                "teacherName": {
+                  "type": "string"
+                },
+                "submission": {
+                  "type": [
+                    "object",
+                    "null"
+                  ],
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "submitted",
+                        "reviewed",
+                        "resubmit_requested",
+                        "resubmit_allowed"
+                      ]
+                    },
+                    "isLate": {
+                      "type": "boolean"
+                    },
+                    "body": {
+                      "type": "string"
+                    },
+                    "submittedAt": {
+                      "type": "string"
+                    },
+                    "marks": {
+                      "type": [
+                        "integer",
+                        "null"
+                      ]
+                    },
+                    "feedback": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "resubmitReason": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "attempts": {
+                      "type": "integer"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "status",
+                    "isLate",
+                    "body",
+                    "submittedAt",
+                    "marks",
+                    "feedback",
+                    "resubmitReason",
+                    "attempts"
+                  ]
+                }
+              },
+              "required": [
+                "id",
+                "title",
+                "instructions",
+                "link",
+                "dueAt",
+                "dueDateBs",
+                "maxMarks",
+                "subjectName",
+                "teacherName",
+                "submission"
+              ]
+            }
+          }
+        },
+        "required": [
+          "assignments"
+        ]
+      },
+      "AssignmentDetail": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "instructions": {
+            "type": "string"
+          },
+          "link": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "dueAt": {
+            "type": "string"
+          },
+          "dueDateBs": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "maxMarks": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "subjectName": {
+            "type": "string"
+          },
+          "classId": {
+            "type": "string"
+          },
+          "programmeName": {
+            "type": "string"
+          },
+          "levelName": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "withdrawn": {
+            "type": "boolean"
+          },
+          "students": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "enrollmentId": {
+                  "type": "string"
+                },
+                "sid": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "submission": {
+                  "type": [
+                    "object",
+                    "null"
+                  ],
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "submitted",
+                        "reviewed",
+                        "resubmit_requested",
+                        "resubmit_allowed"
+                      ]
+                    },
+                    "isLate": {
+                      "type": "boolean"
+                    },
+                    "body": {
+                      "type": "string"
+                    },
+                    "submittedAt": {
+                      "type": "string"
+                    },
+                    "marks": {
+                      "type": [
+                        "integer",
+                        "null"
+                      ]
+                    },
+                    "feedback": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "resubmitReason": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "attempts": {
+                      "type": "integer"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "status",
+                    "isLate",
+                    "body",
+                    "submittedAt",
+                    "marks",
+                    "feedback",
+                    "resubmitReason",
+                    "attempts"
+                  ]
+                }
+              },
+              "required": [
+                "enrollmentId",
+                "sid",
+                "name",
+                "submission"
+              ]
+            }
+          }
+        },
+        "required": [
+          "id",
+          "title",
+          "instructions",
+          "link",
+          "dueAt",
+          "dueDateBs",
+          "maxMarks",
+          "subjectName",
+          "classId",
+          "programmeName",
+          "levelName",
+          "label",
+          "withdrawn",
+          "students"
+        ]
+      },
+      "ReviewWork": {
+        "type": "object",
+        "properties": {
+          "marks": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 1000
+          },
+          "feedback": {
+            "type": "string",
+            "maxLength": 2000
+          }
+        },
+        "additionalProperties": false
+      },
+      "ResubmitDecision": {
+        "type": "object",
+        "properties": {
+          "allow": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "allow"
+        ],
+        "additionalProperties": false
+      },
+      "SubmitWork": {
+        "type": "object",
+        "properties": {
+          "body": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 10000
+          }
+        },
+        "required": [
+          "body"
+        ],
+        "additionalProperties": false
+      },
+      "ResubmitRequest": {
+        "type": "object",
+        "properties": {
+          "reason": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 500
+          }
+        },
+        "required": [
+          "reason"
+        ],
+        "additionalProperties": false
+      },
       "DateConversionFailure": {
         "type": "object",
         "properties": {
@@ -8655,6 +9652,1063 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/AttendanceInvalid"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/activity/mine": {
+      "get": {
+        "operationId": "get_my_activity_today",
+        "tags": [
+          "classwork"
+        ],
+        "description": "The subjects the signed-in teacher teaches this year, each with today's entry or none. An empty entry is the teacher's reminder.",
+        "responses": {
+          "200": {
+            "description": "Today's subjects",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MyActivityToday"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/activity/classes/{classId}/subjects/{offeringId}/today": {
+      "put": {
+        "operationId": "write_activity_today",
+        "tags": [
+          "classwork"
+        ],
+        "description": "Writes today's entry for one subject in one class, by the teacher who teaches it. Writing again the same day replaces it; past days cannot change.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{32}$"
+            },
+            "required": true,
+            "name": "classId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{32}$"
+            },
+            "required": true,
+            "name": "offeringId",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WriteActivity"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Saved",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": {
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
+                    }
+                  },
+                  "required": [
+                    "ok"
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not a subject this teacher teaches in this class",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClassworkError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The academic year is closed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClassworkError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Not valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClassworkInvalid"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/activity/classes/{classId}": {
+      "get": {
+        "operationId": "get_class_activity",
+        "tags": [
+          "classwork"
+        ],
+        "description": "A class's activity log for a day (today by default): every subject, its entry or none, and its teacher. A teacher sees only their own subjects.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{32}$"
+            },
+            "required": true,
+            "name": "classId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+            },
+            "required": false,
+            "name": "date",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The day",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClassActivityDay"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such class, or not one the person may see",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClassworkError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "A day outside the verified calendar",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClassworkInvalid"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/activity/me": {
+      "get": {
+        "operationId": "get_own_activity",
+        "tags": [
+          "classwork"
+        ],
+        "description": "The signed-in student's own class: the last two weeks' entries, newest first.",
+        "responses": {
+          "200": {
+            "description": "The entries",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OwnActivity"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/activity/missing": {
+      "get": {
+        "operationId": "get_missing_activity",
+        "tags": [
+          "classwork"
+        ],
+        "description": "Today's reminder: each class in reach with the subjects that have a teacher but no entry yet.",
+        "responses": {
+          "200": {
+            "description": "What is missing",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MissingActivity"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not for students or teachers",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClassworkError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/activity/classes": {
+      "get": {
+        "operationId": "list_activity_classes",
+        "tags": [
+          "classwork"
+        ],
+        "description": "The active year's classes in reach, each with how many of its taught subjects have today's entry.",
+        "responses": {
+          "200": {
+            "description": "The classes",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ActivityClassList"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not for students or teachers",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClassworkError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/notes": {
+      "post": {
+        "operationId": "share_note",
+        "tags": [
+          "classwork"
+        ],
+        "description": "Shares a note or question paper with a class, live at once. Text and an optional https link (file uploads wait for R2). Only a teacher of that subject in that class.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ShareNote"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Shared",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "id"
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not a subject this teacher teaches in this class, or notes are switched off",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClassworkError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The academic year is closed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClassworkError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Neither words nor a link",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClassworkInvalid"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/notes/{id}/withdraw": {
+      "post": {
+        "operationId": "withdraw_note",
+        "tags": [
+          "classwork"
+        ],
+        "description": "Withdraws a shared note or question paper, once. It stays on record, hidden from students. To replace one, withdraw it and share again.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{32}$"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Withdrawn",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": {
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
+                    }
+                  },
+                  "required": [
+                    "ok"
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such live note in a subject this teacher teaches",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClassworkError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The academic year is closed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClassworkError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/notes/mine": {
+      "get": {
+        "operationId": "list_teacher_notes",
+        "tags": [
+          "classwork"
+        ],
+        "description": "What the signed-in teacher's subjects have shared this year, newest first, withdrawn ones marked.",
+        "responses": {
+          "200": {
+            "description": "The notes",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TeacherNotes"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Notes are switched off",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClassworkError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/notes/me": {
+      "get": {
+        "operationId": "list_student_notes",
+        "tags": [
+          "classwork"
+        ],
+        "description": "The signed-in student's own class's live notes and question papers, and their watermark (name and SID). Never cached.",
+        "responses": {
+          "200": {
+            "description": "The notes",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StudentNotes"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not a student",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClassworkError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Notes are switched off",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClassworkError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/assignments": {
+      "post": {
+        "operationId": "set_homework",
+        "tags": [
+          "classwork"
+        ],
+        "description": "Sets an assignment for a class: instructions, a deadline in the future, optional marks and an optional https link. Only a teacher of that subject in that class.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetAssignment"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Set",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "id"
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found, not yours, or homework is switched off",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClassworkError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Not possible in its current state, or the academic year is closed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClassworkError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Not valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClassworkInvalid"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/assignments/{id}/withdraw": {
+      "post": {
+        "operationId": "withdraw_assignment",
+        "tags": [
+          "classwork"
+        ],
+        "description": "Withdraws an assignment: hidden from students, closed to submissions, kept on record.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{32}$"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Done",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": {
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
+                    }
+                  },
+                  "required": [
+                    "ok"
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found, not yours, or homework is switched off",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClassworkError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Not possible in its current state, or the academic year is closed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClassworkError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Not valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClassworkInvalid"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/assignments/mine": {
+      "get": {
+        "operationId": "list_teacher_assignments",
+        "tags": [
+          "classwork"
+        ],
+        "description": "The signed-in teacher's assignments this year, newest deadline first, with how many are submitted, waiting for review, and asking to resubmit.",
+        "responses": {
+          "200": {
+            "description": "The assignments",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TeacherAssignments"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Homework is switched off",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClassworkError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/assignments/me": {
+      "get": {
+        "operationId": "list_student_assignments",
+        "tags": [
+          "classwork"
+        ],
+        "description": "The signed-in student's own class's assignments, newest deadline first, each with their own submission or none.",
+        "responses": {
+          "200": {
+            "description": "The assignments",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StudentAssignments"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Homework is switched off",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClassworkError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/assignments/{id}": {
+      "get": {
+        "operationId": "get_assignment",
+        "tags": [
+          "classwork"
+        ],
+        "description": "One assignment for its teacher: every student of the class with their submission or none.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{32}$"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The assignment",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AssignmentDetail"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not an assignment in a subject this teacher teaches",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClassworkError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/assignments/{id}/submissions/{submissionId}/review": {
+      "post": {
+        "operationId": "review_submission",
+        "tags": [
+          "classwork"
+        ],
+        "description": "The teacher's marks (up to the assignment's maximum) and feedback on a submission.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{32}$"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{32}$"
+            },
+            "required": true,
+            "name": "submissionId",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReviewWork"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Done",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": {
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
+                    }
+                  },
+                  "required": [
+                    "ok"
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found, not yours, or homework is switched off",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClassworkError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Not possible in its current state, or the academic year is closed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClassworkError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Not valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClassworkInvalid"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/assignments/{id}/submissions/{submissionId}/resubmission": {
+      "post": {
+        "operationId": "decide_resubmission",
+        "tags": [
+          "classwork"
+        ],
+        "description": "Allows or declines a student's request to resubmit. Declined, the submission goes back to how it was.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{32}$"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{32}$"
+            },
+            "required": true,
+            "name": "submissionId",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ResubmitDecision"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Done",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": {
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
+                    }
+                  },
+                  "required": [
+                    "ok"
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found, not yours, or homework is switched off",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClassworkError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Not possible in its current state, or the academic year is closed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClassworkError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Not valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClassworkInvalid"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/assignments/{id}/submission": {
+      "put": {
+        "operationId": "submit_work",
+        "tags": [
+          "classwork"
+        ],
+        "description": "The student's own submission: once, or again after the teacher allows a resubmission. Late is flagged automatically against the deadline.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{32}$"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SubmitWork"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Done",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": {
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
+                    }
+                  },
+                  "required": [
+                    "ok"
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found, not yours, or homework is switched off",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClassworkError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Not possible in its current state, or the academic year is closed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClassworkError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Not valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClassworkInvalid"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/assignments/{id}/submission/resubmit-request": {
+      "post": {
+        "operationId": "request_resubmission",
+        "tags": [
+          "classwork"
+        ],
+        "description": "The student asks to resubmit, with a reason. The teacher allows or declines it.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{32}$"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ResubmitRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Done",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": {
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
+                    }
+                  },
+                  "required": [
+                    "ok"
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found, not yours, or homework is switched off",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClassworkError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Not possible in its current state, or the academic year is closed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClassworkError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Not valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClassworkInvalid"
                 }
               }
             }

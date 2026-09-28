@@ -10,6 +10,7 @@ import { registerAccounts } from "./modules/accounts/routes";
 import { registerStaff } from "./modules/accounts/staff-routes";
 import { registerAdmissions } from "./modules/admissions";
 import { registerAttendance } from "./modules/attendance";
+import { registerClasswork } from "./modules/classwork";
 import { registerApprovals } from "./modules/approvals/routes";
 import { registerAuth } from "./modules/auth/routes";
 import { registerConfig } from "./modules/config/routes";
@@ -44,6 +45,7 @@ export function createApp() {
   registerApprovals(app);
   registerAdmissions(app);
   registerAttendance(app);
+  registerClasswork(app);
   registerDates(app);
   registerSite(app);
 

@@ -1238,6 +1238,329 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/activity/mine": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description The subjects the signed-in teacher teaches this year, each with today's entry or none. An empty entry is the teacher's reminder. */
+        get: operations["get_my_activity_today"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/activity/classes/{classId}/subjects/{offeringId}/today": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** @description Writes today's entry for one subject in one class, by the teacher who teaches it. Writing again the same day replaces it; past days cannot change. */
+        put: operations["write_activity_today"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/activity/classes/{classId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description A class's activity log for a day (today by default): every subject, its entry or none, and its teacher. A teacher sees only their own subjects. */
+        get: operations["get_class_activity"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/activity/me": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description The signed-in student's own class: the last two weeks' entries, newest first. */
+        get: operations["get_own_activity"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/activity/missing": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Today's reminder: each class in reach with the subjects that have a teacher but no entry yet. */
+        get: operations["get_missing_activity"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/activity/classes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description The active year's classes in reach, each with how many of its taught subjects have today's entry. */
+        get: operations["list_activity_classes"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/notes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Shares a note or question paper with a class, live at once. Text and an optional https link (file uploads wait for R2). Only a teacher of that subject in that class. */
+        post: operations["share_note"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/notes/{id}/withdraw": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Withdraws a shared note or question paper, once. It stays on record, hidden from students. To replace one, withdraw it and share again. */
+        post: operations["withdraw_note"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/notes/mine": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description What the signed-in teacher's subjects have shared this year, newest first, withdrawn ones marked. */
+        get: operations["list_teacher_notes"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/notes/me": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description The signed-in student's own class's live notes and question papers, and their watermark (name and SID). Never cached. */
+        get: operations["list_student_notes"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/assignments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Sets an assignment for a class: instructions, a deadline in the future, optional marks and an optional https link. Only a teacher of that subject in that class. */
+        post: operations["set_homework"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/assignments/{id}/withdraw": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Withdraws an assignment: hidden from students, closed to submissions, kept on record. */
+        post: operations["withdraw_assignment"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/assignments/mine": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description The signed-in teacher's assignments this year, newest deadline first, with how many are submitted, waiting for review, and asking to resubmit. */
+        get: operations["list_teacher_assignments"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/assignments/me": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description The signed-in student's own class's assignments, newest deadline first, each with their own submission or none. */
+        get: operations["list_student_assignments"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/assignments/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description One assignment for its teacher: every student of the class with their submission or none. */
+        get: operations["get_assignment"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/assignments/{id}/submissions/{submissionId}/review": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description The teacher's marks (up to the assignment's maximum) and feedback on a submission. */
+        post: operations["review_submission"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/assignments/{id}/submissions/{submissionId}/resubmission": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Allows or declines a student's request to resubmit. Declined, the submission goes back to how it was. */
+        post: operations["decide_resubmission"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/assignments/{id}/submission": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** @description The student's own submission: once, or again after the teacher allows a resubmission. Late is flagged automatically against the deadline. */
+        put: operations["submit_work"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/assignments/{id}/submission/resubmit-request": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description The student asks to resubmit, with a reason. The teacher allows or declines it. */
+        post: operations["request_resubmission"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/dates/to-ad": {
         parameters: {
             query?: never;
@@ -2107,6 +2430,222 @@ export interface components {
                 /** @enum {string|null} */
                 status: "present" | "absent" | "leave" | null;
             }[];
+        };
+        MyActivityToday: {
+            date: string;
+            dateBs: string | null;
+            subjects: {
+                classId: string;
+                offeringId: string;
+                subjectName: string;
+                programmeName: string;
+                levelName: string;
+                label: string;
+                body: string | null;
+            }[];
+        };
+        ClassworkError: {
+            error: string;
+        };
+        ClassworkInvalid: {
+            /** @enum {string} */
+            error: "invalid";
+            message: string;
+        };
+        WriteActivity: {
+            body: string;
+        };
+        ClassActivityDay: {
+            classId: string;
+            programmeName: string;
+            levelName: string;
+            label: string;
+            date: string;
+            dateBs: string | null;
+            entries: {
+                offeringId: string;
+                subjectName: string;
+                teacherName: string | null;
+                body: string | null;
+                updatedAt: string | null;
+            }[];
+        };
+        OwnActivity: {
+            days: {
+                date: string;
+                dateBs: string | null;
+                entries: {
+                    subjectName: string;
+                    teacherName: string;
+                    body: string;
+                }[];
+            }[];
+        };
+        MissingActivity: {
+            date: string;
+            dateBs: string | null;
+            classes: {
+                classId: string;
+                programmeName: string;
+                levelName: string;
+                label: string;
+                missing: {
+                    subjectName: string;
+                    teacherName: string;
+                }[];
+            }[];
+        };
+        ActivityClassList: {
+            date: string;
+            dateBs: string | null;
+            classes: {
+                classId: string;
+                programmeName: string;
+                levelName: string;
+                label: string;
+                expected: number;
+                written: number;
+            }[];
+        };
+        ShareNote: {
+            classId: string;
+            offeringId: string;
+            /** @enum {string} */
+            kind: "note" | "question_paper";
+            title: string;
+            body?: string;
+            link?: string;
+        };
+        TeacherNotes: {
+            notes: {
+                id: string;
+                /** @enum {string} */
+                kind: "note" | "question_paper";
+                title: string;
+                body: string | null;
+                link: string | null;
+                subjectName: string;
+                createdAt: string;
+                classId: string;
+                programmeName: string;
+                levelName: string;
+                label: string;
+                withdrawn: boolean;
+            }[];
+        };
+        StudentNotes: {
+            watermark: string;
+            notes: {
+                id: string;
+                /** @enum {string} */
+                kind: "note" | "question_paper";
+                title: string;
+                body: string | null;
+                link: string | null;
+                subjectName: string;
+                createdAt: string;
+                teacherName: string;
+            }[];
+        };
+        SetAssignment: {
+            classId: string;
+            offeringId: string;
+            title: string;
+            instructions: string;
+            link?: string;
+            dueAt: string;
+            maxMarks?: number;
+        };
+        TeacherAssignments: {
+            assignments: {
+                id: string;
+                title: string;
+                instructions: string;
+                link: string | null;
+                dueAt: string;
+                dueDateBs: string | null;
+                maxMarks: number | null;
+                subjectName: string;
+                classId: string;
+                programmeName: string;
+                levelName: string;
+                label: string;
+                withdrawn: boolean;
+                students: number;
+                submitted: number;
+                toReview: number;
+                requests: number;
+            }[];
+        };
+        StudentAssignments: {
+            assignments: {
+                id: string;
+                title: string;
+                instructions: string;
+                link: string | null;
+                dueAt: string;
+                dueDateBs: string | null;
+                maxMarks: number | null;
+                subjectName: string;
+                teacherName: string;
+                submission: {
+                    id: string;
+                    /** @enum {string} */
+                    status: "submitted" | "reviewed" | "resubmit_requested" | "resubmit_allowed";
+                    isLate: boolean;
+                    body: string;
+                    submittedAt: string;
+                    marks: number | null;
+                    feedback: string | null;
+                    resubmitReason: string | null;
+                    attempts: number;
+                } | null;
+            }[];
+        };
+        AssignmentDetail: {
+            id: string;
+            title: string;
+            instructions: string;
+            link: string | null;
+            dueAt: string;
+            dueDateBs: string | null;
+            maxMarks: number | null;
+            subjectName: string;
+            classId: string;
+            programmeName: string;
+            levelName: string;
+            label: string;
+            withdrawn: boolean;
+            students: {
+                enrollmentId: string;
+                sid: string;
+                name: string;
+                submission: {
+                    id: string;
+                    /** @enum {string} */
+                    status: "submitted" | "reviewed" | "resubmit_requested" | "resubmit_allowed";
+                    isLate: boolean;
+                    body: string;
+                    submittedAt: string;
+                    marks: number | null;
+                    feedback: string | null;
+                    resubmitReason: string | null;
+                    attempts: number;
+                } | null;
+            }[];
+        };
+        ReviewWork: {
+            marks?: number;
+            feedback?: string;
+        };
+        ResubmitDecision: {
+            allow: boolean;
+        };
+        SubmitWork: {
+            body: string;
+        };
+        ResubmitRequest: {
+            reason: string;
         };
         DateConversionFailure: {
             /** @enum {string} */
@@ -5842,6 +6381,786 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AttendanceInvalid"];
+                };
+            };
+        };
+    };
+    get_my_activity_today: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Today's subjects */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MyActivityToday"];
+                };
+            };
+        };
+    };
+    write_activity_today: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                classId: string;
+                offeringId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WriteActivity"];
+            };
+        };
+        responses: {
+            /** @description Saved */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {boolean} */
+                        ok: true;
+                    };
+                };
+            };
+            /** @description Not a subject this teacher teaches in this class */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClassworkError"];
+                };
+            };
+            /** @description The academic year is closed */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClassworkError"];
+                };
+            };
+            /** @description Not valid */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClassworkInvalid"];
+                };
+            };
+        };
+    };
+    get_class_activity: {
+        parameters: {
+            query?: {
+                date?: string;
+            };
+            header?: never;
+            path: {
+                classId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The day */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClassActivityDay"];
+                };
+            };
+            /** @description No such class, or not one the person may see */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClassworkError"];
+                };
+            };
+            /** @description A day outside the verified calendar */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClassworkInvalid"];
+                };
+            };
+        };
+    };
+    get_own_activity: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The entries */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OwnActivity"];
+                };
+            };
+        };
+    };
+    get_missing_activity: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description What is missing */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MissingActivity"];
+                };
+            };
+            /** @description Not for students or teachers */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClassworkError"];
+                };
+            };
+        };
+    };
+    list_activity_classes: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The classes */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ActivityClassList"];
+                };
+            };
+            /** @description Not for students or teachers */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClassworkError"];
+                };
+            };
+        };
+    };
+    share_note: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ShareNote"];
+            };
+        };
+        responses: {
+            /** @description Shared */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        id: string;
+                    };
+                };
+            };
+            /** @description Not a subject this teacher teaches in this class, or notes are switched off */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClassworkError"];
+                };
+            };
+            /** @description The academic year is closed */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClassworkError"];
+                };
+            };
+            /** @description Neither words nor a link */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClassworkInvalid"];
+                };
+            };
+        };
+    };
+    withdraw_note: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Withdrawn */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {boolean} */
+                        ok: true;
+                    };
+                };
+            };
+            /** @description No such live note in a subject this teacher teaches */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClassworkError"];
+                };
+            };
+            /** @description The academic year is closed */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClassworkError"];
+                };
+            };
+        };
+    };
+    list_teacher_notes: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The notes */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TeacherNotes"];
+                };
+            };
+            /** @description Notes are switched off */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClassworkError"];
+                };
+            };
+        };
+    };
+    list_student_notes: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The notes */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StudentNotes"];
+                };
+            };
+            /** @description Not a student */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClassworkError"];
+                };
+            };
+            /** @description Notes are switched off */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClassworkError"];
+                };
+            };
+        };
+    };
+    set_homework: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SetAssignment"];
+            };
+        };
+        responses: {
+            /** @description Set */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        id: string;
+                    };
+                };
+            };
+            /** @description Not found, not yours, or homework is switched off */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClassworkError"];
+                };
+            };
+            /** @description Not possible in its current state, or the academic year is closed */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClassworkError"];
+                };
+            };
+            /** @description Not valid */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClassworkInvalid"];
+                };
+            };
+        };
+    };
+    withdraw_assignment: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Done */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {boolean} */
+                        ok: true;
+                    };
+                };
+            };
+            /** @description Not found, not yours, or homework is switched off */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClassworkError"];
+                };
+            };
+            /** @description Not possible in its current state, or the academic year is closed */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClassworkError"];
+                };
+            };
+            /** @description Not valid */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClassworkInvalid"];
+                };
+            };
+        };
+    };
+    list_teacher_assignments: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The assignments */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TeacherAssignments"];
+                };
+            };
+            /** @description Homework is switched off */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClassworkError"];
+                };
+            };
+        };
+    };
+    list_student_assignments: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The assignments */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StudentAssignments"];
+                };
+            };
+            /** @description Homework is switched off */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClassworkError"];
+                };
+            };
+        };
+    };
+    get_assignment: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The assignment */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AssignmentDetail"];
+                };
+            };
+            /** @description Not an assignment in a subject this teacher teaches */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClassworkError"];
+                };
+            };
+        };
+    };
+    review_submission: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                submissionId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReviewWork"];
+            };
+        };
+        responses: {
+            /** @description Done */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {boolean} */
+                        ok: true;
+                    };
+                };
+            };
+            /** @description Not found, not yours, or homework is switched off */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClassworkError"];
+                };
+            };
+            /** @description Not possible in its current state, or the academic year is closed */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClassworkError"];
+                };
+            };
+            /** @description Not valid */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClassworkInvalid"];
+                };
+            };
+        };
+    };
+    decide_resubmission: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                submissionId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ResubmitDecision"];
+            };
+        };
+        responses: {
+            /** @description Done */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {boolean} */
+                        ok: true;
+                    };
+                };
+            };
+            /** @description Not found, not yours, or homework is switched off */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClassworkError"];
+                };
+            };
+            /** @description Not possible in its current state, or the academic year is closed */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClassworkError"];
+                };
+            };
+            /** @description Not valid */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClassworkInvalid"];
+                };
+            };
+        };
+    };
+    submit_work: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SubmitWork"];
+            };
+        };
+        responses: {
+            /** @description Done */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {boolean} */
+                        ok: true;
+                    };
+                };
+            };
+            /** @description Not found, not yours, or homework is switched off */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClassworkError"];
+                };
+            };
+            /** @description Not possible in its current state, or the academic year is closed */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClassworkError"];
+                };
+            };
+            /** @description Not valid */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClassworkInvalid"];
+                };
+            };
+        };
+    };
+    request_resubmission: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ResubmitRequest"];
+            };
+        };
+        responses: {
+            /** @description Done */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {boolean} */
+                        ok: true;
+                    };
+                };
+            };
+            /** @description Not found, not yours, or homework is switched off */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClassworkError"];
+                };
+            };
+            /** @description Not possible in its current state, or the academic year is closed */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClassworkError"];
+                };
+            };
+            /** @description Not valid */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClassworkInvalid"];
                 };
             };
         };

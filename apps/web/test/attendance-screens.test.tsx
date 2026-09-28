@@ -108,7 +108,7 @@ describe("loading", () => {
 });
 
 describe("the More tab", () => {
-  it("a Co-ordinator's phone tab bar holds four places and More; the sidebar keeps all six", () => {
+  it("a Co-ordinator's phone tab bar holds four places and More; the sidebar keeps all seven", () => {
     const html = inContext(
       <PortalShell>
         <h1>x</h1>
@@ -120,6 +120,7 @@ describe("the More tab", () => {
     // Setup and People are still in the markup, for the sidebar, but marked to hide on a phone.
     expect(html).toContain('class="navLink overflow" href="/portal/setup"');
     expect(html).toContain('class="navLink overflow" href="/portal/people"');
+    expect(html).toContain('class="navLink overflow" href="/portal/content"');
     expect(html).toContain('class="navLink" aria-current="page" href="/portal/attendance"');
   });
 
