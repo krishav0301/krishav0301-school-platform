@@ -152,10 +152,24 @@
   align-content: start;
 }
 
+/* On a phone, entries past the tab bar's room live under "More" instead (nav.ts, `splitNav`). */
+.overflow {
+  display: none;
+}
+
 /* Wide screens: the menu becomes a sidebar beside the page. */
 @media (min-width: 56rem) {
   .who {
     display: inline;
+  }
+
+  /* The sidebar has room for every entry, so it shows them all and has no "More". */
+  .overflow {
+    display: flex;
+  }
+
+  .moreLink {
+    display: none;
   }
 
   .body {
@@ -283,4 +297,34 @@
 /* With enlarged text the actions wrap onto a second row instead of widening the page. */
 .actions {
   flex-wrap: wrap;
+}
+
+/* The "More" list (phone): one row per place, a full-width target at least as tall as a control. */
+.moreTitle {
+  font-size: var(--text-2xl);
+}
+
+.moreList {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-card);
+  background: var(--color-surface);
+  overflow: hidden;
+}
+
+.moreList li + li {
+  border-top: 1px solid var(--color-border);
+}
+
+.moreItem {
+  display: flex;
+  align-items: center;
+  min-height: var(--control-height);
+  padding: var(--space-3) var(--space-5);
+  color: var(--color-primary);
+  font-weight: var(--weight-medium);
+  text-decoration: none;
+  overflow-wrap: anywhere;
 }

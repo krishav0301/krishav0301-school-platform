@@ -1,0 +1,95 @@
+/* Attendance screens (Phase 5). Tokens only: no colour, font or motion is written out here. */
+
+.register {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  padding: min(var(--space-5), 5vw);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-card);
+  background: var(--color-surface);
+}
+
+.classLine {
+  font-weight: var(--weight-medium);
+  overflow-wrap: anywhere;
+}
+
+/* The ticks are one group, introduced by its label (Apple, toggles.md › Checkboxes). */
+.group {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  min-width: 0;
+}
+
+.legend {
+  padding: 0;
+  margin-bottom: var(--space-2);
+  font-weight: var(--weight-bold);
+}
+
+.roster {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.rosterRow + .rosterRow {
+  border-top: 1px solid var(--color-border);
+}
+
+.rosterRow {
+  padding: var(--space-2) 0;
+}
+
+/* The count and the one Save stay together at the end of the list. */
+.saveBar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.tally {
+  font-weight: var(--weight-medium);
+}
+
+.stat {
+  font-size: var(--text-2xl);
+  font-weight: var(--weight-bold);
+}
+
+.dayPicker {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--space-3);
+}
+
+.numeric {
+  text-align: end;
+  font-variant-numeric: tabular-nums;
+}
+
+.days {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* A read-only row: the name and its mark side by side, wrapping on a narrow screen. */
+.readRow {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: var(--space-2);
+  min-height: var(--control-height);
+  align-items: center;
+}

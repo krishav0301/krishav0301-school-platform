@@ -84,7 +84,7 @@ Approval creates the `Student`, the `User`, the `Enrollment` and the SID in one 
 
 ## Phase 5: daily school life
 
-`StudentAttendance` (enrollment, date, present or absent, marked_by; unique per enrollment and date), `TeacherAttendance` (teacher, date, present, absent or leave, marked_by, reason for past edits), `ActivityLog` (subject_offering, teacher, date, text), `Note` (subject_offering, file, uploaded_by), `Assignment` (subject_offering, title, instructions, deadline, file), `Submission` (assignment, enrollment, file, status, marks, feedback, resubmission_requested).
+`StudentAttendance` (built as `student_attendance`, D-069: enrollment, on_date as the Nepal day, present or absent, marked_by; unique per enrollment and date; triggers allow only today's row and refuse closed years and deletes), `TeacherAttendance` (built as `teacher_attendance`, D-070: teacher, on_date, present, absent or leave, marked_by, reason required for any day but today; triggers refuse future days, closed years and deletes), `ActivityLog` (subject_offering, teacher, date, text), `Note` (subject_offering, file, uploaded_by), `Assignment` (subject_offering, title, instructions, deadline, file), `Submission` (assignment, enrollment, file, status, marks, feedback, resubmission_requested).
 
 ## Phases 6 to 8: outline only
 

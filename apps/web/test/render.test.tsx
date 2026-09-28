@@ -62,8 +62,9 @@ const coordinator: Me = { name: "Sita Sharma", roles: [{ role: "coordinator", sc
 describe("the portal shell", () => {
   const royalHtml = page(<PortalPage />, royal, signedIn(coordinator));
   const sampleHtml = page(<PortalPage />, sample, signedIn(coordinator));
-  // A role with a single menu entry (the Dashboard): the Accountant now also has Admissions (D-063).
-  const oneEntry = page(<PortalPage />, royal, signedIn({ name: "Asha Rai", roles: [{ role: "teacher", scope: "assigned" }] }));
+  // A role with a single menu entry (the Dashboard): the Accountant now also has Admissions (D-063), and the
+  // Teacher Attendance (D-069); the Student still has only the Dashboard.
+  const oneEntry = page(<PortalPage />, royal, signedIn({ name: "Asha Rai", roles: [{ role: "student", scope: "own" }] }));
 
   const withMenu = page(
     <PortalShell items={menuItems}>

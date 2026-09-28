@@ -1,6 +1,6 @@
 {
   "pages": ["index", "programmes", "admission", "scholarships", "facilities", "contact", "notices", "sign-in", "reset-password", "apply", "privacy"],
-  "ignore": ["404", "_not-found", "design", "portal", "portal/content", "portal/content/edit", "portal/setup", "portal/setup/programmes", "portal/setup/classes", "portal/setup/terminals", "portal/setup/subjects", "portal/setup/curriculum", "portal/people", "portal/people/teaching", "portal/approvals", "portal/admissions", "portal/admissions/register", "portal/admissions/search"],
+  "ignore": ["404", "_not-found", "design", "portal", "portal/content", "portal/content/edit", "portal/setup", "portal/setup/programmes", "portal/setup/classes", "portal/setup/terminals", "portal/setup/subjects", "portal/setup/curriculum", "portal/people", "portal/people/teaching", "portal/approvals", "portal/admissions", "portal/admissions/register", "portal/admissions/search", "portal/attendance", "portal/attendance/class", "portal/attendance/teachers", "portal/attendance/mine", "portal/more"],
   "htmlKb": 20,
   "assetsKb": 210,
   "scriptKb": 100

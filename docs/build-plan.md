@@ -132,6 +132,13 @@ Public multi-document application, email verification, rate limits and CAPTCHA, 
 ### Phase 5: Daily school life
 Student attendance by the Class Teacher, teacher attendance by the Co-ordinator, percentage and threshold alerts, daily activity log, notes and question papers with soft protection, homework and assignments (deadline, late flag, review, resubmission), role dashboards, related reports.
 
+**Progress** (approved 2026-09-28 with Phase 7; no uploads until R2, D-069; design in `docs/superpowers/specs/2026-09-28-phase5-daily-school-life-design.md`):
+- [x] 1. Student attendance: the Class Teacher's register (pre-filled Present, same-day edits), class and student views with the 75% flag, the student's card, the "More" menu overflow (D-069)
+- [x] 2. Teacher attendance: the Co-ordinator's daily list pre-filled Present, past days with a reason, the teacher's own month (D-070)
+- [ ] 3. Daily activity log
+- [ ] 4. Notes, question papers and homework (text and links)
+- [ ] 5. Dashboards and the exit test
+
 ### Phase 6: Fees and ledger
 Tests first. Fee structure with Admin approval, charge generation through the billing-schedule policy, append-only ledger, voucher queue, cash entry, gapless receipts with PDF, discounts, reversals, refunds, previous dues, dues list, overdue reminders, payment-attempt model and gateway interface with a demo adapter, fee reports and Excel export.
 **Needs from client:** fee structure, discount reasons (including the scholarship), refund rules, what "course-wise" means.

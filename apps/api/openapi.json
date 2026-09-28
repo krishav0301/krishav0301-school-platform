@@ -3086,6 +3086,557 @@
           "createdAt"
         ]
       },
+      "AttendanceClassList": {
+        "type": "object",
+        "properties": {
+          "today": {
+            "type": "string"
+          },
+          "todayBs": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "classes": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "programmeName": {
+                  "type": "string"
+                },
+                "levelName": {
+                  "type": "string"
+                },
+                "label": {
+                  "type": "string"
+                },
+                "sectionKey": {
+                  "type": "string"
+                },
+                "students": {
+                  "type": "integer"
+                },
+                "markedToday": {
+                  "type": "boolean"
+                },
+                "absentToday": {
+                  "type": "integer"
+                },
+                "mine": {
+                  "type": "boolean"
+                }
+              },
+              "required": [
+                "id",
+                "programmeName",
+                "levelName",
+                "label",
+                "sectionKey",
+                "students",
+                "markedToday",
+                "absentToday",
+                "mine"
+              ]
+            }
+          }
+        },
+        "required": [
+          "today",
+          "todayBs",
+          "classes"
+        ]
+      },
+      "AttendanceError": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "error"
+        ]
+      },
+      "AttendanceDay": {
+        "type": "object",
+        "properties": {
+          "class": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "programmeName": {
+                "type": "string"
+              },
+              "levelName": {
+                "type": "string"
+              },
+              "label": {
+                "type": "string"
+              },
+              "sectionKey": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "programmeName",
+              "levelName",
+              "label",
+              "sectionKey"
+            ]
+          },
+          "date": {
+            "type": "string"
+          },
+          "dateBs": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "isToday": {
+            "type": "boolean"
+          },
+          "marked": {
+            "type": "boolean"
+          },
+          "canMark": {
+            "type": "boolean"
+          },
+          "students": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "enrollmentId": {
+                  "type": "string"
+                },
+                "sid": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "rollNo": {
+                  "type": [
+                    "integer",
+                    "null"
+                  ]
+                },
+                "status": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "enum": [
+                    "present",
+                    "absent",
+                    null
+                  ]
+                }
+              },
+              "required": [
+                "enrollmentId",
+                "sid",
+                "name",
+                "rollNo",
+                "status"
+              ]
+            }
+          }
+        },
+        "required": [
+          "class",
+          "date",
+          "dateBs",
+          "isToday",
+          "marked",
+          "canMark",
+          "students"
+        ]
+      },
+      "AttendanceInvalid": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "string",
+            "enum": [
+              "invalid"
+            ]
+          },
+          "message": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "error",
+          "message"
+        ]
+      },
+      "AttendanceMarked": {
+        "type": "object",
+        "properties": {
+          "ok": {
+            "type": "boolean",
+            "enum": [
+              true
+            ]
+          },
+          "present": {
+            "type": "integer"
+          },
+          "absent": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "ok",
+          "present",
+          "absent"
+        ]
+      },
+      "MarkAttendance": {
+        "type": "object",
+        "properties": {
+          "absent": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{32}$"
+            },
+            "maxItems": 500
+          }
+        },
+        "required": [
+          "absent"
+        ],
+        "additionalProperties": false
+      },
+      "AttendanceSummary": {
+        "type": "object",
+        "properties": {
+          "class": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "programmeName": {
+                "type": "string"
+              },
+              "levelName": {
+                "type": "string"
+              },
+              "label": {
+                "type": "string"
+              },
+              "sectionKey": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "programmeName",
+              "levelName",
+              "label",
+              "sectionKey"
+            ]
+          },
+          "threshold": {
+            "type": "integer"
+          },
+          "students": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "enrollmentId": {
+                  "type": "string"
+                },
+                "sid": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "rollNo": {
+                  "type": [
+                    "integer",
+                    "null"
+                  ]
+                },
+                "present": {
+                  "type": "integer"
+                },
+                "absent": {
+                  "type": "integer"
+                },
+                "percent": {
+                  "type": [
+                    "integer",
+                    "null"
+                  ]
+                },
+                "below": {
+                  "type": "boolean"
+                }
+              },
+              "required": [
+                "enrollmentId",
+                "sid",
+                "name",
+                "rollNo",
+                "present",
+                "absent",
+                "percent",
+                "below"
+              ]
+            }
+          }
+        },
+        "required": [
+          "class",
+          "threshold",
+          "students"
+        ]
+      },
+      "OwnAttendance": {
+        "type": "object",
+        "properties": {
+          "yearLabel": {
+            "type": "string"
+          },
+          "threshold": {
+            "type": "integer"
+          },
+          "present": {
+            "type": "integer"
+          },
+          "absent": {
+            "type": "integer"
+          },
+          "percent": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "below": {
+            "type": "boolean"
+          },
+          "absentDays": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "date": {
+                  "type": "string"
+                },
+                "dateBs": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                }
+              },
+              "required": [
+                "date",
+                "dateBs"
+              ]
+            }
+          }
+        },
+        "required": [
+          "yearLabel",
+          "threshold",
+          "present",
+          "absent",
+          "percent",
+          "below",
+          "absentDays"
+        ]
+      },
+      "TeacherDay": {
+        "type": "object",
+        "properties": {
+          "date": {
+            "type": "string"
+          },
+          "dateBs": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "isToday": {
+            "type": "boolean"
+          },
+          "marked": {
+            "type": "boolean"
+          },
+          "teachers": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "sectionKey": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "status": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "enum": [
+                    "present",
+                    "absent",
+                    "leave",
+                    null
+                  ]
+                },
+                "reason": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                }
+              },
+              "required": [
+                "id",
+                "name",
+                "sectionKey",
+                "status",
+                "reason"
+              ]
+            }
+          }
+        },
+        "required": [
+          "date",
+          "dateBs",
+          "isToday",
+          "marked",
+          "teachers"
+        ]
+      },
+      "SaveTeacherDay": {
+        "type": "object",
+        "properties": {
+          "date": {
+            "type": "string",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+          },
+          "exceptions": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "teacherId": {
+                  "type": "string",
+                  "pattern": "^[0-9a-f]{32}$"
+                },
+                "status": {
+                  "type": "string",
+                  "enum": [
+                    "absent",
+                    "leave"
+                  ]
+                }
+              },
+              "required": [
+                "teacherId",
+                "status"
+              ],
+              "additionalProperties": false
+            },
+            "maxItems": 500
+          },
+          "reason": {
+            "type": "string",
+            "maxLength": 300
+          }
+        },
+        "required": [
+          "date",
+          "exceptions"
+        ],
+        "additionalProperties": false
+      },
+      "OwnTeacherMonth": {
+        "type": "object",
+        "properties": {
+          "month": {
+            "type": "string"
+          },
+          "present": {
+            "type": "integer"
+          },
+          "absent": {
+            "type": "integer"
+          },
+          "leave": {
+            "type": "integer"
+          },
+          "days": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "date": {
+                  "type": "string"
+                },
+                "dateBs": {
+                  "type": "string"
+                },
+                "weekday": {
+                  "type": "integer"
+                },
+                "status": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "enum": [
+                    "present",
+                    "absent",
+                    "leave",
+                    null
+                  ]
+                }
+              },
+              "required": [
+                "date",
+                "dateBs",
+                "weekday",
+                "status"
+              ]
+            }
+          }
+        },
+        "required": [
+          "month",
+          "present",
+          "absent",
+          "leave",
+          "days"
+        ]
+      },
       "DateConversionFailure": {
         "type": "object",
         "properties": {
@@ -7671,6 +8222,439 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/AdmissionsError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/attendance/classes": {
+      "get": {
+        "operationId": "list_attendance_classes",
+        "tags": [
+          "attendance"
+        ],
+        "description": "The active year's classes the person may see, each with today's state. A Class Teacher sees their own class; a Co-ordinator their sections; the Admin every class.",
+        "responses": {
+          "200": {
+            "description": "The classes",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AttendanceClassList"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such class, not one the person may see, or attendance is switched off for this school",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AttendanceError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/attendance/classes/{id}/day": {
+      "get": {
+        "operationId": "get_attendance_day",
+        "tags": [
+          "attendance"
+        ],
+        "description": "A class's register for one day (today by default): each student, and their mark or none.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{32}$"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+            },
+            "required": false,
+            "name": "date",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The register",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AttendanceDay"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such class, not one the person may see, or attendance is switched off for this school",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AttendanceError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "A day outside the verified calendar",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AttendanceInvalid"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/attendance/classes/{id}/today": {
+      "put": {
+        "operationId": "mark_attendance_today",
+        "tags": [
+          "attendance"
+        ],
+        "description": "The Class Teacher's register for today (Nepal's date): the absent students; everyone else in the class is Present. Sending it again the same day replaces the day. Past days cannot be changed.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{32}$"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MarkAttendance"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Saved",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AttendanceMarked"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such class, not one the person may see, or attendance is switched off for this school",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AttendanceError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The academic year is closed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AttendanceError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "A student listed is not in this class",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AttendanceInvalid"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/attendance/classes/{id}/summary": {
+      "get": {
+        "operationId": "get_attendance_summary",
+        "tags": [
+          "attendance"
+        ],
+        "description": "Each student's year so far in the class: days present and absent, the percentage, and whether it is below the school's alert threshold.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{32}$"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The summary",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AttendanceSummary"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such class, not one the person may see, or attendance is switched off for this school",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AttendanceError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/attendance/me": {
+      "get": {
+        "operationId": "get_own_attendance",
+        "tags": [
+          "attendance"
+        ],
+        "description": "The signed-in student's own attendance this year: totals, percentage, the alert flag, and the days marked absent.",
+        "responses": {
+          "200": {
+            "description": "Their attendance",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OwnAttendance"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No enrollment this year, or attendance is switched off",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AttendanceError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/attendance/teachers/day": {
+      "get": {
+        "operationId": "get_teacher_attendance_day",
+        "tags": [
+          "attendance"
+        ],
+        "description": "The Co-ordinator's daily list of teachers for a day (today by default), each with their mark or none. The screen shows an unmarked teacher as Present.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+            },
+            "required": false,
+            "name": "date",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The list",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TeacherDay"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed: a teacher reads only their own month",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AttendanceError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Teacher attendance is switched off for this school",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AttendanceError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "A day outside the verified calendar",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AttendanceInvalid"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "operationId": "save_teacher_attendance_day",
+        "tags": [
+          "attendance"
+        ],
+        "description": "Saves a day's teacher attendance: the exceptions (Absent, On leave); every other teacher the Co-ordinator reaches is Present. Today, or a past day with a reason. Saving the same day again replaces it.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SaveTeacherDay"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Saved",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": {
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
+                    },
+                    "present": {
+                      "type": "integer"
+                    },
+                    "absent": {
+                      "type": "integer"
+                    },
+                    "leave": {
+                      "type": "integer"
+                    }
+                  },
+                  "required": [
+                    "ok",
+                    "present",
+                    "absent",
+                    "leave"
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not allowed any more, or teacher attendance is switched off",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AttendanceError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The day falls in a closed academic year",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AttendanceError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "A future day, a past day without a reason, or a teacher out of reach",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AttendanceInvalid"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/attendance/teachers/me": {
+      "get": {
+        "operationId": "get_own_teacher_month",
+        "tags": [
+          "attendance"
+        ],
+        "description": "The signed-in teacher's own attendance for a Bikram Sambat month (this month by default), read-only.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^\\d{4}-(0[1-9]|1[0-2])$"
+            },
+            "required": false,
+            "name": "month",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The month",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OwnTeacherMonth"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Teacher attendance is switched off for this school",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AttendanceError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "A year outside the verified calendar",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AttendanceInvalid"
                 }
               }
             }

@@ -1,0 +1,1 @@
+export { registerAttendance } from "./routes";

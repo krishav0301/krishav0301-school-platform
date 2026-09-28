@@ -1,6 +1,7 @@
 "use client";
 
 import { StudentRecordCard } from "@/admissions/StudentRecordCard";
+import { OwnAttendanceCard } from "@/attendance/OwnAttendanceCard";
 import { useConfig } from "@/config/ConfigProvider";
 import { t } from "@/i18n/messages";
 import { useSession, type RoleClaim } from "@/session/SessionProvider";
@@ -41,6 +42,7 @@ function Dashboard() {
       </Card>
       {me.roles.some((r) => r.role === "coordinator") ? <ChecklistCard /> : null}
       {me.roles.some((r) => r.role === "student") ? <StudentRecordCard /> : null}
+      {me.roles.some((r) => r.role === "student") && config?.modules.attendance ? <OwnAttendanceCard /> : null}
       {me.roles.some((r) => r.role === "coordinator" || r.role === "student") ? null : <p className={styles.note}>{t("portal.nothingYet")}</p>}
     </>
   );

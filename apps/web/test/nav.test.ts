@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { MAX_TABS, NAV_ITEMS, isCurrent, showsMenu, visibleNav, type NavItem } from "@/shell/nav";
+import { MAX_TABS, NAV_ITEMS, isCurrent, showsMenu, splitNav, visibleNav, type NavItem } from "@/shell/nav";
 import { ROLES } from "../../api/src/core/roles";
 
 const items: NavItem[] = [
@@ -28,16 +28,53 @@ describe("isCurrent", () => {
 });
 
 describe("the real menu", () => {
-  it("shows each role its own entries: website, setup, people and approvals for the Admin; website, setup, people and admissions for the Co-ordinator", () => {
-    const seen = (role: string, scope: "institution" | "section" | "own" | "assigned") => visibleNav(NAV_ITEMS, [{ role, scope }], {}).map((i) => i.id);
-    expect(seen("admin", "institution")).toEqual(["dashboard", "content", "setup", "people", "approvals"]);
-    expect(seen("super_admin", "institution")).toEqual(["dashboard", "content", "setup", "people", "approvals"]);
-    expect(seen("coordinator", "institution")).toEqual(["dashboard", "content", "setup", "people", "admissions"]);
-    expect(seen("coordinator", "section")).toEqual(["dashboard", "content", "setup", "people", "admissions"]);
+  const seen = (role: string, scope: "institution" | "section" | "own" | "assigned", modules: Record<string, boolean> = { attendance: true }) =>
+    visibleNav(NAV_ITEMS, [{ role, scope }], modules).map((i) => i.id);
+
+  it("shows each role its own entries", () => {
+    expect(seen("admin", "institution")).toEqual(["dashboard", "content", "setup", "people", "approvals", "attendance"]);
+    expect(seen("super_admin", "institution")).toEqual(["dashboard", "content", "setup", "people", "approvals", "attendance"]);
+    expect(seen("coordinator", "institution")).toEqual(["dashboard", "content", "setup", "people", "admissions", "attendance"]);
+    expect(seen("coordinator", "section")).toEqual(["dashboard", "content", "setup", "people", "admissions", "attendance"]);
     expect(seen("accountant", "institution")).toEqual(["dashboard", "admissions"]);
-    for (const [role, scope] of [["student", "own"], ["teacher", "assigned"]] as const) {
-      expect(seen(role, scope), role).toEqual(["dashboard"]);
-    }
+    expect(seen("teacher", "assigned")).toEqual(["dashboard", "attendance"]);
+    expect(seen("student", "own")).toEqual(["dashboard"]);
+  });
+
+  it("a school that switched attendance off does not see it in the menu", () => {
+    expect(seen("teacher", "assigned", { attendance: false })).toEqual(["dashboard"]);
+  });
+
+  it("on a phone the daily places stay tabs and the rarely visited ones move into More", () => {
+    const split = (role: string, scope: "institution" | "section") => {
+      const { tabs, more } = splitNav(visibleNav(NAV_ITEMS, [{ role, scope }], { attendance: true }));
+      return { tabs: tabs.map((i) => i.id), more: more.map((i) => i.id) };
+    };
+    expect(split("coordinator", "institution")).toEqual({ tabs: ["dashboard", "content", "admissions", "attendance"], more: ["setup", "people"] });
+    expect(split("admin", "institution")).toEqual({ tabs: ["dashboard", "content", "approvals", "attendance"], more: ["setup", "people"] });
+  });
+});
+
+describe("splitNav", () => {
+  const entry = (id: string, rarely = false): NavItem => ({ id, labelKey: "nav.dashboard", href: `/portal/${id}`, ...(rarely ? { rarely } : {}) });
+
+  it("keeps every entry a tab while they fit", () => {
+    const menu = ["a", "b", "c", "d", "e"].map((id) => entry(id));
+    expect(splitNav(menu)).toEqual({ tabs: menu, more: [] });
+  });
+
+  it("past the limit, the last tab is More: daily entries first, in menu order", () => {
+    const menu = [entry("a"), entry("b", true), entry("c"), entry("d"), entry("e"), entry("f")];
+    const { tabs, more } = splitNav(menu);
+    expect(tabs.map((i) => i.id)).toEqual(["a", "c", "d", "e"]);
+    expect(more.map((i) => i.id)).toEqual(["b", "f"]);
+  });
+
+  it("with too few daily entries, rarely ones fill the rest of the tabs in menu order", () => {
+    const menu = [entry("a"), entry("b", true), entry("c", true), entry("d", true), entry("e", true), entry("f", true)];
+    const { tabs, more } = splitNav(menu);
+    expect(tabs.map((i) => i.id)).toEqual(["a", "b", "c", "d"]);
+    expect(more.map((i) => i.id)).toEqual(["e", "f"]);
   });
 });
 
@@ -80,10 +117,11 @@ describe("visibleNav", () => {
     expect(showsMenu(items.slice(0, 2))).toBe(true);
   });
 
-  it("no role is ever offered more than the tab bar can hold: add a More tab before adding a sixth entry", () => {
+  it("no role's phone tab bar ever holds more than it can: past the limit, the extra entries go into More", () => {
     const everyModuleOn = Object.fromEntries(NAV_ITEMS.flatMap((i) => (i.module ? [[i.module, true]] : [])));
     for (const role of ROLES) {
-      expect(visibleNav(NAV_ITEMS, [{ role }], everyModuleOn).length, role).toBeLessThanOrEqual(MAX_TABS);
+      const { tabs, more } = splitNav(visibleNav(NAV_ITEMS, [{ role }], everyModuleOn));
+      expect(tabs.length + (more.length > 0 ? 1 : 0), role).toBeLessThanOrEqual(MAX_TABS);
     }
   });
 

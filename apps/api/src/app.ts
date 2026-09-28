@@ -9,6 +9,7 @@ import { registerSubjects } from "./modules/academics/subject-routes";
 import { registerAccounts } from "./modules/accounts/routes";
 import { registerStaff } from "./modules/accounts/staff-routes";
 import { registerAdmissions } from "./modules/admissions";
+import { registerAttendance } from "./modules/attendance";
 import { registerApprovals } from "./modules/approvals/routes";
 import { registerAuth } from "./modules/auth/routes";
 import { registerConfig } from "./modules/config/routes";
@@ -42,6 +43,7 @@ export function createApp() {
   registerContent(app);
   registerApprovals(app);
   registerAdmissions(app);
+  registerAttendance(app);
   registerDates(app);
   registerSite(app);
 

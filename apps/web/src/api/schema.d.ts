@@ -1118,6 +1118,126 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/attendance/classes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description The active year's classes the person may see, each with today's state. A Class Teacher sees their own class; a Co-ordinator their sections; the Admin every class. */
+        get: operations["list_attendance_classes"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/attendance/classes/{id}/day": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description A class's register for one day (today by default): each student, and their mark or none. */
+        get: operations["get_attendance_day"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/attendance/classes/{id}/today": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** @description The Class Teacher's register for today (Nepal's date): the absent students; everyone else in the class is Present. Sending it again the same day replaces the day. Past days cannot be changed. */
+        put: operations["mark_attendance_today"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/attendance/classes/{id}/summary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Each student's year so far in the class: days present and absent, the percentage, and whether it is below the school's alert threshold. */
+        get: operations["get_attendance_summary"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/attendance/me": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description The signed-in student's own attendance this year: totals, percentage, the alert flag, and the days marked absent. */
+        get: operations["get_own_attendance"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/attendance/teachers/day": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description The Co-ordinator's daily list of teachers for a day (today by default), each with their mark or none. The screen shows an unmarked teacher as Present. */
+        get: operations["get_teacher_attendance_day"];
+        /** @description Saves a day's teacher attendance: the exceptions (Absent, On leave); every other teacher the Co-ordinator reaches is Present. Today, or a past day with a reason. Saving the same day again replaces it. */
+        put: operations["save_teacher_attendance_day"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/attendance/teachers/me": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description The signed-in teacher's own attendance for a Bikram Sambat month (this month by default), read-only. */
+        get: operations["get_own_teacher_month"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/dates/to-ad": {
         parameters: {
             query?: never;
@@ -1865,6 +1985,128 @@ export interface components {
             status: "active" | "left" | "graduated";
             className: string | null;
             createdAt: string;
+        };
+        AttendanceClassList: {
+            today: string;
+            todayBs: string | null;
+            classes: {
+                id: string;
+                programmeName: string;
+                levelName: string;
+                label: string;
+                sectionKey: string;
+                students: number;
+                markedToday: boolean;
+                absentToday: number;
+                mine: boolean;
+            }[];
+        };
+        AttendanceError: {
+            error: string;
+        };
+        AttendanceDay: {
+            class: {
+                id: string;
+                programmeName: string;
+                levelName: string;
+                label: string;
+                sectionKey: string;
+            };
+            date: string;
+            dateBs: string | null;
+            isToday: boolean;
+            marked: boolean;
+            canMark: boolean;
+            students: {
+                enrollmentId: string;
+                sid: string;
+                name: string;
+                rollNo: number | null;
+                /** @enum {string|null} */
+                status: "present" | "absent" | null;
+            }[];
+        };
+        AttendanceInvalid: {
+            /** @enum {string} */
+            error: "invalid";
+            message: string;
+        };
+        AttendanceMarked: {
+            /** @enum {boolean} */
+            ok: true;
+            present: number;
+            absent: number;
+        };
+        MarkAttendance: {
+            absent: string[];
+        };
+        AttendanceSummary: {
+            class: {
+                id: string;
+                programmeName: string;
+                levelName: string;
+                label: string;
+                sectionKey: string;
+            };
+            threshold: number;
+            students: {
+                enrollmentId: string;
+                sid: string;
+                name: string;
+                rollNo: number | null;
+                present: number;
+                absent: number;
+                percent: number | null;
+                below: boolean;
+            }[];
+        };
+        OwnAttendance: {
+            yearLabel: string;
+            threshold: number;
+            present: number;
+            absent: number;
+            percent: number | null;
+            below: boolean;
+            absentDays: {
+                date: string;
+                dateBs: string | null;
+            }[];
+        };
+        TeacherDay: {
+            date: string;
+            dateBs: string | null;
+            isToday: boolean;
+            marked: boolean;
+            teachers: {
+                id: string;
+                name: string;
+                sectionKey: string | null;
+                /** @enum {string|null} */
+                status: "present" | "absent" | "leave" | null;
+                reason: string | null;
+            }[];
+        };
+        SaveTeacherDay: {
+            date: string;
+            exceptions: {
+                teacherId: string;
+                /** @enum {string} */
+                status: "absent" | "leave";
+            }[];
+            reason?: string;
+        };
+        OwnTeacherMonth: {
+            month: string;
+            present: number;
+            absent: number;
+            leave: number;
+            days: {
+                date: string;
+                dateBs: string;
+                weekday: number;
+                /** @enum {string|null} */
+                status: "present" | "absent" | "leave" | null;
+            }[];
         };
         DateConversionFailure: {
             /** @enum {string} */
@@ -5270,6 +5512,336 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AdmissionsError"];
+                };
+            };
+        };
+    };
+    list_attendance_classes: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The classes */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AttendanceClassList"];
+                };
+            };
+            /** @description No such class, not one the person may see, or attendance is switched off for this school */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AttendanceError"];
+                };
+            };
+        };
+    };
+    get_attendance_day: {
+        parameters: {
+            query?: {
+                date?: string;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The register */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AttendanceDay"];
+                };
+            };
+            /** @description No such class, not one the person may see, or attendance is switched off for this school */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AttendanceError"];
+                };
+            };
+            /** @description A day outside the verified calendar */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AttendanceInvalid"];
+                };
+            };
+        };
+    };
+    mark_attendance_today: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MarkAttendance"];
+            };
+        };
+        responses: {
+            /** @description Saved */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AttendanceMarked"];
+                };
+            };
+            /** @description No such class, not one the person may see, or attendance is switched off for this school */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AttendanceError"];
+                };
+            };
+            /** @description The academic year is closed */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AttendanceError"];
+                };
+            };
+            /** @description A student listed is not in this class */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AttendanceInvalid"];
+                };
+            };
+        };
+    };
+    get_attendance_summary: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The summary */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AttendanceSummary"];
+                };
+            };
+            /** @description No such class, not one the person may see, or attendance is switched off for this school */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AttendanceError"];
+                };
+            };
+        };
+    };
+    get_own_attendance: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Their attendance */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OwnAttendance"];
+                };
+            };
+            /** @description No enrollment this year, or attendance is switched off */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AttendanceError"];
+                };
+            };
+        };
+    };
+    get_teacher_attendance_day: {
+        parameters: {
+            query?: {
+                date?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The list */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TeacherDay"];
+                };
+            };
+            /** @description Not allowed: a teacher reads only their own month */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AttendanceError"];
+                };
+            };
+            /** @description Teacher attendance is switched off for this school */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AttendanceError"];
+                };
+            };
+            /** @description A day outside the verified calendar */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AttendanceInvalid"];
+                };
+            };
+        };
+    };
+    save_teacher_attendance_day: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SaveTeacherDay"];
+            };
+        };
+        responses: {
+            /** @description Saved */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {boolean} */
+                        ok: true;
+                        present: number;
+                        absent: number;
+                        leave: number;
+                    };
+                };
+            };
+            /** @description Not allowed any more, or teacher attendance is switched off */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AttendanceError"];
+                };
+            };
+            /** @description The day falls in a closed academic year */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AttendanceError"];
+                };
+            };
+            /** @description A future day, a past day without a reason, or a teacher out of reach */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AttendanceInvalid"];
+                };
+            };
+        };
+    };
+    get_own_teacher_month: {
+        parameters: {
+            query?: {
+                month?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The month */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OwnTeacherMonth"];
+                };
+            };
+            /** @description Teacher attendance is switched off for this school */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AttendanceError"];
+                };
+            };
+            /** @description A year outside the verified calendar */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AttendanceInvalid"];
                 };
             };
         };
