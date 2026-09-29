@@ -63,14 +63,14 @@ describe("the writes send what the API expects", () => {
     await createGroup(api, id, { name: "Science option", pickCount: 1 });
     await addOffering(api, { levelId: id, subjectId: id, creditHundredths: 375, groupId: id });
     await addOffering(api, { levelId: id, subjectId: id, creditHundredths: null, groupId: null });
-    await addComponent(api, id, { name: "Theory", maxHundredths: 7500 });
+    await addComponent(api, id, { name: "Theory", maxHundredths: 7500, kind: "theory" });
     expect(seen.map((s) => [s.method, s.path, s.body])).toEqual([
       ["POST", "/api/academics/subjects", { name: "Biology" }],
       ["POST", "/api/academics/subjects", { name: "Physics", code: "PHY" }],
       ["POST", `/api/academics/levels/${id}/groups`, { name: "Science option", pickCount: 1 }],
       ["POST", "/api/academics/offerings", { levelId: id, subjectId: id, creditHundredths: 375, groupId: id }],
       ["POST", "/api/academics/offerings", { levelId: id, subjectId: id, creditHundredths: null, groupId: null }],
-      ["POST", `/api/academics/offerings/${id}/components`, { name: "Theory", maxHundredths: 7500 }],
+      ["POST", `/api/academics/offerings/${id}/components`, { name: "Theory", maxHundredths: 7500, kind: "theory" }],
     ]);
   });
 
@@ -95,7 +95,7 @@ describe("the writes send what the API expects", () => {
   it("maps the server's answers: 403 forbidden, 404 not_found, 409 conflict, 422 rejected, a dropped connection failed", async () => {
     const once = (status: number, body: unknown) => fake(() => reply(status, body)).api;
     expect(await createSubject(once(403, { error: "forbidden" }), { name: "x" })).toEqual({ ok: false, reason: "forbidden" });
-    expect(await addComponent(once(404, { error: "not_found" }), id, { name: "x", maxHundredths: 100 })).toEqual({ ok: false, reason: "not_found" });
+    expect(await addComponent(once(404, { error: "not_found" }), id, { name: "x", maxHundredths: 100, kind: "theory" })).toEqual({ ok: false, reason: "not_found" });
     expect(await createSubject(once(409, { error: "conflict" }), { name: "x" })).toEqual({ ok: false, reason: "conflict" });
     expect(await addOffering(once(422, { error: "invalid", message: "x" }), { levelId: id, subjectId: id, creditHundredths: null, groupId: null })).toEqual({ ok: false, reason: "rejected" });
     expect(await setGroupActive(fake(() => "offline").api, id, true)).toEqual({ ok: false, reason: "failed" });

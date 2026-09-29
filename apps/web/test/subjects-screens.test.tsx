@@ -110,8 +110,8 @@ describe("the curriculum screen", () => {
     group: { id: "g1", name: "Science option" },
     active: true,
     components: [
-      { id: "c1", name: "Theory", maxHundredths: 7500, ordinal: 1, active: true },
-      { id: "c2", name: "Practical", maxHundredths: 2550, ordinal: 2, active: false },
+      { id: "c1", name: "Theory", maxHundredths: 7500, kind: "theory", ordinal: 1, active: true },
+      { id: "c2", name: "Practical", maxHundredths: 2550, kind: "practical", ordinal: 2, active: false },
     ],
   };
   const english: Offering = { id: "o2", subject: subject("s2", "English"), creditHundredths: null, group: null, active: false, components: [] };
