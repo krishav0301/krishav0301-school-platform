@@ -5,6 +5,7 @@ import { requestApproval, type ApprovalHandler } from "../approvals/service";
 import { allocate, type LedgerKind } from "./allocation";
 import { accountantFor, anyAccountant, enrollmentSection } from "./guard";
 import { ledgerInserts, writeMoney, type LedgerDraft } from "./ledger";
+import { formatNpr } from "./money";
 
 /**
  * Discounts, reversals and refunds (D-077). The Accountant asks; any Admin decides through the approvals engine, never
@@ -22,14 +23,20 @@ const invalid = (message: string): Created => ({ ok: false, reason: "invalid", m
 /** The account's totals right now, and whether the actor may act on it. `?1` the actor, `?2` the enrollment. */
 async function accountState(db: D1Database, actor: string, enrollmentId: string) {
   const [allowed, entries] = await db.batch([
-    db.prepare(`SELECT ${accountantFor(1, enrollmentSection(2))} AS ok, EXISTS (SELECT 1 FROM enrollments WHERE public_id = ?2) AS found`).bind(actor, enrollmentId),
+    db
+      .prepare(
+        `SELECT ${accountantFor(1, enrollmentSection(2))} AS ok, EXISTS (SELECT 1 FROM enrollments WHERE public_id = ?2) AS found,
+                (SELECT ay.status FROM enrollments en JOIN academic_years ay ON ay.id = en.academic_year_id WHERE en.public_id = ?2) AS year_status`,
+      )
+      .bind(actor, enrollmentId),
     db.prepare("SELECT le.public_id, le.kind, le.amount_paisa, le.due_on FROM ledger_entries le JOIN enrollments en ON en.id = le.enrollment_id WHERE en.public_id = ?1").bind(enrollmentId),
   ]);
-  const flags = allowed!.results[0] as { ok: number; found: number };
+  const flags = allowed!.results[0] as { ok: number; found: number; year_status: string | null };
   const rows = entries!.results as unknown as { public_id: string; kind: LedgerKind; amount_paisa: number; due_on: string | null }[];
   const alloc = allocate(rows.map((r) => ({ id: r.public_id, kind: r.kind, amountPaisa: r.amount_paisa, dueOn: r.due_on })), nepalDate(new Date()));
   const charged = rows.filter((r) => r.kind === "charge" || r.kind === "carried_dues").reduce((s, r) => s + r.amount_paisa, 0);
-  return { allowed: flags.ok === 1 && flags.found === 1, charged, credit: alloc.creditPaisa };
+  // A closed year takes no new requests either (CLAUDE.md section 6: a closed year rejects all writes; found by the year test, D-084).
+  return { allowed: flags.ok === 1 && flags.found === 1, closed: flags.year_status === "closed", charged, credit: alloc.creditPaisa };
 }
 
 /** Makes the request row (a draft) and sends it to the engine, which moves it to pending with the approval request. */
@@ -59,6 +66,7 @@ export async function proposeDiscount(
 ): Promise<Created> {
   const state = await accountState(db, actor, enrollmentId);
   if (!state.allowed) return { ok: false, reason: "not_found" };
+  if (state.closed) return { ok: false, reason: "year_closed" };
   const note = input.note?.trim() || null;
   if (input.reason === "other" && !note) return invalid("Say what the discount is for");
   const amount = input.percent !== undefined ? Math.floor((state.charged * input.percent) / 100) : input.amountPaisa!;
@@ -90,6 +98,7 @@ export async function requestReversal(db: D1Database, key: string, actor: string
   if (!payment) return { ok: false, reason: "not_found" };
   const state = await accountState(db, actor, payment.enrollment_id);
   if (!state.allowed) return { ok: false, reason: "not_found" };
+  if (state.closed) return { ok: false, reason: "year_closed" };
   if (payment.reversed === 1) return { ok: false, reason: "conflict" };
   const publicId = newPublicId();
   return makeAndSend(
@@ -109,6 +118,7 @@ export async function requestReversal(db: D1Database, key: string, actor: string
 export async function requestRefund(db: D1Database, key: string, actor: string, enrollmentId: string, amountPaisa: number, reason: string): Promise<Created> {
   const state = await accountState(db, actor, enrollmentId);
   if (!state.allowed) return { ok: false, reason: "not_found" };
+  if (state.closed) return { ok: false, reason: "year_closed" };
   if (amountPaisa > state.credit) return invalid("A refund can only return credit: this is more than the student has paid over what is owed");
   const publicId = newPublicId();
   return makeAndSend(
@@ -213,7 +223,7 @@ function adjustmentHandler(kind: Kind): ApprovalHandler {
       if (!a) return null;
       return {
         snapshot: { kind: a.kind, student: a.student_name, sid: a.sid, amountPaisa: a.amount_paisa, percent: a.percent, reason: a.reason_code, note: a.note },
-        summary: `${KIND_WORD[kind]} of NPR ${(a.amount_paisa / 100).toFixed(2)} for ${a.student_name} (${a.sid})`,
+        summary: `${KIND_WORD[kind]} of NPR ${formatNpr(a.amount_paisa)} for ${a.student_name} (${a.sid})${a.note ? `: ${a.note}` : ""}`,
         subjectPublicId: a.public_id,
       };
     },
@@ -226,7 +236,9 @@ function adjustmentHandler(kind: Kind): ApprovalHandler {
           ? "le.kind IN ('charge', 'carried_dues')"
           : kind === "reversal"
             ? "le.kind = 'reversal' AND le.refers_to_id = fa.payment_entry_id"
-            : "le.kind IN ('payment', 'discount', 'reversal', 'refund')";
+            : // A refund returns credit: it goes stale when something takes credit away (a new charge, carried dues, a
+              // reversal, another refund), not when a payment or discount adds to it (found by the year test, D-084).
+              "le.kind IN ('charge', 'carried_dues', 'reversal', 'refund')";
       const row = await db
         .prepare(`SELECT (SELECT COUNT(*) FROM ledger_entries le WHERE le.enrollment_id = fa.enrollment_id AND ${counted}) AS n FROM fee_adjustments fa WHERE fa.id = ?1`)
         .bind(id)

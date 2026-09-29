@@ -1,5 +1,5 @@
 import { recordAudit } from "../../core/audit";
-import { adToBsText } from "../../core/dates";
+import { adToBsText, nepalDate } from "../../core/dates";
 import { newPublicId } from "../../core/ids";
 import type { Grant } from "../../core/permissions";
 import type { PaymentGateway } from "../../core/payments";
@@ -135,6 +135,8 @@ export async function submitVoucher(db: D1Database, key: string, userPublicId: s
   const parsed = VoucherSchema.safeParse(input);
   if (!parsed.success) return { ok: false, reason: "invalid", message: parsed.error.issues[0]?.message ?? "That is not valid" };
   if (adToBsText(parsed.data.paidOn) === null) return { ok: false, reason: "invalid", message: "That day is outside the verified calendar" };
+  // A deposit cannot have been made after today, Nepal time (found by the year test, D-084).
+  if (parsed.data.paidOn > nepalDate(new Date())) return { ok: false, reason: "invalid", message: "The deposit day cannot be after today" };
   const publicId = newPublicId();
   try {
     const { applied } = await recordAudit(

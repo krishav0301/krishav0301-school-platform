@@ -158,6 +158,22 @@ describe("refunds", () => {
     expect((await post(`/api/fees/refunds/${id}/record`, { method: "cash" }, accountant)).status).toBe(409); // once
   });
 
+  it("a pending refund survives a discount (more credit) but goes stale on a new charge (less credit) (D-084)", async () => {
+    const pupil = fixture.pupils[1]!.enrollmentId;
+    await post("/api/fees/payments/cash", { enrollmentId: pupil, amountPaisa: 500_000, idempotencyKey: key() }, accountant);
+    const refund = async () => ((await (await post(`/api/fees/enrollments/${pupil}/refunds`, { amountPaisa: 10_000, reason: "Overpaid" }, accountant)).json()) as { id: string }).id;
+    const first = await refund();
+    const discount = ((await (await post(`/api/fees/enrollments/${pupil}/discounts`, { amountPaisa: 5_000, reason: "sibling" }, accountant)).json()) as { id: string }).id;
+    expect((await approve(await requestOf(discount))).status).toBe(200);
+    expect((await approve(await requestOf(first))).status).toBe(200); // the discount only added credit
+    const second = await refund();
+    const fee = (await db.prepare("SELECT fi.public_id FROM fee_items fi LIMIT 1").first<{ public_id: string }>())!.public_id;
+    await writeMoney(db, auditKey, { action: "test.charge", entityType: "ledger", actorPublicId: accountant.publicId, summary: "test" }, async (head) =>
+      (await ledgerInserts(db, auditKey, head, [{ publicId: crypto.randomUUID().replace(/-/g, ""), enrollmentPublicId: pupil, kind: "charge", amountPaisa: 1_000, feeItemPublicId: fee, period: "extra-refund", dueOn: "2026-05-01", actorPublicId: accountant.publicId, createdAt: new Date().toISOString() }])).statements,
+    );
+    expect((await approve(await requestOf(second))).status).toBe(409); // a charge took credit away: ask again
+  });
+
   it("the Admin who is asked cannot be the one who asked (an Accountant who is also an Admin)", async () => {
     const accountantRole = await person("accountant", "institution");
     await db.prepare("INSERT INTO role_assignments (user_id, role, scope_type) SELECT id, 'admin', 'institution' FROM users WHERE public_id = ?1").bind(accountantRole.publicId).run();

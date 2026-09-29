@@ -429,7 +429,11 @@ export const en = {
   // The approvals engine (D-061)
   "nav.approvals": "Approvals",
   "approvals.inbox.title": "Approvals",
-  "approvals.inbox.intro": "Website content a Co-ordinator sent for approval.",
+  "approvals.inbox.intro": "Website content from a Co-ordinator, and fee structures, discounts, reversals and refunds from an Accountant. Any Admin may decide, never on their own request.",
+  "approvals.kind.feeStructure": "Fee structure",
+  "approvals.kind.discount": "Discount",
+  "approvals.kind.reversal": "Payment reversal",
+  "approvals.kind.refund": "Refund",
   "approvals.inbox.empty": "Nothing is waiting for a decision.",
   "approvals.inbox.forbidden": "You no longer have permission to see this. Sign in again.",
   "approvals.inbox.requestedBy": "Sent by {name}",

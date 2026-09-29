@@ -111,9 +111,18 @@ async function accountWhere(db: D1Database, where: string, binds: unknown[], tod
 export const staffAccount = (db: D1Database, grant: Grant, enrollmentId: string, today = nepalDate(new Date())) =>
   accountWhere(db, `en.public_id = ?1 AND (?2 IS NULL OR s.key IN (SELECT value FROM json_each(?2)))`, [enrollmentId, sectionFilter(grant)], today);
 
-/** For the student: their own enrollment this active year, found from the sign-in. */
+/**
+ * For the student: their own account, found from the sign-in. This year's when there is an active one, else their most
+ * recent year's, so fees and receipts stay visible after a year closes (found by the year test, D-084).
+ */
 export const ownAccount = (db: D1Database, userPublicId: string, today = nepalDate(new Date())) =>
-  accountWhere(db, `st.user_id = (SELECT id FROM users WHERE public_id = ?1) AND ay.status = 'active'`, [userPublicId], today);
+  accountWhere(
+    db,
+    `en.id = (SELECT en2.id FROM enrollments en2 JOIN students st2 ON st2.id = en2.student_id JOIN academic_years ay2 ON ay2.id = en2.academic_year_id
+               WHERE st2.user_id = (SELECT id FROM users WHERE public_id = ?1) ORDER BY ay2.status = 'active' DESC, ay2.start_date DESC LIMIT 1)`,
+    [userPublicId],
+    today,
+  );
 
 /** The staff view of a student's current account, found by the student's public id (what search returns). */
 export async function enrollmentOfStudent(db: D1Database, studentPublicId: string): Promise<string | null> {

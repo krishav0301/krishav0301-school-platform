@@ -1,6 +1,7 @@
 import { recordAudit } from "../../core/audit";
 import { nepalDate } from "../../core/dates";
 import { newPublicId } from "../../core/ids";
+import { formatNpr } from "./money";
 import type { Grant } from "../../core/permissions";
 import { requestApproval, type ApprovalHandler } from "../approvals/service";
 import { accountantFor, anyAccountant, levelSection, structureSection } from "./guard";
@@ -103,6 +104,8 @@ export async function sendStructure(db: D1Database, key: string, actor: string, 
 
 // --- The approvals kind ----------------------------------------------------------------------------
 
+const FREQUENCY_WORD: Record<Frequency, string> = { one_time: "once", monthly: "a month", yearly: "a year", whole_course: "for the course" };
+
 export const feeStructureApprovalHandler: ApprovalHandler = {
   requesterSql: anyAccountant,
   async resolveId(db, publicId) {
@@ -120,9 +123,12 @@ export const feeStructureApprovalHandler: ApprovalHandler = {
     const row = head!.results[0] as { public_id: string; year_label: string; programme_name: string; level_name: string } | undefined;
     if (!row) return null;
     const lines = (items!.results as unknown as { name: string; amount_paisa: number; frequency: Frequency }[]).map((i) => ({ name: i.name, amountPaisa: i.amount_paisa, frequency: i.frequency }));
+    const yearlyTotalPaisa = lines.reduce((s, i) => s + yearlyAmount(i), 0);
+    // The Admin decides from this line, so it says what is being approved (found by the year test, D-084).
+    const itemWords = lines.map((i) => `${i.name} NPR ${formatNpr(i.amountPaisa)} ${FREQUENCY_WORD[i.frequency]}`).join("; ");
     return {
-      snapshot: { year: row.year_label, programme: row.programme_name, level: row.level_name, items: lines, yearlyTotalPaisa: lines.reduce((s, i) => s + yearlyAmount(i), 0) },
-      summary: `Fee structure: ${row.programme_name} ${row.level_name}, ${row.year_label}`,
+      snapshot: { year: row.year_label, programme: row.programme_name, level: row.level_name, items: lines, yearlyTotalPaisa },
+      summary: `Fee structure: ${row.programme_name} ${row.level_name}, ${row.year_label}: ${itemWords}. NPR ${formatNpr(yearlyTotalPaisa)} a year`,
       subjectPublicId: row.public_id,
     };
   },
