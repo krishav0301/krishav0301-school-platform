@@ -130,6 +130,23 @@
   gap: var(--space-3);
 }
 
+/* At 320 px with text at 200%, a field or button in a row may not be wider than the screen (D-030). */
+.inline > * {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.inline input {
+  width: 100%;
+}
+
+.inline button,
+.form button {
+  max-width: 100%;
+  padding-block: var(--space-2);
+  white-space: normal;
+}
+
 .subhead {
   font-size: var(--text-base);
   font-weight: var(--weight-medium);

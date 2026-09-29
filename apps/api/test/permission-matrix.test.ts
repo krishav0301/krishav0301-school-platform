@@ -103,6 +103,10 @@ describe("sensitive rules, stated independently (docs/source/sample-creation-inf
     "marks.enter": ["TEA"],
     "marks.verify": ["COO", "SUP"],
     "results.publish": ["COO", "SUP"],
+    // A recheck is the student's to ask and the Co-ordinator's to decide; the Co-ordinator also records elective picks (D-056).
+    "results.recheck.request": ["STU"],
+    "results.recheck.edit": ["COO", "SUP"],
+    "results.electives.set": ["COO", "SUP"],
     // Attendance: the Class Teacher marks students; the Co-ordinator marks teachers.
     "attendance.student.mark": ["TEA"],
     "attendance.teacher.mark": ["COO", "SUP"],

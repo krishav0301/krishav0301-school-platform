@@ -7,7 +7,7 @@ import { t, type MessageKey } from "@/i18n/messages";
 import { useSession } from "@/session/SessionProvider";
 import { Badge, Button, Field, Notice, Select } from "@/ui";
 
-import { addLevel, createProgramme, loadProgrammes, setLevelActive, setProgrammeActive } from "./client";
+import { addLevel, createProgramme, loadProgrammes, setLevelActive, setProgrammeActive, setProgrammePolicy } from "./client";
 import { REASON_MESSAGE, canManageStructure, manageableSections, termWords, type Level, type Programme } from "./model";
 import { Gate, useLoad } from "./useLoad";
 import styles from "./setup.module.css";
@@ -46,10 +46,18 @@ export interface ProgrammesViewProps {
   onToggleProgramme: (programme: Programme) => void;
   onToggleLevel: (level: Level, programme: Programme) => void;
   onAddLevel: (programme: Programme, name: string) => Promise<boolean>;
+  /** Sets the programme's grading policy (Phase 7, D-079); without it, its classes' results cannot be published. */
+  onSetPolicy?: (programme: Programme, policy: Programme["gradingPolicy"]) => void;
 }
 
+const POLICY_LABEL: Record<NonNullable<Programme["gradingPolicy"]> | "none", MessageKey> = {
+  none: "setup.grading.none",
+  neb_gpa: "setup.grading.neb",
+  percentage_division: "setup.grading.percentage",
+};
+
 /** Each programme with its levels in order. Switching off keeps the history; nothing is deleted. */
-export function ProgrammesView({ programmes, canManage, busy, onToggleProgramme, onToggleLevel, onAddLevel }: ProgrammesViewProps) {
+export function ProgrammesView({ programmes, canManage, busy, onToggleProgramme, onToggleLevel, onAddLevel, onSetPolicy }: ProgrammesViewProps) {
   const { term } = useConfig();
   const words = termWords(term);
   if (programmes.length === 0) return <p className={styles.empty}>{t("setup.programmes.empty", words)}</p>;
@@ -63,7 +71,22 @@ export function ProgrammesView({ programmes, canManage, busy, onToggleProgramme,
             <Badge>{programme.section.name}</Badge>
             <Badge>{programme.affiliation}</Badge>
             {programme.active ? null : <Badge>{t("setup.programmes.off")}</Badge>}
+            {canManage && onSetPolicy ? null : <Badge>{t(POLICY_LABEL[programme.gradingPolicy ?? "none"])}</Badge>}
           </div>
+          {canManage && onSetPolicy ? (
+            <Select
+              label={t("setup.programmes.grading")}
+              hint={t("setup.programmes.gradingHint")}
+              value={programme.gradingPolicy ?? ""}
+              disabled={busy !== null}
+              onChange={(event) => onSetPolicy(programme, event.target.value === "neb_gpa" || event.target.value === "percentage_division" ? event.target.value : null)}
+              options={[
+                { value: "", label: t(POLICY_LABEL.none) },
+                { value: "neb_gpa", label: t(POLICY_LABEL.neb_gpa) },
+                { value: "percentage_division", label: t(POLICY_LABEL.percentage_division) },
+              ]}
+            />
+          ) : null}
 
           {programme.levels.length === 0 ? (
             <p className={styles.muted}>{t("setup.programmes.noLevels", words)}</p>
@@ -219,6 +242,7 @@ export function ProgrammesScreen() {
             onToggleProgramme={(p) => void toggle(p.id, () => setProgrammeActive(api, p.id, !p.active), p.active ? "setup.done.switchedOff" : "setup.done.switchedOn")}
             onToggleLevel={(l) => void toggle(l.id, () => setLevelActive(api, l.id, !l.active), l.active ? "setup.done.switchedOff" : "setup.done.switchedOn")}
             onAddLevel={add}
+            onSetPolicy={(p, policy) => void toggle(p.id, () => setProgrammePolicy(api, p.id, policy), "setup.done.gradingSet")}
           />
         )}
       </Gate>

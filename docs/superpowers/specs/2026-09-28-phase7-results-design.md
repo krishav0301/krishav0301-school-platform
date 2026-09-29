@@ -1,6 +1,6 @@
 # Phase 7: results (draft design)
 
-Status: **draft**, written 2026-09-28 after Phase 5 closed. The PM approved Phase 7 with stated defaults (D-069). One
+Status: **built** (2026-09-28, D-079 to D-083); written as a draft after Phase 5 closed. The PM approved Phase 7 with stated defaults (D-069). One
 point blocks the grading slice: `CLAUDE.md` section 6 requires the NEB scale to be verified against NEB's own
 sources before it is coded, and this environment cannot reach `www.neb.gov.np` (blocked by the network policy). The
 widely republished scale is recorded below as **unverified**.
@@ -28,8 +28,9 @@ only); D-056 (elective groups; a student's pick is saved once students exist).
 
 - **+2 (NEB), UNVERIFIED:** per component percentage to a letter grade and grade point: 90 and above A+ 4.0;
   80 A 3.6; 70 B+ 3.2; 60 B 2.8; 50 C+ 2.4; 40 C 2.0; 35 D 1.6; below 35 NG 0. NG in a subject when theory is below 35%
-  or practical / internal below 40%. Subject grade point = the credit-weighted grade points of its components; GPA =
-  credit-hour-weighted mean of subject grade points, two decimals; no total. Source for now: secondary sites only.
+  or practical / internal below 40%, or absent in any component. As built: a subject is graded on its combined marks, each component
+  weighted by its maximum (which follows NEB's theory and practical credit split); GPA = credit-hour-weighted mean of subject
+  grade points, two decimals, half up; no total; a result with any NG subject has no GPA. Source for now: secondary sites only.
 - **Percentage and division (placeholder):** total percentage; Distinction 80+, First 60+, Second 45+, Third 32+ (Bachelor's
   and the sample school's pass mark placeholders, to be replaced by each programme's real rule).
 - **Ties share a rank** (section 9). Top 20 ranks within a section (per section, CLAUDE.md), by GPA or percentage.

@@ -50,6 +50,14 @@ describe("the real menu", () => {
     expect(seen("teacher", "assigned", withFees)).not.toContain("fees");
   });
 
+  it("results are for the teacher, the student, the Co-ordinator and the Admin, never the Accountant", () => {
+    const withResults = { attendance: true, fees: true, results: true };
+    expect(seen("teacher", "assigned", withResults)).toEqual(["dashboard", "attendance", "classwork", "results"]);
+    expect(seen("student", "own", withResults)).toEqual(["dashboard", "classwork", "fees", "results"]);
+    for (const role of ["coordinator", "admin"]) expect(seen(role, "institution", withResults)).toContain("results");
+    expect(seen("accountant", "institution", withResults)).not.toContain("results");
+  });
+
   it("a school that switched attendance off does not see it in the menu", () => {
     expect(seen("teacher", "assigned", { attendance: false })).toEqual(["dashboard", "classwork"]);
   });

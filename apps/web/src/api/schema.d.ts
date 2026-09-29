@@ -1987,6 +1987,313 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/results/classes/{classId}/electives": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description A class's elective groups and each student's picks, for the Co-ordinator. */
+        get: operations["get_class_electives"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/results/enrollments/{enrollmentId}/electives/{groupId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** @description Sets one student's picks in one elective group: exactly the group's pick count. A subject with marks cannot be dropped. */
+        put: operations["set_elective_picks"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/results/mine": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description The signed-in teacher's subjects this year, each with its mark sheet's state per terminal. */
+        get: operations["get_my_mark_sheets"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/results/classes/{classId}/subjects/{offeringId}/terminals/{terminalId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description The marks grid for one subject in one class and terminal: the students who take it, the components, the marks so far, and how many are missing. */
+        get: operations["get_mark_sheet"];
+        /** @description Saves marks as a draft (whole hundredths; an absence is `absent`, never a zero). Saving again replaces. Only while the sheet is a draft. */
+        put: operations["save_marks"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/results/classes/{classId}/subjects/{offeringId}/terminals/{terminalId}/submit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Sends a complete draft to the Co-ordinator for review. Refused while a mark is missing. */
+        post: operations["submit_mark_sheet"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/results/review": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description The Co-ordinator's board for a terminal (the latest by default): every class in reach, each subject's sheet state, and whether the class can be published. */
+        get: operations["get_results_review"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/results/review/sheets/{sheetId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description One mark sheet, read-only, for the Co-ordinator to check before verifying. */
+        get: operations["get_review_sheet"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/results/review/verify": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Verifies one or many sheets under review (bulk approve). Answers how many were verified; one not under review or not in reach is left as it is. */
+        post: operations["verify_mark_sheets"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/results/review/sheets/{sheetId}/send-back": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Sends a sheet under review, or verified but not yet published, back to its teacher as a draft, with a note. */
+        post: operations["send_back_mark_sheet"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/results/classes/{classId}/publish": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Publishes a whole class for a terminal: only when every subject is verified and the programme has a grading policy. Every student's marks card is stored as a snapshot in the same batch. */
+        post: operations["publish_class_results"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/results/me": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description The signed-in student's published results, every year and terminal, each with its marks card and rechecks. Nothing before publish. */
+        get: operations["get_own_results"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/results/cards/{cardId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description One marks card (any version), for staff whose sections reach the class. */
+        get: operations["get_marks_card"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/results/classes/{classId}/terminals/{terminalId}/sheet": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description The whole-class sheet of a published terminal: students by subjects, with the GPA or percentage and the rank in the class. */
+        get: operations["get_class_result_sheet"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/results/classes/{classId}/terminals/{terminalId}/sheet.csv": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description The whole-class sheet as CSV, for Excel. OPEN: a native .xlsx needs a library the PM has not approved yet. */
+        get: operations["export_class_result_sheet"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/results/top20": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description The Top 20 for a terminal, ranked per section among the same level, ties sharing a rank. A student sees their own list only, name and rank only, once their class is published; staff see every list in reach. */
+        get: operations["get_top20"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/results/publications/{publicationId}/rechecks": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description The student asks for one subject of their own published result to be rechecked, with a reason. One open request per subject. */
+        post: operations["request_recheck"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/results/rechecks": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Rechecks in reach, open first. The Co-ordinator decides them; the Admin sees every post-publish change here. */
+        get: operations["list_rechecks"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/results/rechecks/{recheckId}/decide": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description The Co-ordinator decides a recheck, with a reason: unchanged, or changed with the corrected marks, which makes the next version of the marks card. */
+        post: operations["decide_recheck"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/dates/to-ad": {
         parameters: {
             query?: never;
@@ -2197,6 +2504,8 @@ export interface components {
             };
             affiliation: string;
             active: boolean;
+            /** @enum {string|null} */
+            gradingPolicy: "neb_gpa" | "percentage_division" | null;
             levels: components["schemas"]["Level"][];
         };
         Level: {
@@ -2272,6 +2581,8 @@ export interface components {
             name?: string;
             affiliation?: string;
             active?: boolean;
+            /** @enum {string|null} */
+            gradingPolicy?: "neb_gpa" | "percentage_division" | null;
         };
         CreateLevel: {
             name: string;
@@ -2367,6 +2678,8 @@ export interface components {
             id: string;
             name: string;
             maxHundredths: number;
+            /** @enum {string} */
+            kind: "theory" | "practical";
             ordinal: number;
             active: boolean;
         };
@@ -2393,10 +2706,17 @@ export interface components {
         CreateComponent: {
             name: string;
             maxHundredths: number;
+            /**
+             * @default theory
+             * @enum {string}
+             */
+            kind: "theory" | "practical";
         };
         ComponentChanges: {
             name?: string;
             maxHundredths?: number;
+            /** @enum {string} */
+            kind?: "theory" | "practical";
             active?: boolean;
         };
         CreateGroup: {
@@ -3287,6 +3607,304 @@ export interface components {
                 duePaisa: number;
                 overduePaisa: number;
             };
+        };
+        ClassElectives: {
+            classId: string;
+            programmeName: string;
+            levelName: string;
+            label: string;
+            groups: {
+                id: string;
+                name: string;
+                pickCount: number;
+                subjects: {
+                    offeringId: string;
+                    name: string;
+                }[];
+            }[];
+            students: {
+                enrollmentId: string;
+                sid: string;
+                name: string;
+                picks: string[];
+            }[];
+        };
+        ResultsError: {
+            error: string;
+            message?: string;
+        };
+        ResultsOk: {
+            /** @enum {boolean} */
+            ok: true;
+        };
+        ResultsInvalid: {
+            /** @enum {string} */
+            error: "invalid";
+            message: string;
+        };
+        SetElectivePicks: {
+            offeringIds: string[];
+        };
+        MyMarkSheets: {
+            terminals: {
+                id: string;
+                name: string;
+            }[];
+            subjects: {
+                classId: string;
+                programmeName: string;
+                levelName: string;
+                label: string;
+                offeringId: string;
+                subjectName: string;
+                sheets: {
+                    terminalId: string;
+                    /** @enum {string} */
+                    status: "not_started" | "draft" | "under_review" | "verified" | "published";
+                    note: string | null;
+                }[];
+            }[];
+        };
+        MarkSheet: {
+            sheetId: string | null;
+            classId: string;
+            programmeName: string;
+            levelName: string;
+            label: string;
+            offeringId: string;
+            subjectName: string;
+            terminal: {
+                id: string;
+                name: string;
+            };
+            teacherName: string | null;
+            /** @enum {string} */
+            status: "not_started" | "draft" | "under_review" | "verified" | "published";
+            note: string | null;
+            components: {
+                id: string;
+                name: string;
+                /** @enum {string} */
+                kind: "theory" | "practical";
+                maxHundredths: number;
+            }[];
+            students: {
+                enrollmentId: string;
+                sid: string;
+                name: string;
+                rollNo: number | null;
+                marks: {
+                    componentId: string;
+                    valueHundredths: number | null;
+                    absent: boolean;
+                }[];
+            }[];
+            missing: number;
+        };
+        SaveMarks: {
+            marks: {
+                enrollmentId: string;
+                componentId: string;
+                valueHundredths: number | null;
+                /** @default false */
+                absent: boolean;
+            }[];
+        };
+        ReviewBoard: {
+            terminals: {
+                id: string;
+                name: string;
+            }[];
+            terminalId: string | null;
+            classes: {
+                classId: string;
+                programmeName: string;
+                levelName: string;
+                label: string;
+                /** @enum {string|null} */
+                gradingPolicy: "neb_gpa" | "percentage_division" | null;
+                published: boolean;
+                ready: boolean;
+                subjects: {
+                    offeringId: string;
+                    subjectName: string;
+                    teacherName: string | null;
+                    sheetId: string | null;
+                    /** @enum {string} */
+                    status: "not_started" | "draft" | "under_review" | "verified" | "published";
+                    missing: number;
+                }[];
+            }[];
+        };
+        BulkVerify: {
+            sheetIds: string[];
+        };
+        SendBackSheet: {
+            note: string;
+        };
+        PublishClass: {
+            terminalId: string;
+        };
+        OwnResults: {
+            results: {
+                publicationId: string;
+                yearLabel: string;
+                terminalName: string;
+                card: components["schemas"]["MarksCard"];
+                rechecks: {
+                    id: string;
+                    offeringId: string;
+                    subjectName: string;
+                    reason: string;
+                    /** @enum {string} */
+                    status: "open" | "changed" | "unchanged";
+                    requestedAt: string;
+                    decisionReason: string | null;
+                }[];
+            }[];
+        };
+        MarksCard: {
+            id: string;
+            version: number;
+            publishedAt: string;
+            publishedAtBs: string | null;
+            reason: string | null;
+            body: {
+                student: {
+                    name: string;
+                    sid: string;
+                    rollNo: number | null;
+                };
+                class: {
+                    programmeName: string;
+                    levelName: string;
+                    label: string;
+                    sectionName: string;
+                    yearLabel: string;
+                };
+                terminal: {
+                    name: string;
+                };
+                /** @enum {string} */
+                policy: "neb_gpa" | "percentage_division";
+                subjects: {
+                    offeringId: string;
+                    name: string;
+                    creditHundredths: number | null;
+                    obtainedHundredths: number;
+                    maxHundredths: number;
+                    percentHundredths: number;
+                    grade: string;
+                    gradePointHundredths: number | null;
+                    passed: boolean;
+                    components: {
+                        name: string;
+                        /** @enum {string} */
+                        kind: "theory" | "practical";
+                        maxHundredths: number;
+                        valueHundredths: number | null;
+                        absent: boolean;
+                    }[];
+                }[];
+                gpaHundredths: number | null;
+                percentHundredths: number | null;
+                outcome: string;
+                passed: boolean;
+            };
+        };
+        ClassResultSheet: {
+            classId: string;
+            programmeName: string;
+            levelName: string;
+            label: string;
+            terminal: {
+                id: string;
+                name: string;
+            };
+            /** @enum {string} */
+            policy: "neb_gpa" | "percentage_division";
+            publishedAt: string;
+            subjects: {
+                offeringId: string;
+                name: string;
+            }[];
+            students: {
+                enrollmentId: string;
+                cardId: string;
+                sid: string;
+                name: string;
+                rank: number | null;
+                gpaHundredths: number | null;
+                percentHundredths: number | null;
+                outcome: string;
+                version: number;
+                subjects: ({
+                    offeringId: string;
+                    grade: string;
+                    percentHundredths: number;
+                } | null)[];
+            }[];
+        };
+        Top20: {
+            terminals: {
+                id: string;
+                name: string;
+            }[];
+            terminalId: string | null;
+            pools: {
+                sectionName: string;
+                levelName: string;
+                entries: {
+                    rank: number;
+                    name: string;
+                    className?: string;
+                    score?: number;
+                }[];
+            }[];
+        };
+        RequestRecheck: {
+            offeringId: string;
+            reason: string;
+        };
+        RecheckList: {
+            rechecks: {
+                id: string;
+                offeringId: string;
+                subjectName: string;
+                reason: string;
+                /** @enum {string} */
+                status: "open" | "changed" | "unchanged";
+                requestedAt: string;
+                decisionReason: string | null;
+                classId: string;
+                programmeName: string;
+                levelName: string;
+                label: string;
+                terminalName: string;
+                studentName: string;
+                sid: string;
+                decidedAt: string | null;
+                decidedBy: string | null;
+                marks: {
+                    componentId: string;
+                    name: string;
+                    maxHundredths: number;
+                    valueHundredths: number | null;
+                    absent: boolean;
+                }[];
+            }[];
+        };
+        DecideRecheck: {
+            /** @enum {string} */
+            outcome: "changed" | "unchanged";
+            reason: string;
+            /** @default [] */
+            marks: {
+                componentId: string;
+                valueHundredths: number | null;
+                /** @default false */
+                absent: boolean;
+            }[];
         };
         DateConversionFailure: {
             /** @enum {string} */
@@ -9017,6 +9635,748 @@ export interface operations {
                     "application/json": {
                         queued: number;
                     };
+                };
+            };
+        };
+    };
+    get_class_electives: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                classId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The picks */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClassElectives"];
+                };
+            };
+            /** @description No such item, or not one the person may reach */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResultsError"];
+                };
+            };
+        };
+    };
+    set_elective_picks: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                enrollmentId: string;
+                groupId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SetElectivePicks"];
+            };
+        };
+        responses: {
+            /** @description Saved */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResultsOk"];
+                };
+            };
+            /** @description No such item, or not one the person may reach */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResultsError"];
+                };
+            };
+            /** @description Not possible in its current state (already decided, already published, not ready, or the year is closed) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResultsError"];
+                };
+            };
+            /** @description Not valid */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResultsInvalid"];
+                };
+            };
+        };
+    };
+    get_my_mark_sheets: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The subjects */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MyMarkSheets"];
+                };
+            };
+        };
+    };
+    get_mark_sheet: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                classId: string;
+                offeringId: string;
+                terminalId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The sheet */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MarkSheet"];
+                };
+            };
+            /** @description No such item, or not one the person may reach */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResultsError"];
+                };
+            };
+        };
+    };
+    save_marks: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                classId: string;
+                offeringId: string;
+                terminalId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SaveMarks"];
+            };
+        };
+        responses: {
+            /** @description Saved */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResultsOk"];
+                };
+            };
+            /** @description No such item, or not one the person may reach */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResultsError"];
+                };
+            };
+            /** @description Not possible in its current state (already decided, already published, not ready, or the year is closed) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResultsError"];
+                };
+            };
+            /** @description Not valid */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResultsInvalid"];
+                };
+            };
+        };
+    };
+    submit_mark_sheet: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                classId: string;
+                offeringId: string;
+                terminalId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Sent */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResultsOk"];
+                };
+            };
+            /** @description No such item, or not one the person may reach */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResultsError"];
+                };
+            };
+            /** @description Not possible in its current state (already decided, already published, not ready, or the year is closed) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResultsError"];
+                };
+            };
+            /** @description Not valid */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResultsInvalid"];
+                };
+            };
+        };
+    };
+    get_results_review: {
+        parameters: {
+            query?: {
+                terminalId?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The board */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReviewBoard"];
+                };
+            };
+        };
+    };
+    get_review_sheet: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                sheetId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The sheet */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MarkSheet"];
+                };
+            };
+            /** @description No such item, or not one the person may reach */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResultsError"];
+                };
+            };
+        };
+    };
+    verify_mark_sheets: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BulkVerify"];
+            };
+        };
+        responses: {
+            /** @description Verified */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        verified: number;
+                    };
+                };
+            };
+            /** @description No such item, or not one the person may reach */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResultsError"];
+                };
+            };
+            /** @description Not possible in its current state (already decided, already published, not ready, or the year is closed) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResultsError"];
+                };
+            };
+            /** @description Not valid */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResultsInvalid"];
+                };
+            };
+        };
+    };
+    send_back_mark_sheet: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                sheetId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SendBackSheet"];
+            };
+        };
+        responses: {
+            /** @description Sent back */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResultsOk"];
+                };
+            };
+            /** @description No such item, or not one the person may reach */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResultsError"];
+                };
+            };
+            /** @description Not possible in its current state (already decided, already published, not ready, or the year is closed) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResultsError"];
+                };
+            };
+            /** @description Not valid */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResultsInvalid"];
+                };
+            };
+        };
+    };
+    publish_class_results: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                classId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PublishClass"];
+            };
+        };
+        responses: {
+            /** @description Published */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        publicationId: string;
+                        cards: number;
+                    };
+                };
+            };
+            /** @description No such item, or not one the person may reach */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResultsError"];
+                };
+            };
+            /** @description Not possible in its current state (already decided, already published, not ready, or the year is closed) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResultsError"];
+                };
+            };
+            /** @description Not valid */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResultsInvalid"];
+                };
+            };
+        };
+    };
+    get_own_results: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The results */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OwnResults"];
+                };
+            };
+        };
+    };
+    get_marks_card: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                cardId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The card */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MarksCard"];
+                };
+            };
+            /** @description No such item, or not one the person may reach */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResultsError"];
+                };
+            };
+        };
+    };
+    get_class_result_sheet: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                classId: string;
+                terminalId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The sheet */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClassResultSheet"];
+                };
+            };
+            /** @description No such item, or not one the person may reach */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResultsError"];
+                };
+            };
+        };
+    };
+    export_class_result_sheet: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                classId: string;
+                terminalId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The CSV */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/csv": string;
+                };
+            };
+            /** @description No such item, or not one the person may reach */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResultsError"];
+                };
+            };
+        };
+    };
+    get_top20: {
+        parameters: {
+            query?: {
+                terminalId?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The lists */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Top20"];
+                };
+            };
+            /** @description The Top 20 is switched off for this school */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResultsError"];
+                };
+            };
+        };
+    };
+    request_recheck: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                publicationId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RequestRecheck"];
+            };
+        };
+        responses: {
+            /** @description Requested */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        id: string;
+                    };
+                };
+            };
+            /** @description No such item, or not one the person may reach */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResultsError"];
+                };
+            };
+            /** @description Not possible in its current state (already decided, already published, not ready, or the year is closed) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResultsError"];
+                };
+            };
+            /** @description Not valid */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResultsInvalid"];
+                };
+            };
+        };
+    };
+    list_rechecks: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The rechecks */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecheckList"];
+                };
+            };
+            /** @description No such item, or not one the person may reach */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResultsError"];
+                };
+            };
+        };
+    };
+    decide_recheck: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                recheckId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DecideRecheck"];
+            };
+        };
+        responses: {
+            /** @description Decided */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResultsOk"];
+                };
+            };
+            /** @description No such item, or not one the person may reach */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResultsError"];
+                };
+            };
+            /** @description Not possible in its current state (already decided, already published, not ready, or the year is closed) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResultsError"];
+                };
+            };
+            /** @description Not valid */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResultsInvalid"];
                 };
             };
         };

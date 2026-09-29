@@ -114,6 +114,7 @@ The Co-ordinator has **no** fees access at all.
 
 | Action | STU | TEA | COO | ACC | ADM | SUP | Phase |
 |---|---|---|---|---|---|---|---|
+| Record each student's elective picks (D-056) (`results.electives.set`) | — | — | inst | — | — | ✓ | 7 |
 | Enter marks (until verified) (`marks.enter`) | — | assigned | — | — | — | — | 7 |
 | Verify, send back, bulk approve (`marks.verify`) | — | — | inst | — | — | ✓ | 7 |
 | Publish a whole class (all subjects verified) (`results.publish`) | — | — | inst | — | — | ✓ | 7 |

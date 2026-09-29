@@ -1,0 +1,150 @@
+/* Results screens (Phase 7). Tokens only: no colour, font or motion is written out here. */
+
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: min(var(--space-5), 5vw);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-card);
+  background: var(--color-surface);
+}
+
+.meta {
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+  overflow-wrap: anywhere;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* A line: what it is on the left, its state on the right, wrapping on a narrow screen. */
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-1) var(--space-3);
+  min-height: var(--control-height);
+  padding: var(--space-2) 0;
+}
+
+.row + .row {
+  border-top: 1px solid var(--color-border);
+}
+
+.state {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--space-2);
+  min-width: 0;
+  max-width: 100%;
+}
+
+/* The headline number of a result (a GPA or a percentage). */
+.score {
+  margin: 0;
+  font-size: var(--text-xl);
+  font-weight: var(--weight-bold);
+  font-variant-numeric: tabular-nums;
+}
+
+.number {
+  font-variant-numeric: tabular-nums;
+  text-align: end;
+  white-space: nowrap;
+}
+
+/* A mark box in the grid: wide enough for "100.25" or "AB", a full 44 px target, 16 px text so a phone does not zoom. */
+.markInput {
+  inline-size: 5.5rem;
+  min-block-size: var(--control-height);
+  padding: 0 var(--space-2);
+  border: 1px solid var(--color-text-muted);
+  border-radius: var(--radius-control);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font: inherit;
+  font-size: max(1rem, 16px);
+  font-variant-numeric: tabular-nums;
+  text-align: end;
+}
+
+.markInput:focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: 2px;
+}
+
+.markInput[aria-invalid="true"] {
+  border-color: var(--color-bad);
+  border-width: 2px;
+}
+
+/* A long button label wraps between words, so at 320 px with text at 200% it cannot widen the page (D-030). */
+button.wrapLabel,
+a.wrapLabel {
+  max-width: 100%;
+  padding-block: var(--space-2);
+  text-align: center;
+  white-space: normal;
+}
+
+/* The marks card: a plain document, printable on its own. */
+.document {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.document dl {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-1);
+  margin: 0;
+}
+
+.document dt {
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+}
+
+.document dd {
+  margin: 0 0 var(--space-2);
+  overflow-wrap: anywhere;
+}
+
+@media print {
+  .noPrint {
+    display: none;
+  }
+}
+
+/* A group of choices (several picks from one elective group), introduced by its legend. */
+.fieldset {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.fieldset legend {
+  margin-bottom: var(--space-2);
+  font-weight: var(--weight-medium);
+}

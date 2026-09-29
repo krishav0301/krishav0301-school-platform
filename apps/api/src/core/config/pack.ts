@@ -35,7 +35,14 @@ export const PackSchema = z.strictObject({
   academics: z
     .strictObject({
       programmes: z
-        .array(z.strictObject({ key: z.string().min(1).max(60), levels: z.array(z.string().trim().min(1).max(60)).min(1).max(20) }))
+        .array(
+          z.strictObject({
+            key: z.string().min(1).max(60),
+            levels: z.array(z.string().trim().min(1).max(60)).min(1).max(20),
+            /** The programme's grading policy (D-079). Set only where the programme has none yet, like the levels. */
+            gradingPolicy: z.enum(["neb_gpa", "percentage_division"]).optional(),
+          }),
+        )
         .max(20),
     })
     .default({ programmes: [] }),
@@ -146,6 +153,9 @@ export function packOperations(pack: Pack): Operation[] {
             ON CONFLICT (key) DO NOTHING`,
       params: [newPublicId(), entry.key, site.name, site.affiliation, index + 1, site.section],
     });
+    if (entry.gradingPolicy) {
+      ops.push({ sql: "UPDATE programmes SET grading_policy = ? WHERE key = ? AND grading_policy IS NULL", params: [entry.gradingPolicy, entry.key] });
+    }
     entry.levels.forEach((name, position) =>
       ops.push({
         sql: `INSERT INTO levels (public_id, programme_id, ordinal, name)

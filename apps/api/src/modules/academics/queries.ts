@@ -38,6 +38,7 @@ interface ProgrammeRow {
   name: string;
   affiliation: string;
   is_active: number;
+  grading_policy: "neb_gpa" | "percentage_division" | null;
   section_key: string;
   section_name: string;
   level_id: string | null;
@@ -50,7 +51,7 @@ interface ProgrammeRow {
 export async function listProgrammes(db: D1Database, sections: "all" | readonly string[]): Promise<ProgrammeList> {
   const { results } = await db
     .prepare(
-      `SELECT p.public_id, p.key, p.name, p.affiliation, p.is_active, s.key AS section_key, s.name AS section_name,
+      `SELECT p.public_id, p.key, p.name, p.affiliation, p.is_active, p.grading_policy, s.key AS section_key, s.name AS section_name,
               l.public_id AS level_id, l.ordinal, l.name AS level_name, l.is_active AS level_active
          FROM programmes p
          JOIN sections s ON s.id = p.section_id
@@ -65,7 +66,16 @@ export async function listProgrammes(db: D1Database, sections: "all" | readonly 
   for (const r of results) {
     let programme = programmes[programmes.length - 1];
     if (!programme || programme.id !== r.public_id) {
-      programme = { id: r.public_id, key: r.key, name: r.name, section: { key: r.section_key, name: r.section_name }, affiliation: r.affiliation, active: r.is_active === 1, levels: [] };
+      programme = {
+        id: r.public_id,
+        key: r.key,
+        name: r.name,
+        section: { key: r.section_key, name: r.section_name },
+        affiliation: r.affiliation,
+        active: r.is_active === 1,
+        gradingPolicy: r.grading_policy,
+        levels: [],
+      };
       programmes.push(programme);
     }
     if (r.level_id !== null) programme.levels.push({ id: r.level_id, ordinal: r.ordinal!, name: r.level_name!, active: r.level_active === 1 });
@@ -164,6 +174,7 @@ interface CurriculumRow {
   component_id: string | null;
   component_name: string | null;
   max_hundredths: number | null;
+  kind: "theory" | "practical" | null;
   ordinal: number | null;
   component_active: number | null;
 }
@@ -192,7 +203,7 @@ export async function getCurriculum(db: D1Database, sections: "all" | readonly s
         `SELECT o.public_id AS offering_id, o.credit_hundredths, o.is_active AS offering_active,
                 s.public_id AS subject_id, s.name AS subject_name, s.code AS subject_code, s.is_archived,
                 g.public_id AS group_id, g.name AS group_name,
-                c.public_id AS component_id, c.name AS component_name, c.max_hundredths, c.ordinal, c.is_active AS component_active
+                c.public_id AS component_id, c.name AS component_name, c.max_hundredths, c.kind, c.ordinal, c.is_active AS component_active
            FROM subject_offerings o
            JOIN levels l ON l.id = o.level_id
            JOIN subjects s ON s.id = o.subject_id
@@ -222,7 +233,7 @@ export async function getCurriculum(db: D1Database, sections: "all" | readonly s
       offerings.push(offering);
     }
     if (r.component_id !== null) {
-      offering.components.push({ id: r.component_id, name: r.component_name!, maxHundredths: r.max_hundredths!, ordinal: r.ordinal!, active: r.component_active === 1 });
+      offering.components.push({ id: r.component_id, name: r.component_name!, maxHundredths: r.max_hundredths!, kind: r.kind!, ordinal: r.ordinal!, active: r.component_active === 1 });
     }
   }
 

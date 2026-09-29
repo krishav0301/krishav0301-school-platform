@@ -1,0 +1,1 @@
+export { registerResults } from "./routes";

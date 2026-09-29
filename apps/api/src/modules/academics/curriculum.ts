@@ -265,12 +265,12 @@ export async function addComponent(db: D1Database, auditKey: string, actor: stri
     },
     db
       .prepare(
-        `INSERT INTO mark_components (public_id, offering_id, name, max_hundredths, ordinal)
-         SELECT ?1, o.id, ?3, ?4, COALESCE((SELECT MAX(ordinal) FROM mark_components WHERE offering_id = o.id), 0) + 1
+        `INSERT INTO mark_components (public_id, offering_id, name, max_hundredths, ordinal, kind)
+         SELECT ?1, o.id, ?3, ?4, COALESCE((SELECT MAX(ordinal) FROM mark_components WHERE offering_id = o.id), 0) + 1, ?6
            FROM subject_offerings o
           WHERE o.public_id = ?2 AND ${coordinatorForSection(5, offeringSection(2))}`,
       )
-      .bind(publicId, offeringId, component.name, component.maxHundredths, actor),
+      .bind(publicId, offeringId, component.name, component.maxHundredths, actor, component.kind),
   );
 
   if (outcome === "done") return { ok: true, publicId };
@@ -293,14 +293,14 @@ export async function updateComponent(db: D1Database, auditKey: string, actor: s
     actor,
     componentSection(2),
     publicId,
-    db.prepare("SELECT name, max_hundredths, is_active FROM mark_components WHERE public_id = ?1").bind(publicId),
+    db.prepare("SELECT name, max_hundredths, kind, is_active FROM mark_components WHERE public_id = ?1").bind(publicId),
   );
   if (!allowed) return { ok: false, reason: "not_allowed" };
   const row = rows[0];
   if (!row) return { ok: false, reason: "not_found" };
 
-  const before = { name: row.name as string, maxHundredths: row.max_hundredths as number, active: row.is_active === 1 };
-  const after = { name: c.name ?? before.name, maxHundredths: c.maxHundredths ?? before.maxHundredths, active: c.active ?? before.active };
+  const before = { name: row.name as string, maxHundredths: row.max_hundredths as number, kind: row.kind as "theory" | "practical", active: row.is_active === 1 };
+  const after = { name: c.name ?? before.name, maxHundredths: c.maxHundredths ?? before.maxHundredths, kind: c.kind ?? before.kind, active: c.active ?? before.active };
   if (JSON.stringify(after) === JSON.stringify(before)) return { ok: true };
 
   const outcome = await write(
@@ -316,8 +316,8 @@ export async function updateComponent(db: D1Database, auditKey: string, actor: s
       after,
     },
     db
-      .prepare(`UPDATE mark_components SET name = ?2, max_hundredths = ?3, is_active = ?4 WHERE public_id = ?1 AND ${coordinatorForSection(5, componentSection(1))}`)
-      .bind(publicId, after.name, after.maxHundredths, after.active ? 1 : 0, actor),
+      .prepare(`UPDATE mark_components SET name = ?2, max_hundredths = ?3, is_active = ?4, kind = ?6 WHERE public_id = ?1 AND ${coordinatorForSection(5, componentSection(1))}`)
+      .bind(publicId, after.name, after.maxHundredths, after.active ? 1 : 0, actor, after.kind),
   );
   if (outcome === "done") return { ok: true };
   if (outcome === "duplicate") return { ok: false, reason: "conflict" };

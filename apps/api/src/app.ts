@@ -17,6 +17,7 @@ import { registerConfig } from "./modules/config/routes";
 import { registerContent } from "./modules/content/routes";
 import { registerContentApprovalHandler } from "./modules/content";
 import { registerFees, registerFeesApprovalHandlers } from "./modules/fees";
+import { registerResults } from "./modules/results";
 import { registerDates } from "./modules/dates/routes";
 import { registerHealth } from "./modules/health/routes";
 import { registerSite } from "./modules/site/routes";
@@ -49,6 +50,7 @@ export function createApp() {
   registerAttendance(app);
   registerClasswork(app);
   registerFees(app);
+  registerResults(app);
   registerDates(app);
   registerSite(app);
 

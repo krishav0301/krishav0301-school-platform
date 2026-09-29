@@ -687,6 +687,17 @@
           "active": {
             "type": "boolean"
           },
+          "gradingPolicy": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "enum": [
+              "neb_gpa",
+              "percentage_division",
+              null
+            ]
+          },
           "levels": {
             "type": "array",
             "items": {
@@ -701,6 +712,7 @@
           "section",
           "affiliation",
           "active",
+          "gradingPolicy",
           "levels"
         ]
       },
@@ -996,6 +1008,17 @@
           },
           "active": {
             "type": "boolean"
+          },
+          "gradingPolicy": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "enum": [
+              "neb_gpa",
+              "percentage_division",
+              null
+            ]
           }
         },
         "additionalProperties": false
@@ -1406,6 +1429,13 @@
           "maxHundredths": {
             "type": "integer"
           },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "theory",
+              "practical"
+            ]
+          },
           "ordinal": {
             "type": "integer"
           },
@@ -1417,6 +1447,7 @@
           "id",
           "name",
           "maxHundredths",
+          "kind",
           "ordinal",
           "active"
         ]
@@ -1534,6 +1565,14 @@
             "type": "integer",
             "minimum": 1,
             "maximum": 100000
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "theory",
+              "practical"
+            ],
+            "default": "theory"
           }
         },
         "required": [
@@ -1554,6 +1593,13 @@
             "type": "integer",
             "minimum": 1,
             "maximum": 100000
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "theory",
+              "practical"
+            ]
           },
           "active": {
             "type": "boolean"
@@ -5592,6 +5638,1383 @@
           "students",
           "totals"
         ]
+      },
+      "ClassElectives": {
+        "type": "object",
+        "properties": {
+          "classId": {
+            "type": "string"
+          },
+          "programmeName": {
+            "type": "string"
+          },
+          "levelName": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "groups": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "pickCount": {
+                  "type": "integer"
+                },
+                "subjects": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "offeringId": {
+                        "type": "string"
+                      },
+                      "name": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "offeringId",
+                      "name"
+                    ]
+                  }
+                }
+              },
+              "required": [
+                "id",
+                "name",
+                "pickCount",
+                "subjects"
+              ]
+            }
+          },
+          "students": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "enrollmentId": {
+                  "type": "string"
+                },
+                "sid": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "picks": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              },
+              "required": [
+                "enrollmentId",
+                "sid",
+                "name",
+                "picks"
+              ]
+            }
+          }
+        },
+        "required": [
+          "classId",
+          "programmeName",
+          "levelName",
+          "label",
+          "groups",
+          "students"
+        ]
+      },
+      "ResultsError": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "error"
+        ]
+      },
+      "ResultsOk": {
+        "type": "object",
+        "properties": {
+          "ok": {
+            "type": "boolean",
+            "enum": [
+              true
+            ]
+          }
+        },
+        "required": [
+          "ok"
+        ]
+      },
+      "ResultsInvalid": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "string",
+            "enum": [
+              "invalid"
+            ]
+          },
+          "message": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "error",
+          "message"
+        ]
+      },
+      "SetElectivePicks": {
+        "type": "object",
+        "properties": {
+          "offeringIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{32}$"
+            },
+            "maxItems": 10
+          }
+        },
+        "required": [
+          "offeringIds"
+        ],
+        "additionalProperties": false
+      },
+      "MyMarkSheets": {
+        "type": "object",
+        "properties": {
+          "terminals": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "id",
+                "name"
+              ]
+            }
+          },
+          "subjects": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "classId": {
+                  "type": "string"
+                },
+                "programmeName": {
+                  "type": "string"
+                },
+                "levelName": {
+                  "type": "string"
+                },
+                "label": {
+                  "type": "string"
+                },
+                "offeringId": {
+                  "type": "string"
+                },
+                "subjectName": {
+                  "type": "string"
+                },
+                "sheets": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "terminalId": {
+                        "type": "string"
+                      },
+                      "status": {
+                        "type": "string",
+                        "enum": [
+                          "not_started",
+                          "draft",
+                          "under_review",
+                          "verified",
+                          "published"
+                        ]
+                      },
+                      "note": {
+                        "type": [
+                          "string",
+                          "null"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "terminalId",
+                      "status",
+                      "note"
+                    ]
+                  }
+                }
+              },
+              "required": [
+                "classId",
+                "programmeName",
+                "levelName",
+                "label",
+                "offeringId",
+                "subjectName",
+                "sheets"
+              ]
+            }
+          }
+        },
+        "required": [
+          "terminals",
+          "subjects"
+        ]
+      },
+      "MarkSheet": {
+        "type": "object",
+        "properties": {
+          "sheetId": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "classId": {
+            "type": "string"
+          },
+          "programmeName": {
+            "type": "string"
+          },
+          "levelName": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "offeringId": {
+            "type": "string"
+          },
+          "subjectName": {
+            "type": "string"
+          },
+          "terminal": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "name"
+            ]
+          },
+          "teacherName": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "not_started",
+              "draft",
+              "under_review",
+              "verified",
+              "published"
+            ]
+          },
+          "note": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "components": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "kind": {
+                  "type": "string",
+                  "enum": [
+                    "theory",
+                    "practical"
+                  ]
+                },
+                "maxHundredths": {
+                  "type": "integer"
+                }
+              },
+              "required": [
+                "id",
+                "name",
+                "kind",
+                "maxHundredths"
+              ]
+            }
+          },
+          "students": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "enrollmentId": {
+                  "type": "string"
+                },
+                "sid": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "rollNo": {
+                  "type": [
+                    "integer",
+                    "null"
+                  ]
+                },
+                "marks": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "componentId": {
+                        "type": "string"
+                      },
+                      "valueHundredths": {
+                        "type": [
+                          "integer",
+                          "null"
+                        ]
+                      },
+                      "absent": {
+                        "type": "boolean"
+                      }
+                    },
+                    "required": [
+                      "componentId",
+                      "valueHundredths",
+                      "absent"
+                    ]
+                  }
+                }
+              },
+              "required": [
+                "enrollmentId",
+                "sid",
+                "name",
+                "rollNo",
+                "marks"
+              ]
+            }
+          },
+          "missing": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "sheetId",
+          "classId",
+          "programmeName",
+          "levelName",
+          "label",
+          "offeringId",
+          "subjectName",
+          "terminal",
+          "teacherName",
+          "status",
+          "note",
+          "components",
+          "students",
+          "missing"
+        ]
+      },
+      "SaveMarks": {
+        "type": "object",
+        "properties": {
+          "marks": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "enrollmentId": {
+                  "type": "string",
+                  "pattern": "^[0-9a-f]{32}$"
+                },
+                "componentId": {
+                  "type": "string",
+                  "pattern": "^[0-9a-f]{32}$"
+                },
+                "valueHundredths": {
+                  "type": [
+                    "integer",
+                    "null"
+                  ],
+                  "minimum": 0,
+                  "maximum": 100000
+                },
+                "absent": {
+                  "type": "boolean",
+                  "default": false
+                }
+              },
+              "required": [
+                "enrollmentId",
+                "componentId",
+                "valueHundredths"
+              ],
+              "additionalProperties": false
+            },
+            "minItems": 1,
+            "maxItems": 2000
+          }
+        },
+        "required": [
+          "marks"
+        ],
+        "additionalProperties": false
+      },
+      "ReviewBoard": {
+        "type": "object",
+        "properties": {
+          "terminals": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "id",
+                "name"
+              ]
+            }
+          },
+          "terminalId": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "classes": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "classId": {
+                  "type": "string"
+                },
+                "programmeName": {
+                  "type": "string"
+                },
+                "levelName": {
+                  "type": "string"
+                },
+                "label": {
+                  "type": "string"
+                },
+                "gradingPolicy": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "enum": [
+                    "neb_gpa",
+                    "percentage_division",
+                    null
+                  ]
+                },
+                "published": {
+                  "type": "boolean"
+                },
+                "ready": {
+                  "type": "boolean"
+                },
+                "subjects": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "offeringId": {
+                        "type": "string"
+                      },
+                      "subjectName": {
+                        "type": "string"
+                      },
+                      "teacherName": {
+                        "type": [
+                          "string",
+                          "null"
+                        ]
+                      },
+                      "sheetId": {
+                        "type": [
+                          "string",
+                          "null"
+                        ]
+                      },
+                      "status": {
+                        "type": "string",
+                        "enum": [
+                          "not_started",
+                          "draft",
+                          "under_review",
+                          "verified",
+                          "published"
+                        ]
+                      },
+                      "missing": {
+                        "type": "integer"
+                      }
+                    },
+                    "required": [
+                      "offeringId",
+                      "subjectName",
+                      "teacherName",
+                      "sheetId",
+                      "status",
+                      "missing"
+                    ]
+                  }
+                }
+              },
+              "required": [
+                "classId",
+                "programmeName",
+                "levelName",
+                "label",
+                "gradingPolicy",
+                "published",
+                "ready",
+                "subjects"
+              ]
+            }
+          }
+        },
+        "required": [
+          "terminals",
+          "terminalId",
+          "classes"
+        ]
+      },
+      "BulkVerify": {
+        "type": "object",
+        "properties": {
+          "sheetIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{32}$"
+            },
+            "minItems": 1,
+            "maxItems": 200
+          }
+        },
+        "required": [
+          "sheetIds"
+        ],
+        "additionalProperties": false
+      },
+      "SendBackSheet": {
+        "type": "object",
+        "properties": {
+          "note": {
+            "type": "string",
+            "minLength": 3,
+            "maxLength": 500
+          }
+        },
+        "required": [
+          "note"
+        ],
+        "additionalProperties": false
+      },
+      "PublishClass": {
+        "type": "object",
+        "properties": {
+          "terminalId": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{32}$"
+          }
+        },
+        "required": [
+          "terminalId"
+        ],
+        "additionalProperties": false
+      },
+      "OwnResults": {
+        "type": "object",
+        "properties": {
+          "results": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "publicationId": {
+                  "type": "string"
+                },
+                "yearLabel": {
+                  "type": "string"
+                },
+                "terminalName": {
+                  "type": "string"
+                },
+                "card": {
+                  "$ref": "#/components/schemas/MarksCard"
+                },
+                "rechecks": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string"
+                      },
+                      "offeringId": {
+                        "type": "string"
+                      },
+                      "subjectName": {
+                        "type": "string"
+                      },
+                      "reason": {
+                        "type": "string"
+                      },
+                      "status": {
+                        "type": "string",
+                        "enum": [
+                          "open",
+                          "changed",
+                          "unchanged"
+                        ]
+                      },
+                      "requestedAt": {
+                        "type": "string"
+                      },
+                      "decisionReason": {
+                        "type": [
+                          "string",
+                          "null"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "id",
+                      "offeringId",
+                      "subjectName",
+                      "reason",
+                      "status",
+                      "requestedAt",
+                      "decisionReason"
+                    ]
+                  }
+                }
+              },
+              "required": [
+                "publicationId",
+                "yearLabel",
+                "terminalName",
+                "card",
+                "rechecks"
+              ]
+            }
+          }
+        },
+        "required": [
+          "results"
+        ]
+      },
+      "MarksCard": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "version": {
+            "type": "integer"
+          },
+          "publishedAt": {
+            "type": "string"
+          },
+          "publishedAtBs": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "reason": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "body": {
+            "type": "object",
+            "properties": {
+              "student": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string"
+                  },
+                  "sid": {
+                    "type": "string"
+                  },
+                  "rollNo": {
+                    "type": [
+                      "integer",
+                      "null"
+                    ]
+                  }
+                },
+                "required": [
+                  "name",
+                  "sid",
+                  "rollNo"
+                ]
+              },
+              "class": {
+                "type": "object",
+                "properties": {
+                  "programmeName": {
+                    "type": "string"
+                  },
+                  "levelName": {
+                    "type": "string"
+                  },
+                  "label": {
+                    "type": "string"
+                  },
+                  "sectionName": {
+                    "type": "string"
+                  },
+                  "yearLabel": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "programmeName",
+                  "levelName",
+                  "label",
+                  "sectionName",
+                  "yearLabel"
+                ]
+              },
+              "terminal": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "name"
+                ]
+              },
+              "policy": {
+                "type": "string",
+                "enum": [
+                  "neb_gpa",
+                  "percentage_division"
+                ]
+              },
+              "subjects": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "offeringId": {
+                      "type": "string"
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "creditHundredths": {
+                      "type": [
+                        "integer",
+                        "null"
+                      ]
+                    },
+                    "obtainedHundredths": {
+                      "type": "integer"
+                    },
+                    "maxHundredths": {
+                      "type": "integer"
+                    },
+                    "percentHundredths": {
+                      "type": "integer"
+                    },
+                    "grade": {
+                      "type": "string"
+                    },
+                    "gradePointHundredths": {
+                      "type": [
+                        "integer",
+                        "null"
+                      ]
+                    },
+                    "passed": {
+                      "type": "boolean"
+                    },
+                    "components": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "name": {
+                            "type": "string"
+                          },
+                          "kind": {
+                            "type": "string",
+                            "enum": [
+                              "theory",
+                              "practical"
+                            ]
+                          },
+                          "maxHundredths": {
+                            "type": "integer"
+                          },
+                          "valueHundredths": {
+                            "type": [
+                              "integer",
+                              "null"
+                            ]
+                          },
+                          "absent": {
+                            "type": "boolean"
+                          }
+                        },
+                        "required": [
+                          "name",
+                          "kind",
+                          "maxHundredths",
+                          "valueHundredths",
+                          "absent"
+                        ]
+                      }
+                    }
+                  },
+                  "required": [
+                    "offeringId",
+                    "name",
+                    "creditHundredths",
+                    "obtainedHundredths",
+                    "maxHundredths",
+                    "percentHundredths",
+                    "grade",
+                    "gradePointHundredths",
+                    "passed",
+                    "components"
+                  ]
+                }
+              },
+              "gpaHundredths": {
+                "type": [
+                  "integer",
+                  "null"
+                ]
+              },
+              "percentHundredths": {
+                "type": [
+                  "integer",
+                  "null"
+                ]
+              },
+              "outcome": {
+                "type": "string"
+              },
+              "passed": {
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "student",
+              "class",
+              "terminal",
+              "policy",
+              "subjects",
+              "gpaHundredths",
+              "percentHundredths",
+              "outcome",
+              "passed"
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "version",
+          "publishedAt",
+          "publishedAtBs",
+          "reason",
+          "body"
+        ]
+      },
+      "ClassResultSheet": {
+        "type": "object",
+        "properties": {
+          "classId": {
+            "type": "string"
+          },
+          "programmeName": {
+            "type": "string"
+          },
+          "levelName": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "terminal": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "name"
+            ]
+          },
+          "policy": {
+            "type": "string",
+            "enum": [
+              "neb_gpa",
+              "percentage_division"
+            ]
+          },
+          "publishedAt": {
+            "type": "string"
+          },
+          "subjects": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "offeringId": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "offeringId",
+                "name"
+              ]
+            }
+          },
+          "students": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "enrollmentId": {
+                  "type": "string"
+                },
+                "cardId": {
+                  "type": "string"
+                },
+                "sid": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "rank": {
+                  "type": [
+                    "integer",
+                    "null"
+                  ]
+                },
+                "gpaHundredths": {
+                  "type": [
+                    "integer",
+                    "null"
+                  ]
+                },
+                "percentHundredths": {
+                  "type": [
+                    "integer",
+                    "null"
+                  ]
+                },
+                "outcome": {
+                  "type": "string"
+                },
+                "version": {
+                  "type": "integer"
+                },
+                "subjects": {
+                  "type": "array",
+                  "items": {
+                    "type": [
+                      "object",
+                      "null"
+                    ],
+                    "properties": {
+                      "offeringId": {
+                        "type": "string"
+                      },
+                      "grade": {
+                        "type": "string"
+                      },
+                      "percentHundredths": {
+                        "type": "integer"
+                      }
+                    },
+                    "required": [
+                      "offeringId",
+                      "grade",
+                      "percentHundredths"
+                    ]
+                  }
+                }
+              },
+              "required": [
+                "enrollmentId",
+                "cardId",
+                "sid",
+                "name",
+                "rank",
+                "gpaHundredths",
+                "percentHundredths",
+                "outcome",
+                "version",
+                "subjects"
+              ]
+            }
+          }
+        },
+        "required": [
+          "classId",
+          "programmeName",
+          "levelName",
+          "label",
+          "terminal",
+          "policy",
+          "publishedAt",
+          "subjects",
+          "students"
+        ]
+      },
+      "Top20": {
+        "type": "object",
+        "properties": {
+          "terminals": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "id",
+                "name"
+              ]
+            }
+          },
+          "terminalId": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "pools": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "sectionName": {
+                  "type": "string"
+                },
+                "levelName": {
+                  "type": "string"
+                },
+                "entries": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "rank": {
+                        "type": "integer"
+                      },
+                      "name": {
+                        "type": "string"
+                      },
+                      "className": {
+                        "type": "string"
+                      },
+                      "score": {
+                        "type": "integer"
+                      }
+                    },
+                    "required": [
+                      "rank",
+                      "name"
+                    ]
+                  }
+                }
+              },
+              "required": [
+                "sectionName",
+                "levelName",
+                "entries"
+              ]
+            }
+          }
+        },
+        "required": [
+          "terminals",
+          "terminalId",
+          "pools"
+        ]
+      },
+      "RequestRecheck": {
+        "type": "object",
+        "properties": {
+          "offeringId": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{32}$"
+          },
+          "reason": {
+            "type": "string",
+            "minLength": 3,
+            "maxLength": 500
+          }
+        },
+        "required": [
+          "offeringId",
+          "reason"
+        ],
+        "additionalProperties": false
+      },
+      "RecheckList": {
+        "type": "object",
+        "properties": {
+          "rechecks": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "offeringId": {
+                  "type": "string"
+                },
+                "subjectName": {
+                  "type": "string"
+                },
+                "reason": {
+                  "type": "string"
+                },
+                "status": {
+                  "type": "string",
+                  "enum": [
+                    "open",
+                    "changed",
+                    "unchanged"
+                  ]
+                },
+                "requestedAt": {
+                  "type": "string"
+                },
+                "decisionReason": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "classId": {
+                  "type": "string"
+                },
+                "programmeName": {
+                  "type": "string"
+                },
+                "levelName": {
+                  "type": "string"
+                },
+                "label": {
+                  "type": "string"
+                },
+                "terminalName": {
+                  "type": "string"
+                },
+                "studentName": {
+                  "type": "string"
+                },
+                "sid": {
+                  "type": "string"
+                },
+                "decidedAt": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "decidedBy": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "marks": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "componentId": {
+                        "type": "string"
+                      },
+                      "name": {
+                        "type": "string"
+                      },
+                      "maxHundredths": {
+                        "type": "integer"
+                      },
+                      "valueHundredths": {
+                        "type": [
+                          "integer",
+                          "null"
+                        ]
+                      },
+                      "absent": {
+                        "type": "boolean"
+                      }
+                    },
+                    "required": [
+                      "componentId",
+                      "name",
+                      "maxHundredths",
+                      "valueHundredths",
+                      "absent"
+                    ]
+                  }
+                }
+              },
+              "required": [
+                "id",
+                "offeringId",
+                "subjectName",
+                "reason",
+                "status",
+                "requestedAt",
+                "decisionReason",
+                "classId",
+                "programmeName",
+                "levelName",
+                "label",
+                "terminalName",
+                "studentName",
+                "sid",
+                "decidedAt",
+                "decidedBy",
+                "marks"
+              ]
+            }
+          }
+        },
+        "required": [
+          "rechecks"
+        ]
+      },
+      "DecideRecheck": {
+        "type": "object",
+        "properties": {
+          "outcome": {
+            "type": "string",
+            "enum": [
+              "changed",
+              "unchanged"
+            ]
+          },
+          "reason": {
+            "type": "string",
+            "minLength": 3,
+            "maxLength": 500
+          },
+          "marks": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "componentId": {
+                  "type": "string",
+                  "pattern": "^[0-9a-f]{32}$"
+                },
+                "valueHundredths": {
+                  "type": [
+                    "integer",
+                    "null"
+                  ],
+                  "minimum": 0,
+                  "maximum": 100000
+                },
+                "absent": {
+                  "type": "boolean",
+                  "default": false
+                }
+              },
+              "required": [
+                "componentId",
+                "valueHundredths"
+              ],
+              "additionalProperties": false
+            },
+            "maxItems": 10,
+            "default": []
+          }
+        },
+        "required": [
+          "outcome",
+          "reason"
+        ],
+        "additionalProperties": false
       },
       "DateConversionFailure": {
         "type": "object",
@@ -13297,6 +14720,1067 @@
                   "required": [
                     "queued"
                   ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/results/classes/{classId}/electives": {
+      "get": {
+        "operationId": "get_class_electives",
+        "tags": [
+          "results"
+        ],
+        "description": "A class's elective groups and each student's picks, for the Co-ordinator.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{32}$"
+            },
+            "required": true,
+            "name": "classId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The picks",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClassElectives"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such item, or not one the person may reach",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultsError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/results/enrollments/{enrollmentId}/electives/{groupId}": {
+      "put": {
+        "operationId": "set_elective_picks",
+        "tags": [
+          "results"
+        ],
+        "description": "Sets one student's picks in one elective group: exactly the group's pick count. A subject with marks cannot be dropped.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{32}$"
+            },
+            "required": true,
+            "name": "enrollmentId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{32}$"
+            },
+            "required": true,
+            "name": "groupId",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetElectivePicks"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Saved",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultsOk"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such item, or not one the person may reach",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultsError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Not possible in its current state (already decided, already published, not ready, or the year is closed)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultsError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Not valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultsInvalid"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/results/mine": {
+      "get": {
+        "operationId": "get_my_mark_sheets",
+        "tags": [
+          "results"
+        ],
+        "description": "The signed-in teacher's subjects this year, each with its mark sheet's state per terminal.",
+        "responses": {
+          "200": {
+            "description": "The subjects",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MyMarkSheets"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/results/classes/{classId}/subjects/{offeringId}/terminals/{terminalId}": {
+      "get": {
+        "operationId": "get_mark_sheet",
+        "tags": [
+          "results"
+        ],
+        "description": "The marks grid for one subject in one class and terminal: the students who take it, the components, the marks so far, and how many are missing.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{32}$"
+            },
+            "required": true,
+            "name": "classId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{32}$"
+            },
+            "required": true,
+            "name": "offeringId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{32}$"
+            },
+            "required": true,
+            "name": "terminalId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The sheet",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MarkSheet"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such item, or not one the person may reach",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultsError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "operationId": "save_marks",
+        "tags": [
+          "results"
+        ],
+        "description": "Saves marks as a draft (whole hundredths; an absence is `absent`, never a zero). Saving again replaces. Only while the sheet is a draft.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{32}$"
+            },
+            "required": true,
+            "name": "classId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{32}$"
+            },
+            "required": true,
+            "name": "offeringId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{32}$"
+            },
+            "required": true,
+            "name": "terminalId",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SaveMarks"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Saved",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultsOk"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such item, or not one the person may reach",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultsError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Not possible in its current state (already decided, already published, not ready, or the year is closed)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultsError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Not valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultsInvalid"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/results/classes/{classId}/subjects/{offeringId}/terminals/{terminalId}/submit": {
+      "post": {
+        "operationId": "submit_mark_sheet",
+        "tags": [
+          "results"
+        ],
+        "description": "Sends a complete draft to the Co-ordinator for review. Refused while a mark is missing.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{32}$"
+            },
+            "required": true,
+            "name": "classId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{32}$"
+            },
+            "required": true,
+            "name": "offeringId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{32}$"
+            },
+            "required": true,
+            "name": "terminalId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Sent",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultsOk"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such item, or not one the person may reach",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultsError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Not possible in its current state (already decided, already published, not ready, or the year is closed)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultsError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Not valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultsInvalid"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/results/review": {
+      "get": {
+        "operationId": "get_results_review",
+        "tags": [
+          "results"
+        ],
+        "description": "The Co-ordinator's board for a terminal (the latest by default): every class in reach, each subject's sheet state, and whether the class can be published.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{32}$"
+            },
+            "required": false,
+            "name": "terminalId",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The board",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReviewBoard"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/results/review/sheets/{sheetId}": {
+      "get": {
+        "operationId": "get_review_sheet",
+        "tags": [
+          "results"
+        ],
+        "description": "One mark sheet, read-only, for the Co-ordinator to check before verifying.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{32}$"
+            },
+            "required": true,
+            "name": "sheetId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The sheet",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MarkSheet"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such item, or not one the person may reach",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultsError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/results/review/verify": {
+      "post": {
+        "operationId": "verify_mark_sheets",
+        "tags": [
+          "results"
+        ],
+        "description": "Verifies one or many sheets under review (bulk approve). Answers how many were verified; one not under review or not in reach is left as it is.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BulkVerify"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Verified",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "verified": {
+                      "type": "integer"
+                    }
+                  },
+                  "required": [
+                    "verified"
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such item, or not one the person may reach",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultsError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Not possible in its current state (already decided, already published, not ready, or the year is closed)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultsError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Not valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultsInvalid"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/results/review/sheets/{sheetId}/send-back": {
+      "post": {
+        "operationId": "send_back_mark_sheet",
+        "tags": [
+          "results"
+        ],
+        "description": "Sends a sheet under review, or verified but not yet published, back to its teacher as a draft, with a note.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{32}$"
+            },
+            "required": true,
+            "name": "sheetId",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SendBackSheet"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Sent back",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultsOk"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such item, or not one the person may reach",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultsError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Not possible in its current state (already decided, already published, not ready, or the year is closed)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultsError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Not valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultsInvalid"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/results/classes/{classId}/publish": {
+      "post": {
+        "operationId": "publish_class_results",
+        "tags": [
+          "results"
+        ],
+        "description": "Publishes a whole class for a terminal: only when every subject is verified and the programme has a grading policy. Every student's marks card is stored as a snapshot in the same batch.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{32}$"
+            },
+            "required": true,
+            "name": "classId",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PublishClass"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Published",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "publicationId": {
+                      "type": "string"
+                    },
+                    "cards": {
+                      "type": "integer"
+                    }
+                  },
+                  "required": [
+                    "publicationId",
+                    "cards"
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such item, or not one the person may reach",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultsError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Not possible in its current state (already decided, already published, not ready, or the year is closed)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultsError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Not valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultsInvalid"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/results/me": {
+      "get": {
+        "operationId": "get_own_results",
+        "tags": [
+          "results"
+        ],
+        "description": "The signed-in student's published results, every year and terminal, each with its marks card and rechecks. Nothing before publish.",
+        "responses": {
+          "200": {
+            "description": "The results",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OwnResults"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/results/cards/{cardId}": {
+      "get": {
+        "operationId": "get_marks_card",
+        "tags": [
+          "results"
+        ],
+        "description": "One marks card (any version), for staff whose sections reach the class.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{32}$"
+            },
+            "required": true,
+            "name": "cardId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The card",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MarksCard"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such item, or not one the person may reach",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultsError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/results/classes/{classId}/terminals/{terminalId}/sheet": {
+      "get": {
+        "operationId": "get_class_result_sheet",
+        "tags": [
+          "results"
+        ],
+        "description": "The whole-class sheet of a published terminal: students by subjects, with the GPA or percentage and the rank in the class.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{32}$"
+            },
+            "required": true,
+            "name": "classId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{32}$"
+            },
+            "required": true,
+            "name": "terminalId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The sheet",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClassResultSheet"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such item, or not one the person may reach",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultsError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/results/classes/{classId}/terminals/{terminalId}/sheet.csv": {
+      "get": {
+        "operationId": "export_class_result_sheet",
+        "tags": [
+          "results"
+        ],
+        "description": "The whole-class sheet as CSV, for Excel. OPEN: a native .xlsx needs a library the PM has not approved yet.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{32}$"
+            },
+            "required": true,
+            "name": "classId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{32}$"
+            },
+            "required": true,
+            "name": "terminalId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The CSV",
+            "content": {
+              "text/csv": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such item, or not one the person may reach",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultsError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/results/top20": {
+      "get": {
+        "operationId": "get_top20",
+        "tags": [
+          "results"
+        ],
+        "description": "The Top 20 for a terminal, ranked per section among the same level, ties sharing a rank. A student sees their own list only, name and rank only, once their class is published; staff see every list in reach.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{32}$"
+            },
+            "required": false,
+            "name": "terminalId",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The lists",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Top20"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The Top 20 is switched off for this school",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultsError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/results/publications/{publicationId}/rechecks": {
+      "post": {
+        "operationId": "request_recheck",
+        "tags": [
+          "results"
+        ],
+        "description": "The student asks for one subject of their own published result to be rechecked, with a reason. One open request per subject.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{32}$"
+            },
+            "required": true,
+            "name": "publicationId",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RequestRecheck"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Requested",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "id"
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such item, or not one the person may reach",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultsError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Not possible in its current state (already decided, already published, not ready, or the year is closed)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultsError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Not valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultsInvalid"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/results/rechecks": {
+      "get": {
+        "operationId": "list_rechecks",
+        "tags": [
+          "results"
+        ],
+        "description": "Rechecks in reach, open first. The Co-ordinator decides them; the Admin sees every post-publish change here.",
+        "responses": {
+          "200": {
+            "description": "The rechecks",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RecheckList"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such item, or not one the person may reach",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultsError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/results/rechecks/{recheckId}/decide": {
+      "post": {
+        "operationId": "decide_recheck",
+        "tags": [
+          "results"
+        ],
+        "description": "The Co-ordinator decides a recheck, with a reason: unchanged, or changed with the corrected marks, which makes the next version of the marks card.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{32}$"
+            },
+            "required": true,
+            "name": "recheckId",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DecideRecheck"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Decided",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultsOk"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such item, or not one the person may reach",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultsError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Not possible in its current state (already decided, already published, not ready, or the year is closed)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultsError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Not valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultsInvalid"
                 }
               }
             }

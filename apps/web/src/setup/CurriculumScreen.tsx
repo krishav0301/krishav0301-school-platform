@@ -173,6 +173,7 @@ export function ComponentForm({ offeringId, name: subjectName, onAdded }: { offe
   const { api } = useSession();
   const [name, setName] = useState("");
   const [max, setMax] = useState("");
+  const [kind, setKind] = useState<"theory" | "practical">("theory");
   const [errors, setErrors] = useState<{ name?: MessageKey; max?: MessageKey }>({});
   const [problem, setProblem] = useState<MessageKey | null>(null);
   const [saving, setSaving] = useState(false);
@@ -190,7 +191,7 @@ export function ComponentForm({ offeringId, name: subjectName, onAdded }: { offe
     if (Object.keys(found).length > 0 || hundredths === null) return;
 
     setSaving(true);
-    const result = await addComponent(api, offeringId, { name: name.trim(), maxHundredths: hundredths });
+    const result = await addComponent(api, offeringId, { name: name.trim(), maxHundredths: hundredths, kind });
     setSaving(false);
     if (result.ok) {
       setName("");
@@ -208,6 +209,16 @@ export function ComponentForm({ offeringId, name: subjectName, onAdded }: { offe
         {problem ? <Notice tone="bad">{t(problem)}</Notice> : null}
         <Field label={t("setup.curriculum.markName")} hint={t("setup.curriculum.markNameHint")} value={name} maxLength={60} autoComplete="off" onChange={(event) => setName(event.target.value)} error={say(errors.name)} />
         <Field label={t("setup.curriculum.maxMarks")} inputMode="decimal" autoComplete="off" value={max} onChange={(event) => setMax(event.target.value)} error={say(errors.max)} />
+        <Select
+          label={t("setup.curriculum.markKind")}
+          hint={t("setup.curriculum.markKindHint")}
+          value={kind}
+          onChange={(event) => setKind(event.target.value === "practical" ? "practical" : "theory")}
+          options={[
+            { value: "theory", label: t("setup.curriculum.kind.theory") },
+            { value: "practical", label: t("setup.curriculum.kind.practical") },
+          ]}
+        />
         <Button type="submit" variant="secondary" loading={saving} loadingLabel={t("setup.working")} aria-label={`${t("setup.curriculum.addMark")}: ${subjectName}`}>
           {t("setup.curriculum.addMark")}
         </Button>
@@ -301,7 +312,7 @@ export function CurriculumView({ curriculum, canManage, busy, onToggleGroup, onT
                 <ul className={styles.levels}>
                   {offering.components.map((component) => (
                     <li key={component.id} className={styles.level}>
-                      <span className={styles.levelName}>{t("setup.curriculum.markLine", { name: component.name, max: formatHundredths(component.maxHundredths) })}</span>
+                      <span className={styles.levelName}>{t(component.kind === "practical" ? "setup.curriculum.markLinePractical" : "setup.curriculum.markLine", { name: component.name, max: formatHundredths(component.maxHundredths) })}</span>
                       {component.active ? null : <Badge>{t("setup.curriculum.markOff")}</Badge>}
                       {canManage ? toggle(component.id, "setup.curriculum.markSwitchOffItem", "setup.curriculum.markSwitchOnItem", component.active, component.name, () => onToggleComponent(component)) : null}
                     </li>

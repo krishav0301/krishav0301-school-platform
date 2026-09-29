@@ -166,6 +166,7 @@ export const MATRIX = [
   row(G.fees, "fees.reminders.send", "Send overdue reminders (email)", 6, { ACC: inst }),
 
   // --- Marks and results
+  row(G.results, "results.electives.set", "Record each student's elective picks (D-056)", 7, { COO: inst, SUP: all }),
   row(G.results, "marks.enter", "Enter marks (until verified)", 7, { TEA: assigned }),
   row(G.results, "marks.verify", "Verify, send back, bulk approve", 7, { COO: inst, SUP: all }),
   row(G.results, "results.publish", "Publish a whole class (all subjects verified)", 7, { COO: inst, SUP: all }),

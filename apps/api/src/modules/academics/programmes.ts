@@ -16,13 +16,14 @@ interface ProgrammeRow {
   name: string;
   affiliation: string;
   is_active: number;
+  grading_policy: string | null;
 }
 
 /** One round trip: may the person act on this programme's section, and what is the programme now? */
 async function inspectProgramme(db: D1Database, publicId: string, actor: string) {
   const [allowed, row] = await db.batch([
     db.prepare(`SELECT ${coordinatorForSection(1, "(SELECT section_id FROM programmes WHERE public_id = ?2)")} AS ok`).bind(actor, publicId),
-    db.prepare("SELECT name, affiliation, is_active FROM programmes WHERE public_id = ?1").bind(publicId),
+    db.prepare("SELECT name, affiliation, is_active, grading_policy FROM programmes WHERE public_id = ?1").bind(publicId),
   ]);
   return {
     allowed: (allowed!.results[0] as { ok: number } | undefined)?.ok === 1,
@@ -65,7 +66,10 @@ export async function createProgramme(db: D1Database, auditKey: string, actor: s
   return { ok: false, reason: section ? "not_allowed" : "not_found" };
 }
 
-/** Renames a programme, changes its affiliation, or switches it off and on. Nothing is deleted. */
+/**
+ * Renames a programme, changes its affiliation or grading policy, or switches it off and on. Nothing is deleted. A new
+ * grading policy affects only results not yet published: a published marks card is a snapshot (D-079).
+ */
 export async function updateProgramme(db: D1Database, auditKey: string, actor: string, publicId: string, changes: ProgrammeChanges): Promise<Done> {
   const parsed = ProgrammeChangesSchema.safeParse(changes);
   if (!parsed.success) return { ok: false, reason: "invalid", message: firstMessage(parsed.error) };
@@ -75,8 +79,13 @@ export async function updateProgramme(db: D1Database, auditKey: string, actor: s
   if (!allowed) return { ok: false, reason: "not_allowed" };
   if (!programme) return { ok: false, reason: "not_found" };
 
-  const before = { name: programme.name, affiliation: programme.affiliation, active: programme.is_active === 1 };
-  const after = { name: c.name ?? before.name, affiliation: c.affiliation ?? before.affiliation, active: c.active ?? before.active };
+  const before = { name: programme.name, affiliation: programme.affiliation, active: programme.is_active === 1, gradingPolicy: programme.grading_policy };
+  const after = {
+    name: c.name ?? before.name,
+    affiliation: c.affiliation ?? before.affiliation,
+    active: c.active ?? before.active,
+    gradingPolicy: c.gradingPolicy === undefined ? before.gradingPolicy : c.gradingPolicy,
+  };
   if (JSON.stringify(after) === JSON.stringify(before)) return { ok: true };
 
   const outcome = await write(
@@ -93,10 +102,10 @@ export async function updateProgramme(db: D1Database, auditKey: string, actor: s
     },
     db
       .prepare(
-        `UPDATE programmes SET name = ?2, affiliation = ?3, is_active = ?4
+        `UPDATE programmes SET name = ?2, affiliation = ?3, is_active = ?4, grading_policy = ?6
           WHERE public_id = ?1 AND ${coordinatorForSection(5, "programmes.section_id")}`,
       )
-      .bind(publicId, after.name, after.affiliation, after.active ? 1 : 0, actor),
+      .bind(publicId, after.name, after.affiliation, after.active ? 1 : 0, actor, after.gradingPolicy),
   );
   return outcome === "done" ? { ok: true } : { ok: false, reason: "not_allowed" };
 }

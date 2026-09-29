@@ -156,6 +156,14 @@ Tests first. Fee structure with Admin approval, charge generation through the bi
 Grading policies (NEB credit-weighted GPA, percentage and division), bulk marks grid with draft-save, verify workflow, publish per class with gating, snapshot marks cards (2-3 templates), Top 20 with a tie-break rule, recheck, whole-class sheet, student result view, results-day load test.
 **Needs from client:** grading and ranking rules, optional subjects, year versus semester, components and maximum marks, marks-card format.
 
+**Progress** (approved 2026-09-28 with defaults; the NEB scale is unverified, D-079; design in `docs/superpowers/specs/2026-09-28-phase7-results-design.md`):
+- [x] 1. Grading policies: NEB GPA (unverified, `OPEN:`) and percentage with division, ties sharing a rank, the policy on the programme (D-079)
+- [x] 2. Elective picks and the marks grid: draft-save, missing flagged, submit (D-080)
+- [x] 3. Verify, send back, bulk verify; publish a whole class per terminal with snapshot marks cards (D-081)
+- [x] 4. The student's results and card, the Top 20, the whole-class sheet and CSV, the screens and browser check (D-082)
+- [x] 5. Rechecks and the exit test for both schools (D-083)
+- [x] **Phase 7 complete (2026-09-28).** Not done: NEB verification, card templates and PDF, native Excel, the results-day load test, SMS; see D-083
+
 ### Phase 8: Year lifecycle
 Year rollover (Promote, Repeat, Leaving), closed-year locks tested on every write path, previous dues, Left and Graduated with zero dues, waive-dues flow, +2 to Bachelor's handover, reactivation.
 

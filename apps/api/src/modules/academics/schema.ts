@@ -43,7 +43,13 @@ export const CreateProgrammeSchema = z
   .openapi("CreateProgramme");
 export type ProgrammeInput = z.input<typeof CreateProgrammeSchema>;
 
-export const ProgrammeChangesSchema = z.strictObject({ name: ProgrammeName, affiliation: Affiliation, active: z.boolean() }).partial().openapi("ProgrammeChanges");
+/** A programme's grading policy (Phase 7, D-079); null means none, and a class of a programme with none cannot be published. */
+export const GradingPolicySchema = z.enum(["neb_gpa", "percentage_division"]);
+
+export const ProgrammeChangesSchema = z
+  .strictObject({ name: ProgrammeName, affiliation: Affiliation, active: z.boolean(), gradingPolicy: GradingPolicySchema.nullable() })
+  .partial()
+  .openapi("ProgrammeChanges");
 export type ProgrammeChanges = z.infer<typeof ProgrammeChangesSchema>;
 
 export const CreateLevelSchema = z.strictObject({ name: LevelName }).openapi("CreateLevel");
@@ -97,6 +103,7 @@ export const ProgrammeSchema = z
     section: z.object({ key: z.string(), name: z.string() }),
     affiliation: z.string(),
     active: z.boolean(),
+    gradingPolicy: GradingPolicySchema.nullable(),
     levels: z.array(LevelSchema),
   })
   .openapi("Programme");
@@ -163,10 +170,13 @@ const ComponentName = z.string().trim().min(1, "Give the component a name").max(
 /** Maximum marks in whole hundredths: 7500 means 75. */
 const MaxMarks = z.number().int("Maximum marks are whole hundredths").min(1, "The maximum must be more than zero").max(100000, "The maximum is at most 1000");
 
-export const CreateComponentSchema = z.strictObject({ name: ComponentName, maxHundredths: MaxMarks }).openapi("CreateComponent");
+/** Theory or practical (an internal assessment counts as practical): NEB's pass mark differs between them (D-079). */
+const ComponentKind = z.enum(["theory", "practical"]);
+
+export const CreateComponentSchema = z.strictObject({ name: ComponentName, maxHundredths: MaxMarks, kind: ComponentKind.default("theory") }).openapi("CreateComponent");
 export type ComponentInput = z.input<typeof CreateComponentSchema>;
 
-export const ComponentChangesSchema = z.strictObject({ name: ComponentName, maxHundredths: MaxMarks, active: z.boolean() }).partial().openapi("ComponentChanges");
+export const ComponentChangesSchema = z.strictObject({ name: ComponentName, maxHundredths: MaxMarks, kind: ComponentKind, active: z.boolean() }).partial().openapi("ComponentChanges");
 export type ComponentChanges = z.infer<typeof ComponentChangesSchema>;
 
 // --- What the subject screens read -------------------------------------------------------------------
@@ -176,7 +186,7 @@ export const SubjectListSchema = z.object({ subjects: z.array(SubjectSchema) }).
 export type SubjectList = z.infer<typeof SubjectListSchema>;
 
 export const CurriculumComponentSchema = z
-  .object({ id: z.string(), name: z.string(), maxHundredths: z.number().int(), ordinal: z.number().int(), active: z.boolean() })
+  .object({ id: z.string(), name: z.string(), maxHundredths: z.number().int(), kind: ComponentKind, ordinal: z.number().int(), active: z.boolean() })
   .openapi("CurriculumComponent");
 
 export const CurriculumOfferingSchema = z
