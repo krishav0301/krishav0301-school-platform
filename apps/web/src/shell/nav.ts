@@ -44,6 +44,8 @@ export const NAV_ITEMS: readonly NavItem[] = [
   { id: "attendance", labelKey: "nav.attendance", href: "/portal/attendance", roles: ["teacher", "coordinator", "admin", "super_admin"], module: "attendance" },
   // Phase 5, slice 3: the daily activity log; notes and homework join it in slice 4 (D-071).
   { id: "classwork", labelKey: "nav.classwork", href: "/portal/classwork", roles: ["teacher", "student", "coordinator", "admin", "super_admin"] },
+  // Phase 6: fees. The Accountant works here, the Admin looks, a student sees their own; never the Co-ordinator (D-078).
+  { id: "fees", labelKey: "nav.fees", href: "/portal/fees", roles: ["accountant", "admin", "super_admin", "student"], module: "fees" },
 ];
 
 /** Where the phone's "More" tab goes: a list of the entries that did not fit in the tab bar. */

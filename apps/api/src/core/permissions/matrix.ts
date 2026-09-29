@@ -149,8 +149,10 @@ export const MATRIX = [
   // --- Fees and money
   row(G.fees, "fees.structure.draft", "Draft yearly fee structure", 6, { ACC: inst }),
   row(G.fees, "fees.structure.approve", "Approve fee structure", 6, { ADM: all }),
+  row(G.fees, "fees.charges.generate", "Generate the year's charges from a live fee structure", 6, { ACC: inst }),
   row(G.fees, "fees.view", "View fees, dues, ledger", 6, { STU: own, ACC: inst, ADM: read, SUP: all }),
   row(G.fees, "fees.voucher.upload", "Upload a payment voucher", 6, { STU: own }),
+  row(G.fees, "fees.online.pay", "Pay online through the gateway (demo adapter only until Phase 9)", 6, { STU: own }),
   row(G.fees, "fees.voucher.verify", "Verify or reject a voucher", 6, { ACC: inst }),
   row(G.fees, "fees.cash.record", "Record cash payment", 6, { ACC: inst }),
   row(G.fees, "fees.discount.propose", "Propose a discount", 6, { ACC: inst }),
@@ -161,6 +163,7 @@ export const MATRIX = [
   row(G.fees, "fees.refund.approve", "Approve a refund", 6, { ADM: all }),
   row(G.fees, "fees.refund.record", "Record how an approved refund was paid", 6, { ACC: inst }),
   row(G.fees, "fees.receipts.view", "View and download receipts", 6, { STU: own, ACC: inst, ADM: read, SUP: all }),
+  row(G.fees, "fees.reminders.send", "Send overdue reminders (email)", 6, { ACC: inst }),
 
   // --- Marks and results
   row(G.results, "marks.enter", "Enter marks (until verified)", 7, { TEA: assigned }),

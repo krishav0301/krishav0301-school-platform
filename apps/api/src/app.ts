@@ -16,6 +16,7 @@ import { registerAuth } from "./modules/auth/routes";
 import { registerConfig } from "./modules/config/routes";
 import { registerContent } from "./modules/content/routes";
 import { registerContentApprovalHandler } from "./modules/content";
+import { registerFees, registerFeesApprovalHandlers } from "./modules/fees";
 import { registerDates } from "./modules/dates/routes";
 import { registerHealth } from "./modules/health/routes";
 import { registerSite } from "./modules/site/routes";
@@ -33,6 +34,7 @@ export function createApp() {
   // The composition root: each kind's handler is registered here, so the generic `approvals` engine
   // never imports a specific kind's module (D-061).
   registerContentApprovalHandler();
+  registerFeesApprovalHandlers();
 
   registerHealth(app);
   registerAuth(app);
@@ -46,6 +48,7 @@ export function createApp() {
   registerAdmissions(app);
   registerAttendance(app);
   registerClasswork(app);
+  registerFees(app);
   registerDates(app);
   registerSite(app);
 

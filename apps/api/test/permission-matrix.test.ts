@@ -150,6 +150,8 @@ describe("sensitive rules, stated independently (docs/source/sample-creation-inf
         "assignments.submit",
         "fees.view",
         "fees.voucher.upload",
+        // Source 6.4, "Payments: online (parked)": the student pays their own fees online (demo adapter only, D-076).
+        "fees.online.pay",
         "fees.receipts.view",
         "results.view",
         "results.top20.view",

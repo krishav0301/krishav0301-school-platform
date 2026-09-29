@@ -41,6 +41,15 @@ describe("the real menu", () => {
     expect(seen("student", "own")).toEqual(["dashboard", "classwork"]);
   });
 
+  it("fees are for the Accountant, the Admin and the student, never the Co-ordinator or a teacher", () => {
+    const withFees = { attendance: true, fees: true };
+    expect(seen("accountant", "institution", withFees)).toEqual(["dashboard", "admissions", "fees"]);
+    expect(seen("student", "own", withFees)).toEqual(["dashboard", "classwork", "fees"]);
+    expect(seen("admin", "institution", withFees)).toContain("fees");
+    expect(seen("coordinator", "institution", withFees)).not.toContain("fees");
+    expect(seen("teacher", "assigned", withFees)).not.toContain("fees");
+  });
+
   it("a school that switched attendance off does not see it in the menu", () => {
     expect(seen("teacher", "assigned", { attendance: false })).toEqual(["dashboard", "classwork"]);
   });

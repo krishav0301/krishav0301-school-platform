@@ -1561,6 +1561,432 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/fees/structures": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description The active year's fee structures in the person's sections. Not for students (their own fees are at /api/fees/me). */
+        get: operations["list_fee_structures"];
+        put?: never;
+        /** @description Drafts the active year's fee structure for a programme level. One per level and year. */
+        post: operations["create_fee_structure"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/fees/structures/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description One fee structure: its items, its yearly total, and the classes of its level with their student counts. */
+        get: operations["get_fee_structure"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/fees/structures/{id}/items": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Adds an item to a draft: a name, an amount in whole paisa, and how often it is billed. */
+        post: operations["add_fee_item"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/fees/items/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** @description Changes a draft's item, or switches it off. A structure waiting for approval or live does not change. */
+        patch: operations["change_fee_item"];
+        trace?: never;
+    };
+    "/api/fees/structures/{id}/send": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Sends a draft with at least one item to the Admins for approval. It is locked while it waits. */
+        post: operations["send_fee_structure"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/fees/structures/{id}/charges": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Makes every missing charge for the active students of one class of the structure's level, from the live structure. Safe to repeat. */
+        post: operations["generate_fee_charges"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/fees/me": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description The signed-in student's own fee account this year: charges, discounts, payments, what is due and overdue, the next due, the history and the receipts. */
+        get: operations["get_own_fees"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/fees/enrollments/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description One student's fee account for one enrollment, for the Accountant (their sections) and the Admin (read). A student uses /me. */
+        get: operations["get_fee_account"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/fees/students/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description A student's current fee account, found by the student's id (what search returns). For staff in the student's section. */
+        get: operations["get_student_fee_account"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/fees/receipts/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description One receipt, generated from the ledger. A student sees only their own; staff their sections. */
+        get: operations["get_receipt"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/fees/payments/cash": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Cash at the counter: a payment and its numbered receipt, in one batch. The idempotency key makes a retry answer with the same receipt and record nothing new. */
+        post: operations["record_cash_payment"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/fees/me/vouchers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description The student reports a bank deposit (the bank and its reference; no scan while file storage is off). The Accountant verifies it. */
+        post: operations["submit_voucher"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/fees/vouchers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Vouchers waiting for the Accountant, oldest first, in their sections. */
+        get: operations["list_vouchers"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/fees/vouchers/{id}/verify": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Verifies a voucher: it becomes a payment with a numbered receipt, in one batch. Once. */
+        post: operations["verify_voucher"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/fees/vouchers/{id}/reject": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Rejects a voucher, with a reason. The student may report the deposit again, corrected. */
+        post: operations["reject_voucher"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/fees/me/online-payments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Starts an online payment through the gateway. Only the demo adapter exists until Phase 9, and only in demo mode: otherwise 404. */
+        post: operations["start_online_payment"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/fees/gateway/callback": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description The gateway's notice that a payment happened. Confirmed by asking the gateway itself, never by trusting this call, and applied once: a repeat answers the same. OPEN: a real gateway posts from its own origin; the same-origin rule needs an exception for this address in Phase 9. */
+        post: operations["gateway_callback"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/fees/enrollments/{id}/discounts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Proposes a discount (an amount, or a percentage of what was charged, with a reason) and sends it to the Admins. Nothing changes until one approves it. */
+        post: operations["propose_discount"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/fees/payments/{id}/reversal": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Asks the Admins to reverse a payment made in error, with a reason. Approved, a new entry cancels it in full; the payment and its receipt stay on record. */
+        post: operations["request_reversal"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/fees/enrollments/{id}/refunds": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Asks the Admins to refund credit (what was paid over what is owed). Approved, it is recorded as paid back, and only then written to the ledger. */
+        post: operations["request_refund"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/fees/refunds/{id}/record": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Records how an approved refund was paid back. The ledger takes the refund in the same batch. Once. */
+        post: operations["record_refund"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/fees/enrollments/{id}/adjustments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description The discount, reversal and refund requests on one student's account, newest first, with where each stands. */
+        get: operations["list_fee_adjustments"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/fees/dues": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Every student of the active year in the person's sections (or one class), with charged, discounted, paid, due and overdue, from the ledger. */
+        get: operations["list_dues"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/fees/dues.csv": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description The dues list as CSV with NPR amounts in Nepali grouping, for Excel. OPEN: a native .xlsx needs a library the PM has not approved yet. */
+        get: operations["export_dues"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/fees/reminders": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Emails every student in the Accountant's sections who has something overdue. Once per student per day: pressing it again sends nothing new. */
+        post: operations["send_overdue_reminders"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/dates/to-ad": {
         parameters: {
             query?: never;
@@ -2646,6 +3072,221 @@ export interface components {
         };
         ResubmitRequest: {
             reason: string;
+        };
+        FeeStructureList: {
+            structures: {
+                id: string;
+                levelId: string;
+                /** @enum {string} */
+                status: "draft" | "waiting" | "live";
+                yearLabel: string;
+                programmeName: string;
+                levelName: string;
+                sectionKey: string;
+                yearlyTotalPaisa: number;
+            }[];
+        };
+        FeesError: {
+            error: string;
+        };
+        FeeStructure: {
+            id: string;
+            levelId: string;
+            /** @enum {string} */
+            status: "draft" | "waiting" | "live";
+            yearLabel: string;
+            programmeName: string;
+            levelName: string;
+            sectionKey: string;
+            yearlyTotalPaisa: number;
+            items: {
+                id: string;
+                name: string;
+                amountPaisa: number;
+                /** @enum {string} */
+                frequency: "one_time" | "monthly" | "yearly" | "whole_course";
+            }[];
+            classes: {
+                id: string;
+                label: string;
+                students: number;
+            }[];
+        };
+        FeesInvalid: {
+            /** @enum {string} */
+            error: "invalid";
+            message: string;
+        };
+        NewFeeStructure: {
+            levelId: string;
+        };
+        NewFeeItem: {
+            name: string;
+            amountPaisa: number;
+            /** @enum {string} */
+            frequency: "one_time" | "monthly" | "yearly" | "whole_course";
+        };
+        ChangeFeeItem: {
+            name?: string;
+            amountPaisa?: number;
+            /** @enum {string} */
+            frequency?: "one_time" | "monthly" | "yearly" | "whole_course";
+            isActive?: boolean;
+        };
+        GenerateCharges: {
+            classId: string;
+        };
+        FeeAccount: {
+            enrollmentId: string;
+            studentName: string;
+            sid: string;
+            className: string;
+            yearLabel: string;
+            chargedPaisa: number;
+            discountPaisa: number;
+            paidPaisa: number;
+            refundedPaisa: number;
+            balancePaisa: number;
+            duePaisa: number;
+            overduePaisa: number;
+            creditPaisa: number;
+            nextDue: {
+                dueOn: string;
+                dueOnBs: string | null;
+                remainingPaisa: number;
+            } | null;
+            entries: {
+                id: string;
+                /** @enum {string} */
+                kind: "charge" | "carried_dues" | "discount" | "payment" | "reversal" | "refund";
+                amountPaisa: number;
+                memo: string | null;
+                period: string | null;
+                dueOnBs: string | null;
+                createdOnBs: string | null;
+                reversed: boolean;
+                receiptId: string | null;
+            }[];
+            receipts: {
+                id: string;
+                number: string;
+                amountPaisa: number;
+                issuedOnBs: string | null;
+                reversed: boolean;
+            }[];
+        };
+        Receipt: {
+            id: string;
+            number: string;
+            amountPaisa: number;
+            /** @enum {string} */
+            method: "cash" | "voucher" | "gateway";
+            issuedAt: string;
+            issuedOnBs: string | null;
+            studentName: string;
+            sid: string;
+            className: string;
+            yearLabel: string;
+            reversed: boolean;
+            balanceAfterPaisa: number;
+        };
+        Paid: {
+            paymentId: string;
+            receipt: {
+                id: string;
+                number: string;
+            };
+        };
+        CashPayment: {
+            enrollmentId: string;
+            amountPaisa: number;
+            idempotencyKey: string;
+            memo?: string;
+        };
+        Voucher: {
+            amountPaisa: number;
+            bank: string;
+            reference: string;
+            paidOn: string;
+        };
+        VoucherList: {
+            vouchers: {
+                id: string;
+                enrollmentId: string;
+                studentName: string;
+                sid: string;
+                amountPaisa: number;
+                bank: string;
+                reference: string;
+                paidOn: string;
+                paidOnBs: string | null;
+                submittedAt: string;
+            }[];
+        };
+        RejectVoucher: {
+            reason: string;
+        };
+        OnlinePayment: {
+            amountPaisa: number;
+        };
+        GatewayCallback: {
+            gatewayReference: string;
+        };
+        ProposeDiscount: {
+            amountPaisa?: number;
+            percent?: number;
+            /** @enum {string} */
+            reason: "scholarship" | "sibling" | "staff_child" | "other";
+            note?: string;
+        };
+        ReversalRequest: {
+            reason: string;
+        };
+        RefundRequest: {
+            amountPaisa: number;
+            reason: string;
+        };
+        RecordRefund: {
+            /** @enum {string} */
+            method: "cash" | "bank_transfer" | "cheque";
+            reference?: string;
+        };
+        AdjustmentList: {
+            adjustments: {
+                id: string;
+                /** @enum {string} */
+                kind: "discount" | "reversal" | "refund";
+                /** @enum {string} */
+                status: "draft" | "pending" | "approved" | "recorded" | "closed";
+                amountPaisa: number;
+                reason: string | null;
+                note: string | null;
+                createdAt: string;
+            }[];
+        };
+        DuesList: {
+            today: string;
+            students: {
+                enrollmentId: string;
+                studentName: string;
+                sid: string;
+                classId: string;
+                className: string;
+                hasEmail: boolean;
+                chargedPaisa: number;
+                discountPaisa: number;
+                paidPaisa: number;
+                balancePaisa: number;
+                duePaisa: number;
+                overduePaisa: number;
+            }[];
+            totals: {
+                chargedPaisa: number;
+                discountPaisa: number;
+                paidPaisa: number;
+                duePaisa: number;
+                overduePaisa: number;
+            };
         };
         DateConversionFailure: {
             /** @enum {string} */
@@ -7161,6 +7802,1221 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ClassworkInvalid"];
+                };
+            };
+        };
+    };
+    list_fee_structures: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The structures */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeeStructureList"];
+                };
+            };
+            /** @description Not allowed */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeesError"];
+                };
+            };
+        };
+    };
+    create_fee_structure: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["NewFeeStructure"];
+            };
+        };
+        responses: {
+            /** @description Drafted */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        id: string;
+                    };
+                };
+            };
+            /** @description Not allowed */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeesError"];
+                };
+            };
+            /** @description No such item, or not one the person may reach */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeesError"];
+                };
+            };
+            /** @description Not possible in its current state (not a draft, not live, already there, or the year is closed) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeesError"];
+                };
+            };
+            /** @description Not valid */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeesInvalid"];
+                };
+            };
+        };
+    };
+    get_fee_structure: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The structure */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeeStructure"];
+                };
+            };
+            /** @description Not allowed */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeesError"];
+                };
+            };
+            /** @description No such item, or not one the person may reach */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeesError"];
+                };
+            };
+        };
+    };
+    add_fee_item: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["NewFeeItem"];
+            };
+        };
+        responses: {
+            /** @description Added */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        id: string;
+                    };
+                };
+            };
+            /** @description Not allowed */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeesError"];
+                };
+            };
+            /** @description No such item, or not one the person may reach */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeesError"];
+                };
+            };
+            /** @description Not possible in its current state (not a draft, not live, already there, or the year is closed) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeesError"];
+                };
+            };
+            /** @description Not valid */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeesInvalid"];
+                };
+            };
+        };
+    };
+    change_fee_item: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ChangeFeeItem"];
+            };
+        };
+        responses: {
+            /** @description Changed */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {boolean} */
+                        ok: true;
+                    };
+                };
+            };
+            /** @description Not allowed */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeesError"];
+                };
+            };
+            /** @description No such item, or not one the person may reach */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeesError"];
+                };
+            };
+            /** @description Not possible in its current state (not a draft, not live, already there, or the year is closed) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeesError"];
+                };
+            };
+            /** @description Not valid */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeesInvalid"];
+                };
+            };
+        };
+    };
+    send_fee_structure: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Sent; the approval request's id */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        id: string;
+                    };
+                };
+            };
+            /** @description Not allowed */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeesError"];
+                };
+            };
+            /** @description No such item, or not one the person may reach */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeesError"];
+                };
+            };
+            /** @description Not possible in its current state (not a draft, not live, already there, or the year is closed) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeesError"];
+                };
+            };
+            /** @description Not valid */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeesInvalid"];
+                };
+            };
+        };
+    };
+    generate_fee_charges: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["GenerateCharges"];
+            };
+        };
+        responses: {
+            /** @description Made */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        created: number;
+                    };
+                };
+            };
+            /** @description Not allowed */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeesError"];
+                };
+            };
+            /** @description No such item, or not one the person may reach */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeesError"];
+                };
+            };
+            /** @description Not possible in its current state (not a draft, not live, already there, or the year is closed) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeesError"];
+                };
+            };
+            /** @description Not valid */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeesInvalid"];
+                };
+            };
+        };
+    };
+    get_own_fees: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The account */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeeAccount"];
+                };
+            };
+            /** @description No enrollment this year */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeesError"];
+                };
+            };
+        };
+    };
+    get_fee_account: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The account */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeeAccount"];
+                };
+            };
+            /** @description Not allowed */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeesError"];
+                };
+            };
+            /** @description No such item, or not one the person may reach */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeesError"];
+                };
+            };
+        };
+    };
+    get_student_fee_account: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The account */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeeAccount"];
+                };
+            };
+            /** @description No such item, or not one the person may reach */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeesError"];
+                };
+            };
+        };
+    };
+    get_receipt: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The receipt */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Receipt"];
+                };
+            };
+            /** @description No such item, or not one the person may reach */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeesError"];
+                };
+            };
+        };
+    };
+    record_cash_payment: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CashPayment"];
+            };
+        };
+        responses: {
+            /** @description Paid */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Paid"];
+                };
+            };
+            /** @description Not allowed */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeesError"];
+                };
+            };
+            /** @description No such item, or not one the person may reach */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeesError"];
+                };
+            };
+            /** @description Not possible in its current state (not a draft, not live, already there, or the year is closed) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeesError"];
+                };
+            };
+            /** @description Not valid */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeesInvalid"];
+                };
+            };
+        };
+    };
+    submit_voucher: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["Voucher"];
+            };
+        };
+        responses: {
+            /** @description Reported */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        id: string;
+                    };
+                };
+            };
+            /** @description Not allowed */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeesError"];
+                };
+            };
+            /** @description No such item, or not one the person may reach */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeesError"];
+                };
+            };
+            /** @description Not possible in its current state (not a draft, not live, already there, or the year is closed) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeesError"];
+                };
+            };
+            /** @description Not valid */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeesInvalid"];
+                };
+            };
+        };
+    };
+    list_vouchers: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The vouchers */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VoucherList"];
+                };
+            };
+        };
+    };
+    verify_voucher: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Paid */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Paid"];
+                };
+            };
+            /** @description Not allowed */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeesError"];
+                };
+            };
+            /** @description No such item, or not one the person may reach */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeesError"];
+                };
+            };
+            /** @description Not possible in its current state (not a draft, not live, already there, or the year is closed) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeesError"];
+                };
+            };
+            /** @description Not valid */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeesInvalid"];
+                };
+            };
+        };
+    };
+    reject_voucher: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RejectVoucher"];
+            };
+        };
+        responses: {
+            /** @description Rejected */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {boolean} */
+                        ok: true;
+                    };
+                };
+            };
+            /** @description Not allowed */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeesError"];
+                };
+            };
+            /** @description No such item, or not one the person may reach */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeesError"];
+                };
+            };
+            /** @description Not possible in its current state (not a draft, not live, already there, or the year is closed) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeesError"];
+                };
+            };
+            /** @description Not valid */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeesInvalid"];
+                };
+            };
+        };
+    };
+    start_online_payment: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OnlinePayment"];
+            };
+        };
+        responses: {
+            /** @description Started */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        gatewayReference: string;
+                        redirectUrl: string;
+                    };
+                };
+            };
+            /** @description No such item, or not one the person may reach */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeesError"];
+                };
+            };
+        };
+    };
+    gateway_callback: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["GatewayCallback"];
+            };
+        };
+        responses: {
+            /** @description Applied (or already applied) */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {boolean} */
+                        ok: true;
+                    };
+                };
+            };
+            /** @description No such item, or not one the person may reach */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeesError"];
+                };
+            };
+            /** @description Not possible in its current state (not a draft, not live, already there, or the year is closed) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeesError"];
+                };
+            };
+        };
+    };
+    propose_discount: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ProposeDiscount"];
+            };
+        };
+        responses: {
+            /** @description Sent for approval; the request's own id */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        id: string;
+                    };
+                };
+            };
+            /** @description Not allowed */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeesError"];
+                };
+            };
+            /** @description No such item, or not one the person may reach */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeesError"];
+                };
+            };
+            /** @description Not possible in its current state (not a draft, not live, already there, or the year is closed) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeesError"];
+                };
+            };
+            /** @description Not valid */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeesInvalid"];
+                };
+            };
+        };
+    };
+    request_reversal: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReversalRequest"];
+            };
+        };
+        responses: {
+            /** @description Sent for approval */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        id: string;
+                    };
+                };
+            };
+            /** @description Not allowed */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeesError"];
+                };
+            };
+            /** @description No such item, or not one the person may reach */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeesError"];
+                };
+            };
+            /** @description Not possible in its current state (not a draft, not live, already there, or the year is closed) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeesError"];
+                };
+            };
+            /** @description Not valid */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeesInvalid"];
+                };
+            };
+        };
+    };
+    request_refund: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RefundRequest"];
+            };
+        };
+        responses: {
+            /** @description Sent for approval */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        id: string;
+                    };
+                };
+            };
+            /** @description Not allowed */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeesError"];
+                };
+            };
+            /** @description No such item, or not one the person may reach */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeesError"];
+                };
+            };
+            /** @description Not possible in its current state (not a draft, not live, already there, or the year is closed) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeesError"];
+                };
+            };
+            /** @description Not valid */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeesInvalid"];
+                };
+            };
+        };
+    };
+    record_refund: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RecordRefund"];
+            };
+        };
+        responses: {
+            /** @description Recorded */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {boolean} */
+                        ok: true;
+                    };
+                };
+            };
+            /** @description Not allowed */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeesError"];
+                };
+            };
+            /** @description No such item, or not one the person may reach */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeesError"];
+                };
+            };
+            /** @description Not possible in its current state (not a draft, not live, already there, or the year is closed) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeesError"];
+                };
+            };
+            /** @description Not valid */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeesInvalid"];
+                };
+            };
+        };
+    };
+    list_fee_adjustments: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The requests */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdjustmentList"];
+                };
+            };
+            /** @description No such item, or not one the person may reach */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeesError"];
+                };
+            };
+        };
+    };
+    list_dues: {
+        parameters: {
+            query?: {
+                classId?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The dues list */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DuesList"];
+                };
+            };
+        };
+    };
+    export_dues: {
+        parameters: {
+            query?: {
+                classId?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The CSV */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/csv": string;
+                };
+            };
+        };
+    };
+    send_overdue_reminders: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Queued */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        queued: number;
+                    };
                 };
             };
         };

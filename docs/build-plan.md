@@ -144,6 +144,14 @@ Student attendance by the Class Teacher, teacher attendance by the Co-ordinator,
 Tests first. Fee structure with Admin approval, charge generation through the billing-schedule policy, append-only ledger, voucher queue, cash entry, gapless receipts with PDF, discounts, reversals, refunds, previous dues, dues list, overdue reminders, payment-attempt model and gateway interface with a demo adapter, fee reports and Excel export.
 **Needs from client:** fee structure, discount reasons (including the scholarship), refund rules, what "course-wise" means.
 
+**Progress** (asked for by the PM 2026-09-28; defaults for the client's answers, each `OPEN:`; no uploads until R2; design in `docs/superpowers/specs/2026-09-28-phase6-fees-design.md`):
+- [x] 1. Ledger core: append-only entries with triggers and a keyed hash chain, oldest-first allocation (property tests), gapless receipt counters (D-074)
+- [x] 2. Fee structures per year and level with Admin approval, charges by the billing-schedule policy, idempotent (D-075)
+- [x] 3. Cash with idempotency keys, vouchers (bank reference) verified by the Accountant, payment attempts and the gateway interface with a demo adapter (D-076)
+- [x] 4. Discounts, reversals and refunds through Admin approval, applied in the approval's own batch (D-077)
+- [x] 5. Fee screens, dues list, CSV report, overdue email reminders, the browser check and the exit test for both schools (D-078)
+- [x] **Phase 6 complete (2026-09-28).** Not done: receipt PDF, carried dues (Phase 8 rollover), native Excel, real gateway and SMS (Phase 9), voucher scans (R2); see D-078
+
 ### Phase 7: Results
 Grading policies (NEB credit-weighted GPA, percentage and division), bulk marks grid with draft-save, verify workflow, publish per class with gating, snapshot marks cards (2-3 templates), Top 20 with a tie-break rule, recheck, whole-class sheet, student result view, results-day load test.
 **Needs from client:** grading and ranking rules, optional subjects, year versus semester, components and maximum marks, marks-card format.

@@ -6,7 +6,22 @@
  * any kind's subject through the same request/decide/withdraw flow.
  */
 
+/** What an approval's own statements may need: the audit key (the ledger's chain uses it) and who decided. */
+export interface ApprovalContext {
+  auditKey: string;
+  actorPublicId: string;
+  /** The ledger's current head, for a kind whose approval writes ledger entries (fees, D-074). */
+  ledgerHead: string;
+}
+
+type Statements = D1PreparedStatement[] | Promise<D1PreparedStatement[]>;
+
 export interface ApprovalHandler {
+  /**
+   * Who may send this kind for approval, as SQL over the actor's public id `?${n}`, re-checked inside the write.
+   * Omit for the engine's default (an active Co-ordinator, Admin or Super Admin, D-061). Fees send from the Accountant.
+   */
+  requesterSql?: (n: number) => string;
   /** Looks up the subject's own internal id from its public id. Null when there is no such subject. */
   resolveId(db: D1Database, subjectPublicId: string): Promise<number | null>;
   /** A snapshot of the subject as it stands now, for the inbox to show, and a one-line summary. Null when gone. */
@@ -16,7 +31,7 @@ export interface ApprovalHandler {
   /** Runs FIRST in the "send for approval" batch, conditioned on the subject's own "may be sent" state. */
   onRequested(db: D1Database, subjectId: number): D1PreparedStatement[];
   /** Runs FIRST in the "approve" batch, conditioned on the subject's own "is pending" state. */
-  onApproved(db: D1Database, subjectId: number): D1PreparedStatement[];
+  onApproved(db: D1Database, subjectId: number, context: ApprovalContext): Statements;
   /** Runs FIRST in the "decline" or "withdraw" batch: reverts the subject to its pre-request state. */
   onResolved(db: D1Database, subjectId: number): D1PreparedStatement[];
 }
