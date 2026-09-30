@@ -13,7 +13,8 @@
     "provision": "tsx scripts/provision.ts",
     "dev:user": "tsx scripts/create-user.ts",
     "dev:content": "tsx scripts/dev-content.ts",
-    "db:migrate:local": "wrangler d1 migrations apply school_dev --local"
+    "db:migrate:local": "wrangler d1 migrations apply school_dev --local",
+    "uat:seed": "tsx scripts/uat-seed.ts"
   },
   "dependencies": {
     "@hono/zod-openapi": "^1.6.3",

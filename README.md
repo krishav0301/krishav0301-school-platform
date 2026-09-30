@@ -78,6 +78,15 @@ USER_PASSWORD='...' AUDIT_HMAC_KEY='...' npm run dev:user -- --remote --config w
 
 Stop `wrangler dev` before `npm run build` in `apps/web` on Windows: it holds the `out` folder open.
 
+**A test site for UAT** (D-086) gets a starter set of classes, subjects, teachers, students and fees through its own API. It refuses any site that really sends email, so never production. The new sign-ins go to a file outside the repository:
+
+```bash
+cd apps/api
+SESSION_SECRET='...' npm run uat:seed -- --url https://your-test-site.workers.dev --config wrangler.local.jsonc
+```
+
+Testers' guide: `docs/uat-guide.md`.
+
 ## Conventions
 
 - API routes have no trailing slash. `/api/health/` is a 404.

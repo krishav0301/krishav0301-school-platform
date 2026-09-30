@@ -186,6 +186,7 @@ export const MATRIX = [
   row(G.oversight, "approvals.view.own", "View your own approval requests", 3, { COO: own }),
   row(G.oversight, "audit.view", "View activity audit trail and sign-ins", 1, { ADM: all, SUP: all }),
   row(G.oversight, "audit.edit", "Edit or delete an audit entry", 1, {}),
+  row(G.oversight, "dev.mailbox.view", "Test mailbox: read the emails the site would have sent (only where email is not really sent; never in production)", 7, { ADM: all, SUP: all }),
   row(G.oversight, "reports.students", "Reports and Excel export (students)", 4, { COO: inst, ADM: inst, SUP: all }),
   row(G.oversight, "reports.fees", "Reports and Excel export (fees)", 6, { ACC: inst, ADM: inst, SUP: all }),
   row(G.oversight, "reports.results", "Reports and Excel export (results)", 7, { COO: inst, ADM: inst, SUP: all }),

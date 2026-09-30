@@ -20,6 +20,7 @@ import { registerFees, registerFeesApprovalHandlers } from "./modules/fees";
 import { registerResults } from "./modules/results";
 import { registerDates } from "./modules/dates/routes";
 import { registerHealth } from "./modules/health/routes";
+import { registerNotifications } from "./modules/notifications/routes";
 import { registerSite } from "./modules/site/routes";
 
 /**
@@ -52,6 +53,7 @@ export function createApp() {
   registerFees(app);
   registerResults(app);
   registerDates(app);
+  registerNotifications(app);
   registerSite(app);
 
   // An unhandled exception is otherwise silent: Hono answers it, but nothing records that it happened

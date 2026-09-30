@@ -132,6 +132,7 @@ The Co-ordinator has **no** fees access at all.
 | View your own approval requests (`approvals.view.own`) | — | — | own | — | — | — | 3 |
 | View activity audit trail and sign-ins (`audit.view`) | — | — | — | — | ✓ | ✓ | 1 |
 | Edit or delete an audit entry (`audit.edit`) | — | — | — | — | — | — | 1 |
+| Test mailbox: read the emails the site would have sent (only where email is not really sent; never in production) (`dev.mailbox.view`) | — | — | — | — | ✓ | ✓ | 7 |
 | Reports and Excel export (students) (`reports.students`) | — | — | inst | — | inst | ✓ | 4 |
 | Reports and Excel export (fees) (`reports.fees`) | — | — | — | inst | inst | ✓ | 6 |
 | Reports and Excel export (results) (`reports.results`) | — | — | inst | — | inst | ✓ | 7 |
