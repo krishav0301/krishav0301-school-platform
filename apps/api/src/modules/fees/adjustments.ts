@@ -35,8 +35,9 @@ async function accountState(db: D1Database, actor: string, enrollmentId: string)
   const rows = entries!.results as unknown as { public_id: string; kind: LedgerKind; amount_paisa: number; due_on: string | null }[];
   const alloc = allocate(rows.map((r) => ({ id: r.public_id, kind: r.kind, amountPaisa: r.amount_paisa, dueOn: r.due_on })), nepalDate(new Date()));
   const charged = rows.filter((r) => r.kind === "charge" || r.kind === "carried_dues").reduce((s, r) => s + r.amount_paisa, 0);
+  const discounted = -rows.filter((r) => r.kind === "discount").reduce((s, r) => s + r.amount_paisa, 0);
   // A closed year takes no new requests either (CLAUDE.md section 6: a closed year rejects all writes; found by the year test, D-084).
-  return { allowed: flags.ok === 1 && flags.found === 1, closed: flags.year_status === "closed", charged, credit: alloc.creditPaisa };
+  return { allowed: flags.ok === 1 && flags.found === 1, closed: flags.year_status === "closed", charged, discounted, credit: alloc.creditPaisa };
 }
 
 /** Makes the request row (a draft) and sends it to the engine, which moves it to pending with the approval request. */
@@ -72,6 +73,9 @@ export async function proposeDiscount(
   const amount = input.percent !== undefined ? Math.floor((state.charged * input.percent) / 100) : input.amountPaisa!;
   if (amount <= 0) return invalid("There is nothing charged yet to discount");
   if (amount > state.charged) return invalid("A discount cannot be more than what was charged");
+  // Together with the discounts already given, never more than was charged (D-085). One pending beside another is
+  // caught when the first is approved: that makes the second stale (see currentVersion), and asked again it lands here.
+  if (amount + state.discounted > state.charged) return invalid("With the discounts already given, this would be more than was charged");
   const publicId = newPublicId();
   return makeAndSend(
     db,
@@ -172,7 +176,11 @@ export async function recordRefund(
       db
         .prepare(
           `UPDATE fee_adjustments SET status = 'recorded', refund_method = ?2, refund_reference = ?3
-            WHERE public_id = ?1 AND kind = 'refund' AND status = 'approved' AND ${accountantFor(4, "(SELECT pv.section_id FROM enrollments en JOIN classes cl ON cl.id = en.class_id JOIN levels lv ON lv.id = cl.level_id JOIN programmes pv ON pv.id = lv.programme_id WHERE en.id = fee_adjustments.enrollment_id)")}`,
+            WHERE public_id = ?1 AND kind = 'refund' AND status = 'approved'
+              -- Only credit goes back, checked here inside the batch so two refunds recorded at once cannot both pass (D-085):
+              -- the credit is minus the balance (the sum of every entry), so after this refund the sum must not go above zero.
+              AND (SELECT COALESCE(SUM(le.amount_paisa), 0) FROM ledger_entries le WHERE le.enrollment_id = fee_adjustments.enrollment_id) + fee_adjustments.amount_paisa <= 0
+              AND ${accountantFor(4, "(SELECT pv.section_id FROM enrollments en JOIN classes cl ON cl.id = en.class_id JOIN levels lv ON lv.id = cl.level_id JOIN programmes pv ON pv.id = lv.programme_id WHERE en.id = fee_adjustments.enrollment_id)")}`,
         )
         .bind(adjustmentId, method, reference ?? null, actor),
       ...(await ledgerInserts(db, key, head, [draft], { chainFirst: true })).statements,
@@ -233,7 +241,8 @@ function adjustmentHandler(kind: Kind): ApprovalHandler {
     async currentVersion(db, id) {
       const counted =
         kind === "discount"
-          ? "le.kind IN ('charge', 'carried_dues')"
+          ? // The charges (a percentage was taken of them) and the other discounts (together they may not pass the charges, D-085).
+            "le.kind IN ('charge', 'carried_dues', 'discount')"
           : kind === "reversal"
             ? "le.kind = 'reversal' AND le.refers_to_id = fa.payment_entry_id"
             : // A refund returns credit: it goes stale when something takes credit away (a new charge, carried dues, a

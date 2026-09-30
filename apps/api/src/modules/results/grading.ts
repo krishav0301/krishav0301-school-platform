@@ -4,8 +4,9 @@
  * hundredths of a mark: no floats reach a stored number.
  *
  * OPEN: every scale here is a stated default until the client confirms it (build plan, Phase 7 needs).
- *  - `neb_gpa` (+2): the widely republished NEB scale, UNVERIFIED against NEB's own sources (neb.gov.np could not be
- *    reached from the build environment). A subject is graded on its combined marks, each component weighted by its
+ *  - `neb_gpa` (+2): the widely republished NEB scale, UNVERIFIED against the official directive (D-079, D-085: the
+ *    bands and minimums match the secondary sources; a Letter Grading Directive 2083 is reported to replace 2078, and
+ *    how theory and internal combine into a subject's grade is still to be checked). A subject is graded on its combined marks, each component weighted by its
  *    maximum; it is NG when theory is below 35% or a practical or internal component below 40%, or when any component
  *    was missed. The GPA is the credit-hour-weighted mean of the subject grade points, two decimals, half up, and no
  *    total. A result with any NG subject has no GPA.

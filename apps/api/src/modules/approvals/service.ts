@@ -161,7 +161,7 @@ export async function decideRequest(db: D1Database, auditKey: string, actor: str
 
   // A kind whose approval writes ledger entries (fees) builds them from the ledger's head at this moment; if another
   // write moved the head before this batch lands, the whole batch rolled back, and it is rebuilt and tried again.
-  let outcome: Awaited<ReturnType<typeof write>> = "not_applied";
+  let outcome: Awaited<ReturnType<typeof write>> | null = null;
   for (let attempt = 1; attempt <= 30; attempt++) {
     const ledgerHead = (await db.prepare("SELECT last_hash FROM ledger_chain_head WHERE id = 1").first<{ last_hash: string }>())?.last_hash ?? "0".repeat(64);
     const handlerStatements = parsed.data.approve
@@ -171,9 +171,14 @@ export async function decideRequest(db: D1Database, auditKey: string, actor: str
       outcome = await write(db, auditKey, event, [...handlerStatements, decideStatement]);
       break;
     } catch (error) {
-      if (!/ledger chain moved|UNIQUE constraint failed: ledger_entries\.(prev_hash|hash)/.test(error instanceof Error ? error.message : String(error))) throw error;
+      const message = error instanceof Error ? error.message : String(error);
+      // A money kind still waiting when its year closed: the ledger refuses it, and nothing was applied (D-085).
+      if (/academic year is closed/i.test(message)) return { ok: false, reason: "invalid", message: "The academic year is closed, so this can no longer be applied" };
+      if (!/ledger chain moved|UNIQUE constraint failed: ledger_entries\.(prev_hash|hash)/.test(message)) throw error;
       await new Promise((resolve) => setTimeout(resolve, Math.random() * 10 * Math.min(attempt, 5)));
     }
   }
+  // A busy ledger is never reported as "someone else decided it" (D-085).
+  if (outcome === null) throw new Error("The ledger is too busy: could not apply the approval after several attempts.");
   return outcome === "done" ? { ok: true } : { ok: false, reason: "conflict" }; // a lost race: someone else decided it a moment ago
 }

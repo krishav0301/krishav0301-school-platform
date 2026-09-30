@@ -3,6 +3,7 @@ import { beforeAll, describe, expect, it } from "vitest";
 
 import { verifyAuditChain } from "../src/core/audit";
 import { signAccessToken, type RoleClaim } from "../src/core/tokens";
+import { recordRefund } from "../src/modules/fees/adjustments";
 import { ledgerInserts, verifyLedgerChain, writeMoney } from "../src/modules/fees/ledger";
 import { auditKey, call, count, db, person, seedSections, type Person } from "./academics-helpers";
 import { classWith, type ClassFixture } from "./schoolday-helpers";
@@ -104,6 +105,21 @@ describe("discounts", () => {
     expect((await approve(await requestOf(reversal))).status).toBe(200);
   });
 
+  it("discounts together never exceed what was charged: one approved stales the others, and the rest is refused (D-085)", async () => {
+    const pupil = fixture.pupils[2]!.enrollmentId;
+    const path = `/api/fees/enrollments/${pupil}/discounts`;
+    const { chargedPaisa, discountPaisa } = await account(2);
+    const room = chargedPaisa - discountPaisa;
+    const first = ((await (await post(path, { amountPaisa: room - 1_000, reason: "scholarship" }, accountant)).json()) as { id: string }).id;
+    const second = ((await (await post(path, { amountPaisa: 2_000, reason: "sibling" }, accountant)).json()) as { id: string }).id;
+    expect((await approve(await requestOf(first))).status).toBe(200);
+    // Another discount landed, so the second was asked against an account that has changed: ask again.
+    expect((await approve(await requestOf(second))).status).toBe(409);
+    // Asked again, it would take the discounts past the charges, so it is refused at once.
+    expect((await post(path, { amountPaisa: 2_000, reason: "sibling" }, accountant)).status).toBe(422);
+    expect((await post(path, { amountPaisa: 500, reason: "sibling" }, accountant)).status).toBe(201); // within what is left
+  });
+
   it("only the Accountant proposes; the Co-ordinator and the Admin cannot; the other section's Accountant reaches nothing", async () => {
     const path = `/api/fees/enrollments/${fixture.pupils[0]!.enrollmentId}/discounts`;
     for (const who of [coordinator, admin]) expect((await post(path, { amountPaisa: 100, reason: "sibling" }, who)).status).toBe(403);
@@ -174,6 +190,20 @@ describe("refunds", () => {
     expect((await approve(await requestOf(second))).status).toBe(409); // a charge took credit away: ask again
   });
 
+  it("two approved refunds recorded at the same moment never pay back more than the credit (D-085)", async () => {
+    const pupil = fixture.pupils[1]!.enrollmentId;
+    const { creditPaisa } = await account(1);
+    expect(creditPaisa).toBeGreaterThan(0);
+    const ask = async () => ((await (await post(`/api/fees/enrollments/${pupil}/refunds`, { amountPaisa: creditPaisa, reason: "Overpaid" }, accountant)).json()) as { id: string }).id;
+    const a = await ask();
+    const b = await ask();
+    expect((await approve(await requestOf(a))).status).toBe(200);
+    expect((await approve(await requestOf(b))).status).toBe(200); // not stale: an approved refund is not in the ledger yet
+    const results = await Promise.all([a, b].map((id) => recordRefund(db, auditKey, accountant.publicId, id, "cash", undefined)));
+    expect(results.filter((r) => r.ok)).toHaveLength(1);
+    expect(await account(1)).toMatchObject({ creditPaisa: 0 });
+  });
+
   it("the Admin who is asked cannot be the one who asked (an Accountant who is also an Admin)", async () => {
     const accountantRole = await person("accountant", "institution");
     await db.prepare("INSERT INTO role_assignments (user_id, role, scope_type) SELECT id, 'admin', 'institution' FROM users WHERE public_id = ?1").bind(accountantRole.publicId).run();
@@ -201,5 +231,22 @@ describe("integrity", () => {
     expect((await verifyAuditChain(db, auditKey)).ok).toBe(true);
     await expect(db.prepare("DELETE FROM fee_adjustments").run()).rejects.toThrow(/never deleted/);
     expect(await count("SELECT COUNT(*) AS n FROM fee_adjustments")).toBeGreaterThan(0);
+  });
+});
+
+describe("a closed year", () => {
+  it("a discount still waiting when the year closes is refused plainly on approval, and nothing is applied (D-085)", async () => {
+    const pupil = fixture.pupils[0]!.enrollmentId;
+    const { id } = (await (await post(`/api/fees/enrollments/${pupil}/discounts`, { amountPaisa: 100, reason: "sibling" }, accountant)).json()) as { id: string };
+    const before = (await account()).discountPaisa;
+    await db
+      .prepare("UPDATE academic_years SET status = 'closed', closed_at = ?1 WHERE id = (SELECT academic_year_id FROM enrollments WHERE public_id = ?2)")
+      .bind(new Date().toISOString(), pupil)
+      .run();
+    const approved = await approve(await requestOf(id));
+    expect(approved.status).toBe(422);
+    expect(((await approved.json()) as { message: string }).message).toMatch(/year is closed/i);
+    expect((await account()).discountPaisa).toBe(before);
+    expect((await verifyLedgerChain(db, auditKey)).ok).toBe(true);
   });
 });
