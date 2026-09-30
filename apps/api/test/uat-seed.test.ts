@@ -8,6 +8,7 @@ import { describe, expect, it } from "vitest";
 import { createApp } from "../src/app";
 import { verifyAuditChain } from "../src/core/audit";
 import { applyPack, parsePack } from "../src/core/config";
+import { bsToAd, daysInMonth, todayBs } from "../src/core/dates";
 import { signAccessToken } from "../src/core/tokens";
 import { createUser } from "../src/modules/accounts/service";
 import { verifyLedgerChain } from "../src/modules/fees/ledger";
@@ -48,7 +49,17 @@ describe.each([
       cookies[role] = `__Host-access=${await signAccessToken(env.SESSION_SECRET, { sub: publicId, sid: "s", name: role, roles: [{ role, scope: "institution" }], iat: now, exp: now + 3600 })}`;
     }
 
+    // Royal's school already has this year as a draft, never activated (as staging had): it is used, not made twice.
+    if (json === royalJson) {
+      const b = todayBs().year;
+      const made = await call("POST", "/api/academics/years", "coordinator", { bsYear: b, startDate: bsToAd({ year: b, month: 1, day: 1 }), endDate: bsToAd({ year: b, month: 12, day: daysInMonth(b, 12) }) });
+      expect(made.status).toBe(201);
+    }
+
     const result = await seedUat(call, { tag: "t1" });
+    expect(result.yearLabel).toBe(String(todayBs().year));
+    const { years } = (await (await call("GET", "/api/academics/years", "coordinator")).json()) as { years: { status: string }[] };
+    expect(years.map((y) => y.status)).toEqual(["active"]);
     expect(result.classes).toHaveLength(2);
     expect(result.accounts.filter((a) => a.role === "teacher")).toHaveLength(3);
     const students = result.accounts.filter((a) => a.role === "student");

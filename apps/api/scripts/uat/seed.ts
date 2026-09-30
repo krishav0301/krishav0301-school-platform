@@ -89,14 +89,16 @@ export async function seedUat(call: Call, options: { tag: string; emailDomain?: 
   if (!programme) throw new SeedError("No programme with two levels. Apply the school's pack first.");
   const levels = programme.levels.filter((l) => l.active).slice(0, 2);
 
-  // The year: the active one, or this BS year made and activated.
-  const { years } = await get<{ years: { id: string; label: string; status: string }[] }>("/api/academics/years", "coordinator");
+  // The year: the active one; else this BS year, activated if it is a draft already (as on staging) or made first.
+  type Year = { id: string; bsYear: number; label: string; status: string };
+  const { years } = await get<{ years: Year[] }>("/api/academics/years", "coordinator");
   let year = years.find((y) => y.status === "active");
   if (!year) {
     const b = todayBs().year;
-    const made = await post<{ id: string }>("/api/academics/years", "coordinator", { bsYear: b, startDate: bsToAd({ year: b, month: 1, day: 1 }), endDate: bsToAd({ year: b, month: 12, day: daysInMonth(b, 12) }) });
-    await post(`/api/academics/years/${made.id}/activate`, "coordinator");
-    year = (await get<{ years: { id: string; label: string; status: string }[] }>("/api/academics/years", "coordinator")).years.find((y) => y.id === made.id)!;
+    const draft = years.find((y) => y.bsYear === b && y.status === "draft");
+    const id = draft?.id ?? (await post<{ id: string }>("/api/academics/years", "coordinator", { bsYear: b, startDate: bsToAd({ year: b, month: 1, day: 1 }), endDate: bsToAd({ year: b, month: 12, day: daysInMonth(b, 12) }) })).id;
+    await post(`/api/academics/years/${id}/activate`, "coordinator");
+    year = (await get<{ years: Year[] }>("/api/academics/years", "coordinator")).years.find((y) => y.id === id)!;
   }
 
   // Refuse to add a second set on top of a year that already has classes: this is a starter set, not a top-up.
