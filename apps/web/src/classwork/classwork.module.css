@@ -1,0 +1,89 @@
+/* Classwork screens (Phase 5). Tokens only: no colour, font or motion is written out here. */
+
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: min(var(--space-5), 5vw);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-card);
+  background: var(--color-surface);
+}
+
+.meta {
+  color: var(--color-text-muted);
+  overflow-wrap: anywhere;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+/* An entry as its students read it: the words kept as the teacher wrote them, line breaks included. */
+.body {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.dayPicker {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--space-3);
+}
+
+/* Soft protection for notes (source 6.1): hard to select or copy, hidden when printed, and a watermark of the
+   student's own name and SID across each note. A deterrent only. */
+.protected {
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+}
+
+.watermarked {
+  position: relative;
+  overflow: hidden;
+}
+
+.watermark {
+  position: absolute;
+  inset: -50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-text-muted);
+  opacity: 0.12;
+  font-size: var(--text-lg);
+  line-height: 3;
+  white-space: pre-wrap;
+  text-align: center;
+  transform: rotate(-24deg);
+  pointer-events: none;
+}
+
+@media print {
+  .protected {
+    display: none;
+  }
+}
+
+/* A long button label wraps between words and the button grows, so at 320 px with text at 200% it cannot widen the page (D-030).
+   `button.` makes this win over the button's own `nowrap`, whatever order the stylesheets load in. */
+button.wrapLabel {
+  max-width: 100%;
+  padding-block: var(--space-2);
+  text-align: center;
+  white-space: normal;
+}

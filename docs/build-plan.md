@@ -132,13 +132,37 @@ Public multi-document application, email verification, rate limits and CAPTCHA, 
 ### Phase 5: Daily school life
 Student attendance by the Class Teacher, teacher attendance by the Co-ordinator, percentage and threshold alerts, daily activity log, notes and question papers with soft protection, homework and assignments (deadline, late flag, review, resubmission), role dashboards, related reports.
 
+**Progress** (approved 2026-09-28 with Phase 7; no uploads until R2, D-069; design in `docs/superpowers/specs/2026-09-28-phase5-daily-school-life-design.md`):
+- [x] 1. Student attendance: the Class Teacher's register (pre-filled Present, same-day edits), class and student views with the 75% flag, the student's card, the "More" menu overflow (D-069)
+- [x] 2. Teacher attendance: the Co-ordinator's daily list pre-filled Present, past days with a reason, the teacher's own month (D-070)
+- [x] 3. Daily activity log: one entry per class, subject and day, the teacher's and the Co-ordinator's reminders, the student's two weeks (D-071)
+- [x] 4. Notes, question papers and homework (text and links, no uploads until R2): share and withdraw, the watermark, set, submit, review, resubmission (D-072)
+- [x] 5. Dashboards, the 320 px / 200% browser check, and the exit test for both schools (D-073)
+- [x] **Phase 5 complete (2026-09-28).** Not done: uploads (R2), reports and Excel export, notification records, holidays; see D-073
+
 ### Phase 6: Fees and ledger
 Tests first. Fee structure with Admin approval, charge generation through the billing-schedule policy, append-only ledger, voucher queue, cash entry, gapless receipts with PDF, discounts, reversals, refunds, previous dues, dues list, overdue reminders, payment-attempt model and gateway interface with a demo adapter, fee reports and Excel export.
 **Needs from client:** fee structure, discount reasons (including the scholarship), refund rules, what "course-wise" means.
 
+**Progress** (asked for by the PM 2026-09-28; defaults for the client's answers, each `OPEN:`; no uploads until R2; design in `docs/superpowers/specs/2026-09-28-phase6-fees-design.md`):
+- [x] 1. Ledger core: append-only entries with triggers and a keyed hash chain, oldest-first allocation (property tests), gapless receipt counters (D-074)
+- [x] 2. Fee structures per year and level with Admin approval, charges by the billing-schedule policy, idempotent (D-075)
+- [x] 3. Cash with idempotency keys, vouchers (bank reference) verified by the Accountant, payment attempts and the gateway interface with a demo adapter (D-076)
+- [x] 4. Discounts, reversals and refunds through Admin approval, applied in the approval's own batch (D-077)
+- [x] 5. Fee screens, dues list, CSV report, overdue email reminders, the browser check and the exit test for both schools (D-078)
+- [x] **Phase 6 complete (2026-09-28).** Not done: receipt PDF, carried dues (Phase 8 rollover), native Excel, real gateway and SMS (Phase 9), voucher scans (R2); see D-078
+
 ### Phase 7: Results
 Grading policies (NEB credit-weighted GPA, percentage and division), bulk marks grid with draft-save, verify workflow, publish per class with gating, snapshot marks cards (2-3 templates), Top 20 with a tie-break rule, recheck, whole-class sheet, student result view, results-day load test.
 **Needs from client:** grading and ranking rules, optional subjects, year versus semester, components and maximum marks, marks-card format.
+
+**Progress** (approved 2026-09-28 with defaults; the NEB scale is unverified, D-079; design in `docs/superpowers/specs/2026-09-28-phase7-results-design.md`):
+- [x] 1. Grading policies: NEB GPA (unverified, `OPEN:`) and percentage with division, ties sharing a rank, the policy on the programme (D-079)
+- [x] 2. Elective picks and the marks grid: draft-save, missing flagged, submit (D-080)
+- [x] 3. Verify, send back, bulk verify; publish a whole class per terminal with snapshot marks cards (D-081)
+- [x] 4. The student's results and card, the Top 20, the whole-class sheet and CSV, the screens and browser check (D-082)
+- [x] 5. Rechecks and the exit test for both schools (D-083)
+- [x] **Phase 7 complete (2026-09-28).** Not done: NEB verification, card templates and PDF, native Excel, the results-day load test, SMS; see D-083
 
 ### Phase 8: Year lifecycle
 Year rollover (Promote, Repeat, Leaving), closed-year locks tested on every write path, previous dues, Left and Graduated with zero dues, waive-dues flow, +2 to Bachelor's handover, reactivation.

@@ -1,0 +1,1 @@
+export { registerClasswork } from "./routes";

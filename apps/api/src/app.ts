@@ -9,11 +9,15 @@ import { registerSubjects } from "./modules/academics/subject-routes";
 import { registerAccounts } from "./modules/accounts/routes";
 import { registerStaff } from "./modules/accounts/staff-routes";
 import { registerAdmissions } from "./modules/admissions";
+import { registerAttendance } from "./modules/attendance";
+import { registerClasswork } from "./modules/classwork";
 import { registerApprovals } from "./modules/approvals/routes";
 import { registerAuth } from "./modules/auth/routes";
 import { registerConfig } from "./modules/config/routes";
 import { registerContent } from "./modules/content/routes";
 import { registerContentApprovalHandler } from "./modules/content";
+import { registerFees, registerFeesApprovalHandlers } from "./modules/fees";
+import { registerResults } from "./modules/results";
 import { registerDates } from "./modules/dates/routes";
 import { registerHealth } from "./modules/health/routes";
 import { registerSite } from "./modules/site/routes";
@@ -31,6 +35,7 @@ export function createApp() {
   // The composition root: each kind's handler is registered here, so the generic `approvals` engine
   // never imports a specific kind's module (D-061).
   registerContentApprovalHandler();
+  registerFeesApprovalHandlers();
 
   registerHealth(app);
   registerAuth(app);
@@ -42,6 +47,10 @@ export function createApp() {
   registerContent(app);
   registerApprovals(app);
   registerAdmissions(app);
+  registerAttendance(app);
+  registerClasswork(app);
+  registerFees(app);
+  registerResults(app);
   registerDates(app);
   registerSite(app);
 

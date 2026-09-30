@@ -6,8 +6,9 @@ import type { MessageKey } from "@/i18n/messages";
  * for tidiness: the API decides what a person may actually do (D-025).
  *
  * On a phone the menu is a bottom tab bar, which holds at most `MAX_TABS` entries; from a wide
- * screen it is a sidebar. `OPEN:` when a role could see more than `MAX_TABS`, add a "More" tab
- * (Apple's tab-bar guidance, `tab-bars.md › Avoid overflow tabs`). A test fails first.
+ * screen it is a sidebar that shows every entry. A role with more places than the tab bar holds gets a
+ * last "More" tab listing the rest (`splitNav`). Apple advises keeping that rare (`tab-bars.md › Avoid
+ * overflow tabs`), so an entry used daily stays a tab and only an entry marked `rarely` moves into More.
  */
 export interface NavItem {
   id: string;
@@ -17,6 +18,8 @@ export interface NavItem {
   roles?: readonly string[];
   /** Show only if this school uses this module. An unknown module counts as off. */
   module?: string;
+  /** Visited now and then rather than daily (setup, staff, the website): the first to move into More on a phone. */
+  rarely?: boolean;
 }
 
 export const MAX_TABS = 5;
@@ -25,11 +28,11 @@ export const NAV_ITEMS: readonly NavItem[] = [
   { id: "dashboard", labelKey: "nav.dashboard", href: "/portal" },
   // Phase 2: the Admin edits the public website's content (D-040). Phase 3, slice 4: a Co-ordinator
   // drafts too, and sends a draft for approval instead of publishing it (D-061).
-  { id: "content", labelKey: "nav.content", href: "/portal/content", roles: ["coordinator", "admin", "super_admin"] },
+  { id: "content", labelKey: "nav.content", href: "/portal/content", roles: ["coordinator", "admin", "super_admin"], rarely: true },
   // Phase 3: the academic structure. The Co-ordinator sets it up; the Admin can look (the API decides, D-025).
-  { id: "setup", labelKey: "nav.setup", href: "/portal/setup", roles: ["coordinator", "admin", "super_admin"] },
+  { id: "setup", labelKey: "nav.setup", href: "/portal/setup", roles: ["coordinator", "admin", "super_admin"], rarely: true },
   // Phase 3, slice 3a: the staff. Whoever may add someone (the API decides, D-025).
-  { id: "people", labelKey: "nav.people", href: "/portal/people", roles: ["admin", "coordinator", "super_admin"] },
+  { id: "people", labelKey: "nav.people", href: "/portal/people", roles: ["admin", "coordinator", "super_admin"], rarely: true },
   // Phase 3, slice 4: the Admin's inbox for a Co-ordinator's draft sent for approval (D-061).
   { id: "approvals", labelKey: "nav.approvals", href: "/portal/approvals", roles: ["admin", "super_admin"] },
   // Phase 4: applications, the review queue, walk-ins and student search. Not the Admin or Super
@@ -37,7 +40,32 @@ export const NAV_ITEMS: readonly NavItem[] = [
   // `OPEN:` an Admin's read-only reach into student search has no menu entry yet, the same
   // overflow gap `visibleNav`'s own test already flags for a sixth entry.
   { id: "admissions", labelKey: "nav.admissions", href: "/portal/admissions", roles: ["coordinator", "accountant"] },
+  // Phase 5, slice 1: student attendance. The Class Teacher marks it; the Co-ordinator and the Admin look (D-069).
+  { id: "attendance", labelKey: "nav.attendance", href: "/portal/attendance", roles: ["teacher", "coordinator", "admin", "super_admin"], module: "attendance" },
+  // Phase 5, slice 3: the daily activity log; notes and homework join it in slice 4 (D-071).
+  { id: "classwork", labelKey: "nav.classwork", href: "/portal/classwork", roles: ["teacher", "student", "coordinator", "admin", "super_admin"] },
+  // Phase 6: fees. The Accountant works here, the Admin looks, a student sees their own; never the Co-ordinator (D-078).
+  { id: "fees", labelKey: "nav.fees", href: "/portal/fees", roles: ["accountant", "admin", "super_admin", "student"], module: "fees" },
+  // Phase 7: results. The teacher enters marks, the Co-ordinator verifies and publishes, a student sees their own, the Admin reads (D-082).
+  { id: "results", labelKey: "nav.results", href: "/portal/results", roles: ["teacher", "student", "coordinator", "admin", "super_admin"], module: "results" },
 ];
+
+/** Where the phone's "More" tab goes: a list of the entries that did not fit in the tab bar. */
+export const MORE_HREF = "/portal/more";
+
+/**
+ * The phone's tab bar and its "More" list. Up to `MAX_TABS` entries are all tabs. Past that, the last tab
+ * becomes More: the daily entries fill the other tabs in menu order, and the `rarely` ones (then any
+ * daily ones still left over) go into More, also in menu order.
+ */
+export function splitNav(menu: readonly NavItem[]): { tabs: NavItem[]; more: NavItem[] } {
+  if (menu.length <= MAX_TABS) return { tabs: [...menu], more: [] };
+  const room = MAX_TABS - 1;
+  const daily = menu.filter((item) => !item.rarely);
+  const tabIds = new Set(daily.slice(0, room).map((item) => item.id));
+  if (tabIds.size < room) for (const item of menu) if (tabIds.size < room) tabIds.add(item.id);
+  return { tabs: menu.filter((item) => tabIds.has(item.id)), more: menu.filter((item) => !tabIds.has(item.id)) };
+}
 
 /** True on an entry's own page and on the pages beneath it. The dashboard is only current on itself. */
 export function isCurrent(pathname: string, href: string): boolean {

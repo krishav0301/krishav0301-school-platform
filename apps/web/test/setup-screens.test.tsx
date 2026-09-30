@@ -110,8 +110,8 @@ describe("the years screen", () => {
 // ---------------------------------------------------------------------------------------------
 describe("the programmes screen", () => {
   const programmes: Programme[] = [
-    { id: "p1", key: "bbs", name: "BBS", section: { key: "bachelors", name: "Bachelor's" }, affiliation: "TU", active: true, levels: [{ id: "l1", ordinal: 1, name: "Year 1", active: true }, { id: "l2", ordinal: 2, name: "Year 2", active: false }] },
-    { id: "p2", key: "old", name: "Old", section: { key: "plus2", name: "+2" }, affiliation: "NEB", active: false, levels: [] },
+    { id: "p1", key: "bbs", name: "BBS", section: { key: "bachelors", name: "Bachelor's" }, affiliation: "TU", active: true, gradingPolicy: null, levels: [{ id: "l1", ordinal: 1, name: "Year 1", active: true }, { id: "l2", ordinal: 2, name: "Year 2", active: false }] },
+    { id: "p2", key: "old", name: "Old", section: { key: "plus2", name: "+2" }, affiliation: "NEB", active: false, gradingPolicy: null, levels: [] },
   ];
   const view = (canManage: boolean) => inContext(<ProgrammesView programmes={programmes} canManage={canManage} busy={null} onToggleProgramme={noop} onToggleLevel={noop} onAddLevel={async () => true} />);
 
@@ -158,8 +158,8 @@ describe("the classes screen", () => {
 
   it("the form offers only active levels of active programmes", () => {
     const programmes: Programme[] = [
-      { id: "p1", key: "bbs", name: "BBS", section: { key: "bachelors", name: "Bachelor's" }, affiliation: "TU", active: true, levels: [{ id: "l1", ordinal: 1, name: "Year 1", active: true }, { id: "l2", ordinal: 2, name: "Year 2", active: false }] },
-      { id: "p2", key: "old", name: "Old", section: { key: "plus2", name: "+2" }, affiliation: "NEB", active: false, levels: [{ id: "l3", ordinal: 1, name: "Grade 11", active: true }] },
+      { id: "p1", key: "bbs", name: "BBS", section: { key: "bachelors", name: "Bachelor's" }, affiliation: "TU", active: true, gradingPolicy: null, levels: [{ id: "l1", ordinal: 1, name: "Year 1", active: true }, { id: "l2", ordinal: 2, name: "Year 2", active: false }] },
+      { id: "p2", key: "old", name: "Old", section: { key: "plus2", name: "+2" }, affiliation: "NEB", active: false, gradingPolicy: null, levels: [{ id: "l3", ordinal: 1, name: "Grade 11", active: true }] },
     ];
     const html = inContext(<ClassForm yearId="y" programmes={programmes} onAdded={noop} />);
     expect(html).toContain("BBS · Year 1");

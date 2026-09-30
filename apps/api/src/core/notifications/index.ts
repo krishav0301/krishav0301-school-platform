@@ -9,7 +9,7 @@ import type { Bindings } from "../types";
 
 export const EMAIL_EVENT = "email";
 
-export type EmailTemplate = "password_reset" | "admission_verify" | "admission_decision";
+export type EmailTemplate = "password_reset" | "admission_verify" | "admission_decision" | "fee_overdue";
 
 export interface EmailPayload {
   template: EmailTemplate;
@@ -81,6 +81,20 @@ export function renderEmail(payload: EmailPayload, context: RenderContext): { su
     return {
       subject: `About your application to ${context.schoolName}`,
       body: [`${context.schoolName} was not able to approve your application.`, "", `Reason: ${payload.data.reason}`].join("\n"),
+    };
+  }
+  if (payload.template === "fee_overdue") {
+    // D-078: the amounts arrive already written in NPR with Nepali grouping; nothing here does arithmetic on money.
+    return {
+      subject: `Fees overdue at ${context.schoolName}`,
+      body: [
+        `Dear ${payload.data.name} (${payload.data.sid}),`,
+        "",
+        `NPR ${payload.data.overdue} of your fees is overdue at ${context.schoolName}.`,
+        `You can see what is due, and your receipts, when you sign in: ${context.siteOrigin.replace(/\/+$/, "")}/portal`,
+        "",
+        "If you have paid in the last few days, please ignore this message.",
+      ].join("\n"),
     };
   }
   throw new Error(`Unknown email template "${String(payload.template)}".`);

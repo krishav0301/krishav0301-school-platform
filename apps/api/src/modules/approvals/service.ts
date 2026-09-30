@@ -48,7 +48,8 @@ export async function requestApproval(db: D1Database, auditKey: string, actor: s
   // (The re-check still sits inside the INSERT's WHERE too, as defense in depth against a role that
   // changes in the moment between this read and the write — the same two-phase shape `content/service.ts`
   // already uses for `isPublisher`.)
-  const allowed = await db.prepare(`SELECT ${mayRequest(1)} AS ok`).bind(actor).first<{ ok: number }>();
+  const requester = handler.requesterSql ?? mayRequest;
+  const allowed = await db.prepare(`SELECT ${requester(1)} AS ok`).bind(actor).first<{ ok: number }>();
   if (allowed?.ok !== 1) return { ok: false, reason: "not_allowed" };
 
   const subjectId = await handler.resolveId(db, subjectPublicId);
@@ -63,7 +64,7 @@ export async function requestApproval(db: D1Database, auditKey: string, actor: s
     .prepare(
       `INSERT INTO approval_requests (public_id, kind, status, requested_by, subject_type, subject_id, subject_public_id, summary, subject_version, snapshot, created_at)
        SELECT ?1, ?2, 'pending', u.id, ?2, ?3, ?4, ?5, ?6, ?7, ?8
-         FROM users u WHERE u.public_id = ?9 AND ${mayRequest(9)} AND changes() > 0`,
+         FROM users u WHERE u.public_id = ?9 AND ${requester(9)} AND changes() > 0`,
     )
     .bind(publicId, kind, subjectId, described.subjectPublicId, described.summary, version, JSON.stringify(described.snapshot), new Date().toISOString(), actor);
 
@@ -149,20 +150,30 @@ export async function decideRequest(db: D1Database, auditKey: string, actor: str
         )
         .bind(request.id, actor, now, parsed.data.reason);
 
-  const handlerStatements = parsed.data.approve ? handler.onApproved(db, request.subject_id) : handler.onResolved(db, request.subject_id);
+  const event = {
+    action: parsed.data.approve ? "approvals.request.approved" : "approvals.request.declined",
+    entityType: "approval_request",
+    entityPublicId: requestPublicId,
+    actorPublicId: actor,
+    summary: parsed.data.approve ? "Approval request approved" : "Approval request declined",
+    ...(parsed.data.approve ? {} : { reason: parsed.data.reason }),
+  };
 
-  const outcome = await write(
-    db,
-    auditKey,
-    {
-      action: parsed.data.approve ? "approvals.request.approved" : "approvals.request.declined",
-      entityType: "approval_request",
-      entityPublicId: requestPublicId,
-      actorPublicId: actor,
-      summary: parsed.data.approve ? "Approval request approved" : "Approval request declined",
-      ...(parsed.data.approve ? {} : { reason: parsed.data.reason }),
-    },
-    [...handlerStatements, decideStatement],
-  );
+  // A kind whose approval writes ledger entries (fees) builds them from the ledger's head at this moment; if another
+  // write moved the head before this batch lands, the whole batch rolled back, and it is rebuilt and tried again.
+  let outcome: Awaited<ReturnType<typeof write>> = "not_applied";
+  for (let attempt = 1; attempt <= 30; attempt++) {
+    const ledgerHead = (await db.prepare("SELECT last_hash FROM ledger_chain_head WHERE id = 1").first<{ last_hash: string }>())?.last_hash ?? "0".repeat(64);
+    const handlerStatements = parsed.data.approve
+      ? await handler.onApproved(db, request.subject_id, { auditKey, actorPublicId: actor, ledgerHead })
+      : handler.onResolved(db, request.subject_id);
+    try {
+      outcome = await write(db, auditKey, event, [...handlerStatements, decideStatement]);
+      break;
+    } catch (error) {
+      if (!/ledger chain moved|UNIQUE constraint failed: ledger_entries\.(prev_hash|hash)/.test(error instanceof Error ? error.message : String(error))) throw error;
+      await new Promise((resolve) => setTimeout(resolve, Math.random() * 10 * Math.min(attempt, 5)));
+    }
+  }
   return outcome === "done" ? { ok: true } : { ok: false, reason: "conflict" }; // a lost race: someone else decided it a moment ago
 }

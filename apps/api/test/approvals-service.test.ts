@@ -68,8 +68,8 @@ describe("requestApproval", () => {
     expect(await statusOf(id)).toBe("draft");
   });
 
-  it("an unknown kind, or a missing subject, is not_found", async () => {
-    expect(await requestApproval(db, auditKey, coordinator.publicId, { kind: "fee_structure", subjectId: "0".repeat(32) })).toEqual({ ok: false, reason: "not_found" });
+  it("a missing subject is not_found; a fees kind is not the Co-ordinator's to send (every kind is wired now, D-075)", async () => {
+    expect(await requestApproval(db, auditKey, coordinator.publicId, { kind: "fee_structure", subjectId: "0".repeat(32) })).toEqual({ ok: false, reason: "not_allowed" });
     expect(await requestApproval(db, auditKey, coordinator.publicId, { kind: "website_content", subjectId: "0".repeat(32) })).toEqual({ ok: false, reason: "not_found" });
   });
 });

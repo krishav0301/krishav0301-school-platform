@@ -94,8 +94,10 @@ The Co-ordinator has **no** fees access at all.
 |---|---|---|---|---|---|---|---|
 | Draft yearly fee structure (`fees.structure.draft`) | — | — | — | inst | — | — | 6 |
 | Approve fee structure (`fees.structure.approve`) | — | — | — | — | ✓ | — | 6 |
+| Generate the year's charges from a live fee structure (`fees.charges.generate`) | — | — | — | inst | — | — | 6 |
 | View fees, dues, ledger (`fees.view`) | own | — | — | inst | read | ✓ | 6 |
 | Upload a payment voucher (`fees.voucher.upload`) | own | — | — | — | — | — | 6 |
+| Pay online through the gateway (demo adapter only until Phase 9) (`fees.online.pay`) | own | — | — | — | — | — | 6 |
 | Verify or reject a voucher (`fees.voucher.verify`) | — | — | — | inst | — | — | 6 |
 | Record cash payment (`fees.cash.record`) | — | — | — | inst | — | — | 6 |
 | Propose a discount (`fees.discount.propose`) | — | — | — | inst | — | — | 6 |
@@ -106,11 +108,13 @@ The Co-ordinator has **no** fees access at all.
 | Approve a refund (`fees.refund.approve`) | — | — | — | — | ✓ | — | 6 |
 | Record how an approved refund was paid (`fees.refund.record`) | — | — | — | inst | — | — | 6 |
 | View and download receipts (`fees.receipts.view`) | own | — | — | inst | read | ✓ | 6 |
+| Send overdue reminders (email) (`fees.reminders.send`) | — | — | — | inst | — | — | 6 |
 
 ### Marks and results
 
 | Action | STU | TEA | COO | ACC | ADM | SUP | Phase |
 |---|---|---|---|---|---|---|---|
+| Record each student's elective picks (D-056) (`results.electives.set`) | — | — | inst | — | — | ✓ | 7 |
 | Enter marks (until verified) (`marks.enter`) | — | assigned | — | — | — | — | 7 |
 | Verify, send back, bulk approve (`marks.verify`) | — | — | inst | — | — | ✓ | 7 |
 | Publish a whole class (all subjects verified) (`results.publish`) | — | — | inst | — | — | ✓ | 7 |

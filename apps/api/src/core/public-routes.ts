@@ -33,6 +33,10 @@ export const PUBLIC_ROUTES: ReadonlySet<string> = new Set([
   // Confirms an applicant's email from the emailed link. The credential is the token (256 random
   // bits, hash-only, single-use, 24 hours), the same shape as password reset's own confirm step.
   "POST /api/admissions/verify",
+  // The payment gateway's notice (D-076). Its body is never trusted: the payment is confirmed by asking the gateway
+  // itself, server to server, and applied once per gateway reference. Answers 404 unless a gateway is configured
+  // (only the demo adapter, in demo mode, until Phase 9).
+  "POST /api/fees/gateway/callback",
 ]);
 
 /** Any signed-in user, whatever their role. For things people do to their own account. */

@@ -1,0 +1,121 @@
+/* Fee screens (Phase 6). Tokens only: no colour, font or motion is written out here. */
+
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: min(var(--space-5), 5vw);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-card);
+  background: var(--color-surface);
+}
+
+/* The four numbers that matter most, two across on a phone. */
+.summary {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(9rem, 100%), 1fr));
+  gap: var(--space-4);
+  margin: 0;
+}
+
+.stat dt {
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+}
+
+.stat dd {
+  margin: 0;
+  font-size: var(--text-xl);
+  font-weight: var(--weight-bold);
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* A line of the history: what it was and its amount, wrapping on a narrow screen. */
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-1) var(--space-3);
+  min-height: var(--control-height);
+  padding: var(--space-2) 0;
+}
+
+.row + .row {
+  border-top: 1px solid var(--color-border);
+}
+
+/* An amount and anything beside it (a badge, a Reverse) wrap as a group; a number itself has no break inside it. */
+.amount {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--space-2);
+  min-width: 0;
+  max-width: 100%;
+  font-variant-numeric: tabular-nums;
+  font-weight: var(--weight-medium);
+}
+
+.meta {
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+  overflow-wrap: anywhere;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+/* A long button label wraps between words and the button grows, so at 320 px with text at 200% it cannot widen the page (D-030).
+   `button.` makes this win over the button's own `nowrap`, whatever order the stylesheets load in. */
+button.wrapLabel,
+a.wrapLabel {
+  max-width: 100%;
+  padding-block: var(--space-2);
+  text-align: center;
+  white-space: normal;
+}
+
+/* The receipt: a plain document, printable on its own. */
+.receipt {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.receipt dl {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-2);
+  margin: 0;
+}
+
+.receipt dt {
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+}
+
+.receipt dd {
+  margin: 0 0 var(--space-2);
+  overflow-wrap: anywhere;
+}
+
+@media print {
+  .noPrint {
+    display: none;
+  }
+}

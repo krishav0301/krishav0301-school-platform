@@ -127,7 +127,10 @@ export const setOfferingGroup = async (api: ApiClient, id: string, groupId: stri
 export const setOfferingActive = async (api: ApiClient, id: string, active: boolean): Promise<WriteResult> =>
   done(await send(() => api.PATCH("/api/academics/offerings/{id}", { params: { path: { id } }, body: { active } })));
 
-export const addComponent = async (api: ApiClient, offeringId: string, body: { name: string; maxHundredths: number }): Promise<CreateResult> =>
+export const setProgrammePolicy = async (api: ApiClient, id: string, gradingPolicy: "neb_gpa" | "percentage_division" | null): Promise<WriteResult> =>
+  done(await send(() => api.PATCH("/api/academics/programmes/{id}", { params: { path: { id } }, body: { gradingPolicy } })));
+
+export const addComponent = async (api: ApiClient, offeringId: string, body: { name: string; maxHundredths: number; kind: "theory" | "practical" }): Promise<CreateResult> =>
   created(await send(() => api.POST("/api/academics/offerings/{id}/components", { params: { path: { id: offeringId } }, body })));
 
 export const setComponentActive = async (api: ApiClient, id: string, active: boolean): Promise<WriteResult> =>

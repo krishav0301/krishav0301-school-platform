@@ -10,7 +10,7 @@ import { t } from "@/i18n/messages";
 import { useSession } from "@/session/SessionProvider";
 import { Button, Skeleton, Spinner } from "@/ui";
 
-import { NAV_ITEMS, isCurrent, showsMenu, visibleNav, type NavItem } from "./nav";
+import { MORE_HREF, NAV_ITEMS, isCurrent, showsMenu, splitNav, visibleNav, type NavItem } from "./nav";
 import styles from "./shell.module.css";
 
 /**
@@ -42,6 +42,10 @@ export function PortalShell({ children, items = NAV_ITEMS }: { children: ReactNo
 
   const menu = visibleNav(items, me.roles, config?.modules ?? {});
   const hasMenu = showsMenu(menu);
+  // On a phone, entries past the tab bar's room are listed under a last "More" tab; the sidebar shows them all.
+  const { more } = splitNav(menu);
+  const overflow = new Set(more.map((item) => item.id));
+  const inMore = pathname === MORE_HREF || more.some((item) => isCurrent(pathname, item.href));
 
   return (
     <div className={`${styles.frame} ${hasMenu ? styles.withTabs : ""}`}>
@@ -65,10 +69,20 @@ export function PortalShell({ children, items = NAV_ITEMS }: { children: ReactNo
         {hasMenu ? (
           <nav className={styles.nav} aria-label={t("shell.mainNavigation")}>
             {menu.map((item) => (
-              <Link key={item.id} href={item.href} className={styles.navLink} aria-current={isCurrent(pathname, item.href) ? "page" : undefined}>
+              <Link
+                key={item.id}
+                href={item.href}
+                className={[styles.navLink, overflow.has(item.id) ? styles.overflow : ""].filter(Boolean).join(" ")}
+                aria-current={isCurrent(pathname, item.href) ? "page" : undefined}
+              >
                 {t(item.labelKey)}
               </Link>
             ))}
+            {more.length > 0 ? (
+              <Link href={MORE_HREF} className={`${styles.navLink} ${styles.moreLink}`} aria-current={inMore ? "page" : undefined}>
+                {t("nav.more")}
+              </Link>
+            ) : null}
           </nav>
         ) : null}
         <main id="main" className={styles.main}>

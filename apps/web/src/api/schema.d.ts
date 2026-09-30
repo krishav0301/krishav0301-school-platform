@@ -1118,6 +1118,1182 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/attendance/classes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description The active year's classes the person may see, each with today's state. A Class Teacher sees their own class; a Co-ordinator their sections; the Admin every class. */
+        get: operations["list_attendance_classes"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/attendance/classes/{id}/day": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description A class's register for one day (today by default): each student, and their mark or none. */
+        get: operations["get_attendance_day"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/attendance/classes/{id}/today": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** @description The Class Teacher's register for today (Nepal's date): the absent students; everyone else in the class is Present. Sending it again the same day replaces the day. Past days cannot be changed. */
+        put: operations["mark_attendance_today"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/attendance/classes/{id}/summary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Each student's year so far in the class: days present and absent, the percentage, and whether it is below the school's alert threshold. */
+        get: operations["get_attendance_summary"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/attendance/me": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description The signed-in student's own attendance this year: totals, percentage, the alert flag, and the days marked absent. */
+        get: operations["get_own_attendance"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/attendance/teachers/day": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description The Co-ordinator's daily list of teachers for a day (today by default), each with their mark or none. The screen shows an unmarked teacher as Present. */
+        get: operations["get_teacher_attendance_day"];
+        /** @description Saves a day's teacher attendance: the exceptions (Absent, On leave); every other teacher the Co-ordinator reaches is Present. Today, or a past day with a reason. Saving the same day again replaces it. */
+        put: operations["save_teacher_attendance_day"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/attendance/teachers/me": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description The signed-in teacher's own attendance for a Bikram Sambat month (this month by default), read-only. */
+        get: operations["get_own_teacher_month"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/activity/mine": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description The subjects the signed-in teacher teaches this year, each with today's entry or none. An empty entry is the teacher's reminder. */
+        get: operations["get_my_activity_today"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/activity/classes/{classId}/subjects/{offeringId}/today": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** @description Writes today's entry for one subject in one class, by the teacher who teaches it. Writing again the same day replaces it; past days cannot change. */
+        put: operations["write_activity_today"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/activity/classes/{classId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description A class's activity log for a day (today by default): every subject, its entry or none, and its teacher. A teacher sees only their own subjects. */
+        get: operations["get_class_activity"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/activity/me": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description The signed-in student's own class: the last two weeks' entries, newest first. */
+        get: operations["get_own_activity"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/activity/missing": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Today's reminder: each class in reach with the subjects that have a teacher but no entry yet. */
+        get: operations["get_missing_activity"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/activity/classes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description The active year's classes in reach, each with how many of its taught subjects have today's entry. */
+        get: operations["list_activity_classes"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/notes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Shares a note or question paper with a class, live at once. Text and an optional https link (file uploads wait for R2). Only a teacher of that subject in that class. */
+        post: operations["share_note"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/notes/{id}/withdraw": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Withdraws a shared note or question paper, once. It stays on record, hidden from students. To replace one, withdraw it and share again. */
+        post: operations["withdraw_note"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/notes/mine": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description What the signed-in teacher's subjects have shared this year, newest first, withdrawn ones marked. */
+        get: operations["list_teacher_notes"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/notes/me": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description The signed-in student's own class's live notes and question papers, and their watermark (name and SID). Never cached. */
+        get: operations["list_student_notes"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/assignments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Sets an assignment for a class: instructions, a deadline in the future, optional marks and an optional https link. Only a teacher of that subject in that class. */
+        post: operations["set_homework"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/assignments/{id}/withdraw": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Withdraws an assignment: hidden from students, closed to submissions, kept on record. */
+        post: operations["withdraw_assignment"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/assignments/mine": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description The signed-in teacher's assignments this year, newest deadline first, with how many are submitted, waiting for review, and asking to resubmit. */
+        get: operations["list_teacher_assignments"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/assignments/me": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description The signed-in student's own class's assignments, newest deadline first, each with their own submission or none. */
+        get: operations["list_student_assignments"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/assignments/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description One assignment for its teacher: every student of the class with their submission or none. */
+        get: operations["get_assignment"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/assignments/{id}/submissions/{submissionId}/review": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description The teacher's marks (up to the assignment's maximum) and feedback on a submission. */
+        post: operations["review_submission"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/assignments/{id}/submissions/{submissionId}/resubmission": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Allows or declines a student's request to resubmit. Declined, the submission goes back to how it was. */
+        post: operations["decide_resubmission"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/assignments/{id}/submission": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** @description The student's own submission: once, or again after the teacher allows a resubmission. Late is flagged automatically against the deadline. */
+        put: operations["submit_work"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/assignments/{id}/submission/resubmit-request": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description The student asks to resubmit, with a reason. The teacher allows or declines it. */
+        post: operations["request_resubmission"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/fees/structures": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description The active year's fee structures in the person's sections. Not for students (their own fees are at /api/fees/me). */
+        get: operations["list_fee_structures"];
+        put?: never;
+        /** @description Drafts the active year's fee structure for a programme level. One per level and year. */
+        post: operations["create_fee_structure"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/fees/structures/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description One fee structure: its items, its yearly total, and the classes of its level with their student counts. */
+        get: operations["get_fee_structure"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/fees/structures/{id}/items": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Adds an item to a draft: a name, an amount in whole paisa, and how often it is billed. */
+        post: operations["add_fee_item"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/fees/items/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** @description Changes a draft's item, or switches it off. A structure waiting for approval or live does not change. */
+        patch: operations["change_fee_item"];
+        trace?: never;
+    };
+    "/api/fees/structures/{id}/send": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Sends a draft with at least one item to the Admins for approval. It is locked while it waits. */
+        post: operations["send_fee_structure"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/fees/structures/{id}/charges": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Makes every missing charge for the active students of one class of the structure's level, from the live structure. Safe to repeat. */
+        post: operations["generate_fee_charges"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/fees/me": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description The signed-in student's own fee account this year: charges, discounts, payments, what is due and overdue, the next due, the history and the receipts. */
+        get: operations["get_own_fees"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/fees/enrollments/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description One student's fee account for one enrollment, for the Accountant (their sections) and the Admin (read). A student uses /me. */
+        get: operations["get_fee_account"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/fees/students/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description A student's current fee account, found by the student's id (what search returns). For staff in the student's section. */
+        get: operations["get_student_fee_account"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/fees/receipts/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description One receipt, generated from the ledger. A student sees only their own; staff their sections. */
+        get: operations["get_receipt"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/fees/payments/cash": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Cash at the counter: a payment and its numbered receipt, in one batch. The idempotency key makes a retry answer with the same receipt and record nothing new. */
+        post: operations["record_cash_payment"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/fees/me/vouchers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description The student reports a bank deposit (the bank and its reference; no scan while file storage is off). The Accountant verifies it. */
+        post: operations["submit_voucher"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/fees/vouchers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Vouchers waiting for the Accountant, oldest first, in their sections. */
+        get: operations["list_vouchers"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/fees/vouchers/{id}/verify": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Verifies a voucher: it becomes a payment with a numbered receipt, in one batch. Once. */
+        post: operations["verify_voucher"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/fees/vouchers/{id}/reject": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Rejects a voucher, with a reason. The student may report the deposit again, corrected. */
+        post: operations["reject_voucher"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/fees/me/online-payments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Starts an online payment through the gateway. Only the demo adapter exists until Phase 9, and only in demo mode: otherwise 404. */
+        post: operations["start_online_payment"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/fees/gateway/callback": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description The gateway's notice that a payment happened. Confirmed by asking the gateway itself, never by trusting this call, and applied once: a repeat answers the same. OPEN: a real gateway posts from its own origin; the same-origin rule needs an exception for this address in Phase 9. */
+        post: operations["gateway_callback"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/fees/enrollments/{id}/discounts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Proposes a discount (an amount, or a percentage of what was charged, with a reason) and sends it to the Admins. Nothing changes until one approves it. */
+        post: operations["propose_discount"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/fees/payments/{id}/reversal": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Asks the Admins to reverse a payment made in error, with a reason. Approved, a new entry cancels it in full; the payment and its receipt stay on record. */
+        post: operations["request_reversal"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/fees/enrollments/{id}/refunds": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Asks the Admins to refund credit (what was paid over what is owed). Approved, it is recorded as paid back, and only then written to the ledger. */
+        post: operations["request_refund"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/fees/refunds/{id}/record": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Records how an approved refund was paid back. The ledger takes the refund in the same batch. Once. */
+        post: operations["record_refund"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/fees/enrollments/{id}/adjustments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description The discount, reversal and refund requests on one student's account, newest first, with where each stands. */
+        get: operations["list_fee_adjustments"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/fees/dues": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Every student of the active year in the person's sections (or one class), with charged, discounted, paid, due and overdue, from the ledger. */
+        get: operations["list_dues"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/fees/dues.csv": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description The dues list as CSV with NPR amounts in Nepali grouping, for Excel. OPEN: a native .xlsx needs a library the PM has not approved yet. */
+        get: operations["export_dues"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/fees/reminders": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Emails every student in the Accountant's sections who has something overdue. Once per student per day: pressing it again sends nothing new. */
+        post: operations["send_overdue_reminders"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/results/classes/{classId}/electives": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description A class's elective groups and each student's picks, for the Co-ordinator. */
+        get: operations["get_class_electives"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/results/enrollments/{enrollmentId}/electives/{groupId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** @description Sets one student's picks in one elective group: exactly the group's pick count. A subject with marks cannot be dropped. */
+        put: operations["set_elective_picks"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/results/mine": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description The signed-in teacher's subjects this year, each with its mark sheet's state per terminal. */
+        get: operations["get_my_mark_sheets"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/results/classes/{classId}/subjects/{offeringId}/terminals/{terminalId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description The marks grid for one subject in one class and terminal: the students who take it, the components, the marks so far, and how many are missing. */
+        get: operations["get_mark_sheet"];
+        /** @description Saves marks as a draft (whole hundredths; an absence is `absent`, never a zero). Saving again replaces. Only while the sheet is a draft. */
+        put: operations["save_marks"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/results/classes/{classId}/subjects/{offeringId}/terminals/{terminalId}/submit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Sends a complete draft to the Co-ordinator for review. Refused while a mark is missing. */
+        post: operations["submit_mark_sheet"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/results/review": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description The Co-ordinator's board for a terminal (the latest by default): every class in reach, each subject's sheet state, and whether the class can be published. */
+        get: operations["get_results_review"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/results/review/sheets/{sheetId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description One mark sheet, read-only, for the Co-ordinator to check before verifying. */
+        get: operations["get_review_sheet"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/results/review/verify": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Verifies one or many sheets under review (bulk approve). Answers how many were verified; one not under review or not in reach is left as it is. */
+        post: operations["verify_mark_sheets"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/results/review/sheets/{sheetId}/send-back": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Sends a sheet under review, or verified but not yet published, back to its teacher as a draft, with a note. */
+        post: operations["send_back_mark_sheet"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/results/classes/{classId}/publish": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Publishes a whole class for a terminal: only when every subject is verified and the programme has a grading policy. Every student's marks card is stored as a snapshot in the same batch. */
+        post: operations["publish_class_results"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/results/me": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description The signed-in student's published results, every year and terminal, each with its marks card and rechecks. Nothing before publish. */
+        get: operations["get_own_results"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/results/cards/{cardId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description One marks card (any version), for staff whose sections reach the class. */
+        get: operations["get_marks_card"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/results/classes/{classId}/terminals/{terminalId}/sheet": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description The whole-class sheet of a published terminal: students by subjects, with the GPA or percentage and the rank in the class. */
+        get: operations["get_class_result_sheet"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/results/classes/{classId}/terminals/{terminalId}/sheet.csv": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description The whole-class sheet as CSV, for Excel. OPEN: a native .xlsx needs a library the PM has not approved yet. */
+        get: operations["export_class_result_sheet"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/results/top20": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description The Top 20 for a terminal, ranked per section among the same level, ties sharing a rank. A student sees their own list only, name and rank only, once their class is published; staff see every list in reach. */
+        get: operations["get_top20"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/results/publications/{publicationId}/rechecks": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description The student asks for one subject of their own published result to be rechecked, with a reason. One open request per subject. */
+        post: operations["request_recheck"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/results/rechecks": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Rechecks in reach, open first. The Co-ordinator decides them; the Admin sees every post-publish change here. */
+        get: operations["list_rechecks"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/results/rechecks/{recheckId}/decide": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description The Co-ordinator decides a recheck, with a reason: unchanged, or changed with the corrected marks, which makes the next version of the marks card. */
+        post: operations["decide_recheck"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/dates/to-ad": {
         parameters: {
             query?: never;
@@ -1328,6 +2504,8 @@ export interface components {
             };
             affiliation: string;
             active: boolean;
+            /** @enum {string|null} */
+            gradingPolicy: "neb_gpa" | "percentage_division" | null;
             levels: components["schemas"]["Level"][];
         };
         Level: {
@@ -1403,6 +2581,8 @@ export interface components {
             name?: string;
             affiliation?: string;
             active?: boolean;
+            /** @enum {string|null} */
+            gradingPolicy?: "neb_gpa" | "percentage_division" | null;
         };
         CreateLevel: {
             name: string;
@@ -1498,6 +2678,8 @@ export interface components {
             id: string;
             name: string;
             maxHundredths: number;
+            /** @enum {string} */
+            kind: "theory" | "practical";
             ordinal: number;
             active: boolean;
         };
@@ -1524,10 +2706,17 @@ export interface components {
         CreateComponent: {
             name: string;
             maxHundredths: number;
+            /**
+             * @default theory
+             * @enum {string}
+             */
+            kind: "theory" | "practical";
         };
         ComponentChanges: {
             name?: string;
             maxHundredths?: number;
+            /** @enum {string} */
+            kind?: "theory" | "practical";
             active?: boolean;
         };
         CreateGroup: {
@@ -1865,6 +3054,857 @@ export interface components {
             status: "active" | "left" | "graduated";
             className: string | null;
             createdAt: string;
+        };
+        AttendanceClassList: {
+            today: string;
+            todayBs: string | null;
+            classes: {
+                id: string;
+                programmeName: string;
+                levelName: string;
+                label: string;
+                sectionKey: string;
+                students: number;
+                markedToday: boolean;
+                absentToday: number;
+                mine: boolean;
+            }[];
+        };
+        AttendanceError: {
+            error: string;
+        };
+        AttendanceDay: {
+            class: {
+                id: string;
+                programmeName: string;
+                levelName: string;
+                label: string;
+                sectionKey: string;
+            };
+            date: string;
+            dateBs: string | null;
+            isToday: boolean;
+            marked: boolean;
+            canMark: boolean;
+            students: {
+                enrollmentId: string;
+                sid: string;
+                name: string;
+                rollNo: number | null;
+                /** @enum {string|null} */
+                status: "present" | "absent" | null;
+            }[];
+        };
+        AttendanceInvalid: {
+            /** @enum {string} */
+            error: "invalid";
+            message: string;
+        };
+        AttendanceMarked: {
+            /** @enum {boolean} */
+            ok: true;
+            present: number;
+            absent: number;
+        };
+        MarkAttendance: {
+            absent: string[];
+        };
+        AttendanceSummary: {
+            class: {
+                id: string;
+                programmeName: string;
+                levelName: string;
+                label: string;
+                sectionKey: string;
+            };
+            threshold: number;
+            students: {
+                enrollmentId: string;
+                sid: string;
+                name: string;
+                rollNo: number | null;
+                present: number;
+                absent: number;
+                percent: number | null;
+                below: boolean;
+            }[];
+        };
+        OwnAttendance: {
+            yearLabel: string;
+            threshold: number;
+            present: number;
+            absent: number;
+            percent: number | null;
+            below: boolean;
+            absentDays: {
+                date: string;
+                dateBs: string | null;
+            }[];
+        };
+        TeacherDay: {
+            date: string;
+            dateBs: string | null;
+            isToday: boolean;
+            marked: boolean;
+            teachers: {
+                id: string;
+                name: string;
+                sectionKey: string | null;
+                /** @enum {string|null} */
+                status: "present" | "absent" | "leave" | null;
+                reason: string | null;
+            }[];
+        };
+        SaveTeacherDay: {
+            date: string;
+            exceptions: {
+                teacherId: string;
+                /** @enum {string} */
+                status: "absent" | "leave";
+            }[];
+            reason?: string;
+        };
+        OwnTeacherMonth: {
+            month: string;
+            present: number;
+            absent: number;
+            leave: number;
+            days: {
+                date: string;
+                dateBs: string;
+                weekday: number;
+                /** @enum {string|null} */
+                status: "present" | "absent" | "leave" | null;
+            }[];
+        };
+        MyActivityToday: {
+            date: string;
+            dateBs: string | null;
+            subjects: {
+                classId: string;
+                offeringId: string;
+                subjectName: string;
+                programmeName: string;
+                levelName: string;
+                label: string;
+                body: string | null;
+            }[];
+        };
+        ClassworkError: {
+            error: string;
+        };
+        ClassworkInvalid: {
+            /** @enum {string} */
+            error: "invalid";
+            message: string;
+        };
+        WriteActivity: {
+            body: string;
+        };
+        ClassActivityDay: {
+            classId: string;
+            programmeName: string;
+            levelName: string;
+            label: string;
+            date: string;
+            dateBs: string | null;
+            entries: {
+                offeringId: string;
+                subjectName: string;
+                teacherName: string | null;
+                body: string | null;
+                updatedAt: string | null;
+            }[];
+        };
+        OwnActivity: {
+            days: {
+                date: string;
+                dateBs: string | null;
+                entries: {
+                    subjectName: string;
+                    teacherName: string;
+                    body: string;
+                }[];
+            }[];
+        };
+        MissingActivity: {
+            date: string;
+            dateBs: string | null;
+            classes: {
+                classId: string;
+                programmeName: string;
+                levelName: string;
+                label: string;
+                missing: {
+                    subjectName: string;
+                    teacherName: string;
+                }[];
+            }[];
+        };
+        ActivityClassList: {
+            date: string;
+            dateBs: string | null;
+            classes: {
+                classId: string;
+                programmeName: string;
+                levelName: string;
+                label: string;
+                expected: number;
+                written: number;
+            }[];
+        };
+        ShareNote: {
+            classId: string;
+            offeringId: string;
+            /** @enum {string} */
+            kind: "note" | "question_paper";
+            title: string;
+            body?: string;
+            link?: string;
+        };
+        TeacherNotes: {
+            notes: {
+                id: string;
+                /** @enum {string} */
+                kind: "note" | "question_paper";
+                title: string;
+                body: string | null;
+                link: string | null;
+                subjectName: string;
+                createdAt: string;
+                classId: string;
+                programmeName: string;
+                levelName: string;
+                label: string;
+                withdrawn: boolean;
+            }[];
+        };
+        StudentNotes: {
+            watermark: string;
+            notes: {
+                id: string;
+                /** @enum {string} */
+                kind: "note" | "question_paper";
+                title: string;
+                body: string | null;
+                link: string | null;
+                subjectName: string;
+                createdAt: string;
+                teacherName: string;
+            }[];
+        };
+        SetAssignment: {
+            classId: string;
+            offeringId: string;
+            title: string;
+            instructions: string;
+            link?: string;
+            dueAt: string;
+            maxMarks?: number;
+        };
+        TeacherAssignments: {
+            assignments: {
+                id: string;
+                title: string;
+                instructions: string;
+                link: string | null;
+                dueAt: string;
+                dueDateBs: string | null;
+                maxMarks: number | null;
+                subjectName: string;
+                classId: string;
+                programmeName: string;
+                levelName: string;
+                label: string;
+                withdrawn: boolean;
+                students: number;
+                submitted: number;
+                toReview: number;
+                requests: number;
+            }[];
+        };
+        StudentAssignments: {
+            assignments: {
+                id: string;
+                title: string;
+                instructions: string;
+                link: string | null;
+                dueAt: string;
+                dueDateBs: string | null;
+                maxMarks: number | null;
+                subjectName: string;
+                teacherName: string;
+                submission: {
+                    id: string;
+                    /** @enum {string} */
+                    status: "submitted" | "reviewed" | "resubmit_requested" | "resubmit_allowed";
+                    isLate: boolean;
+                    body: string;
+                    submittedAt: string;
+                    marks: number | null;
+                    feedback: string | null;
+                    resubmitReason: string | null;
+                    attempts: number;
+                } | null;
+            }[];
+        };
+        AssignmentDetail: {
+            id: string;
+            title: string;
+            instructions: string;
+            link: string | null;
+            dueAt: string;
+            dueDateBs: string | null;
+            maxMarks: number | null;
+            subjectName: string;
+            classId: string;
+            programmeName: string;
+            levelName: string;
+            label: string;
+            withdrawn: boolean;
+            students: {
+                enrollmentId: string;
+                sid: string;
+                name: string;
+                submission: {
+                    id: string;
+                    /** @enum {string} */
+                    status: "submitted" | "reviewed" | "resubmit_requested" | "resubmit_allowed";
+                    isLate: boolean;
+                    body: string;
+                    submittedAt: string;
+                    marks: number | null;
+                    feedback: string | null;
+                    resubmitReason: string | null;
+                    attempts: number;
+                } | null;
+            }[];
+        };
+        ReviewWork: {
+            marks?: number;
+            feedback?: string;
+        };
+        ResubmitDecision: {
+            allow: boolean;
+        };
+        SubmitWork: {
+            body: string;
+        };
+        ResubmitRequest: {
+            reason: string;
+        };
+        FeeStructureList: {
+            structures: {
+                id: string;
+                levelId: string;
+                /** @enum {string} */
+                status: "draft" | "waiting" | "live";
+                yearLabel: string;
+                programmeName: string;
+                levelName: string;
+                sectionKey: string;
+                yearlyTotalPaisa: number;
+            }[];
+        };
+        FeesError: {
+            error: string;
+        };
+        FeeStructure: {
+            id: string;
+            levelId: string;
+            /** @enum {string} */
+            status: "draft" | "waiting" | "live";
+            yearLabel: string;
+            programmeName: string;
+            levelName: string;
+            sectionKey: string;
+            yearlyTotalPaisa: number;
+            items: {
+                id: string;
+                name: string;
+                amountPaisa: number;
+                /** @enum {string} */
+                frequency: "one_time" | "monthly" | "yearly" | "whole_course";
+            }[];
+            classes: {
+                id: string;
+                label: string;
+                students: number;
+            }[];
+        };
+        FeesInvalid: {
+            /** @enum {string} */
+            error: "invalid";
+            message: string;
+        };
+        NewFeeStructure: {
+            levelId: string;
+        };
+        NewFeeItem: {
+            name: string;
+            amountPaisa: number;
+            /** @enum {string} */
+            frequency: "one_time" | "monthly" | "yearly" | "whole_course";
+        };
+        ChangeFeeItem: {
+            name?: string;
+            amountPaisa?: number;
+            /** @enum {string} */
+            frequency?: "one_time" | "monthly" | "yearly" | "whole_course";
+            isActive?: boolean;
+        };
+        GenerateCharges: {
+            classId: string;
+        };
+        FeeAccount: {
+            enrollmentId: string;
+            studentName: string;
+            sid: string;
+            className: string;
+            yearLabel: string;
+            chargedPaisa: number;
+            discountPaisa: number;
+            paidPaisa: number;
+            refundedPaisa: number;
+            balancePaisa: number;
+            duePaisa: number;
+            overduePaisa: number;
+            creditPaisa: number;
+            nextDue: {
+                dueOn: string;
+                dueOnBs: string | null;
+                remainingPaisa: number;
+            } | null;
+            entries: {
+                id: string;
+                /** @enum {string} */
+                kind: "charge" | "carried_dues" | "discount" | "payment" | "reversal" | "refund";
+                amountPaisa: number;
+                memo: string | null;
+                period: string | null;
+                dueOnBs: string | null;
+                createdOnBs: string | null;
+                reversed: boolean;
+                receiptId: string | null;
+            }[];
+            receipts: {
+                id: string;
+                number: string;
+                amountPaisa: number;
+                issuedOnBs: string | null;
+                reversed: boolean;
+            }[];
+        };
+        Receipt: {
+            id: string;
+            number: string;
+            amountPaisa: number;
+            /** @enum {string} */
+            method: "cash" | "voucher" | "gateway";
+            issuedAt: string;
+            issuedOnBs: string | null;
+            studentName: string;
+            sid: string;
+            className: string;
+            yearLabel: string;
+            reversed: boolean;
+            balanceAfterPaisa: number;
+        };
+        Paid: {
+            paymentId: string;
+            receipt: {
+                id: string;
+                number: string;
+            };
+        };
+        CashPayment: {
+            enrollmentId: string;
+            amountPaisa: number;
+            idempotencyKey: string;
+            memo?: string;
+        };
+        Voucher: {
+            amountPaisa: number;
+            bank: string;
+            reference: string;
+            paidOn: string;
+        };
+        VoucherList: {
+            vouchers: {
+                id: string;
+                enrollmentId: string;
+                studentName: string;
+                sid: string;
+                amountPaisa: number;
+                bank: string;
+                reference: string;
+                paidOn: string;
+                paidOnBs: string | null;
+                submittedAt: string;
+            }[];
+        };
+        RejectVoucher: {
+            reason: string;
+        };
+        OnlinePayment: {
+            amountPaisa: number;
+        };
+        GatewayCallback: {
+            gatewayReference: string;
+        };
+        ProposeDiscount: {
+            amountPaisa?: number;
+            percent?: number;
+            /** @enum {string} */
+            reason: "scholarship" | "sibling" | "staff_child" | "other";
+            note?: string;
+        };
+        ReversalRequest: {
+            reason: string;
+        };
+        RefundRequest: {
+            amountPaisa: number;
+            reason: string;
+        };
+        RecordRefund: {
+            /** @enum {string} */
+            method: "cash" | "bank_transfer" | "cheque";
+            reference?: string;
+        };
+        AdjustmentList: {
+            adjustments: {
+                id: string;
+                /** @enum {string} */
+                kind: "discount" | "reversal" | "refund";
+                /** @enum {string} */
+                status: "draft" | "pending" | "approved" | "recorded" | "closed";
+                amountPaisa: number;
+                reason: string | null;
+                note: string | null;
+                createdAt: string;
+            }[];
+        };
+        DuesList: {
+            today: string;
+            students: {
+                enrollmentId: string;
+                studentName: string;
+                sid: string;
+                classId: string;
+                className: string;
+                hasEmail: boolean;
+                chargedPaisa: number;
+                discountPaisa: number;
+                paidPaisa: number;
+                balancePaisa: number;
+                duePaisa: number;
+                overduePaisa: number;
+            }[];
+            totals: {
+                chargedPaisa: number;
+                discountPaisa: number;
+                paidPaisa: number;
+                duePaisa: number;
+                overduePaisa: number;
+            };
+        };
+        ClassElectives: {
+            classId: string;
+            programmeName: string;
+            levelName: string;
+            label: string;
+            groups: {
+                id: string;
+                name: string;
+                pickCount: number;
+                subjects: {
+                    offeringId: string;
+                    name: string;
+                }[];
+            }[];
+            students: {
+                enrollmentId: string;
+                sid: string;
+                name: string;
+                picks: string[];
+            }[];
+        };
+        ResultsError: {
+            error: string;
+            message?: string;
+        };
+        ResultsOk: {
+            /** @enum {boolean} */
+            ok: true;
+        };
+        ResultsInvalid: {
+            /** @enum {string} */
+            error: "invalid";
+            message: string;
+        };
+        SetElectivePicks: {
+            offeringIds: string[];
+        };
+        MyMarkSheets: {
+            terminals: {
+                id: string;
+                name: string;
+            }[];
+            subjects: {
+                classId: string;
+                programmeName: string;
+                levelName: string;
+                label: string;
+                offeringId: string;
+                subjectName: string;
+                sheets: {
+                    terminalId: string;
+                    /** @enum {string} */
+                    status: "not_started" | "draft" | "under_review" | "verified" | "published";
+                    note: string | null;
+                }[];
+            }[];
+        };
+        MarkSheet: {
+            sheetId: string | null;
+            classId: string;
+            programmeName: string;
+            levelName: string;
+            label: string;
+            offeringId: string;
+            subjectName: string;
+            terminal: {
+                id: string;
+                name: string;
+            };
+            teacherName: string | null;
+            /** @enum {string} */
+            status: "not_started" | "draft" | "under_review" | "verified" | "published";
+            note: string | null;
+            components: {
+                id: string;
+                name: string;
+                /** @enum {string} */
+                kind: "theory" | "practical";
+                maxHundredths: number;
+            }[];
+            students: {
+                enrollmentId: string;
+                sid: string;
+                name: string;
+                rollNo: number | null;
+                marks: {
+                    componentId: string;
+                    valueHundredths: number | null;
+                    absent: boolean;
+                }[];
+            }[];
+            missing: number;
+        };
+        SaveMarks: {
+            marks: {
+                enrollmentId: string;
+                componentId: string;
+                valueHundredths: number | null;
+                /** @default false */
+                absent: boolean;
+            }[];
+        };
+        ReviewBoard: {
+            terminals: {
+                id: string;
+                name: string;
+            }[];
+            terminalId: string | null;
+            classes: {
+                classId: string;
+                programmeName: string;
+                levelName: string;
+                label: string;
+                /** @enum {string|null} */
+                gradingPolicy: "neb_gpa" | "percentage_division" | null;
+                published: boolean;
+                ready: boolean;
+                subjects: {
+                    offeringId: string;
+                    subjectName: string;
+                    teacherName: string | null;
+                    sheetId: string | null;
+                    /** @enum {string} */
+                    status: "not_started" | "draft" | "under_review" | "verified" | "published";
+                    missing: number;
+                }[];
+            }[];
+        };
+        BulkVerify: {
+            sheetIds: string[];
+        };
+        SendBackSheet: {
+            note: string;
+        };
+        PublishClass: {
+            terminalId: string;
+        };
+        OwnResults: {
+            results: {
+                publicationId: string;
+                yearLabel: string;
+                terminalName: string;
+                card: components["schemas"]["MarksCard"];
+                rechecks: {
+                    id: string;
+                    offeringId: string;
+                    subjectName: string;
+                    reason: string;
+                    /** @enum {string} */
+                    status: "open" | "changed" | "unchanged";
+                    requestedAt: string;
+                    decisionReason: string | null;
+                }[];
+            }[];
+        };
+        MarksCard: {
+            id: string;
+            version: number;
+            publishedAt: string;
+            publishedAtBs: string | null;
+            reason: string | null;
+            body: {
+                student: {
+                    name: string;
+                    sid: string;
+                    rollNo: number | null;
+                };
+                class: {
+                    programmeName: string;
+                    levelName: string;
+                    label: string;
+                    sectionName: string;
+                    yearLabel: string;
+                };
+                terminal: {
+                    name: string;
+                };
+                /** @enum {string} */
+                policy: "neb_gpa" | "percentage_division";
+                subjects: {
+                    offeringId: string;
+                    name: string;
+                    creditHundredths: number | null;
+                    obtainedHundredths: number;
+                    maxHundredths: number;
+                    percentHundredths: number;
+                    grade: string;
+                    gradePointHundredths: number | null;
+                    passed: boolean;
+                    components: {
+                        name: string;
+                        /** @enum {string} */
+                        kind: "theory" | "practical";
+                        maxHundredths: number;
+                        valueHundredths: number | null;
+                        absent: boolean;
+                    }[];
+                }[];
+                gpaHundredths: number | null;
+                percentHundredths: number | null;
+                outcome: string;
+                passed: boolean;
+            };
+        };
+        ClassResultSheet: {
+            classId: string;
+            programmeName: string;
+            levelName: string;
+            label: string;
+            terminal: {
+                id: string;
+                name: string;
+            };
+            /** @enum {string} */
+            policy: "neb_gpa" | "percentage_division";
+            publishedAt: string;
+            subjects: {
+                offeringId: string;
+                name: string;
+            }[];
+            students: {
+                enrollmentId: string;
+                cardId: string;
+                sid: string;
+                name: string;
+                rank: number | null;
+                gpaHundredths: number | null;
+                percentHundredths: number | null;
+                outcome: string;
+                version: number;
+                subjects: ({
+                    offeringId: string;
+                    grade: string;
+                    percentHundredths: number;
+                } | null)[];
+            }[];
+        };
+        Top20: {
+            terminals: {
+                id: string;
+                name: string;
+            }[];
+            terminalId: string | null;
+            pools: {
+                sectionName: string;
+                levelName: string;
+                entries: {
+                    rank: number;
+                    name: string;
+                    className?: string;
+                    score?: number;
+                }[];
+            }[];
+        };
+        RequestRecheck: {
+            offeringId: string;
+            reason: string;
+        };
+        RecheckList: {
+            rechecks: {
+                id: string;
+                offeringId: string;
+                subjectName: string;
+                reason: string;
+                /** @enum {string} */
+                status: "open" | "changed" | "unchanged";
+                requestedAt: string;
+                decisionReason: string | null;
+                classId: string;
+                programmeName: string;
+                levelName: string;
+                label: string;
+                terminalName: string;
+                studentName: string;
+                sid: string;
+                decidedAt: string | null;
+                decidedBy: string | null;
+                marks: {
+                    componentId: string;
+                    name: string;
+                    maxHundredths: number;
+                    valueHundredths: number | null;
+                    absent: boolean;
+                }[];
+            }[];
+        };
+        DecideRecheck: {
+            /** @enum {string} */
+            outcome: "changed" | "unchanged";
+            reason: string;
+            /** @default [] */
+            marks: {
+                componentId: string;
+                valueHundredths: number | null;
+                /** @default false */
+                absent: boolean;
+            }[];
         };
         DateConversionFailure: {
             /** @enum {string} */
@@ -5270,6 +7310,3073 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AdmissionsError"];
+                };
+            };
+        };
+    };
+    list_attendance_classes: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The classes */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AttendanceClassList"];
+                };
+            };
+            /** @description No such class, not one the person may see, or attendance is switched off for this school */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AttendanceError"];
+                };
+            };
+        };
+    };
+    get_attendance_day: {
+        parameters: {
+            query?: {
+                date?: string;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The register */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AttendanceDay"];
+                };
+            };
+            /** @description No such class, not one the person may see, or attendance is switched off for this school */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AttendanceError"];
+                };
+            };
+            /** @description A day outside the verified calendar */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AttendanceInvalid"];
+                };
+            };
+        };
+    };
+    mark_attendance_today: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MarkAttendance"];
+            };
+        };
+        responses: {
+            /** @description Saved */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AttendanceMarked"];
+                };
+            };
+            /** @description No such class, not one the person may see, or attendance is switched off for this school */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AttendanceError"];
+                };
+            };
+            /** @description The academic year is closed */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AttendanceError"];
+                };
+            };
+            /** @description A student listed is not in this class */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AttendanceInvalid"];
+                };
+            };
+        };
+    };
+    get_attendance_summary: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The summary */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AttendanceSummary"];
+                };
+            };
+            /** @description No such class, not one the person may see, or attendance is switched off for this school */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AttendanceError"];
+                };
+            };
+        };
+    };
+    get_own_attendance: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Their attendance */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OwnAttendance"];
+                };
+            };
+            /** @description No enrollment this year, or attendance is switched off */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AttendanceError"];
+                };
+            };
+        };
+    };
+    get_teacher_attendance_day: {
+        parameters: {
+            query?: {
+                date?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The list */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TeacherDay"];
+                };
+            };
+            /** @description Not allowed: a teacher reads only their own month */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AttendanceError"];
+                };
+            };
+            /** @description Teacher attendance is switched off for this school */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AttendanceError"];
+                };
+            };
+            /** @description A day outside the verified calendar */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AttendanceInvalid"];
+                };
+            };
+        };
+    };
+    save_teacher_attendance_day: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SaveTeacherDay"];
+            };
+        };
+        responses: {
+            /** @description Saved */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {boolean} */
+                        ok: true;
+                        present: number;
+                        absent: number;
+                        leave: number;
+                    };
+                };
+            };
+            /** @description Not allowed any more, or teacher attendance is switched off */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AttendanceError"];
+                };
+            };
+            /** @description The day falls in a closed academic year */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AttendanceError"];
+                };
+            };
+            /** @description A future day, a past day without a reason, or a teacher out of reach */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AttendanceInvalid"];
+                };
+            };
+        };
+    };
+    get_own_teacher_month: {
+        parameters: {
+            query?: {
+                month?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The month */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OwnTeacherMonth"];
+                };
+            };
+            /** @description Teacher attendance is switched off for this school */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AttendanceError"];
+                };
+            };
+            /** @description A year outside the verified calendar */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AttendanceInvalid"];
+                };
+            };
+        };
+    };
+    get_my_activity_today: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Today's subjects */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MyActivityToday"];
+                };
+            };
+        };
+    };
+    write_activity_today: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                classId: string;
+                offeringId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WriteActivity"];
+            };
+        };
+        responses: {
+            /** @description Saved */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {boolean} */
+                        ok: true;
+                    };
+                };
+            };
+            /** @description Not a subject this teacher teaches in this class */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClassworkError"];
+                };
+            };
+            /** @description The academic year is closed */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClassworkError"];
+                };
+            };
+            /** @description Not valid */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClassworkInvalid"];
+                };
+            };
+        };
+    };
+    get_class_activity: {
+        parameters: {
+            query?: {
+                date?: string;
+            };
+            header?: never;
+            path: {
+                classId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The day */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClassActivityDay"];
+                };
+            };
+            /** @description No such class, or not one the person may see */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClassworkError"];
+                };
+            };
+            /** @description A day outside the verified calendar */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClassworkInvalid"];
+                };
+            };
+        };
+    };
+    get_own_activity: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The entries */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OwnActivity"];
+                };
+            };
+        };
+    };
+    get_missing_activity: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description What is missing */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MissingActivity"];
+                };
+            };
+            /** @description Not for students or teachers */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClassworkError"];
+                };
+            };
+        };
+    };
+    list_activity_classes: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The classes */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ActivityClassList"];
+                };
+            };
+            /** @description Not for students or teachers */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClassworkError"];
+                };
+            };
+        };
+    };
+    share_note: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ShareNote"];
+            };
+        };
+        responses: {
+            /** @description Shared */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        id: string;
+                    };
+                };
+            };
+            /** @description Not a subject this teacher teaches in this class, or notes are switched off */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClassworkError"];
+                };
+            };
+            /** @description The academic year is closed */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClassworkError"];
+                };
+            };
+            /** @description Neither words nor a link */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClassworkInvalid"];
+                };
+            };
+        };
+    };
+    withdraw_note: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Withdrawn */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {boolean} */
+                        ok: true;
+                    };
+                };
+            };
+            /** @description No such live note in a subject this teacher teaches */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClassworkError"];
+                };
+            };
+            /** @description The academic year is closed */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClassworkError"];
+                };
+            };
+        };
+    };
+    list_teacher_notes: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The notes */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TeacherNotes"];
+                };
+            };
+            /** @description Notes are switched off */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClassworkError"];
+                };
+            };
+        };
+    };
+    list_student_notes: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The notes */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StudentNotes"];
+                };
+            };
+            /** @description Not a student */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClassworkError"];
+                };
+            };
+            /** @description Notes are switched off */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClassworkError"];
+                };
+            };
+        };
+    };
+    set_homework: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SetAssignment"];
+            };
+        };
+        responses: {
+            /** @description Set */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        id: string;
+                    };
+                };
+            };
+            /** @description Not found, not yours, or homework is switched off */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClassworkError"];
+                };
+            };
+            /** @description Not possible in its current state, or the academic year is closed */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClassworkError"];
+                };
+            };
+            /** @description Not valid */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClassworkInvalid"];
+                };
+            };
+        };
+    };
+    withdraw_assignment: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Done */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {boolean} */
+                        ok: true;
+                    };
+                };
+            };
+            /** @description Not found, not yours, or homework is switched off */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClassworkError"];
+                };
+            };
+            /** @description Not possible in its current state, or the academic year is closed */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClassworkError"];
+                };
+            };
+            /** @description Not valid */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClassworkInvalid"];
+                };
+            };
+        };
+    };
+    list_teacher_assignments: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The assignments */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TeacherAssignments"];
+                };
+            };
+            /** @description Homework is switched off */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClassworkError"];
+                };
+            };
+        };
+    };
+    list_student_assignments: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The assignments */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StudentAssignments"];
+                };
+            };
+            /** @description Homework is switched off */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClassworkError"];
+                };
+            };
+        };
+    };
+    get_assignment: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The assignment */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AssignmentDetail"];
+                };
+            };
+            /** @description Not an assignment in a subject this teacher teaches */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClassworkError"];
+                };
+            };
+        };
+    };
+    review_submission: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                submissionId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReviewWork"];
+            };
+        };
+        responses: {
+            /** @description Done */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {boolean} */
+                        ok: true;
+                    };
+                };
+            };
+            /** @description Not found, not yours, or homework is switched off */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClassworkError"];
+                };
+            };
+            /** @description Not possible in its current state, or the academic year is closed */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClassworkError"];
+                };
+            };
+            /** @description Not valid */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClassworkInvalid"];
+                };
+            };
+        };
+    };
+    decide_resubmission: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                submissionId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ResubmitDecision"];
+            };
+        };
+        responses: {
+            /** @description Done */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {boolean} */
+                        ok: true;
+                    };
+                };
+            };
+            /** @description Not found, not yours, or homework is switched off */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClassworkError"];
+                };
+            };
+            /** @description Not possible in its current state, or the academic year is closed */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClassworkError"];
+                };
+            };
+            /** @description Not valid */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClassworkInvalid"];
+                };
+            };
+        };
+    };
+    submit_work: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SubmitWork"];
+            };
+        };
+        responses: {
+            /** @description Done */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {boolean} */
+                        ok: true;
+                    };
+                };
+            };
+            /** @description Not found, not yours, or homework is switched off */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClassworkError"];
+                };
+            };
+            /** @description Not possible in its current state, or the academic year is closed */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClassworkError"];
+                };
+            };
+            /** @description Not valid */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClassworkInvalid"];
+                };
+            };
+        };
+    };
+    request_resubmission: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ResubmitRequest"];
+            };
+        };
+        responses: {
+            /** @description Done */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {boolean} */
+                        ok: true;
+                    };
+                };
+            };
+            /** @description Not found, not yours, or homework is switched off */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClassworkError"];
+                };
+            };
+            /** @description Not possible in its current state, or the academic year is closed */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClassworkError"];
+                };
+            };
+            /** @description Not valid */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClassworkInvalid"];
+                };
+            };
+        };
+    };
+    list_fee_structures: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The structures */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeeStructureList"];
+                };
+            };
+            /** @description Not allowed */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeesError"];
+                };
+            };
+        };
+    };
+    create_fee_structure: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["NewFeeStructure"];
+            };
+        };
+        responses: {
+            /** @description Drafted */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        id: string;
+                    };
+                };
+            };
+            /** @description Not allowed */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeesError"];
+                };
+            };
+            /** @description No such item, or not one the person may reach */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeesError"];
+                };
+            };
+            /** @description Not possible in its current state (not a draft, not live, already there, or the year is closed) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeesError"];
+                };
+            };
+            /** @description Not valid */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeesInvalid"];
+                };
+            };
+        };
+    };
+    get_fee_structure: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The structure */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeeStructure"];
+                };
+            };
+            /** @description Not allowed */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeesError"];
+                };
+            };
+            /** @description No such item, or not one the person may reach */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeesError"];
+                };
+            };
+        };
+    };
+    add_fee_item: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["NewFeeItem"];
+            };
+        };
+        responses: {
+            /** @description Added */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        id: string;
+                    };
+                };
+            };
+            /** @description Not allowed */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeesError"];
+                };
+            };
+            /** @description No such item, or not one the person may reach */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeesError"];
+                };
+            };
+            /** @description Not possible in its current state (not a draft, not live, already there, or the year is closed) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeesError"];
+                };
+            };
+            /** @description Not valid */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeesInvalid"];
+                };
+            };
+        };
+    };
+    change_fee_item: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ChangeFeeItem"];
+            };
+        };
+        responses: {
+            /** @description Changed */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {boolean} */
+                        ok: true;
+                    };
+                };
+            };
+            /** @description Not allowed */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeesError"];
+                };
+            };
+            /** @description No such item, or not one the person may reach */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeesError"];
+                };
+            };
+            /** @description Not possible in its current state (not a draft, not live, already there, or the year is closed) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeesError"];
+                };
+            };
+            /** @description Not valid */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeesInvalid"];
+                };
+            };
+        };
+    };
+    send_fee_structure: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Sent; the approval request's id */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        id: string;
+                    };
+                };
+            };
+            /** @description Not allowed */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeesError"];
+                };
+            };
+            /** @description No such item, or not one the person may reach */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeesError"];
+                };
+            };
+            /** @description Not possible in its current state (not a draft, not live, already there, or the year is closed) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeesError"];
+                };
+            };
+            /** @description Not valid */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeesInvalid"];
+                };
+            };
+        };
+    };
+    generate_fee_charges: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["GenerateCharges"];
+            };
+        };
+        responses: {
+            /** @description Made */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        created: number;
+                    };
+                };
+            };
+            /** @description Not allowed */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeesError"];
+                };
+            };
+            /** @description No such item, or not one the person may reach */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeesError"];
+                };
+            };
+            /** @description Not possible in its current state (not a draft, not live, already there, or the year is closed) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeesError"];
+                };
+            };
+            /** @description Not valid */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeesInvalid"];
+                };
+            };
+        };
+    };
+    get_own_fees: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The account */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeeAccount"];
+                };
+            };
+            /** @description No enrollment this year */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeesError"];
+                };
+            };
+        };
+    };
+    get_fee_account: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The account */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeeAccount"];
+                };
+            };
+            /** @description Not allowed */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeesError"];
+                };
+            };
+            /** @description No such item, or not one the person may reach */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeesError"];
+                };
+            };
+        };
+    };
+    get_student_fee_account: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The account */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeeAccount"];
+                };
+            };
+            /** @description No such item, or not one the person may reach */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeesError"];
+                };
+            };
+        };
+    };
+    get_receipt: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The receipt */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Receipt"];
+                };
+            };
+            /** @description No such item, or not one the person may reach */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeesError"];
+                };
+            };
+        };
+    };
+    record_cash_payment: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CashPayment"];
+            };
+        };
+        responses: {
+            /** @description Paid */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Paid"];
+                };
+            };
+            /** @description Not allowed */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeesError"];
+                };
+            };
+            /** @description No such item, or not one the person may reach */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeesError"];
+                };
+            };
+            /** @description Not possible in its current state (not a draft, not live, already there, or the year is closed) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeesError"];
+                };
+            };
+            /** @description Not valid */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeesInvalid"];
+                };
+            };
+        };
+    };
+    submit_voucher: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["Voucher"];
+            };
+        };
+        responses: {
+            /** @description Reported */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        id: string;
+                    };
+                };
+            };
+            /** @description Not allowed */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeesError"];
+                };
+            };
+            /** @description No such item, or not one the person may reach */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeesError"];
+                };
+            };
+            /** @description Not possible in its current state (not a draft, not live, already there, or the year is closed) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeesError"];
+                };
+            };
+            /** @description Not valid */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeesInvalid"];
+                };
+            };
+        };
+    };
+    list_vouchers: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The vouchers */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VoucherList"];
+                };
+            };
+        };
+    };
+    verify_voucher: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Paid */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Paid"];
+                };
+            };
+            /** @description Not allowed */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeesError"];
+                };
+            };
+            /** @description No such item, or not one the person may reach */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeesError"];
+                };
+            };
+            /** @description Not possible in its current state (not a draft, not live, already there, or the year is closed) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeesError"];
+                };
+            };
+            /** @description Not valid */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeesInvalid"];
+                };
+            };
+        };
+    };
+    reject_voucher: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RejectVoucher"];
+            };
+        };
+        responses: {
+            /** @description Rejected */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {boolean} */
+                        ok: true;
+                    };
+                };
+            };
+            /** @description Not allowed */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeesError"];
+                };
+            };
+            /** @description No such item, or not one the person may reach */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeesError"];
+                };
+            };
+            /** @description Not possible in its current state (not a draft, not live, already there, or the year is closed) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeesError"];
+                };
+            };
+            /** @description Not valid */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeesInvalid"];
+                };
+            };
+        };
+    };
+    start_online_payment: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OnlinePayment"];
+            };
+        };
+        responses: {
+            /** @description Started */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        gatewayReference: string;
+                        redirectUrl: string;
+                    };
+                };
+            };
+            /** @description No such item, or not one the person may reach */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeesError"];
+                };
+            };
+        };
+    };
+    gateway_callback: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["GatewayCallback"];
+            };
+        };
+        responses: {
+            /** @description Applied (or already applied) */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {boolean} */
+                        ok: true;
+                    };
+                };
+            };
+            /** @description No such item, or not one the person may reach */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeesError"];
+                };
+            };
+            /** @description Not possible in its current state (not a draft, not live, already there, or the year is closed) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeesError"];
+                };
+            };
+        };
+    };
+    propose_discount: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ProposeDiscount"];
+            };
+        };
+        responses: {
+            /** @description Sent for approval; the request's own id */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        id: string;
+                    };
+                };
+            };
+            /** @description Not allowed */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeesError"];
+                };
+            };
+            /** @description No such item, or not one the person may reach */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeesError"];
+                };
+            };
+            /** @description Not possible in its current state (not a draft, not live, already there, or the year is closed) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeesError"];
+                };
+            };
+            /** @description Not valid */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeesInvalid"];
+                };
+            };
+        };
+    };
+    request_reversal: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReversalRequest"];
+            };
+        };
+        responses: {
+            /** @description Sent for approval */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        id: string;
+                    };
+                };
+            };
+            /** @description Not allowed */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeesError"];
+                };
+            };
+            /** @description No such item, or not one the person may reach */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeesError"];
+                };
+            };
+            /** @description Not possible in its current state (not a draft, not live, already there, or the year is closed) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeesError"];
+                };
+            };
+            /** @description Not valid */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeesInvalid"];
+                };
+            };
+        };
+    };
+    request_refund: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RefundRequest"];
+            };
+        };
+        responses: {
+            /** @description Sent for approval */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        id: string;
+                    };
+                };
+            };
+            /** @description Not allowed */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeesError"];
+                };
+            };
+            /** @description No such item, or not one the person may reach */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeesError"];
+                };
+            };
+            /** @description Not possible in its current state (not a draft, not live, already there, or the year is closed) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeesError"];
+                };
+            };
+            /** @description Not valid */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeesInvalid"];
+                };
+            };
+        };
+    };
+    record_refund: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RecordRefund"];
+            };
+        };
+        responses: {
+            /** @description Recorded */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {boolean} */
+                        ok: true;
+                    };
+                };
+            };
+            /** @description Not allowed */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeesError"];
+                };
+            };
+            /** @description No such item, or not one the person may reach */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeesError"];
+                };
+            };
+            /** @description Not possible in its current state (not a draft, not live, already there, or the year is closed) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeesError"];
+                };
+            };
+            /** @description Not valid */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeesInvalid"];
+                };
+            };
+        };
+    };
+    list_fee_adjustments: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The requests */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdjustmentList"];
+                };
+            };
+            /** @description No such item, or not one the person may reach */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeesError"];
+                };
+            };
+        };
+    };
+    list_dues: {
+        parameters: {
+            query?: {
+                classId?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The dues list */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DuesList"];
+                };
+            };
+        };
+    };
+    export_dues: {
+        parameters: {
+            query?: {
+                classId?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The CSV */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/csv": string;
+                };
+            };
+        };
+    };
+    send_overdue_reminders: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Queued */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        queued: number;
+                    };
+                };
+            };
+        };
+    };
+    get_class_electives: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                classId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The picks */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClassElectives"];
+                };
+            };
+            /** @description No such item, or not one the person may reach */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResultsError"];
+                };
+            };
+        };
+    };
+    set_elective_picks: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                enrollmentId: string;
+                groupId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SetElectivePicks"];
+            };
+        };
+        responses: {
+            /** @description Saved */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResultsOk"];
+                };
+            };
+            /** @description No such item, or not one the person may reach */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResultsError"];
+                };
+            };
+            /** @description Not possible in its current state (already decided, already published, not ready, or the year is closed) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResultsError"];
+                };
+            };
+            /** @description Not valid */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResultsInvalid"];
+                };
+            };
+        };
+    };
+    get_my_mark_sheets: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The subjects */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MyMarkSheets"];
+                };
+            };
+        };
+    };
+    get_mark_sheet: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                classId: string;
+                offeringId: string;
+                terminalId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The sheet */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MarkSheet"];
+                };
+            };
+            /** @description No such item, or not one the person may reach */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResultsError"];
+                };
+            };
+        };
+    };
+    save_marks: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                classId: string;
+                offeringId: string;
+                terminalId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SaveMarks"];
+            };
+        };
+        responses: {
+            /** @description Saved */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResultsOk"];
+                };
+            };
+            /** @description No such item, or not one the person may reach */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResultsError"];
+                };
+            };
+            /** @description Not possible in its current state (already decided, already published, not ready, or the year is closed) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResultsError"];
+                };
+            };
+            /** @description Not valid */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResultsInvalid"];
+                };
+            };
+        };
+    };
+    submit_mark_sheet: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                classId: string;
+                offeringId: string;
+                terminalId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Sent */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResultsOk"];
+                };
+            };
+            /** @description No such item, or not one the person may reach */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResultsError"];
+                };
+            };
+            /** @description Not possible in its current state (already decided, already published, not ready, or the year is closed) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResultsError"];
+                };
+            };
+            /** @description Not valid */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResultsInvalid"];
+                };
+            };
+        };
+    };
+    get_results_review: {
+        parameters: {
+            query?: {
+                terminalId?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The board */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReviewBoard"];
+                };
+            };
+        };
+    };
+    get_review_sheet: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                sheetId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The sheet */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MarkSheet"];
+                };
+            };
+            /** @description No such item, or not one the person may reach */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResultsError"];
+                };
+            };
+        };
+    };
+    verify_mark_sheets: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BulkVerify"];
+            };
+        };
+        responses: {
+            /** @description Verified */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        verified: number;
+                    };
+                };
+            };
+            /** @description No such item, or not one the person may reach */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResultsError"];
+                };
+            };
+            /** @description Not possible in its current state (already decided, already published, not ready, or the year is closed) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResultsError"];
+                };
+            };
+            /** @description Not valid */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResultsInvalid"];
+                };
+            };
+        };
+    };
+    send_back_mark_sheet: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                sheetId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SendBackSheet"];
+            };
+        };
+        responses: {
+            /** @description Sent back */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResultsOk"];
+                };
+            };
+            /** @description No such item, or not one the person may reach */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResultsError"];
+                };
+            };
+            /** @description Not possible in its current state (already decided, already published, not ready, or the year is closed) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResultsError"];
+                };
+            };
+            /** @description Not valid */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResultsInvalid"];
+                };
+            };
+        };
+    };
+    publish_class_results: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                classId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PublishClass"];
+            };
+        };
+        responses: {
+            /** @description Published */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        publicationId: string;
+                        cards: number;
+                    };
+                };
+            };
+            /** @description No such item, or not one the person may reach */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResultsError"];
+                };
+            };
+            /** @description Not possible in its current state (already decided, already published, not ready, or the year is closed) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResultsError"];
+                };
+            };
+            /** @description Not valid */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResultsInvalid"];
+                };
+            };
+        };
+    };
+    get_own_results: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The results */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OwnResults"];
+                };
+            };
+        };
+    };
+    get_marks_card: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                cardId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The card */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MarksCard"];
+                };
+            };
+            /** @description No such item, or not one the person may reach */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResultsError"];
+                };
+            };
+        };
+    };
+    get_class_result_sheet: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                classId: string;
+                terminalId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The sheet */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClassResultSheet"];
+                };
+            };
+            /** @description No such item, or not one the person may reach */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResultsError"];
+                };
+            };
+        };
+    };
+    export_class_result_sheet: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                classId: string;
+                terminalId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The CSV */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/csv": string;
+                };
+            };
+            /** @description No such item, or not one the person may reach */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResultsError"];
+                };
+            };
+        };
+    };
+    get_top20: {
+        parameters: {
+            query?: {
+                terminalId?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The lists */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Top20"];
+                };
+            };
+            /** @description The Top 20 is switched off for this school */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResultsError"];
+                };
+            };
+        };
+    };
+    request_recheck: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                publicationId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RequestRecheck"];
+            };
+        };
+        responses: {
+            /** @description Requested */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        id: string;
+                    };
+                };
+            };
+            /** @description No such item, or not one the person may reach */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResultsError"];
+                };
+            };
+            /** @description Not possible in its current state (already decided, already published, not ready, or the year is closed) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResultsError"];
+                };
+            };
+            /** @description Not valid */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResultsInvalid"];
+                };
+            };
+        };
+    };
+    list_rechecks: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The rechecks */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecheckList"];
+                };
+            };
+            /** @description No such item, or not one the person may reach */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResultsError"];
+                };
+            };
+        };
+    };
+    decide_recheck: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                recheckId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DecideRecheck"];
+            };
+        };
+        responses: {
+            /** @description Decided */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResultsOk"];
+                };
+            };
+            /** @description No such item, or not one the person may reach */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResultsError"];
+                };
+            };
+            /** @description Not possible in its current state (already decided, already published, not ready, or the year is closed) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResultsError"];
+                };
+            };
+            /** @description Not valid */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResultsInvalid"];
                 };
             };
         };
