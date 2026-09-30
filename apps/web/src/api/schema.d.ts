@@ -2328,6 +2328,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/dev/mailbox": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description The emails the site would have sent, newest first (the last 100). Only where email is not really sent; never in production. */
+        get: operations["dev_mailbox"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/site/pages": {
         parameters: {
             query?: never;
@@ -3909,6 +3926,15 @@ export interface components {
         DateConversionFailure: {
             /** @enum {string} */
             error: "invalid_date" | "unverified_year";
+        };
+        DevMailbox: {
+            messages: {
+                id: number;
+                at: string;
+                to: string;
+                subject: string;
+                body: string;
+            }[];
         };
         SitePages: {
             site: {
@@ -10456,6 +10482,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["DateConversionFailure"];
+                };
+            };
+        };
+    };
+    dev_mailbox: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The kept emails */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DevMailbox"];
+                };
+            };
+            /** @description Email is really sent here, so there is no test mailbox */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
                 };
             };
         };

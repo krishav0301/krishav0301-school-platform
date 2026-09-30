@@ -40,3 +40,20 @@ export function createEmailAdapter(env: { DB: D1Database; EMAIL_ADAPTER?: string
   if (name === "dev") return devEmailAdapter(env.DB);
   throw new Error(name ? `Unknown EMAIL_ADAPTER "${name}". Known: ${EMAIL_ADAPTERS.join(", ")}.` : "No EMAIL_ADAPTER is configured, so email cannot be sent.");
 }
+
+export interface DevMailboxMessage {
+  id: number;
+  at: string;
+  to: string;
+  subject: string;
+  body: string;
+}
+
+/** What the dev adapter kept, newest first: the test mailbox testers read on staging (D-086). */
+export async function readDevMailbox(db: D1Database, limit = 100): Promise<DevMailboxMessage[]> {
+  const { results } = await db
+    .prepare("SELECT id, at, to_email AS \"to\", subject, body FROM dev_mailbox ORDER BY id DESC LIMIT ?1")
+    .bind(limit)
+    .all<DevMailboxMessage>();
+  return results;
+}

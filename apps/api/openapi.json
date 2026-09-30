@@ -7031,6 +7031,44 @@
           "error"
         ]
       },
+      "DevMailbox": {
+        "type": "object",
+        "properties": {
+          "messages": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "integer"
+                },
+                "at": {
+                  "type": "string"
+                },
+                "to": {
+                  "type": "string"
+                },
+                "subject": {
+                  "type": "string"
+                },
+                "body": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "id",
+                "at",
+                "to",
+                "subject",
+                "body"
+              ]
+            }
+          }
+        },
+        "required": [
+          "messages"
+        ]
+      },
       "SitePages": {
         "type": "object",
         "properties": {
@@ -15911,6 +15949,45 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/DateConversionFailure"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/dev/mailbox": {
+      "get": {
+        "operationId": "dev_mailbox",
+        "tags": [
+          "notifications"
+        ],
+        "description": "The emails the site would have sent, newest first (the last 100). Only where email is not really sent; never in production.",
+        "responses": {
+          "200": {
+            "description": "The kept emails",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DevMailbox"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Email is really sent here, so there is no test mailbox",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ]
                 }
               }
             }

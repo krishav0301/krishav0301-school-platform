@@ -1,0 +1,7 @@
+/* The test mailbox (D-086). Tokens only: no colour, font or motion is written out here. */
+
+.body {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
