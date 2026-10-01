@@ -33,19 +33,20 @@ describe("the real menu", () => {
 
   it("shows each role its own entries", () => {
     // D-087/D-088: the Admin's Setup is just "Programs"; Support keeps the whole Setup.
-    expect(seen("admin", "institution")).toEqual(["dashboard", "content", "programs", "people", "approvals", "attendance", "classwork"]);
-    expect(seen("super_admin", "institution")).toEqual(["dashboard", "content", "setup", "people", "approvals", "attendance", "classwork"]);
-    expect(seen("coordinator", "institution")).toEqual(["dashboard", "content", "setup", "people", "admissions", "attendance", "classwork"]);
-    expect(seen("coordinator", "section")).toEqual(["dashboard", "content", "setup", "people", "admissions", "attendance", "classwork"]);
-    expect(seen("accountant", "institution")).toEqual(["dashboard", "admissions"]);
-    expect(seen("teacher", "assigned")).toEqual(["dashboard", "attendance", "classwork"]);
-    expect(seen("student", "own")).toEqual(["dashboard", "classwork"]);
+    expect(seen("admin", "institution")).toEqual(["dashboard", "content", "programs", "people", "approvals", "attendance", "classwork", "reports", "settings"]);
+    expect(seen("super_admin", "institution")).toEqual(["dashboard", "content", "setup", "people", "approvals", "attendance", "classwork", "reports", "settings"]);
+    expect(seen("coordinator", "institution")).toEqual(["dashboard", "content", "setup", "people", "admissions", "attendance", "classwork", "settings"]);
+    expect(seen("coordinator", "section")).toEqual(["dashboard", "content", "setup", "people", "admissions", "attendance", "classwork", "settings"]);
+    expect(seen("accountant", "institution")).toEqual(["dashboard", "admissions", "settings"]);
+    expect(seen("teacher", "assigned")).toEqual(["dashboard", "attendance", "classwork", "settings"]);
+    expect(seen("student", "own")).toEqual(["dashboard", "classwork", "settings"]);
+    // D-091: Settings is everyone's; Reports only the Principal's and Support's.
   });
 
   it("fees are for the Accountant, the Admin and the student, never the Co-ordinator or a teacher", () => {
     const withFees = { attendance: true, fees: true };
-    expect(seen("accountant", "institution", withFees)).toEqual(["dashboard", "admissions", "fees"]);
-    expect(seen("student", "own", withFees)).toEqual(["dashboard", "classwork", "fees"]);
+    expect(seen("accountant", "institution", withFees)).toEqual(["dashboard", "admissions", "fees", "settings"]);
+    expect(seen("student", "own", withFees)).toEqual(["dashboard", "classwork", "fees", "settings"]);
     expect(seen("admin", "institution", withFees)).toContain("fees");
     expect(seen("coordinator", "institution", withFees)).not.toContain("fees");
     expect(seen("teacher", "assigned", withFees)).not.toContain("fees");
@@ -53,14 +54,14 @@ describe("the real menu", () => {
 
   it("results are for the teacher, the student, the Co-ordinator and the Admin, never the Accountant", () => {
     const withResults = { attendance: true, fees: true, results: true };
-    expect(seen("teacher", "assigned", withResults)).toEqual(["dashboard", "attendance", "classwork", "results"]);
-    expect(seen("student", "own", withResults)).toEqual(["dashboard", "classwork", "fees", "results"]);
+    expect(seen("teacher", "assigned", withResults)).toEqual(["dashboard", "attendance", "classwork", "results", "settings"]);
+    expect(seen("student", "own", withResults)).toEqual(["dashboard", "classwork", "fees", "results", "settings"]);
     for (const role of ["coordinator", "admin"]) expect(seen(role, "institution", withResults)).toContain("results");
     expect(seen("accountant", "institution", withResults)).not.toContain("results");
   });
 
   it("a school that switched attendance off does not see it in the menu", () => {
-    expect(seen("teacher", "assigned", { attendance: false })).toEqual(["dashboard", "classwork"]);
+    expect(seen("teacher", "assigned", { attendance: false })).toEqual(["dashboard", "classwork", "settings"]);
   });
 
   it("on a phone the daily places stay tabs and the rarely visited ones move into More", () => {
@@ -68,8 +69,8 @@ describe("the real menu", () => {
       const { tabs, more } = splitNav(visibleNav(NAV_ITEMS, [{ role, scope }], { attendance: true }));
       return { tabs: tabs.map((i) => i.id), more: more.map((i) => i.id) };
     };
-    expect(split("coordinator", "institution")).toEqual({ tabs: ["dashboard", "admissions", "attendance", "classwork"], more: ["content", "setup", "people"] });
-    expect(split("admin", "institution")).toEqual({ tabs: ["dashboard", "approvals", "attendance", "classwork"], more: ["content", "programs", "people"] });
+    expect(split("coordinator", "institution")).toEqual({ tabs: ["dashboard", "admissions", "attendance", "classwork"], more: ["content", "setup", "people", "settings"] });
+    expect(split("admin", "institution")).toEqual({ tabs: ["dashboard", "approvals", "attendance", "classwork"], more: ["content", "programs", "people", "reports", "settings"] });
   });
 });
 

@@ -86,6 +86,7 @@ const G = {
 export const MATRIX = [
   // --- Access and accounts
   row(G.access, "auth.sign_in", "Sign in, reset own password", 1, { STU: all, TEA: all, COO: all, ACC: all, ADM: all, SUP: all }),
+  row(G.access, "account.profile.edit", "Correct your own name and phone (staff; a student's details are corrected by the Co-ordinator)", 8, { TEA: own, COO: own, ACC: own, ADM: own, SUP: own }),
   row(G.access, "accounts.admin.create", "Create Admin account", 1, { SUP: all }),
   row(G.access, "accounts.staff.create", "Create Co-ordinator or Accountant", 1, { ADM: all, SUP: all }),
   row(G.access, "accounts.teacher.create", "Create Teacher", 3, { COO: inst, SUP: all }),

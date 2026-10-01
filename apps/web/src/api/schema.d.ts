@@ -191,6 +191,41 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/auth/password/change": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Change your own password (Settings, D-091). Needs the current one; a wrong one counts toward the sign-in lockout. Every other session ends; this one carries on. */
+        post: operations["change_own_password"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/account/profile": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Your own name, email and phone, and whether you may correct them yourself. */
+        get: operations["own_profile"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** @description Correct your own name and phone (staff only). The email is your sign-in and is not changed here. Recorded in the audit log. */
+        patch: operations["update_own_profile"];
+        trace?: never;
+    };
     "/api/users/{userId}/two-factor/reset": {
         parameters: {
             query?: never;
@@ -2453,6 +2488,20 @@ export interface components {
             challenge: string;
             password: string;
         };
+        ChangeOwnPasswordBody: {
+            currentPassword: string;
+            newPassword: string;
+        };
+        OwnProfile: {
+            fullName: string;
+            email: string;
+            phone: string | null;
+            canEditProfile: boolean;
+        };
+        OwnProfileUpdate: {
+            fullName: string;
+            phone: string | null;
+        };
         AccountsError: {
             error: string;
         };
@@ -4515,6 +4564,132 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["WeakPassword"] | components["schemas"]["SamePassword"];
+                };
+            };
+        };
+    };
+    change_own_password: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ChangeOwnPasswordBody"];
+            };
+        };
+        responses: {
+            /** @description Changed */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {boolean} */
+                        ok: true;
+                    };
+                };
+            };
+            /** @description Switched off: sign in again */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description `wrong_password` (the current one is not right), `weak_password` (saying which rule), or `same_password`; nothing changed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WeakPassword"] | components["schemas"]["SamePassword"] | {
+                        /** @enum {string} */
+                        error: "wrong_password";
+                    };
+                };
+            };
+            /** @description Too many wrong passwords for this email in the last 15 minutes; nothing changed */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    own_profile: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Your profile */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OwnProfile"];
+                };
+            };
+            /** @description Switched off */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+        };
+    };
+    update_own_profile: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OwnProfileUpdate"];
+            };
+        };
+        responses: {
+            /** @description Saved */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {boolean} */
+                        ok: true;
+                    };
+                };
+            };
+            /** @description Not staff, or switched off; nothing changed */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
                 };
             };
         };

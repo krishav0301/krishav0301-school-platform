@@ -11,7 +11,9 @@ import {
   House,
   CalendarDays,
   LogOut,
+  Settings,
   Settings2,
+  ChartPie,
   Users,
   ChevronDown,
   type LucideIcon,
@@ -41,6 +43,8 @@ const ICONS: Record<NavIcon, LucideIcon> = {
   classwork: FileText,
   fees: CreditCard,
   results: ChartColumn,
+  reports: ChartPie,
+  settings: Settings,
 };
 
 /** "Sita Sharma" → "SS"; one word → its first two letters. */
@@ -136,6 +140,10 @@ export function PortalShell({ children, items = NAV_ITEMS }: { children: ReactNo
             </summary>
             <div className={styles.accountMenu}>
               <p className={styles.accountWho}>{t("shell.signedInAs", { name: me.name })}</p>
+              <Link href="/portal/settings" className={styles.accountItem}>
+                <Settings aria-hidden className={styles.navIcon} />
+                {t("nav.settings")}
+              </Link>
               <button type="button" className={styles.accountItem} onClick={() => void signOut()}>
                 <LogOut aria-hidden className={styles.navIcon} />
                 {t("shell.signOut")}
