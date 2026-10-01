@@ -1,6 +1,6 @@
 import { beforeAll, describe, expect, it } from "vitest";
 
-import { call, person, seedSections, type Person } from "./academics-helpers";
+import { call, person, seedSections, type Person, programmesAdmin } from "./academics-helpers";
 
 let coordinator: Person, plus2Coordinator: Person, bachelorsCoordinator: Person, admin: Person, accountant: Person, teacher: Person, student: Person, superAdmin: Person;
 beforeAll(async () => {
@@ -51,10 +51,10 @@ describe("what the checklist shows", () => {
   it("a section-scoped Co-ordinator's structure reflects only their own section", async () => {
     const before = (await (await get(plus2Coordinator)).json()) as Checklist;
 
-    const programme = await call("/api/academics/programmes", { method: "POST", body: { name: "Bachelors only", sectionKey: "bachelors", affiliation: "TU" }, cookie: coordinator.cookie });
+    const programme = await call("/api/academics/programmes", { method: "POST", body: { name: "Bachelors only", sectionKey: "bachelors", affiliation: "TU" }, cookie: (await programmesAdmin()).cookie });
     expect(programme.status).toBe(201);
     const { id: programmeId } = (await programme.json()) as { id: string };
-    const level = await call(`/api/academics/programmes/${programmeId}/levels`, { method: "POST", body: { name: "Year 1" }, cookie: coordinator.cookie });
+    const level = await call(`/api/academics/programmes/${programmeId}/levels`, { method: "POST", body: { name: "Year 1" }, cookie: (await programmesAdmin()).cookie });
     expect(level.status).toBe(201);
 
     const afterPlus2 = (await (await get(plus2Coordinator)).json()) as Checklist;

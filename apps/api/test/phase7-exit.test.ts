@@ -22,6 +22,7 @@ import { signAccessToken, type RoleClaim } from "../src/core/tokens";
 import { createUser } from "../src/modules/accounts/service";
 import royalJson from "../../../packs/royal-softech/pack.json";
 import sampleJson from "../../../packs/sample-basic-school/pack.json";
+import { firstProgrammePolicy, seedProgrammes } from "./programme-fixtures";
 
 const app = createApp();
 
@@ -32,7 +33,7 @@ describe.each([
   const pack: Pack = parsePack(json);
   const db = () => database();
   const top20On = resolveModules(pack.modules ?? {}).top20 === true;
-  const policy = pack.academics.programmes[0]!.gradingPolicy!;
+  const policy = firstProgrammePolicy(pack);
 
   const call = (path: string, options: { method?: string; body?: unknown; cookie?: string } = {}) =>
     app.request(
@@ -73,6 +74,7 @@ describe.each([
 
   it("setup: this year, a class, a terminal, two subjects with components and credit hours, a hired teacher, two students", async () => {
     await applyPack(db(), pack);
+    await seedProgrammes(db(), env.AUDIT_HMAC_KEY, pack); // a school starts with no programmes: the Admin makes them (D-087)
     cookies.coordinator = await signedIn("coordinator", "institution");
     cookies.admin = await signedIn("admin", "institution");
     const programmes = (await (await call("/api/academics/programmes", { cookie: cookies.coordinator })).json()) as { programmes: { gradingPolicy: string | null; levels: { id: string }[] }[] };

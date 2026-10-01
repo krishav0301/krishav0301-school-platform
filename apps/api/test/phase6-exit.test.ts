@@ -23,6 +23,7 @@ import { createUser } from "../src/modules/accounts/service";
 import { verifyLedgerChain } from "../src/modules/fees/ledger";
 import royalJson from "../../../packs/royal-softech/pack.json";
 import sampleJson from "../../../packs/sample-basic-school/pack.json";
+import { seedProgrammes } from "./programme-fixtures";
 
 const app = createApp();
 
@@ -75,6 +76,7 @@ describe.each([
 
   it("setup: this year, a class, two admitted students with their own sign-ins", async () => {
     await applyPack(db(), pack);
+    await seedProgrammes(db(), env.AUDIT_HMAC_KEY, pack); // a school starts with no programmes: the Admin makes them (D-087)
     cookies.coordinator = await signedIn("coordinator", "institution");
     cookies.accountant = await signedIn("accountant", "institution");
     cookies.admin = await signedIn("admin", "institution");

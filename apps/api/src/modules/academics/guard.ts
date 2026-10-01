@@ -16,6 +16,14 @@ export const coordinatorForSection = (n: number, sectionId: string): string =>
                    OR (ga.role = 'coordinator' AND (ga.scope_type = 'institution' OR ga.section_id = ${sectionId}))))`;
 
 /**
+ * True for an active Admin or Super Admin. Programmes and their levels are the Admin's alone (D-087): no Co-ordinator,
+ * of any scope, makes or changes one.
+ */
+export const adminForProgrammes = (n: number): string =>
+  `EXISTS (SELECT 1 FROM users gu JOIN role_assignments ga ON ga.user_id = gu.id
+            WHERE gu.public_id = ?${n} AND gu.is_active = 1 AND ga.is_active = 1 AND ga.role IN ('admin', 'super_admin'))`;
+
+/**
  * True for an active Super Admin, or an active INSTITUTION-wide Co-ordinator. For things that belong to
  * the whole school (years, terminals): a section-scoped Co-ordinator does not qualify.
  */

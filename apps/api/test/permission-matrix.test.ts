@@ -114,8 +114,10 @@ describe("sensitive rules, stated independently (docs/source/sample-creation-inf
     "students.personal.correct": ["COO", "SUP"],
     "students.status.set": ["COO", "SUP"],
     "students.rollover": ["COO", "SUP"],
-    // Only the Co-ordinator sets up the academic structure. The Admin may look, never change it.
+    // The Co-ordinator sets up years, classes and terminals; the Admin may look, never change them.
     "setup.structure.manage": ["COO", "SUP"],
+    // Programmes and their levels: only the Admin (and Support), never a Co-ordinator (D-087).
+    "setup.programmes.manage": ["ADM", "SUP"],
     "setup.structure.view": ["COO", "ADM", "SUP"],
     // Subjects, offerings, mark components and elective groups: the same people.
     "setup.subjects.manage": ["COO", "SUP"],
@@ -197,6 +199,12 @@ describe("sensitive rules, stated independently (docs/source/sample-creation-inf
     expect(authorize([claim("ADM")], "setup.structure.view")!.readOnly).toBe(true);
     expect(authorize([claim("ADM")], "setup.structure.manage")).toBeNull();
     expect(authorize([claim("COO")], "setup.structure.view")!.readOnly).toBe(false);
+  });
+
+  it("programmes and levels are the Admin's alone: no Co-ordinator, of any scope, makes or changes one (D-087)", () => {
+    expect(authorize([claim("ADM")], "setup.programmes.manage")!.readOnly).toBe(false);
+    expect(authorize([claim("COO")], "setup.programmes.manage")).toBeNull();
+    expect(authorize([{ role: "coordinator", scope: "section", section: "plus2" }], "setup.programmes.manage")).toBeNull();
   });
 
   it("the Admin can look at subjects and elective groups but not change them; grading policy is not a setup permission", () => {

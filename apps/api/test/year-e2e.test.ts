@@ -20,6 +20,7 @@ import { createUser } from "../src/modules/accounts/service";
 import { verifyLedgerChain } from "../src/modules/fees/ledger";
 import royalJson from "../../../packs/royal-softech/pack.json";
 import sampleJson from "../../../packs/sample-basic-school/pack.json";
+import { firstProgrammePolicy, seedProgrammes } from "./programme-fixtures";
 
 const app = createApp();
 const PASS = "Papaya-Compass-Ledger-8823";
@@ -30,7 +31,7 @@ describe.each([
 ])("A school year: $label", ({ label, json, database }) => {
   const pack: Pack = parsePack(json);
   const modules = resolveModules(pack.modules ?? {});
-  const policy = pack.academics.programmes[0]!.gradingPolicy!;
+  const policy = firstProgrammePolicy(pack);
   const db = () => database();
   const ip = label === "Royal Softech" ? "203.0.113.41" : "203.0.113.42";
 
@@ -101,6 +102,7 @@ describe.each([
 
   it("setup: the pack, staff created through the real flows, a year with three terminals and two classes", async () => {
     await applyPack(db(), pack);
+    await seedProgrammes(db(), env.AUDIT_HMAC_KEY, pack); // a school starts with no programmes: the Admin makes them (D-087)
     c.admin = await signedIn("admin", "institution");
     c.coordinator = await signedIn("coordinator", "institution");
     if (pack.sections.length > 1) c.sectionCoordinator = await signedIn("coordinator", "section", pack.sections[1]!.key);

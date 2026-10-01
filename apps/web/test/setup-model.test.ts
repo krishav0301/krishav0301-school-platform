@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   REASON_MESSAGE,
   canManageInstitution,
+  canManageProgrammes,
   canManageStructure,
   classTitle,
   defaultYearId,
@@ -26,6 +27,13 @@ describe("who sees the change controls (tidiness only; the API decides)", () => 
     expect(canManageStructure([role("super_admin", "institution")])).toBe(true);
     for (const other of ["admin", "accountant", "teacher", "student"]) expect(canManageStructure([role(other, "institution")]), other).toBe(false);
     expect(canManageStructure([])).toBe(false);
+  });
+
+  it("programmes and their levels: the Admin and the Super Admin, never a Co-ordinator (D-087)", () => {
+    expect(canManageProgrammes([role("admin", "institution")])).toBe(true);
+    expect(canManageProgrammes([role("super_admin", "institution")])).toBe(true);
+    for (const other of ["coordinator", "accountant", "teacher", "student"]) expect(canManageProgrammes([role(other, "institution")]), other).toBe(false);
+    expect(canManageProgrammes([role("coordinator", "section", "plus2")])).toBe(false);
   });
 
   it("years and terminals need a whole-school Co-ordinator (or the Super Admin)", () => {

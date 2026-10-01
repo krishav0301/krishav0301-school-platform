@@ -3,7 +3,7 @@ import { beforeAll, describe, expect, it } from "vitest";
 import { verifyAuditChain } from "../src/core/audit";
 import { bsToAd, daysInMonth } from "../src/core/dates";
 import { expireStaleApplications } from "../src/modules/admissions/service";
-import { auditKey, call, count, db, person, seedSections, type Person } from "./academics-helpers";
+import { auditKey, call, count, db, person, seedSections, type Person, programmesAdmin } from "./academics-helpers";
 
 let coordinator: Person, plus2Coordinator: Person, bachelorsCoordinator: Person, admin: Person, accountant: Person, teacher: Person, student: Person, superAdmin: Person;
 let levelId: string, classId: string;
@@ -30,9 +30,9 @@ beforeAll(async () => {
   const yearId = ((await year.json()) as { id: string }).id;
   expect((await call(`/api/academics/years/${yearId}/activate`, { method: "POST", cookie: coordinator.cookie })).status).toBe(200);
 
-  const programme = await call("/api/academics/programmes", { method: "POST", cookie: coordinator.cookie, body: { name: "Science", sectionKey: "plus2", affiliation: "NEB" } });
+  const programme = await call("/api/academics/programmes", { method: "POST", cookie: (await programmesAdmin()).cookie, body: { name: "Science", sectionKey: "plus2", affiliation: "NEB" } });
   const programmeId = ((await programme.json()) as { id: string }).id;
-  const level = await call(`/api/academics/programmes/${programmeId}/levels`, { method: "POST", cookie: coordinator.cookie, body: { name: "Grade 11" } });
+  const level = await call(`/api/academics/programmes/${programmeId}/levels`, { method: "POST", cookie: (await programmesAdmin()).cookie, body: { name: "Grade 11" } });
   levelId = ((await level.json()) as { id: string }).id;
   const cls = await call("/api/academics/classes", { method: "POST", cookie: coordinator.cookie, body: { yearId, levelId, label: "Morning" } });
   classId = ((await cls.json()) as { id: string }).id;

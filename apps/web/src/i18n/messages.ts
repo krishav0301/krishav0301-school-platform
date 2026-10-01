@@ -165,6 +165,7 @@ export const en = {
   "setup.done.switchedOff": "Switched off.",
   "setup.done.current": "Made the current year.",
   "setup.readOnly": "You can look at this, but only a {coordinator} can change it.",
+  "setup.programmes.readOnly": "You can look at this, but only the {admin} adds and changes programmes and their levels.",
   "setup.institutionOnly": "This belongs to the whole school, so only a {coordinator} for the whole school can change it.",
   "setup.yearPicker": "Year",
   "setup.status.draft": "Not started",
