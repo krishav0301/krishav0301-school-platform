@@ -124,29 +124,37 @@ describe("BsDateField", () => {
   });
 });
 
-describe("the list of website content", () => {
+describe("the Website Content page (D-098, after the PM's reference)", () => {
   const html = inContext(<ContentList />);
 
-  it("has one heading, and one prominent action: New item, a link to the form", () => {
+  it("has one heading and one prominent action: New content", () => {
     expect(count(html, /<h1/g)).toBe(1);
-    expect(html).toContain("Website content");
-    expect(html).toMatch(/<a[^>]*href="\/portal\/content\/edit"[^>]*>New item<\/a>/);
-    // Exactly one control is drawn as the main action: the primary button style.
+    expect(html).toMatch(/<h1[^>]*>Website Content<\/h1>/);
+    expect(html).toContain("Publish news, notices, holidays, events, vacancies and important information to your public website.");
+    expect(html).toMatch(/<button[^>]*class="[^"]*\bprimary\b[^"]*"[^>]*>.*New content<\/button>/);
     expect(count(html, /class="[^"]*\bprimary\b[^"]*"/g)).toBe(1);
   });
 
-  it("offers the two filters with every kind and every state, in words", () => {
-    for (const word of ["Type", "Status", "Notice", "Holiday", "Routine", "Vacancy", "Post", "Draft", "Waiting for approval", "Scheduled", "On the website", "Ended"]) {
-      expect(html, word).toContain(word);
+  it("offers every type and every status as a group of buttons, All pressed in each, and a labelled search", () => {
+    for (const group of ["Type", "Status"]) expect(html).toMatch(new RegExp(`role="group" aria-label="${group}"`));
+    for (const word of ["News", "Notice", "Holiday", "Event", "Vacancy", "Information", "Routine", "Published", "Draft", "Scheduled", "Archived"]) {
+      expect(html, word).toMatch(new RegExp(`aria-pressed="false"[^>]*>${word}</button>`));
     }
-    expect(count(html, /<select/g)).toBe(2);
+    expect(count(html, /aria-pressed="true"[^>]*>All<\/button>/g)).toBe(2);
+    expect(html).toContain('type="search"');
+    expect(html).toContain("Search content");
   });
 
-  it("shows the shape of the page while it loads, announced politely, and nothing that looks like an error", () => {
+  it("shows the four figures, the public website card and the rows as shapes while it loads, announced politely", () => {
+    for (const word of ["Published", "Drafts", "Scheduled", "Urgent", "On website", "Not visible", "Will be published", "Needs attention", "Public website"]) expect(html, word).toContain(word);
     expect(html).toContain('role="status"');
     expect(html).toContain('aria-busy="true"');
     expect(html).toContain("Loading content");
     expect(html).not.toContain('role="alert"');
+  });
+
+  it("asks for no image anywhere (D-098: website posts are text first)", () => {
+    expect(html).not.toMatch(/image|photo|thumbnail|upload/i);
   });
 });
 
@@ -154,7 +162,7 @@ describe("the edit page", () => {
   it("sits inside the portal frame, and starts by loading: the server-built page does not know the address yet", () => {
     const list = inContext(<ContentPage />);
     const edit = inContext(<EditContentPage />);
-    expect(list).toContain("Website content");
+    expect(list).toContain("Website Content");
     expect(edit).toContain("Loading…");
     expect(inContext(<ContentForm />)).toContain('aria-busy="true"');
   });
@@ -164,12 +172,13 @@ describe("the edit page", () => {
 describe("the form for a new item", () => {
   const html = editor();
 
-  it("says what it is, and has one prominent button: Publish, with Save draft beside it and a quiet Cancel back to the list", () => {
-    expect(html).toMatch(/<h1[^>]*>New item<\/h1>/);
+  it("has one prominent button: Publish, with Save draft beside it and Cancel back to the list", () => {
     expect(count(html, /class="[^"]*\bprimary\b[^"]*"/g)).toBe(1);
     expect(html).toMatch(/<button[^>]*class="[^"]*\bprimary\b[^"]*"[^>]*>Publish<\/button>/);
     expect(html).toMatch(/<button[^>]*class="[^"]*\bsecondary\b[^"]*"[^>]*>Save draft<\/button>/);
     expect(html).toMatch(/<a[^>]*href="\/portal\/content"[^>]*>Cancel<\/a>/);
+    // In the pop-up, Cancel closes it instead of leaving the page.
+    expect(editor({ onCancel: () => {} })).toMatch(/<button[^>]*>Cancel<\/button>/);
   });
 
   it("Enter in a box can only save a draft: Save draft is the one submit button, and Publish is a plain button after it", () => {
@@ -177,32 +186,44 @@ describe("the form for a new item", () => {
     expect(html).toMatch(/<button[^>]*type="submit"[^>]*>Save draft<\/button>/);
     expect(html).toMatch(/<button[^>]*type="button"[^>]*>Publish<\/button>/);
     expect(html.indexOf(">Save draft<")).toBeLessThan(html.indexOf(">Publish<"));
-    // Cancel, then the quiet-to-prominent order, so the main action is last (Apple: primary at the trailing end).
     expect(html.indexOf(">Cancel<")).toBeLessThan(html.indexOf(">Save draft<"));
   });
 
-  it("lets the type be chosen, offering all five", () => {
-    expect(html).toMatch(/<label[^>]*>Type<\/label><select[^>]*>(?:<option[^>]*>[^<]*<\/option>){5}<\/select>/);
+  it("chooses the type from seven cards, one radio each, News chosen to start", () => {
+    expect(html).toMatch(/<fieldset[^>]*><legend[^>]*>Content type<\/legend>/);
+    expect(count(html, /<input type="radio"[^>]*name="kind"/g)).toBe(7);
+    expect(html).toMatch(/<input type="radio"[^>]*checked=""[^>]*value="post"/);
+    for (const word of ["News", "Notice", "Holiday", "Event", "Vacancy", "Information", "Routine"]) expect(html, word).toContain(`>${word}</span>`);
+    expect(html).not.toMatch(/type="radio"[^>]*disabled/);
   });
 
-  it("starts the show-from day on today's Nepali date, as a day, a month by name and a year", () => {
-    expect(html).toMatch(/<legend[^>]*>Show from<\/legend>/);
+  it("starts the publish date on today's Nepali date and the time on the time it was opened", () => {
+    expect(html).toMatch(/<legend[^>]*>Publish date \*<\/legend>/);
     expect(html).toContain('value="5"');
     expect(html).toContain('value="2083"');
     expect(html).toMatch(/<option value="6" selected="">Ashwin<\/option>/);
-    expect(html).toContain("Nepali date (Bikram Sambat).");
+    expect(editor({ initial: emptyForm("2083-06-05", "post", "14:35") })).toMatch(/type="time"[^>]*value="14:35"/);
+    expect(html).toContain(">Time</label>");
   });
 
-  it("every box has a visible label, and there are no placeholders standing in for labels", () => {
-    for (const label of ["Title", "Text"]) expect(html, label).toMatch(new RegExp(`<label[^>]*>${label}</label>`));
-    // Each day has a legend naming it, and its three boxes are labelled too.
-    for (const legend of ["Show from", "Hide after (optional)"]) expect(html, legend).toMatch(new RegExp(`<legend[^>]*>${legend.replace(/[()]/g, "\\$&")}</legend>`));
+  it("every box has a visible label (a placeholder is a hint, never the label)", () => {
+    expect(html).toMatch(/<label[^>]*>Title \*<\/label>/);
+    expect(html).toMatch(/<label[^>]*>Content<span[^>]*>\*<\/span><\/label>/);
+    expect(html).toContain('placeholder="Enter a clear and concise title"');
+    for (const legend of ["Publish date \\*", "Hide after \\(optional\\)"]) expect(html, legend).toMatch(new RegExp(`<legend[^>]*>${legend}</legend>`));
     for (const part of ["Day", "Month", "Year"]) expect(count(html, new RegExp(`<label[^>]*>${part}</label>`, "g")), part).toBe(2);
-    // The checkbox's label holds its own text and hint, so it is checked on its own.
-    expect(html).toMatch(/<label[^>]*><span[^>]*>Urgent<\/span>/);
-    expect(html).not.toContain("placeholder=");
-    const inputs = count(html, /<(?:input|textarea|select)\b/g);
-    expect(count(html, /<label\b/g)).toBeGreaterThanOrEqual(inputs);
+    expect(html).toMatch(/<label[^>]*><span[^>]*>Mark as urgent<\/span>/);
+  });
+
+  it("has a light formatting bar whose every button is named", () => {
+    expect(html).toMatch(/role="toolbar" aria-label="Formatting"/);
+    for (const name of ["Bold", "Italic", "Underline", "Bulleted list", "Numbered list", "Link"]) expect(html, name).toContain(`aria-label="${name}"`);
+    expect(html).toMatch(/<select[^>]*aria-label="Text style"/);
+    expect(html).toContain("Select words and use the buttons to format them.");
+  });
+
+  it("asks for no image (D-098)", () => {
+    expect(html).not.toMatch(/image|photo|thumbnail|upload|type="file"/i);
   });
 
   it("does not show the contact box unless it is a vacancy", () => {
@@ -217,28 +238,28 @@ describe("the form for a new item", () => {
     expect(html).not.toContain("on the website. Saving");
   });
 
-  it("draws the preview beside it, from what is in the form", () => {
+  it("draws the preview beside it, from what is in the form, with its marks", () => {
     expect(html).toContain("Preview");
+    expect(html).toContain("This is how the content will appear on your public website.");
     expect(html).toContain("The title appears here");
-    const filled = editor({}, { title: "Winter break", body: "Closed on Friday.\n\nBack on Sunday." });
+    const filled = editor({}, { title: "Winter break", body: "Closed on **Friday**.\n\nBack on Sunday.", urgent: true });
     expect(filled).toContain("Winter break");
     expect(count(filled, /class="[^"]*\bparagraph\b[^"]*"/g)).toBe(2);
+    expect(filled).toContain("<strong>Friday</strong>");
+    expect(filled).toMatch(/>Urgent<\/span>/);
   });
 });
 
 describe("the form for an item already saved", () => {
   const saved = { kind: "vacancy" as const, title: "Teacher wanted", body: "Maths", contact: "jobs@school.example", publishOnBs: "2083-01-15" };
 
-  it("says it is an edit, shows the type as a fixed label instead of a choice, and keeps what was saved", () => {
+  it("keeps its type: the other cards are shown but cannot be chosen, and says why", () => {
     const html = editor({ id: "0123456789abcdef0123456789abcdef" }, saved);
-    expect(html).toMatch(/<h1[^>]*>Edit item<\/h1>/);
-    // No choice of type: it is a fixed label. (The month lists of the two days are the only selects.)
-    expect(html).not.toMatch(/<label[^>]*>Type<\/label>/);
-    expect(count(html, /<select/g)).toBe(2);
+    expect(count(html, /type="radio"[^>]*disabled=""/g)).toBe(6);
+    expect(html).toMatch(/<input type="radio"[^>]*checked=""[^>]*value="vacancy"/);
     expect(html).toContain("The type cannot be changed after the item is saved.");
     expect(html).toContain('value="Teacher wanted"');
     expect(html).toContain('value="jobs@school.example"');
-    // The saved day, 15 Baisakh 2083, is filled into its three boxes.
     expect(html).toContain('value="15"');
     expect(html).toContain('value="2083"');
     expect(html).toMatch(/<option value="1" selected="">Baisakh<\/option>/);
@@ -249,7 +270,6 @@ describe("the form for an item already saved", () => {
     expect(html).toContain("This item is on the website. Saving changes updates it, and visitors see the change within about a minute.");
     expect(html).toMatch(/<button[^>]*type="submit"[^>]*>Save changes<\/button>/);
     expect(html).not.toContain(">Save draft<");
-    // It is already published, so there is nothing to publish: one action, and it is the prominent one.
     expect(html).not.toContain(">Publish<");
     expect(count(html, /class="[^"]*\bprimary\b[^"]*"/g)).toBe(1);
   });
@@ -325,7 +345,7 @@ describe("the public notice board", () => {
     const html = list([item(), item({ kind: "holiday", title: "Dashain" })]);
     expect(count(html, /<button/g)).toBe(3);
     for (const label of ["All", "Notices", "Holidays"]) expect(html).toContain(`>${label}</button>`);
-    for (const absent of ["Routines", "Vacancies", "Posts"]) expect(html).not.toContain(absent);
+    for (const absent of ["Routines", "Vacancies", "News", "Events"]) expect(html).not.toContain(`>${absent}</button>`);
   });
 
   it("the filter buttons say which one is pressed, and pressed is more than a colour", () => {
@@ -380,12 +400,13 @@ describe("the preview", () => {
   const preview = (values: Partial<FormValues>) => renderToStaticMarkup(<ContentPreview values={{ ...emptyForm("2083-06-05"), ...values }} />);
 
   it("shows the Nepali day the item starts, in words, and the last day when there is one", () => {
-    expect(preview({ publishOnBs: "2083-06-05" })).toContain("Shows from 5 Ashwin 2083");
-    expect(preview({ publishOnBs: "2083-06-05", hideAfterBs: "2083-07-01" })).toContain("Shows from 5 Ashwin 2083 until 1 Kartik 2083");
+    // The same words the public board writes, so the preview is the page.
+    expect(preview({ publishOnBs: "2083-06-05" })).toContain("Posted 5 Ashwin 2083");
+    expect(preview({ publishOnBs: "2083-06-05", hideAfterBs: "2083-07-01" })).toContain("Posted 5 Ashwin 2083, until 1 Kartik 2083");
   });
 
   it("shows a dash while the day is not yet a valid Nepali date", () => {
-    expect(preview({ publishOnBs: "2083-6" })).toContain("Shows from —");
+    expect(preview({ publishOnBs: "2083-6" })).toContain("Posted —");
   });
 
   it("names the kind, marks an urgent item, and shows a vacancy's contact only for a vacancy", () => {
@@ -397,8 +418,9 @@ describe("the preview", () => {
     expect(preview({ kind: "notice", contact: "leftover@school.example" })).not.toContain("leftover@school.example");
   });
 
-  it("shows markup as text: nothing typed is ever run", () => {
-    const html = preview({ title: "<img src=x onerror=alert(1)>", body: "<script>alert(1)</script>" });
+  it("shows markup as text: nothing typed is ever run, and a link to a script is not made", () => {
+    const html = preview({ title: "<img src=x onerror=alert(1)>", body: "<script>alert(1)</script> [x](javascript:alert(1))" });
+    expect(html).not.toContain("<a ");
     expect(html).not.toContain("<script>");
     expect(html).not.toContain("<img");
     expect(html).toContain("&lt;script&gt;alert(1)&lt;/script&gt;");
@@ -418,7 +440,7 @@ describe("a holiday names its own days (D-094)", () => {
     const at = (word: string) => html.indexOf(word);
     expect(html).toContain("Holiday date");
     expect(html).toContain("Last day of the holiday (optional)");
-    expect(at("Holiday date")).toBeLessThan(at("Show from"));
+    expect(at("Holiday date")).toBeLessThan(at("Publish date"));
     expect(html).toContain("It comes off the website after the holiday.");
     expect(html).not.toContain("Hide after");
   });
@@ -429,10 +451,11 @@ describe("a holiday names its own days (D-094)", () => {
     expect(html).not.toContain("Holiday date");
   });
 
-  it("the preview says when the holiday is and that it shows until its last day", () => {
+  it("the preview says when the holiday is, and, like the public board, does not repeat it as an until", () => {
     const html = renderToStaticMarkup(<ContentPreview values={{ ...emptyForm("2083-06-14"), kind: "holiday", holidayFromBs: "2083-06-16", holidayToBs: "2083-06-20" }} />);
     expect(html).toContain("Holiday from 16 Ashwin 2083 to 20 Ashwin 2083");
-    expect(html).toContain("Shows from 14 Ashwin 2083 until 20 Ashwin 2083");
+    expect(html).toContain("Posted 14 Ashwin 2083");
+    expect(html).not.toContain("until");
   });
 
   it("the public board puts the holiday's day under its title, and does not repeat it as an until", () => {

@@ -2155,7 +2155,7 @@
           },
           "body": {
             "type": "string",
-            "description": "Plain text. A blank line starts a new paragraph."
+            "description": "Text with a few marks (D-098): a blank line starts a paragraph; **bold**, *italic*, __underline__, [a link](https://…), lines starting \"- \" or \"1. \" make a list, and \"## \" a heading. Nothing else is interpreted."
           },
           "contact": {
             "type": [
@@ -2240,7 +2240,9 @@
           "holiday",
           "routine",
           "vacancy",
-          "post"
+          "post",
+          "event",
+          "information"
         ]
       },
       "AdminContent": {
@@ -2252,16 +2254,63 @@
               "$ref": "#/components/schemas/AdminContentSummary"
             }
           },
+          "total": {
+            "type": "integer"
+          },
+          "page": {
+            "type": "integer"
+          },
+          "pageSize": {
+            "type": "integer"
+          },
+          "counts": {
+            "$ref": "#/components/schemas/ContentCounts"
+          },
+          "site": {
+            "type": "object",
+            "properties": {
+              "address": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "live": {
+                "type": "boolean"
+              },
+              "lastPublishedAt": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            },
+            "required": [
+              "address",
+              "live",
+              "lastPublishedAt"
+            ]
+          },
           "todayBs": {
             "type": [
               "string",
               "null"
             ]
+          },
+          "nowTime": {
+            "type": "string",
+            "pattern": "^([01]\\d|2[0-3]):[0-5]\\d$"
           }
         },
         "required": [
           "items",
-          "todayBs"
+          "total",
+          "page",
+          "pageSize",
+          "counts",
+          "site",
+          "todayBs",
+          "nowTime"
         ]
       },
       "AdminContentSummary": {
@@ -2284,7 +2333,8 @@
             "enum": [
               "draft",
               "waiting",
-              "live"
+              "live",
+              "archived"
             ]
           },
           "state": {
@@ -2293,6 +2343,10 @@
           "publishOn": {
             "type": "string",
             "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+          },
+          "publishTime": {
+            "type": "string",
+            "pattern": "^([01]\\d|2[0-3]):[0-5]\\d$"
           },
           "hideAfter": {
             "type": [
@@ -2350,6 +2404,22 @@
               "string",
               "null"
             ]
+          },
+          "archivedAt": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "authorName": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "excerpt": {
+            "type": "string",
+            "description": "The first 200 characters of the text, marks included."
           }
         },
         "required": [
@@ -2360,6 +2430,7 @@
           "status",
           "state",
           "publishOn",
+          "publishTime",
           "hideAfter",
           "publishOnBs",
           "hideAfterBs",
@@ -2369,7 +2440,10 @@
           "holidayToBs",
           "createdAt",
           "updatedAt",
-          "publishedAt"
+          "publishedAt",
+          "archivedAt",
+          "authorName",
+          "excerpt"
         ]
       },
       "ContentState": {
@@ -2379,7 +2453,40 @@
           "waiting",
           "scheduled",
           "showing",
-          "expired"
+          "expired",
+          "archived"
+        ]
+      },
+      "ContentCounts": {
+        "type": "object",
+        "properties": {
+          "published": {
+            "type": "integer"
+          },
+          "drafts": {
+            "type": "integer"
+          },
+          "scheduled": {
+            "type": "integer"
+          },
+          "urgent": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "published",
+          "drafts",
+          "scheduled",
+          "urgent"
+        ]
+      },
+      "ContentGroup": {
+        "type": "string",
+        "enum": [
+          "published",
+          "draft",
+          "scheduled",
+          "archived"
         ]
       },
       "AdminContentItem": {
@@ -2411,7 +2518,8 @@
             "enum": [
               "draft",
               "waiting",
-              "live"
+              "live",
+              "archived"
             ]
           },
           "state": {
@@ -2420,6 +2528,10 @@
           "publishOn": {
             "type": "string",
             "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+          },
+          "publishTime": {
+            "type": "string",
+            "pattern": "^([01]\\d|2[0-3]):[0-5]\\d$"
           },
           "hideAfter": {
             "type": [
@@ -2477,6 +2589,18 @@
               "string",
               "null"
             ]
+          },
+          "archivedAt": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "authorName": {
+            "type": [
+              "string",
+              "null"
+            ]
           }
         },
         "required": [
@@ -2489,6 +2613,7 @@
           "status",
           "state",
           "publishOn",
+          "publishTime",
           "hideAfter",
           "publishOnBs",
           "hideAfterBs",
@@ -2498,7 +2623,9 @@
           "holidayToBs",
           "createdAt",
           "updatedAt",
-          "publishedAt"
+          "publishedAt",
+          "archivedAt",
+          "authorName"
         ]
       },
       "ContentError": {
@@ -2563,6 +2690,11 @@
             "type": "string",
             "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
           },
+          "publishTime": {
+            "type": "string",
+            "pattern": "^([01]\\d|2[0-3]):[0-5]\\d$",
+            "default": "00:00"
+          },
           "hideAfter": {
             "type": [
               "string",
@@ -2623,6 +2755,10 @@
           "publishOn": {
             "type": "string",
             "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+          },
+          "publishTime": {
+            "type": "string",
+            "pattern": "^([01]\\d|2[0-3]):[0-5]\\d$"
           },
           "hideAfter": {
             "type": [
@@ -11688,7 +11824,7 @@
         "tags": [
           "content"
         ],
-        "description": "Every item in every state, most recently touched first, at most 200, WITHOUT the text (fetch one item for that). `state` says where each stands today, and `todayBs` is today in Bikram Sambat.",
+        "description": "One page of the items, most recently touched first, WITHOUT the text (fetch one item for that), filtered by kind, state or group, urgency and words in the title, text or author's name, all in the database. With how many match, the four figures for the top of the screen, the public website's address and last publish, and today's Bikram Sambat date and Nepal time for a new item. `state` says where each item stands now.",
         "parameters": [
           {
             "schema": {
@@ -11708,9 +11844,58 @@
           },
           {
             "schema": {
+              "$ref": "#/components/schemas/ContentGroup"
+            },
+            "required": false,
+            "name": "group",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "maxLength": 100
+            },
+            "required": false,
+            "name": "q",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "enum": [
+                "true",
+                "false"
+              ]
+            },
+            "required": false,
+            "name": "urgent",
+            "in": "query"
+          },
+          {
+            "schema": {
               "type": "integer",
               "minimum": 1,
-              "maximum": 200
+              "maximum": 10000
+            },
+            "required": false,
+            "name": "page",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 50
+            },
+            "required": false,
+            "name": "pageSize",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 50
             },
             "required": false,
             "name": "limit",
@@ -11917,7 +12102,7 @@
         "tags": [
           "content"
         ],
-        "description": "Puts a draft on the public site, from its publish day. Two people doing it at once: one succeeds, the other gets 409.",
+        "description": "Puts a draft on the public site, from its publish day and time: `state` says whether it shows now or is scheduled. Two people doing it at once: one succeeds, the other gets 409. An archived item is moved to the drafts first (409 `archived`).",
         "parameters": [
           {
             "schema": {
@@ -11942,10 +12127,14 @@
                       "enum": [
                         true
                       ]
+                    },
+                    "state": {
+                      "$ref": "#/components/schemas/ContentState"
                     }
                   },
                   "required": [
-                    "ok"
+                    "ok",
+                    "state"
                   ]
                 }
               }
@@ -11972,7 +12161,7 @@
             }
           },
           "409": {
-            "description": "Already live",
+            "description": "Already live, or archived",
             "content": {
               "application/json": {
                 "schema": {
@@ -11990,7 +12179,7 @@
         "tags": [
           "content"
         ],
-        "description": "Takes an item off the public site. It goes back to a draft and can be published again.",
+        "description": "Takes an item off the public site, or out of the archive. It goes back to a draft and can be published again.",
         "parameters": [
           {
             "schema": {
@@ -12045,7 +12234,80 @@
             }
           },
           "409": {
-            "description": "It is not live",
+            "description": "It is neither live nor archived",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ContentError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/content/{id}/archive": {
+      "post": {
+        "operationId": "archive_content",
+        "tags": [
+          "content"
+        ],
+        "description": "Archives a draft or a live item (D-098): it is off the website at once and kept as a record, never deleted. Unpublish moves it back to the drafts. An item waiting for approval cannot be archived (409 `waiting`).",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{32}$"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Archived",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": {
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
+                    }
+                  },
+                  "required": [
+                    "ok"
+                  ]
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed (for example, switched off since signing in)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ContentError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such item",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ContentError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Already archived, or waiting for approval",
             "content": {
               "application/json": {
                 "schema": {

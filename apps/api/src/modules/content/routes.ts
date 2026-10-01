@@ -1,6 +1,6 @@
 import { z } from "@hono/zod-openapi";
 
-import { nepalDate } from "../../core/dates";
+import { nepalMinute } from "../../core/dates";
 import { defineRoute } from "../../core/routes";
 import type { App } from "../../core/types";
 import { getAdminContent, listAdminContent, listPublicContent } from "./queries";
@@ -8,12 +8,13 @@ import {
   AdminContentItemSchema,
   AdminContentSchema,
   ContentChangesSchema,
+  ContentGroupSchema,
   ContentKindSchema,
   ContentStateSchema,
   CreateContentSchema,
   PublicContentSchema,
 } from "./schema";
-import { createContent, publishContent, unpublishContent, updateContent } from "./service";
+import { archiveContent, createContent, publishContent, unpublishContent, updateContent } from "./service";
 
 const json = <T extends z.ZodType>(schema: T) => ({ "application/json": { schema } });
 const ErrorSchema = z.object({ error: z.string() }).openapi("ContentError");
@@ -45,7 +46,7 @@ export function registerContent(app: App): void {
     },
     async (c) => {
       const { kind } = c.req.valid("query");
-      const content = await listPublicContent(c.env.DB, nepalDate(new Date()), kind ? { kind } : {});
+      const content = await listPublicContent(c.env.DB, nepalMinute(new Date()), kind ? { kind } : {});
       c.header("Cache-Control", PUBLIC_CONTENT_CACHE);
       return c.json(content, 200);
     },
@@ -64,22 +65,39 @@ export function registerContent(app: App): void {
       operationId: "list_content",
       tags: ["content"],
       description:
-        "Every item in every state, most recently touched first, at most 200, WITHOUT the text (fetch one item for that). `state` says where each stands today, and `todayBs` is today in Bikram Sambat.",
+        "One page of the items, most recently touched first, WITHOUT the text (fetch one item for that), filtered by kind, state or group, urgency and words in the title, text or author's name, all in the database. With how many match, the four figures for the top of the screen, the public website's address and last publish, and today's Bikram Sambat date and Nepal time for a new item. `state` says where each item stands now.",
       access: { action: "content.draft" },
       request: {
         query: z.object({
           kind: ContentKindSchema.optional(),
           state: ContentStateSchema.optional(),
-          limit: z.coerce.number().int().min(1).max(200).optional(),
+          group: ContentGroupSchema.optional(),
+          q: z.string().max(100).optional(),
+          urgent: z.enum(["true", "false"]).optional(),
+          page: z.coerce.number().int().min(1).max(10_000).optional(),
+          pageSize: z.coerce.number().int().min(1).max(50).optional(),
+          /** The same as `pageSize` (kept for callers from before D-098). */
+          limit: z.coerce.number().int().min(1).max(50).optional(),
         }),
       },
       responses: { 200: { description: "The items", content: json(AdminContentSchema) } },
     },
     async (c) => {
-      const { kind, state, limit } = c.req.valid("query");
-      const content = await listAdminContent(c.env.DB, nepalDate(new Date()), { ...(kind && { kind }), ...(state && { state }), ...(limit && { limit }) });
+      const { kind, state, group, q, urgent, page, pageSize, limit } = c.req.valid("query");
+      const size = pageSize ?? limit;
+      const { lastPublishedAt, ...content } = await listAdminContent(c.env.DB, nepalMinute(new Date()), {
+        ...(kind && { kind }),
+        ...(state && { state }),
+        ...(group && { group }),
+        ...(q && { q }),
+        ...(urgent && { urgent: urgent === "true" }),
+        ...(page && { page }),
+        ...(size && { pageSize: size }),
+      });
+      // The address the public reaches; "live" only on the real deployment, so a test site never claims to be the school's website.
+      const site = { address: c.env.SITE_ORIGIN ?? null, live: c.env.ENVIRONMENT === "production", lastPublishedAt };
       c.header("Cache-Control", "no-store");
-      return c.json(content, 200);
+      return c.json({ ...content, site }, 200);
     },
   );
 
@@ -99,7 +117,7 @@ export function registerContent(app: App): void {
       },
     },
     async (c) => {
-      const item = await getAdminContent(c.env.DB, c.req.valid("param").id, nepalDate(new Date()));
+      const item = await getAdminContent(c.env.DB, c.req.valid("param").id, nepalMinute(new Date()));
       c.header("Cache-Control", "no-store");
       return item ? c.json(item, 200) : c.json({ error: "not_found" }, 404);
     },
@@ -163,20 +181,21 @@ export function registerContent(app: App): void {
       path: "/api/content/{id}/publish",
       operationId: "publish_content",
       tags: ["content"],
-      description: "Puts a draft on the public site, from its publish day. Two people doing it at once: one succeeds, the other gets 409.",
+      description:
+        "Puts a draft on the public site, from its publish day and time: `state` says whether it shows now or is scheduled. Two people doing it at once: one succeeds, the other gets 409. An archived item is moved to the drafts first (409 `archived`).",
       access: { action: "content.publish" },
       request: { params: IdParam },
       responses: {
-        200: { description: "Published", content: json(z.object({ ok: z.literal(true) })) },
+        200: { description: "Published", content: json(z.object({ ok: z.literal(true), state: ContentStateSchema })) },
         403: { description: "Not allowed (for example, switched off since signing in)", content: json(ErrorSchema) },
         404: { description: "No such item", content: json(ErrorSchema) },
-        409: { description: "Already live", content: json(ErrorSchema) },
+        409: { description: "Already live, or archived", content: json(ErrorSchema) },
       },
     },
     async (c) => {
       const result = await publishContent(c.env.DB, c.env.AUDIT_HMAC_KEY, c.get("auth")!.userPublicId, c.req.valid("param").id);
-      if (result.ok) return c.json({ ok: true as const }, 200);
-      if (result.reason === "already_live") return c.json({ error: "already_live" }, 409);
+      if (result.ok) return c.json({ ok: true as const, state: result.state }, 200);
+      if (result.reason === "already_live" || result.reason === "archived") return c.json({ error: result.reason }, 409);
       if (result.reason === "not_found") return c.json({ error: "not_found" }, 404);
       return c.json({ error: "forbidden" }, 403);
     },
@@ -189,20 +208,47 @@ export function registerContent(app: App): void {
       path: "/api/content/{id}/unpublish",
       operationId: "unpublish_content",
       tags: ["content"],
-      description: "Takes an item off the public site. It goes back to a draft and can be published again.",
+      description: "Takes an item off the public site, or out of the archive. It goes back to a draft and can be published again.",
       access: { action: "content.publish" },
       request: { params: IdParam },
       responses: {
         200: { description: "Taken down", content: json(z.object({ ok: z.literal(true) })) },
         403: { description: "Not allowed (for example, switched off since signing in)", content: json(ErrorSchema) },
         404: { description: "No such item", content: json(ErrorSchema) },
-        409: { description: "It is not live", content: json(ErrorSchema) },
+        409: { description: "It is neither live nor archived", content: json(ErrorSchema) },
       },
     },
     async (c) => {
       const result = await unpublishContent(c.env.DB, c.env.AUDIT_HMAC_KEY, c.get("auth")!.userPublicId, c.req.valid("param").id);
       if (result.ok) return c.json({ ok: true as const }, 200);
       if (result.reason === "not_live") return c.json({ error: "not_live" }, 409);
+      if (result.reason === "not_found") return c.json({ error: "not_found" }, 404);
+      return c.json({ error: "forbidden" }, 403);
+    },
+  );
+
+  defineRoute(
+    app,
+    {
+      method: "post",
+      path: "/api/content/{id}/archive",
+      operationId: "archive_content",
+      tags: ["content"],
+      description:
+        "Archives a draft or a live item (D-098): it is off the website at once and kept as a record, never deleted. Unpublish moves it back to the drafts. An item waiting for approval cannot be archived (409 `waiting`).",
+      access: { action: "content.publish" },
+      request: { params: IdParam },
+      responses: {
+        200: { description: "Archived", content: json(z.object({ ok: z.literal(true) })) },
+        403: { description: "Not allowed (for example, switched off since signing in)", content: json(ErrorSchema) },
+        404: { description: "No such item", content: json(ErrorSchema) },
+        409: { description: "Already archived, or waiting for approval", content: json(ErrorSchema) },
+      },
+    },
+    async (c) => {
+      const result = await archiveContent(c.env.DB, c.env.AUDIT_HMAC_KEY, c.get("auth")!.userPublicId, c.req.valid("param").id);
+      if (result.ok) return c.json({ ok: true as const }, 200);
+      if (result.reason === "already_archived" || result.reason === "waiting") return c.json({ error: result.reason }, 409);
       if (result.reason === "not_found") return c.json({ error: "not_found" }, 404);
       return c.json({ error: "forbidden" }, 403);
     },

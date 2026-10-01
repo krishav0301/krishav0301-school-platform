@@ -6,7 +6,7 @@ export type MyApproval = components["schemas"]["MyApproval"];
 
 /** Words for every kind of request (D-061; the four fee kinds since Phase 6, named here since D-084). */
 export const KIND_LABEL: Partial<Record<ApprovalSummary["kind"], MessageKey>> = {
-  website_content: "content.title",
+  website_content: "approvals.kind.websiteContent",
   fee_structure: "approvals.kind.feeStructure",
   discount: "approvals.kind.discount",
   reversal: "approvals.kind.reversal",

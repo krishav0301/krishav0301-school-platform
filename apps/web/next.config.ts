@@ -9,7 +9,7 @@ const isProduction = process.env.NODE_ENV === "production";
 const workerOrigin = process.env.WORKER_ORIGIN ?? "http://localhost:8787";
 
 const nextConfig: NextConfig = isProduction
-  ? { output: "export" }
+  ? { output: "export", experimental: { cssChunking: "graph" } }
   : {
       // Next blocks dev-only requests (HMR, assets) from a hostname other than the one the server
       // started on. `localhost` is allowed by default; `127.0.0.1` is a different hostname to it

@@ -3,7 +3,7 @@ import { Card } from "@/ui";
 
 import { formatBsDate, holidayLine, type FormValues } from "./model";
 import { PublicEntry } from "./PublicEntry";
-import styles from "./content.module.css";
+import styles from "./website.module.css";
 
 /**
  * How an item will read on the website, drawn from what is in the form right now, by the same component
@@ -12,10 +12,10 @@ import styles from "./content.module.css";
 export function ContentPreview({ values }: { values: FormValues }) {
   const title = values.title.trim();
   const from = formatBsDate(values.publishOnBs.trim());
-  // A holiday shows until its last day, which the server sets (D-094); the preview says the same.
+  // A holiday comes off after its own days (D-094), so, as on the public board, it has no "until".
   const holiday = values.kind === "holiday" ? holidayLine(values.holidayFromBs, values.holidayToBs) : null;
-  const lastShown = values.kind === "holiday" ? values.holidayToBs.trim() || values.holidayFromBs.trim() : values.hideAfterBs.trim();
-  const until = lastShown ? formatBsDate(lastShown) : null;
+  const hideAfter = values.kind === "holiday" ? "" : values.hideAfterBs.trim();
+  const until = hideAfter ? formatBsDate(hideAfter) : null;
 
   return (
     <Card aria-labelledby="preview-heading" className={styles.preview}>
@@ -32,7 +32,8 @@ export function ContentPreview({ values }: { values: FormValues }) {
           contact={values.contact.trim() || null}
           urgent={values.urgent}
           holiday={holiday}
-          dates={until ? t("content.showsFromUntil", { from, until }) : t("content.showsFrom", { from })}
+          // The same date line the public board writes (NoticeList), so the preview is the page.
+          dates={until ? t("notices.postedUntil", { from, until }) : t("notices.posted", { date: from })}
           headingLevel={3}
         />
       </div>

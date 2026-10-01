@@ -1,6 +1,7 @@
-import { formatBs, nepalDate, type BsDate } from "../../core/dates";
+import { formatBs, nepalMinute, type BsDate } from "../../core/dates";
 import { listPublicContent } from "../content";
 import { escapeHtml } from "./html";
+import { textToHtml } from "./text-format";
 import type { Builder, PageContext, PageParts } from "./page-types";
 import { admission, breadcrumb, contact, facilities, home, programmes, scholarships } from "./site-pages";
 import { say, type StringKey } from "./strings";
@@ -23,7 +24,7 @@ function bsWords(text: string | null): string | null {
 
 const notices: Builder = async (ctx) => {
   const { db, school, origin } = ctx;
-  const { items } = await listPublicContent(db, nepalDate(new Date()));
+  const { items } = await listPublicContent(db, nepalMinute(new Date()));
 
   const articles = items
     .map((item) => {
@@ -34,12 +35,8 @@ const notices: Builder = async (ctx) => {
       const holiday = holidayFrom ? (holidayTo && holidayTo !== holidayFrom ? say("content.holidayFromTo", { from: holidayFrom, to: holidayTo }) : say("content.holidayOn", { date: holidayFrom })) : "";
       const until = holiday ? null : bsWords(item.hideAfterBs);
       const dates = from ? (until ? say("notices.postedUntil", { from, until }) : say("notices.posted", { date: from })) : "";
-      const paragraphs = item.body
-        .split(/\n\s*\n/)
-        .map((p) => p.trim())
-        .filter(Boolean)
-        .map((p) => `<p>${e(p)}</p>`)
-        .join("");
+      // Only the few marks of D-098 are drawn; every word is escaped (`text-format.ts`).
+      const paragraphs = textToHtml(item.body);
       return (
         `<article><p>${e(say(`content.kind.${item.kind}` as StringKey))}${item.urgent ? ` · ${e(say("content.urgent"))}` : ""}</p>` +
         `<h2>${e(item.title)}</h2>` +

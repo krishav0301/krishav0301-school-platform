@@ -149,7 +149,7 @@ describe("publishing", () => {
     const id = await created({ title: "Open day" });
     const result = await publishContent(db, key, people.admin, id, new Date("2026-09-21T06:00:00Z"));
 
-    expect(result).toEqual({ ok: true });
+    expect(result).toEqual({ ok: true, state: "showing" });
     const row = await db.prepare("SELECT c.status, c.published_at, u.public_id AS by FROM content_items c JOIN users u ON u.id = c.published_by WHERE c.public_id = ?1").bind(id).first<{ status: string; published_at: string; by: string }>();
     expect(row).toEqual({ status: "live", published_at: "2026-09-21T06:00:00.000Z", by: people.admin });
     expect((await auditRows(id)).map((r) => r.action)).toEqual(["content.created", "content.published"]);
@@ -226,7 +226,7 @@ describe("publishing", () => {
     expect(await statusOf(id)).toBe("draft");
     expect((await listPublicContent(db, "2099-01-01")).items.map((i) => i.id)).not.toContain(id);
     expect(await unpublishContent(db, key, people.admin, id)).toEqual({ ok: false, reason: "not_live" });
-    expect(await publishContent(db, key, people.admin, id)).toEqual({ ok: true });
+    expect(await publishContent(db, key, people.admin, id)).toEqual({ ok: true, state: "showing" });
     expect((await auditRows(id)).map((r) => r.action)).toEqual(["content.created", "content.published", "content.unpublished", "content.published"]);
   });
 
@@ -266,7 +266,7 @@ describe("editing", () => {
   it("a Co-ordinator may edit their own draft, but not once it is live (D-061)", async () => {
     const id = await created({ title: "Draft" }, people.coordinator);
     expect(await updateContent(db, key, people.coordinator, id, { title: "Still a draft" })).toEqual({ ok: true });
-    expect(await publishContent(db, key, people.admin, id)).toEqual({ ok: true });
+    expect(await publishContent(db, key, people.admin, id)).toEqual({ ok: true, state: "showing" });
     expect(await updateContent(db, key, people.coordinator, id, { title: "Too late" })).toEqual({ ok: false, reason: "not_allowed" });
     expect(await updateContent(db, key, people.admin, id, { title: "Admin still can" })).toEqual({ ok: true });
   });
@@ -334,17 +334,20 @@ describe("where an item stands (the Admin list)", () => {
     expect(items.find((i) => i.id === waiting)?.state).toBe("waiting");
   });
 
-  it("reads in one round trip", async () => {
+  it("reads in one round trip: the page, the count and the figures in one batch (D-098)", async () => {
+    let batches = 0;
+    let batched = 0;
     let prepared = 0;
     const counting = new Proxy(db, {
       get(target, prop, receiver) {
         if (prop === "prepare") return (sql: string) => { prepared++; return target.prepare(sql); };
-        if (prop === "batch") return () => { throw new Error("unexpected batch"); };
+        if (prop === "batch") return (statements: D1PreparedStatement[]) => { batches++; batched += statements.length; return target.batch(statements); };
         return Reflect.get(target, prop, receiver);
       },
     }) as D1Database;
     await listAdminContent(counting, TODAY);
-    expect(prepared).toBe(1);
+    expect(batches).toBe(1);
+    expect(batched).toBe(prepared); // nothing read outside the batch
   });
 });
 

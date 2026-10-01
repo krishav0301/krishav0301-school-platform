@@ -1,21 +1,45 @@
 import type { ApiClient } from "@/api/client";
 
-import { validateForm, type ContentItem, type ContentSummary, type FlashKind, type PublicItem, type FieldName, type FormErrors, type FormValues, type Kind, type State } from "./model";
+import type { components } from "@/api/schema";
+
+import { validateForm, type ContentItem, type FlashKind, type PublicItem, type FieldName, type FormErrors, type FormValues, type Group, type Kind, type State } from "./model";
 
 /**
  * Everything the content screens ask of the server, with the answers turned into plain results the
  * screens can act on. Nothing here throws: a dropped connection is `failed`, like any other error.
  */
 
-export type LoadResult = { ok: true; items: ContentSummary[]; todayBs: string | null } | { ok: false; reason: "forbidden" | "failed" };
+/** One page of the list with its total, the four figures, the website, and today's date and time (D-098). */
+export type ContentPage = components["schemas"]["AdminContent"];
+export type LoadResult = ({ ok: true } & ContentPage) | { ok: false; reason: "forbidden" | "failed" };
 
-/** The list: light items without their text, newest touched first. `limit` asks for fewer (a new form needs only today's date). */
-export async function loadContent(api: ApiClient, filter: { kind?: Kind; state?: State; limit?: number }): Promise<LoadResult> {
+export interface ListFilter {
+  kind?: Kind;
+  state?: State;
+  group?: Group;
+  /** Words to find in the title, the text or the author's name. Searched on the server. */
+  q?: string;
+  page?: number;
+  pageSize?: number;
+}
+
+/** One page of the list: light items without their text, newest touched first, filtered and searched on the server. */
+export async function loadContent(api: ApiClient, filter: ListFilter): Promise<LoadResult> {
+  const q = filter.q?.trim().slice(0, 100);
   try {
     const { data, response } = await api.GET("/api/content", {
-      params: { query: { ...(filter.kind && { kind: filter.kind }), ...(filter.state && { state: filter.state }), ...(filter.limit && { limit: filter.limit }) } },
+      params: {
+        query: {
+          ...(filter.kind && { kind: filter.kind }),
+          ...(filter.state && { state: filter.state }),
+          ...(filter.group && { group: filter.group }),
+          ...(q && { q }),
+          ...(filter.page && { page: filter.page }),
+          ...(filter.pageSize && { pageSize: filter.pageSize }),
+        },
+      },
     });
-    if (data) return { ok: true, items: data.items, todayBs: data.todayBs };
+    if (data) return { ok: true, ...data };
     return { ok: false, reason: response.status === 403 ? "forbidden" : "failed" };
   } catch {
     return { ok: false, reason: "failed" };
@@ -91,6 +115,7 @@ export async function saveItem(api: ApiClient, id: string | null, values: FormVa
     contact: values.kind === "vacancy" ? values.contact.trim() : null,
     urgent: values.urgent,
     publishOn: publishOn.ad,
+    publishTime: values.publishTime.trim(),
     hideAfter: hideAfterBs ? hideAfter.ad : null,
     holidayFrom: holidayFromBs ? holidayFrom.ad : null,
     holidayTo: holidayToBs ? holidayTo.ad : null,
@@ -113,26 +138,44 @@ export async function saveItem(api: ApiClient, id: string | null, values: FormVa
 const failure = (status: number): "rejected" | "forbidden" | "not_found" | "failed" =>
   status === 400 || status === 422 ? "rejected" : status === 403 ? "forbidden" : status === 404 ? "not_found" : "failed";
 
-export type ToggleResult = { ok: true } | { ok: false; reason: "conflict" | "gone" | "forbidden" | "failed" };
+export type ToggleResult = { ok: true; scheduled?: boolean } | { ok: false; reason: "conflict" | "gone" | "forbidden" | "failed" };
 
-/** Puts an item on the website, or takes it off. `conflict` means someone else already did. */
+/**
+ * Puts an item on the website, or takes it off (or out of the archive, back to the drafts). `conflict` means
+ * someone else already did. After publishing, `scheduled` says it shows only from a later day or time.
+ */
 export async function setPublished(api: ApiClient, id: string, publish: boolean): Promise<ToggleResult> {
   try {
-    const path = publish ? "/api/content/{id}/publish" : "/api/content/{id}/unpublish";
-    const { response } = await api.POST(path, { params: { path: { id } } });
+    if (publish) {
+      const { data, response } = await api.POST("/api/content/{id}/publish", { params: { path: { id } } });
+      if (data) return { ok: true, scheduled: data.state === "scheduled" };
+      return { ok: false, reason: toggleFailure(response.status) };
+    }
+    const { response } = await api.POST("/api/content/{id}/unpublish", { params: { path: { id } } });
     if (response.ok) return { ok: true };
-    if (response.status === 409) return { ok: false, reason: "conflict" };
-    if (response.status === 404) return { ok: false, reason: "gone" };
-    if (response.status === 403) return { ok: false, reason: "forbidden" };
-    return { ok: false, reason: "failed" };
+    return { ok: false, reason: toggleFailure(response.status) };
   } catch {
     return { ok: false, reason: "failed" };
   }
 }
 
+/** Archives an item (D-098): off the website at once, kept as a record. `conflict`: already archived, or waiting for approval. */
+export async function archiveItem(api: ApiClient, id: string): Promise<ToggleResult> {
+  try {
+    const { response } = await api.POST("/api/content/{id}/archive", { params: { path: { id } } });
+    if (response.ok) return { ok: true };
+    return { ok: false, reason: toggleFailure(response.status) };
+  } catch {
+    return { ok: false, reason: "failed" };
+  }
+}
+
+const toggleFailure = (status: number): "conflict" | "gone" | "forbidden" | "failed" =>
+  status === 409 ? "conflict" : status === 404 ? "gone" : status === 403 ? "forbidden" : "failed";
+
 export type PublicResult = { ok: true; items: PublicItem[] } | { ok: false };
 
-/** What the public may read today: the notices, holidays, routines, vacancies and posts on the site. No sign-in. */
+/** What the public may read now: everything live on the site. No sign-in. */
 export async function loadPublic(api: ApiClient): Promise<PublicResult> {
   try {
     const { data } = await api.GET("/api/site/content", { params: { query: {} } });
@@ -167,7 +210,8 @@ export async function submitForm(api: ApiClient, id: string | null, values: Form
   if (!publish) return { done: id === null ? "created" : "updated" };
 
   const published = await setPublished(api, saved.id, true);
-  if (published.ok || published.reason === "conflict") return { done: "published" }; // conflict: someone else already published it
+  if (published.ok) return { done: published.scheduled ? "scheduled" : "published" };
+  if (published.reason === "conflict") return { done: "published" }; // someone else already published it
   if (published.reason === "gone") return { gone: true };
   return { done: "saved_unpublished" };
 }

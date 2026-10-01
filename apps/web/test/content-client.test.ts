@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { createApiClient } from "@/api/client";
-import { loadContent, loadItem, loadPublic, saveItem, setPublished, submitForm } from "@/content/client";
+import { archiveItem, loadContent, loadItem, loadPublic, saveItem, setPublished, submitForm } from "@/content/client";
 import type { FormValues } from "@/content/model";
 
 interface Seen {
@@ -28,7 +28,7 @@ function fake(answer: (seen: Seen) => Response | Promise<Response> | "offline") 
 }
 const json = (status: number, body: unknown) => new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json" } });
 
-const values: FormValues = { kind: "notice", title: "  Winter break ", body: " Closed on Friday. ", contact: "", urgent: false, publishOnBs: "2083-06-10", hideAfterBs: "", holidayFromBs: "", holidayToBs: "" };
+const values: FormValues = { kind: "notice", title: "  Winter break ", body: " Closed on Friday. ", contact: "", urgent: false, publishOnBs: "2083-06-10", publishTime: "10:00", hideAfterBs: "", holidayFromBs: "", holidayToBs: "" };
 const toAd: Record<string, string> = { "2083-06-10": "2026-09-27", "2083-07-01": "2026-10-18" };
 const convert = (seen: Seen) => {
   const bs = new URL(`http://x${seen.path}`).searchParams.get("bs")!;
@@ -36,12 +36,19 @@ const convert = (seen: Seen) => {
 };
 
 describe("loadContent", () => {
-  it("asks for the whole list, or a filtered one, and hands back the items and today's Nepali day", async () => {
-    const { api, seen } = fake(() => json(200, { items: [{ id: "a" }], todayBs: "2083-06-05" }));
-    expect(await loadContent(api, {})).toEqual({ ok: true, items: [{ id: "a" }], todayBs: "2083-06-05" });
+  it("asks for a page, filtered and searched on the server (D-098), and hands back everything the screen needs", async () => {
+    const page = { items: [{ id: "a" }], total: 1, page: 1, pageSize: 10, counts: { published: 1, drafts: 0, scheduled: 0, urgent: 0 }, site: { address: null, live: false, lastPublishedAt: null }, todayBs: "2083-06-05", nowTime: "10:15" };
+    const { api, seen } = fake(() => json(200, page));
+    expect(await loadContent(api, {})).toEqual({ ok: true, ...page });
     await loadContent(api, { kind: "post", state: "draft" });
-    await loadContent(api, { kind: "post" });
-    expect(seen.map((s) => s.path)).toEqual(["/api/content", "/api/content?kind=post&state=draft", "/api/content?kind=post"]);
+    await loadContent(api, { kind: "holiday", group: "scheduled", q: "  Dashain  ", page: 2, pageSize: 10 });
+    await loadContent(api, { q: "   " });
+    expect(seen.map((s) => s.path)).toEqual([
+      "/api/content",
+      "/api/content?kind=post&state=draft",
+      "/api/content?kind=holiday&group=scheduled&q=Dashain&page=2&pageSize=10",
+      "/api/content",
+    ]);
   });
 
   it("says forbidden for 403, failed for any other error or no network", async () => {
@@ -51,11 +58,11 @@ describe("loadContent", () => {
   });
 });
 
-describe("loadContent with a limit", () => {
-  it("asks for only that many, for a form that needs nothing but today's date", async () => {
+describe("loadContent with a small page", () => {
+  it("asks for one item, for a form that needs nothing but today's date and the time now", async () => {
     const { api, seen } = fake(() => json(200, { items: [], todayBs: "2083-06-05" }));
-    await loadContent(api, { limit: 1 });
-    expect(seen[0]!.path).toBe("/api/content?limit=1");
+    await loadContent(api, { pageSize: 1 });
+    expect(seen[0]!.path).toBe("/api/content?pageSize=1");
   });
 });
 
@@ -103,7 +110,7 @@ describe("saveItem: a new item", () => {
     expect(result).toEqual({ ok: true, id: "new1" });
     const post = seen.find((s) => s.method === "POST")!;
     expect(post.path).toBe("/api/content");
-    expect(post.body).toEqual({ kind: "notice", title: "Winter break", body: "Closed on Friday.", contact: null, urgent: false, publishOn: "2026-09-27", hideAfter: "2026-10-18", holidayFrom: null, holidayTo: null });
+    expect(post.body).toEqual({ kind: "notice", title: "Winter break", body: "Closed on Friday.", contact: null, urgent: false, publishOn: "2026-09-27", publishTime: "10:00", hideAfter: "2026-10-18", holidayFrom: null, holidayTo: null });
     expect(seen.filter((s) => s.method === "GET").map((s) => s.path).sort()).toEqual(["/api/dates/to-ad?bs=2083-06-10", "/api/dates/to-ad?bs=2083-07-01"]);
   });
 
@@ -164,7 +171,7 @@ describe("saveItem: an existing item", () => {
     expect(result).toEqual({ ok: true, id: "abc123" });
     const patch = seen.find((s) => s.method === "PATCH")!;
     expect(patch.path).toBe("/api/content/abc123");
-    expect(patch.body).toEqual({ title: "Winter break", body: "Closed on Friday.", contact: null, urgent: true, publishOn: "2026-09-27", hideAfter: null, holidayFrom: null, holidayTo: null });
+    expect(patch.body).toEqual({ title: "Winter break", body: "Closed on Friday.", contact: null, urgent: true, publishOn: "2026-09-27", publishTime: "10:00", hideAfter: null, holidayFrom: null, holidayTo: null });
     expect(patch.body).not.toHaveProperty("kind");
   });
 
@@ -180,7 +187,7 @@ describe("submitForm: save, and with publish also put it on the website", () => 
   const route = (over: { save?: Response | "offline"; publish?: Response | "offline" } = {}) =>
     fake((s) => {
       if (s.method === "GET") return convert(s);
-      if (s.path.endsWith("/publish")) return over.publish ?? json(200, { ok: true });
+      if (s.path.endsWith("/publish")) return over.publish ?? json(200, { ok: true, state: "showing" });
       return over.save ?? (s.method === "POST" ? json(201, { id: "new1" }) : json(200, { ok: true }));
     });
   const calls = (seen: Seen[]) => seen.filter((s) => s.method !== "GET").map((s) => `${s.method} ${s.path}`);
@@ -203,6 +210,11 @@ describe("submitForm: save, and with publish also put it on the website", () => 
     const edited = route();
     expect(await submitForm(edited.api, "abc123", values, true)).toEqual({ done: "published" });
     expect(calls(edited.seen)).toEqual(["PATCH /api/content/abc123", "POST /api/content/abc123/publish"]);
+  });
+
+  it("a publish date and time still to come: saved and scheduled, and the person is told so (D-098)", async () => {
+    const r = route({ publish: json(200, { ok: true, state: "scheduled" }) });
+    expect(await submitForm(r.api, null, values, true)).toEqual({ done: "scheduled" });
   });
 
   it("someone else already published it (409): the person still gets what they wanted", async () => {
@@ -241,10 +253,22 @@ describe("submitForm: save, and with publish also put it on the website", () => 
 
 describe("setPublished", () => {
   it("publishes or takes down the named item", async () => {
-    const { api, seen } = fake(() => json(200, { ok: true }));
-    expect(await setPublished(api, "abc123", true)).toEqual({ ok: true });
+    const { api, seen } = fake((s) => json(200, s.path.endsWith("/publish") ? { ok: true, state: "showing" } : { ok: true }));
+    expect(await setPublished(api, "abc123", true)).toEqual({ ok: true, scheduled: false });
     expect(await setPublished(api, "abc123", false)).toEqual({ ok: true });
     expect(seen.map((s) => `${s.method} ${s.path}`)).toEqual(["POST /api/content/abc123/publish", "POST /api/content/abc123/unpublish"]);
+  });
+
+  it("says when publishing only scheduled it, for a date and time still to come (D-098)", async () => {
+    expect(await setPublished(fake(() => json(200, { ok: true, state: "scheduled" })).api, "abc123", true)).toEqual({ ok: true, scheduled: true });
+  });
+
+  it("archives the named item; 409 is a conflict (already archived, or waiting for approval)", async () => {
+    const { api, seen } = fake(() => json(200, { ok: true }));
+    expect(await archiveItem(api, "abc123")).toEqual({ ok: true });
+    expect(seen[0]).toMatchObject({ method: "POST", path: "/api/content/abc123/archive" });
+    expect(await archiveItem(fake(() => json(409, { error: "already_archived" })).api, "abc123")).toEqual({ ok: false, reason: "conflict" });
+    expect(await archiveItem(fake(() => "offline").api, "abc123")).toEqual({ ok: false, reason: "failed" });
   });
 
   it("409 is a conflict (someone got there first), 404 gone, 403 forbidden, the rest failed", async () => {

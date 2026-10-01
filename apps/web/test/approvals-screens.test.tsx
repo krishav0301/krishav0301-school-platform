@@ -104,12 +104,12 @@ describe("the content list's role-based actions", () => {
   it("shows the shape of the page for a Co-ordinator (no crash, no publish controls to fetch yet)", () => {
     const html = inContext(<ContentList />, as("coordinator"));
     expect(html).toMatch(/role="status"[^>]*aria-busy="true"/);
-    expect(html).toContain(">Website content</h1>");
+    expect(html).toContain(">Website Content</h1>");
   });
 
   it("shows the shape of the page for an Admin unchanged", () => {
     const html = inContext(<ContentList />, as("admin"));
     expect(html).toMatch(/role="status"[^>]*aria-busy="true"/);
-    expect(html).toContain(">Website content</h1>");
+    expect(html).toContain(">Website Content</h1>");
   });
 });

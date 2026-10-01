@@ -217,6 +217,10 @@ describe("large text and narrow screens", () => {
     expect(css("classwork/classwork.module.css")).toMatch(/button\.wrapLabel\s*\{[^}]*white-space:\s*normal/);
   });
 
+  it("the Website Content page and its pop-up let button labels wrap (found at 320 px and 200% in D-098)", () => {
+    expect(css("content/website.module.css")).toMatch(/\.page :is\(button, a\),\s*\.dialog :is\(button, a\)\s*\{[^}]*white-space:\s*normal/);
+  });
+
   it("the phone tab bar wraps onto a second row with enlarged text, so no menu entry is pushed off the screen, and the sidebar does not", () => {
     const shell = css("shell/shell.module.css");
     expect(shell).toMatch(/\.nav\s*\{[^}]*flex-wrap:\s*wrap/);

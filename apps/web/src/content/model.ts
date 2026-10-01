@@ -12,8 +12,34 @@ export type ContentSummary = components["schemas"]["AdminContentSummary"];
 export type Kind = ContentItem["kind"];
 export type State = ContentItem["state"];
 
-export const KINDS: readonly Kind[] = ["notice", "holiday", "routine", "vacancy", "post"];
-export const STATES: readonly State[] = ["draft", "waiting", "scheduled", "showing", "expired"];
+/** In the order the type cards and filters show them (D-098): News first, Routine last. */
+export const KINDS: readonly Kind[] = ["post", "notice", "holiday", "event", "vacancy", "information", "routine"];
+export const STATES: readonly State[] = ["draft", "waiting", "scheduled", "showing", "expired", "archived"];
+
+/** The four status filters (D-098), and the states each one covers (the server groups them the same way). */
+export type Group = components["schemas"]["ContentGroup"];
+export const GROUPS: readonly Group[] = ["published", "draft", "scheduled", "archived"];
+export const GROUP_LABEL: Record<Group, MessageKey> = {
+  published: "content.group.published",
+  draft: "content.group.draft",
+  scheduled: "content.group.scheduled",
+  archived: "content.group.archived",
+};
+
+/**
+ * Each kind's colour, from the theme's own tones (D-098, after the PM's reference): News and Information take the
+ * brand blue only on their icon, never on a label (D-030); Routine stays quiet.
+ */
+export type KindTone = "primary" | "bad" | "accent" | "ok" | "warn" | "neutral";
+export const KIND_TONE: Record<Kind, KindTone> = {
+  post: "primary",
+  notice: "bad",
+  holiday: "accent",
+  event: "ok",
+  vacancy: "warn",
+  information: "primary",
+  routine: "neutral",
+};
 
 /** The words for each kind and state. Written out so every key is visibly in use. */
 export const KIND_LABEL: Record<Kind, MessageKey> = {
@@ -22,6 +48,8 @@ export const KIND_LABEL: Record<Kind, MessageKey> = {
   routine: "content.kind.routine",
   vacancy: "content.kind.vacancy",
   post: "content.kind.post",
+  event: "content.kind.event",
+  information: "content.kind.information",
 };
 export const STATE_LABEL: Record<State, MessageKey> = {
   draft: "content.state.draft",
@@ -29,6 +57,17 @@ export const STATE_LABEL: Record<State, MessageKey> = {
   scheduled: "content.state.scheduled",
   showing: "content.state.showing",
   expired: "content.state.expired",
+  archived: "content.state.archived",
+};
+
+/** The short line under a state: whether visitors can see it (D-098). */
+export const STATE_NOTE: Record<State, MessageKey> = {
+  draft: "content.stateNote.hidden",
+  waiting: "content.stateNote.hidden",
+  scheduled: "content.stateNote.scheduled",
+  showing: "content.stateNote.showing",
+  expired: "content.stateNote.hidden",
+  archived: "content.stateNote.hidden",
 };
 
 /** Month 1 (Baisakh) to month 12 (Chaitra). */
@@ -49,32 +88,36 @@ export interface FormValues {
   contact: string;
   urgent: boolean;
   publishOnBs: string;
+  /** The time of day it starts showing, Nepal time, 24-hour "HH:MM" (D-098). */
+  publishTime: string;
   hideAfterBs: string;
   /** Holidays only (D-094): the day the school is closed, and the last day of a longer holiday. */
   holidayFromBs: string;
   holidayToBs: string;
 }
 
-export type FieldName = "title" | "body" | "contact" | "holidayFromBs" | "holidayToBs" | "publishOnBs" | "hideAfterBs";
+export type FieldName = "title" | "body" | "contact" | "holidayFromBs" | "holidayToBs" | "publishOnBs" | "publishTime" | "hideAfterBs";
 export type FormErrors = Partial<Record<FieldName, MessageKey>>;
 
 /** The order the fields appear in, so the first problem in the list is the first one on screen. */
-const FIELD_ORDER: readonly FieldName[] = ["title", "body", "contact", "holidayFromBs", "holidayToBs", "publishOnBs", "hideAfterBs"];
+const FIELD_ORDER: readonly FieldName[] = ["title", "body", "contact", "holidayFromBs", "holidayToBs", "publishOnBs", "publishTime", "hideAfterBs"];
 
-export const emptyForm = (todayBs: string | null, kind: Kind = "notice"): FormValues => ({
+/** A new item starts as News, shown from now (today's Nepali date and the time now, from the server's clock). */
+export const emptyForm = (todayBs: string | null, kind: Kind = "post", nowTime = "00:00"): FormValues => ({
   kind,
   title: "",
   body: "",
   contact: "",
   urgent: false,
   publishOnBs: todayBs ?? "",
+  publishTime: nowTime,
   hideAfterBs: "",
   holidayFromBs: "",
   holidayToBs: "",
 });
 
 export const formFromItem = (
-  item: Pick<ContentItem, "kind" | "title" | "body" | "contact" | "urgent" | "publishOnBs" | "hideAfterBs" | "holidayFromBs" | "holidayToBs">,
+  item: Pick<ContentItem, "kind" | "title" | "body" | "contact" | "urgent" | "publishOnBs" | "publishTime" | "hideAfterBs" | "holidayFromBs" | "holidayToBs">,
 ): FormValues => ({
   kind: item.kind,
   title: item.title,
@@ -82,6 +125,7 @@ export const formFromItem = (
   contact: item.contact ?? "",
   urgent: item.urgent,
   publishOnBs: item.publishOnBs ?? "",
+  publishTime: item.publishTime,
   // A holiday's "hide after" is its last day, set by the server, so the form does not carry it (D-094).
   hideAfterBs: item.kind === "holiday" ? "" : (item.hideAfterBs ?? ""),
   holidayFromBs: item.holidayFromBs ?? "",
@@ -89,6 +133,7 @@ export const formFromItem = (
 });
 
 const BS_SHAPE = /^\d{4}-\d{2}-\d{2}$/;
+const TIME_SHAPE = /^([01]\d|2[0-3]):[0-5]\d$/;
 
 export function validateForm(values: FormValues): FormErrors {
   const errors: FormErrors = {};
@@ -112,6 +157,7 @@ export function validateForm(values: FormValues): FormErrors {
 
   if (!publishOn) errors.publishOnBs = "contentForm.error.dateRequired";
   else if (!BS_SHAPE.test(publishOn)) errors.publishOnBs = "contentForm.error.dateShape";
+  if (!TIME_SHAPE.test(values.publishTime.trim())) errors.publishTime = "contentForm.error.timeRequired";
 
   // Zero-padded year-month-day text sorts in date order, so the checks below compare days without converting them.
   if (values.kind === "holiday") {
@@ -144,6 +190,14 @@ export function formatBsDate(text: string | null | undefined): string {
   const [year, month, day] = [Number(match[1]), Number(match[2]), Number(match[3])] as [number, number, number];
   if (month < 1 || month > 12 || day < 1 || day > 32) return "—";
   return `${day} ${t(MONTH_LABEL[month - 1]!)} ${year}`;
+}
+
+/** A time of day "HH:MM" as a person reads it, "10:00 AM". The text as it is when it is not a time. */
+export function formatTime(hhmm: string): string {
+  const match = /^(\d{2}):(\d{2})$/.exec(hhmm);
+  if (!match) return hhmm;
+  const hour = Number(match[1]);
+  return `${hour % 12 === 0 ? 12 : hour % 12}:${match[2]} ${t(hour < 12 ? "content.am" : "content.pm")}`;
 }
 
 /** A holiday's own days in words (D-094): "Holiday on 16 Ashwin 2083", or "from … to …" for a longer one. Null when there is no holiday date. */
@@ -189,7 +243,7 @@ export type EditTarget = { mode: "new"; kind?: Kind } | { mode: "edit"; id: stri
 export function parseEditTarget(search: string): EditTarget {
   const params = new URLSearchParams(search);
   if (!params.has("id")) {
-    // A new item may start as a known kind (`?kind=post`, the dashboard's Publish Post, D-089).
+    // A new item may start as a known kind (`?kind=post`, the dashboard's Publish News, D-089).
     const kind = params.get("kind");
     return kind !== null && (KINDS as readonly string[]).includes(kind) ? { mode: "new", kind: kind as Kind } : { mode: "new" };
   }
@@ -197,20 +251,20 @@ export function parseEditTarget(search: string): EditTarget {
   return /^[0-9a-f]{32}$/.test(id) ? { mode: "edit", id } : { mode: "invalid" };
 }
 
-export type FlashKind = "created" | "updated" | "published" | "saved_unpublished";
+export type FlashKind = "created" | "updated" | "published" | "scheduled" | "saved_unpublished";
+const FLASH_KINDS: readonly FlashKind[] = ["created", "updated", "published", "scheduled", "saved_unpublished"];
 
 /** What the list is told a form just did (`?done=created`). Anything else is ignored. */
 export function parseFlash(search: string): FlashKind | null {
   const done = new URLSearchParams(search).get("done");
-  return done === "created" || done === "updated" || done === "published" || done === "saved_unpublished" ? done : null;
+  return (FLASH_KINDS as readonly (string | null)[]).includes(done) ? (done as FlashKind) : null;
 }
 
-/** The text split into paragraphs at blank lines. Nothing in it is interpreted: it is shown as typed. */
-export const paragraphs = (body: string): string[] =>
-  body
-    .split(/\n\s*\n/)
-    .map((part) => part.trim())
-    .filter(Boolean);
+/** A new item the address asks the list to open (`?new=post`, the dashboard's quick action), or null. */
+export function parseNewKind(search: string): Kind | null {
+  const kind = new URLSearchParams(search).get("new");
+  return kind !== null && (KINDS as readonly string[]).includes(kind) ? (kind as Kind) : null;
+}
 
 /** What the public notice board shows for one item. */
 export type PublicItem = components["schemas"]["PublicContentItem"];
@@ -222,6 +276,8 @@ export const KIND_PLURAL_LABEL: Record<Kind, MessageKey> = {
   routine: "notices.kind.routine",
   vacancy: "notices.kind.vacancy",
   post: "notices.kind.post",
+  event: "notices.kind.event",
+  information: "notices.kind.information",
 };
 
 const EMAIL = /^[^\s@<>"?;&]+@[^\s@<>"?;&]+\.[^\s@<>"?;&]+$/;

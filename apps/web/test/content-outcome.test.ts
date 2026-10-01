@@ -10,8 +10,13 @@ describe("outcomeOfToggle: what to tell the Admin after Publish, Take down or Un
   it("publishing says so with the item's name, and offers to undo it as 'Undo publish'", () => {
     const o = outcomeOfToggle(ok, { id: "a", title: "Fee notice", publish: true });
     expect(o).toMatchObject({ tone: "ok", refresh: true, undo: { id: "a", title: "Fee notice", publish: false } });
-    expect(say(o)).toBe("Published: “Fee notice” shows on the website from its start day.");
+    expect(say(o)).toBe("Published: “Fee notice” is on the website.");
     expect(t(o.undo!.publish ? "content.undoTakeDown" : "content.undoPublish")).toBe("Undo publish");
+  });
+
+  it("publishing an item whose date and time are still to come says it is scheduled (D-098)", () => {
+    const o = outcomeOfToggle({ ok: true, scheduled: true }, { id: "a", title: "Fee notice", publish: true });
+    expect(say(o)).toBe("Scheduled: “Fee notice” goes on the website at its publish date and time.");
   });
 
   it("taking down says so, and offers to undo it as 'Undo take down'", () => {
