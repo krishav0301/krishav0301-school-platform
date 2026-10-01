@@ -6,6 +6,7 @@ import type { ReactNode } from "react";
 
 import { useConfig } from "@/config/ConfigProvider";
 import { t } from "@/i18n/messages";
+import { useSession } from "@/session/SessionProvider";
 import { PortalShell } from "@/shell/PortalShell";
 
 import { termWords } from "./model";
@@ -43,10 +44,13 @@ export function SetupTabs({ pathname }: { pathname: string }) {
 /** The portal frame, the sub-menu, and the screen. Who may see or change what is decided by the API. */
 export function SetupLayout({ children }: { children: ReactNode }) {
   const pathname = usePathname();
+  const { me } = useSession();
+  // The Principal (Admin) manages programmes only (D-087); the rest of setup they read from Reports (D-091), so no tabs.
+  const programmesOnly = me?.roles.some((r) => r.role === "admin") && !me.roles.some((r) => r.role === "coordinator" || r.role === "super_admin");
   return (
     <PortalShell>
       <div className={styles.page}>
-        <SetupTabs pathname={pathname} />
+        {programmesOnly ? null : <SetupTabs pathname={pathname} />}
         {children}
       </div>
     </PortalShell>

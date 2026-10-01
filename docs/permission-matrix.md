@@ -28,6 +28,7 @@ Phase is the build phase where the action first exists. The action id in code fo
 | Action | STU | TEA | COO | ACC | ADM | SUP | Phase |
 |---|---|---|---|---|---|---|---|
 | Sign in, reset own password (`auth.sign_in`) | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | 1 |
+| Correct your own name and phone (staff; a student's details are corrected by the Co-ordinator) (`account.profile.edit`) | — | own | own | own | own | own | 8 |
 | Create Admin account (`accounts.admin.create`) | — | — | — | — | — | ✓ | 1 |
 | Create Co-ordinator or Accountant (`accounts.staff.create`) | — | — | — | — | ✓ | ✓ | 1 |
 | Create Teacher (`accounts.teacher.create`) | — | — | inst | — | — | ✓ | 3 |

@@ -40,4 +40,9 @@ export const PUBLIC_ROUTES: ReadonlySet<string> = new Set([
 ]);
 
 /** Any signed-in user, whatever their role. For things people do to their own account. */
-export const AUTHENTICATED_ROUTES: ReadonlySet<string> = new Set(["GET /api/auth/me"]);
+export const AUTHENTICATED_ROUTES: ReadonlySet<string> = new Set([
+  "GET /api/auth/me",
+  // Settings (D-091): your own account, never anyone else's. Each acts only on the signed-in person's own row.
+  "GET /api/account/profile",
+  "POST /api/auth/password/change",
+]);

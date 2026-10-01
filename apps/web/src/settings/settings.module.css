@@ -1,0 +1,100 @@
+/* Settings (D-091) and Reports. Theme tokens only. */
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+  max-width: 44rem;
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.heading {
+  margin: 0;
+  font-family: var(--font-heading);
+  font-size: var(--text-xl);
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.form p {
+  margin: 0;
+}
+
+.facts {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  margin: 0;
+}
+
+.facts dd {
+  margin: 0;
+}
+
+.withIcon {
+  gap: var(--space-2);
+}
+
+.icon {
+  flex: none;
+  width: 1.125rem;
+  height: 1.125rem;
+}
+
+/* Reports: groups of places to look, each a full-width link with its icon and a line on what it shows. */
+.links {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.links li + li {
+  border-top: 1px solid var(--color-border);
+}
+
+.link {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  min-height: var(--control-height);
+  padding: var(--space-3) 0;
+  color: var(--color-text);
+  text-decoration: none;
+}
+
+.link:hover .linkTitle {
+  color: var(--color-primary);
+}
+
+.linkIcon {
+  flex: none;
+  width: 1.375rem;
+  height: 1.375rem;
+  color: var(--color-primary);
+}
+
+.linkText {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.linkTitle {
+  font-weight: var(--weight-medium);
+}
+
+.linkDetail {
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+}

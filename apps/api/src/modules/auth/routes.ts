@@ -6,6 +6,7 @@ import { defineRoute } from "../../core/routes";
 import { clearSessionCookies, readRefreshCookie, setSessionCookies } from "../../core/session-cookies";
 import type { App } from "../../core/types";
 import { changeRequiredPassword } from "./first-password";
+import { changeOwnPassword } from "./own-password";
 import { confirmPasswordReset, requestPasswordReset } from "./password-reset";
 import { beginTwoFactorSetup, enableTwoFactor, verifyTwoFactor, type TwoFactorDeps } from "./two-factor";
 import { LOCKOUT_WINDOW_MINUTES, refreshSession, signIn, signOut } from "./service";
@@ -37,6 +38,11 @@ const ChangeRequiredBody = z
     password: z.string().min(1).max(1000),
   })
   .openapi("ChangeRequiredPasswordBody");
+
+/** Settings (D-091): the current password and the new one. The policy is checked in the service, which names the rule. */
+const OwnPasswordBody = z
+  .strictObject({ currentPassword: z.string().min(1).max(1000), newPassword: z.string().min(1).max(1000) })
+  .openapi("ChangeOwnPasswordBody");
 
 const SamePasswordSchema = z.object({ error: z.literal("same_password") }).openapi("SamePassword");
 
@@ -374,6 +380,50 @@ export function registerAuth(app: App): void {
 
       setSessionCookies(c, result.accessToken, result.refreshToken);
       return c.json({ user: result.user, roles: result.roles }, 200);
+    },
+  );
+
+  defineRoute(
+    app,
+    {
+      method: "post",
+      path: "/api/auth/password/change",
+      operationId: "change_own_password",
+      tags: ["auth"],
+      description:
+        "Change your own password (Settings, D-091). Needs the current one; a wrong one counts toward the sign-in lockout. Every other session ends; this one carries on.",
+      access: { authenticated: true },
+      request: { body: { required: true, content: json(OwnPasswordBody) } },
+      responses: {
+        200: { description: "Changed", content: json(z.object({ ok: z.literal(true) })) },
+        422: {
+          description: "`wrong_password` (the current one is not right), `weak_password` (saying which rule), or `same_password`; nothing changed",
+          content: json(z.union([WeakPasswordSchema, SamePasswordSchema, z.object({ error: z.literal("wrong_password") })])),
+        },
+        401: { description: "Switched off: sign in again", content: json(ErrorSchema) },
+        429: { description: "Too many wrong passwords for this email in the last 15 minutes; nothing changed", content: json(ErrorSchema) },
+      },
+    },
+    async (c) => {
+      const auth = c.get("auth")!;
+      const body = c.req.valid("json");
+      const result = await changeOwnPassword(
+        { db: c.env.DB, auditKey: c.env.AUDIT_HMAC_KEY },
+        {
+          userPublicId: auth.userPublicId,
+          sessionPublicId: auth.sessionPublicId,
+          currentPassword: body.currentPassword,
+          newPassword: body.newPassword,
+          ip: c.req.header("CF-Connecting-IP") ?? null,
+          userAgent: c.req.header("User-Agent") ?? null,
+        },
+      );
+      if (result.ok) return c.json({ ok: true as const }, 200);
+      if (result.reason === "weak_password") return c.json({ error: "weak_password" as const, problems: result.problems }, 422);
+      if (result.reason === "same_password") return c.json({ error: "same_password" as const }, 422);
+      if (result.reason === "wrong_password") return c.json({ error: "wrong_password" as const }, 422);
+      if (result.reason === "throttled") return c.json({ error: "throttled" }, 429);
+      return c.json({ error: "unauthenticated" }, 401);
     },
   );
 }

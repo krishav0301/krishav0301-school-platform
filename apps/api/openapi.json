@@ -312,6 +312,75 @@
         ],
         "additionalProperties": false
       },
+      "ChangeOwnPasswordBody": {
+        "type": "object",
+        "properties": {
+          "currentPassword": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 1000
+          },
+          "newPassword": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 1000
+          }
+        },
+        "required": [
+          "currentPassword",
+          "newPassword"
+        ],
+        "additionalProperties": false
+      },
+      "OwnProfile": {
+        "type": "object",
+        "properties": {
+          "fullName": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          },
+          "phone": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "canEditProfile": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "fullName",
+          "email",
+          "phone",
+          "canEditProfile"
+        ]
+      },
+      "OwnProfileUpdate": {
+        "type": "object",
+        "properties": {
+          "fullName": {
+            "type": "string",
+            "minLength": 2,
+            "maxLength": 120
+          },
+          "phone": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "minLength": 5,
+            "maxLength": 30
+          }
+        },
+        "required": [
+          "fullName",
+          "phone"
+        ],
+        "additionalProperties": false
+      },
       "AccountsError": {
         "type": "object",
         "properties": {
@@ -8377,6 +8446,196 @@
                     {
                       "$ref": "#/components/schemas/SamePassword"
                     }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/password/change": {
+      "post": {
+        "operationId": "change_own_password",
+        "tags": [
+          "auth"
+        ],
+        "description": "Change your own password (Settings, D-091). Needs the current one; a wrong one counts toward the sign-in lockout. Every other session ends; this one carries on.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChangeOwnPasswordBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Changed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": {
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
+                    }
+                  },
+                  "required": [
+                    "ok"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Switched off: sign in again",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "`wrong_password` (the current one is not right), `weak_password` (saying which rule), or `same_password`; nothing changed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/WeakPassword"
+                    },
+                    {
+                      "$ref": "#/components/schemas/SamePassword"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "error": {
+                          "type": "string",
+                          "enum": [
+                            "wrong_password"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "error"
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many wrong passwords for this email in the last 15 minutes; nothing changed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/account/profile": {
+      "get": {
+        "operationId": "own_profile",
+        "tags": [
+          "accounts"
+        ],
+        "description": "Your own name, email and phone, and whether you may correct them yourself.",
+        "responses": {
+          "200": {
+            "description": "Your profile",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OwnProfile"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Switched off",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "operationId": "update_own_profile",
+        "tags": [
+          "accounts"
+        ],
+        "description": "Correct your own name and phone (staff only). The email is your sign-in and is not changed here. Recorded in the audit log.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OwnProfileUpdate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Saved",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": {
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
+                    }
+                  },
+                  "required": [
+                    "ok"
+                  ]
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not staff, or switched off; nothing changed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "error"
                   ]
                 }
               }
