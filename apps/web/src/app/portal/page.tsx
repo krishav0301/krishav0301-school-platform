@@ -2,6 +2,7 @@
 
 import { StudentRecordCard } from "@/admissions/StudentRecordCard";
 import { OwnAttendanceCard } from "@/attendance/OwnAttendanceCard";
+import { AdminDashboard } from "@/dashboard/AdminDashboard";
 import { SchoolDayCard, StudentTodayCard, TeacherTodayCard } from "@/dashboard/TodayCards";
 import { useConfig } from "@/config/ConfigProvider";
 import { t } from "@/i18n/messages";
@@ -16,6 +17,8 @@ function Dashboard() {
   const { me } = useSession();
   const { config, term } = useConfig();
   if (!me) return null;
+  // The Principal (Admin) and Support see the whole school at a glance (D-088).
+  if (me.roles.some((r) => r.role === "admin" || r.role === "super_admin")) return <AdminDashboard />;
 
   // The school's own word for the role ("Vice Principal" for Co-ordinator), or "Support" for the build team.
   const roleName = (role: string) => (role === "super_admin" ? t("portal.support") : term(`role.${role}`));

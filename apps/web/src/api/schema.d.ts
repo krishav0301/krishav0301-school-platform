@@ -2787,6 +2787,8 @@ export interface components {
             name: string;
             /** @enum {string} */
             font: "system" | "inter" | "noto-sans";
+            /** @enum {string} */
+            headingFont?: "body" | "source-serif";
             shape: {
                 radiusCard: number;
                 radiusControl: number;
@@ -2803,6 +2805,10 @@ export interface components {
                 okSoft: string;
                 bad: string;
                 badSoft: string;
+                accent: string;
+                accentSoft: string;
+                warn: string;
+                warnSoft: string;
             };
             dark?: {
                 background: string;
@@ -2816,6 +2822,10 @@ export interface components {
                 okSoft: string;
                 bad: string;
                 badSoft: string;
+                accent: string;
+                accentSoft: string;
+                warn: string;
+                warnSoft: string;
             };
         } | null;
         ConfigError: {

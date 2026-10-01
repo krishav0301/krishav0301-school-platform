@@ -22,16 +22,26 @@ export const ColorSetSchema = z.strictObject({
   okSoft: hex,
   bad: hex,
   badSoft: hex,
+  /** A second accent (purple in the reference design) for icons on its soft tint (D-088). */
+  accent: hex,
+  accentSoft: hex,
+  /** "Needs attention" (amber): icons and highlights on its soft tint, never text on its own (D-088). */
+  warn: hex,
+  warnSoft: hex,
 });
 export type ColorSet = z.infer<typeof ColorSetSchema>;
 
 /** Self-hosted fonts only (D: host fonts ourselves). A school cannot point at an outside font. */
 export const FONTS = ["system", "inter", "noto-sans"] as const;
+/** The heading font: the body font, or a self-hosted serif (D-088). */
+export const HEADING_FONTS = ["body", "source-serif"] as const;
 
 export const ThemeSchema = z
   .strictObject({
     name: z.string().min(1).max(60),
     font: z.enum(FONTS),
+    /** Optional: headings in the body font when left out. */
+    headingFont: z.enum(HEADING_FONTS).optional(),
     shape: z.strictObject({
       radiusCard: z.number().int().min(0).max(32),
       radiusControl: z.number().int().min(0).max(24),
@@ -63,6 +73,9 @@ export const CONTRAST_RULES: readonly ContrastRule[] = [
   { id: "primary-on-surface", label: "Links and quiet buttons on cards", foreground: "primary", background: "surface", minimum: 4.5 },
   { id: "ok-label", label: "Success labels", foreground: "ok", background: "okSoft", minimum: 4.5 },
   { id: "bad-label", label: "Error labels", foreground: "bad", background: "badSoft", minimum: 4.5 },
+  // Icons sit on their soft tint: parts of controls and icons need 3:1 (D-088).
+  { id: "accent-icon", label: "Accent icons", foreground: "accent", background: "accentSoft", minimum: 3 },
+  { id: "warn-icon", label: "Attention icons", foreground: "warn", background: "warnSoft", minimum: 3 },
 ];
 
 export interface ContrastFailure {

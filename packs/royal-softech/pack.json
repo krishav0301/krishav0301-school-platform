@@ -13,7 +13,7 @@
     { "key": "bachelors", "name": "Bachelor's" }
   ],
   "modules": {},
-  "terminology": {},
+  "terminology": { "role.admin": "Principal" },
   "site": {
     "home": {
       "headline": "Royal Softech College, Lahan",
@@ -60,6 +60,7 @@
   "theme": {
     "name": "Royal Softech (placeholder brand)",
     "font": "inter",
+    "headingFont": "source-serif",
     "shape": { "radiusCard": 18, "radiusControl": 12 },
     "light": {
       "background": "#f5f5f7",
@@ -72,20 +73,11 @@
       "ok": "#146c2e",
       "okSoft": "#dcf5e3",
       "bad": "#b42318",
-      "badSoft": "#fde4e1"
-    },
-    "dark": {
-      "background": "#000000",
-      "surface": "#1c1c1e",
-      "text": "#f5f5f7",
-      "textMuted": "#a1a1a6",
-      "border": "#38383a",
-      "primary": "#4c8dff",
-      "primaryText": "#000000",
-      "ok": "#4ade80",
-      "okSoft": "#12351f",
-      "bad": "#f97066",
-      "badSoft": "#3a1512"
+      "badSoft": "#fde4e1",
+      "accent": "#6941c6",
+      "accentSoft": "#f1ecfd",
+      "warn": "#b54708",
+      "warnSoft": "#fef0e1"
     }
   }
 }

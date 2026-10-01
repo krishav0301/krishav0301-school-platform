@@ -3,6 +3,7 @@ export {
   CONTRAST_RULES,
   ColorSetSchema,
   FONTS,
+  HEADING_FONTS,
   ThemeSchema,
   checkContrast,
   type ColorSet,

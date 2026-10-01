@@ -63,7 +63,11 @@
       "ok": "#166534",
       "okSoft": "#dcfce7",
       "bad": "#991b1b",
-      "badSoft": "#fee2e2"
+      "badSoft": "#fee2e2",
+      "accent": "#7a3eb1",
+      "accentSoft": "#f3eafb",
+      "warn": "#a15c07",
+      "warnSoft": "#fdf3e2"
     }
   }
 }

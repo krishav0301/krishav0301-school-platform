@@ -20,34 +20,40 @@ export interface NavItem {
   module?: string;
   /** Visited now and then rather than daily (setup, staff, the website): the first to move into More on a phone. */
   rarely?: boolean;
+  /** The entry's icon in the sidebar (D-088), by name; the shell maps it to a drawing. */
+  icon: NavIcon;
 }
+
+export type NavIcon = "overview" | "website" | "programs" | "setup" | "people" | "approvals" | "admissions" | "attendance" | "classwork" | "fees" | "results";
 
 export const MAX_TABS = 5;
 
 export const NAV_ITEMS: readonly NavItem[] = [
-  { id: "dashboard", labelKey: "nav.dashboard", href: "/portal" },
+  { id: "dashboard", labelKey: "nav.dashboard", href: "/portal", icon: "overview" },
   // Phase 2: the Admin edits the public website's content (D-040). Phase 3, slice 4: a Co-ordinator
   // drafts too, and sends a draft for approval instead of publishing it (D-061).
-  { id: "content", labelKey: "nav.content", href: "/portal/content", roles: ["coordinator", "admin", "super_admin"], rarely: true },
+  { id: "content", labelKey: "nav.content", href: "/portal/content", roles: ["coordinator", "admin", "super_admin"], rarely: true, icon: "website" },
+  // D-087/D-088: programmes are the Admin's alone, so the Admin's Setup is just "Programs".
+  { id: "programs", labelKey: "nav.programs", href: "/portal/setup/programmes", roles: ["admin"], rarely: true, icon: "programs" },
   // Phase 3: the academic structure. The Co-ordinator sets it up; the Admin can look (the API decides, D-025).
-  { id: "setup", labelKey: "nav.setup", href: "/portal/setup", roles: ["coordinator", "admin", "super_admin"], rarely: true },
+  { id: "setup", labelKey: "nav.setup", href: "/portal/setup", roles: ["coordinator", "super_admin"], rarely: true, icon: "setup" },
   // Phase 3, slice 3a: the staff. Whoever may add someone (the API decides, D-025).
-  { id: "people", labelKey: "nav.people", href: "/portal/people", roles: ["admin", "coordinator", "super_admin"], rarely: true },
+  { id: "people", labelKey: "nav.people", href: "/portal/people", roles: ["admin", "coordinator", "super_admin"], rarely: true, icon: "people" },
   // Phase 3, slice 4: the Admin's inbox for a Co-ordinator's draft sent for approval (D-061).
-  { id: "approvals", labelKey: "nav.approvals", href: "/portal/approvals", roles: ["admin", "super_admin"] },
+  { id: "approvals", labelKey: "nav.approvals", href: "/portal/approvals", roles: ["admin", "super_admin"], icon: "approvals" },
   // Phase 4: applications, the review queue, walk-ins and student search. Not the Admin or Super
   // Admin: both are already at MAX_TABS, and neither registers or reviews students (D-063).
   // `OPEN:` an Admin's read-only reach into student search has no menu entry yet, the same
   // overflow gap `visibleNav`'s own test already flags for a sixth entry.
-  { id: "admissions", labelKey: "nav.admissions", href: "/portal/admissions", roles: ["coordinator", "accountant"] },
+  { id: "admissions", labelKey: "nav.admissions", href: "/portal/admissions", roles: ["coordinator", "accountant"], icon: "admissions" },
   // Phase 5, slice 1: student attendance. The Class Teacher marks it; the Co-ordinator and the Admin look (D-069).
-  { id: "attendance", labelKey: "nav.attendance", href: "/portal/attendance", roles: ["teacher", "coordinator", "admin", "super_admin"], module: "attendance" },
+  { id: "attendance", labelKey: "nav.attendance", href: "/portal/attendance", roles: ["teacher", "coordinator", "admin", "super_admin"], module: "attendance", icon: "attendance" },
   // Phase 5, slice 3: the daily activity log; notes and homework join it in slice 4 (D-071).
-  { id: "classwork", labelKey: "nav.classwork", href: "/portal/classwork", roles: ["teacher", "student", "coordinator", "admin", "super_admin"] },
+  { id: "classwork", labelKey: "nav.classwork", href: "/portal/classwork", roles: ["teacher", "student", "coordinator", "admin", "super_admin"], icon: "classwork" },
   // Phase 6: fees. The Accountant works here, the Admin looks, a student sees their own; never the Co-ordinator (D-078).
-  { id: "fees", labelKey: "nav.fees", href: "/portal/fees", roles: ["accountant", "admin", "super_admin", "student"], module: "fees" },
+  { id: "fees", labelKey: "nav.fees", href: "/portal/fees", roles: ["accountant", "admin", "super_admin", "student"], module: "fees", icon: "fees" },
   // Phase 7: results. The teacher enters marks, the Co-ordinator verifies and publishes, a student sees their own, the Admin reads (D-082).
-  { id: "results", labelKey: "nav.results", href: "/portal/results", roles: ["teacher", "student", "coordinator", "admin", "super_admin"], module: "results" },
+  { id: "results", labelKey: "nav.results", href: "/portal/results", roles: ["teacher", "student", "coordinator", "admin", "super_admin"], module: "results", icon: "results" },
 ];
 
 /** Where the phone's "More" tab goes: a list of the entries that did not fit in the tab bar. */

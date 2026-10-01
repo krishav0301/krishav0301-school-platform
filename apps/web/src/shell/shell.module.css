@@ -35,46 +35,146 @@
   align-items: center;
   justify-content: space-between;
   gap: var(--space-3);
-  max-width: var(--content-width);
-  margin: 0 auto;
   padding: var(--space-2) var(--page-gutter);
 }
 
-/* The brand is a link home, so it gets a full 44px target like every other control. */
+/* The brand: the school's name over "School Management", a link home with a full 44px target (D-088). */
 .brand {
   display: inline-flex;
-  align-items: center;
+  flex-direction: column;
+  justify-content: center;
   min-height: var(--control-height);
   color: var(--color-text);
-  font-size: var(--text-lg);
-  font-weight: var(--weight-bold);
   text-decoration: none;
 }
 
-.actions {
+.brandName {
+  font-family: var(--font-heading);
+  font-size: var(--text-lg);
+  font-weight: var(--weight-bold);
+  line-height: var(--leading-tight);
+}
+
+.brandSub {
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+}
+
+/* The account menu: initials, role and name; it opens to Sign out. */
+.account {
+  position: relative;
+}
+
+.accountButton {
   display: flex;
   align-items: center;
   gap: var(--space-3);
+  min-height: var(--control-height);
+  padding: 0 var(--space-2);
+  border-radius: var(--radius-control);
+  cursor: pointer;
+  list-style: none;
 }
 
-.who {
+.accountButton::-webkit-details-marker {
   display: none;
+}
+
+.accountButton:hover {
+  background: color-mix(in srgb, var(--color-text) 6%, transparent);
+}
+
+.avatar {
+  display: inline-grid;
+  flex: none;
+  place-items: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 50%;
+  background: var(--color-primary);
+  color: var(--color-primary-text);
+  font-weight: var(--weight-bold);
+}
+
+.accountText {
+  display: none;
+  flex-direction: column;
+  line-height: var(--leading-tight);
+}
+
+.accountRole {
+  color: var(--color-primary);
+  font-weight: var(--weight-medium);
+}
+
+.accountName {
   color: var(--color-text-muted);
   font-size: var(--text-sm);
+}
+
+.accountChevron {
+  width: 1.125rem;
+  height: 1.125rem;
+  color: var(--color-text-muted);
+}
+
+.accountMenu {
+  position: absolute;
+  inset-inline-end: 0;
+  top: calc(100% + var(--space-1));
+  z-index: 30;
+  min-width: 12rem;
+  padding: var(--space-2);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-card);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-card);
+}
+
+.accountWho {
+  margin: 0;
+  padding: var(--space-2) var(--space-3);
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+  overflow-wrap: anywhere;
+}
+
+.accountItem {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  width: 100%;
+  min-height: var(--control-height);
+  padding: 0 var(--space-3);
+  border: 0;
+  border-radius: var(--radius-control);
+  background: none;
+  color: var(--color-text);
+  font: inherit;
+  text-align: start;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.accountItem:hover {
+  background: color-mix(in srgb, var(--color-text) 6%, transparent);
 }
 
 .body {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
   align-content: start;
-  max-width: var(--content-width);
   width: 100%;
-  margin: 0 auto;
+}
+
+/* The sidebar's own brand shows only where the sidebar does (wide screens). */
+.sidebarBrand {
+  display: none;
 }
 
 /* Menu on a phone: a bottom tab bar, inside reach of the thumb. It stays put while the page scrolls
-   and clears the home indicator. Text labels, one word each, the current tab marked in text and
-   weight as well as colour. */
+   and clears the home indicator. Icon and one-word label, the current tab marked in text and weight
+   as well as colour. */
 .nav {
   position: fixed;
   inset-inline: 0;
@@ -91,14 +191,16 @@
   flex: 1 1 auto;
   /* A flex item's implied minimum is its own content's width, not 0, so without this two labels sharing
      a row could refuse to shrink and push the bar past the viewport at large text sizes (found at 320 px,
-     200%, once a fifth entry changed how the four others pair up). `min-width: 0` lets a long label wrap
+     200%, once a fifth entry changed how the four others pair up). min-width: 0 lets a long label wrap
      onto a second line inside its own tab instead, which only makes that tab taller. */
   min-width: 0;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
+  gap: 0.15rem;
   min-height: 3.25rem;
-  padding: 0 var(--space-2);
+  padding: var(--space-1) var(--space-2);
   color: var(--color-text-muted);
   font-size: var(--text-sm);
   font-weight: var(--weight-medium);
@@ -109,6 +211,30 @@
 
 .navLink:active {
   transform: scale(0.96);
+}
+
+.navIcon {
+  flex: none;
+  width: 1.25rem;
+  height: 1.25rem;
+}
+
+.navLabel {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.badge {
+  display: inline-grid;
+  place-items: center;
+  min-width: 1.5rem;
+  height: 1.5rem;
+  padding: 0 var(--space-1);
+  border-radius: 999px;
+  background: var(--color-bad);
+  color: var(--color-primary-text);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-bold);
 }
 
 .navLink[aria-current="page"] {
@@ -128,15 +254,11 @@
   padding: var(--space-5) var(--page-gutter) var(--space-7);
 }
 
-.body .main {
-  margin: 0;
-}
-
-/* Keep the last of the page clear of the fixed tab bar. Two rows is the common case, but at 320 px
-   width and 200% text even four one-word labels can wrap to three (found reviewing the setup
+/* Keep the last of the page clear of the fixed tab bar. Icons make each tab taller, and at 320 px
+   width and 200% text even four one-word labels can wrap to three rows (found reviewing the setup
    checklist, D-062), so the reserve covers three rows with a little to spare. */
 .withTabs .main {
-  padding-bottom: calc(10.5rem + env(safe-area-inset-bottom) + var(--space-6));
+  padding-bottom: calc(13rem + env(safe-area-inset-bottom) + var(--space-6));
 }
 
 .footer {
@@ -152,15 +274,15 @@
   align-content: start;
 }
 
-/* On a phone, entries past the tab bar's room live under "More" instead (nav.ts, `splitNav`). */
+/* On a phone, entries past the tab bar's room live under "More" instead (nav.ts, splitNav). */
 .overflow {
   display: none;
 }
 
-/* Wide screens: the menu becomes a sidebar beside the page. */
+/* Wide screens: the menu becomes a full-height sidebar beside the page, the school's name at its top. */
 @media (min-width: 56rem) {
-  .who {
-    display: inline;
+  .accountText {
+    display: flex;
   }
 
   /* The sidebar has room for every entry, so it shows them all and has no "More". */
@@ -172,8 +294,52 @@
     display: none;
   }
 
-  .body {
-    grid-template-columns: 14rem minmax(0, 1fr);
+  .frame.withTabs {
+    grid-template-columns: 16rem minmax(0, 1fr);
+    grid-template-rows: auto 1fr;
+  }
+
+  .withTabs .header {
+    grid-column: 2;
+    grid-row: 1;
+    border-bottom: 0;
+    background: transparent;
+  }
+
+  .withTabs .bar {
+    justify-content: flex-end;
+  }
+
+  .withTabs .headerBrand {
+    display: none;
+  }
+
+  .withTabs .body {
+    display: contents;
+  }
+
+  .sidebar {
+    grid-column: 1;
+    grid-row: 1 / span 2;
+    position: sticky;
+    top: 0;
+    align-self: start;
+    height: 100dvh;
+    overflow-y: auto;
+    border-inline-end: 1px solid color-mix(in srgb, var(--color-border) 70%, transparent);
+    background: var(--color-surface);
+  }
+
+  .sidebarBrand {
+    display: block;
+    padding: var(--space-4) var(--space-5) var(--space-3);
+  }
+
+  .withTabs .main {
+    grid-column: 2;
+    grid-row: 2;
+    max-width: 90rem;
+    padding-bottom: var(--space-7);
   }
 
   .nav {
@@ -181,33 +347,36 @@
     flex-direction: column;
     flex-wrap: nowrap;
     gap: var(--space-1);
-    padding: var(--space-5) var(--space-3) var(--space-5) var(--page-gutter);
+    padding: var(--space-3) var(--space-3) var(--space-5);
     border-top: 0;
     background: transparent;
   }
 
   .navLink {
     flex: none;
+    flex-direction: row;
     justify-content: flex-start;
+    gap: var(--space-3);
     min-height: var(--control-height);
     padding: 0 var(--space-4);
     border-radius: var(--radius-control);
     color: var(--color-text);
     font-size: var(--text-base);
+    text-align: start;
+  }
+
+  .navLabel {
+    flex: 1;
   }
 
   .navLink:hover:not([aria-current="page"]) {
-    background: color-mix(in srgb, var(--color-text) 8%, transparent);
+    background: color-mix(in srgb, var(--color-text) 6%, transparent);
   }
 
   .navLink[aria-current="page"] {
-    background: var(--color-primary);
-    color: var(--color-primary-text);
+    background: color-mix(in srgb, var(--color-primary) 12%, var(--color-surface));
+    color: var(--color-primary);
     box-shadow: none;
-  }
-
-  .withTabs .main {
-    padding-bottom: var(--space-7);
   }
 }
 

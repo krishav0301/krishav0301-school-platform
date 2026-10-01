@@ -20,6 +20,13 @@ export const FONT_STACKS = {
 } as const;
 export type FontKey = keyof typeof FONT_STACKS;
 
+/** Heading fonts (D-088): the body font, or the self-hosted serif. Nepali headings fall back to Noto Sans Devanagari. */
+export const HEADING_STACKS = {
+  body: "var(--font-body)",
+  "source-serif": '"Source Serif 4",Georgia,"Noto Sans Devanagari","Nirmala UI",serif',
+} as const;
+export type HeadingFontKey = keyof typeof HEADING_STACKS;
+
 const COLOR_TOKENS = {
   background: "--color-background",
   surface: "--color-surface",
@@ -32,6 +39,10 @@ const COLOR_TOKENS = {
   okSoft: "--color-ok-soft",
   bad: "--color-bad",
   badSoft: "--color-bad-soft",
+  accent: "--color-accent",
+  accentSoft: "--color-accent-soft",
+  warn: "--color-warn",
+  warnSoft: "--color-warn-soft",
 } as const;
 
 const HEX = /^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/;
@@ -61,12 +72,14 @@ export function themeToCss(theme: unknown): string {
   if (!isRecord(theme)) throw new InvalidThemeError("not an object");
   const font = theme.font;
   if (typeof font !== "string" || !Object.hasOwn(FONT_STACKS, font)) throw new InvalidThemeError("font is not one of the allowed fonts");
+  const heading = theme.headingFont ?? "body";
+  if (typeof heading !== "string" || !Object.hasOwn(HEADING_STACKS, heading)) throw new InvalidThemeError("headingFont is not one of the allowed fonts");
   const shape = theme.shape;
   if (!isRecord(shape)) throw new InvalidThemeError("shape is missing");
 
   const light = colorDeclarations(theme.light, "light");
   const rules =
-    `:root{${light}--font-body:${FONT_STACKS[font as FontKey]};` +
+    `:root{${light}--font-body:${FONT_STACKS[font as FontKey]};--font-heading:${HEADING_STACKS[heading as HeadingFontKey]};` +
     `--radius-card:${radius(shape.radiusCard, "shape.radiusCard", 32)}px;` +
     `--radius-control:${radius(shape.radiusControl, "shape.radiusControl", 24)}px;color-scheme:light;}`;
 

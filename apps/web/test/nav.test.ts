@@ -4,9 +4,9 @@ import { MAX_TABS, NAV_ITEMS, isCurrent, showsMenu, splitNav, visibleNav, type N
 import { ROLES } from "../../api/src/core/roles";
 
 const items: NavItem[] = [
-  { id: "dashboard", labelKey: "nav.dashboard", href: "/portal" },
-  { id: "fees", labelKey: "nav.dashboard", href: "/portal/fees", roles: ["accountant", "admin"], module: "fees" },
-  { id: "homework", labelKey: "nav.dashboard", href: "/portal/homework", roles: ["teacher", "student"], module: "homework" },
+  { id: "dashboard", labelKey: "nav.dashboard", href: "/portal", icon: "overview" as const },
+  { id: "fees", labelKey: "nav.dashboard", href: "/portal/fees", roles: ["accountant", "admin"], module: "fees", icon: "overview" as const },
+  { id: "homework", labelKey: "nav.dashboard", href: "/portal/homework", roles: ["teacher", "student"], module: "homework", icon: "overview" as const },
 ];
 const ids = (list: NavItem[]) => list.map((i) => i.id);
 
@@ -32,7 +32,8 @@ describe("the real menu", () => {
     visibleNav(NAV_ITEMS, [{ role, scope }], modules).map((i) => i.id);
 
   it("shows each role its own entries", () => {
-    expect(seen("admin", "institution")).toEqual(["dashboard", "content", "setup", "people", "approvals", "attendance", "classwork"]);
+    // D-087/D-088: the Admin's Setup is just "Programs"; Support keeps the whole Setup.
+    expect(seen("admin", "institution")).toEqual(["dashboard", "content", "programs", "people", "approvals", "attendance", "classwork"]);
     expect(seen("super_admin", "institution")).toEqual(["dashboard", "content", "setup", "people", "approvals", "attendance", "classwork"]);
     expect(seen("coordinator", "institution")).toEqual(["dashboard", "content", "setup", "people", "admissions", "attendance", "classwork"]);
     expect(seen("coordinator", "section")).toEqual(["dashboard", "content", "setup", "people", "admissions", "attendance", "classwork"]);
@@ -68,12 +69,12 @@ describe("the real menu", () => {
       return { tabs: tabs.map((i) => i.id), more: more.map((i) => i.id) };
     };
     expect(split("coordinator", "institution")).toEqual({ tabs: ["dashboard", "admissions", "attendance", "classwork"], more: ["content", "setup", "people"] });
-    expect(split("admin", "institution")).toEqual({ tabs: ["dashboard", "approvals", "attendance", "classwork"], more: ["content", "setup", "people"] });
+    expect(split("admin", "institution")).toEqual({ tabs: ["dashboard", "approvals", "attendance", "classwork"], more: ["content", "programs", "people"] });
   });
 });
 
 describe("splitNav", () => {
-  const entry = (id: string, rarely = false): NavItem => ({ id, labelKey: "nav.dashboard", href: `/portal/${id}`, ...(rarely ? { rarely } : {}) });
+  const entry = (id: string, rarely = false): NavItem => ({ id, labelKey: "nav.dashboard", href: `/portal/${id}`, icon: "overview", ...(rarely ? { rarely } : {}) });
 
   it("keeps every entry a tab while they fit", () => {
     const menu = ["a", "b", "c", "d", "e"].map((id) => entry(id));

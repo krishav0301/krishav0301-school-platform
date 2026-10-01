@@ -41,9 +41,9 @@ const sessionEnded: SessionValue = fakeSession({ endedUnexpectedly: true });
 
 /** Three places to go, so the menu is shown. */
 const menuItems = [
-  { id: "dashboard", labelKey: "nav.dashboard", href: "/portal" },
-  { id: "a", labelKey: "nav.dashboard", href: "/portal/a" },
-  { id: "b", labelKey: "nav.dashboard", href: "/portal/b" },
+  { id: "dashboard", labelKey: "nav.dashboard", href: "/portal", icon: "overview" },
+  { id: "a", labelKey: "nav.dashboard", href: "/portal/a", icon: "overview" },
+  { id: "b", labelKey: "nav.dashboard", href: "/portal/b", icon: "overview" },
 ] as const;
 
 function page(element: React.ReactNode, pack: PackJson, session: SessionValue) {
@@ -65,7 +65,7 @@ describe("the portal shell", () => {
   // A menu of a single entry (the Dashboard). Every real role now has at least two places (the Student has
   // Classwork, D-071), so the case is built from a one-entry menu.
   const oneEntry = page(
-    <PortalShell items={[{ id: "dashboard", labelKey: "nav.dashboard", href: "/portal" }]}>
+    <PortalShell items={[{ id: "dashboard", labelKey: "nav.dashboard", href: "/portal", icon: "overview" }]}>
       <h1>x</h1>
     </PortalShell>,
     royal,
@@ -93,7 +93,9 @@ describe("the portal shell", () => {
   });
 
   it("marks the current page in the menu", () => {
-    expect(withMenu).toMatch(/<a[^>]*aria-current="page"[^>]*>Dashboard<\/a>/);
+    // The current entry is the Overview link: its icon, then its label (D-088).
+    const current = /<a[^>]*aria-current="page"[^>]*>([\s\S]*?)<\/a>/.exec(withMenu)?.[1] ?? "";
+    expect(current).toContain(">Overview<");
     expect(withMenu.match(/aria-current="page"/g)).toHaveLength(1);
   });
 
@@ -124,13 +126,13 @@ describe("the portal shell", () => {
     }
   });
 
-  it("shows a section-scoped role with the section's name, and Super Admin as Support", () => {
-    const html = page(
-      <PortalPage />,
-      royal,
-      signedIn({ name: "Ram", roles: [{ role: "accountant", scope: "section", section: "bachelors" }, { role: "super_admin", scope: "institution" }] }),
-    );
+  it("shows a section-scoped role with the section's name", () => {
+    const html = page(<PortalPage />, royal, signedIn({ name: "Ram", roles: [{ role: "accountant", scope: "section", section: "bachelors" }] }));
     expect(html).toContain("Bachelor&#x27;s only");
+  });
+
+  it("names the build team as Support in the account menu, never Super Admin (D-088: Support sees the Principal's dashboard)", () => {
+    const html = page(<PortalPage />, royal, signedIn({ name: "Ram", roles: [{ role: "super_admin", scope: "institution" }] }));
     expect(html).toContain("Support");
     expect(html).not.toContain("Super Admin");
   });
@@ -144,9 +146,9 @@ describe("the portal shell", () => {
 
   it("hides menu entries a role should not see", () => {
     const items = [
-      { id: "dashboard", labelKey: "nav.dashboard", href: "/portal" },
-      { id: "open", labelKey: "shell.signOut", href: "/portal/open" },
-      { id: "secret", labelKey: "shell.signIn", href: "/portal/x", roles: ["admin"] },
+      { id: "dashboard", labelKey: "nav.dashboard", href: "/portal", icon: "overview" },
+      { id: "open", labelKey: "shell.signOut", href: "/portal/open", icon: "website" },
+      { id: "secret", labelKey: "shell.signIn", href: "/portal/x", roles: ["admin"], icon: "website" },
     ] as const;
     const html = page(<PortalShell items={items}>x</PortalShell>, royal, signedIn(coordinator));
     expect(html).toContain("/portal/open");
