@@ -21,7 +21,7 @@ export const STATUS_KEY: Record<Overview["status"], MessageKey> = {
 };
 
 /**
- * A rupee amount for a card: whole rupees below one lakh (Rs. 45,000), else lakhs (Rs. 28.4 L) or crores (Rs. 1.2 Cr)
+ * A rupee amount for a card: whole rupees below one lakh (NPR 45,000), else lakhs (NPR 28.4 L) or crores (NPR 1.2 Cr)
  * to one decimal, rounded half up. Integer arithmetic on paisa only (CLAUDE.md section 6).
  */
 export function compactNpr(paisa: number): string {

@@ -678,7 +678,7 @@ export const en = {
   "dashboard.kpi.present": "{present} of {total} present",
   "dashboard.kpi.notMarked": "No register marked yet today",
   "dashboard.kpi.noComparison": "Nothing to compare yet",
-  "dashboard.npr": "Rs. {amount}",
+  "dashboard.npr": "NPR {amount}",
   "dashboard.glance.title": "Institution at a glance",
   "dashboard.glance.period": "Last 7 days",
   "dashboard.glance.attendance": "Attendance",

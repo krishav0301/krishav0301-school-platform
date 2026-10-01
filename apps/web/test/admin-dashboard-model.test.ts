@@ -12,7 +12,7 @@ describe("the dashboard's display rules", () => {
   });
 
   it("money on a card: whole rupees below a lakh, else lakhs or crores to one decimal, Nepali grouping", () => {
-    expect(compactNpr(4_500_000)).toBe("45,000"); // Rs. 45,000
+    expect(compactNpr(4_500_000)).toBe("45,000"); // NPR 45,000
     expect(compactNpr(284_000_000)).toBe("28.4 L");
     expect(compactNpr(10_000_000)).toBe("1.0 L");
     expect(compactNpr(9_999_999)).toBe("1,00,000"); // just under a lakh, rounded to the rupee
