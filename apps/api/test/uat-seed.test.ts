@@ -3,7 +3,7 @@
  * through the first-password flow, that the fees reached the students, and that it refuses to run twice.
  */
 import { env } from "cloudflare:test";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import { createApp } from "../src/app";
 import { verifyAuditChain } from "../src/core/audit";
@@ -16,6 +16,10 @@ import { seedUat, SeedError, type Actor, type Call } from "../scripts/uat/seed";
 import { seedProgrammes } from "./programme-fixtures";
 import royalJson from "../../../packs/royal-softech/pack.json";
 import sampleJson from "../../../packs/sample-basic-school/pack.json";
+
+// These walk a whole school year, hashing many passwords on purpose-slow scrypt; with every test file running in
+// parallel they can pass the 60 s default on a busy machine (seen 2026-10-01), so they get three minutes.
+vi.setConfig({ testTimeout: 180_000 });
 
 const app = createApp();
 

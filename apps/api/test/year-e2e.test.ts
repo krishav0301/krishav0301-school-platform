@@ -9,7 +9,7 @@
  * (its status), to prove every Phase 3 to 7 write path refuses it.
  */
 import { env } from "cloudflare:test";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import { createApp } from "../src/app";
 import { verifyAuditChain } from "../src/core/audit";
@@ -21,6 +21,10 @@ import { verifyLedgerChain } from "../src/modules/fees/ledger";
 import royalJson from "../../../packs/royal-softech/pack.json";
 import sampleJson from "../../../packs/sample-basic-school/pack.json";
 import { firstProgrammePolicy, seedProgrammes } from "./programme-fixtures";
+
+// These walk a whole school year, hashing many passwords on purpose-slow scrypt; with every test file running in
+// parallel they can pass the 60 s default on a busy machine (seen 2026-10-01), so they get three minutes.
+vi.setConfig({ testTimeout: 180_000 });
 
 const app = createApp();
 const PASS = "Papaya-Compass-Ledger-8823";
