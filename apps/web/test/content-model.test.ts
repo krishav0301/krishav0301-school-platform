@@ -163,6 +163,14 @@ describe("parseEditTarget: what the edit page was asked to open", () => {
     expect(parseEditTarget("?other=1")).toEqual({ mode: "new" });
   });
 
+  it("a new item may be asked to start as a known kind (?kind=post, the dashboard's Publish Post, D-089); anything else is ignored", () => {
+    expect(parseEditTarget("?kind=post")).toEqual({ mode: "new", kind: "post" });
+    expect(parseEditTarget("?kind=vacancy")).toEqual({ mode: "new", kind: "vacancy" });
+    expect(parseEditTarget("?kind=evil")).toEqual({ mode: "new" });
+    expect(emptyForm("2083-06-05", "post").kind).toBe("post");
+    expect(emptyForm("2083-06-05").kind).toBe("notice");
+  });
+
   it("a well-formed id means that item", () => {
     expect(parseEditTarget(`?id=${id}`)).toEqual({ mode: "edit", id });
     expect(parseEditTarget(`?x=1&id=${id}`)).toEqual({ mode: "edit", id });

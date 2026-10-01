@@ -3,9 +3,10 @@
 import { useCallback, useState, type FormEvent } from "react";
 
 import { useConfig } from "@/config/ConfigProvider";
+import { useAddressQuery } from "@/content/address";
 import { t, type MessageKey } from "@/i18n/messages";
 import { useSession } from "@/session/SessionProvider";
-import { Badge, Button, Field, Notice, Select } from "@/ui";
+import { AddDialog, Badge, Button, Field, Notice, Select, TitleRow } from "@/ui";
 
 import { addLevel, createProgramme, loadProgrammes, setLevelActive, setProgrammeActive, setProgrammePolicy } from "./client";
 import { REASON_MESSAGE, canManageProgrammes, termWords, type Level, type Programme } from "./model";
@@ -136,7 +137,7 @@ export function ProgrammesView({ programmes, canManage, busy, onToggleProgramme,
   );
 }
 
-function ProgrammeForm({ sections, onAdded, onProblem }: { sections: readonly { key: string; name: string }[]; onAdded: () => void; onProblem: (key: MessageKey) => void }) {
+function ProgrammeForm({ sections, onAdded, onProblem, showTitle = true }: { sections: readonly { key: string; name: string }[]; onAdded: () => void; onProblem: (key: MessageKey) => void; showTitle?: boolean }) {
   const { api } = useSession();
   const { term } = useConfig();
   const words = termWords(term);
@@ -171,7 +172,7 @@ function ProgrammeForm({ sections, onAdded, onProblem }: { sections: readonly { 
 
   return (
     <form onSubmit={submit} noValidate className={styles.form}>
-      <h2 className={styles.formTitle}>{t("setup.programmes.add", words)}</h2>
+      {showTitle ? <h2 className={styles.formTitle}>{t("setup.programmes.add", words)}</h2> : null}
       <Field label={t("setup.programmes.name")} value={name} maxLength={120} autoComplete="off" onChange={(event) => setName(event.target.value)} error={say(errors.name)} />
       <Select
         label={t("setup.programmes.section", words)}
@@ -204,6 +205,9 @@ export function ProgrammesScreen() {
   const canManage = canManageProgrammes(roles);
   const sections = canManage ? (config?.sections ?? []) : [];
   const words = termWords(term);
+  // `?add=1` (the dashboard's Add Program, D-089) opens the Add pop-up straight away.
+  const search = useAddressQuery();
+  const askedToAdd = search !== null && new URLSearchParams(search).get("add") === "1";
   const load = useCallback(() => loadProgrammes(api), [api]);
   const { view, reload } = useLoad(load);
   const [flash, setFlash] = useState<Flash | null>(null);
@@ -232,7 +236,25 @@ export function ProgrammesScreen() {
 
   return (
     <>
-      <h1 className={styles.title}>{t("setup.programmes.title", words)}</h1>
+      <TitleRow>
+        <h1 className={styles.title}>{t("setup.programmes.title", words)}</h1>
+        {canManage && sections.length > 0 ? (
+          <AddDialog label={t("setup.programmes.add", words)} title={t("setup.programmes.add", words)} openNow={askedToAdd}>
+            {(close) => (
+              <ProgrammeForm
+                sections={sections}
+                showTitle={false}
+                onAdded={() => {
+                  close();
+                  setFlash({ tone: "ok", text: t("setup.done.added") });
+                  void reload();
+                }}
+                onProblem={(key) => setFlash({ tone: "bad", text: t(key) })}
+              />
+            )}
+          </AddDialog>
+        ) : null}
+      </TitleRow>
       {flash ? <Notice tone={flash.tone}>{flash.text}</Notice> : null}
       <Gate view={view} onRetry={() => void reload()}>
         {({ programmes }) => (
@@ -247,16 +269,6 @@ export function ProgrammesScreen() {
           />
         )}
       </Gate>
-      {canManage && sections.length > 0 ? (
-        <ProgrammeForm
-          sections={sections}
-          onAdded={() => {
-            setFlash({ tone: "ok", text: t("setup.done.added") });
-            void reload();
-          }}
-          onProblem={(key) => setFlash({ tone: "bad", text: t(key) })}
-        />
-      ) : null}
       {canManage ? null : <Notice>{t("setup.programmes.readOnly", { admin: term("role.admin") })}</Notice>}
     </>
   );

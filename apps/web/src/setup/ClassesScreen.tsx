@@ -5,7 +5,7 @@ import { useCallback, useState, type FormEvent } from "react";
 import { useConfig } from "@/config/ConfigProvider";
 import { t, type MessageKey } from "@/i18n/messages";
 import { useSession } from "@/session/SessionProvider";
-import { Badge, Button, Field, Notice, Select } from "@/ui";
+import { AddDialog, Badge, Button, Field, Notice, Select, TitleRow } from "@/ui";
 
 import { createClass, loadClasses, loadProgrammes, loadYears, setClassActive, type Loaded } from "./client";
 import { REASON_MESSAGE, canManageStructure, classTitle, defaultYearId, levelChoices, termWords, type Programme, type SchoolClass, type Year } from "./model";
@@ -55,7 +55,7 @@ export function ClassesView({ classes, canManage, busy, onToggle }: { classes: r
   );
 }
 
-export function ClassForm({ yearId, programmes, onAdded }: { yearId: string; programmes: readonly Programme[]; onAdded: () => void }) {
+export function ClassForm({ yearId, programmes, onAdded, showTitle = true }: { yearId: string; programmes: readonly Programme[]; onAdded: () => void; showTitle?: boolean }) {
   const { api } = useSession();
   const { term } = useConfig();
   const words = termWords(term);
@@ -87,7 +87,7 @@ export function ClassForm({ yearId, programmes, onAdded }: { yearId: string; pro
 
   return (
     <form onSubmit={submit} noValidate className={styles.form}>
-      <h2 className={styles.formTitle}>{t("setup.classes.add")}</h2>
+      {showTitle ? <h2 className={styles.formTitle}>{t("setup.classes.add")}</h2> : null}
       {problem ? <Notice tone="bad">{t(problem)}</Notice> : null}
       <Select
         label={t("setup.classes.level", words)}
@@ -134,7 +134,26 @@ export function ClassesScreen() {
 
   return (
     <>
-      <h1 className={styles.title}>{t("setup.classes.title")}</h1>
+      <TitleRow>
+        <h1 className={styles.title}>{t("setup.classes.title")}</h1>
+        {canManage && yearId && programmes.view.status === "ready" ? (
+          <AddDialog label={t("setup.classes.add")} title={t("setup.classes.add")}>
+            {(close) => (
+              <ClassForm
+                key={yearId}
+                yearId={yearId}
+                programmes={programmes.view.status === "ready" ? programmes.view.data.programmes : []}
+                showTitle={false}
+                onAdded={() => {
+                  close();
+                  setFlash({ tone: "ok", text: t("setup.done.added") });
+                  void classes.reload();
+                }}
+              />
+            )}
+          </AddDialog>
+        ) : null}
+      </TitleRow>
       {flash ? <Notice tone={flash.tone}>{flash.text}</Notice> : null}
       <Gate view={years.view} onRetry={() => void years.reload()}>
         {({ years: list }) =>
@@ -148,16 +167,6 @@ export function ClassesScreen() {
               <Gate view={classes.view} onRetry={() => void classes.reload()}>
                 {(data) => <ClassesView classes={data.classes} canManage={canManage} busy={busy} onToggle={(c) => void toggle(c)} />}
               </Gate>
-              {canManage && yearId && programmes.view.status === "ready" ? (
-                <ClassForm
-                  yearId={yearId}
-                  programmes={programmes.view.data.programmes}
-                  onAdded={() => {
-                    setFlash({ tone: "ok", text: t("setup.done.added") });
-                    void classes.reload();
-                  }}
-                />
-              ) : null}
             </>
           )
         }

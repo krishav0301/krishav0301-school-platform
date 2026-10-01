@@ -3,12 +3,13 @@
 import { useCallback, useId, useState, type FormEvent } from "react";
 
 import { useConfig } from "@/config/ConfigProvider";
+import { useAddressQuery } from "@/content/address";
 import { t, type MessageKey } from "@/i18n/messages";
 import { useSession } from "@/session/SessionProvider";
 import { manageableSections, type RoleView } from "@/setup/model";
 import setupStyles from "@/setup/setup.module.css";
 import { Gate, useLoad } from "@/setup/useLoad";
-import { Badge, Button, CopyButton, Field, Notice, Select } from "@/ui";
+import { AddDialog, Badge, Button, CopyButton, Field, Notice, Select, TitleRow } from "@/ui";
 
 import { createStaff, createTeacher, issueTemporaryPassword, loadStaff, setStaffActive } from "./client";
 import { REASON_MESSAGE, addableRoles, canManageMember, validateStaffForm, type AddableRole, type StaffFormErrors, type StaffMember } from "./model";
@@ -122,11 +123,25 @@ export function StaffView({
 // --- The form ----------------------------------------------------------------------------------------
 
 /** Adds a person. Someone who can add only one kind of person is not asked which; they are told which. */
-export function StaffForm({ roles, sections, onCreated }: { roles: readonly RoleView[]; sections: readonly Section[]; onCreated: (name: string, password: string) => void }) {
+export function StaffForm({
+  roles,
+  sections,
+  onCreated,
+  initialRole,
+  showTitle = true,
+}: {
+  roles: readonly RoleView[];
+  sections: readonly Section[];
+  onCreated: (name: string, password: string) => void;
+  /** The role to start on, when the person may add it (a dashboard quick action, D-089). */
+  initialRole?: AddableRole | null;
+  /** Off inside the Add pop-up, which carries the title itself. */
+  showTitle?: boolean;
+}) {
   const { api } = useSession();
   const { term } = useConfig();
   const options = addableRoles(roles);
-  const [role, setRole] = useState<AddableRole>(options[0] ?? "teacher");
+  const [role, setRole] = useState<AddableRole>(initialRole && options.includes(initialRole) ? initialRole : (options[0] ?? "teacher"));
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
@@ -164,7 +179,7 @@ export function StaffForm({ roles, sections, onCreated }: { roles: readonly Role
 
   return (
     <form onSubmit={submit} noValidate className={setupStyles.form}>
-      <h2 className={setupStyles.formTitle}>{t("people.add")}</h2>
+      {showTitle ? <h2 className={setupStyles.formTitle}>{t("people.add")}</h2> : null}
       {problem ? <Notice tone="bad">{t(problem)}</Notice> : null}
       {options.length > 1 ? (
         <Select
@@ -213,6 +228,11 @@ export function StaffScreen() {
   const { config } = useConfig();
   const roles = me?.roles ?? [];
   const sections = config?.sections ?? [];
+  const options = addableRoles(roles);
+  // `?add=coordinator` (a dashboard quick action, D-089) opens the Add pop-up on that role, if this person may add it.
+  const search = useAddressQuery();
+  const asked = search === null ? null : new URLSearchParams(search).get("add");
+  const wanted = asked !== null && (options as string[]).includes(asked) ? (asked as AddableRole) : null;
   const load = useCallback(() => loadStaff(api), [api]);
   const { view, reload } = useLoad(load);
   const [flash, setFlash] = useState<Flash | null>(null);
@@ -248,24 +268,34 @@ export function StaffScreen() {
 
   return (
     <>
-      <h1 className={setupStyles.title}>{t("people.title")}</h1>
+      <TitleRow>
+        <h1 className={setupStyles.title}>{t("people.title")}</h1>
+        {options.length > 0 ? (
+          <AddDialog label={t("people.add")} title={t("people.add")} openNow={wanted !== null}>
+            {(close) => (
+              <StaffForm
+                key={wanted ?? "any"}
+                roles={roles}
+                sections={sections}
+                initialRole={wanted}
+                showTitle={false}
+                onCreated={(name, password) => {
+                  close();
+                  setFlash(null);
+                  setSecret({ name, password });
+                  void reload();
+                }}
+              />
+            )}
+          </AddDialog>
+        ) : null}
+      </TitleRow>
       <p className={setupStyles.muted}>{t("people.intro")}</p>
       {secret ? <TemporaryPasswordNotice name={secret.name} password={secret.password} onDone={() => setSecret(null)} /> : null}
       {flash ? <Notice tone={flash.tone}>{flash.text}</Notice> : null}
       <Gate view={view} onRetry={() => void reload()}>
         {({ staff }) => <StaffView staff={staff} roles={roles} sections={sections} busy={busy} onToggle={(m) => void toggle(m)} onIssue={(m) => void issue(m)} />}
       </Gate>
-      {addableRoles(roles).length > 0 ? (
-        <StaffForm
-          roles={roles}
-          sections={sections}
-          onCreated={(name, password) => {
-            setFlash(null);
-            setSecret({ name, password });
-            void reload();
-          }}
-        />
-      ) : null}
     </>
   );
 }

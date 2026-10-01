@@ -11,3 +11,4 @@ export { Skeleton } from "./Skeleton";
 export { Spinner } from "./Spinner";
 export { Table } from "./Table";
 export { TextArea } from "./TextArea";
+export { AddDialog, TitleRow } from "./AddDialog";

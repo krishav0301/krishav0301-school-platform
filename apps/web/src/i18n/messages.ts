@@ -758,6 +758,7 @@ export const en = {
   "shell.brandSubtitle": "School Management",
   "shell.account": "Your account",
   "nav.programs": "Programs",
+  "ui.close": "Close",
   "mailbox.title": "Test mailbox",
   "mailbox.intro": "On this test site, emails are kept here instead of being sent. Open a link to act as the person it went to.",
   "mailbox.meta": "To {to}, {when}",
