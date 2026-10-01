@@ -110,17 +110,17 @@ describe("the years screen", () => {
 
 // ---------------------------------------------------------------------------------------------
 describe("Academic Structure (D-095, D-096)", () => {
-  const level = (id: string, ordinal: number, name: string, students: number, active = true) => ({ id, ordinal, name, active, students });
+  const level = (id: string, ordinal: number, name: string, students: number, active = true, canDelete = students === 0) => ({ id, ordinal, name, active, students, canDelete });
   const structure: Structure = {
     sections: [
-      { key: "s1", name: "Bachelor of Engineering" },
-      { key: "s2", name: "School" },
-      { key: "s3", name: "Master's" },
+      { key: "s1", name: "Bachelor of Engineering", active: true, canDelete: false },
+      { key: "s2", name: "School", active: true, canDelete: false },
+      { key: "s3", name: "Master's", active: true, canDelete: false },
     ],
     programmes: [
-      { id: "p1", key: "cse", name: "Computer Science", section: { key: "s1", name: "Bachelor of Engineering" }, affiliation: "TU", active: true, gradingPolicy: "percentage_division", students: 158, levels: [level("l1", 1, "1st Year", 80), level("l2", 2, "2nd Year", 78), level("l3", 3, "3rd Year", 0, false)] },
-      { id: "p2", key: "mech", name: "Mechanical", section: { key: "s1", name: "Bachelor of Engineering" }, affiliation: "TU", active: true, gradingPolicy: null, students: 1, levels: [level("l4", 1, "1st Year", 1)] },
-      { id: "p3", key: "pri", name: "Primary School", section: { key: "s2", name: "School" }, affiliation: "CDC", active: false, gradingPolicy: null, students: 0, levels: [] },
+      { id: "p1", key: "cse", name: "Computer Science", section: { key: "s1", name: "Bachelor of Engineering" }, affiliation: "TU", active: true, gradingPolicy: "percentage_division", students: 158, canDelete: false, levels: [level("l1", 1, "1st Year", 80), level("l2", 2, "2nd Year", 78), level("l3", 3, "3rd Year", 0, false)] },
+      { id: "p2", key: "mech", name: "Mechanical", section: { key: "s1", name: "Bachelor of Engineering" }, affiliation: "TU", active: true, gradingPolicy: null, students: 1, canDelete: false, levels: [level("l4", 1, "1st Year", 1)] },
+      { id: "p3", key: "pri", name: "Primary School", section: { key: "s2", name: "School" }, affiliation: "CDC", active: false, gradingPolicy: null, students: 0, canDelete: false, levels: [] },
     ],
     totals: { sections: 3, programmes: 2, levels: 3, students: 1248 },
   };
@@ -133,6 +133,10 @@ describe("Academic Structure (D-095, D-096)", () => {
     addLevel: async () => true,
     renameLevel: async () => true,
     setLevelActive: async () => true,
+    setSectionActive: async () => true,
+    deleteSection: async () => true,
+    deleteProgramme: async () => true,
+    deleteLevel: async () => true,
   };
   const view = (data: Structure, canManage = true) => inContext(<AcademicStructureView data={data} canManage={canManage} actions={actions} />, as(canManage ? "admin" : "coordinator", "institution"));
   const html = view(structure);
@@ -174,7 +178,7 @@ describe("Academic Structure (D-095, D-096)", () => {
   });
 
   it("the Admin gets Rename, Edit, Add Programme, Add Level and each level's options, all named for what they act on", () => {
-    expect(html).toContain('aria-label="Rename Bachelor of Engineering"');
+    expect(html).toContain('aria-label="Edit Bachelor of Engineering"');
     expect(html).toContain('aria-label="Edit Computer Science"');
     expect(html).toContain("Add a Programme");
     expect(html).toContain("Add a Level");
@@ -190,7 +194,7 @@ describe("Academic Structure (D-095, D-096)", () => {
     expect(readOnly).toContain("Bachelor of Engineering");
     expect(readOnly).toContain("80 Students");
     expect(readOnly).not.toContain("<dialog");
-    expect(readOnly).not.toContain("Rename");
+    expect(readOnly).not.toContain(">Edit<");
   });
 
   it("a school with no sections says what to do first", () => {
@@ -201,13 +205,35 @@ describe("Academic Structure (D-095, D-096)", () => {
 
   it("a section with no programmes, and a programme with no levels, say so", () => {
     const bare = view({
-      sections: [{ key: "s1", name: "Master's" }],
-      programmes: [{ id: "p9", key: "me", name: "ME Civil", section: { key: "s1", name: "Master's" }, affiliation: "TU", active: true, gradingPolicy: null, students: 0, levels: [] }],
+      sections: [{ key: "s1", name: "Master's", active: true, canDelete: false }],
+      programmes: [{ id: "p9", key: "me", name: "ME Civil", section: { key: "s1", name: "Master's" }, affiliation: "TU", active: true, gradingPolicy: null, students: 0, canDelete: false, levels: [] }],
       totals: { sections: 1, programmes: 1, levels: 0, students: 0 },
     });
     expect(bare).toContain("No Levels yet.");
-    const none = view({ sections: [{ key: "s1", name: "Master's" }], programmes: [], totals: { sections: 1, programmes: 0, levels: 0, students: 0 } });
+    const none = view({ sections: [{ key: "s1", name: "Master's", active: true, canDelete: false }], programmes: [], totals: { sections: 1, programmes: 0, levels: 0, students: 0 } });
     expect(none).toContain("No Programmes in this section yet.");
+  });
+
+  it("Delete is offered only where nothing is attached; elsewhere the Edit says why and to switch it off instead (D-097)", () => {
+    // 1st Year has 80 students: no Delete, the reason instead. 3rd Year has none: Delete, named for it.
+    expect(html).toContain('aria-label="Delete 3rd Year"');
+    expect(html).not.toContain('aria-label="Delete 1st Year"');
+    expect(html).toContain("This can&#x27;t be deleted while it has classes, subjects, fees or applications. Switch it off instead: nothing is lost.");
+    // The sections in the fixture are all in use: each says so inside its Edit.
+    expect(html).toContain("This can&#x27;t be deleted while it has programmes, staff or receipts linked to it.");
+    expect(html).not.toContain("Yes, delete"); // it asks once more only after Delete is pressed
+  });
+
+  it("an empty section offers Delete, and a switched-off one says so and takes no new programmes", () => {
+    const off = view({
+      sections: [{ key: "s1", name: "Evening", active: false, canDelete: true }],
+      programmes: [],
+      totals: { sections: 1, programmes: 0, levels: 0, students: 0 },
+    });
+    expect(off).toContain('aria-label="Delete Evening"');
+    expect(off).toContain(">Switched off<");
+    expect(off).toContain('aria-label="Switch on Evening"');
+    expect(off).not.toContain("Add a Programme");
   });
 
   it("carries no colour of its own", () => {
@@ -219,8 +245,8 @@ describe("Academic Structure (D-095, D-096)", () => {
 // ---------------------------------------------------------------------------------------------
 describe("the classes screen", () => {
   const classes: SchoolClass[] = [
-    { id: "c1", yearId: "y", programmeId: "p1", programmeName: "BBS", sectionKey: "bachelors", levelId: "l1", levelName: "Year 1", label: "Morning", active: true },
-    { id: "c2", yearId: "y", programmeId: "p1", programmeName: "BBS", sectionKey: "bachelors", levelId: "l1", levelName: "Year 1", label: "", active: false },
+    { id: "c1", yearId: "y", programmeId: "p1", programmeName: "BBS", sectionKey: "bachelors", levelId: "l1", levelName: "Year 1", label: "Morning", active: true, canDelete: false },
+    { id: "c2", yearId: "y", programmeId: "p1", programmeName: "BBS", sectionKey: "bachelors", levelId: "l1", levelName: "Year 1", label: "", active: false, canDelete: true },
   ];
 
   it("lists each class by programme, level and label, and marks one that is switched off", () => {
@@ -232,14 +258,21 @@ describe("the classes screen", () => {
     expect(inContext(<ClassesView classes={classes} canManage={false} busy={null} onToggle={noop} />)).not.toContain("Switch off BBS");
   });
 
+  it("offers Delete only on a class nothing is attached to, and only to someone who can change classes (D-097)", () => {
+    const html = inContext(<ClassesView classes={classes} canManage busy={null} onToggle={noop} onDelete={async () => true} />);
+    expect(html).toContain('aria-label="Delete BBS · Year 1"');
+    expect(html).not.toContain('aria-label="Delete BBS · Year 1 (Morning)"');
+    expect(inContext(<ClassesView classes={classes} canManage={false} busy={null} onToggle={noop} onDelete={async () => true} />)).not.toContain("Delete");
+  });
+
   it("says so when the year has no classes", () => {
     expect(inContext(<ClassesView classes={[]} canManage busy={null} onToggle={noop} />)).toContain("No classes in this year yet.");
   });
 
   it("the form offers only active levels of active programmes", () => {
     const programmes: Programme[] = [
-      { id: "p1", key: "bbs", name: "BBS", section: { key: "bachelors", name: "Bachelor's" }, affiliation: "TU", active: true, gradingPolicy: null, students: 0, levels: [{ id: "l1", ordinal: 1, name: "Year 1", active: true, students: 0 }, { id: "l2", ordinal: 2, name: "Year 2", active: false, students: 0 }] },
-      { id: "p2", key: "old", name: "Old", section: { key: "plus2", name: "+2" }, affiliation: "NEB", active: false, gradingPolicy: null, students: 0, levels: [{ id: "l3", ordinal: 1, name: "Grade 11", active: true, students: 0 }] },
+      { id: "p1", key: "bbs", name: "BBS", section: { key: "bachelors", name: "Bachelor's" }, affiliation: "TU", active: true, gradingPolicy: null, students: 0, canDelete: false, levels: [{ id: "l1", ordinal: 1, name: "Year 1", active: true, students: 0, canDelete: false }, { id: "l2", ordinal: 2, name: "Year 2", active: false, students: 0, canDelete: false }] },
+      { id: "p2", key: "old", name: "Old", section: { key: "plus2", name: "+2" }, affiliation: "NEB", active: false, gradingPolicy: null, students: 0, canDelete: false, levels: [{ id: "l3", ordinal: 1, name: "Grade 11", active: true, students: 0, canDelete: false }] },
     ];
     const html = inContext(<ClassForm yearId="y" programmes={programmes} onAdded={noop} />);
     expect(html).toContain("BBS · Year 1");

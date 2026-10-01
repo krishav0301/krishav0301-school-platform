@@ -2,6 +2,7 @@
 export * from "./years";
 export * from "./programmes";
 export * from "./sections";
+export * from "./removal";
 export * from "./classes";
 export * from "./subjects";
 export * from "./curriculum";

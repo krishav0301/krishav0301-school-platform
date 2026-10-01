@@ -15,7 +15,8 @@ export interface PublicConfig {
 /** The five reads that make up the configuration. */
 const configStatements = (db: D1Database): D1PreparedStatement[] => [
   db.prepare("SELECT name, short_name, currency, timezone, region_pack, template_key FROM school WHERE id = 1"),
-  db.prepare("SELECT key, name FROM sections ORDER BY ordering, id"),
+  // Only sections switched on are offered where a section is chosen (D-097).
+  db.prepare("SELECT key, name FROM sections WHERE is_active = 1 ORDER BY ordering, id"),
   db.prepare("SELECT key, enabled FROM module_switches"),
   db.prepare("SELECT key, text FROM terminology"),
   db.prepare("SELECT tokens_json FROM themes WHERE is_active = 1"),

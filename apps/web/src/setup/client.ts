@@ -35,7 +35,7 @@ function reasonOf(response: Response, error: unknown): FailReason {
   if (status === 404) return "not_found";
   if (status === 409) {
     const code = (error as { error?: string } | undefined)?.error;
-    return code === "year_closed" || code === "another_active" ? code : "conflict";
+    return code === "year_closed" || code === "another_active" || code === "in_use" ? code : "conflict";
   }
   if (status === 400 || status === 422) return "rejected";
   return "failed";
@@ -86,6 +86,20 @@ export const createSection = async (api: ApiClient, name: string): Promise<Creat
 
 export const renameSection = async (api: ApiClient, key: string, name: string): Promise<WriteResult> =>
   done(await send(() => api.PATCH("/api/academics/sections/{key}", { params: { path: { key } }, body: { name } })));
+
+/** Switches a section off or on (D-097). */
+export const setSectionActive = async (api: ApiClient, key: string, active: boolean): Promise<WriteResult> =>
+  done(await send(() => api.PATCH("/api/academics/sections/{key}", { params: { path: { key } }, body: { active } })));
+
+/** Deletes a section, programme or level that nothing is attached to (D-097); anything attached comes back as "in_use". */
+export const deleteSection = async (api: ApiClient, key: string): Promise<WriteResult> =>
+  done(await send(() => api.DELETE("/api/academics/sections/{key}", { params: { path: { key } } })));
+export const deleteProgramme = async (api: ApiClient, id: string): Promise<WriteResult> =>
+  done(await send(() => api.DELETE("/api/academics/programmes/{id}", { params: { path: { id } } })));
+export const deleteClass = async (api: ApiClient, id: string): Promise<WriteResult> =>
+  done(await send(() => api.DELETE("/api/academics/classes/{id}", { params: { path: { id } } })));
+export const deleteLevel = async (api: ApiClient, id: string): Promise<WriteResult> =>
+  done(await send(() => api.DELETE("/api/academics/levels/{id}", { params: { path: { id } } })));
 
 export const createProgramme = async (api: ApiClient, body: { name: string; sectionKey: string; affiliation: string }): Promise<CreateResult> =>
   created(await send(() => api.POST("/api/academics/programmes", { body })));

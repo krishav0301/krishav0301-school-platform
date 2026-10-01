@@ -1,7 +1,7 @@
 import { recordAudit, type AuditEventInput } from "../../core/audit";
 
 export type Failure =
-  | { ok: false; reason: "not_allowed" | "not_found" | "year_closed" | "conflict" | "not_draft" | "another_active" }
+  | { ok: false; reason: "not_allowed" | "not_found" | "year_closed" | "conflict" | "not_draft" | "another_active" | "in_use" }
   | { ok: false; reason: "invalid"; message: string };
 export type Done = { ok: true } | Failure;
 export type Created = { ok: true; publicId: string } | Failure;

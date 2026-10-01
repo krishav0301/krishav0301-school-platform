@@ -40,11 +40,16 @@ import {
   setAssignment,
   setClassTeacher,
   updateClass,
-  renameSection,
+  deleteClass,
+  deleteLevel,
+  deleteProgramme,
+  deleteSection,
+  updateSection,
   updateLevel,
   updateProgramme,
   updateTerminal,
   updateYear,
+  type Done,
   type Failure,
 } from "./service";
 
@@ -254,18 +259,44 @@ export function registerAcademics(app: App): void {
     {
       method: "patch",
       path: "/api/academics/sections/{key}",
-      operationId: "rename_section",
+      operationId: "update_section",
       tags: ["academics"],
-      description: "Renames a section. Its key, and everything counted by it, stays the same. Nothing is deleted.",
+      description: "Renames a section, or switches it off and on (D-097). Its key, and everything counted by it, stays the same.",
       access: MANAGE_PROGRAMMES,
       request: { params: SectionKeyParam, body: { required: true, content: json(SectionChangesSchema) } },
       responses: { 200: { description: "Saved", content: json(OkSchema) }, ...failures },
     },
     async (c) => {
-      const result = await renameSection(c.env.DB, c.env.AUDIT_HMAC_KEY, c.get("auth")!.userPublicId, c.req.valid("param").key, c.req.valid("json"));
+      const result = await updateSection(c.env.DB, c.env.AUDIT_HMAC_KEY, c.get("auth")!.userPublicId, c.req.valid("param").key, c.req.valid("json"));
       return result.ok ? c.json({ ok: true as const }, 200) : fail(c, result);
     },
   );
+
+  // --- Deleting what nothing is attached to (D-097) -----------------------------------------------------------
+  const removal = (path: string, operationId: string, what: string, param: z.ZodObject, run: (c: Context<AppEnv>, id: string, actor: string) => Promise<Done>, access: typeof MANAGE | typeof MANAGE_PROGRAMMES = MANAGE_PROGRAMMES) =>
+    defineRoute(
+      app,
+      {
+        method: "delete",
+        path,
+        operationId,
+        tags: ["academics"],
+        description: `Deletes a ${what} that nothing is attached to. One with anything attached is refused with 409 "in_use": switch it off instead, which keeps its history.`,
+        access,
+        request: { params: param },
+        responses: { 200: { description: "Deleted", content: json(OkSchema) }, ...failures },
+      },
+      async (c) => {
+        const params = c.req.valid("param") as Record<string, string>;
+        const result = await run(c, params.key ?? params.id!, c.get("auth")!.userPublicId);
+        return result.ok ? c.json({ ok: true as const }, 200) : fail(c, result);
+      },
+    );
+  removal("/api/academics/sections/{key}", "delete_section", "section", SectionKeyParam, (c, key, actor) => deleteSection(c.env.DB, c.env.AUDIT_HMAC_KEY, actor, key));
+  removal("/api/academics/programmes/{id}", "delete_programme", "programme", IdParam, (c, id, actor) => deleteProgramme(c.env.DB, c.env.AUDIT_HMAC_KEY, actor, id));
+  removal("/api/academics/levels/{id}", "delete_level", "level", IdParam, (c, id, actor) => deleteLevel(c.env.DB, c.env.AUDIT_HMAC_KEY, actor, id));
+  // A class is the Co-ordinator's, like the rest of the year's setup (`setup.structure.manage`).
+  removal("/api/academics/classes/{id}", "delete_class", "class", IdParam, (c, id, actor) => deleteClass(c.env.DB, c.env.AUDIT_HMAC_KEY, actor, id), MANAGE);
 
   // --- Programmes and levels ---------------------------------------------------------------------------
   defineRoute(

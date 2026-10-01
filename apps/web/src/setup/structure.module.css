@@ -369,3 +369,31 @@
     animation: none;
   }
 }
+
+/* --- Delete (D-097): set apart below the form, and asked twice ------------------------------------------- */
+
+.deleteRow,
+.deleteNote,
+.confirm {
+  margin-block-start: var(--space-4);
+  padding-block-start: var(--space-4);
+  border-top: 1px solid color-mix(in srgb, var(--color-border) 60%, transparent);
+}
+
+.deleteNote {
+  margin-block-end: 0;
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+}
+
+.confirm {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.confirmText {
+  margin: 0;
+  color: var(--color-bad);
+  font-weight: var(--weight-medium);
+}

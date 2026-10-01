@@ -61,8 +61,8 @@ describe("defaultYearId", () => {
 
 describe("levelChoices", () => {
   const programmes: Programme[] = [
-    { id: "p1", key: "bbs", name: "BBS", section: { key: "bachelors", name: "Bachelor's" }, affiliation: "TU", active: true, gradingPolicy: null, students: 0, levels: [{ id: "l1", ordinal: 1, name: "Year 1", active: true, students: 0 }, { id: "l2", ordinal: 2, name: "Year 2", active: false, students: 0 }] },
-    { id: "p2", key: "old", name: "Old", section: { key: "plus2", name: "+2" }, affiliation: "NEB", active: false, gradingPolicy: null, students: 0, levels: [{ id: "l3", ordinal: 1, name: "Grade 11", active: true, students: 0 }] },
+    { id: "p1", key: "bbs", name: "BBS", section: { key: "bachelors", name: "Bachelor's" }, affiliation: "TU", active: true, gradingPolicy: null, students: 0, canDelete: false, levels: [{ id: "l1", ordinal: 1, name: "Year 1", active: true, students: 0, canDelete: false }, { id: "l2", ordinal: 2, name: "Year 2", active: false, students: 0, canDelete: false }] },
+    { id: "p2", key: "old", name: "Old", section: { key: "plus2", name: "+2" }, affiliation: "NEB", active: false, gradingPolicy: null, students: 0, canDelete: false, levels: [{ id: "l3", ordinal: 1, name: "Grade 11", active: true, students: 0, canDelete: false }] },
   ];
   it("lists only the active levels of active programmes, named with their programme", () => {
     expect(levelChoices(programmes)).toEqual([{ value: "l1", label: "BBS · Year 1" }]);
@@ -70,7 +70,7 @@ describe("levelChoices", () => {
 });
 
 describe("classTitle", () => {
-  const base: SchoolClass = { id: "c", yearId: "y", programmeId: "p", programmeName: "BBS", sectionKey: "bachelors", levelId: "l", levelName: "Year 1", label: "", active: true };
+  const base: SchoolClass = { id: "c", yearId: "y", programmeId: "p", programmeName: "BBS", sectionKey: "bachelors", levelId: "l", levelName: "Year 1", label: "", active: true, canDelete: false };
   it("reads programme and level, and the label in brackets when there is one", () => {
     expect(classTitle(base)).toBe("BBS · Year 1");
     expect(classTitle({ ...base, label: "Morning" })).toBe("BBS · Year 1 (Morning)");

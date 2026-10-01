@@ -46,7 +46,7 @@ const LevelName = z.string().trim().min(1, "Give the level a name").max(60, "Kee
 const SectionName = z.string().trim().min(1, "Give the section a name").max(60, "Keep the name to 60 characters");
 export const CreateSectionSchema = z.strictObject({ name: SectionName }).openapi("CreateSection");
 export type SectionInput = z.input<typeof CreateSectionSchema>;
-export const SectionChangesSchema = z.strictObject({ name: SectionName }).openapi("SectionChanges");
+export const SectionChangesSchema = z.strictObject({ name: SectionName, active: z.boolean() }).partial().openapi("SectionChanges");
 export type SectionChanges = z.infer<typeof SectionChangesSchema>;
 export const SectionKeyParam = z.object({ key: z.string().regex(/^[a-z][a-z0-9_]{0,30}$/) });
 
@@ -114,6 +114,8 @@ export const LevelSchema = z
     active: z.boolean(),
     /** Students enrolled at this level in the active year (D-096); 0 when no year is active. */
     students: z.number().int(),
+    /** Nothing is attached to it (no class, subject, elective group, application or fee structure), so it may be deleted (D-097). */
+    canDelete: z.boolean(),
   })
   .openapi("Level");
 export const ProgrammeSchema = z
@@ -128,9 +130,20 @@ export const ProgrammeSchema = z
     levels: z.array(LevelSchema),
     /** Students enrolled in this programme in the active year: the sum of its levels' (D-096). */
     students: z.number().int(),
+    /** It has no levels and no applications, so it may be deleted (D-097). */
+    canDelete: z.boolean(),
   })
   .openapi("Programme");
-export const SectionSchema = z.object({ key: z.string(), name: z.string() }).openapi("Section");
+export const SectionSchema = z
+  .object({
+    key: z.string(),
+    name: z.string(),
+    /** Switched off sections keep their history and take no new programmes (D-097). */
+    active: z.boolean(),
+    /** Nothing is attached to it (no programme, staff scope or home section, receipt or receipt counter), so it may be deleted (D-097). */
+    canDelete: z.boolean(),
+  })
+  .openapi("Section");
 export const ProgrammeListSchema = z
   .object({
     programmes: z.array(ProgrammeSchema),
@@ -157,6 +170,8 @@ export const SchoolClassSchema = z
     /** Empty when the class has no label. */
     label: z.string(),
     active: z.boolean(),
+    /** No student, teacher, activity, note, homework, mark sheet or published result is attached, so it may be deleted (D-097). */
+    canDelete: z.boolean(),
   })
   .openapi("SchoolClass");
 export const SchoolClassListSchema = z.object({ classes: z.array(SchoolClassSchema) }).openapi("SchoolClassList");

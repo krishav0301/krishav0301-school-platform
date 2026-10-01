@@ -4,7 +4,7 @@ import { beforeAll, describe, expect, it } from "vitest";
 import { verifyAuditChain } from "../src/core/audit";
 import { applyPack, parsePack } from "../src/core/config";
 import { listProgrammes } from "../src/modules/academics/queries";
-import { createProgramme, createSection, renameSection } from "../src/modules/academics/service";
+import { createProgramme, createSection, updateSection } from "../src/modules/academics/service";
 import { createUser } from "../src/modules/accounts/service";
 import royalJson from "../../../packs/royal-softech/pack.json";
 
@@ -44,7 +44,7 @@ describe("the Admin makes sections", () => {
     expect(made).toMatchObject({ ok: true });
     const sectionKey = (made as { key: string }).key;
     expect(sectionKey).toMatch(/^s[0-9a-f]{10}$/);
-    expect((await listProgrammes(db, "all")).sections).toContainEqual({ key: sectionKey, name: "Bachelor's" });
+    expect((await listProgrammes(db, "all")).sections).toContainEqual({ key: sectionKey, name: "Bachelor's", active: true, canDelete: true });
 
     const audit = await db.prepare("SELECT action, summary FROM audit_events WHERE entity_public_id = ?1").bind(sectionKey).all<{ action: string; summary: string }>();
     expect(audit.results).toEqual([{ action: "academics.section.created", summary: `Section "Bachelor's" added` }]);
@@ -95,9 +95,9 @@ describe("renaming a section", () => {
     const sectionKey = ((await createSection(db, key, people.admin, { name: "High" })) as { key: string }).key;
     await createProgramme(db, key, people.admin, { name: "Grade 9 to 10", sectionKey, affiliation: "NEB" });
 
-    expect(await renameSection(db, key, people.admin, sectionKey, { name: "High School" })).toEqual({ ok: true });
+    expect(await updateSection(db, key, people.admin, sectionKey, { name: "High School" })).toEqual({ ok: true });
     const list = await listProgrammes(db, "all");
-    expect(list.sections).toContainEqual({ key: sectionKey, name: "High School" });
+    expect(list.sections).toContainEqual({ key: sectionKey, name: "High School", active: true, canDelete: false });
     expect(list.programmes.find((p) => p.name === "Grade 9 to 10")!.section).toEqual({ key: sectionKey, name: "High School" });
 
     const last = await db
@@ -110,15 +110,15 @@ describe("renaming a section", () => {
   it("the same name again changes nothing; another section's name is a conflict; an unknown key is not found", async () => {
     const one = ((await createSection(db, key, people.admin, { name: "Evening" })) as { key: string }).key;
     await createSection(db, key, people.admin, { name: "Morning" });
-    expect(await renameSection(db, key, people.admin, one, { name: "Evening" })).toEqual({ ok: true });
-    expect(await renameSection(db, key, people.admin, one, { name: "morning" })).toEqual({ ok: false, reason: "conflict" });
-    expect(await renameSection(db, key, people.admin, "snotthere00", { name: "X" })).toEqual({ ok: false, reason: "not_found" });
+    expect(await updateSection(db, key, people.admin, one, { name: "Evening" })).toEqual({ ok: true });
+    expect(await updateSection(db, key, people.admin, one, { name: "morning" })).toEqual({ ok: false, reason: "conflict" });
+    expect(await updateSection(db, key, people.admin, "snotthere00", { name: "X" })).toEqual({ ok: false, reason: "not_found" });
   });
 
   it("only the Admin or the Super Admin may rename", async () => {
     const one = ((await createSection(db, key, people.admin, { name: "Weekend" })) as { key: string }).key;
     for (const who of ["coordinator", "accountant", "teacher"] as const) {
-      expect(await renameSection(db, key, people[who], one, { name: `Renamed by ${who}` }), who).toEqual({ ok: false, reason: "not_allowed" });
+      expect(await updateSection(db, key, people[who], one, { name: `Renamed by ${who}` }), who).toEqual({ ok: false, reason: "not_allowed" });
     }
   });
 });
@@ -127,6 +127,6 @@ describe("who sees which sections", () => {
   it("a section-scoped person sees only their own section in the list (CLAUDE.md section 5)", async () => {
     const mine = ((await createSection(db, key, people.admin, { name: "Scoped A" })) as { key: string }).key;
     await createSection(db, key, people.admin, { name: "Scoped B" });
-    expect((await listProgrammes(db, [mine])).sections).toEqual([{ key: mine, name: "Scoped A" }]);
+    expect((await listProgrammes(db, [mine])).sections).toEqual([{ key: mine, name: "Scoped A", active: true, canDelete: true }]);
   });
 });

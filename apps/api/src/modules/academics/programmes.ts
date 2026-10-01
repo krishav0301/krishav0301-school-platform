@@ -55,15 +55,17 @@ export async function createProgramme(db: D1Database, auditKey: string, actor: s
         `INSERT INTO programmes (public_id, key, name, section_id, affiliation, ordering)
          SELECT ?1, ?2, ?3, s.id, ?5, COALESCE((SELECT MAX(ordering) FROM programmes), 0) + 1
            FROM sections s
-          WHERE s.key = ?4 AND ${adminForProgrammes(6)}`,
+          WHERE s.key = ?4 AND s.is_active = 1 AND ${adminForProgrammes(6)}`,
       )
       .bind(publicId, key, p.name, p.sectionKey, p.affiliation, actor),
   );
 
   if (outcome === "done") return { ok: true, publicId };
   if (outcome === "duplicate") return { ok: false, reason: "conflict" };
-  const section = await db.prepare("SELECT id FROM sections WHERE key = ?1").bind(p.sectionKey).first();
-  return { ok: false, reason: section ? "not_allowed" : "not_found" };
+  const section = await db.prepare("SELECT is_active FROM sections WHERE key = ?1").bind(p.sectionKey).first<{ is_active: number }>();
+  if (!section) return { ok: false, reason: "not_found" };
+  // A switched-off section takes no new programmes (D-097).
+  return section.is_active === 1 ? { ok: false, reason: "not_allowed" } : { ok: false, reason: "invalid", message: "That section is switched off. Switch it on to add programmes to it." };
 }
 
 /**

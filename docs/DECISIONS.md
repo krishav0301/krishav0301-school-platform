@@ -765,6 +765,41 @@ The matrix lives in code (61 actions, 8 groups, from the reviewed `permission-ma
   - `hig/entering-data.md › Best practices` (each form says what it needs, with examples).
 - **Seen in passing.** Next.js link prefetches log 404s for page-data files on every portal page. This was already the case before this change; it is flagged as a separate task.
 
+**D-097 Delete only what nothing is attached to; otherwise switch it off.** 2026-10-01, at the PM's request ("if the higher set has dependent sub sets it can't be deleted. It can only be deleted if no further connections is present. This should be applicable until the very last"). **This changes CLAUDE.md section 6's "no hard deletes" for the academic structure only.**
+- **The rule.** A section, programme, level or class may be deleted only while nothing points at it. Students, enrollments, the ledger, receipts, marks and the audit log are never deleted: a student always has an enrollment and history, so there is nothing to delete there. Anything in use can always be switched off instead, which keeps its history.
+- **What counts as "attached".** All checked inside the delete statement itself, and backed by the foreign keys, so a link added a moment earlier makes the delete fail rather than leave anything pointing nowhere.
+
+  | Item | Cannot be deleted while it has… |
+  |---|---|
+  | Section | a programme, a role assignment scoped to it, a staff home section, a receipt counter or a receipt |
+  | Programme | a level, a class or an application |
+  | Level | a class, a subject offering, an elective group, an application or a fee structure |
+  | Class | an enrollment (its students, and through them attendance and fees), a teacher assignment, an activity-log entry, a note, homework, a mark sheet or a published result |
+
+  A class in a closed year is never deleted (the year lock).
+- **Who.** Sections, programmes and levels: the Admin or Super Admin, as for adding them. Classes: a Co-ordinator of the class's section, or the Super Admin (`setup.structure.manage`), as for changing them. Each delete re-checks the person inside the write and is audited (`academics.<kind>.deleted`, with what was deleted).
+- **Sections can now be switched off** (migration 0026, `sections.is_active`). A switched-off section keeps everything in it, takes no new programmes (refused with a message), and is no longer offered where a section is chosen (the public configuration lists only sections switched on).
+- **Screens.**
+  - On the Academic Structure page, a section's Rename becomes **Edit**: rename, switch off/on, and Delete. A programme's Edit and a level's ⋮ also offer Delete.
+  - Delete asks once more ("Delete X? This can't be undone." with "Yes, delete X" or "Keep it").
+  - Where something is attached, the Edit says what is in the way and to switch it off instead.
+  - On the Classes screen, Delete appears only on a class nothing is attached to.
+  - The list answers carry `canDelete` (and a section's `active`), worked out by the database, so the screens never guess.
+- **Routes.** `DELETE /api/academics/sections/{key}`, `/programmes/{id}`, `/levels/{id}` and `/classes/{id}`. Anything attached gives 409 `in_use`. `PATCH /api/academics/sections/{key}` now takes `active` too.
+- **Tests.**
+  - API `structure-removal.test.ts` (8 tests):
+    - an empty section is deleted and audited;
+    - bottom-up deletion: a level, then its programme, then its section, each only once the one below is gone;
+    - a level with a class, and everything above it, is in use;
+    - a staff home section is in use;
+    - only the Admin or Super Admin may delete, and an unknown id is not found;
+    - a switched-off section takes no programmes, is left out of the configuration, is audited, and can be switched back on;
+    - a class with students is in use, while an empty one is deleted by the Co-ordinator and audited;
+    - another section's Co-ordinator and a Teacher are refused.
+  - Earlier tests updated for the new fields.
+  - Web: 3 new tests.
+  - Totals: API 1,547 tests, web 599, plus typecheck, lint, build, page weight, BOM, boundaries and a wrangler dry run.
+
 ## Open items carried forward
 
 - **No CAPTCHA on the public apply form (D-063).** Relies on rate limiting and an off-screen honeypot, which meets section 7's "rate limiting, CAPTCHA or similar" but is not a CAPTCHA. Add one only if real abuse appears.

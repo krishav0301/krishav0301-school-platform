@@ -34,34 +34,46 @@ export async function createSection(db: D1Database, auditKey: string, actor: str
   return { ok: false, reason: (await sectionNamed(db, name)) ? "conflict" : "not_allowed" };
 }
 
-/** Renames a section. The key, and everything keyed by it, stays the same. */
-export async function renameSection(db: D1Database, auditKey: string, actor: string, key: string, changes: SectionChanges): Promise<Done> {
+/** Renames a section, or switches it off and on (D-097). The key, and everything keyed by it, stays the same. */
+export async function updateSection(db: D1Database, auditKey: string, actor: string, key: string, changes: SectionChanges): Promise<Done> {
   const parsed = SectionChangesSchema.safeParse(changes);
   if (!parsed.success) return { ok: false, reason: "invalid", message: firstMessage(parsed.error) };
-  const { name } = parsed.data;
+  const c = parsed.data;
 
   const [allowed, current] = await db.batch([
     db.prepare(`SELECT ${adminForProgrammes(1)} AS ok`).bind(actor),
-    db.prepare("SELECT name FROM sections WHERE key = ?1").bind(key),
+    db.prepare("SELECT name, is_active FROM sections WHERE key = ?1").bind(key),
   ]);
   if ((allowed!.results[0] as { ok: number } | undefined)?.ok !== 1) return { ok: false, reason: "not_allowed" };
-  const before = (current!.results[0] as { name: string } | undefined)?.name;
-  if (before === undefined) return { ok: false, reason: "not_found" };
-  if (before === name) return { ok: true };
+  const row = current!.results[0] as { name: string; is_active: number } | undefined;
+  if (!row) return { ok: false, reason: "not_found" };
 
+  const before = { name: row.name, active: row.is_active === 1 };
+  const after = { name: c.name ?? before.name, active: c.active ?? before.active };
+  if (JSON.stringify(after) === JSON.stringify(before)) return { ok: true };
+
+  const renamed = after.name !== before.name;
   const outcome = await write(
     db,
     auditKey,
-    { action: "academics.section.renamed", entityType: "section", entityPublicId: key, actorPublicId: actor, summary: `Section "${before}" renamed "${name}"`, before: { name: before }, after: { name } },
+    {
+      action: renamed ? "academics.section.renamed" : "academics.section.updated",
+      entityType: "section",
+      entityPublicId: key,
+      actorPublicId: actor,
+      summary: renamed ? `Section "${before.name}" renamed "${after.name}"` : `Section "${after.name}" switched ${after.active ? "on" : "off"}`,
+      before: renamed && before.active === after.active ? { name: before.name } : before,
+      after: renamed && before.active === after.active ? { name: after.name } : after,
+    },
     db
       .prepare(
-        `UPDATE sections SET name = ?2
+        `UPDATE sections SET name = ?2, is_active = ?4
           WHERE key = ?1 AND ${adminForProgrammes(3)} AND NOT EXISTS (SELECT 1 FROM sections o WHERE o.key <> ?1 AND lower(o.name) = lower(?2))`,
       )
-      .bind(key, name, actor),
+      .bind(key, after.name, actor, after.active ? 1 : 0),
   );
   if (outcome === "done") return { ok: true };
-  const other = await sectionNamed(db, name);
+  const other = await sectionNamed(db, after.name);
   return { ok: false, reason: other && other !== key ? "conflict" : "not_allowed" };
 }
 

@@ -59,7 +59,7 @@ export const YEAR_STATUS_LABEL: Record<Year["status"], MessageKey> = {
   closed: "setup.status.closed",
 };
 
-export type FailReason = "forbidden" | "not_found" | "conflict" | "year_closed" | "another_active" | "rejected" | "failed";
+export type FailReason = "forbidden" | "not_found" | "conflict" | "year_closed" | "another_active" | "in_use" | "rejected" | "failed";
 
 export const REASON_MESSAGE: Record<FailReason, MessageKey> = {
   forbidden: "setup.error.forbidden",
@@ -67,6 +67,7 @@ export const REASON_MESSAGE: Record<FailReason, MessageKey> = {
   conflict: "setup.error.conflict",
   year_closed: "setup.error.yearClosed",
   another_active: "setup.error.anotherActive",
+  in_use: "setup.error.inUse",
   rejected: "setup.error.rejected",
   failed: "setup.error.failed",
 };

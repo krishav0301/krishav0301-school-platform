@@ -1,5 +1,6 @@
 import { newPublicId } from "../../core/ids";
 import { coordinatorForInstitution, coordinatorForSection } from "./guard";
+import { CLASS_FREE } from "./queries";
 import {
   ClassChangesSchema,
   CreateClassSchema,
@@ -139,6 +140,35 @@ export async function updateClass(db: D1Database, auditKey: string, actor: strin
   const again = await inspectClass(db, publicId, actor);
   if (again.allowed && again.row?.status === "closed") return { ok: false, reason: "year_closed" };
   return { ok: false, reason: "not_allowed" };
+}
+
+/**
+ * Deletes a class nothing is attached to (D-097): no student, teacher, activity, note, homework, mark sheet or result.
+ * Otherwise it is switched off instead. A closed year cannot be changed, so its classes are never deleted.
+ */
+export async function deleteClass(db: D1Database, auditKey: string, actor: string, publicId: string): Promise<Done> {
+  const { allowed, row } = await inspectClass(db, publicId, actor);
+  if (!allowed) return { ok: false, reason: "not_allowed" };
+  if (!row) return { ok: false, reason: "not_found" };
+  if (row.status === "closed") return { ok: false, reason: "year_closed" };
+
+  const outcome = await write(
+    db,
+    auditKey,
+    { action: "academics.class.deleted", entityType: "class", entityPublicId: publicId, actorPublicId: actor, summary: "Class deleted", before: { label: row.label } },
+    db
+      .prepare(
+        `DELETE FROM classes
+          WHERE public_id = ?1 AND ${CLASS_FREE("classes")}
+            AND ${coordinatorForSection(2, "(SELECT section_id FROM programmes WHERE id = classes.programme_id)")}`,
+      )
+      .bind(publicId, actor),
+  );
+  if (outcome === "done") return { ok: true };
+  if (outcome === "year_closed") return { ok: false, reason: "year_closed" };
+  if (outcome === "check_failed") return { ok: false, reason: "in_use" };
+  const free = await db.prepare(`SELECT ${CLASS_FREE("c")} AS free FROM classes c WHERE c.public_id = ?1`).bind(publicId).first<{ free: number }>();
+  return { ok: false, reason: !free ? "not_found" : free.free !== 1 ? "in_use" : "not_allowed" };
 }
 
 // --- Terminals ---------------------------------------------------------------------------------------

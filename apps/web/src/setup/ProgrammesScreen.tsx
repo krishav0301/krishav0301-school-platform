@@ -10,7 +10,22 @@ import { t, type MessageKey } from "@/i18n/messages";
 import { useSession } from "@/session/SessionProvider";
 import { AddDialog, Badge, Button, Field, Notice, Select, Skeleton, TitleRow } from "@/ui";
 
-import { addLevel, createProgramme, createSection, loadProgrammes, renameLevel, renameSection, setLevelActive, setProgrammeActive, updateProgramme, type WriteResult } from "./client";
+import {
+  addLevel,
+  createProgramme,
+  createSection,
+  deleteLevel,
+  deleteProgramme,
+  deleteSection,
+  loadProgrammes,
+  renameLevel,
+  renameSection,
+  setLevelActive,
+  setProgrammeActive,
+  setSectionActive,
+  updateProgramme,
+  type WriteResult,
+} from "./client";
 import { REASON_MESSAGE, canManageProgrammes, termWords, type Level, type Programme } from "./model";
 import { useLoad } from "./useLoad";
 import styles from "./structure.module.css";
@@ -57,6 +72,11 @@ export interface StructureActions {
   addLevel: (programme: Programme, name: string) => Promise<boolean>;
   renameLevel: (level: Level, name: string) => Promise<boolean>;
   setLevelActive: (level: Level, active: boolean) => Promise<boolean>;
+  setSectionActive: (section: Section, active: boolean) => Promise<boolean>;
+  /** Only offered when nothing is attached (D-097); the server checks again. */
+  deleteSection: (section: Section) => Promise<boolean>;
+  deleteProgramme: (programme: Programme) => Promise<boolean>;
+  deleteLevel: (level: Level) => Promise<boolean>;
 }
 
 // --- Small pieces --------------------------------------------------------------------------------------
@@ -188,6 +208,47 @@ function SwitchButton({ active, name, onSwitch }: { active: boolean; name: strin
   );
 }
 
+/**
+ * Delete, inside an Edit or options pop-up (D-097). Offered only when nothing is attached; it then asks once more,
+ * because it cannot be undone. When something is attached, it says why it cannot be deleted and what to do instead.
+ */
+export function DeleteControl({ name, canDelete, blocked, onDelete }: { name: string; canDelete: boolean; blocked?: MessageKey; onDelete: () => Promise<boolean> }) {
+  const [confirming, setConfirming] = useState(false);
+  const [working, setWorking] = useState(false);
+  if (!canDelete) return blocked ? <p className={styles.deleteNote}>{t(blocked)}</p> : null;
+  if (!confirming)
+    return (
+      <div className={styles.deleteRow}>
+        <Button variant="quiet" aria-label={t("structure.deleteItem", { name })} onClick={() => setConfirming(true)}>
+          {t("structure.delete")}
+        </Button>
+      </div>
+    );
+  return (
+    <div className={styles.confirm} role="group" aria-label={t("structure.deleteItem", { name })}>
+      <p className={styles.confirmText}>{t("structure.deleteConfirm", { name })}</p>
+      <div className={styles.formActions}>
+        <Button variant="quiet" onClick={() => setConfirming(false)}>
+          {t("structure.keep")}
+        </Button>
+        <Button
+          variant="secondary"
+          loading={working}
+          loadingLabel={t("setup.working")}
+          onClick={async () => {
+            setWorking(true);
+            const deleted = await onDelete();
+            setWorking(false);
+            if (!deleted) setConfirming(false);
+          }}
+        >
+          {t("structure.deleteYes", { name })}
+        </Button>
+      </div>
+    </div>
+  );
+}
+
 // --- The hierarchy ---------------------------------------------------------------------------------------
 
 function LevelRow({ level, words, student, canManage, actions }: { level: Level; words: Words; student: string; canManage: boolean; actions: StructureActions }) {
@@ -207,15 +268,18 @@ function LevelRow({ level, words, student, canManage, actions }: { level: Level;
             hideLabel
           >
             {(close) => (
-              <NameForm
-                label={t("setup.programmes.levelName", words)}
-                initial={level.name}
-                submitLabel={t("structure.saveName")}
-                required={t("structure.nameRequired")}
-                onSave={async (name) => (await actions.renameLevel(level, name)) && (close(), true)}
-              >
-                <SwitchButton active={level.active} name={level.name} onSwitch={async () => (await actions.setLevelActive(level, !level.active)) && (close(), true)} />
-              </NameForm>
+              <>
+                <NameForm
+                  label={t("setup.programmes.levelName", words)}
+                  initial={level.name}
+                  submitLabel={t("structure.saveName")}
+                  required={t("structure.nameRequired")}
+                  onSave={async (name) => (await actions.renameLevel(level, name)) && (close(), true)}
+                >
+                  <SwitchButton active={level.active} name={level.name} onSwitch={async () => (await actions.setLevelActive(level, !level.active)) && (close(), true)} />
+                </NameForm>
+                <DeleteControl name={level.name} canDelete={level.canDelete} blocked="structure.levelInUse" onDelete={async () => (await actions.deleteLevel(level)) && (close(), true)} />
+              </>
             )}
           </AddDialog>
         </span>
@@ -245,9 +309,12 @@ function ProgrammeCard({ programme, index, open, onToggle, words, student, canMa
           {canManage ? (
             <AddDialog label={t("structure.edit")} ariaLabel={t("structure.editItem", { name: programme.name })} title={t("structure.editTitle", { name: programme.name })} variant="secondary" plus={false}>
               {(close) => (
-                <ProgrammeFields words={words} initial={programme} withGrading submitLabel={t("structure.saveChanges")} onSave={async (values) => (await actions.editProgramme(programme, values)) && (close(), true)}>
-                  <SwitchButton active={programme.active} name={programme.name} onSwitch={async () => (await actions.setProgrammeActive(programme, !programme.active)) && (close(), true)} />
-                </ProgrammeFields>
+                <>
+                  <ProgrammeFields words={words} initial={programme} withGrading submitLabel={t("structure.saveChanges")} onSave={async (values) => (await actions.editProgramme(programme, values)) && (close(), true)}>
+                    <SwitchButton active={programme.active} name={programme.name} onSwitch={async () => (await actions.setProgrammeActive(programme, !programme.active)) && (close(), true)} />
+                  </ProgrammeFields>
+                  <DeleteControl name={programme.name} canDelete={programme.canDelete} blocked="structure.programmeInUse" onDelete={async () => (await actions.deleteProgramme(programme)) && (close(), true)} />
+                </>
               )}
             </AddDialog>
           ) : null}
@@ -297,24 +364,32 @@ function SectionCard({ section, index, programmes, open, isOpen, onToggle, words
       <div className={styles.sectionHead}>
         <Tile icon={GraduationCap} tone={toneAt(index)} />
         <div className={styles.headText}>
-          <h2 id={`${bodyId}-name`} className={styles.sectionName}>
-            {section.name}
-          </h2>
+          <div className={styles.titleLine}>
+            <h2 id={`${bodyId}-name`} className={styles.sectionName}>
+              {section.name}
+            </h2>
+            {section.active ? null : <Badge>{t("setup.programmes.off")}</Badge>}
+          </div>
           <p className={styles.meta}>
             {programmesText(on.length, words.programme)} · {levelsText(levels, words.level)} · {studentsText(students, student)}
           </p>
         </div>
         <div className={styles.headActions}>
           {canManage ? (
-            <AddDialog label={t("setup.sections.rename")} ariaLabel={t("setup.sections.renameItem", { name: section.name })} title={t("setup.sections.renameTitle", { name: section.name })} variant="secondary" plus={false}>
+            <AddDialog label={t("structure.edit")} ariaLabel={t("structure.editItem", { name: section.name })} title={t("structure.editTitle", { name: section.name })} variant="secondary" plus={false}>
               {(close) => (
-                <NameForm
-                  label={t("setup.sections.name", words)}
-                  initial={section.name}
-                  submitLabel={t("structure.saveName")}
-                  required={t("structure.nameRequired")}
-                  onSave={async (name) => (await actions.renameSection(section.key, name)) && (close(), true)}
-                />
+                <>
+                  <NameForm
+                    label={t("setup.sections.name", words)}
+                    initial={section.name}
+                    submitLabel={t("structure.saveName")}
+                    required={t("structure.nameRequired")}
+                    onSave={async (name) => (await actions.renameSection(section.key, name)) && (close(), true)}
+                  >
+                    <SwitchButton active={section.active} name={section.name} onSwitch={async () => (await actions.setSectionActive(section, !section.active)) && (close(), true)} />
+                  </NameForm>
+                  <DeleteControl name={section.name} canDelete={section.canDelete} blocked="structure.sectionInUse" onDelete={async () => (await actions.deleteSection(section)) && (close(), true)} />
+                </>
               )}
             </AddDialog>
           ) : null}
@@ -325,7 +400,7 @@ function SectionCard({ section, index, programmes, open, isOpen, onToggle, words
         <div id={bodyId} className={styles.body}>
           <div className={styles.bodyHead}>
             <h3 className={styles.bodyTitle}>{t("structure.programmesTitle", words)}</h3>
-            {canManage ? (
+            {canManage && section.active ? (
               <AddDialog label={t("setup.programmes.add", words)} title={t("structure.addProgrammeTo", { ...words, name: section.name })} variant="secondary">
                 {(close) => (
                   <ProgrammeFields words={words} withGrading={false} submitLabel={t("setup.programmes.add", words)} onSave={async (values) => (await actions.addProgramme(section.key, values)) && (close(), true)} />
@@ -488,6 +563,10 @@ export function ProgrammesScreen() {
     addLevel: (programme, name) => run(addLevel(api, programme.id, name), "setup.done.added"),
     renameLevel: (level, name) => run(renameLevel(api, level.id, name), "structure.done.saved"),
     setLevelActive: (level, active) => run(setLevelActive(api, level.id, active), active ? "setup.done.switchedOn" : "setup.done.switchedOff"),
+    setSectionActive: (section, active) => run(setSectionActive(api, section.key, active), active ? "setup.done.switchedOn" : "setup.done.switchedOff", true),
+    deleteSection: (section) => run(deleteSection(api, section.key), "structure.done.deleted", true),
+    deleteProgramme: (programme) => run(deleteProgramme(api, programme.id), "structure.done.deleted"),
+    deleteLevel: (level) => run(deleteLevel(api, level.id), "structure.done.deleted"),
   };
 
   const none = view.status === "ready" && view.data.sections.length === 0;
