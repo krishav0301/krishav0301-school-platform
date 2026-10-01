@@ -1,7 +1,7 @@
 import { t } from "@/i18n/messages";
 import { Card } from "@/ui";
 
-import { formatBsDate, type FormValues } from "./model";
+import { formatBsDate, holidayLine, type FormValues } from "./model";
 import { PublicEntry } from "./PublicEntry";
 import styles from "./content.module.css";
 
@@ -12,7 +12,10 @@ import styles from "./content.module.css";
 export function ContentPreview({ values }: { values: FormValues }) {
   const title = values.title.trim();
   const from = formatBsDate(values.publishOnBs.trim());
-  const until = values.hideAfterBs.trim() ? formatBsDate(values.hideAfterBs.trim()) : null;
+  // A holiday shows until its last day, which the server sets (D-094); the preview says the same.
+  const holiday = values.kind === "holiday" ? holidayLine(values.holidayFromBs, values.holidayToBs) : null;
+  const lastShown = values.kind === "holiday" ? values.holidayToBs.trim() || values.holidayFromBs.trim() : values.hideAfterBs.trim();
+  const until = lastShown ? formatBsDate(lastShown) : null;
 
   return (
     <Card aria-labelledby="preview-heading" className={styles.preview}>
@@ -28,6 +31,7 @@ export function ContentPreview({ values }: { values: FormValues }) {
           body={values.body}
           contact={values.contact.trim() || null}
           urgent={values.urgent}
+          holiday={holiday}
           dates={until ? t("content.showsFromUntil", { from, until }) : t("content.showsFrom", { from })}
           headingLevel={3}
         />

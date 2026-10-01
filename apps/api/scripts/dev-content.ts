@@ -37,7 +37,7 @@ const item = (over: Partial<ContentInput> & Pick<ContentInput, "kind" | "title" 
 
 const SAMPLES: { input: ContentInput; publish: boolean }[] = [
   { input: item({ kind: "notice", title: "Sample: classes are closed tomorrow", body: "Classes are closed tomorrow because of the weather.\n\nThey start again the day after.", urgent: true }), publish: true },
-  { input: item({ kind: "holiday", title: "Sample: festival break", body: "The school is closed for the festival break.", publishOn: day(-2), hideAfter: day(10) }), publish: true },
+  { input: item({ kind: "holiday", title: "Sample: festival break", body: "The school is closed for the festival break.", publishOn: day(-2), holidayFrom: day(6), holidayTo: day(10) }), publish: true },
   { input: item({ kind: "routine", title: "Sample: exam routine", body: "The exam routine is at the office.\n\nEach class has its own days.", publishOn: day(-5) }), publish: true },
   { input: item({ kind: "vacancy", title: "Sample: teacher wanted (email)", body: "A Maths teacher is wanted for the higher classes.", contact: "jobs@school.example", publishOn: day(-3), hideAfter: day(20) }), publish: true },
   { input: item({ kind: "vacancy", title: "Sample: office helper wanted (phone)", body: "An office helper is wanted.", contact: "+977 985-1234567", publishOn: day(-4) }), publish: true },

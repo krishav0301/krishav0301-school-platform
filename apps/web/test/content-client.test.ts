@@ -28,7 +28,7 @@ function fake(answer: (seen: Seen) => Response | Promise<Response> | "offline") 
 }
 const json = (status: number, body: unknown) => new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json" } });
 
-const values: FormValues = { kind: "notice", title: "  Winter break ", body: " Closed on Friday. ", contact: "", urgent: false, publishOnBs: "2083-06-10", hideAfterBs: "" };
+const values: FormValues = { kind: "notice", title: "  Winter break ", body: " Closed on Friday. ", contact: "", urgent: false, publishOnBs: "2083-06-10", hideAfterBs: "", holidayFromBs: "", holidayToBs: "" };
 const toAd: Record<string, string> = { "2083-06-10": "2026-09-27", "2083-07-01": "2026-10-18" };
 const convert = (seen: Seen) => {
   const bs = new URL(`http://x${seen.path}`).searchParams.get("bs")!;
@@ -88,6 +88,14 @@ describe("loadItem", () => {
 });
 
 describe("saveItem: a new item", () => {
+  it("a holiday sends its own days, converted, and no hide-after day: the server takes it off after the holiday (D-094)", async () => {
+    const { api, seen } = fake((s) => (s.method === "GET" ? convert(s) : json(201, { id: "h1" })));
+    const result = await saveItem(api, null, { ...values, kind: "holiday", hideAfterBs: "2083-06-10", holidayFromBs: "2083-07-01" });
+
+    expect(result).toEqual({ ok: true, id: "h1" });
+    expect(seen.find((s) => s.method === "POST")!.body).toMatchObject({ kind: "holiday", publishOn: "2026-09-27", hideAfter: null, holidayFrom: "2026-10-18", holidayTo: null });
+  });
+
   it("turns the Nepali days into AD first, then sends a trimmed draft, and hands back its id", async () => {
     const { api, seen } = fake((s) => (s.method === "GET" ? convert(s) : json(201, { id: "new1" })));
     const result = await saveItem(api, null, { ...values, hideAfterBs: "2083-07-01" });
@@ -95,7 +103,7 @@ describe("saveItem: a new item", () => {
     expect(result).toEqual({ ok: true, id: "new1" });
     const post = seen.find((s) => s.method === "POST")!;
     expect(post.path).toBe("/api/content");
-    expect(post.body).toEqual({ kind: "notice", title: "Winter break", body: "Closed on Friday.", contact: null, urgent: false, publishOn: "2026-09-27", hideAfter: "2026-10-18" });
+    expect(post.body).toEqual({ kind: "notice", title: "Winter break", body: "Closed on Friday.", contact: null, urgent: false, publishOn: "2026-09-27", hideAfter: "2026-10-18", holidayFrom: null, holidayTo: null });
     expect(seen.filter((s) => s.method === "GET").map((s) => s.path).sort()).toEqual(["/api/dates/to-ad?bs=2083-06-10", "/api/dates/to-ad?bs=2083-07-01"]);
   });
 
@@ -156,7 +164,7 @@ describe("saveItem: an existing item", () => {
     expect(result).toEqual({ ok: true, id: "abc123" });
     const patch = seen.find((s) => s.method === "PATCH")!;
     expect(patch.path).toBe("/api/content/abc123");
-    expect(patch.body).toEqual({ title: "Winter break", body: "Closed on Friday.", contact: null, urgent: true, publishOn: "2026-09-27", hideAfter: null });
+    expect(patch.body).toEqual({ title: "Winter break", body: "Closed on Friday.", contact: null, urgent: true, publishOn: "2026-09-27", hideAfter: null, holidayFrom: null, holidayTo: null });
     expect(patch.body).not.toHaveProperty("kind");
   });
 

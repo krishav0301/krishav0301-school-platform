@@ -407,7 +407,7 @@ describe("what the public sees", () => {
   it("shows exactly the public fields, and none of the internal ones", async () => {
     const id = await live({ kind: "vacancy", contact: "jobs@school.example", title: "Teacher wanted" });
     const item = (await listPublicContent(db, "2099-12-31")).items.find((i) => i.id === id)!;
-    expect(Object.keys(item).sort()).toEqual(["body", "contact", "hideAfter", "hideAfterBs", "id", "kind", "publishedOn", "publishedOnBs", "title", "urgent"]);
+    expect(Object.keys(item).sort()).toEqual(["body", "contact", "hideAfter", "hideAfterBs", "holidayFrom", "holidayFromBs", "holidayTo", "holidayToBs", "id", "kind", "publishedOn", "publishedOnBs", "title", "urgent"]);
     expect(item.id).toBe(id);
     expect(item.contact).toBe("jobs@school.example");
   });
@@ -428,5 +428,55 @@ describe("what the public sees", () => {
     }) as D1Database;
     await listPublicContent(counting, TODAY);
     expect(prepared).toBe(1);
+  });
+});
+
+// ---------------------------------------------------------------------------------------------
+describe("a holiday names its own days (D-094)", () => {
+  const holiday = (over: Partial<ContentInput> = {}): Partial<ContentInput> => ({ kind: "holiday", title: "Dashain", body: "The school is closed.", publishOn: "2026-10-01", holidayFrom: "2026-10-02", ...over });
+  const row = async (id: string) =>
+    (await db.prepare("SELECT publish_on, hide_after, holiday_from, holiday_to FROM content_items WHERE public_id = ?1").bind(id).first<{ publish_on: string; hide_after: string | null; holiday_from: string | null; holiday_to: string | null }>())!;
+
+  it("shows from its own start day and comes off after the holiday's last day, whatever hide-after was sent", async () => {
+    const one = await created(holiday({ hideAfter: "2026-12-31" }));
+    expect(await row(one)).toEqual({ publish_on: "2026-10-01", hide_after: "2026-10-02", holiday_from: "2026-10-02", holiday_to: null });
+
+    const long = await created(holiday({ holidayTo: "2026-10-12" }));
+    expect((await row(long)).hide_after).toBe("2026-10-12");
+  });
+
+  it("is public from today, before the holiday, with its days in Bikram Sambat; gone the day after", async () => {
+    const id = await live(holiday({ title: `Tihar ${crypto.randomUUID()}`, holidayTo: "2026-10-04" }));
+    const today = (await listPublicContent(db, "2026-10-01")).items.find((i) => i.id === id);
+    expect(today).toMatchObject({ holidayFrom: "2026-10-02", holidayTo: "2026-10-04", hideAfter: "2026-10-04" });
+    expect(today!.holidayFromBs).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+    expect((await listPublicContent(db, "2026-10-04")).items.map((i) => i.id)).toContain(id);
+    expect((await listPublicContent(db, "2026-10-05")).items.map((i) => i.id)).not.toContain(id);
+  });
+
+  it("is refused without its day, with a last day before its first, when shown only after it, or as dates on another kind", async () => {
+    const bad: [string, Partial<ContentInput>][] = [
+      ["no holiday date", holiday({ holidayFrom: null })],
+      ["last day before the first", holiday({ holidayTo: "2026-10-01" })],
+      ["starts showing after the holiday", holiday({ publishOn: "2026-10-03" })],
+      ["holiday dates on a notice", { kind: "notice", holidayFrom: "2026-10-02" }],
+    ];
+    for (const [label, over] of bad) expect(await createContent(db, key, people.admin, notice(over)), label).toMatchObject({ ok: false, reason: "invalid" });
+  });
+
+  it("an edit that moves the holiday moves the day it comes off, and is audited", async () => {
+    const id = await created(holiday());
+    expect(await updateContent(db, key, people.admin, id, { holidayFrom: "2026-10-20", holidayTo: "2026-10-22" })).toEqual({ ok: true });
+    expect(await row(id)).toMatchObject({ hide_after: "2026-10-22", holiday_from: "2026-10-20", holiday_to: "2026-10-22" });
+    const last = (await auditRows(id)).at(-1)!;
+    expect(last.action).toBe("content.updated");
+    expect(JSON.parse(last.after_json!)).toMatchObject({ holidayFrom: "2026-10-20", hideAfter: "2026-10-22" });
+  });
+
+  it("the database keeps the rule even if the service's check were removed", async () => {
+    const id = await created(holiday());
+    await expect(db.prepare("UPDATE content_items SET holiday_to = '2026-09-01' WHERE public_id = ?1").bind(id).run()).rejects.toThrow(/holiday dates/);
+    const other = await created();
+    await expect(db.prepare("UPDATE content_items SET holiday_from = '2026-10-02' WHERE public_id = ?1").bind(other).run()).rejects.toThrow(/holiday dates/);
   });
 });

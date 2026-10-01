@@ -674,6 +674,22 @@ The matrix lives in code (61 actions, 8 groups, from the reviewed `permission-ma
 
 **D-093 Amounts read "NPR" everywhere, the dashboard included.** 2026-10-01, at the PM's request ("It shows Rs. It should be Nepali currency"). The dashboard's money cards said "Rs. 28.4 L", while every fees screen already said "NPR". The dashboard now reads "NPR 28.4 L" (lakh and crore shortening and Nepali grouping unchanged). This is wording only: amounts are still whole paisa from the ledger. The two placeholder programmes left in the UAT database by provisioning before D-087 ("+2 Programmes", "Bachelor's Degrees") had no classes, applications, subjects or fee structures. At the PM's request they were removed from `school_staging_uat` with a one-off command the PM ran. This is a cleanup of test-database leftovers. Removing real records is still not allowed: real records are deactivated, never deleted.
 
+**D-094 A holiday post names the holiday's own days.** 2026-10-01, at the PM's request after UAT ("implement trap 1"). In UAT the Principal set "Show from" to the holiday's date (2 October), so the post stayed hidden until the holiday itself. Website content only, no permission or money change.
+- **Built.**
+  - A holiday has a **Holiday date** and an optional **Last day** (for a holiday longer than a day, such as Dashain). The form asks for these before "Show from", whose hint now says "Today shows it now. It comes off the website after the holiday."
+  - A holiday has no "Hide after" field. The server sets it to the holiday's last day, so the post shows from its start day through the holiday and is gone the day after.
+  - Refused, with a message on the field: no holiday date; a last day before the first day; a start day after the holiday (nobody would see it in time); holiday dates on any other kind.
+  - The dates are stored as AD days (migration 0025: `holiday_from`, `holiday_to`). Triggers keep the "holidays only, last day not before first" rule even if the service check were removed.
+  - The public Notices page (the Worker's copy and the app's board) shows "Holiday on 16 Ashwin 2083", or "Holiday from … to …", in bold under the title, and no "until" line.
+  - The portal list and the preview show the same line.
+  - Holidays saved before this change have no dates. They show as before, and editing one asks for its date.
+- **Tested.**
+  - API `content.test.ts`: 5 new tests. The last day sets hide-after whatever was sent; the post is public before the holiday and gone after; the four refusals; an edit moves hide-after and is audited; the triggers hold. `site-render.test.ts` checks the Notices page line. The route tests list the new fields.
+  - Web: model (5), client (1) and screen (4) tests.
+  - API 1,525 tests; web 588 tests, typecheck, lint, build, page-weight budget, BOM and boundary checks, and a wrangler dry run, all clean.
+- **Design review** (`apple-design`): `hig/entering-data.md › Best practices` (be clear about the data you need; prefill a sensible default: "Show from" is today) and `hig/typography.md` (the holiday line is set apart by weight, not colour). Nothing left open.
+- **Not done (explained to the PM, not built).** The home page does not list posts: it links to Notices and updates, as designed in Phase 2 (D-039, D-046). A "Latest notices" block on the home page is a separate request.
+
 ## Open items carried forward
 
 - **No CAPTCHA on the public apply form (D-063).** Relies on rate limiting and an off-screen honeypot, which meets section 7's "rate limiting, CAPTCHA or similar" but is not a CAPTCHA. Add one only if real abuse appears.

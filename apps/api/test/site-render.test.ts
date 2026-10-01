@@ -218,8 +218,8 @@ describe("the notice board page", () => {
 
   it("carries what is live today, with its words and Nepali days, and nothing else", async () => {
     const tag = crypto.randomUUID().slice(0, 6);
-    await post({ title: `Live notice ${tag}`, body: `First paragraph ${tag}\n\nSecond paragraph ${tag}`, urgent: true });
-    await post({ kind: "holiday", title: `Holiday ${tag}`, body: "Closed.", hideAfter: day(9) });
+    await post({ title: `Live notice ${tag}`, body: `First paragraph ${tag}\n\nSecond paragraph ${tag}`, urgent: true, hideAfter: day(5) });
+    await post({ kind: "holiday", title: `Holiday ${tag}`, body: "Closed.", holidayFrom: day(9) });
     await post({ title: `Ended ${tag}`, publishOn: day(-30), hideAfter: day(-1) });
     await post({ title: `Future ${tag}`, publishOn: day(6) });
     await post({ title: `Draft ${tag}` }, false);
@@ -232,6 +232,8 @@ describe("the notice board page", () => {
     for (const hidden of ["Ended", "Future", "Draft"]) expect(copy, hidden).not.toContain(`${hidden} ${tag}`);
     expect(copy).toMatch(/Posted \d{1,2} [A-Z][a-z]+ 20\d\d/);
     expect(copy).toMatch(/until \d{1,2} [A-Z][a-z]+ 20\d\d/);
+    // A holiday names its own day under its title (D-094), and does not repeat it as an "until".
+    expect(copy).toMatch(new RegExp(`Holiday ${tag}</h2><p><strong>Holiday on \\d{1,2} [A-Z][a-z]+ 20\\d\\d</strong></p>`));
   });
 
   it("puts urgent items first, as the public API does", async () => {

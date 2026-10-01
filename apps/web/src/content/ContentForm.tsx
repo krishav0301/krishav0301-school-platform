@@ -118,7 +118,10 @@ export function ContentEditor({ id, initial, live, onSaved, onGone }: { id: stri
   const contact = useRef<HTMLInputElement>(null);
   const publishOn = useRef<HTMLInputElement>(null);
   const hideAfter = useRef<HTMLInputElement>(null);
-  const fieldRefs = { title, body, contact, publishOnBs: publishOn, hideAfterBs: hideAfter };
+  const holidayFrom = useRef<HTMLInputElement>(null);
+  const holidayTo = useRef<HTMLInputElement>(null);
+  const fieldRefs = { title, body, contact, holidayFromBs: holidayFrom, holidayToBs: holidayTo, publishOnBs: publishOn, hideAfterBs: hideAfter };
+  const isHoliday = values.kind === "holiday";
 
   // Move the cursor to the first field with a problem, once the messages are on screen.
   useEffect(() => {
@@ -218,22 +221,45 @@ export function ContentEditor({ id, initial, live, onSaved, onGone }: { id: stri
               />
             ) : null}
             <Checkbox label={t("contentForm.urgent")} hint={t("contentForm.urgentHint")} checked={values.urgent} onChange={(event) => set("urgent", event.target.checked)} />
+            {isHoliday ? (
+              // A holiday names its own day first, so nobody mistakes "Show from" for it (D-094).
+              <>
+                <BsDateField
+                  ref={holidayFrom}
+                  legend={t("contentForm.holidayFrom")}
+                  hint={t("contentForm.holidayFromHint")}
+                  value={values.holidayFromBs}
+                  onChange={(text) => set("holidayFromBs", text)}
+                  error={errors.holidayFromBs ? t(errors.holidayFromBs) : undefined}
+                />
+                <BsDateField
+                  ref={holidayTo}
+                  legend={t("contentForm.holidayTo")}
+                  hint={t("contentForm.holidayToHint")}
+                  value={values.holidayToBs}
+                  onChange={(text) => set("holidayToBs", text)}
+                  error={errors.holidayToBs ? t(errors.holidayToBs) : undefined}
+                />
+              </>
+            ) : null}
             <BsDateField
               ref={publishOn}
               legend={t("contentForm.publishOn")}
-              hint={t("contentForm.dateHint")}
+              hint={t(isHoliday ? "contentForm.holidayShowHint" : "contentForm.dateHint")}
               value={values.publishOnBs}
               onChange={(text) => set("publishOnBs", text)}
               error={errors.publishOnBs ? t(errors.publishOnBs) : undefined}
             />
-            <BsDateField
-              ref={hideAfter}
-              legend={t("contentForm.hideAfter")}
-              hint={t("contentForm.hideAfterHint")}
-              value={values.hideAfterBs}
-              onChange={(text) => set("hideAfterBs", text)}
-              error={errors.hideAfterBs ? t(errors.hideAfterBs) : undefined}
-            />
+            {isHoliday ? null : (
+              <BsDateField
+                ref={hideAfter}
+                legend={t("contentForm.hideAfter")}
+                hint={t("contentForm.hideAfterHint")}
+                value={values.hideAfterBs}
+                onChange={(text) => set("hideAfterBs", text)}
+                error={errors.hideAfterBs ? t(errors.hideAfterBs) : undefined}
+              />
+            )}
 
             <div className={styles.actions}>
               <Link href="/portal/content" className={buttonClass({ variant: "quiet" })}>

@@ -14,7 +14,17 @@ interface Row {
   is_urgent: number;
   publish_on: string;
   hide_after: string | null;
+  holiday_from: string | null;
+  holiday_to: string | null;
 }
+
+/** A holiday's own days (D-094), AD and in Bikram Sambat; all null for any other kind. */
+const holidayDates = (r: Pick<Row, "holiday_from" | "holiday_to">) => ({
+  holidayFrom: r.holiday_from,
+  holidayTo: r.holiday_to,
+  holidayFromBs: r.holiday_from === null ? null : adToBsText(r.holiday_from),
+  holidayToBs: r.holiday_to === null ? null : adToBsText(r.holiday_to),
+});
 
 /**
  * What the public may see on `today` (an AD day by Nepal's clock): live items from their publish
@@ -27,7 +37,7 @@ export async function listPublicContent(
 ): Promise<PublicContent> {
   const { results } = await db
     .prepare(
-      `SELECT public_id, kind, title, body, contact, is_urgent, publish_on, hide_after
+      `SELECT public_id, kind, title, body, contact, is_urgent, publish_on, hide_after, holiday_from, holiday_to
          FROM content_items
         WHERE status = 'live'
           AND publish_on <= ?1
@@ -51,6 +61,7 @@ export async function listPublicContent(
       hideAfter: r.hide_after,
       publishedOnBs: adToBsText(r.publish_on),
       hideAfterBs: r.hide_after === null ? null : adToBsText(r.hide_after),
+      ...holidayDates(r),
     })),
   };
 }
@@ -86,6 +97,7 @@ const summaryOf = (r: AdminSummaryRow, today: string): AdminContentSummary => ({
   hideAfter: r.hide_after,
   publishOnBs: adToBsText(r.publish_on),
   hideAfterBs: r.hide_after === null ? null : adToBsText(r.hide_after),
+  ...holidayDates(r),
   createdAt: r.created_at,
   updatedAt: r.updated_at,
   publishedAt: r.published_at,
@@ -104,7 +116,7 @@ export async function listAdminContent(
 ): Promise<{ items: AdminContentSummary[]; todayBs: string | null }> {
   const { results } = await db
     .prepare(
-      `SELECT public_id, kind, title, is_urgent, status, publish_on, hide_after, created_at, updated_at, published_at
+      `SELECT public_id, kind, title, is_urgent, status, publish_on, hide_after, holiday_from, holiday_to, created_at, updated_at, published_at
          FROM content_items
         WHERE (?1 IS NULL OR kind = ?1)
           AND (?2 IS NULL OR CASE
@@ -125,7 +137,7 @@ export async function listAdminContent(
 export async function getAdminContent(db: D1Database, publicId: string, today: string): Promise<AdminContentItem | null> {
   const row = await db
     .prepare(
-      `SELECT public_id, kind, title, body, contact, is_urgent, status, publish_on, hide_after, created_at, updated_at, published_at
+      `SELECT public_id, kind, title, body, contact, is_urgent, status, publish_on, hide_after, holiday_from, holiday_to, created_at, updated_at, published_at
          FROM content_items WHERE public_id = ?1`,
     )
     .bind(publicId)

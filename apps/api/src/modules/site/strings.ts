@@ -20,6 +20,8 @@ export const STRINGS = {
   "content.kind.routine": "Routine",
   "content.kind.vacancy": "Vacancy",
   "content.kind.post": "Post",
+  "content.holidayOn": "Holiday on {date}",
+  "content.holidayFromTo": "Holiday from {from} to {to}",
   "site.programmes.title": "Programmes",
   "site.admission.title": "Admission",
   "site.scholarships.title": "Scholarships",

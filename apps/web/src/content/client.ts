@@ -64,9 +64,14 @@ export async function saveItem(api: ApiClient, id: string | null, values: FormVa
   const problems = validateForm(values);
   if (Object.keys(problems).length > 0) return { ok: false, reason: "fields", errors: problems };
 
+  const isHoliday = values.kind === "holiday";
   const publishOnBs = values.publishOnBs.trim();
-  const hideAfterBs = values.hideAfterBs.trim();
-  const [publishOn, hideAfter] = await Promise.all([toAd(api, publishOnBs), hideAfterBs ? toAd(api, hideAfterBs) : Promise.resolve<DateOutcome>({ ok: true, ad: "" })]);
+  // A holiday sends its own days and no "hide after": the server takes it off after the holiday (D-094).
+  const hideAfterBs = isHoliday ? "" : values.hideAfterBs.trim();
+  const holidayFromBs = isHoliday ? values.holidayFromBs.trim() : "";
+  const holidayToBs = isHoliday ? values.holidayToBs.trim() : "";
+  const optional = (bs: string) => (bs ? toAd(api, bs) : Promise.resolve<DateOutcome>({ ok: true, ad: "" }));
+  const [publishOn, hideAfter, holidayFrom, holidayTo] = await Promise.all([toAd(api, publishOnBs), optional(hideAfterBs), optional(holidayFromBs), optional(holidayToBs)]);
 
   const errors: FormErrors = {};
   const check = (field: FieldName, outcome: DateOutcome) => {
@@ -74,8 +79,10 @@ export async function saveItem(api: ApiClient, id: string | null, values: FormVa
   };
   check("publishOnBs", publishOn);
   check("hideAfterBs", hideAfter);
+  check("holidayFromBs", holidayFrom);
+  check("holidayToBs", holidayTo);
   if (Object.keys(errors).length > 0) return { ok: false, reason: "fields", errors };
-  if (!publishOn.ok || !hideAfter.ok) return { ok: false, reason: "failed" };
+  if (!publishOn.ok || !hideAfter.ok || !holidayFrom.ok || !holidayTo.ok) return { ok: false, reason: "failed" };
 
   const words = {
     title: values.title.trim(),
@@ -85,6 +92,8 @@ export async function saveItem(api: ApiClient, id: string | null, values: FormVa
     urgent: values.urgent,
     publishOn: publishOn.ad,
     hideAfter: hideAfterBs ? hideAfter.ad : null,
+    holidayFrom: holidayFromBs ? holidayFrom.ad : null,
+    holidayTo: holidayToBs ? holidayTo.ad : null,
   };
 
   try {

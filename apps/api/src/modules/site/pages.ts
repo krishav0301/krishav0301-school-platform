@@ -28,7 +28,11 @@ const notices: Builder = async (ctx) => {
   const articles = items
     .map((item) => {
       const from = bsWords(item.publishedOnBs);
-      const until = bsWords(item.hideAfterBs);
+      // A holiday names its own days (D-094) and comes off the site after them, so its "until" would only repeat them.
+      const holidayFrom = bsWords(item.holidayFromBs);
+      const holidayTo = bsWords(item.holidayToBs);
+      const holiday = holidayFrom ? (holidayTo && holidayTo !== holidayFrom ? say("content.holidayFromTo", { from: holidayFrom, to: holidayTo }) : say("content.holidayOn", { date: holidayFrom })) : "";
+      const until = holiday ? null : bsWords(item.hideAfterBs);
       const dates = from ? (until ? say("notices.postedUntil", { from, until }) : say("notices.posted", { date: from })) : "";
       const paragraphs = item.body
         .split(/\n\s*\n/)
@@ -38,7 +42,9 @@ const notices: Builder = async (ctx) => {
         .join("");
       return (
         `<article><p>${e(say(`content.kind.${item.kind}` as StringKey))}${item.urgent ? ` · ${e(say("content.urgent"))}` : ""}</p>` +
-        `<h2>${e(item.title)}</h2>${paragraphs}` +
+        `<h2>${e(item.title)}</h2>` +
+        (holiday ? `<p><strong>${e(holiday)}</strong></p>` : "") +
+        paragraphs +
         (item.kind === "vacancy" && item.contact ? `<p>${e(say("content.contact"))} ${e(item.contact)}</p>` : "") +
         (dates ? `<p>${e(dates)}</p>` : "") +
         `</article>`

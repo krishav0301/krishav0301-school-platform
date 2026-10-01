@@ -2,14 +2,14 @@ import { describe, expect, it } from "vitest";
 
 import { BS_MONTH_NAMES } from "../../api/src/core/dates";
 import { en, t } from "@/i18n/messages";
-import { KINDS, STATES, contactHref, emptyForm, firstInvalid, formFromItem, formatBsDate, paragraphs, joinBs, parseEditTarget, parseFlash, splitBs, validateForm, type FormValues } from "@/content/model";
+import { KINDS, STATES, contactHref, emptyForm, firstInvalid, formFromItem, formatBsDate, holidayLine, paragraphs, joinBs, parseEditTarget, parseFlash, splitBs, validateForm, type FormValues } from "@/content/model";
 
-const valid: FormValues = { kind: "notice", title: "Winter break", body: "Closed on Friday.", contact: "", urgent: false, publishOnBs: "2083-06-10", hideAfterBs: "" };
+const valid: FormValues = { kind: "notice", title: "Winter break", body: "Closed on Friday.", contact: "", urgent: false, publishOnBs: "2083-06-10", hideAfterBs: "", holidayFromBs: "", holidayToBs: "" };
 const errorsOf = (over: Partial<FormValues>) => validateForm({ ...valid, ...over });
 
 describe("a new form", () => {
   it("starts as a notice, with today's Nepali date as the start day and nothing else filled in", () => {
-    expect(emptyForm("2083-06-05")).toEqual({ kind: "notice", title: "", body: "", contact: "", urgent: false, publishOnBs: "2083-06-05", hideAfterBs: "" });
+    expect(emptyForm("2083-06-05")).toEqual({ kind: "notice", title: "", body: "", contact: "", urgent: false, publishOnBs: "2083-06-05", hideAfterBs: "", holidayFromBs: "", holidayToBs: "" });
   });
 
   it("starts with an empty start day when today's date is not known (past the verified years)", () => {
@@ -20,7 +20,7 @@ describe("a new form", () => {
 describe("a form for an existing item", () => {
   it("carries the words and the Nepali days, with blanks instead of nulls", () => {
     const item = { kind: "vacancy", title: "Teacher", body: "Maths", contact: "jobs@school.example", urgent: true, publishOnBs: "2083-01-05", hideAfterBs: null } as never;
-    expect(formFromItem(item)).toEqual({ kind: "vacancy", title: "Teacher", body: "Maths", contact: "jobs@school.example", urgent: true, publishOnBs: "2083-01-05", hideAfterBs: "" });
+    expect(formFromItem(item)).toEqual({ kind: "vacancy", title: "Teacher", body: "Maths", contact: "jobs@school.example", urgent: true, publishOnBs: "2083-01-05", hideAfterBs: "", holidayFromBs: "", holidayToBs: "" });
   });
 
   it("a day beyond the verified years shows as blank, so it must be entered again", () => {
@@ -260,5 +260,38 @@ describe("the lists", () => {
   it("has a word for each kind and each state", () => {
     for (const kind of KINDS) expect(en[`content.kind.${kind}` as keyof typeof en], kind).toBeTruthy();
     for (const state of STATES) expect(en[`content.state.${state}` as keyof typeof en], state).toBeTruthy();
+  });
+});
+
+describe("a holiday names its own days (D-094)", () => {
+  const holiday: FormValues = { ...valid, kind: "holiday", publishOnBs: "2083-06-14", holidayFromBs: "2083-06-16", holidayToBs: "" };
+  const holidayErrors = (over: Partial<FormValues>) => validateForm({ ...holiday, ...over });
+
+  it("needs the holiday's day, and never asks for a hide-after day", () => {
+    expect(holidayErrors({})).toEqual({});
+    expect(holidayErrors({ holidayFromBs: "" })).toEqual({ holidayFromBs: "contentForm.error.holidayRequired" });
+    expect(holidayErrors({ hideAfterBs: "2083-01-01" })).toEqual({}); // left over from another kind; not sent
+  });
+
+  it("a last day before the first, or showing it only after the holiday, is refused against its own field", () => {
+    expect(holidayErrors({ holidayToBs: "2083-06-15" })).toEqual({ holidayToBs: "contentForm.error.holidayEndBeforeStart" });
+    expect(holidayErrors({ publishOnBs: "2083-06-17" })).toEqual({ publishOnBs: "contentForm.error.showAfterHoliday" });
+    expect(holidayErrors({ publishOnBs: "2083-06-17", holidayToBs: "2083-06-20" })).toEqual({});
+  });
+
+  it("the first problem on screen is the holiday's day, which comes before the show-from day", () => {
+    expect(firstInvalid({ publishOnBs: "contentForm.error.dateRequired", holidayFromBs: "contentForm.error.holidayRequired" })).toBe("holidayFromBs");
+  });
+
+  it("says the holiday's days in words", () => {
+    expect(holidayLine("2083-06-16", null)).toBe("Holiday on 16 Ashwin 2083");
+    expect(holidayLine("2083-06-16", "2083-06-16")).toBe("Holiday on 16 Ashwin 2083");
+    expect(holidayLine("2083-06-16", "2083-06-20")).toBe("Holiday from 16 Ashwin 2083 to 20 Ashwin 2083");
+    expect(holidayLine(null, null)).toBeNull();
+  });
+
+  it("an existing holiday's form carries its days and not its hide-after day, which the server sets", () => {
+    const item = { kind: "holiday", title: "Dashain", body: "Closed", contact: null, urgent: false, publishOnBs: "2083-06-14", hideAfterBs: "2083-06-20", holidayFromBs: "2083-06-16", holidayToBs: "2083-06-20" } as never;
+    expect(formFromItem(item)).toMatchObject({ hideAfterBs: "", holidayFromBs: "2083-06-16", holidayToBs: "2083-06-20" });
   });
 });
