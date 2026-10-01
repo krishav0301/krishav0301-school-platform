@@ -368,7 +368,7 @@ describe("GET /api/content", () => {
   it("carries the state but never the text, the contact or who wrote it", async () => {
     const id = await newDraft();
     const item = (await list(admin.cookie)).items.find((i) => i.id === id)!;
-    expect(Object.keys(item).sort()).toEqual(["createdAt", "hideAfter", "hideAfterBs", "id", "kind", "publishOn", "publishOnBs", "publishedAt", "state", "status", "title", "updatedAt", "urgent"]);
+    expect(Object.keys(item).sort()).toEqual(["createdAt", "hideAfter", "hideAfterBs", "holidayFrom", "holidayFromBs", "holidayTo", "holidayToBs", "id", "kind", "publishOn", "publishOnBs", "publishedAt", "state", "status", "title", "updatedAt", "urgent"]);
   });
 });
 
@@ -384,7 +384,7 @@ describe("GET /api/content/{id}", () => {
     expect(item).toMatchObject({ id, kind: "vacancy", title: "Teacher wanted", body: "First\n\nSecond", contact: "jobs@school.example", urgent: true, status: "draft", state: "draft", publishOn: "2020-01-01", hideAfter: "2020-02-01" });
     expect(item.publishOnBs).toBe(adToBsText("2020-01-01"));
     expect(item.hideAfterBs).toBe(adToBsText("2020-02-01"));
-    expect(Object.keys(item).sort()).toEqual(["body", "contact", "createdAt", "hideAfter", "hideAfterBs", "id", "kind", "publishOn", "publishOnBs", "publishedAt", "state", "status", "title", "updatedAt", "urgent"]);
+    expect(Object.keys(item).sort()).toEqual(["body", "contact", "createdAt", "hideAfter", "hideAfterBs", "holidayFrom", "holidayFromBs", "holidayTo", "holidayToBs", "id", "kind", "publishOn", "publishOnBs", "publishedAt", "state", "status", "title", "updatedAt", "urgent"]);
   });
 
   it("says where a live item stands today", async () => {

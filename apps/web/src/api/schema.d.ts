@@ -2895,6 +2895,10 @@ export interface components {
             hideAfter: string | null;
             publishedOnBs: string | null;
             hideAfterBs: string | null;
+            holidayFrom: string | null;
+            holidayTo: string | null;
+            holidayFromBs: string | null;
+            holidayToBs: string | null;
         };
         /** @enum {string} */
         ContentKind: "notice" | "holiday" | "routine" | "vacancy" | "post";
@@ -2914,6 +2918,10 @@ export interface components {
             hideAfter: string | null;
             publishOnBs: string | null;
             hideAfterBs: string | null;
+            holidayFrom: string | null;
+            holidayTo: string | null;
+            holidayFromBs: string | null;
+            holidayToBs: string | null;
             createdAt: string;
             updatedAt: string;
             publishedAt: string | null;
@@ -2934,6 +2942,10 @@ export interface components {
             hideAfter: string | null;
             publishOnBs: string | null;
             hideAfterBs: string | null;
+            holidayFrom: string | null;
+            holidayTo: string | null;
+            holidayFromBs: string | null;
+            holidayToBs: string | null;
             createdAt: string;
             updatedAt: string;
             publishedAt: string | null;
@@ -2957,6 +2969,10 @@ export interface components {
             publishOn: string;
             /** @default null */
             hideAfter: string | null;
+            /** @default null */
+            holidayFrom: string | null;
+            /** @default null */
+            holidayTo: string | null;
         };
         ContentChanges: {
             title?: string;
@@ -2965,6 +2981,8 @@ export interface components {
             urgent?: boolean;
             publishOn?: string;
             hideAfter?: string | null;
+            holidayFrom?: string | null;
+            holidayTo?: string | null;
         };
         ApprovalsCreated: {
             id: string;

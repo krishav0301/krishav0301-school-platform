@@ -182,6 +182,12 @@
   overflow-wrap: anywhere;
 }
 
+/* A holiday's own days (D-094): the one fact a reader came for, so it reads before the text. Weight, not colour. */
+.holiday {
+  margin: 0;
+  font-weight: 600;
+}
+
 .contact {
   display: flex;
   flex-wrap: wrap;

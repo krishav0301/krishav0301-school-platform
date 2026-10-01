@@ -8,7 +8,7 @@ import { t } from "@/i18n/messages";
 import { Button, Notice, Skeleton } from "@/ui";
 
 import { loadPublic } from "./client";
-import { KINDS, KIND_PLURAL_LABEL, formatBsDate, type Kind, type PublicItem } from "./model";
+import { KINDS, KIND_PLURAL_LABEL, formatBsDate, holidayLine, type Kind, type PublicItem } from "./model";
 import { PublicEntry } from "./PublicEntry";
 import styles from "./content.module.css";
 
@@ -116,8 +116,10 @@ export function NoticeList({ items, kind, onKind }: { items: PublicItem[]; kind:
               body={item.body}
               contact={item.contact}
               urgent={item.urgent}
+              holiday={holidayLine(item.holidayFromBs, item.holidayToBs)}
               dates={
-                item.hideAfterBs
+                // A holiday comes off after its own days, so an "until" would only repeat them (D-094).
+                item.hideAfterBs && !item.holidayFromBs
                   ? t("notices.postedUntil", { from: formatBsDate(item.publishedOnBs), until: formatBsDate(item.hideAfterBs) })
                   : t("notices.posted", { date: formatBsDate(item.publishedOnBs) })
               }

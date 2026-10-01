@@ -82,7 +82,7 @@ describe("GET /api/site/content", () => {
     const body = (await (await call("/api/site/content")).json()) as Body;
     const vacancy = body.items.find((i) => i.id === vacancyId)!;
 
-    expect(Object.keys(vacancy).sort()).toEqual(["body", "contact", "hideAfter", "hideAfterBs", "id", "kind", "publishedOn", "publishedOnBs", "title", "urgent"]);
+    expect(Object.keys(vacancy).sort()).toEqual(["body", "contact", "hideAfter", "hideAfterBs", "holidayFrom", "holidayFromBs", "holidayTo", "holidayToBs", "id", "kind", "publishedOn", "publishedOnBs", "title", "urgent"]);
     expect(vacancy).toMatchObject({ kind: "vacancy", title: "Teacher wanted", contact: "jobs@school.example", urgent: false, hideAfter: null });
     expect(vacancy.publishedOn).toMatch(/^\d{4}-\d{2}-\d{2}$/);
     expect(JSON.stringify(body)).not.toMatch(/created_by|published_by|"status"|users?_id/);

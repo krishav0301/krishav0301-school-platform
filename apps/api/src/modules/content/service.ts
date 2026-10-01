@@ -42,6 +42,8 @@ interface ItemRow {
   status: "draft" | "waiting" | "live";
   publish_on: string;
   hide_after: string | null;
+  holiday_from: string | null;
+  holiday_to: string | null;
 }
 
 const toInput = (row: ItemRow): ContentInput => ({
@@ -52,6 +54,8 @@ const toInput = (row: ItemRow): ContentInput => ({
   urgent: row.is_urgent === 1,
   publishOn: row.publish_on,
   hideAfter: row.hide_after,
+  holidayFrom: row.holiday_from,
+  holidayTo: row.holiday_to,
 });
 
 /** One round trip: is the person allowed (by the given guard), and what is the item now? */
@@ -59,7 +63,7 @@ async function inspect(db: D1Database, publicId: string, actorPublicId: string, 
   const [allowed, item] = await db.batch([
     db.prepare(`SELECT ${guard(1)} AS ok`).bind(actorPublicId),
     db
-      .prepare("SELECT kind, title, body, contact, is_urgent, status, publish_on, hide_after FROM content_items WHERE public_id = ?1")
+      .prepare("SELECT kind, title, body, contact, is_urgent, status, publish_on, hide_after, holiday_from, holiday_to FROM content_items WHERE public_id = ?1")
       .bind(publicId),
   ]);
   return {
@@ -79,7 +83,7 @@ async function inspectForEdit(db: D1Database, publicId: string, actorPublicId: s
     db.prepare(`SELECT ${isPublisher(1)} AS ok`).bind(actorPublicId),
     db.prepare(`SELECT ${mayDraft(1)} AS ok`).bind(actorPublicId),
     db
-      .prepare("SELECT kind, title, body, contact, is_urgent, status, publish_on, hide_after FROM content_items WHERE public_id = ?1")
+      .prepare("SELECT kind, title, body, contact, is_urgent, status, publish_on, hide_after, holiday_from, holiday_to FROM content_items WHERE public_id = ?1")
       .bind(publicId),
   ]);
   const isPublisherActor = (publisher!.results[0] as { ok: number } | undefined)?.ok === 1;
@@ -122,11 +126,11 @@ export async function createContent(
       db
         .prepare(
           `INSERT INTO content_items
-             (public_id, kind, title, body, contact, is_urgent, status, publish_on, hide_after, created_by, created_at, updated_at)
-           SELECT ?1, ?2, ?3, ?4, ?5, ?6, 'draft', ?7, ?8, u.id, ?9, ?9
+             (public_id, kind, title, body, contact, is_urgent, status, publish_on, hide_after, created_by, created_at, updated_at, holiday_from, holiday_to)
+           SELECT ?1, ?2, ?3, ?4, ?5, ?6, 'draft', ?7, ?8, u.id, ?9, ?9, ?11, ?12
              FROM users u WHERE u.public_id = ?10 AND ${mayDraft(10)}`,
         )
-        .bind(publicId, c.kind, c.title, c.body, c.contact, c.urgent ? 1 : 0, c.publishOn, c.hideAfter, at, actorPublicId),
+        .bind(publicId, c.kind, c.title, c.body, c.contact, c.urgent ? 1 : 0, c.publishOn, c.hideAfter, at, actorPublicId, c.holidayFrom, c.holidayTo),
     ],
     { onlyIfLastChanged: true },
   );
@@ -150,7 +154,7 @@ export async function updateContent(
   if (!item) return { ok: false, reason: "not_found" };
 
   // Only these fields can change: the kind is fixed, and the status moves only by publishing and taking down.
-  const { title, body, contact, urgent, publishOn, hideAfter } = changes;
+  const { title, body, contact, urgent, publishOn, hideAfter, holidayFrom, holidayTo } = changes;
   const before = toInput(item);
   const merged = {
     ...before,
@@ -160,6 +164,8 @@ export async function updateContent(
     ...(urgent !== undefined && { urgent }),
     ...(publishOn !== undefined && { publishOn }),
     ...(hideAfter !== undefined && { hideAfter }),
+    ...(holidayFrom !== undefined && { holidayFrom }),
+    ...(holidayTo !== undefined && { holidayTo }),
   };
   const parsed = ContentInputSchema.safeParse(merged);
   if (!parsed.success) return { ok: false, reason: "invalid", message: firstMessage(parsed.error) };
@@ -182,10 +188,11 @@ export async function updateContent(
       db
         .prepare(
           `UPDATE content_items
-              SET title = ?2, body = ?3, contact = ?4, is_urgent = ?5, publish_on = ?6, hide_after = ?7, updated_at = ?8, version = version + 1
+              SET title = ?2, body = ?3, contact = ?4, is_urgent = ?5, publish_on = ?6, hide_after = ?7, updated_at = ?8,
+                  holiday_from = ?10, holiday_to = ?11, version = version + 1
             WHERE public_id = ?1 AND (${isPublisher(9)} OR (${mayDraft(9)} AND status <> 'live'))`,
         )
-        .bind(publicId, after.title, after.body, after.contact, after.urgent ? 1 : 0, after.publishOn, after.hideAfter, now.toISOString(), actorPublicId),
+        .bind(publicId, after.title, after.body, after.contact, after.urgent ? 1 : 0, after.publishOn, after.hideAfter, now.toISOString(), actorPublicId, after.holidayFrom, after.holidayTo),
     ],
     { onlyIfLastChanged: true },
   );

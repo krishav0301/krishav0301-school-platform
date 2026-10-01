@@ -18,6 +18,7 @@ export function PublicEntry({
   contact,
   urgent,
   dates,
+  holiday = null,
   headingLevel,
   titleIsPlaceholder = false,
 }: {
@@ -28,6 +29,8 @@ export function PublicEntry({
   urgent: boolean;
   /** The line of dates, already in words. */
   dates: string;
+  /** A holiday's own days in words (D-094), shown under the title. */
+  holiday?: string | null;
   headingLevel: 2 | 3;
   /** The title is a stand-in (the form is still empty), so it is drawn quieter. */
   titleIsPlaceholder?: boolean;
@@ -42,6 +45,7 @@ export function PublicEntry({
         {urgent ? <Badge>{t("content.urgent")}</Badge> : null}
       </div>
       <Heading className={titleIsPlaceholder ? `${styles.entryTitle} ${styles.muted}` : styles.entryTitle}>{title}</Heading>
+      {holiday ? <p className={styles.holiday}>{holiday}</p> : null}
       {paragraphs(body).map((paragraph, index) => (
         <p key={index} className={styles.paragraph}>
           {paragraph}

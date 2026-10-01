@@ -50,13 +50,16 @@ export interface FormValues {
   urgent: boolean;
   publishOnBs: string;
   hideAfterBs: string;
+  /** Holidays only (D-094): the day the school is closed, and the last day of a longer holiday. */
+  holidayFromBs: string;
+  holidayToBs: string;
 }
 
-export type FieldName = "title" | "body" | "contact" | "publishOnBs" | "hideAfterBs";
+export type FieldName = "title" | "body" | "contact" | "holidayFromBs" | "holidayToBs" | "publishOnBs" | "hideAfterBs";
 export type FormErrors = Partial<Record<FieldName, MessageKey>>;
 
 /** The order the fields appear in, so the first problem in the list is the first one on screen. */
-const FIELD_ORDER: readonly FieldName[] = ["title", "body", "contact", "publishOnBs", "hideAfterBs"];
+const FIELD_ORDER: readonly FieldName[] = ["title", "body", "contact", "holidayFromBs", "holidayToBs", "publishOnBs", "hideAfterBs"];
 
 export const emptyForm = (todayBs: string | null, kind: Kind = "notice"): FormValues => ({
   kind,
@@ -66,16 +69,23 @@ export const emptyForm = (todayBs: string | null, kind: Kind = "notice"): FormVa
   urgent: false,
   publishOnBs: todayBs ?? "",
   hideAfterBs: "",
+  holidayFromBs: "",
+  holidayToBs: "",
 });
 
-export const formFromItem = (item: Pick<ContentItem, "kind" | "title" | "body" | "contact" | "urgent" | "publishOnBs" | "hideAfterBs">): FormValues => ({
+export const formFromItem = (
+  item: Pick<ContentItem, "kind" | "title" | "body" | "contact" | "urgent" | "publishOnBs" | "hideAfterBs" | "holidayFromBs" | "holidayToBs">,
+): FormValues => ({
   kind: item.kind,
   title: item.title,
   body: item.body,
   contact: item.contact ?? "",
   urgent: item.urgent,
   publishOnBs: item.publishOnBs ?? "",
-  hideAfterBs: item.hideAfterBs ?? "",
+  // A holiday's "hide after" is its last day, set by the server, so the form does not carry it (D-094).
+  hideAfterBs: item.kind === "holiday" ? "" : (item.hideAfterBs ?? ""),
+  holidayFromBs: item.holidayFromBs ?? "",
+  holidayToBs: item.holidayToBs ?? "",
 });
 
 const BS_SHAPE = /^\d{4}-\d{2}-\d{2}$/;
@@ -103,9 +113,23 @@ export function validateForm(values: FormValues): FormErrors {
   if (!publishOn) errors.publishOnBs = "contentForm.error.dateRequired";
   else if (!BS_SHAPE.test(publishOn)) errors.publishOnBs = "contentForm.error.dateShape";
 
+  // Zero-padded year-month-day text sorts in date order, so the checks below compare days without converting them.
+  if (values.kind === "holiday") {
+    // A holiday names its own day and comes off the website after it (D-094), so "hide after" is not asked.
+    const from = values.holidayFromBs.trim();
+    const to = values.holidayToBs.trim();
+    if (!from) errors.holidayFromBs = "contentForm.error.holidayRequired";
+    else if (!BS_SHAPE.test(from)) errors.holidayFromBs = "contentForm.error.dateShape";
+    if (to) {
+      if (!BS_SHAPE.test(to)) errors.holidayToBs = "contentForm.error.dateShape";
+      else if (!errors.holidayFromBs && to < from) errors.holidayToBs = "contentForm.error.holidayEndBeforeStart";
+    }
+    if (!errors.publishOnBs && !errors.holidayFromBs && !errors.holidayToBs && publishOn > (to || from)) errors.publishOnBs = "contentForm.error.showAfterHoliday";
+    return errors;
+  }
+
   if (hideAfter) {
     if (!BS_SHAPE.test(hideAfter)) errors.hideAfterBs = "contentForm.error.dateShape";
-    // Zero-padded year-month-day text sorts in date order, so this compares the days without converting them.
     else if (!errors.publishOnBs && hideAfter < publishOn) errors.hideAfterBs = "contentForm.error.hideBeforeShow";
   }
   return errors;
@@ -120,6 +144,14 @@ export function formatBsDate(text: string | null | undefined): string {
   const [year, month, day] = [Number(match[1]), Number(match[2]), Number(match[3])] as [number, number, number];
   if (month < 1 || month > 12 || day < 1 || day > 32) return "—";
   return `${day} ${t(MONTH_LABEL[month - 1]!)} ${year}`;
+}
+
+/** A holiday's own days in words (D-094): "Holiday on 16 Ashwin 2083", or "from … to …" for a longer one. Null when there is no holiday date. */
+export function holidayLine(fromBs: string | null | undefined, toBs: string | null | undefined): string | null {
+  const from = fromBs?.trim() ? formatBsDate(fromBs.trim()) : null;
+  if (!from || from === "—") return null;
+  const to = toBs?.trim() ? formatBsDate(toBs.trim()) : null;
+  return to && to !== "—" && to !== from ? t("content.holidayFromTo", { from, to }) : t("content.holidayOn", { date: from });
 }
 
 /** A Nepali day as the three pieces a person fills in, each as typed or chosen. */

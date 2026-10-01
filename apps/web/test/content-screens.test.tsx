@@ -274,6 +274,10 @@ describe("the public notice board", () => {
     hideAfter: null,
     publishedOnBs: "2083-06-05",
     hideAfterBs: null,
+    holidayFrom: null,
+    holidayTo: null,
+    holidayFromBs: null,
+    holidayToBs: null,
     ...over,
   });
   const list = (items: PublicItem[], kind: Kind | "" = "") => renderToStaticMarkup(<NoticeList items={items} kind={kind} onKind={() => {}} />);
@@ -403,5 +407,43 @@ describe("the preview", () => {
   it("a blank line starts a new paragraph, and empty text draws none", () => {
     expect(count(preview({ body: "One\n\nTwo\n\n\nThree" }), /class="[^"]*\bparagraph\b[^"]*"/g)).toBe(3);
     expect(count(preview({ body: "" }), /class="[^"]*\bparagraph\b[^"]*"/g)).toBe(0);
+  });
+});
+
+// ---------------------------------------------------------------------------------------------
+describe("a holiday names its own days (D-094)", () => {
+  it("the form asks for the holiday's date before Show from, and has no Hide after", () => {
+    const html = editor({}, { kind: "holiday" });
+    const at = (word: string) => html.indexOf(word);
+    expect(html).toContain("Holiday date");
+    expect(html).toContain("Last day of the holiday (optional)");
+    expect(at("Holiday date")).toBeLessThan(at("Show from"));
+    expect(html).toContain("It comes off the website after the holiday.");
+    expect(html).not.toContain("Hide after");
+  });
+
+  it("other kinds keep Hide after and never ask for a holiday date", () => {
+    const html = editor({}, { kind: "notice" });
+    expect(html).toContain("Hide after");
+    expect(html).not.toContain("Holiday date");
+  });
+
+  it("the preview says when the holiday is and that it shows until its last day", () => {
+    const html = renderToStaticMarkup(<ContentPreview values={{ ...emptyForm("2083-06-14"), kind: "holiday", holidayFromBs: "2083-06-16", holidayToBs: "2083-06-20" }} />);
+    expect(html).toContain("Holiday from 16 Ashwin 2083 to 20 Ashwin 2083");
+    expect(html).toContain("Shows from 14 Ashwin 2083 until 20 Ashwin 2083");
+  });
+
+  it("the public board puts the holiday's day under its title, and does not repeat it as an until", () => {
+    const html = renderToStaticMarkup(
+      <NoticeList
+        items={[{ id: "h", kind: "holiday", title: "Dashain", body: "Closed.", contact: null, urgent: false, publishedOn: "2026-09-30", hideAfter: "2026-10-02", publishedOnBs: "2083-06-14", hideAfterBs: "2083-06-16", holidayFrom: "2026-10-02", holidayTo: null, holidayFromBs: "2083-06-16", holidayToBs: null }]}
+        kind=""
+        onKind={() => {}}
+      />,
+    );
+    expect(html).toMatch(/Dashain<\/h2><p class="[^"]*holiday[^"]*">Holiday on 16 Ashwin 2083<\/p>/);
+    expect(html).toContain("Posted 14 Ashwin 2083");
+    expect(html).not.toContain("until");
   });
 });

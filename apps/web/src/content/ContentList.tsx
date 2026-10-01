@@ -12,7 +12,7 @@ import { Badge, Button, Notice, Select, Skeleton, buttonClass } from "@/ui";
 
 import { useAddressQuery } from "./address";
 import { loadContent, setPublished } from "./client";
-import { KINDS, KIND_LABEL, STATES, STATE_LABEL, formatBsDate, parseFlash, type ContentSummary, type FlashKind, type Kind, type State } from "./model";
+import { KINDS, KIND_LABEL, STATES, STATE_LABEL, formatBsDate, holidayLine, parseFlash, type ContentSummary, type FlashKind, type Kind, type State } from "./model";
 import { outcomeOfToggle, type ToggleOutcome } from "./outcome";
 import styles from "./content.module.css";
 
@@ -175,6 +175,7 @@ export function ContentList() {
                   <Badge tone={item.state === "showing" ? "ok" : "neutral"}>{t(STATE_LABEL[item.state])}</Badge>
                   {item.urgent ? <Badge>{t("content.urgent")}</Badge> : null}
                 </div>
+                {item.kind === "holiday" && item.holidayFromBs ? <p className={styles.holiday}>{holidayLine(item.holidayFromBs, item.holidayToBs)}</p> : null}
                 <p className={styles.muted}>{item.hideAfterBs ? t("content.showsFromUntil", { from, until: formatBsDate(item.hideAfterBs) }) : t("content.showsFrom", { from })}</p>
 
                 <div className={styles.actions}>

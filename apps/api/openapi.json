@@ -2086,6 +2086,32 @@
               "string",
               "null"
             ]
+          },
+          "holidayFrom": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+          },
+          "holidayTo": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+          },
+          "holidayFromBs": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "holidayToBs": {
+            "type": [
+              "string",
+              "null"
+            ]
           }
         },
         "required": [
@@ -2098,7 +2124,11 @@
           "publishedOn",
           "hideAfter",
           "publishedOnBs",
-          "hideAfterBs"
+          "hideAfterBs",
+          "holidayFrom",
+          "holidayTo",
+          "holidayFromBs",
+          "holidayToBs"
         ]
       },
       "ContentKind": {
@@ -2181,6 +2211,32 @@
               "null"
             ]
           },
+          "holidayFrom": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+          },
+          "holidayTo": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+          },
+          "holidayFromBs": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "holidayToBs": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
           "createdAt": {
             "type": "string"
           },
@@ -2205,6 +2261,10 @@
           "hideAfter",
           "publishOnBs",
           "hideAfterBs",
+          "holidayFrom",
+          "holidayTo",
+          "holidayFromBs",
+          "holidayToBs",
           "createdAt",
           "updatedAt",
           "publishedAt"
@@ -2278,6 +2338,32 @@
               "null"
             ]
           },
+          "holidayFrom": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+          },
+          "holidayTo": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+          },
+          "holidayFromBs": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "holidayToBs": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
           "createdAt": {
             "type": "string"
           },
@@ -2304,6 +2390,10 @@
           "hideAfter",
           "publishOnBs",
           "hideAfterBs",
+          "holidayFrom",
+          "holidayTo",
+          "holidayFromBs",
+          "holidayToBs",
           "createdAt",
           "updatedAt",
           "publishedAt"
@@ -2378,6 +2468,22 @@
             ],
             "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
             "default": null
+          },
+          "holidayFrom": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+            "default": null
+          },
+          "holidayTo": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+            "default": null
           }
         },
         "required": [
@@ -2417,6 +2523,20 @@
             "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
           },
           "hideAfter": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+          },
+          "holidayFrom": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+          },
+          "holidayTo": {
             "type": [
               "string",
               "null"

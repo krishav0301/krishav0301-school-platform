@@ -17,13 +17,42 @@ const Title = z.string().trim().min(1, "Give it a title").max(200, "Keep the tit
 const Body = z.string().trim().min(1, "Write some text").max(10_000, "Keep the text to 10,000 characters");
 const Contact = z.string().trim().min(1, "Give an email or phone").max(200, "Keep the contact to 200 characters");
 
+/** The last day of a holiday: its own last day, or its one day. */
+export const holidayEnd = (value: { holidayFrom: string | null; holidayTo: string | null }): string | null => value.holidayTo ?? value.holidayFrom;
+
+interface CrossFields {
+  kind: ContentKind;
+  contact: string | null;
+  publishOn: string;
+  hideAfter: string | null;
+  holidayFrom: string | null;
+  holidayTo: string | null;
+}
+
 /** The rules that involve more than one field. */
-function crossFieldRules(value: { kind: ContentKind; contact: string | null; publishOn: string; hideAfter: string | null }, ctx: z.RefinementCtx) {
+function crossFieldRules(value: CrossFields, ctx: z.RefinementCtx) {
   if (value.kind === "vacancy" && value.contact === null) {
     ctx.addIssue({ code: "custom", path: ["contact"], message: "A vacancy needs an email or phone to contact" });
   }
   if (value.kind !== "vacancy" && value.contact !== null) {
     ctx.addIssue({ code: "custom", path: ["contact"], message: "Only a vacancy has a contact" });
+  }
+  if (value.kind === "holiday") {
+    // A holiday names its own day (D-094). It comes off the site after its last day, so "hide after" is not
+    // the person's to set (the schema sets it), and it must start showing on or before the holiday.
+    if (value.holidayFrom === null) {
+      ctx.addIssue({ code: "custom", path: ["holidayFrom"], message: "Give the date of the holiday" });
+      return;
+    }
+    if (value.holidayTo !== null && value.holidayTo < value.holidayFrom) {
+      ctx.addIssue({ code: "custom", path: ["holidayTo"], message: "The last day cannot be before the holiday starts" });
+    } else if (value.publishOn > holidayEnd(value)!) {
+      ctx.addIssue({ code: "custom", path: ["publishOn"], message: "Show it on or before the holiday" });
+    }
+    return;
+  }
+  if (value.holidayFrom !== null || value.holidayTo !== null) {
+    ctx.addIssue({ code: "custom", path: ["holidayFrom"], message: "Only a holiday has holiday dates" });
   }
   if (value.hideAfter !== null && value.hideAfter < value.publishOn) {
     ctx.addIssue({ code: "custom", path: ["hideAfter"], message: "It cannot be hidden before it is shown" });
@@ -38,11 +67,26 @@ const Fields = {
   urgent: z.boolean(),
   publishOn: CalendarDaySchema,
   hideAfter: CalendarDaySchema.nullable(),
+  /** Holidays only (D-094): the day the school is closed, and the last day of a longer holiday. */
+  holidayFrom: CalendarDaySchema.nullable(),
+  holidayTo: CalendarDaySchema.nullable(),
 };
 
-/** The whole content of an item. The service checks every write against this. */
-export const ContentInputSchema = z.object({ kind: ContentKindSchema, ...Fields }).superRefine(crossFieldRules);
-export type ContentInput = z.infer<typeof ContentInputSchema>;
+/**
+ * The whole content of an item. The service checks every write against this. A holiday comes off the site
+ * after its last day: whatever "hide after" was sent for it is replaced by that day (D-094).
+ */
+export const ContentInputSchema = z
+  .object({
+    kind: ContentKindSchema,
+    ...Fields,
+    // Left out means none, so a caller writing any other kind need not mention them.
+    holidayFrom: Fields.holidayFrom.default(null),
+    holidayTo: Fields.holidayTo.default(null),
+  })
+  .superRefine(crossFieldRules)
+  .transform((value) => (value.kind === "holiday" ? { ...value, hideAfter: holidayEnd(value) } : value));
+export type ContentInput = z.input<typeof ContentInputSchema>;
 
 /** What the Admin sends to make an item. The optional parts may be left out. Anything else in the body is refused. */
 export const CreateContentSchema = z
@@ -54,6 +98,8 @@ export const CreateContentSchema = z
     urgent: z.boolean().default(false),
     publishOn: CalendarDaySchema,
     hideAfter: CalendarDaySchema.nullable().default(null),
+    holidayFrom: CalendarDaySchema.nullable().default(null),
+    holidayTo: CalendarDaySchema.nullable().default(null),
   })
   .superRefine(crossFieldRules)
   .openapi("CreateContent");
@@ -64,6 +110,14 @@ export const CreateContentSchema = z
  */
 export const ContentChangesSchema = z.strictObject(Fields).partial().openapi("ContentChanges");
 export type ContentChanges = z.infer<typeof ContentChangesSchema>;
+
+/** A holiday's first and last day (D-094), AD and in Bikram Sambat. Null for every other kind, and for a holiday saved before D-094. */
+const HolidayDates = {
+  holidayFrom: CalendarDaySchema.nullable(),
+  holidayTo: CalendarDaySchema.nullable(),
+  holidayFromBs: z.string().nullable(),
+  holidayToBs: z.string().nullable(),
+};
 
 /** Where an item stands today, in plain words for the Admin screen. */
 export const CONTENT_STATES = ["draft", "waiting", "scheduled", "showing", "expired"] as const;
@@ -86,6 +140,7 @@ export const AdminContentItemSchema = z
     /** The same days in Bikram Sambat, "YYYY-MM-DD". Null for a day outside the verified BS years. */
     publishOnBs: z.string().nullable(),
     hideAfterBs: z.string().nullable(),
+    ...HolidayDates,
     createdAt: z.string(),
     updatedAt: z.string(),
     publishedAt: z.string().nullable(),
@@ -119,6 +174,7 @@ export const PublicContentItemSchema = z
     /** The same days in Bikram Sambat, "YYYY-MM-DD". Null for a day outside the verified BS years. */
     publishedOnBs: z.string().nullable(),
     hideAfterBs: z.string().nullable(),
+    ...HolidayDates,
   })
   .openapi("PublicContentItem");
 export type PublicContentItem = z.infer<typeof PublicContentItemSchema>;
