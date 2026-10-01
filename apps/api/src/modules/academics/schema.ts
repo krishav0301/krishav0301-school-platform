@@ -38,6 +38,18 @@ const ProgrammeName = z.string().trim().min(1, "Give the programme a name").max(
 const Affiliation = z.string().trim().min(1, "Give the affiliation, for example NEB").max(120, "Keep the affiliation to 120 characters");
 const LevelName = z.string().trim().min(1, "Give the level a name").max(60, "Keep the name to 60 characters");
 
+/**
+ * A section (D-095): a part of the school that groups programmes, such as "Bachelor's", "Master's", "Primary". The
+ * Admin makes them; a school starts with none. Its key is generated and never changes: section scopes, receipt
+ * numbering and the Top 20 are keyed by it. Only the name may change.
+ */
+const SectionName = z.string().trim().min(1, "Give the section a name").max(60, "Keep the name to 60 characters");
+export const CreateSectionSchema = z.strictObject({ name: SectionName }).openapi("CreateSection");
+export type SectionInput = z.input<typeof CreateSectionSchema>;
+export const SectionChangesSchema = z.strictObject({ name: SectionName }).openapi("SectionChanges");
+export type SectionChanges = z.infer<typeof SectionChangesSchema>;
+export const SectionKeyParam = z.object({ key: z.string().regex(/^[a-z][a-z0-9_]{0,30}$/) });
+
 export const CreateProgrammeSchema = z
   .strictObject({ name: ProgrammeName, sectionKey: z.string().regex(/^[a-z][a-z0-9_]{0,30}$/, "Choose a section"), affiliation: Affiliation })
   .openapi("CreateProgramme");
@@ -107,7 +119,14 @@ export const ProgrammeSchema = z
     levels: z.array(LevelSchema),
   })
   .openapi("Programme");
-export const ProgrammeListSchema = z.object({ programmes: z.array(ProgrammeSchema) }).openapi("ProgrammeList");
+export const SectionSchema = z.object({ key: z.string(), name: z.string() }).openapi("Section");
+export const ProgrammeListSchema = z
+  .object({
+    programmes: z.array(ProgrammeSchema),
+    /** The sections the person may see, in order, with or without programmes: the Programs screen lists and adds to them (D-095). */
+    sections: z.array(SectionSchema),
+  })
+  .openapi("ProgrammeList");
 export type ProgrammeList = z.infer<typeof ProgrammeListSchema>;
 
 export const SchoolClassSchema = z

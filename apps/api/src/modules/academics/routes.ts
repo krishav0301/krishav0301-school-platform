@@ -13,6 +13,7 @@ import {
   CreateClassSchema,
   CreateLevelSchema,
   CreateProgrammeSchema,
+  CreateSectionSchema,
   CreateTerminalSchema,
   CreateYearSchema,
   LevelChangesSchema,
@@ -20,6 +21,8 @@ import {
   ProgrammeListSchema,
   PublicIdSchema,
   SchoolClassListSchema,
+  SectionChangesSchema,
+  SectionKeyParam,
   SetupChecklistSchema,
   TeachingSchema,
   TerminalChangesSchema,
@@ -31,11 +34,13 @@ import {
   addLevel,
   createClass,
   createProgramme,
+  createSection,
   createTerminal,
   createYear,
   setAssignment,
   setClassTeacher,
   updateClass,
+  renameSection,
   updateLevel,
   updateProgramme,
   updateTerminal,
@@ -221,6 +226,43 @@ export function registerAcademics(app: App): void {
     },
     async (c) => {
       const result = await activateYear(c.env.DB, c.env.AUDIT_HMAC_KEY, c.get("auth")!.userPublicId, c.req.valid("param").id);
+      return result.ok ? c.json({ ok: true as const }, 200) : fail(c, result);
+    },
+  );
+
+  // --- Sections (D-095) ----------------------------------------------------------------------------------
+  defineRoute(
+    app,
+    {
+      method: "post",
+      path: "/api/academics/sections",
+      operationId: "create_section",
+      tags: ["academics"],
+      description: "Adds a section (for example Bachelor's, Master's, Primary). A school starts with none. The key is generated and never changes.",
+      access: MANAGE_PROGRAMMES,
+      request: { body: { required: true, content: json(CreateSectionSchema) } },
+      responses: { 201: { description: "Added", content: json(z.object({ key: z.string() })) }, ...failures },
+    },
+    async (c) => {
+      const result = await createSection(c.env.DB, c.env.AUDIT_HMAC_KEY, c.get("auth")!.userPublicId, c.req.valid("json"));
+      return result.ok ? c.json({ key: result.key }, 201) : fail(c, result);
+    },
+  );
+
+  defineRoute(
+    app,
+    {
+      method: "patch",
+      path: "/api/academics/sections/{key}",
+      operationId: "rename_section",
+      tags: ["academics"],
+      description: "Renames a section. Its key, and everything counted by it, stays the same. Nothing is deleted.",
+      access: MANAGE_PROGRAMMES,
+      request: { params: SectionKeyParam, body: { required: true, content: json(SectionChangesSchema) } },
+      responses: { 200: { description: "Saved", content: json(OkSchema) }, ...failures },
+    },
+    async (c) => {
+      const result = await renameSection(c.env.DB, c.env.AUDIT_HMAC_KEY, c.get("auth")!.userPublicId, c.req.valid("param").key, c.req.valid("json"));
       return result.ok ? c.json({ ok: true as const }, 200) : fail(c, result);
     },
   );

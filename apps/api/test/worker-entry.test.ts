@@ -1,7 +1,8 @@
 import { env } from "cloudflare:test";
 import { beforeAll, describe, expect, it } from "vitest";
 
-import { applyPack, parsePack } from "../src/core/config";
+import { applyPack } from "../src/core/config";
+import { testPack } from "./programme-fixtures";
 import worker from "../src/index";
 import royalJson from "../../../packs/royal-softech/pack.json";
 
@@ -21,7 +22,7 @@ const send = (path: string, init: RequestInit = {}, withAssets = true) => {
 };
 
 beforeAll(async () => {
-  await applyPack(env.DB, parsePack(royalJson));
+  await applyPack(env.DB, testPack(royalJson));
 });
 
 describe("the Worker's front door", () => {

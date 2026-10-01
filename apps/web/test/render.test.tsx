@@ -15,6 +15,7 @@ import PortalPage from "@/app/portal/page";
 import SignInPage from "@/app/sign-in/page";
 import royal from "../../../packs/royal-softech/pack.json";
 import sample from "../../../packs/sample-basic-school/pack.json";
+import { TEST_SECTIONS, sectionsOf } from "./sections";
 
 vi.mock("next/navigation", () => ({
   usePathname: () => "/portal",
@@ -28,7 +29,7 @@ function configFor(pack: PackJson): PublicConfig {
   const modules = Object.fromEntries(["accounts", "fees", "results", "attendance", "homework", "notes", "top20"].map((m) => [m, true]));
   return {
     school: { name: pack.school.name, shortName: pack.school.shortName, currency: "NPR", timezone: "Asia/Kathmandu", region: "nepal", template: null },
-    sections: pack.sections,
+    sections: sectionsOf(pack),
     modules: { ...modules, ...pack.modules },
     terms: { "role.student": "Student", "role.teacher": "Teacher", "role.coordinator": "Co-ordinator", "role.accountant": "Accountant", "role.admin": "Admin", ...pack.terminology },
     theme: pack.theme as PublicConfig["theme"],
@@ -194,7 +195,7 @@ describe("the public shell and sign-in page", () => {
   });
 
   it("the home page also has exactly one prominent button", () => {
-    const home = page(<HomeView site={siteFrom(royal)} sections={royal.sections} urgent={[]} />, royal, signedOut);
+    const home = page(<HomeView site={siteFrom(royal)} sections={TEST_SECTIONS.royal} urgent={[]} />, royal, signedOut);
     expect(home.match(/class="button primary/g)).toHaveLength(1);
   });
 

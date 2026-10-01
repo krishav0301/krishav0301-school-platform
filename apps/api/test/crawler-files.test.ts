@@ -2,6 +2,7 @@ import { env } from "cloudflare:test";
 import { beforeAll, describe, expect, it } from "vitest";
 
 import { applyPack, parsePack } from "../src/core/config";
+import { testPack } from "./programme-fixtures";
 import worker from "../src/index";
 import { CRAWLER_FILES, FILLED_PAGES, isCrawlerFile, pagesWithoutSummary, renderCrawlerFile } from "../src/modules/site";
 import royalJson from "../../../packs/royal-softech/pack.json";
@@ -15,7 +16,7 @@ const ask = async (path: string, over: Record<string, unknown> = {}, method = "G
 const production = { ENVIRONMENT: "production", SITE_ORIGIN: "https://royal.example" };
 
 beforeAll(async () => {
-  await applyPack(env.DB, parsePack(royalJson));
+  await applyPack(env.DB, testPack(royalJson));
 });
 
 describe("which files the Worker writes", () => {
@@ -154,7 +155,7 @@ describe("llms.txt", () => {
 
   it("opens with the school's own summary and says how to reach it, from what the pack says", async () => {
     const { text } = await ask("/llms.txt", production);
-    const site = parsePack(royalJson).site;
+    const site = testPack(royalJson).site;
     expect(text).toContain(`\n> ${site.home.summary}\n`);
     expect(text).toContain("\n## Contact\n");
     expect(text).toContain(`- Address: ${site.contact.address}`);
@@ -173,7 +174,7 @@ describe("llms.txt", () => {
     expect(text).not.toMatch(/^## (Injected|Also injected)/m);
     expect(text.match(/^# /gm)).toHaveLength(1);
     expect(text.match(/^## /gm)).toHaveLength(2); // Pages and Contact, nothing else
-    await applyPack(env.DB, parsePack(royalJson));
+    await applyPack(env.DB, testPack(royalJson));
   });
 
   it("before the school has site words, falls back to the sections line and has no Contact section", async () => {
@@ -181,7 +182,7 @@ describe("llms.txt", () => {
     const { text } = await ask("/llms.txt", production);
     expect(text).toContain("\n> Royal Softech College: +2, Bachelor's.\n");
     expect(text).not.toContain("## Contact");
-    await applyPack(env.DB, parsePack(royalJson));
+    await applyPack(env.DB, testPack(royalJson));
   });
 
   it("says nothing before the school is set up (there is nothing true to say): 404, on a database with no school in it", async () => {
@@ -190,12 +191,12 @@ describe("llms.txt", () => {
   });
 
   it("keeps a name or a summary on one line, so it cannot add headings or links of its own", async () => {
-    await applyPack(env.DB, parsePack({ ...royalJson, school: { ...royalJson.school, name: "Evil College\n\n## Injected\n[click](https://evil.example)", shortName: "Evil" } }));
+    await applyPack(env.DB, testPack({ ...royalJson, school: { ...royalJson.school, name: "Evil College\n\n## Injected\n[click](https://evil.example)", shortName: "Evil" } }));
     const { text } = await ask("/llms.txt", production);
     expect(text).not.toMatch(/^## Injected/m);
     expect(text.split("\n")[0]).toMatch(/^# Evil College/);
     expect(text.match(/^# /gm)).toHaveLength(1);
-    await applyPack(env.DB, parsePack(royalJson));
+    await applyPack(env.DB, testPack(royalJson));
   });
 });
 

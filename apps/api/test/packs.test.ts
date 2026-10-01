@@ -5,6 +5,7 @@ import { describe, expect, it } from "vitest";
 import { InvalidPackError, applyPack, loadConfig, loadSiteContent, packOperations, parsePack, renderSql, type Pack } from "../src/core/config";
 import royalJson from "../../../packs/royal-softech/pack.json";
 import sampleJson from "../../../packs/sample-basic-school/pack.json";
+import { testPack } from "./programme-fixtures";
 
 const clone = <T>(x: T): T => structuredClone(x);
 const count = async (db: D1Database, sql: string) => (await db.prepare(sql).first<{ n: number }>())!.n;
@@ -16,6 +17,14 @@ describe("pack format", () => {
   it("accepts both real packs", () => {
     expect(parsePack(royalJson).school.name).toBe("Royal Softech College");
     expect(parsePack(sampleJson).school.name).toBe("Sample Basic School");
+  });
+
+  it("a school's own pack lists no sections: the Admin makes them (D-095)", () => {
+    expect(parsePack(royalJson).sections).toEqual([]);
+    expect(parsePack(sampleJson).sections).toEqual([]);
+    const without = clone(royalJson) as Record<string, any>;
+    delete without.sections;
+    expect(parsePack(without).sections).toEqual([]);
   });
 
   it("fills in defaults", () => {
@@ -33,9 +42,8 @@ describe("pack format", () => {
   const cases: [string, (p: any) => void, RegExp][] = [
     ["an unknown top-level field", (p) => (p.customCode = "x"), /customCode|unrecognized/i],
     ["a wrong pack version", (p) => (p.packVersion = 2), /packVersion/],
-    ["no sections", (p) => (p.sections = []), /sections/],
-    ["a bad section key", (p) => (p.sections[0].key = "Plus 2!"), /sections\.0\.key/],
-    ["two sections with the same key", (p) => (p.sections[1].key = p.sections[0].key), /unique/],
+    ["a bad section key", (p) => (p.sections = [{ key: "Plus 2!", name: "+2" }]), /sections\.0\.key/],
+    ["two sections with the same key", (p) => (p.sections = [{ key: "plus2", name: "+2" }, { key: "plus2", name: "Other" }]), /unique/],
     ["a module that does not exist", (p) => (p.modules.hovercraft = true), /hovercraft: not a module/],
     ["switching off a mandatory module", (p) => (p.modules.fees = false), /fees: cannot be switched off/],
     ["switching off the audit log", (p) => (p.modules.audit = false), /audit: cannot be switched off/],
@@ -176,9 +184,8 @@ describe("the two schools really are different (so the second-school test means 
   const royal = parsePack(royalJson);
   const sample = parsePack(sampleJson);
 
-  it("differ in name, sections, wording, modules, font, shape and colours", () => {
+  it("differ in name, wording, modules, font, shape and colours (neither lists sections: each Admin makes their own, D-095)", () => {
     expect(royal.school.name).not.toBe(sample.school.name);
-    expect(royal.sections.map((s) => s.key)).not.toEqual(sample.sections.map((s) => s.key));
     expect(royal.terminology).not.toEqual(sample.terminology);
     expect(royal.modules).not.toEqual(sample.modules);
     expect(royal.theme.font).not.toBe(sample.theme.font);
@@ -196,7 +203,9 @@ describe("applying a different pack over an existing school", () => {
   it("swaps the active theme, keeps the old one, and never deletes a section", async () => {
     // env.DB holds Royal Softech from the tests above. Now apply the sample school over it.
     const themesBefore = await count(env.DB, "SELECT COUNT(*) AS n FROM themes");
-    await applyPack(env.DB, parsePack(sampleJson));
+    // A pack that lists sections (a demo or test pack) still only adds them; the test packs carry the old sections.
+    await applyPack(env.DB, testPack(royalJson));
+    await applyPack(env.DB, testPack(sampleJson));
 
     const config = (await loadConfig(env.DB))!;
     expect(config.theme!.name).toBe(sampleJson.theme.name);
@@ -225,7 +234,14 @@ describe("the site block", () => {
   const cases: [string, (p: any) => void, RegExp][] = [
     ["no site block", (p) => delete p.site, /site: /],
     ["an unknown field in the site block", (p) => (p.site.blog = {}), /blog|unrecognized/i],
-    ["a programme in a section the pack does not have", (p) => (p.site.programmes[0].section = "nursery"), /site\.programmes\.0\.section: .*nursery/],
+    [
+      "a programme in a section the pack does not have (when the pack lists sections)",
+      (p) => {
+        p.sections = [{ key: "plus2", name: "+2" }, { key: "bachelors", name: "Bachelor's" }];
+        p.site.programmes[0].section = "nursery";
+      },
+      /site\.programmes\.0\.section: .*nursery/,
+    ],
     ["two programmes with the same key", (p) => (p.site.programmes[1].key = p.site.programmes[0].key), /site\.programmes: keys must be unique/],
     ["a programme key that is not a slug", (p) => (p.site.programmes[0].key = "BBS Degree!"), /site\.programmes\.0\.key/],
     ["no admission steps", (p) => (p.site.admission.steps = []), /site\.admission\.steps/],

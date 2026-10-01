@@ -9,6 +9,7 @@ import { ResultsTabs } from "@/results/ResultsTabs";
 import { SessionContext } from "@/session/SessionProvider";
 import { fakeSession } from "./session";
 import royal from "../../../packs/royal-softech/pack.json";
+import { TEST_SECTIONS } from "./sections";
 
 vi.mock("next/navigation", () => ({
   usePathname: () => "/portal/results",
@@ -24,7 +25,7 @@ const config = (top20: boolean): PublicConfig => ({
     region: "nepal",
     template: null,
   },
-  sections: royal.sections,
+  sections: TEST_SECTIONS.royal,
   modules: { results: true, top20 },
   terms: {},
   theme: royal.theme as PublicConfig["theme"],

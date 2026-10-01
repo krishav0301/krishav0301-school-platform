@@ -52,7 +52,7 @@ Phase is the build phase where the action first exists. The action id in code fo
 | Action | STU | TEA | COO | ACC | ADM | SUP | Phase |
 |---|---|---|---|---|---|---|---|
 | Manage academic years, classes, terminals (`setup.structure.manage`) | — | — | inst | — | — | ✓ | 3 |
-| Manage programmes and their levels (and a programme's grading policy) (`setup.programmes.manage`) | — | — | — | — | ✓ | ✓ | 3 |
+| Manage sections, programmes and their levels (and a programme's grading policy) (`setup.programmes.manage`) | — | — | — | — | ✓ | ✓ | 3 |
 | View academic years, programmes, levels, classes, terminals (`setup.structure.view`) | — | — | inst | — | read | ✓ | 3 |
 | View subjects, offerings, mark components, elective groups (`setup.subjects.view`) | — | — | inst | — | read | ✓ | 3 |
 | Manage subjects, offerings, mark components, elective groups (`setup.subjects.manage`) | — | — | inst | — | — | ✓ | 3 |

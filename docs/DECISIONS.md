@@ -690,6 +690,39 @@ The matrix lives in code (61 actions, 8 groups, from the reviewed `permission-ma
 - **Design review** (`apple-design`): `hig/entering-data.md › Best practices` (be clear about the data you need; prefill a sensible default: "Show from" is today) and `hig/typography.md` (the holiday line is set apart by weight, not colour). Nothing left open.
 - **Not done (explained to the PM, not built).** The home page does not list posts: it links to Notices and updates, as designed in Phase 2 (D-039, D-046). A "Latest notices" block on the home page is a separate request.
 
+**D-095 Sections are the Principal's to create; a school starts with none.** 2026-10-01, at the PM's request ("this should be out of box. For college admin can add Bachelor, Master, Architecture and then under this we can have subjects. If same is used for school it can be primary, high and junior college"). This extends D-087 (programmes) to sections, and replaces the pack-defined sections ("+2", "Bachelor's") of CLAUDE.md section 5. **This touches permissions and money**: section scopes, receipt numbering and the Top 20 are all keyed by section. None of those rules changed; only who creates sections, and when.
+- **Built.**
+  - Royal Softech's and the sample school's packs list no sections. A pack may still list some (demo and test packs), and applying one still only adds.
+  - The Admin or Super Admin adds a section on the Programs screen, and can rename it. This uses the existing `setup.programmes.manage` permission, now worded "Manage sections, programmes and their levels".
+  - Each write re-checks the person inside its own batch and is audited (`academics.section.created`, `academics.section.renamed`).
+  - The key is generated (`s` plus 10 hex characters) and never changes, so everything keyed by it is safe across a rename.
+  - Two sections may not share a name, whatever the capitals. A section is never deleted.
+  - The programme list now also returns the sections the person may see, in the same round trip, so a new section shows at once.
+  - On the Programs screen, a "Sections" card sits above the programmes. With no sections, "Add a Section" is the page's one prominent button and no programme can be added yet. Once there are sections, "Add a Programme" becomes the prominent button and "Add a Section" becomes secondary. Each section has a quiet "Rename".
+  - AddDialog gained `variant`, `plus` and `ariaLabel` props for this.
+- **Tests.**
+  - API `sections.test.ts` (11 tests):
+    - a new school has none;
+    - Admin and Super Admin add sections, which are audited, ordered and verified on the chain;
+    - Co-ordinator, Accountant and Teacher are refused, and nothing is written;
+    - an Admin switched off since signing in is refused inside the write;
+    - duplicate, blank and over-long names are refused;
+    - a programme can be added under a new section;
+    - rename keeps the key and the programmes, and is audited with before and after;
+    - a rename to the same name changes nothing; another section's name is a conflict; an unknown key is not found;
+    - only the Admin or Super Admin may rename;
+    - a section-scoped person sees only their own section.
+  - Pack tests rewritten for the new rule.
+  - Every other test school gets its old sections from test data: `testPack` in `test/programme-fixtures.ts` and `test/sections.ts` on the web side.
+  - Web: 3 Sections card tests.
+  - Totals: API 1,536 tests, web 591, plus typecheck, lint, build, page weight, BOM, boundaries and a wrangler dry run.
+- **Design review** (`apple-design`): D-030's one prominent button per view, applied by giving the prominent button to whichever action comes next; `hig/entering-data.md › Best practices` (be clear about the data you need: the hint gives examples, "Bachelor's, Master's or Primary").
+- **Staging.** `school_staging_uat` still held the two sections from its first provisioning. Nothing referred to them (no programmes, role assignments, staff home sections, receipt counters or receipts), so at the PM's request they were removed with a one-off command the PM ran, like the programmes in D-093.
+- **Not done.**
+  - Switching a section off, which nothing needs yet.
+  - The public website's Programmes page still groups by the section key each public programme names in the pack's site words. With no matching section, those programmes are listed without a heading.
+  - `OPEN:` whether the public site's programme list should come from the Admin's programmes rather than the pack's words is a PM decision.
+
 ## Open items carried forward
 
 - **No CAPTCHA on the public apply form (D-063).** Relies on rate limiting and an off-screen honeypot, which meets section 7's "rate limiting, CAPTCHA or similar" but is not a CAPTCHA. Add one only if real abuse appears.

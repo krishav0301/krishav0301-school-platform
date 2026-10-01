@@ -9,12 +9,13 @@ import { NewPasswordStep } from "@/session/NewPasswordStep";
 import { SessionContext } from "@/session/SessionProvider";
 import { fakeSession } from "./session";
 import royal from "../../../packs/royal-softech/pack.json";
+import { TEST_SECTIONS } from "./sections";
 
 vi.mock("next/navigation", () => ({ usePathname: () => "/portal/people", useRouter: () => ({ replace: vi.fn(), push: vi.fn() }) }));
 
 const config: PublicConfig = {
   school: { name: royal.school.name, shortName: royal.school.shortName, currency: "NPR", timezone: "Asia/Kathmandu", region: "nepal", template: null },
-  sections: royal.sections,
+  sections: TEST_SECTIONS.royal,
   modules: {},
   terms: { "role.coordinator": "Vice Principal", "role.accountant": "Accountant", "role.teacher": "Teacher" },
   theme: royal.theme as PublicConfig["theme"],
@@ -43,7 +44,7 @@ const member = (over: Partial<StaffMember> = {}): StaffMember => ({
   lastSignInAt: "2026-09-21T10:00:00Z",
   ...over,
 });
-const sections = royal.sections;
+const sections = TEST_SECTIONS.royal;
 const adminRoles = [{ role: "admin", scope: "institution" }];
 const cooRoles = [{ role: "coordinator", scope: "institution" }];
 

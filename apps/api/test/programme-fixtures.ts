@@ -1,4 +1,4 @@
-import type { Pack } from "../src/core/config";
+import { parsePack, type Pack } from "../src/core/config";
 import { addLevel, createProgramme, updateProgramme } from "../src/modules/academics/service";
 import { createUser } from "../src/modules/accounts/service";
 
@@ -16,6 +16,26 @@ const LEVELS: Record<string, { levels: string[]; gradingPolicy: "neb_gpa" | "per
   "lower-secondary": { levels: ["Grade 6", "Grade 7", "Grade 8"], gradingPolicy: "percentage_division" },
   secondary: { levels: ["Grade 9", "Grade 10"], gradingPolicy: "percentage_division" },
 };
+
+/**
+ * A school's own pack lists no sections (D-095): the Admin makes them. Tests need a school with its sections already
+ * there, keyed as its public programmes name them, so these are the sections the packs used to list, kept as test data.
+ */
+const SECTION_NAMES: Record<string, string> = { plus2: "+2", bachelors: "Bachelor's", school: "School" };
+
+/** The pack, checked, with the sections its public programmes name added: what a test school starts from. */
+export function testPack(input: unknown): Pack {
+  const pack = parsePack(input);
+  const keys = [...new Set(pack.site.programmes.map((p) => p.section))];
+  return {
+    ...pack,
+    sections: keys.map((key) => {
+      const name = SECTION_NAMES[key];
+      if (!name) throw new Error(`No test section named for "${key}"`);
+      return { key, name };
+    }),
+  };
+}
 
 /** Makes the pack's programmes, in its order, with their levels and grading policy, as an Admin would. Returns the Admin. */
 export async function seedProgrammes(db: D1Database, auditKey: string, pack: Pack): Promise<{ adminPublicId: string }> {

@@ -435,6 +435,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/academics/sections": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Adds a section (for example Bachelor's, Master's, Primary). A school starts with none. The key is generated and never changes. */
+        post: operations["create_section"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/academics/sections/{key}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** @description Renames a section. Its key, and everything counted by it, stays the same. Nothing is deleted. */
+        patch: operations["rename_section"];
+        trace?: never;
+    };
     "/api/academics/programmes/{id}": {
         parameters: {
             query?: never;
@@ -2576,6 +2610,7 @@ export interface components {
         };
         ProgrammeList: {
             programmes: components["schemas"]["Programme"][];
+            sections: components["schemas"]["Section"][];
         };
         Programme: {
             id: string;
@@ -2596,6 +2631,10 @@ export interface components {
             ordinal: number;
             name: string;
             active: boolean;
+        };
+        Section: {
+            key: string;
+            name: string;
         };
         SchoolClassList: {
             classes: components["schemas"]["SchoolClass"][];
@@ -2654,6 +2693,12 @@ export interface components {
             label?: string;
             startDate?: string;
             endDate?: string;
+        };
+        CreateSection: {
+            name: string;
+        };
+        SectionChanges: {
+            name: string;
         };
         CreateProgramme: {
             name: string;
@@ -5428,6 +5473,130 @@ export interface operations {
         requestBody?: never;
         responses: {
             /** @description Now active */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AcademicsOk"];
+                };
+            };
+            /** @description Not allowed (for example, switched off since signing in, or another section's data) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AcademicsError"];
+                };
+            };
+            /** @description No such item */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AcademicsError"];
+                };
+            };
+            /** @description It conflicts with what is already there (a repeat, a closed year, another active year) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AcademicsError"];
+                };
+            };
+            /** @description The change breaks a rule; nothing changed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AcademicsInvalid"];
+                };
+            };
+        };
+    };
+    create_section: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateSection"];
+            };
+        };
+        responses: {
+            /** @description Added */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        key: string;
+                    };
+                };
+            };
+            /** @description Not allowed (for example, switched off since signing in, or another section's data) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AcademicsError"];
+                };
+            };
+            /** @description No such item */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AcademicsError"];
+                };
+            };
+            /** @description It conflicts with what is already there (a repeat, a closed year, another active year) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AcademicsError"];
+                };
+            };
+            /** @description The change breaks a rule; nothing changed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AcademicsInvalid"];
+                };
+            };
+        };
+    };
+    rename_section: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                key: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SectionChanges"];
+            };
+        };
+        responses: {
+            /** @description Saved */
             200: {
                 headers: {
                     [name: string]: unknown;

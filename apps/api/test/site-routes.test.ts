@@ -2,7 +2,8 @@ import { env } from "cloudflare:test";
 import { describe, expect, it } from "vitest";
 
 import { createApp } from "../src/app";
-import { SiteContentSchema, applyPack, parsePack } from "../src/core/config";
+import { SiteContentSchema, applyPack } from "../src/core/config";
+import { testPack } from "./programme-fixtures";
 import royalJson from "../../../packs/royal-softech/pack.json";
 import sampleJson from "../../../packs/sample-basic-school/pack.json";
 
@@ -18,7 +19,7 @@ describe("GET /api/site/pages", () => {
   });
 
   it("anyone may read it with no sign-in, and gets the school's own words", async () => {
-    const pack = parsePack(royalJson);
+    const pack = testPack(royalJson);
     await applyPack(env.DB, pack);
     const response = await call("/api/site/pages");
     expect(response.status).toBe(200);
@@ -35,7 +36,7 @@ describe("GET /api/site/pages", () => {
   });
 
   it("a second school gets its own words and none of the first school's", async () => {
-    const pack = parsePack(sampleJson);
+    const pack = testPack(sampleJson);
     await applyPack(env.SCRATCH_DB, pack);
     const text = await (await call("/api/site/pages", { DB: env.SCRATCH_DB })).text();
     expect(JSON.parse(text)).toEqual({ site: pack.site });

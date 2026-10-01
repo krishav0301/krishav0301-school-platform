@@ -13,14 +13,14 @@ import { describe, expect, it, vi } from "vitest";
 
 import { createApp } from "../src/app";
 import { verifyAuditChain } from "../src/core/audit";
-import { applyPack, parsePack, resolveModules, type Pack } from "../src/core/config";
+import { applyPack, resolveModules, type Pack } from "../src/core/config";
 import { bsToAd, daysInMonth, nepalDate, todayBs } from "../src/core/dates";
 import { signAccessToken, type RoleClaim } from "../src/core/tokens";
 import { createUser } from "../src/modules/accounts/service";
 import { verifyLedgerChain } from "../src/modules/fees/ledger";
 import royalJson from "../../../packs/royal-softech/pack.json";
 import sampleJson from "../../../packs/sample-basic-school/pack.json";
-import { firstProgrammePolicy, seedProgrammes } from "./programme-fixtures";
+import { firstProgrammePolicy, seedProgrammes, testPack } from "./programme-fixtures";
 
 // These walk a whole school year, hashing many passwords on purpose-slow scrypt; with every test file running in
 // parallel they can pass the 60 s default on a busy machine (seen 2026-10-01), so they get three minutes.
@@ -33,7 +33,7 @@ describe.each([
   { label: "Royal Softech", json: royalJson, database: () => env.DB },
   { label: "Sample Basic School", json: sampleJson, database: () => env.SCRATCH_DB },
 ])("A school year: $label", ({ label, json, database }) => {
-  const pack: Pack = parsePack(json);
+  const pack: Pack = testPack(json);
   const modules = resolveModules(pack.modules ?? {});
   const policy = firstProgrammePolicy(pack);
   const db = () => database();

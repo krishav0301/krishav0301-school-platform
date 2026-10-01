@@ -8,7 +8,7 @@
     "region": "nepal",
     "template": "basic-school-nursery-to-10"
   },
-  "sections": [{ "key": "school", "name": "School" }],
+  "sections": [],
   "modules": { "notes": false, "top20": false },
   "terminology": {
     "role.coordinator": "Vice Principal",

@@ -50,18 +50,22 @@ interface ProgrammeRow {
 
 /** The programmes of these sections, each with its levels in order. One database round trip. */
 export async function listProgrammes(db: D1Database, sections: "all" | readonly string[]): Promise<ProgrammeList> {
-  const { results } = await db
-    .prepare(
-      `SELECT p.public_id, p.key, p.name, p.affiliation, p.is_active, p.grading_policy, s.key AS section_key, s.name AS section_name,
-              l.public_id AS level_id, l.ordinal, l.name AS level_name, l.is_active AS level_active
-         FROM programmes p
-         JOIN sections s ON s.id = p.section_id
-         LEFT JOIN levels l ON l.programme_id = p.id
-        WHERE (?1 IS NULL OR s.key IN (SELECT value FROM json_each(?1)))
-        ORDER BY p.ordering, p.id, l.ordinal`,
-    )
-    .bind(sectionFilter(sections))
-    .all<ProgrammeRow>();
+  const filter = sectionFilter(sections);
+  const [rows, sectionRows] = await db.batch([
+    db
+      .prepare(
+        `SELECT p.public_id, p.key, p.name, p.affiliation, p.is_active, p.grading_policy, s.key AS section_key, s.name AS section_name,
+                l.public_id AS level_id, l.ordinal, l.name AS level_name, l.is_active AS level_active
+           FROM programmes p
+           JOIN sections s ON s.id = p.section_id
+           LEFT JOIN levels l ON l.programme_id = p.id
+          WHERE (?1 IS NULL OR s.key IN (SELECT value FROM json_each(?1)))
+          ORDER BY p.ordering, p.id, l.ordinal`,
+      )
+      .bind(filter),
+    db.prepare("SELECT key, name FROM sections WHERE (?1 IS NULL OR key IN (SELECT value FROM json_each(?1))) ORDER BY ordering, id").bind(filter),
+  ]);
+  const results = rows!.results as unknown as ProgrammeRow[];
 
   const programmes: ProgrammeList["programmes"] = [];
   for (const r of results) {
@@ -81,7 +85,7 @@ export async function listProgrammes(db: D1Database, sections: "all" | readonly 
     }
     if (r.level_id !== null) programme.levels.push({ id: r.level_id, ordinal: r.ordinal!, name: r.level_name!, active: r.level_active === 1 });
   }
-  return { programmes };
+  return { programmes, sections: sectionRows!.results as unknown as ProgrammeList["sections"] };
 }
 
 interface ClassRow {

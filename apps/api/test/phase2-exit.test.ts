@@ -16,7 +16,8 @@ import { describe, expect, it } from "vitest";
 
 import { createApp } from "../src/app";
 import { verifyAuditChain } from "../src/core/audit";
-import { applyPack, parsePack, type Pack } from "../src/core/config";
+import { applyPack, type Pack } from "../src/core/config";
+import { testPack } from "./programme-fixtures";
 import { nepalDate } from "../src/core/dates";
 import { signAccessToken, type RoleClaim } from "../src/core/tokens";
 import { createUser } from "../src/modules/accounts/service";
@@ -39,8 +40,8 @@ describe.each([
   { label: "Royal Softech", json: royalJson, other: sampleJson, database: () => env.DB },
   { label: "Sample Basic School", json: sampleJson, other: royalJson, database: () => env.SCRATCH_DB },
 ])("Phase 2 exit check: $label", ({ json, other, database }) => {
-  const pack: Pack = parsePack(json);
-  const rival: Pack = parsePack(other);
+  const pack: Pack = testPack(json);
+  const rival: Pack = testPack(other);
   const db = () => database();
   const bindings = (extra: Record<string, unknown> = {}) => ({ ...env, DB: db(), ASSETS: assets, ...extra });
 

@@ -4,7 +4,8 @@ import { describe, expect, it } from "vitest";
 
 import { createApp } from "../src/app";
 import { verifyAuditChain } from "../src/core/audit";
-import { applyPack, loadConfig, parsePack } from "../src/core/config";
+import { applyPack, loadConfig } from "../src/core/config";
+import { testPack } from "./programme-fixtures";
 import { signAccessToken, type RoleClaim } from "../src/core/tokens";
 import { createUser } from "../src/modules/accounts/service";
 import royalJson from "../../../packs/royal-softech/pack.json";
@@ -53,7 +54,7 @@ describe("GET /api/config/public", () => {
   });
 
   it("once set up, serves the configuration to anyone, with no sign-in", async () => {
-    await applyPack(db, parsePack(royalJson));
+    await applyPack(db, testPack(royalJson));
     const response = await call("/api/config/public");
     const body = (await response.json()) as Record<string, any>;
 
@@ -75,7 +76,7 @@ describe("GET /api/config/public", () => {
   });
 
   it("follows the pack: a different school gets different name, wording, modules and look", async () => {
-    await applyPack(db, parsePack(sampleJson));
+    await applyPack(db, testPack(sampleJson));
     const body = (await (await call("/api/config/public")).json()) as Record<string, any>;
 
     expect(body.school.name).toBe("Sample Basic School");
@@ -85,7 +86,7 @@ describe("GET /api/config/public", () => {
     expect(body.theme.font).toBe("noto-sans");
     expect(body.theme.dark).toBeUndefined();
 
-    await applyPack(db, parsePack(royalJson)); // back to Royal for the tests below
+    await applyPack(db, testPack(royalJson)); // back to Royal for the tests below
   });
 });
 

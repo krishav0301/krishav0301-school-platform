@@ -7,13 +7,14 @@ import { PublicHeaderView } from "@/shell/PublicHeader";
 import { PublicShell } from "@/shell/PublicShell";
 import { fakeSession } from "./session";
 import royalJson from "../../../packs/royal-softech/pack.json";
+import { TEST_SECTIONS } from "./sections";
 
 const here = vi.hoisted(() => ({ path: "/programmes" }));
 vi.mock("next/navigation", () => ({ usePathname: () => here.path, useRouter: () => ({ replace: vi.fn(), push: vi.fn() }) }));
 
 const config: PublicConfig = {
   school: { name: "Royal Softech College", shortName: "Royal Softech", currency: "NPR", timezone: "Asia/Kathmandu", region: "nepal", template: null },
-  sections: royalJson.sections,
+  sections: TEST_SECTIONS.royal,
   modules: {},
   terms: { "role.student": "Student", "role.teacher": "Teacher", "role.coordinator": "Co-ordinator", "role.accountant": "Accountant", "role.admin": "Admin", "term.terminal": "Terminal", "term.programme": "Programme", "term.level": "Level", "term.section": "Section" },
   theme: royalJson.theme as PublicConfig["theme"],

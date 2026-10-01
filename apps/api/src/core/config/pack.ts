@@ -23,10 +23,14 @@ export const PackSchema = z.strictObject({
     region: z.string().min(2).max(30).default("nepal"),
     template: z.string().min(1).max(60).optional(),
   }),
+  /**
+   * Sections the pack adds. A school's own pack lists none (D-095): the Admin makes them on the Programs screen. Demo
+   * and test packs may still list some, so a pack can describe a whole school as data.
+   */
   sections: z
     .array(z.strictObject({ key: SectionKey, name: z.string().min(1).max(60) }))
-    .min(1)
-    .max(6),
+    .max(20)
+    .default([]),
   /** Optional modules a school switches on or off. Unlisted ones stay on. */
   modules: z.record(z.string(), z.boolean()).default({}),
   /** Renamed words. Only known terms may be renamed. */
@@ -60,9 +64,13 @@ export function parsePack(input: unknown): Pack {
   const sectionKeys = new Set(keys);
   const programmeKeys = pack.site.programmes.map((p) => p.key);
   if (new Set(programmeKeys).size !== programmeKeys.length) problems.push("site.programmes: keys must be unique");
-  pack.site.programmes.forEach((programme, index) => {
-    if (!sectionKeys.has(programme.section)) problems.push(`site.programmes.${index}.section: "${programme.section}" is not one of the pack's sections`);
-  });
+  // A pack that lists sections must name one of them on each public programme. A pack with none leaves the public
+  // page to group by whatever sections the Admin makes (D-095).
+  if (sectionKeys.size > 0) {
+    pack.site.programmes.forEach((programme, index) => {
+      if (!sectionKeys.has(programme.section)) problems.push(`site.programmes.${index}.section: "${programme.section}" is not one of the pack's sections`);
+    });
+  }
 
   for (const [key, on] of Object.entries(pack.modules)) {
     if (!isKnownModule(key)) problems.push(`modules.${key}: not a module`);

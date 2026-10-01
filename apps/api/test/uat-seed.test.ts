@@ -7,13 +7,13 @@ import { describe, expect, it, vi } from "vitest";
 
 import { createApp } from "../src/app";
 import { verifyAuditChain } from "../src/core/audit";
-import { applyPack, parsePack } from "../src/core/config";
+import { applyPack } from "../src/core/config";
 import { bsToAd, daysInMonth, todayBs } from "../src/core/dates";
 import { signAccessToken } from "../src/core/tokens";
 import { createUser } from "../src/modules/accounts/service";
 import { verifyLedgerChain } from "../src/modules/fees/ledger";
 import { seedUat, SeedError, type Actor, type Call } from "../scripts/uat/seed";
-import { seedProgrammes } from "./programme-fixtures";
+import { seedProgrammes, testPack } from "./programme-fixtures";
 import royalJson from "../../../packs/royal-softech/pack.json";
 import sampleJson from "../../../packs/sample-basic-school/pack.json";
 
@@ -42,8 +42,8 @@ describe.each([
   const call: Call = async (method, path, actor, body) => request(path, { method, body, cookie: cookies[actor] });
 
   it("sets up a year's classes, subjects, teachers, students and fees, and its people can sign in", async () => {
-    await applyPack(db(), parsePack(json));
-    await seedProgrammes(db(), env.AUDIT_HMAC_KEY, parsePack(json)); // the Admin makes programmes first (D-087)
+    await applyPack(db(), testPack(json));
+    await seedProgrammes(db(), env.AUDIT_HMAC_KEY, testPack(json)); // the Admin makes programmes first (D-087)
     for (const role of ["admin", "coordinator", "accountant"] as const) {
       const { publicId } = await createUser(db(), env.AUDIT_HMAC_KEY, {
         email: `${role}-uat-${crypto.randomUUID().slice(0, 6)}@school.example`,

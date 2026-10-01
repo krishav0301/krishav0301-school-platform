@@ -8,19 +8,20 @@ import TerminalsPage from "@/app/portal/setup/terminals/page";
 import { ConfigContext, makeConfigValue, type PublicConfig } from "@/config/ConfigProvider";
 import { SetupTabs } from "@/setup/SetupLayout";
 import { ClassForm, ClassesView } from "@/setup/ClassesScreen";
-import { ProgrammesView } from "@/setup/ProgrammesScreen";
+import { ProgrammesView, SectionsCard } from "@/setup/ProgrammesScreen";
 import { TerminalsView } from "@/setup/TerminalsScreen";
 import { YearsScreen, YearsView } from "@/setup/YearsScreen";
 import type { Programme, SchoolClass, Terminal, Year } from "@/setup/model";
 import { SessionContext } from "@/session/SessionProvider";
 import { fakeSession } from "./session";
 import royal from "../../../packs/royal-softech/pack.json";
+import { TEST_SECTIONS } from "./sections";
 
 vi.mock("next/navigation", () => ({ usePathname: () => "/portal/setup", useRouter: () => ({ replace: vi.fn(), push: vi.fn() }) }));
 
 const config: PublicConfig = {
   school: { name: royal.school.name, shortName: royal.school.shortName, currency: "NPR", timezone: "Asia/Kathmandu", region: "nepal", template: null },
-  sections: royal.sections,
+  sections: TEST_SECTIONS.royal,
   modules: {},
   terms: { "term.programme": "Programme", "term.level": "Level", "term.section": "Section", "term.terminal": "Exam", "role.coordinator": "Vice Principal" },
   theme: royal.theme as PublicConfig["theme"],
@@ -197,5 +198,37 @@ describe("the pages", () => {
     expect(html).toContain(`>${title}</h1>`);
     expect(html).toContain('aria-label="Setup sections"');
     expect(html).toContain("Skip to main content");
+  });
+});
+
+// ---------------------------------------------------------------------------------------------
+describe("sections, made by the Admin (D-095)", () => {
+  const save = async () => true;
+  const card = (sections: { key: string; name: string }[], canManage = true, prominent = sections.length === 0) =>
+    inContext(<SectionsCard sections={sections} canManage={canManage} prominent={prominent} onAdd={save} onRename={save} />, as("admin", "institution"));
+
+  it("a new school has none, and says so, with Add a Section as the page's one prominent button", () => {
+    const html = card([]);
+    expect(html).toContain("No Sections yet. Add the first one to start.");
+    expect(html).toMatch(/<button[^>]*class="[^"]*\bprimary\b[^"]*\btrigger\b[^"]*"/);
+    expect(html).toContain("for example Bachelor&#x27;s and Master&#x27;s, or Primary and High School");
+  });
+
+  it("lists each section with a Rename named for it; once there are sections, Add is no longer the prominent button", () => {
+    const html = card(TEST_SECTIONS.royal);
+    expect(html).toContain(">+2<");
+    expect(html).toContain(">Bachelor&#x27;s<");
+    expect(html).toContain('aria-label="Rename Bachelor&#x27;s"');
+    // The buttons that open the pop-ups (the forms inside them have their own Save).
+    const triggers = html.match(/<button[^>]*class="[^"]*\btrigger\b[^"]*"[^>]*>/g) ?? [];
+    expect(triggers).toHaveLength(3); // Add, and a Rename for each
+    expect(triggers.filter((b) => /\bprimary\b/.test(b))).toHaveLength(0);
+  });
+
+  it("someone who may only look sees the sections and no buttons", () => {
+    const html = card(TEST_SECTIONS.royal, false);
+    expect(html).toContain(">+2<");
+    expect(html).not.toContain("<button");
+    expect(html).not.toContain("<dialog");
   });
 });

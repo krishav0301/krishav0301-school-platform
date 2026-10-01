@@ -78,6 +78,15 @@ export async function createYear(api: ApiClient, values: YearFormValues): Promis
 export const activateYear = async (api: ApiClient, id: string): Promise<WriteResult> =>
   done(await send(() => api.POST("/api/academics/years/{id}/activate", { params: { path: { id } } })));
 
+/** Adds a section (D-095). Its key comes back as the id. */
+export const createSection = async (api: ApiClient, name: string): Promise<CreateResult> => {
+  const sent = await send(() => api.POST("/api/academics/sections", { body: { name } }));
+  return sent.ok ? { ok: true, id: (sent.data as { key: string }).key } : sent;
+};
+
+export const renameSection = async (api: ApiClient, key: string, name: string): Promise<WriteResult> =>
+  done(await send(() => api.PATCH("/api/academics/sections/{key}", { params: { path: { key } }, body: { name } })));
+
 export const createProgramme = async (api: ApiClient, body: { name: string; sectionKey: string; affiliation: string }): Promise<CreateResult> =>
   created(await send(() => api.POST("/api/academics/programmes", { body })));
 
