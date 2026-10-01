@@ -4,7 +4,7 @@ import { verifyAuditChain } from "../src/core/audit";
 import { newPublicId } from "../src/core/ids";
 import { addLevel, createOffering, createProgramme, createSubject, setAssignment, setClassTeacher } from "../src/modules/academics/service";
 import { getTeaching } from "../src/modules/academics/queries";
-import { auditKey, count, db, person, seedSections, type Person } from "./academics-helpers";
+import { auditKey, count, db, person, seedSections, type Person, programmesAdmin } from "./academics-helpers";
 
 let coordinator: Person, plus2Coordinator: Person, bachelorsCoordinator: Person, accountant: Person, superAdmin: Person, student: Person;
 beforeAll(async () => {
@@ -71,9 +71,9 @@ async function newTeacher(sectionKey: string | null = null): Promise<string> {
 /** A programme with one level in the given section, made by the institution-wide Co-ordinator. */
 async function newLevel(sectionKey: "plus2" | "bachelors" = "plus2") {
   const label = () => `L ${Math.random().toString(36).slice(2, 8)}`;
-  const p = await createProgramme(db, auditKey, coordinator.publicId, { name: label(), sectionKey, affiliation: "Board" });
+  const p = await createProgramme(db, auditKey, (await programmesAdmin()).publicId, { name: label(), sectionKey, affiliation: "Board" });
   if (!p.ok) throw new Error(`programme setup failed: ${JSON.stringify(p)}`);
-  const l = await addLevel(db, auditKey, coordinator.publicId, p.publicId, { name: label() });
+  const l = await addLevel(db, auditKey, (await programmesAdmin()).publicId, p.publicId, { name: label() });
   if (!l.ok) throw new Error(`level setup failed: ${JSON.stringify(l)}`);
   return l.publicId;
 }

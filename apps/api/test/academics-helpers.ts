@@ -59,3 +59,7 @@ export const count = async (sql: string, ...params: (string | number)[]): Promis
 
 export const auditActions = async (entityPublicId: string): Promise<string[]> =>
   (await db.prepare("SELECT action FROM audit_events WHERE entity_public_id = ?1 ORDER BY id").bind(entityPublicId).all<{ action: string }>()).results.map((r) => r.action);
+
+let theProgrammesAdmin: Promise<Person> | undefined;
+/** The Admin who makes programmes and levels in a test file (D-087: no Co-ordinator may). One per file. */
+export const programmesAdmin = (): Promise<Person> => (theProgrammesAdmin ??= person("admin", "institution"));

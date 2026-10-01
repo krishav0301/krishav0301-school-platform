@@ -14,7 +14,7 @@ import {
   updateOffering,
   updateProgramme,
 } from "../src/modules/academics/service";
-import { auditActions, auditKey, count, db, person, seedSections, type Person } from "./academics-helpers";
+import { auditActions, auditKey, count, db, person, seedSections, type Person, programmesAdmin } from "./academics-helpers";
 
 let coordinator: Person, plus2Coordinator: Person, bachelorsCoordinator: Person, admin: Person, accountant: Person, teacher: Person, student: Person;
 beforeAll(async () => {
@@ -43,8 +43,8 @@ const ok = <T extends { ok: boolean }>(result: T, what: string): Extract<T, { ok
 
 /** A programme with one level in the given section. */
 async function newLevel(sectionKey: "plus2" | "bachelors" = "bachelors") {
-  const p = ok(await createProgramme(db, auditKey, coordinator.publicId, { name: label("Programme"), sectionKey, affiliation: "Board" }), "programme");
-  const l = ok(await addLevel(db, auditKey, coordinator.publicId, p.publicId, { name: "Level 1" }), "level");
+  const p = ok(await createProgramme(db, auditKey, (await programmesAdmin()).publicId, { name: label("Programme"), sectionKey, affiliation: "Board" }), "programme");
+  const l = ok(await addLevel(db, auditKey, (await programmesAdmin()).publicId, p.publicId, { name: "Level 1" }), "level");
   return { programmeId: p.publicId, levelId: l.publicId };
 }
 const newSubject = async (over: Record<string, unknown> = {}) => ok(await createSubject(db, auditKey, coordinator.publicId, { name: label("Subject"), ...over }), "subject").publicId;
@@ -104,7 +104,7 @@ describe("elective groups", () => {
     expect(await createGroup(db, auditKey, coordinator.publicId, noId, { name: "x" })).toEqual({ ok: false, reason: "not_found" });
     expect(await updateGroup(db, auditKey, coordinator.publicId, noId, { name: "x" })).toEqual({ ok: false, reason: "not_found" });
     const { levelId } = await newLevel();
-    await updateLevel(db, auditKey, coordinator.publicId, levelId, { active: false });
+    await updateLevel(db, auditKey, (await programmesAdmin()).publicId, levelId, { active: false });
     expect(await createGroup(db, auditKey, coordinator.publicId, levelId, { name: "x" })).toMatchObject({ ok: false, reason: "invalid" });
   });
 });
@@ -149,11 +149,11 @@ describe("subject offerings", () => {
     await updateGroup(db, auditKey, coordinator.publicId, group, { active: false });
     expect(await createOffering(db, auditKey, coordinator.publicId, { levelId, subjectId: await newSubject(), groupId: group })).toMatchObject({ ok: false, reason: "invalid" });
 
-    await updateProgramme(db, auditKey, coordinator.publicId, programmeId, { active: false });
+    await updateProgramme(db, auditKey, (await programmesAdmin()).publicId, programmeId, { active: false });
     const fresh = await newSubject();
     expect(await createOffering(db, auditKey, coordinator.publicId, { levelId, subjectId: fresh })).toMatchObject({ ok: false, reason: "invalid" });
-    await updateProgramme(db, auditKey, coordinator.publicId, programmeId, { active: true });
-    await updateLevel(db, auditKey, coordinator.publicId, levelId, { active: false });
+    await updateProgramme(db, auditKey, (await programmesAdmin()).publicId, programmeId, { active: true });
+    await updateLevel(db, auditKey, (await programmesAdmin()).publicId, levelId, { active: false });
     expect(await createOffering(db, auditKey, coordinator.publicId, { levelId, subjectId: fresh })).toMatchObject({ ok: false, reason: "invalid" });
     expect([await offerings(), await offeringEntries()]).toEqual(before);
   });

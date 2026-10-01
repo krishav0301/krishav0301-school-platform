@@ -3,7 +3,7 @@ import { beforeAll, describe, expect, it } from "vitest";
 import { verifyAuditChain } from "../src/core/audit";
 import { bsToAd, daysInMonth } from "../src/core/dates";
 import { addLevel, createClass, createProgramme, createTerminal, createYear, updateClass, updateLevel, updateTerminal } from "../src/modules/academics/service";
-import { auditActions, auditKey, count, db, person, seedSections, type Person } from "./academics-helpers";
+import { auditActions, auditKey, count, db, person, seedSections, type Person, programmesAdmin } from "./academics-helpers";
 
 let coordinator: Person, plus2Coordinator: Person, bachelorsCoordinator: Person, admin: Person, accountant: Person, teacher: Person, student: Person;
 beforeAll(async () => {
@@ -37,9 +37,9 @@ const closeYear = (publicId: string) =>
 
 /** A programme with one level, in the given section. */
 async function newLevel(sectionKey: "plus2" | "bachelors" = "bachelors"): Promise<{ programmeId: string; levelId: string }> {
-  const p = await createProgramme(db, auditKey, coordinator.publicId, { name: "Programme", sectionKey, affiliation: "Board" });
+  const p = await createProgramme(db, auditKey, (await programmesAdmin()).publicId, { name: "Programme", sectionKey, affiliation: "Board" });
   if (!p.ok) throw new Error("programme setup failed");
-  const l = await addLevel(db, auditKey, coordinator.publicId, p.publicId, { name: "Level 1" });
+  const l = await addLevel(db, auditKey, (await programmesAdmin()).publicId, p.publicId, { name: "Level 1" });
   if (!l.ok) throw new Error("level setup failed");
   return { programmeId: p.publicId, levelId: l.publicId };
 }
@@ -92,9 +92,9 @@ describe("createClass", () => {
     expect(await createClass(db, auditKey, coordinator.publicId, { yearId: "0".repeat(32), levelId })).toEqual({ ok: false, reason: "not_found" });
     expect(await createClass(db, auditKey, coordinator.publicId, { yearId, levelId: "0".repeat(32) })).toEqual({ ok: false, reason: "not_found" });
 
-    await updateLevel(db, auditKey, coordinator.publicId, levelId, { active: false });
+    await updateLevel(db, auditKey, (await programmesAdmin()).publicId, levelId, { active: false });
     expect(await createClass(db, auditKey, coordinator.publicId, { yearId, levelId })).toMatchObject({ ok: false, reason: "invalid" });
-    await updateLevel(db, auditKey, coordinator.publicId, levelId, { active: true });
+    await updateLevel(db, auditKey, (await programmesAdmin()).publicId, levelId, { active: true });
 
     const before = [await classes(), await audits()];
     await closeYear(yearId);

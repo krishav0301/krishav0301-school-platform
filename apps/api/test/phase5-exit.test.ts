@@ -25,6 +25,7 @@ import { signAccessToken, type RoleClaim } from "../src/core/tokens";
 import { createUser } from "../src/modules/accounts/service";
 import royalJson from "../../../packs/royal-softech/pack.json";
 import sampleJson from "../../../packs/sample-basic-school/pack.json";
+import { seedProgrammes } from "./programme-fixtures";
 
 const app = createApp();
 
@@ -77,6 +78,7 @@ describe.each([
 
   it("setup: this year, a class, a subject, a hired teacher as subject teacher and Class Teacher, two admitted students", async () => {
     await applyPack(db(), pack);
+    await seedProgrammes(db(), env.AUDIT_HMAC_KEY, pack); // a school starts with no programmes: the Admin makes them (D-087)
     cookies.coordinator = await signedIn("coordinator", "institution");
     cookies.admin = await signedIn("admin", "institution");
 

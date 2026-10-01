@@ -113,7 +113,8 @@ export const MATRIX = [
   row(G.site, "content.publish", "Publish content directly", 2, { ADM: all, SUP: all }),
 
   // --- Setup
-  row(G.setup, "setup.structure.manage", "Manage academic years, programmes, levels, classes, terminals", 3, { COO: inst, SUP: all }),
+  row(G.setup, "setup.structure.manage", "Manage academic years, classes, terminals", 3, { COO: inst, SUP: all }),
+  row(G.setup, "setup.programmes.manage", "Manage programmes and their levels (and a programme's grading policy)", 3, { ADM: all, SUP: all }),
   row(G.setup, "setup.structure.view", "View academic years, programmes, levels, classes, terminals", 3, { COO: inst, ADM: read, SUP: all }),
   row(G.setup, "setup.subjects.view", "View subjects, offerings, mark components, elective groups", 3, { COO: inst, ADM: read, SUP: all }),
   row(G.setup, "setup.subjects.manage", "Manage subjects, offerings, mark components, elective groups", 3, { COO: inst, SUP: all }),

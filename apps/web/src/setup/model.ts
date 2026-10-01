@@ -20,6 +20,9 @@ export interface RoleView {
 export const canManageStructure = (roles: readonly RoleView[]): boolean => roles.some((r) => r.role === "super_admin" || r.role === "coordinator");
 
 /** Years and terminals belong to the whole school: a section-scoped Co-ordinator does not change them. */
+/** Programmes and their levels: the Admin and the Super Admin alone (D-087). */
+export const canManageProgrammes = (roles: readonly RoleView[]): boolean => roles.some((r) => r.role === "admin" || r.role === "super_admin");
+
 export const canManageInstitution = (roles: readonly RoleView[]): boolean =>
   roles.some((r) => r.role === "super_admin" || (r.role === "coordinator" && r.scope === "institution"));
 

@@ -1,7 +1,7 @@
 import { beforeAll, describe, expect, it } from "vitest";
 
 import { verifyAuditChain } from "../src/core/audit";
-import { auditActions, auditKey, call, count, db, person, seedSections, type Person } from "./academics-helpers";
+import { auditActions, auditKey, call, count, db, person, seedSections, type Person, programmesAdmin } from "./academics-helpers";
 
 let coordinator: Person, plus2Coordinator: Person, bachelorsCoordinator: Person, admin: Person, accountant: Person, teacher: Person, student: Person, superAdmin: Person;
 beforeAll(async () => {
@@ -26,9 +26,9 @@ let n = 0;
 const label = (prefix: string) => `${prefix} ${++n} ${crypto.randomUUID().slice(0, 6)}`;
 
 async function makeLevel(sectionKey: "plus2" | "bachelors") {
-  const programme = await post("/programmes", { name: label("Programme"), sectionKey, affiliation: "Board" }, coordinator);
+  const programme = await post("/programmes", { name: label("Programme"), sectionKey, affiliation: "Board" }, await programmesAdmin());
   expect(programme.status).toBe(201);
-  const level = await post(`/programmes/${await idOf(programme)}/levels`, { name: "Grade 11" }, coordinator);
+  const level = await post(`/programmes/${await idOf(programme)}/levels`, { name: "Grade 11" }, await programmesAdmin());
   expect(level.status).toBe(201);
   return idOf(level);
 }

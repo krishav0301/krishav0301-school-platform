@@ -12,12 +12,6 @@
     { "key": "plus2", "name": "+2" },
     { "key": "bachelors", "name": "Bachelor's" }
   ],
-  "academics": {
-    "programmes": [
-      { "key": "plus2-sample", "levels": ["Grade 11", "Grade 12"], "gradingPolicy": "neb_gpa" },
-      { "key": "bachelors-sample", "levels": ["Year 1", "Year 2", "Year 3", "Year 4"], "gradingPolicy": "percentage_division" }
-    ]
-  },
   "modules": {},
   "terminology": {},
   "site": {

@@ -8,7 +8,7 @@ import { useSession } from "@/session/SessionProvider";
 import { Badge, Button, Field, Notice, Select } from "@/ui";
 
 import { addLevel, createProgramme, loadProgrammes, setLevelActive, setProgrammeActive, setProgrammePolicy } from "./client";
-import { REASON_MESSAGE, canManageStructure, manageableSections, termWords, type Level, type Programme } from "./model";
+import { REASON_MESSAGE, canManageProgrammes, termWords, type Level, type Programme } from "./model";
 import { Gate, useLoad } from "./useLoad";
 import styles from "./setup.module.css";
 
@@ -200,8 +200,9 @@ export function ProgrammesScreen() {
   const { api, me } = useSession();
   const { config, term } = useConfig();
   const roles = me?.roles ?? [];
-  const canManage = canManageStructure(roles);
-  const sections = manageableSections(roles, config?.sections ?? []);
+  // Programmes and their levels are the Admin's (D-087): every section is theirs, and no Co-ordinator changes them.
+  const canManage = canManageProgrammes(roles);
+  const sections = canManage ? (config?.sections ?? []) : [];
   const words = termWords(term);
   const load = useCallback(() => loadProgrammes(api), [api]);
   const { view, reload } = useLoad(load);
@@ -256,7 +257,7 @@ export function ProgrammesScreen() {
           onProblem={(key) => setFlash({ tone: "bad", text: t(key) })}
         />
       ) : null}
-      {canManage ? null : <Notice>{t("setup.readOnly", { coordinator: term("role.coordinator") })}</Notice>}
+      {canManage ? null : <Notice>{t("setup.programmes.readOnly", { admin: term("role.admin") })}</Notice>}
     </>
   );
 }

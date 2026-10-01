@@ -1,5 +1,5 @@
 import { newPublicId } from "../../core/ids";
-import { coordinatorForSection } from "./guard";
+import { adminForProgrammes } from "./guard";
 import {
   CreateLevelSchema,
   CreateProgrammeSchema,
@@ -22,7 +22,7 @@ interface ProgrammeRow {
 /** One round trip: may the person act on this programme's section, and what is the programme now? */
 async function inspectProgramme(db: D1Database, publicId: string, actor: string) {
   const [allowed, row] = await db.batch([
-    db.prepare(`SELECT ${coordinatorForSection(1, "(SELECT section_id FROM programmes WHERE public_id = ?2)")} AS ok`).bind(actor, publicId),
+    db.prepare(`SELECT ${adminForProgrammes(1)} AS ok`).bind(actor),
     db.prepare("SELECT name, affiliation, is_active, grading_policy FROM programmes WHERE public_id = ?1").bind(publicId),
   ]);
   return {
@@ -55,7 +55,7 @@ export async function createProgramme(db: D1Database, auditKey: string, actor: s
         `INSERT INTO programmes (public_id, key, name, section_id, affiliation, ordering)
          SELECT ?1, ?2, ?3, s.id, ?5, COALESCE((SELECT MAX(ordering) FROM programmes), 0) + 1
            FROM sections s
-          WHERE s.key = ?4 AND ${coordinatorForSection(6, "s.id")}`,
+          WHERE s.key = ?4 AND ${adminForProgrammes(6)}`,
       )
       .bind(publicId, key, p.name, p.sectionKey, p.affiliation, actor),
   );
@@ -103,7 +103,7 @@ export async function updateProgramme(db: D1Database, auditKey: string, actor: s
     db
       .prepare(
         `UPDATE programmes SET name = ?2, affiliation = ?3, is_active = ?4, grading_policy = ?6
-          WHERE public_id = ?1 AND ${coordinatorForSection(5, "programmes.section_id")}`,
+          WHERE public_id = ?1 AND ${adminForProgrammes(5)}`,
       )
       .bind(publicId, after.name, after.affiliation, after.active ? 1 : 0, actor, after.gradingPolicy),
   );
@@ -132,7 +132,7 @@ export async function addLevel(db: D1Database, auditKey: string, actor: string, 
         `INSERT INTO levels (public_id, programme_id, ordinal, name)
          SELECT ?1, p.id, COALESCE((SELECT MAX(ordinal) FROM levels WHERE programme_id = p.id), 0) + 1, ?3
            FROM programmes p
-          WHERE p.public_id = ?2 AND p.is_active = 1 AND ${coordinatorForSection(4, "p.section_id")}`,
+          WHERE p.public_id = ?2 AND p.is_active = 1 AND ${adminForProgrammes(4)}`,
       )
       .bind(publicId, programmeId, parsed.data.name, actor),
   );
@@ -157,9 +157,9 @@ async function inspectLevel(db: D1Database, publicId: string, actor: string) {
   const [allowed, row] = await db.batch([
     db
       .prepare(
-        `SELECT ${coordinatorForSection(1, "(SELECT p.section_id FROM levels l JOIN programmes p ON p.id = l.programme_id WHERE l.public_id = ?2)")} AS ok`,
+        `SELECT ${adminForProgrammes(1)} AS ok`,
       )
-      .bind(actor, publicId),
+      .bind(actor),
     db.prepare("SELECT name, is_active FROM levels WHERE public_id = ?1").bind(publicId),
   ]);
   return {
@@ -197,7 +197,7 @@ export async function updateLevel(db: D1Database, auditKey: string, actor: strin
     db
       .prepare(
         `UPDATE levels SET name = ?2, is_active = ?3
-          WHERE public_id = ?1 AND ${coordinatorForSection(4, "(SELECT section_id FROM programmes WHERE id = levels.programme_id)")}`,
+          WHERE public_id = ?1 AND ${adminForProgrammes(4)}`,
       )
       .bind(publicId, after.name, after.active ? 1 : 0, actor),
   );

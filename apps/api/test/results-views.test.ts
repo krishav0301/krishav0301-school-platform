@@ -50,15 +50,15 @@ beforeAll(async () => {
 });
 
 describe("setup: the grading policy and component kinds (slice 1)", () => {
-  it("the Co-ordinator sets a programme's grading policy; it shows in the programme list, and the pack's is used where none was set", async () => {
+  it("the Admin sets a programme's grading policy (D-087); the Co-ordinator cannot; it shows in the programme list", async () => {
     const list = (await (await call("/api/academics/programmes", { cookie: coordinator.cookie })).json()) as { programmes: { id: string; levels: { id: string }[]; gradingPolicy: string | null }[] };
     const programme = list.programmes.find((p) => p.levels.some((l) => l.id === fixture.levelId))!;
     expect(programme.gradingPolicy).toBe("percentage_division");
-    expect((await call(`/api/academics/programmes/${programme.id}`, { method: "PATCH", body: { gradingPolicy: "neb_gpa" }, cookie: coordinator.cookie })).status).toBe(200);
-    expect((await call(`/api/academics/programmes/${programme.id}`, { method: "PATCH", body: { gradingPolicy: "letters" }, cookie: coordinator.cookie })).status).toBe(400);
-    expect((await call(`/api/academics/programmes/${programme.id}`, { method: "PATCH", body: { gradingPolicy: "neb_gpa" }, cookie: admin.cookie })).status).toBe(403);
+    expect((await call(`/api/academics/programmes/${programme.id}`, { method: "PATCH", body: { gradingPolicy: "neb_gpa" }, cookie: admin.cookie })).status).toBe(200);
+    expect((await call(`/api/academics/programmes/${programme.id}`, { method: "PATCH", body: { gradingPolicy: "letters" }, cookie: admin.cookie })).status).toBe(400);
+    expect((await call(`/api/academics/programmes/${programme.id}`, { method: "PATCH", body: { gradingPolicy: "percentage_division" }, cookie: coordinator.cookie })).status).toBe(403);
     expect(await count("SELECT COUNT(*) AS n FROM audit_events WHERE action = 'academics.programme.updated' AND entity_public_id = ?1 AND after_json LIKE '%neb_gpa%'", programme.id)).toBe(1);
-    await call(`/api/academics/programmes/${programme.id}`, { method: "PATCH", body: { gradingPolicy: "percentage_division" }, cookie: coordinator.cookie });
+    await call(`/api/academics/programmes/${programme.id}`, { method: "PATCH", body: { gradingPolicy: "percentage_division" }, cookie: admin.cookie });
   });
 
   it("a mark component is theory or practical", async () => {

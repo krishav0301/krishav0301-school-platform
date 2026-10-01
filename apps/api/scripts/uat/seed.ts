@@ -86,7 +86,7 @@ export async function seedUat(call: Call, options: { tag: string; emailDomain?: 
     "coordinator",
   );
   const programme = programmes.find((p) => p.gradingPolicy === "neb_gpa" && p.levels.length >= 2) ?? programmes.find((p) => p.levels.length >= 2);
-  if (!programme) throw new SeedError("No programme with two levels. Apply the school's pack first.");
+  if (!programme) throw new SeedError("No programme with two levels yet. A school starts with none (D-087): the Admin makes the programmes on the Programmes screen first.");
   const levels = programme.levels.filter((l) => l.active).slice(0, 2);
 
   // The year: the active one; else this BS year, activated if it is a draft already (as on staging) or made first.

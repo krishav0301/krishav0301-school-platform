@@ -78,6 +78,8 @@ export function fail(c: Context<AppEnv>, failure: Failure): never {
 
 export const VIEW = { action: "setup.structure.view" } as const;
 export const MANAGE = { action: "setup.structure.manage" } as const;
+/** Programmes and their levels: the Admin alone (D-087). */
+export const MANAGE_PROGRAMMES = { action: "setup.programmes.manage" } as const;
 
 export function registerAcademics(app: App): void {
   // --- Reads ---------------------------------------------------------------------------------------
@@ -232,7 +234,7 @@ export function registerAcademics(app: App): void {
       operationId: "create_programme",
       tags: ["academics"],
       description: "Adds a programme to a section the person may manage.",
-      access: MANAGE,
+      access: MANAGE_PROGRAMMES,
       request: { body: { required: true, content: json(CreateProgrammeSchema) } },
       responses: { 201: { description: "Added", content: json(CreatedSchema) }, ...failures },
     },
@@ -250,7 +252,7 @@ export function registerAcademics(app: App): void {
       operationId: "update_programme",
       tags: ["academics"],
       description: "Renames a programme, changes its affiliation, or switches it off and on. Nothing is deleted.",
-      access: MANAGE,
+      access: MANAGE_PROGRAMMES,
       request: { params: IdParam, body: { required: true, content: json(ProgrammeChangesSchema) } },
       responses: { 200: { description: "Saved", content: json(OkSchema) }, ...failures },
     },
@@ -268,7 +270,7 @@ export function registerAcademics(app: App): void {
       operationId: "add_level",
       tags: ["academics"],
       description: "Adds a level (Grade 11, Year 1) to a programme, numbered after the last one.",
-      access: MANAGE,
+      access: MANAGE_PROGRAMMES,
       request: { params: IdParam, body: { required: true, content: json(CreateLevelSchema) } },
       responses: { 201: { description: "Added", content: json(CreatedSchema) }, ...failures },
     },
@@ -286,7 +288,7 @@ export function registerAcademics(app: App): void {
       operationId: "update_level",
       tags: ["academics"],
       description: "Renames a level or switches it off and on. Nothing is deleted.",
-      access: MANAGE,
+      access: MANAGE_PROGRAMMES,
       request: { params: IdParam, body: { required: true, content: json(LevelChangesSchema) } },
       responses: { 200: { description: "Saved", content: json(OkSchema) }, ...failures },
     },
