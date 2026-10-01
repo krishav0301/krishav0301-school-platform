@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { CONTRAST_RULES, FONTS, ThemeSchema, checkContrast, type Theme } from "../src/core/theme";
+import { CONTRAST_RULES, FONTS, HEADING_FONTS, ThemeSchema, checkContrast, type Theme } from "../src/core/theme";
 import royal from "../../../packs/royal-softech/pack.json";
 import sample from "../../../packs/sample-basic-school/pack.json";
 
@@ -32,6 +32,20 @@ describe("theme shape", () => {
     expect(ThemeSchema.safeParse({ ...good, font: "Comic Sans" }).success).toBe(false);
   });
 
+  it("a heading font is optional and only one of the self-hosted ones (D-088)", () => {
+    expect([...HEADING_FONTS]).toEqual(["body", "source-serif"]);
+    expect(ThemeSchema.safeParse({ ...good, headingFont: "source-serif" }).success).toBe(true);
+    const { headingFont: _drop, ...without } = { ...good, headingFont: "body" as const };
+    expect(ThemeSchema.safeParse(without).success).toBe(true);
+    expect(ThemeSchema.safeParse({ ...good, headingFont: "https://fonts.example/x.woff2" }).success).toBe(false);
+  });
+
+  it("the accent (purple) and attention (amber) colours, with their soft tints, are required in every mode (D-088)", () => {
+    for (const key of ["accent", "accentSoft", "warn", "warnSoft"] as const) {
+      expect(ThemeSchema.safeParse(with_((t) => delete (t.light as Record<string, unknown>)[key])).success, key).toBe(false);
+    }
+  });
+
   it.each([
     [{ radiusCard: -1, radiusControl: 4 }],
     [{ radiusCard: 33, radiusControl: 4 }],
@@ -48,8 +62,8 @@ describe("readability check", () => {
     expect(checkContrast(sample.theme as Theme)).toEqual([]);
   });
 
-  it("checks nine pairs, each at AA (4.5 for text, 3 for parts of controls)", () => {
-    expect(CONTRAST_RULES).toHaveLength(9);
+  it("checks eleven pairs, each at AA (4.5 for text, 3 for parts of controls and icons)", () => {
+    expect(CONTRAST_RULES).toHaveLength(11);
     for (const rule of CONTRAST_RULES) expect([3, 4.5]).toContain(rule.minimum);
   });
 
@@ -77,6 +91,12 @@ describe("readability check", () => {
     }
   });
 
+  it("catches an accent or attention icon too pale on its own tint (icons need 3:1) (D-088)", () => {
+    expect(checkContrast(with_((t) => (t.light.accent = "#d9d0fb"))).map((f) => f.rule)).toContain("accent-icon");
+    expect(checkContrast(with_((t) => (t.light.warn = "#fbe3c4"))).map((f) => f.rule)).toContain("warn-icon");
+    expect(CONTRAST_RULES.find((r) => r.id === "accent-icon")!.minimum).toBe(3);
+  });
+
   it("catches an error label that is hard to read", () => {
     const failures = checkContrast(with_((t) => (t.light.bad = "#f5a3a3")));
     expect(failures.map((f) => f.rule)).toContain("bad-label");
@@ -87,8 +107,15 @@ describe("readability check", () => {
     expect(failures.map((f) => f.rule)).toContain("ok-label");
   });
 
+  // A school may still have a dark set; Royal no longer does (always light, D-088), so the test brings its own.
+  const DARK = { background: "#000000", surface: "#1c1c1e", text: "#f5f5f7", textMuted: "#a1a1a6", border: "#38383a", primary: "#4c8dff", primaryText: "#000000", ok: "#4ade80", okSoft: "#12351f", bad: "#f97066", badSoft: "#3a1512", accent: "#b9a3ff", accentSoft: "#2b2340", warn: "#f7a541", warnSoft: "#3d2610" };
+
+  it("a readable dark set passes", () => {
+    expect(checkContrast(with_((t) => (t.dark = { ...DARK })))).toEqual([]);
+  });
+
   it("checks the dark set with the same rules, and says which mode failed", () => {
-    const failures = checkContrast(with_((t) => (t.dark!.textMuted = "#333333")));
+    const failures = checkContrast(with_((t) => (t.dark = { ...DARK, textMuted: "#333333" })));
     expect(failures.length).toBeGreaterThan(0);
     for (const f of failures) expect(f.mode).toBe("dark");
   });

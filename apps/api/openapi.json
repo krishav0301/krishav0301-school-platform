@@ -1743,6 +1743,13 @@
               "noto-sans"
             ]
           },
+          "headingFont": {
+            "type": "string",
+            "enum": [
+              "body",
+              "source-serif"
+            ]
+          },
           "shape": {
             "type": "object",
             "properties": {
@@ -1809,6 +1816,22 @@
               "badSoft": {
                 "type": "string",
                 "pattern": "^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$"
+              },
+              "accent": {
+                "type": "string",
+                "pattern": "^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$"
+              },
+              "accentSoft": {
+                "type": "string",
+                "pattern": "^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$"
+              },
+              "warn": {
+                "type": "string",
+                "pattern": "^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$"
+              },
+              "warnSoft": {
+                "type": "string",
+                "pattern": "^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$"
               }
             },
             "required": [
@@ -1822,7 +1845,11 @@
               "ok",
               "okSoft",
               "bad",
-              "badSoft"
+              "badSoft",
+              "accent",
+              "accentSoft",
+              "warn",
+              "warnSoft"
             ],
             "additionalProperties": false
           },
@@ -1872,6 +1899,22 @@
               "badSoft": {
                 "type": "string",
                 "pattern": "^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$"
+              },
+              "accent": {
+                "type": "string",
+                "pattern": "^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$"
+              },
+              "accentSoft": {
+                "type": "string",
+                "pattern": "^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$"
+              },
+              "warn": {
+                "type": "string",
+                "pattern": "^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$"
+              },
+              "warnSoft": {
+                "type": "string",
+                "pattern": "^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$"
               }
             },
             "required": [
@@ -1885,7 +1928,11 @@
               "ok",
               "okSoft",
               "bad",
-              "badSoft"
+              "badSoft",
+              "accent",
+              "accentSoft",
+              "warn",
+              "warnSoft"
             ],
             "additionalProperties": false
           }

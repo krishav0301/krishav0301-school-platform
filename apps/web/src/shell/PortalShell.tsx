@@ -1,29 +1,89 @@
 "use client";
 
+import {
+  BookOpen,
+  ChartColumn,
+  CircleCheck,
+  ClipboardList,
+  CreditCard,
+  FileText,
+  Globe,
+  House,
+  CalendarDays,
+  LogOut,
+  Settings2,
+  Users,
+  ChevronDown,
+  type LucideIcon,
+} from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 
 import { ConfigGate } from "@/config/ConfigGate";
 import { useConfig } from "@/config/ConfigProvider";
 import { t } from "@/i18n/messages";
 import { useSession } from "@/session/SessionProvider";
-import { Button, Skeleton, Spinner } from "@/ui";
+import { Skeleton, Spinner } from "@/ui";
 
-import { MORE_HREF, NAV_ITEMS, isCurrent, showsMenu, splitNav, visibleNav, type NavItem } from "./nav";
+import { MORE_HREF, NAV_ITEMS, isCurrent, showsMenu, splitNav, visibleNav, type NavIcon, type NavItem } from "./nav";
 import styles from "./shell.module.css";
 
+const ICONS: Record<NavIcon, LucideIcon> = {
+  overview: House,
+  website: Globe,
+  programs: BookOpen,
+  setup: Settings2,
+  people: Users,
+  approvals: CircleCheck,
+  admissions: ClipboardList,
+  attendance: CalendarDays,
+  classwork: FileText,
+  fees: CreditCard,
+  results: ChartColumn,
+};
+
+/** "Sita Sharma" → "SS"; one word → its first two letters. */
+export const initials = (name: string): string => {
+  const words = name.trim().split(/\s+/).filter(Boolean);
+  if (words.length === 0) return "";
+  if (words.length === 1) return words[0]!.slice(0, 2).toUpperCase();
+  return `${words[0]![0]}${words.at(-1)![0]}`.toUpperCase();
+};
+
+/** How many approval requests wait, for those who decide them; null until known, or for anyone else. */
+function usePendingApprovals(enabled: boolean): number | null {
+  const { api } = useSession();
+  const [count, setCount] = useState<number | null>(null);
+  useEffect(() => {
+    if (!enabled) return;
+    let live = true;
+    api
+      .GET("/api/approvals")
+      .then(({ data }) => {
+        if (live && data) setCount(data.requests.length);
+      })
+      .catch(() => {});
+    return () => {
+      live = false;
+    };
+  }, [api, enabled]);
+  return enabled ? count : null;
+}
+
 /**
- * The frame around every signed-in page: header, menu, page. The layout is the same for every
- * school (CLAUDE.md rule 6); only colours, font, corner radii, names and wording differ.
- * The menu is a bottom tab bar on a phone and a sidebar on a wide screen, and is left out while
- * there is only one place to go. Someone who is not signed in is sent to the sign-in page.
+ * The frame around every signed-in page (D-088, after the PM's reference design): a sidebar with the school's name
+ * and the menu, a header with the person's name and their account menu, and the page. The layout is the same for
+ * every school (CLAUDE.md rule 6); only colours, fonts, names and wording differ. On a phone the menu is a bottom tab
+ * bar, left out while there is only one place to go. Someone who is not signed in is sent to the sign-in page.
  */
 export function PortalShell({ children, items = NAV_ITEMS }: { children: ReactNode; items?: readonly NavItem[] }) {
   const { status, me, signOut } = useSession();
-  const { config } = useConfig();
+  const { config, term } = useConfig();
   const pathname = usePathname();
   const router = useRouter();
+  const menu = me ? visibleNav(items, me.roles, config?.modules ?? {}) : [];
+  const pending = usePendingApprovals(menu.some((item) => item.id === "approvals"));
 
   useEffect(() => {
     if (status === "signedOut") router.replace("/sign-in");
@@ -40,12 +100,20 @@ export function PortalShell({ children, items = NAV_ITEMS }: { children: ReactNo
     );
   }
 
-  const menu = visibleNav(items, me.roles, config?.modules ?? {});
   const hasMenu = showsMenu(menu);
   // On a phone, entries past the tab bar's room are listed under a last "More" tab; the sidebar shows them all.
   const { more } = splitNav(menu);
   const overflow = new Set(more.map((item) => item.id));
   const inMore = pathname === MORE_HREF || more.some((item) => isCurrent(pathname, item.href));
+  const primaryRole = me.roles.find((r) => r.role !== "super_admin")?.role;
+  const roleWord = primaryRole ? term(`role.${primaryRole}`) : t("portal.support");
+
+  const brand = (
+    <Link href="/portal" className={styles.brand}>
+      <span className={styles.brandName}>{config?.school.shortName ?? <Skeleton width="7rem" />}</span>
+      <span className={styles.brandSub}>{t("shell.brandSubtitle")}</span>
+    </Link>
+  );
 
   return (
     <div className={`${styles.frame} ${hasMenu ? styles.withTabs : ""}`}>
@@ -54,36 +122,56 @@ export function PortalShell({ children, items = NAV_ITEMS }: { children: ReactNo
       </a>
       <header className={styles.header}>
         <div className={styles.bar}>
-          <Link href="/portal" className={styles.brand}>
-            {config?.school.shortName ?? <Skeleton width="7rem" />}
-          </Link>
-          <div className={styles.actions}>
-            <span className={styles.who}>{t("shell.signedInAs", { name: me.name })}</span>
-            <Button variant="secondary" onClick={() => void signOut()}>
-              {t("shell.signOut")}
-            </Button>
-          </div>
+          <div className={styles.headerBrand}>{brand}</div>
+          <details className={styles.account}>
+            <summary className={styles.accountButton} aria-label={t("shell.account")}>
+              <span className={styles.avatar} title={me.name} aria-hidden>
+                {initials(me.name)}
+              </span>
+              <span className={styles.accountText}>
+                <span className={styles.accountRole}>{roleWord}</span>
+                <span className={styles.accountName}>{config?.school.name}</span>
+              </span>
+              <ChevronDown aria-hidden className={styles.accountChevron} />
+            </summary>
+            <div className={styles.accountMenu}>
+              <p className={styles.accountWho}>{t("shell.signedInAs", { name: me.name })}</p>
+              <button type="button" className={styles.accountItem} onClick={() => void signOut()}>
+                <LogOut aria-hidden className={styles.navIcon} />
+                {t("shell.signOut")}
+              </button>
+            </div>
+          </details>
         </div>
       </header>
       <div className={styles.body}>
         {hasMenu ? (
-          <nav className={styles.nav} aria-label={t("shell.mainNavigation")}>
-            {menu.map((item) => (
-              <Link
-                key={item.id}
-                href={item.href}
-                className={[styles.navLink, overflow.has(item.id) ? styles.overflow : ""].filter(Boolean).join(" ")}
-                aria-current={isCurrent(pathname, item.href) ? "page" : undefined}
-              >
-                {t(item.labelKey)}
-              </Link>
-            ))}
-            {more.length > 0 ? (
-              <Link href={MORE_HREF} className={`${styles.navLink} ${styles.moreLink}`} aria-current={inMore ? "page" : undefined}>
-                {t("nav.more")}
-              </Link>
-            ) : null}
-          </nav>
+          <aside className={styles.sidebar}>
+            <div className={styles.sidebarBrand}>{brand}</div>
+            <nav className={styles.nav} aria-label={t("shell.mainNavigation")}>
+              {menu.map((item) => {
+                const Icon = ICONS[item.icon];
+                const badge = item.id === "approvals" && pending ? pending : null;
+                return (
+                  <Link
+                    key={item.id}
+                    href={item.href}
+                    className={[styles.navLink, overflow.has(item.id) ? styles.overflow : ""].filter(Boolean).join(" ")}
+                    aria-current={isCurrent(pathname, item.href) ? "page" : undefined}
+                  >
+                    <Icon aria-hidden className={styles.navIcon} strokeWidth={1.75} />
+                    <span className={styles.navLabel}>{t(item.labelKey)}</span>
+                    {badge ? <span className={styles.badge}>{badge}</span> : null}
+                  </Link>
+                );
+              })}
+              {more.length > 0 ? (
+                <Link href={MORE_HREF} className={`${styles.navLink} ${styles.moreLink}`} aria-current={inMore ? "page" : undefined}>
+                  <span className={styles.navLabel}>{t("nav.more")}</span>
+                </Link>
+              ) : null}
+            </nav>
+          </aside>
         ) : null}
         <main id="main" className={styles.main}>
           <ConfigGate>{children}</ConfigGate>

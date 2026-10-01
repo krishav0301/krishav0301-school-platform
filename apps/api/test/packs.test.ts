@@ -184,8 +184,11 @@ describe("the two schools really are different (so the second-school test means 
     expect(royal.theme.font).not.toBe(sample.theme.font);
     expect(royal.theme.shape).not.toEqual(sample.theme.shape);
     expect(royal.theme.light.primary).not.toBe(sample.theme.light.primary);
-    expect(royal.theme.dark).toBeDefined();
-    expect(sample.theme.dark).toBeUndefined();
+    // Both are always light now: the PM chose one light look for the portal (D-088).
+    expect((royal.theme as { dark?: unknown }).dark).toBeUndefined();
+    expect((sample.theme as { dark?: unknown }).dark).toBeUndefined();
+    expect(royal.theme.headingFont).toBe("source-serif"); // and Royal's headings are serif, the sample school's are not
+    expect((sample.theme as { headingFont?: string }).headingFont).toBeUndefined();
   });
 });
 
