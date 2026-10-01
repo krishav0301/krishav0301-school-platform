@@ -1,3 +1,4 @@
+import { rowsOf, type DashboardPart } from "../../core/dashboard";
 import { recordAudit } from "../../core/audit";
 import { nepalDate } from "../../core/dates";
 import { queueEmailIf } from "../../core/notifications";
@@ -118,4 +119,59 @@ export async function sendOverdueReminders(db: D1Database, key: string, dataKey:
     queued += chunk.length;
   }
   return { queued };
+}
+
+export interface FeesDashboard {
+  /** Money taken in the last 30 days and the 30 before, net of reversals and refunds, in paisa. */
+  collectedPaisa: number;
+  previousPaisa: number;
+  chargedPaisa: number;
+  paidPaisa: number;
+  duePaisa: number;
+  overduePaisa: number;
+  /** Students of the active year with anything overdue: the fee follow-ups. */
+  followUps: number;
+}
+
+/**
+ * The dashboard's fees (D-088), for the whole school: collections now against the window before, and the active
+ * year's dues computed from the ledger exactly as the dues list does (oldest due first, never stored).
+ */
+export function feesDashboardPart(db: D1Database, windows: { since: string; before: string }, today = nepalDate(new Date())): DashboardPart<FeesDashboard> {
+  return {
+    statements: [
+      db
+        .prepare(
+          `SELECT COALESCE(-SUM(CASE WHEN created_at >= ?1 THEN amount_paisa END), 0) AS collected,
+                  COALESCE(-SUM(CASE WHEN created_at >= ?2 AND created_at < ?1 THEN amount_paisa END), 0) AS previous
+             FROM ledger_entries WHERE kind IN ('payment', 'reversal', 'refund') AND created_at >= ?2`,
+        )
+        .bind(windows.since, windows.before),
+      db.prepare(
+        `SELECT en.public_id AS enrollment, le.public_id, le.kind, le.amount_paisa, le.due_on
+           FROM ledger_entries le JOIN enrollments en ON en.id = le.enrollment_id JOIN academic_years ay ON ay.id = en.academic_year_id
+          WHERE ay.status = 'active'`,
+      ),
+    ],
+    read: ([money, entries]) => {
+      const window = rowsOf<{ collected: number; previous: number }>(money)[0] ?? { collected: 0, previous: 0 };
+      const byEnrollment = new Map<string, { public_id: string; kind: LedgerKind; amount_paisa: number; due_on: string | null }[]>();
+      for (const e of rowsOf<{ enrollment: string; public_id: string; kind: LedgerKind; amount_paisa: number; due_on: string | null }>(entries)) {
+        const list = byEnrollment.get(e.enrollment) ?? [];
+        list.push(e);
+        byEnrollment.set(e.enrollment, list);
+      }
+      const totals = { chargedPaisa: 0, paidPaisa: 0, duePaisa: 0, overduePaisa: 0, followUps: 0 };
+      for (const lines of byEnrollment.values()) {
+        const sum = (kinds: LedgerKind[]) => lines.filter((l) => kinds.includes(l.kind)).reduce((s, l) => s + l.amount_paisa, 0);
+        const alloc = allocate(lines.map((l) => ({ id: l.public_id, kind: l.kind, amountPaisa: l.amount_paisa, dueOn: l.due_on })), today);
+        totals.chargedPaisa += sum(["charge", "carried_dues"]);
+        totals.paidPaisa += -sum(["payment"]) - sum(["reversal"]);
+        totals.duePaisa += alloc.duePaisa;
+        totals.overduePaisa += alloc.overduePaisa;
+        if (alloc.overduePaisa > 0) totals.followUps++;
+      }
+      return { collectedPaisa: window.collected, previousPaisa: window.previous, ...totals };
+    },
+  };
 }

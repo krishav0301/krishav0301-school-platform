@@ -1,3 +1,4 @@
+import { rowsOf, type DashboardPart } from "../../core/dashboard";
 import { adToBsText } from "../../core/dates";
 import type { AdminContentItem, AdminContentSummary, ContentKind, ContentState, PublicContent } from "./schema";
 
@@ -130,4 +131,18 @@ export async function getAdminContent(db: D1Database, publicId: string, today: s
     .bind(publicId)
     .first<AdminRow>();
   return row ? { ...summaryOf(row, today), body: row.body, contact: row.contact } : null;
+}
+
+/** The dashboard's website figures (D-088): drafts, items waiting for approval, items live, and the last publish. */
+export function contentDashboardPart(db: D1Database): DashboardPart<{ drafts: number; waiting: number; live: number; lastPublishedAt: string | null }> {
+  return {
+    statements: [
+      db.prepare(
+        `SELECT COALESCE(SUM(CASE WHEN status = 'draft' THEN 1 ELSE 0 END), 0) AS drafts, COALESCE(SUM(CASE WHEN status = 'waiting' THEN 1 ELSE 0 END), 0) AS waiting,
+                COALESCE(SUM(CASE WHEN status = 'live' THEN 1 ELSE 0 END), 0) AS live, MAX(published_at) AS lastPublishedAt
+           FROM content_items`,
+      ),
+    ],
+    read: ([r]) => rowsOf<{ drafts: number; waiting: number; live: number; lastPublishedAt: string | null }>(r)[0] ?? { drafts: 0, waiting: 0, live: 0, lastPublishedAt: null },
+  };
 }

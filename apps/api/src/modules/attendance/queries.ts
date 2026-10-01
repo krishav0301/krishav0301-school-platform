@@ -1,3 +1,4 @@
+import { rowsOf, type DashboardPart } from "../../core/dashboard";
 import { adToBsText } from "../../core/dates";
 import { CLASS_JOINS, bindReach, classInReach, moduleOn, type Reach } from "./guard";
 import { ATTENDANCE_ALERT_THRESHOLD, attendancePercent, belowThreshold } from "./policy";
@@ -194,5 +195,66 @@ export async function getOwn(db: D1Database, userPublicId: string): Promise<Read
       ...tally(row.present_days, row.absent_days),
       absentDays: (days!.results as unknown as { on_date: string }[]).map((d) => ({ date: d.on_date, dateBs: adToBsText(d.on_date) })),
     },
+  };
+}
+
+export interface AttendanceDashboard {
+  today: { enrolled: number; present: number; marked: number };
+  /** The latest school days with a register, oldest first (at most 7). */
+  trend: { date: string; present: number; marked: number }[];
+  byProgramme: { id: string; name: string; enrolled: number; present: number; marked: number }[];
+  byClass: { id: string; programmeName: string; levelName: string; label: string; enrolled: number; present: number; marked: number }[];
+}
+
+/**
+ * The dashboard's attendance (D-088): today's register across the school, the last seven days that have one, and
+ * today by programme and by class (the anomaly rule reads the classes). Only the active year, only active students.
+ */
+export function attendanceDashboardPart(db: D1Database, today: string): DashboardPart<AttendanceDashboard> {
+  const ACTIVE = `JOIN enrollments en ON en.id = sa.enrollment_id JOIN academic_years ay ON ay.id = en.academic_year_id AND ay.status = 'active'`;
+  return {
+    statements: [
+      db
+        .prepare(
+          `SELECT (SELECT COUNT(*) FROM enrollments e JOIN academic_years y ON y.id = e.academic_year_id WHERE y.status = 'active' AND e.status = 'active') AS enrolled,
+                  COALESCE(SUM(CASE WHEN sa.status = 'present' THEN 1 ELSE 0 END), 0) AS present, COUNT(sa.id) AS marked
+             FROM student_attendance sa ${ACTIVE} WHERE sa.on_date = ?1 AND en.status = 'active'`,
+        )
+        .bind(today),
+      db
+        .prepare(
+          `SELECT sa.on_date AS date, SUM(CASE WHEN sa.status = 'present' THEN 1 ELSE 0 END) AS present, COUNT(*) AS marked
+             FROM student_attendance sa ${ACTIVE} WHERE sa.on_date <= ?1 GROUP BY sa.on_date ORDER BY sa.on_date DESC LIMIT 7`,
+        )
+        .bind(today),
+      db
+        .prepare(
+          `SELECT pv.public_id AS id, pv.name, COUNT(DISTINCT en.id) AS enrolled,
+                  COALESCE(SUM(CASE WHEN sa.status = 'present' THEN 1 ELSE 0 END), 0) AS present, COUNT(sa.id) AS marked
+             FROM programmes pv JOIN levels lv ON lv.programme_id = pv.id JOIN classes cl ON cl.level_id = lv.id
+             JOIN academic_years ay ON ay.id = cl.academic_year_id AND ay.status = 'active'
+             JOIN enrollments en ON en.class_id = cl.id AND en.status = 'active'
+             LEFT JOIN student_attendance sa ON sa.enrollment_id = en.id AND sa.on_date = ?1
+            WHERE pv.is_active = 1 GROUP BY pv.id ORDER BY pv.ordering`,
+        )
+        .bind(today),
+      db
+        .prepare(
+          `SELECT cl.public_id AS id, pv.name AS programmeName, lv.name AS levelName, cl.label, COUNT(DISTINCT en.id) AS enrolled,
+                  COALESCE(SUM(CASE WHEN sa.status = 'present' THEN 1 ELSE 0 END), 0) AS present, COUNT(sa.id) AS marked
+             FROM classes cl JOIN levels lv ON lv.id = cl.level_id JOIN programmes pv ON pv.id = lv.programme_id
+             JOIN academic_years ay ON ay.id = cl.academic_year_id AND ay.status = 'active'
+             JOIN enrollments en ON en.class_id = cl.id AND en.status = 'active'
+             LEFT JOIN student_attendance sa ON sa.enrollment_id = en.id AND sa.on_date = ?1
+            WHERE cl.is_active = 1 GROUP BY cl.id ORDER BY pv.ordering, lv.ordinal, cl.label`,
+        )
+        .bind(today),
+    ],
+    read: ([t, trend, programmes, classes]) => ({
+      today: rowsOf<AttendanceDashboard["today"]>(t)[0] ?? { enrolled: 0, present: 0, marked: 0 },
+      trend: rowsOf<AttendanceDashboard["trend"][number]>(trend).reverse(),
+      byProgramme: rowsOf<AttendanceDashboard["byProgramme"][number]>(programmes),
+      byClass: rowsOf<AttendanceDashboard["byClass"][number]>(classes),
+    }),
   };
 }

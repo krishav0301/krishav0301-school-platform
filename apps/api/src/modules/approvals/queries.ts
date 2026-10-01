@@ -1,3 +1,4 @@
+import { rowsOf, type DashboardPart } from "../../core/dashboard";
 import type { ApprovalList, ApprovalSummary, MyApproval, MyApprovalList } from "./schema";
 
 interface SummaryRow {
@@ -52,5 +53,13 @@ export async function listMine(db: D1Database, requesterPublicId: string): Promi
         decisionReason: r.decision_reason,
       }),
     ),
+  };
+}
+
+/** The dashboard's pending approvals (D-088): how many wait, by kind. */
+export function approvalsDashboardPart(db: D1Database): DashboardPart<{ kind: string; count: number }[]> {
+  return {
+    statements: [db.prepare("SELECT kind, COUNT(*) AS count FROM approval_requests WHERE status = 'pending' GROUP BY kind ORDER BY kind")],
+    read: ([r]) => rowsOf<{ kind: string; count: number }>(r),
   };
 }

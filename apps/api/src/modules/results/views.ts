@@ -1,3 +1,4 @@
+import { rowsOf, type DashboardPart } from "../../core/dashboard";
 import { adToBsText } from "../../core/dates";
 import { rankResults, rankScore } from "./grading";
 import { CLASS_JOINS, NAMING_COLUMNS, naming, sectionInReach, top20On, type Reach } from "./guard";
@@ -256,4 +257,38 @@ export function classSheetCsv(sheet: ClassSheet): string {
     );
   }
   return `﻿${lines.join("\r\n")}\r\n`;
+}
+
+export interface ResultsDashboard {
+  publications: number;
+  lastPublishedAt: string | null;
+  byProgramme: { id: string; name: string; policy: string | null; cards: number; passed: number; avgGpaHundredths: number | null; avgPercentHundredths: number | null }[];
+}
+
+/**
+ * The dashboard's results (D-088): the active year's published terminals, and by programme how many published marks
+ * cards passed, with the average GPA or percentage. Only each card's latest version counts (a recheck makes a new one).
+ */
+export function resultsDashboardPart(db: D1Database): DashboardPart<ResultsDashboard> {
+  return {
+    statements: [
+      db.prepare(
+        `SELECT COUNT(*) AS publications, MAX(rp.published_at) AS lastPublishedAt
+           FROM result_publications rp JOIN classes cl ON cl.id = rp.class_id JOIN academic_years ay ON ay.id = cl.academic_year_id AND ay.status = 'active'`,
+      ),
+      db.prepare(
+        `SELECT pv.public_id AS id, pv.name, pv.grading_policy AS policy, COUNT(mc.id) AS cards, COALESCE(SUM(mc.passed), 0) AS passed,
+                CAST(AVG(mc.gpa_hundredths) AS INTEGER) AS avgGpaHundredths, CAST(AVG(mc.percent_hundredths) AS INTEGER) AS avgPercentHundredths
+           FROM marks_cards mc JOIN result_publications rp ON rp.id = mc.publication_id JOIN classes cl ON cl.id = rp.class_id
+           JOIN academic_years ay ON ay.id = cl.academic_year_id AND ay.status = 'active'
+           JOIN levels lv ON lv.id = cl.level_id JOIN programmes pv ON pv.id = lv.programme_id
+          WHERE mc.version = (SELECT MAX(m2.version) FROM marks_cards m2 WHERE m2.publication_id = mc.publication_id AND m2.enrollment_id = mc.enrollment_id)
+          GROUP BY pv.id ORDER BY pv.ordering`,
+      ),
+    ],
+    read: ([totals, programmes]) => ({
+      ...(rowsOf<{ publications: number; lastPublishedAt: string | null }>(totals)[0] ?? { publications: 0, lastPublishedAt: null }),
+      byProgramme: rowsOf<ResultsDashboard["byProgramme"][number]>(programmes),
+    }),
+  };
 }

@@ -182,3 +182,4 @@ export async function decideRequest(db: D1Database, auditKey: string, actor: str
   if (outcome === null) throw new Error("The ledger is too busy: could not apply the approval after several attempts.");
   return outcome === "done" ? { ok: true } : { ok: false, reason: "conflict" }; // a lost race: someone else decided it a moment ago
 }
+export { approvalsDashboardPart } from "./queries";

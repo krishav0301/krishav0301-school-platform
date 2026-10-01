@@ -132,6 +132,7 @@ The Co-ordinator has **no** fees access at all.
 | Send a draft for approval (`approvals.request`) | — | — | inst | — | ✓ | ✓ | 3 |
 | View your own approval requests (`approvals.view.own`) | — | — | own | — | — | — | 3 |
 | View activity audit trail and sign-ins (`audit.view`) | — | — | — | — | ✓ | ✓ | 1 |
+| The Principal's dashboard: the whole school at a glance (counts, trends, what needs attention, recent activity) (`dashboard.overview.view`) | — | — | — | — | ✓ | ✓ | 7 |
 | Edit or delete an audit entry (`audit.edit`) | — | — | — | — | — | — | 1 |
 | Test mailbox: read the emails the site would have sent (only where email is not really sent; never in production) (`dev.mailbox.view`) | — | — | — | — | ✓ | ✓ | 7 |
 | Reports and Excel export (students) (`reports.students`) | — | — | inst | — | inst | ✓ | 4 |
