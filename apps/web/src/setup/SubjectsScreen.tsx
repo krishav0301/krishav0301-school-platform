@@ -5,7 +5,7 @@ import { useCallback, useState, type FormEvent } from "react";
 import { useConfig } from "@/config/ConfigProvider";
 import { t, type MessageKey } from "@/i18n/messages";
 import { useSession } from "@/session/SessionProvider";
-import { Badge, Button, Field, Notice } from "@/ui";
+import { AddDialog, Badge, Button, Field, Notice, TitleRow } from "@/ui";
 
 import { createSubject, loadSubjects, setSubjectArchived } from "./client";
 import { REASON_MESSAGE, canManageInstitution, canManageStructure, type Subject } from "./model";
@@ -61,7 +61,7 @@ export function SubjectsView({
   );
 }
 
-export function SubjectForm({ onAdded }: { onAdded: () => void }) {
+export function SubjectForm({ onAdded, showTitle = true }: { onAdded: () => void; showTitle?: boolean }) {
   const { api } = useSession();
   const [name, setName] = useState("");
   const [code, setCode] = useState("");
@@ -92,7 +92,7 @@ export function SubjectForm({ onAdded }: { onAdded: () => void }) {
 
   return (
     <form onSubmit={submit} noValidate className={styles.form}>
-      <h2 className={styles.formTitle}>{t("setup.subjects.add")}</h2>
+      {showTitle ? <h2 className={styles.formTitle}>{t("setup.subjects.add")}</h2> : null}
       {problem ? <Notice tone="bad">{t(problem)}</Notice> : null}
       <Field label={t("setup.subjects.name")} value={name} maxLength={120} autoComplete="off" onChange={(event) => setName(event.target.value)} error={error ? t(error) : undefined} />
       <Field label={t("setup.subjects.code")} hint={t("setup.subjects.codeHint")} value={code} maxLength={20} autoComplete="off" onChange={(event) => setCode(event.target.value)} />
@@ -127,20 +127,28 @@ export function SubjectsScreen() {
 
   return (
     <>
-      <h1 className={styles.title}>{t("setup.subjects.title")}</h1>
+      <TitleRow>
+        <h1 className={styles.title}>{t("setup.subjects.title")}</h1>
+        {canAdd ? (
+          <AddDialog label={t("setup.subjects.add")} title={t("setup.subjects.add")}>
+            {(close) => (
+              <SubjectForm
+                showTitle={false}
+                onAdded={() => {
+                  close();
+                  setFlash({ tone: "ok", text: t("setup.done.added") });
+                  void reload();
+                }}
+              />
+            )}
+          </AddDialog>
+        ) : null}
+      </TitleRow>
       <p className={styles.muted}>{t("setup.subjects.intro")}</p>
       {flash ? <Notice tone={flash.tone}>{flash.text}</Notice> : null}
       <Gate view={view} onRetry={() => void reload()}>
         {({ subjects }) => <SubjectsView subjects={subjects} canArchive={canArchive} canAdd={canAdd} busy={busy} onToggle={(s) => void toggle(s)} />}
       </Gate>
-      {canAdd ? (
-        <SubjectForm
-          onAdded={() => {
-            setFlash({ tone: "ok", text: t("setup.done.added") });
-            void reload();
-          }}
-        />
-      ) : null}
       {canAdd && !canArchive ? <Notice>{t("setup.subjects.onlyWholeSchool", { coordinator })}</Notice> : null}
       {canAdd ? null : <Notice>{t("setup.readOnly", { coordinator })}</Notice>}
     </>

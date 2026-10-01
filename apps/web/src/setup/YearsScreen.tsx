@@ -7,7 +7,7 @@ import { formatBsDate } from "@/content/model";
 import { useConfig } from "@/config/ConfigProvider";
 import { t, type MessageKey } from "@/i18n/messages";
 import { useSession } from "@/session/SessionProvider";
-import { Badge, Button, Field, Notice } from "@/ui";
+import { AddDialog, Badge, Button, Field, Notice, TitleRow } from "@/ui";
 
 import { activateYear, createYear, loadYears } from "./client";
 import { REASON_MESSAGE, YEAR_STATUS_LABEL, canManageInstitution, emptyYearForm, type Year, type YearFormErrors, type YearFormValues } from "./model";
@@ -50,7 +50,7 @@ export function YearsView({ years, canManage, busy, onActivate }: { years: reado
   );
 }
 
-function YearForm({ onAdded }: { onAdded: () => void }) {
+function YearForm({ onAdded, showTitle = true }: { onAdded: () => void; showTitle?: boolean }) {
   const { api } = useSession();
   const [values, setValues] = useState<YearFormValues>(emptyYearForm);
   const [errors, setErrors] = useState<YearFormErrors>({});
@@ -79,7 +79,7 @@ function YearForm({ onAdded }: { onAdded: () => void }) {
 
   return (
     <form onSubmit={submit} noValidate className={styles.form}>
-      <h2 className={styles.formTitle}>{t("setup.years.add")}</h2>
+      {showTitle ? <h2 className={styles.formTitle}>{t("setup.years.add")}</h2> : null}
       {problem ? <Notice tone="bad">{t(problem)}</Notice> : null}
       <Field
         label={t("setup.years.bsYear")}
@@ -123,21 +123,28 @@ export function YearsScreen() {
 
   return (
     <>
-      <h1 className={styles.title}>{t("setup.years.title")}</h1>
+      <TitleRow>
+        <h1 className={styles.title}>{t("setup.years.title")}</h1>
+        {canManage ? (
+          <AddDialog label={t("setup.years.add")} title={t("setup.years.add")}>
+            {(close) => (
+              <YearForm
+                showTitle={false}
+                onAdded={() => {
+                  close();
+                  setFlash({ tone: "ok", text: t("setup.done.added") });
+                  void reload();
+                }}
+              />
+            )}
+          </AddDialog>
+        ) : null}
+      </TitleRow>
       {flash ? <Notice tone={flash.tone}>{flash.text}</Notice> : null}
       <Gate view={view} onRetry={() => void reload()}>
         {({ years }) => <YearsView years={years} canManage={canManage} busy={busy} onActivate={(year) => void activate(year)} />}
       </Gate>
-      {canManage ? (
-        <YearForm
-          onAdded={() => {
-            setFlash({ tone: "ok", text: t("setup.done.added") });
-            void reload();
-          }}
-        />
-      ) : (
-        <Notice>{t(roles.some((r) => r.role === "coordinator") ? "setup.institutionOnly" : "setup.readOnly", { coordinator })}</Notice>
-      )}
+      {canManage ? null : <Notice>{t(roles.some((r) => r.role === "coordinator") ? "setup.institutionOnly" : "setup.readOnly", { coordinator })}</Notice>}
     </>
   );
 }

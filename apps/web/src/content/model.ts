@@ -58,8 +58,8 @@ export type FormErrors = Partial<Record<FieldName, MessageKey>>;
 /** The order the fields appear in, so the first problem in the list is the first one on screen. */
 const FIELD_ORDER: readonly FieldName[] = ["title", "body", "contact", "publishOnBs", "hideAfterBs"];
 
-export const emptyForm = (todayBs: string | null): FormValues => ({
-  kind: "notice",
+export const emptyForm = (todayBs: string | null, kind: Kind = "notice"): FormValues => ({
+  kind,
   title: "",
   body: "",
   contact: "",
@@ -148,7 +148,7 @@ export function joinBs({ year, month, day }: BsParts): string {
   return `${y}-${pad(m)}-${pad(d)}`;
 }
 
-export type EditTarget = { mode: "new" } | { mode: "edit"; id: string } | { mode: "invalid" };
+export type EditTarget = { mode: "new"; kind?: Kind } | { mode: "edit"; id: string } | { mode: "invalid" };
 
 /**
  * What the edit page was asked to open, from its address (`?id=...`). No `id` is a new item; an id
@@ -156,7 +156,11 @@ export type EditTarget = { mode: "new" } | { mode: "edit"; id: string } | { mode
  */
 export function parseEditTarget(search: string): EditTarget {
   const params = new URLSearchParams(search);
-  if (!params.has("id")) return { mode: "new" };
+  if (!params.has("id")) {
+    // A new item may start as a known kind (`?kind=post`, the dashboard's Publish Post, D-089).
+    const kind = params.get("kind");
+    return kind !== null && (KINDS as readonly string[]).includes(kind) ? { mode: "new", kind: kind as Kind } : { mode: "new" };
+  }
   const id = params.get("id") ?? "";
   return /^[0-9a-f]{32}$/.test(id) ? { mode: "edit", id } : { mode: "invalid" };
 }

@@ -5,7 +5,7 @@ import { useCallback, useState, type FormEvent } from "react";
 import { useConfig } from "@/config/ConfigProvider";
 import { t, type MessageKey } from "@/i18n/messages";
 import { useSession } from "@/session/SessionProvider";
-import { Button, Field, Notice } from "@/ui";
+import { AddDialog, Button, Field, Notice, TitleRow } from "@/ui";
 
 import { YearPicker } from "./ClassesScreen";
 import { createTerminal, loadTerminals, loadYears, type Loaded } from "./client";
@@ -30,7 +30,7 @@ export function TerminalsView({ terminals }: { terminals: readonly Terminal[] })
   );
 }
 
-function TerminalForm({ yearId, onAdded }: { yearId: string; onAdded: () => void }) {
+function TerminalForm({ yearId, onAdded, showTitle = true }: { yearId: string; onAdded: () => void; showTitle?: boolean }) {
   const { api } = useSession();
   const { term } = useConfig();
   const words = termWords(term);
@@ -61,7 +61,7 @@ function TerminalForm({ yearId, onAdded }: { yearId: string; onAdded: () => void
 
   return (
     <form onSubmit={submit} noValidate className={styles.form}>
-      <h2 className={styles.formTitle}>{t("setup.terminals.add", words)}</h2>
+      {showTitle ? <h2 className={styles.formTitle}>{t("setup.terminals.add", words)}</h2> : null}
       {problem ? <Notice tone="bad">{t(problem)}</Notice> : null}
       <Field label={t("setup.terminals.name")} value={name} maxLength={60} autoComplete="off" onChange={(event) => setName(event.target.value)} error={error ? t(error) : undefined} />
       <Button type="submit" loading={saving} loadingLabel={t("setup.working")}>
@@ -90,7 +90,25 @@ export function TerminalsScreen() {
 
   return (
     <>
-      <h1 className={styles.title}>{t("setup.terminals.title", words)}</h1>
+      <TitleRow>
+        <h1 className={styles.title}>{t("setup.terminals.title", words)}</h1>
+        {canManage && yearId ? (
+          <AddDialog label={t("setup.terminals.add", words)} title={t("setup.terminals.add", words)}>
+            {(close) => (
+              <TerminalForm
+                key={yearId}
+                yearId={yearId}
+                showTitle={false}
+                onAdded={() => {
+                  close();
+                  setSaved(true);
+                  void terminals.reload();
+                }}
+              />
+            )}
+          </AddDialog>
+        ) : null}
+      </TitleRow>
       {saved ? <Notice tone="ok">{t("setup.done.added")}</Notice> : null}
       <Gate view={years.view} onRetry={() => void years.reload()}>
         {({ years: list }) =>
@@ -111,15 +129,6 @@ export function TerminalsScreen() {
               <Gate view={terminals.view} onRetry={() => void terminals.reload()}>
                 {(data) => <TerminalsView terminals={data.terminals} />}
               </Gate>
-              {canManage && yearId ? (
-                <TerminalForm
-                  yearId={yearId}
-                  onAdded={() => {
-                    setSaved(true);
-                    void terminals.reload();
-                  }}
-                />
-              ) : null}
             </>
           )
         }

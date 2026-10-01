@@ -54,7 +54,7 @@ export function ContentForm() {
       // A new item starts on today's Nepali date; one light request gets it.
       const result = await loadContent(api, { limit: 1 });
       if (!active) return;
-      setLoaded(result.ok ? { status: "ready", values: emptyForm(result.todayBs), live: false } : { status: result.reason });
+      setLoaded(result.ok ? { status: "ready", values: emptyForm(result.todayBs, target.kind), live: false } : { status: result.reason });
     })();
     return () => {
       active = false;
