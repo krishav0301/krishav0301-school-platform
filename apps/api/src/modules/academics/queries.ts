@@ -1,3 +1,4 @@
+import { rowsOf, type DashboardPart } from "../../core/dashboard";
 import { adToBsText } from "../../core/dates";
 import type { AcademicYearList, Curriculum, ProgrammeList, SchoolClassList, SetupChecklist, SubjectList, Teaching, TerminalList } from "./schema";
 
@@ -364,4 +365,35 @@ export async function getSetupChecklist(db: D1Database, sections: "all" | readon
     .first<Record<string, number>>();
   const r = row!;
   return { year: r.year === 1, structure: r.structure === 1, classes: r.classes === 1, terminals: r.terminals === 1, subjects: r.subjects === 1, teachers: r.teachers === 1, classTeachers: r.classTeachers === 1 };
+}
+
+export interface ProgrammeDashboardRow {
+  id: string;
+  name: string;
+  sectionName: string;
+  active: number;
+  levels: number;
+  classes: number;
+  students: number;
+  teachers: number;
+}
+
+/** The dashboard's programmes (D-088): each programme with its levels, and this year's classes, students and teachers. */
+export function programmesDashboardPart(db: D1Database): DashboardPart<ProgrammeDashboardRow[]> {
+  return {
+    statements: [
+      db.prepare(
+        `SELECT pv.public_id AS id, pv.name, s.name AS sectionName, pv.is_active AS active,
+                (SELECT COUNT(*) FROM levels l WHERE l.programme_id = pv.id AND l.is_active = 1) AS levels,
+                (SELECT COUNT(*) FROM classes c JOIN levels l ON l.id = c.level_id JOIN academic_years y ON y.id = c.academic_year_id AND y.status = 'active'
+                  WHERE l.programme_id = pv.id AND c.is_active = 1) AS classes,
+                (SELECT COUNT(*) FROM enrollments e JOIN classes c ON c.id = e.class_id JOIN levels l ON l.id = c.level_id JOIN academic_years y ON y.id = c.academic_year_id AND y.status = 'active'
+                  WHERE l.programme_id = pv.id AND e.status = 'active') AS students,
+                (SELECT COUNT(DISTINCT ta.teacher_user_id) FROM teacher_assignments ta JOIN classes c ON c.id = ta.class_id JOIN levels l ON l.id = c.level_id
+                   JOIN academic_years y ON y.id = c.academic_year_id AND y.status = 'active' WHERE l.programme_id = pv.id AND ta.is_active = 1) AS teachers
+           FROM programmes pv JOIN sections s ON s.id = pv.section_id ORDER BY s.ordering, pv.ordering`,
+      ),
+    ],
+    read: ([r]) => rowsOf<ProgrammeDashboardRow>(r),
+  };
 }

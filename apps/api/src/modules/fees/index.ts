@@ -11,3 +11,4 @@ export function registerFeesApprovalHandlers(): void {
   registerApprovalHandler("reversal", reversalApprovalHandler);
   registerApprovalHandler("refund", refundApprovalHandler);
 }
+export { feesDashboardPart, type FeesDashboard } from "./dues";

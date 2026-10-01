@@ -118,6 +118,8 @@ describe("sensitive rules, stated independently (docs/source/sample-creation-inf
     "setup.structure.manage": ["COO", "SUP"],
     // Programmes and their levels: only the Admin (and Support), never a Co-ordinator (D-087).
     "setup.programmes.manage": ["ADM", "SUP"],
+    // The Principal's dashboard: the Admin and Support only; never a Co-ordinator, Accountant, Teacher or Student (D-088).
+    "dashboard.overview.view": ["ADM", "SUP"],
     "setup.structure.view": ["COO", "ADM", "SUP"],
     // Subjects, offerings, mark components and elective groups: the same people.
     "setup.subjects.manage": ["COO", "SUP"],

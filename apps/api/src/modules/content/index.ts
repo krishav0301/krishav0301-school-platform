@@ -2,3 +2,4 @@
 export { listPublicContent } from "./queries";
 export { registerContentApprovalHandler } from "./service";
 export type { PublicContent, PublicContentItem } from "./schema";
+export { contentDashboardPart } from "./queries";

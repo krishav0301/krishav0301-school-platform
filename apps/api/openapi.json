@@ -7016,6 +7016,504 @@
         ],
         "additionalProperties": false
       },
+      "DashboardOverview": {
+        "type": "object",
+        "properties": {
+          "asOf": {
+            "type": "string"
+          },
+          "todayBs": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "schoolDay": {
+            "type": "boolean"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "on_track",
+              "attention",
+              "several"
+            ]
+          },
+          "students": {
+            "type": "object",
+            "properties": {
+              "total": {
+                "type": "integer"
+              },
+              "changePercent": {
+                "type": [
+                  "integer",
+                  "null"
+                ]
+              }
+            },
+            "required": [
+              "total",
+              "changePercent"
+            ]
+          },
+          "staff": {
+            "type": "object",
+            "properties": {
+              "total": {
+                "type": "integer"
+              },
+              "changePercent": {
+                "type": [
+                  "integer",
+                  "null"
+                ]
+              }
+            },
+            "required": [
+              "total",
+              "changePercent"
+            ]
+          },
+          "attendance": {
+            "type": "object",
+            "properties": {
+              "percent": {
+                "type": [
+                  "integer",
+                  "null"
+                ]
+              },
+              "present": {
+                "type": "integer"
+              },
+              "marked": {
+                "type": "integer"
+              },
+              "enrolled": {
+                "type": "integer"
+              },
+              "previousPercent": {
+                "type": [
+                  "integer",
+                  "null"
+                ]
+              },
+              "trend": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "date": {
+                      "type": "string"
+                    },
+                    "dateBs": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "percent": {
+                      "type": [
+                        "integer",
+                        "null"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "date",
+                    "dateBs",
+                    "percent"
+                  ]
+                }
+              },
+              "byProgramme": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "percent": {
+                      "type": [
+                        "integer",
+                        "null"
+                      ]
+                    },
+                    "present": {
+                      "type": "integer"
+                    },
+                    "marked": {
+                      "type": "integer"
+                    },
+                    "enrolled": {
+                      "type": "integer"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "name",
+                    "percent",
+                    "present",
+                    "marked",
+                    "enrolled"
+                  ]
+                }
+              }
+            },
+            "required": [
+              "percent",
+              "present",
+              "marked",
+              "enrolled",
+              "previousPercent",
+              "trend",
+              "byProgramme"
+            ]
+          },
+          "fees": {
+            "type": "object",
+            "properties": {
+              "collectedPaisa": {
+                "type": "integer"
+              },
+              "changePercent": {
+                "type": [
+                  "integer",
+                  "null"
+                ]
+              },
+              "chargedPaisa": {
+                "type": "integer"
+              },
+              "paidPaisa": {
+                "type": "integer"
+              },
+              "duePaisa": {
+                "type": "integer"
+              },
+              "overduePaisa": {
+                "type": "integer"
+              }
+            },
+            "required": [
+              "collectedPaisa",
+              "changePercent",
+              "chargedPaisa",
+              "paidPaisa",
+              "duePaisa",
+              "overduePaisa"
+            ]
+          },
+          "programmes": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "sectionName": {
+                  "type": "string"
+                },
+                "active": {
+                  "type": "boolean"
+                },
+                "levels": {
+                  "type": "integer"
+                },
+                "classes": {
+                  "type": "integer"
+                },
+                "students": {
+                  "type": "integer"
+                },
+                "teachers": {
+                  "type": "integer"
+                }
+              },
+              "required": [
+                "id",
+                "name",
+                "sectionName",
+                "active",
+                "levels",
+                "classes",
+                "students",
+                "teachers"
+              ]
+            }
+          },
+          "results": {
+            "type": "object",
+            "properties": {
+              "publications": {
+                "type": "integer"
+              },
+              "lastPublishedAt": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "byProgramme": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "policy": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "cards": {
+                      "type": "integer"
+                    },
+                    "passed": {
+                      "type": "integer"
+                    },
+                    "passPercent": {
+                      "type": [
+                        "integer",
+                        "null"
+                      ]
+                    },
+                    "avgGpaHundredths": {
+                      "type": [
+                        "integer",
+                        "null"
+                      ]
+                    },
+                    "avgPercentHundredths": {
+                      "type": [
+                        "integer",
+                        "null"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "name",
+                    "policy",
+                    "cards",
+                    "passed",
+                    "passPercent",
+                    "avgGpaHundredths",
+                    "avgPercentHundredths"
+                  ]
+                }
+              }
+            },
+            "required": [
+              "publications",
+              "lastPublishedAt",
+              "byProgramme"
+            ]
+          },
+          "attention": {
+            "type": "object",
+            "properties": {
+              "approvals": {
+                "type": "object",
+                "properties": {
+                  "count": {
+                    "type": "integer"
+                  },
+                  "kinds": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "kind": {
+                          "type": "string"
+                        },
+                        "count": {
+                          "type": "integer"
+                        }
+                      },
+                      "required": [
+                        "kind",
+                        "count"
+                      ]
+                    }
+                  }
+                },
+                "required": [
+                  "count",
+                  "kinds"
+                ]
+              },
+              "feeFollowUps": {
+                "type": "integer"
+              },
+              "anomalies": {
+                "type": "object",
+                "properties": {
+                  "count": {
+                    "type": "integer"
+                  },
+                  "classes": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "name": {
+                          "type": "string"
+                        },
+                        "kind": {
+                          "type": "string",
+                          "enum": [
+                            "low",
+                            "unmarked"
+                          ]
+                        },
+                        "percent": {
+                          "type": [
+                            "integer",
+                            "null"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "name",
+                        "kind",
+                        "percent"
+                      ]
+                    }
+                  }
+                },
+                "required": [
+                  "count",
+                  "classes"
+                ]
+              },
+              "websiteDrafts": {
+                "type": "integer"
+              }
+            },
+            "required": [
+              "approvals",
+              "feeFollowUps",
+              "anomalies",
+              "websiteDrafts"
+            ]
+          },
+          "website": {
+            "type": "object",
+            "properties": {
+              "origin": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "live": {
+                "type": "integer"
+              },
+              "drafts": {
+                "type": "integer"
+              },
+              "waiting": {
+                "type": "integer"
+              },
+              "lastPublishedAt": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            },
+            "required": [
+              "origin",
+              "live",
+              "drafts",
+              "waiting",
+              "lastPublishedAt"
+            ]
+          },
+          "activity": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "at": {
+                  "type": "string"
+                },
+                "action": {
+                  "type": "string"
+                },
+                "summary": {
+                  "type": "string"
+                },
+                "actorName": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "actorIsSupport": {
+                  "type": "boolean"
+                },
+                "entityType": {
+                  "type": "string"
+                },
+                "entityId": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                }
+              },
+              "required": [
+                "id",
+                "at",
+                "action",
+                "summary",
+                "actorName",
+                "actorIsSupport",
+                "entityType",
+                "entityId"
+              ]
+            }
+          }
+        },
+        "required": [
+          "asOf",
+          "todayBs",
+          "schoolDay",
+          "status",
+          "students",
+          "staff",
+          "attendance",
+          "fees",
+          "programmes",
+          "results",
+          "attention",
+          "website",
+          "activity"
+        ]
+      },
       "DateConversionFailure": {
         "type": "object",
         "properties": {
@@ -15819,6 +16317,27 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ResultsInvalid"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/dashboard/overview": {
+      "get": {
+        "operationId": "dashboard_overview",
+        "tags": [
+          "dashboard"
+        ],
+        "description": "The whole school at a glance for the Principal: students, staff, attendance, fees, programmes, results, what needs attention, the website and recent activity. One round trip.",
+        "responses": {
+          "200": {
+            "description": "The dashboard",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DashboardOverview"
                 }
               }
             }

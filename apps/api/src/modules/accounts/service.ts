@@ -1,3 +1,4 @@
+import { rowsOf, type DashboardPart } from "../../core/dashboard";
 import { recordAudit } from "../../core/audit";
 import { newPublicId } from "../../core/ids";
 import { hashPassword, passwordProblems, type PasswordProblem } from "../../core/passwords";
@@ -129,3 +130,22 @@ export async function resetTwoFactor(
 }
 
 export * from "./staff";
+
+/**
+ * The dashboard's "Faculty & Staff" figure (D-088): active people with an active Teacher, Co-ordinator or Accountant
+ * role, now and at `since`. The Admin and Support are not counted.
+ */
+export function staffDashboardPart(db: D1Database, since: string): DashboardPart<{ total: number; previous: number }> {
+  return {
+    statements: [
+      db
+        .prepare(
+          `SELECT COUNT(DISTINCT u.id) AS total, COUNT(DISTINCT CASE WHEN u.created_at < ?1 THEN u.id END) AS previous
+             FROM users u JOIN role_assignments ra ON ra.user_id = u.id
+            WHERE u.is_active = 1 AND ra.is_active = 1 AND ra.role IN ('teacher', 'coordinator', 'accountant')`,
+        )
+        .bind(since),
+    ],
+    read: ([r]) => rowsOf<{ total: number; previous: number }>(r)[0] ?? { total: 0, previous: 0 },
+  };
+}

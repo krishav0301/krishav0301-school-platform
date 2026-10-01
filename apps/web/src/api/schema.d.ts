@@ -2294,6 +2294,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/dashboard/overview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description The whole school at a glance for the Principal: students, staff, attendance, fees, programmes, results, what needs attention, the website and recent activity. One round trip. */
+        get: operations["dashboard_overview"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/dates/to-ad": {
         parameters: {
             query?: never;
@@ -3921,6 +3938,111 @@ export interface components {
                 valueHundredths: number | null;
                 /** @default false */
                 absent: boolean;
+            }[];
+        };
+        DashboardOverview: {
+            asOf: string;
+            todayBs: string | null;
+            schoolDay: boolean;
+            /** @enum {string} */
+            status: "on_track" | "attention" | "several";
+            students: {
+                total: number;
+                changePercent: number | null;
+            };
+            staff: {
+                total: number;
+                changePercent: number | null;
+            };
+            attendance: {
+                percent: number | null;
+                present: number;
+                marked: number;
+                enrolled: number;
+                previousPercent: number | null;
+                trend: {
+                    date: string;
+                    dateBs: string | null;
+                    percent: number | null;
+                }[];
+                byProgramme: {
+                    id: string;
+                    name: string;
+                    percent: number | null;
+                    present: number;
+                    marked: number;
+                    enrolled: number;
+                }[];
+            };
+            fees: {
+                collectedPaisa: number;
+                changePercent: number | null;
+                chargedPaisa: number;
+                paidPaisa: number;
+                duePaisa: number;
+                overduePaisa: number;
+            };
+            programmes: {
+                id: string;
+                name: string;
+                sectionName: string;
+                active: boolean;
+                levels: number;
+                classes: number;
+                students: number;
+                teachers: number;
+            }[];
+            results: {
+                publications: number;
+                lastPublishedAt: string | null;
+                byProgramme: {
+                    id: string;
+                    name: string;
+                    policy: string | null;
+                    cards: number;
+                    passed: number;
+                    passPercent: number | null;
+                    avgGpaHundredths: number | null;
+                    avgPercentHundredths: number | null;
+                }[];
+            };
+            attention: {
+                approvals: {
+                    count: number;
+                    kinds: {
+                        kind: string;
+                        count: number;
+                    }[];
+                };
+                feeFollowUps: number;
+                anomalies: {
+                    count: number;
+                    classes: {
+                        id: string;
+                        name: string;
+                        /** @enum {string} */
+                        kind: "low" | "unmarked";
+                        percent: number | null;
+                    }[];
+                };
+                websiteDrafts: number;
+            };
+            website: {
+                origin: string | null;
+                live: number;
+                drafts: number;
+                waiting: number;
+                lastPublishedAt: string | null;
+            };
+            activity: {
+                id: string;
+                at: string;
+                action: string;
+                summary: string;
+                actorName: string | null;
+                actorIsSupport: boolean;
+                entityType: string;
+                entityId: string | null;
             }[];
         };
         DateConversionFailure: {
@@ -10403,6 +10525,26 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ResultsInvalid"];
+                };
+            };
+        };
+    };
+    dashboard_overview: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The dashboard */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DashboardOverview"];
                 };
             };
         };

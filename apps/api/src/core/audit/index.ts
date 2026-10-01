@@ -7,3 +7,4 @@ export {
   type ChainSummary,
   type VerifyResult,
 } from "./verify";
+export { ACTIVITY_ACTIONS, recentActivityPart, type ActivityRow } from "./recent";

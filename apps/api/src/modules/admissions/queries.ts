@@ -1,3 +1,4 @@
+import { rowsOf, type DashboardPart } from "../../core/dashboard";
 import { adToBsText } from "../../core/dates";
 import type { ApplicationDetail, ApplicationQueue, OpenLevelList, StudentDetail, StudentList } from "./schema";
 
@@ -212,4 +213,23 @@ export async function getStudent(db: D1Database, sections: "all" | readonly stri
 /** The signed-in student's own record. */
 export async function getOwnStudent(db: D1Database, userPublicId: string): Promise<StudentDetail | null> {
   return studentDetailFrom(db, "st.user_id = (SELECT id FROM users WHERE public_id = ?1)", userPublicId);
+}
+
+/**
+ * The dashboard's students figure (D-088): active students of the active year now, and how many of them were already
+ * enrolled at `since` (the start of the comparison window), so the change is "vs last month".
+ */
+export function studentsDashboardPart(db: D1Database, since: string): DashboardPart<{ total: number; previous: number }> {
+  return {
+    statements: [
+      db
+        .prepare(
+          `SELECT COUNT(*) AS total, COALESCE(SUM(CASE WHEN en.created_at < ?1 THEN 1 ELSE 0 END), 0) AS previous
+             FROM enrollments en JOIN academic_years ay ON ay.id = en.academic_year_id
+            WHERE ay.status = 'active' AND en.status = 'active'`,
+        )
+        .bind(since),
+    ],
+    read: ([r]) => rowsOf<{ total: number; previous: number }>(r)[0] ?? { total: 0, previous: 0 },
+  };
 }
