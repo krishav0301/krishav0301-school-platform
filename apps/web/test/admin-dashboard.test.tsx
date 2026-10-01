@@ -68,7 +68,7 @@ describe("the Principal's dashboard (D-088)", () => {
     expect(html).toContain("+5%");
     expect(html).toContain("92%");
     expect(html).toContain("1,148 of 1,248 present");
-    expect(html).toContain("Rs. 28.4 L");
+    expect(html).toContain("NPR 28.4 L");
     expect(html).toContain("+12%");
     expect(html).toContain("Nothing to compare yet"); // staff had no figure a month ago
   });
