@@ -690,6 +690,116 @@ The matrix lives in code (61 actions, 8 groups, from the reviewed `permission-ma
 - **Design review** (`apple-design`): `hig/entering-data.md › Best practices` (be clear about the data you need; prefill a sensible default: "Show from" is today) and `hig/typography.md` (the holiday line is set apart by weight, not colour). Nothing left open.
 - **Not done (explained to the PM, not built).** The home page does not list posts: it links to Notices and updates, as designed in Phase 2 (D-039, D-046). A "Latest notices" block on the home page is a separate request.
 
+**D-095 Sections are the Principal's to create; a school starts with none.** 2026-10-01, at the PM's request ("this should be out of box. For college admin can add Bachelor, Master, Architecture and then under this we can have subjects. If same is used for school it can be primary, high and junior college"). This extends D-087 (programmes) to sections, and replaces the pack-defined sections ("+2", "Bachelor's") of CLAUDE.md section 5. **This touches permissions and money**: section scopes, receipt numbering and the Top 20 are all keyed by section. None of those rules changed; only who creates sections, and when.
+- **Built.**
+  - Royal Softech's and the sample school's packs list no sections. A pack may still list some (demo and test packs), and applying one still only adds.
+  - The Admin or Super Admin adds a section on the Programs screen, and can rename it. This uses the existing `setup.programmes.manage` permission, now worded "Manage sections, programmes and their levels".
+  - Each write re-checks the person inside its own batch and is audited (`academics.section.created`, `academics.section.renamed`).
+  - The key is generated (`s` plus 10 hex characters) and never changes, so everything keyed by it is safe across a rename.
+  - Two sections may not share a name, whatever the capitals. A section is never deleted.
+  - The programme list now also returns the sections the person may see, in the same round trip, so a new section shows at once.
+  - On the Programs screen, a "Sections" card sits above the programmes. With no sections, "Add a Section" is the page's one prominent button and no programme can be added yet. Once there are sections, "Add a Programme" becomes the prominent button and "Add a Section" becomes secondary. Each section has a quiet "Rename".
+  - AddDialog gained `variant`, `plus` and `ariaLabel` props for this.
+- **Tests.**
+  - API `sections.test.ts` (11 tests):
+    - a new school has none;
+    - Admin and Super Admin add sections, which are audited, ordered and verified on the chain;
+    - Co-ordinator, Accountant and Teacher are refused, and nothing is written;
+    - an Admin switched off since signing in is refused inside the write;
+    - duplicate, blank and over-long names are refused;
+    - a programme can be added under a new section;
+    - rename keeps the key and the programmes, and is audited with before and after;
+    - a rename to the same name changes nothing; another section's name is a conflict; an unknown key is not found;
+    - only the Admin or Super Admin may rename;
+    - a section-scoped person sees only their own section.
+  - Pack tests rewritten for the new rule.
+  - Every other test school gets its old sections from test data: `testPack` in `test/programme-fixtures.ts` and `test/sections.ts` on the web side.
+  - Web: 3 Sections card tests.
+  - Totals: API 1,536 tests, web 591, plus typecheck, lint, build, page weight, BOM, boundaries and a wrangler dry run.
+- **Design review** (`apple-design`): D-030's one prominent button per view, applied by giving the prominent button to whichever action comes next; `hig/entering-data.md › Best practices` (be clear about the data you need: the hint gives examples, "Bachelor's, Master's or Primary").
+- **Staging.** `school_staging_uat` still held the two sections from its first provisioning. Nothing referred to them (no programmes, role assignments, staff home sections, receipt counters or receipts), so at the PM's request they were removed with a one-off command the PM ran, like the programmes in D-093.
+- **Not done.**
+  - Switching a section off, which nothing needs yet.
+  - The public website's Programmes page still groups by the section key each public programme names in the pack's site words. With no matching section, those programmes are listed without a heading.
+  - `OPEN:` whether the public site's programme list should come from the Admin's programmes rather than the pack's words is a PM decision.
+
+**D-096 The Programs screen becomes "Academic Structure".** 2026-10-01, from the PM's reference image and written brief. The page shows sections, then programmes, then levels, after the PM's design. No permission or money rule changed. The page reuses the existing models and routes; there is no new table and no second API.
+- **Built.**
+  - **The data.** `GET /api/academics/programmes` now carries, in the same single round trip:
+    - each level's `students`: active enrollments in the active year, counted by one grouped query, never by fetching records;
+    - each programme's `students`;
+    - `totals` for sections, programmes switched on, levels switched on of programmes switched on, and students.
+
+    A section-scoped person's figures cover only their section.
+  - **The layout.**
+    - The page title is "Academic Structure", with the subtitle in the school's own words, lower-case mid-sentence.
+    - "Add a Section" is the page's one prominent button.
+    - Four figure cards.
+    - Each section is a raised card showing its programmes, levels and students, with Rename and a show/hide chevron.
+    - Inside a section: "Programmes" with Add a Programme, and each programme as a bordered card. A programme card shows its affiliation badge (the existing affiliation; nothing like "NAAC" is invented), its counts and grading, Edit (name, affiliation, grading, switch off/on) and a chevron.
+    - Inside a programme: "Levels" with Add a Level, and each level as a row with its students and a ⋮ that opens rename and switch off/on.
+    - The first section and its first programme start open.
+    - Singular forms read correctly ("1 Level · 1 Student").
+    - Empty, loading (skeleton of the page's shape) and failed (inline, with Try again) states. Change failures are announced politely.
+  - **Kept as it was.**
+    - Nothing is deleted: a programme or level is switched off and keeps its history.
+    - Every change goes through the existing service, which re-checks the person inside its batch and is audited.
+  - **Smaller changes.** AddDialog gained `icon` and `hideLabel` for the icon-only ⋮. The old ProgrammesView and SectionsCard were replaced, and their now-unused words removed.
+- **Not built, and why.**
+  - **Reordering levels.** A level's ordinal is its place in the programme, which the year lifecycle (Phase 8: promotion) will rely on. Changing it is a Phase 8 decision.
+  - **Deleting anything.** Not allowed (CLAUDE.md section 6).
+  - **The ⋮ on sections and programmes.** It would have held one entry or none, and D-030 says a menu of one entry is not shown.
+  - **Header search and bell.** Left out by the PM.
+  - **Programme-specific icons.** The model has no programme type to choose them by, so each programme gets the same book icon in a rotating tint.
+- **Tests.**
+  - API `academic-structure.test.ts` (3 tests): counts per level and programme, students who have left not counted; totals ignore switched-off items; a section-scoped person's figures cover only their section.
+  - `academics-routes.test.ts` level shape updated.
+  - Web `setup-screens.test.tsx` (10 tests): figures, section counts, what starts open, heading levels 2, 3 and 4, badges and singular forms, the Admin's named controls with no second prominent button, a read-only view with no controls, empty states, and no colour of its own.
+  - Totals: API 1,539 tests, web 596, plus typecheck, lint, build, page weight, BOM, boundaries and a wrangler dry run.
+  - Checked in the browser preview as a Co-ordinator at 1440 px and 320 px, with no sideways scroll.
+- **Design** (`ui-ux-pro-max`): the "nested accordion" and "progressive disclosure" searches returned no matching guidance, so the built-in defaults were used: real buttons with `aria-expanded`, 44 px targets, transform and opacity motion only, reduced motion respected.
+- **Review** (`apple-design`):
+  - `hig/layout.md › Best practices` (group related items) and `› Visual hierarchy` (alignment and indentation show the hierarchy), applied as raised card, then bordered card, then row.
+  - `hig/disclosure-controls.md › Disclosure triangles` (a descriptive label: "Show Mechanical Engineering").
+  - The same page's "no more than one disclosure *button* in a view" concerns a different control; the chevrons here are disclosure triangles, one per row, as the PM's design asks.
+  - `hig/entering-data.md › Best practices` (each form says what it needs, with examples).
+- **Seen in passing.** Next.js link prefetches log 404s for page-data files on every portal page. This was already the case before this change; it is flagged as a separate task.
+
+**D-097 Delete only what nothing is attached to; otherwise switch it off.** 2026-10-01, at the PM's request ("if the higher set has dependent sub sets it can't be deleted. It can only be deleted if no further connections is present. This should be applicable until the very last"). **This changes CLAUDE.md section 6's "no hard deletes" for the academic structure only.**
+- **The rule.** A section, programme, level or class may be deleted only while nothing points at it. Students, enrollments, the ledger, receipts, marks and the audit log are never deleted: a student always has an enrollment and history, so there is nothing to delete there. Anything in use can always be switched off instead, which keeps its history.
+- **What counts as "attached".** All checked inside the delete statement itself, and backed by the foreign keys, so a link added a moment earlier makes the delete fail rather than leave anything pointing nowhere.
+
+  | Item | Cannot be deleted while it has… |
+  |---|---|
+  | Section | a programme, a role assignment scoped to it, a staff home section, a receipt counter or a receipt |
+  | Programme | a level, a class or an application |
+  | Level | a class, a subject offering, an elective group, an application or a fee structure |
+  | Class | an enrollment (its students, and through them attendance and fees), a teacher assignment, an activity-log entry, a note, homework, a mark sheet or a published result |
+
+  A class in a closed year is never deleted (the year lock).
+- **Who.** Sections, programmes and levels: the Admin or Super Admin, as for adding them. Classes: a Co-ordinator of the class's section, or the Super Admin (`setup.structure.manage`), as for changing them. Each delete re-checks the person inside the write and is audited (`academics.<kind>.deleted`, with what was deleted).
+- **Sections can now be switched off** (migration 0026, `sections.is_active`). A switched-off section keeps everything in it, takes no new programmes (refused with a message), and is no longer offered where a section is chosen (the public configuration lists only sections switched on).
+- **Screens.**
+  - On the Academic Structure page, a section's Rename becomes **Edit**: rename, switch off/on, and Delete. A programme's Edit and a level's ⋮ also offer Delete.
+  - Delete asks once more ("Delete X? This can't be undone." with "Yes, delete X" or "Keep it").
+  - Where something is attached, the Edit says what is in the way and to switch it off instead.
+  - On the Classes screen, Delete appears only on a class nothing is attached to.
+  - The list answers carry `canDelete` (and a section's `active`), worked out by the database, so the screens never guess.
+- **Routes.** `DELETE /api/academics/sections/{key}`, `/programmes/{id}`, `/levels/{id}` and `/classes/{id}`. Anything attached gives 409 `in_use`. `PATCH /api/academics/sections/{key}` now takes `active` too.
+- **Tests.**
+  - API `structure-removal.test.ts` (8 tests):
+    - an empty section is deleted and audited;
+    - bottom-up deletion: a level, then its programme, then its section, each only once the one below is gone;
+    - a level with a class, and everything above it, is in use;
+    - a staff home section is in use;
+    - only the Admin or Super Admin may delete, and an unknown id is not found;
+    - a switched-off section takes no programmes, is left out of the configuration, is audited, and can be switched back on;
+    - a class with students is in use, while an empty one is deleted by the Co-ordinator and audited;
+    - another section's Co-ordinator and a Teacher are refused.
+  - Earlier tests updated for the new fields.
+  - Web: 3 new tests.
+  - Totals: API 1,547 tests, web 599, plus typecheck, lint, build, page weight, BOM, boundaries and a wrangler dry run.
+
 ## Open items carried forward
 
 - **No CAPTCHA on the public apply form (D-063).** Relies on rate limiting and an off-screen honeypot, which meets section 7's "rate limiting, CAPTCHA or similar" but is not a CAPTCHA. Add one only if real abuse appears.

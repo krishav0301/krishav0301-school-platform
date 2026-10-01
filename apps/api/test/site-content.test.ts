@@ -1,7 +1,8 @@
 import { env } from "cloudflare:test";
 import { describe, expect, it } from "vitest";
 
-import { applyPack, loadSiteContent, parsePack } from "../src/core/config";
+import { applyPack, loadSiteContent } from "../src/core/config";
+import { testPack } from "./programme-fixtures";
 import royalJson from "../../../packs/royal-softech/pack.json";
 
 describe("loadSiteContent", () => {
@@ -10,7 +11,7 @@ describe("loadSiteContent", () => {
   });
 
   it("returns the stored block once a pack is applied", async () => {
-    const pack = parsePack(royalJson);
+    const pack = testPack(royalJson);
     await applyPack(env.SCRATCH_DB, pack);
     expect(await loadSiteContent(env.SCRATCH_DB)).toEqual(pack.site);
   });

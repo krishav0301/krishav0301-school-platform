@@ -16,14 +16,14 @@ import { describe, expect, it } from "vitest";
 
 import { createApp } from "../src/app";
 import { verifyAuditChain } from "../src/core/audit";
-import { applyPack, parsePack, type Pack } from "../src/core/config";
+import { applyPack, type Pack } from "../src/core/config";
 import { bsToAd, daysInMonth, todayBs } from "../src/core/dates";
 import { signAccessToken, type RoleClaim } from "../src/core/tokens";
 import { createUser } from "../src/modules/accounts/service";
 import { verifyLedgerChain } from "../src/modules/fees/ledger";
 import royalJson from "../../../packs/royal-softech/pack.json";
 import sampleJson from "../../../packs/sample-basic-school/pack.json";
-import { seedProgrammes } from "./programme-fixtures";
+import { seedProgrammes, testPack } from "./programme-fixtures";
 
 const app = createApp();
 
@@ -31,7 +31,7 @@ describe.each([
   { label: "Royal Softech", json: royalJson, database: () => env.DB },
   { label: "Sample Basic School", json: sampleJson, database: () => env.SCRATCH_DB },
 ])("Phase 6 exit check: $label", ({ json, database }) => {
-  const pack: Pack = parsePack(json);
+  const pack: Pack = testPack(json);
   const db = () => database();
 
   const call = (path: string, options: { method?: string; body?: unknown; cookie?: string } = {}) =>

@@ -7,12 +7,13 @@ import { SessionContext, twoFactorFailure } from "@/session/SessionProvider";
 import { CodeStep, RecoveryCodesStep, SetupView, groupKey } from "@/two-factor/steps";
 import royal from "../../../packs/royal-softech/pack.json";
 import { fakeSession } from "./session";
+import { TEST_SECTIONS } from "./sections";
 
 vi.mock("next/navigation", () => ({ usePathname: () => "/", useRouter: () => ({ replace: vi.fn(), push: vi.fn() }) }));
 
 const config: PublicConfig = {
   school: { name: royal.school.name, shortName: royal.school.shortName, currency: "NPR", timezone: "Asia/Kathmandu", region: "nepal", template: null },
-  sections: royal.sections,
+  sections: TEST_SECTIONS.royal,
   modules: {},
   terms: {},
   theme: royal.theme as PublicConfig["theme"],

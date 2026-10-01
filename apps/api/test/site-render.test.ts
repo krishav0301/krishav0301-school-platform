@@ -2,6 +2,7 @@ import { env } from "cloudflare:test";
 import { beforeAll, describe, expect, it } from "vitest";
 
 import { applyPack, parsePack } from "../src/core/config";
+import { testPack } from "./programme-fixtures";
 import { nepalDate } from "../src/core/dates";
 import { createUser } from "../src/modules/accounts/service";
 import { createContent, publishContent } from "../src/modules/content/service";
@@ -12,7 +13,7 @@ import sampleJson from "../../../packs/sample-basic-school/pack.json";
 
 const db = env.DB;
 const key = env.AUDIT_HMAC_KEY;
-const royalSite = parsePack(royalJson).site;
+const royalSite = testPack(royalJson).site;
 
 /** What the web build gives the Worker: a static page with nothing school-specific in it. */
 const SHELL = `<!DOCTYPE html><html lang="en"><head><meta charSet="utf-8"/><meta name="viewport" content="width=device-width"/></head><body><div id="root">Loading</div><script src="/_next/app.js"></script></body></html>`;
@@ -85,7 +86,7 @@ describe("before the school is set up", () => {
 
 describe("a set-up school", () => {
   beforeAll(async () => {
-    await applyPack(db, parsePack(royalJson));
+    await applyPack(db, testPack(royalJson));
   });
 
   it("the home page gets a title, a description and a canonical address from the school's own details", async () => {
@@ -135,7 +136,7 @@ describe("a set-up school", () => {
     const copy = copyOf(html);
     expect(copy).toContain(`<h1>${escapeHtml(royalSite.home.headline)}</h1>`);
     // Section names are written escaped (an apostrophe becomes &#39;).
-    for (const section of royalJson.sections) expect(copy, section.name).toContain(section.name.replace(/'/g, "&#39;"));
+    for (const section of testPack(royalJson).sections) expect(copy, section.name).toContain(section.name.replace(/'/g, "&#39;"));
     expect(copy).toContain('<a href="/notices">');
     expect(html).toContain('<script>document.getElementById("server-copy").remove()</script>');
   });
@@ -213,7 +214,7 @@ describe("a set-up school", () => {
 
 describe("the notice board page", () => {
   beforeAll(async () => {
-    await applyPack(db, parsePack(royalJson));
+    await applyPack(db, testPack(royalJson));
   });
 
   it("carries what is live today, with its words and Nepali days, and nothing else", async () => {
@@ -271,7 +272,7 @@ describe("the notice board page", () => {
 
 describe("what comes from the database is never trusted as markup", () => {
   it("escapes a hostile title and text in the block, the title and the description", async () => {
-    await applyPack(db, parsePack(royalJson));
+    await applyPack(db, testPack(royalJson));
     await post({ title: `<script>alert("t")</script><img src=x onerror=alert(1)>`, body: `</div><script>alert("b")</script>&amp; "quotes" 'single'`, contact: null });
     const { html } = await page("/notices");
     const copy = copyOf(html);
@@ -285,7 +286,7 @@ describe("what comes from the database is never trusted as markup", () => {
   });
 
   it("keeps a title from closing the structured data's script tag", async () => {
-    await applyPack(db, parsePack(royalJson));
+    await applyPack(db, testPack(royalJson));
     await post({ title: `</script><script>alert("ld")</script>` });
     const { html } = await page("/notices");
     expect(html).not.toContain('<script>alert("ld")');
@@ -298,7 +299,7 @@ describe("what comes from the database is never trusted as markup", () => {
   });
 
   it("writes no raw <, > or & and no line-separator character into structured data, whatever a title holds", async () => {
-    await applyPack(db, parsePack(royalJson));
+    await applyPack(db, testPack(royalJson));
     const nasty = `a < b > c & d ${String.fromCharCode(0x2028)} e ${String.fromCharCode(0x2029)} f`;
     await post({ title: nasty });
     const { html } = await page("/notices");
@@ -316,27 +317,27 @@ describe("what comes from the database is never trusted as markup", () => {
   });
 
   it("escapes a school name and section names the same way", async () => {
-    await applyPack(db, parsePack({ ...royalJson, school: { ...royalJson.school, name: `Evil <b>&"'</b> College`, shortName: "Evil" } }));
+    await applyPack(db, testPack({ ...royalJson, school: { ...royalJson.school, name: `Evil <b>&"'</b> College`, shortName: "Evil" } }));
     const { html } = await page("/");
     expect(html).toContain("<title>Evil &lt;b&gt;&amp;&quot;&#39;&lt;/b&gt; College</title>");
     expect(html).not.toContain("<b>&");
-    await applyPack(db, parsePack(royalJson));
+    await applyPack(db, testPack(royalJson));
   });
 });
 
 describe("another school, from the same code", () => {
   it("says its own name and sections, and none of the first school's", async () => {
-    await applyPack(db, parsePack(sampleJson));
+    await applyPack(db, testPack(sampleJson));
     const { html } = await page("/");
     expect(html).toContain(`<title>${sampleJson.school.name}</title>`);
     expect(html).not.toContain("Royal Softech");
-    await applyPack(db, parsePack(royalJson));
+    await applyPack(db, testPack(royalJson));
   });
 });
 
 describe("cost", () => {
   it("reads the database a small, fixed number of times per page (no query per item)", async () => {
-    await applyPack(db, parsePack(royalJson));
+    await applyPack(db, testPack(royalJson));
     await Promise.all([1, 2, 3, 4, 5, 6].map((n) => post({ title: `Count ${n}` })));
     // A round trip is one batch, or one statement run on its own.
     let statements = 0;
@@ -369,7 +370,7 @@ describe("the six fixed pages", () => {
   ];
 
   beforeAll(async () => {
-    await applyPack(db, parsePack(royalJson));
+    await applyPack(db, testPack(royalJson));
   });
 
   it.each(fixed)("%s has its title, canonical address, heading, links to every page and its own words", async (path, heading, words) => {
@@ -431,17 +432,17 @@ describe("the six fixed pages", () => {
       for (const block of jsonLd(html)) expect(block, path).toBeTruthy(); // every block still parses
     }
     expect(copyOf((await page("/contact")).html)).toContain("&lt;script&gt;alert(&quot;x&quot;)&lt;/script&gt;");
-    await applyPack(db, parsePack(royalJson));
+    await applyPack(db, testPack(royalJson));
   });
 
   it("another school gets its own words on every page, and none of the first school's", async () => {
-    await applyPack(db, parsePack(sampleJson));
+    await applyPack(db, testPack(sampleJson));
     for (const path of SIX) {
       const { html } = await page(path);
       for (const word of ["Royal", "Lahan", "Siraha", "Purbanchal", "Tribhuvan", "NEB"]) expect(html, `${path} ${word}`).not.toContain(word);
     }
     expect(copyOf((await page("/")).html)).toContain("Sample Basic School: Nursery to Grade 10");
-    await applyPack(db, parsePack(royalJson));
+    await applyPack(db, testPack(royalJson));
   });
 
   it("serves the static page untouched when the school has no site words yet (before provisioning with them)", async () => {
@@ -449,7 +450,7 @@ describe("the six fixed pages", () => {
     for (const path of SIX) expect((await page(path)).html, path).toBe(SHELL);
     // The notice board does not depend on them.
     expect(copyOf((await page("/notices")).html)).toContain("<h1>Notices and updates</h1>");
-    await applyPack(db, parsePack(royalJson));
+    await applyPack(db, testPack(royalJson));
   });
 
   /**
@@ -485,7 +486,7 @@ describe("structured data that ties the pages together", () => {
   const PAGES = ["/", "/programmes", "/admission", "/scholarships", "/facilities", "/contact", "/notices"];
 
   beforeAll(async () => {
-    await applyPack(db, parsePack(royalJson));
+    await applyPack(db, testPack(royalJson));
   });
 
   const blocks = async (path: string) => jsonLd((await page(path, { origin: "https://royal.example" })).html);
@@ -518,7 +519,7 @@ describe("structured data that ties the pages together", () => {
     await applyPack(db, parsePack(bad));
     const org = orgOf(await blocks("/"));
     expect(org).not.toHaveProperty("email");
-    await applyPack(db, parsePack(royalJson));
+    await applyPack(db, testPack(royalJson));
   });
 
   it("the other pages keep the organisation block small: address and phones belong to Home and Contact", async () => {
@@ -555,10 +556,10 @@ describe("structured data that ties the pages together", () => {
   });
 
   it("another school gets its own details, not the first school's", async () => {
-    await applyPack(db, parsePack(sampleJson));
+    await applyPack(db, testPack(sampleJson));
     const org = orgOf(await blocks("/"));
     expect(org).toMatchObject({ "@id": ORG, address: { streetAddress: sampleJson.site.contact.address }, telephone: sampleJson.site.contact.phones, email: sampleJson.site.contact.email });
     expect(JSON.stringify(org)).not.toContain("Lahan");
-    await applyPack(db, parsePack(royalJson));
+    await applyPack(db, testPack(royalJson));
   });
 });

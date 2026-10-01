@@ -38,6 +38,18 @@ const ProgrammeName = z.string().trim().min(1, "Give the programme a name").max(
 const Affiliation = z.string().trim().min(1, "Give the affiliation, for example NEB").max(120, "Keep the affiliation to 120 characters");
 const LevelName = z.string().trim().min(1, "Give the level a name").max(60, "Keep the name to 60 characters");
 
+/**
+ * A section (D-095): a part of the school that groups programmes, such as "Bachelor's", "Master's", "Primary". The
+ * Admin makes them; a school starts with none. Its key is generated and never changes: section scopes, receipt
+ * numbering and the Top 20 are keyed by it. Only the name may change.
+ */
+const SectionName = z.string().trim().min(1, "Give the section a name").max(60, "Keep the name to 60 characters");
+export const CreateSectionSchema = z.strictObject({ name: SectionName }).openapi("CreateSection");
+export type SectionInput = z.input<typeof CreateSectionSchema>;
+export const SectionChangesSchema = z.strictObject({ name: SectionName, active: z.boolean() }).partial().openapi("SectionChanges");
+export type SectionChanges = z.infer<typeof SectionChangesSchema>;
+export const SectionKeyParam = z.object({ key: z.string().regex(/^[a-z][a-z0-9_]{0,30}$/) });
+
 export const CreateProgrammeSchema = z
   .strictObject({ name: ProgrammeName, sectionKey: z.string().regex(/^[a-z][a-z0-9_]{0,30}$/, "Choose a section"), affiliation: Affiliation })
   .openapi("CreateProgramme");
@@ -94,7 +106,18 @@ export const AcademicYearSchema = z
 export const AcademicYearListSchema = z.object({ years: z.array(AcademicYearSchema) }).openapi("AcademicYearList");
 export type AcademicYearList = z.infer<typeof AcademicYearListSchema>;
 
-export const LevelSchema = z.object({ id: z.string(), ordinal: z.number().int(), name: z.string(), active: z.boolean() }).openapi("Level");
+export const LevelSchema = z
+  .object({
+    id: z.string(),
+    ordinal: z.number().int(),
+    name: z.string(),
+    active: z.boolean(),
+    /** Students enrolled at this level in the active year (D-096); 0 when no year is active. */
+    students: z.number().int(),
+    /** Nothing is attached to it (no class, subject, elective group, application or fee structure), so it may be deleted (D-097). */
+    canDelete: z.boolean(),
+  })
+  .openapi("Level");
 export const ProgrammeSchema = z
   .object({
     id: z.string(),
@@ -105,9 +128,34 @@ export const ProgrammeSchema = z
     active: z.boolean(),
     gradingPolicy: GradingPolicySchema.nullable(),
     levels: z.array(LevelSchema),
+    /** Students enrolled in this programme in the active year: the sum of its levels' (D-096). */
+    students: z.number().int(),
+    /** It has no levels and no applications, so it may be deleted (D-097). */
+    canDelete: z.boolean(),
   })
   .openapi("Programme");
-export const ProgrammeListSchema = z.object({ programmes: z.array(ProgrammeSchema) }).openapi("ProgrammeList");
+export const SectionSchema = z
+  .object({
+    key: z.string(),
+    name: z.string(),
+    /** Switched off sections keep their history and take no new programmes (D-097). */
+    active: z.boolean(),
+    /** Nothing is attached to it (no programme, staff scope or home section, receipt or receipt counter), so it may be deleted (D-097). */
+    canDelete: z.boolean(),
+  })
+  .openapi("Section");
+export const ProgrammeListSchema = z
+  .object({
+    programmes: z.array(ProgrammeSchema),
+    /** The sections the person may see, in order, with or without programmes: the Programs screen lists and adds to them (D-095). */
+    sections: z.array(SectionSchema),
+    /**
+     * The Academic Structure page's four figures (D-096), worked out here from the same rows: sections, programmes
+     * switched on, levels switched on (of programmes switched on), and students enrolled in the active year.
+     */
+    totals: z.object({ sections: z.number().int(), programmes: z.number().int(), levels: z.number().int(), students: z.number().int() }),
+  })
+  .openapi("ProgrammeList");
 export type ProgrammeList = z.infer<typeof ProgrammeListSchema>;
 
 export const SchoolClassSchema = z
@@ -122,6 +170,8 @@ export const SchoolClassSchema = z
     /** Empty when the class has no label. */
     label: z.string(),
     active: z.boolean(),
+    /** No student, teacher, activity, note, homework, mark sheet or published result is attached, so it may be deleted (D-097). */
+    canDelete: z.boolean(),
   })
   .openapi("SchoolClass");
 export const SchoolClassListSchema = z.object({ classes: z.array(SchoolClassSchema) }).openapi("SchoolClassList");

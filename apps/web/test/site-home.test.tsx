@@ -5,6 +5,7 @@ import { HomeFrameView, HomeView } from "@/site/HomeView";
 import { siteFrom } from "./site-fixture";
 import royalJson from "../../../packs/royal-softech/pack.json";
 import sampleJson from "../../../packs/sample-basic-school/pack.json";
+import { TEST_SECTIONS, sectionsOf } from "./sections";
 
 vi.mock("next/navigation", () => ({ usePathname: () => "/", useRouter: () => ({ replace: vi.fn(), push: vi.fn() }) }));
 
@@ -15,7 +16,7 @@ describe.each([
   { label: "Royal Softech", json: royalJson },
   { label: "Sample Basic School", json: sampleJson },
 ])("$label's home page", ({ json }) => {
-  const pack = { sections: json.sections };
+  const pack = { sections: sectionsOf(json) };
   const site = siteFrom(json);
   const html = renderToStaticMarkup(<HomeView site={site} sections={pack.sections} urgent={[]} />);
 
@@ -65,7 +66,7 @@ describe.each([
 });
 
 describe("the urgent strip", () => {
-  const pack = { site: siteFrom(royalJson), sections: royalJson.sections };
+  const pack = { site: siteFrom(royalJson), sections: TEST_SECTIONS.royal };
 
   it("is left out when nothing is urgent", () => {
     const html = renderToStaticMarkup(<HomeView site={pack.site} sections={pack.sections} urgent={[]} />);
@@ -83,7 +84,7 @@ describe("the urgent strip", () => {
 });
 
 describe("the home page before its words are ready", () => {
-  const pack = { site: siteFrom(royalJson), sections: royalJson.sections };
+  const pack = { site: siteFrom(royalJson), sections: TEST_SECTIONS.royal };
   const frame = (view: Parameters<typeof HomeFrameView>[0]["view"]) =>
     renderToStaticMarkup(<HomeFrameView schoolName="Royal Softech College" sections={pack.sections} view={view} urgent={[]} onRetry={() => {}} />);
 

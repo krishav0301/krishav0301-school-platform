@@ -197,3 +197,20 @@
   min-height: var(--control-height);
   color: var(--color-primary);
 }
+
+/* The school's sections (D-095), above its programmes: the Card gives the frame; this spaces what is inside. */
+.sections {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  margin-block-end: var(--space-5);
+}
+
+/* The heading and its Add button on one line, the button wrapping under it on a narrow screen. */
+.sectionsHead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}

@@ -17,12 +17,13 @@ import { SessionContext } from "@/session/SessionProvider";
 import { Checkbox, Select, TextArea } from "@/ui";
 import { fakeSession } from "./session";
 import royal from "../../../packs/royal-softech/pack.json";
+import { TEST_SECTIONS } from "./sections";
 
 vi.mock("next/navigation", () => ({ usePathname: () => "/portal/content", useRouter: () => ({ replace: vi.fn(), push: vi.fn() }) }));
 
 const config: PublicConfig = {
   school: { name: royal.school.name, shortName: royal.school.shortName, currency: "NPR", timezone: "Asia/Kathmandu", region: "nepal", template: null },
-  sections: royal.sections,
+  sections: TEST_SECTIONS.royal,
   modules: {},
   terms: {},
   theme: royal.theme as PublicConfig["theme"],
@@ -366,7 +367,7 @@ describe("the public notice board", () => {
     const html = renderToStaticMarkup(
       <ConfigContext.Provider value={makeConfigValue("ready", config)}>
         <SessionContext.Provider value={fakeSession()}>
-          <HomeView site={siteFrom(royal)} sections={royal.sections} urgent={[]} />
+          <HomeView site={siteFrom(royal)} sections={TEST_SECTIONS.royal} urgent={[]} />
         </SessionContext.Provider>
       </ConfigContext.Provider>,
     );

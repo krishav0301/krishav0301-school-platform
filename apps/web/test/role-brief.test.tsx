@@ -10,13 +10,14 @@ import { SessionContext } from "@/session/SessionProvider";
 import { fakeSession } from "./session";
 import royal from "../../../packs/royal-softech/pack.json";
 import sample from "../../../packs/sample-basic-school/pack.json";
+import { sectionsOf } from "./sections";
 
 vi.mock("next/navigation", () => ({ usePathname: () => "/portal", useRouter: () => ({ replace: vi.fn(), push: vi.fn() }) }));
 
 type PackJson = typeof royal | typeof sample;
 const configFor = (pack: PackJson, modules: Record<string, boolean> = {}): PublicConfig => ({
   school: { name: pack.school.name, shortName: pack.school.shortName, currency: "NPR", timezone: "Asia/Kathmandu", region: "nepal", template: null },
-  sections: pack.sections,
+  sections: sectionsOf(pack),
   modules,
   // The API sends every word resolved: the defaults, then the school's own (as render.test.tsx does).
   terms: { "role.student": "Student", "role.teacher": "Teacher", "role.coordinator": "Co-ordinator", "role.accountant": "Accountant", "role.admin": "Admin", ...(pack.terminology as Record<string, string>) },

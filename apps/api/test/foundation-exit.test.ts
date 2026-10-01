@@ -15,7 +15,8 @@ import { describe, expect, it } from "vitest";
 
 import { createApp } from "../src/app";
 import { verifyAuditChain } from "../src/core/audit";
-import { applyPack, parsePack, type Pack } from "../src/core/config";
+import { applyPack, type Pack } from "../src/core/config";
+import { testPack } from "./programme-fixtures";
 import { schoolNameWords } from "../src/core/passwords";
 import { allowedSections, authorize, canAccessSection } from "../src/core/permissions";
 import { runOutbox } from "../src/core/notifications";
@@ -34,7 +35,7 @@ describe.each([
   { label: "Royal Softech", json: royalJson, database: () => env.DB },
   { label: "Sample Basic School", json: sampleJson, database: () => env.SCRATCH_DB },
 ])("foundation exit check: $label", ({ json, database }) => {
-  const pack: Pack = parsePack(json);
+  const pack: Pack = testPack(json);
   const db = () => database();
   const bindings = () => ({ ...env, DB: db() });
 

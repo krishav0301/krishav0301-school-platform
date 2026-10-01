@@ -7,8 +7,9 @@ import { t, type MessageKey } from "@/i18n/messages";
 import { useSession } from "@/session/SessionProvider";
 import { AddDialog, Badge, Button, Field, Notice, Select, TitleRow } from "@/ui";
 
-import { createClass, loadClasses, loadProgrammes, loadYears, setClassActive, type Loaded } from "./client";
+import { createClass, deleteClass, loadClasses, loadProgrammes, loadYears, setClassActive, type Loaded } from "./client";
 import { REASON_MESSAGE, canManageStructure, classTitle, defaultYearId, levelChoices, termWords, type Programme, type SchoolClass, type Year } from "./model";
+import { DeleteControl } from "./ProgrammesScreen";
 import { Gate, useLoad } from "./useLoad";
 import styles from "./setup.module.css";
 
@@ -20,7 +21,20 @@ export function YearPicker({ years, value, onChange }: { years: readonly Year[];
 }
 
 /** The classes of the chosen year. Switching one off keeps its history. */
-export function ClassesView({ classes, canManage, busy, onToggle }: { classes: readonly SchoolClass[]; canManage: boolean; busy: string | null; onToggle: (c: SchoolClass) => void }) {
+export function ClassesView({
+  classes,
+  canManage,
+  busy,
+  onToggle,
+  onDelete,
+}: {
+  classes: readonly SchoolClass[];
+  canManage: boolean;
+  busy: string | null;
+  onToggle: (c: SchoolClass) => void;
+  /** Only offered for a class nothing is attached to (D-097): with students it is switched off instead. */
+  onDelete?: (c: SchoolClass) => Promise<boolean>;
+}) {
   if (classes.length === 0) return <p className={styles.empty}>{t("setup.classes.empty")}</p>;
   return (
     <ul className={styles.list}>
@@ -48,6 +62,7 @@ export function ClassesView({ classes, canManage, busy, onToggle }: { classes: r
                 </Button>
               </div>
             ) : null}
+            {canManage && onDelete && c.canDelete ? <DeleteControl name={title} canDelete onDelete={() => onDelete(c)} /> : null}
           </li>
         );
       })}
@@ -132,6 +147,14 @@ export function ClassesScreen() {
     await classes.reload();
   }
 
+  async function remove(c: SchoolClass): Promise<boolean> {
+    setFlash(null);
+    const result = await deleteClass(api, c.id);
+    setFlash(result.ok ? { tone: "ok", text: t("structure.done.deleted") } : { tone: "bad", text: t(REASON_MESSAGE[result.reason]) });
+    if (result.ok) await classes.reload();
+    return result.ok;
+  }
+
   return (
     <>
       <TitleRow>
@@ -165,7 +188,7 @@ export function ClassesScreen() {
                 <YearPicker years={list} value={yearId} onChange={setPicked} />
               </div>
               <Gate view={classes.view} onRetry={() => void classes.reload()}>
-                {(data) => <ClassesView classes={data.classes} canManage={canManage} busy={busy} onToggle={(c) => void toggle(c)} />}
+                {(data) => <ClassesView classes={data.classes} canManage={canManage} busy={busy} onToggle={(c) => void toggle(c)} onDelete={remove} />}
               </Gate>
             </>
           )

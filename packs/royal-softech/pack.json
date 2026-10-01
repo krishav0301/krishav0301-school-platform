@@ -8,10 +8,7 @@
     "region": "nepal",
     "template": "plus2-and-bachelors"
   },
-  "sections": [
-    { "key": "plus2", "name": "+2" },
-    { "key": "bachelors", "name": "Bachelor's" }
-  ],
+  "sections": [],
   "modules": {},
   "terminology": { "role.admin": "Principal" },
   "site": {

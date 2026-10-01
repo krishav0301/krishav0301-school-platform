@@ -1,7 +1,14 @@
 "use client";
 
 import { Plus, X } from "lucide-react";
-import { useCallback, useEffect, useId, useRef, useState, type ReactNode } from "react";
+import {
+  useCallback,
+  useEffect,
+  useId,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
 
 import { t } from "@/i18n/messages";
 
@@ -13,7 +20,32 @@ import styles from "./AddDialog.module.css";
  * was easy to miss). The browser's own modal dialog: focus moves into it and stays there, Escape closes it, and the
  * page behind is inert. `openNow` opens it once when the page is reached that way (a dashboard quick action, D-089).
  */
-export function AddDialog({ label, title, openNow = false, children }: { label: string; title: string; openNow?: boolean; children: (close: () => void) => ReactNode }) {
+export function AddDialog({
+  label,
+  title,
+  openNow = false,
+  variant = "primary",
+  plus = true,
+  icon,
+  hideLabel = false,
+  ariaLabel,
+  children,
+}: {
+  label: string;
+  title: string;
+  openNow?: boolean;
+  /** One prominent button per view (D-030): a second Add on the same page is `secondary`, a Rename is `quiet`. */
+  variant?: "primary" | "secondary" | "quiet";
+  /** The plus sign says "adds"; a dialog that changes something already there leaves it out. */
+  plus?: boolean;
+  /** An icon in place of the plus sign, such as the "more" dots of a row's options. */
+  icon?: ReactNode;
+  /** Show only the icon; the label is still read out (an icon-only button always has a name). */
+  hideLabel?: boolean;
+  /** A fuller name for a short button, such as "Rename Bachelor's" for "Rename". */
+  ariaLabel?: string;
+  children: (close: () => void) => ReactNode;
+}) {
   const ref = useRef<HTMLDialogElement>(null);
   const titleId = useId();
   const [open, setOpen] = useState(false);
@@ -35,16 +67,31 @@ export function AddDialog({ label, title, openNow = false, children }: { label: 
 
   return (
     <>
-      <Button className={styles.trigger} onClick={() => setOpen(true)}>
-        <Plus aria-hidden className={styles.icon} />
-        {label}
+      <Button
+        className={styles.trigger}
+        variant={variant}
+        aria-label={ariaLabel}
+        onClick={() => setOpen(true)}
+      >
+        {icon ?? (plus ? <Plus aria-hidden className={styles.icon} /> : null)}
+        {hideLabel ? <span className="sr-only">{label}</span> : label}
       </Button>
-      <dialog ref={ref} className={styles.dialog} aria-labelledby={titleId} onClose={close}>
+      <dialog
+        ref={ref}
+        className={styles.dialog}
+        aria-labelledby={titleId}
+        onClose={close}
+      >
         <div className={styles.head}>
           <h2 id={titleId} className={styles.title}>
             {title}
           </h2>
-          <button type="button" className={styles.close} onClick={close} aria-label={t("ui.close")}>
+          <button
+            type="button"
+            className={styles.close}
+            onClick={close}
+            aria-label={t("ui.close")}
+          >
             <X aria-hidden className={styles.icon} />
           </button>
         </div>

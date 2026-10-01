@@ -3,7 +3,8 @@ import { describe, expect, it } from "vitest";
 
 import { drainOutbox } from "../src/core/jobs";
 import { queueEmail, notificationHandlers, renderEmail, runOutbox } from "../src/core/notifications";
-import { applyPack, parsePack } from "../src/core/config";
+import { applyPack } from "../src/core/config";
+import { testPack } from "./programme-fixtures";
 import royalJson from "../../../packs/royal-softech/pack.json";
 
 const db = env.DB;
@@ -67,7 +68,7 @@ describe("renderEmail: admission_decision (D-063)", () => {
 
 describe("sending through the outbox", () => {
   it("delivers a queued email through the adapter, with the event's key as its idempotency key", async () => {
-    await applyPack(db, parsePack(royalJson));
+    await applyPack(db, testPack(royalJson));
     await db.batch([await queueEmail(db, env.DATA_KEY, { template: "password_reset", to: "sita@school.example", data: { token: "SEALEDTOKEN9" }, dedupeKey: "test:notify:1" })]);
 
     expect(await mailbox("test:notify:1")).toBeNull(); // queued, not yet sent

@@ -46,22 +46,68 @@ interface ProgrammeRow {
   ordinal: number | null;
   level_name: string | null;
   level_active: number | null;
+  programme_can_delete: number;
+  level_can_delete: number | null;
 }
+
+/**
+ * Whether nothing is attached to a section, programme or level, so it may be deleted (D-097). SQL fragments taking the
+ * alias of the row in question. Every table that points at it is listed; the foreign keys refuse the delete too, so a
+ * table added later without a line here makes a delete fail safely, never leaves anything pointing nowhere.
+ */
+export const LEVEL_FREE = (l: string) =>
+  `(NOT EXISTS (SELECT 1 FROM classes x WHERE x.level_id = ${l}.id) AND NOT EXISTS (SELECT 1 FROM subject_offerings x WHERE x.level_id = ${l}.id)
+    AND NOT EXISTS (SELECT 1 FROM elective_groups x WHERE x.level_id = ${l}.id) AND NOT EXISTS (SELECT 1 FROM applications x WHERE x.level_id = ${l}.id)
+    AND NOT EXISTS (SELECT 1 FROM fee_structures x WHERE x.level_id = ${l}.id))`;
+export const PROGRAMME_FREE = (p: string) =>
+  `(NOT EXISTS (SELECT 1 FROM levels x WHERE x.programme_id = ${p}.id) AND NOT EXISTS (SELECT 1 FROM applications x WHERE x.programme_id = ${p}.id)
+    AND NOT EXISTS (SELECT 1 FROM classes x WHERE x.programme_id = ${p}.id))`;
+export const CLASS_FREE = (c: string) =>
+  `(NOT EXISTS (SELECT 1 FROM enrollments x WHERE x.class_id = ${c}.id) AND NOT EXISTS (SELECT 1 FROM teacher_assignments x WHERE x.class_id = ${c}.id)
+    AND NOT EXISTS (SELECT 1 FROM activity_log x WHERE x.class_id = ${c}.id) AND NOT EXISTS (SELECT 1 FROM class_notes x WHERE x.class_id = ${c}.id)
+    AND NOT EXISTS (SELECT 1 FROM assignments x WHERE x.class_id = ${c}.id) AND NOT EXISTS (SELECT 1 FROM mark_sheets x WHERE x.class_id = ${c}.id)
+    AND NOT EXISTS (SELECT 1 FROM result_publications x WHERE x.class_id = ${c}.id))`;
+export const SECTION_FREE = (s: string) =>
+  `(NOT EXISTS (SELECT 1 FROM programmes x WHERE x.section_id = ${s}.id) AND NOT EXISTS (SELECT 1 FROM role_assignments x WHERE x.section_id = ${s}.id)
+    AND NOT EXISTS (SELECT 1 FROM staff_profiles x WHERE x.home_section_id = ${s}.id) AND NOT EXISTS (SELECT 1 FROM receipt_counters x WHERE x.section_id = ${s}.id)
+    AND NOT EXISTS (SELECT 1 FROM receipts x WHERE x.section_id = ${s}.id))`;
 
 /** The programmes of these sections, each with its levels in order. One database round trip. */
 export async function listProgrammes(db: D1Database, sections: "all" | readonly string[]): Promise<ProgrammeList> {
-  const { results } = await db
-    .prepare(
-      `SELECT p.public_id, p.key, p.name, p.affiliation, p.is_active, p.grading_policy, s.key AS section_key, s.name AS section_name,
-              l.public_id AS level_id, l.ordinal, l.name AS level_name, l.is_active AS level_active
-         FROM programmes p
-         JOIN sections s ON s.id = p.section_id
-         LEFT JOIN levels l ON l.programme_id = p.id
-        WHERE (?1 IS NULL OR s.key IN (SELECT value FROM json_each(?1)))
-        ORDER BY p.ordering, p.id, l.ordinal`,
-    )
-    .bind(sectionFilter(sections))
-    .all<ProgrammeRow>();
+  const filter = sectionFilter(sections);
+  const [rows, sectionRows, countRows] = await db.batch([
+    db
+      .prepare(
+        `SELECT p.public_id, p.key, p.name, p.affiliation, p.is_active, p.grading_policy, s.key AS section_key, s.name AS section_name,
+                l.public_id AS level_id, l.ordinal, l.name AS level_name, l.is_active AS level_active,
+                ${PROGRAMME_FREE("p")} AS programme_can_delete, CASE WHEN l.id IS NULL THEN NULL ELSE ${LEVEL_FREE("l")} END AS level_can_delete
+           FROM programmes p
+           JOIN sections s ON s.id = p.section_id
+           LEFT JOIN levels l ON l.programme_id = p.id
+          WHERE (?1 IS NULL OR s.key IN (SELECT value FROM json_each(?1)))
+          ORDER BY p.ordering, p.id, l.ordinal`,
+      )
+      .bind(filter),
+    db
+      .prepare(`SELECT key, name, is_active, ${SECTION_FREE("sections")} AS can_delete FROM sections WHERE (?1 IS NULL OR key IN (SELECT value FROM json_each(?1))) ORDER BY ordering, id`)
+      .bind(filter),
+    // Students per level in the active year (D-096): counted here, never by fetching their records.
+    db
+      .prepare(
+        `SELECT l.public_id AS level_id, COUNT(*) AS students
+           FROM enrollments e
+           JOIN classes c ON c.id = e.class_id
+           JOIN academic_years y ON y.id = c.academic_year_id AND y.status = 'active'
+           JOIN levels l ON l.id = c.level_id
+           JOIN programmes p ON p.id = l.programme_id
+           JOIN sections s ON s.id = p.section_id
+          WHERE e.status = 'active' AND (?1 IS NULL OR s.key IN (SELECT value FROM json_each(?1)))
+          GROUP BY l.id`,
+      )
+      .bind(filter),
+  ]);
+  const results = rows!.results as unknown as ProgrammeRow[];
+  const studentsAt = new Map((countRows!.results as unknown as { level_id: string; students: number }[]).map((r) => [r.level_id, r.students]));
 
   const programmes: ProgrammeList["programmes"] = [];
   for (const r of results) {
@@ -76,12 +122,29 @@ export async function listProgrammes(db: D1Database, sections: "all" | readonly 
         active: r.is_active === 1,
         gradingPolicy: r.grading_policy,
         levels: [],
+        students: 0,
+        canDelete: r.programme_can_delete === 1,
       };
       programmes.push(programme);
     }
-    if (r.level_id !== null) programme.levels.push({ id: r.level_id, ordinal: r.ordinal!, name: r.level_name!, active: r.level_active === 1 });
+    if (r.level_id !== null) {
+      const students = studentsAt.get(r.level_id) ?? 0;
+      programme.levels.push({ id: r.level_id, ordinal: r.ordinal!, name: r.level_name!, active: r.level_active === 1, students, canDelete: r.level_can_delete === 1 });
+      programme.students += students;
+    }
   }
-  return { programmes };
+  const listed = (sectionRows!.results as unknown as { key: string; name: string; is_active: number; can_delete: number }[]).map((s) => ({ key: s.key, name: s.name, active: s.is_active === 1, canDelete: s.can_delete === 1 }));
+  const on = programmes.filter((p) => p.active);
+  return {
+    programmes,
+    sections: listed,
+    totals: {
+      sections: listed.length,
+      programmes: on.length,
+      levels: on.reduce((n, p) => n + p.levels.filter((l) => l.active).length, 0),
+      students: programmes.reduce((n, p) => n + p.students, 0),
+    },
+  };
 }
 
 interface ClassRow {
@@ -94,6 +157,7 @@ interface ClassRow {
   level_name: string;
   label: string;
   is_active: number;
+  can_delete: number;
 }
 
 /** The classes of these sections, optionally of one year. One database round trip. */
@@ -101,7 +165,7 @@ export async function listClasses(db: D1Database, sections: "all" | readonly str
   const { results } = await db
     .prepare(
       `SELECT c.public_id, y.public_id AS year_id, p.public_id AS programme_id, p.name AS programme_name, s.key AS section_key,
-              l.public_id AS level_id, l.name AS level_name, c.label, c.is_active
+              l.public_id AS level_id, l.name AS level_name, c.label, c.is_active, (${CLASS_FREE("c")} AND y.status <> 'closed') AS can_delete
          FROM classes c
          JOIN academic_years y ON y.id = c.academic_year_id
          JOIN programmes p ON p.id = c.programme_id
@@ -124,6 +188,7 @@ export async function listClasses(db: D1Database, sections: "all" | readonly str
       levelName: c.level_name,
       label: c.label,
       active: c.is_active === 1,
+      canDelete: c.can_delete === 1,
     })),
   };
 }

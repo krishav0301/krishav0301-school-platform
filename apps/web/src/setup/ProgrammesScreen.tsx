@@ -1,55 +1,50 @@
 "use client";
 
-import { useCallback, useState, type FormEvent } from "react";
+import { BookOpen, ChevronDown, Database, GraduationCap, Layers, MoreVertical, Users, type LucideIcon } from "lucide-react";
+import { useCallback, useId, useState, type FormEvent, type ReactNode } from "react";
 
+import type { components } from "@/api/schema";
 import { useConfig } from "@/config/ConfigProvider";
 import { useAddressQuery } from "@/content/address";
 import { t, type MessageKey } from "@/i18n/messages";
 import { useSession } from "@/session/SessionProvider";
-import { AddDialog, Badge, Button, Field, Notice, Select, TitleRow } from "@/ui";
+import { AddDialog, Badge, Button, Field, Notice, Select, Skeleton, TitleRow } from "@/ui";
 
-import { addLevel, createProgramme, loadProgrammes, setLevelActive, setProgrammeActive, setProgrammePolicy } from "./client";
+import {
+  addLevel,
+  createProgramme,
+  createSection,
+  deleteLevel,
+  deleteProgramme,
+  deleteSection,
+  loadProgrammes,
+  renameLevel,
+  renameSection,
+  setLevelActive,
+  setProgrammeActive,
+  setSectionActive,
+  updateProgramme,
+  type WriteResult,
+} from "./client";
 import { REASON_MESSAGE, canManageProgrammes, termWords, type Level, type Programme } from "./model";
-import { Gate, useLoad } from "./useLoad";
-import styles from "./setup.module.css";
+import { useLoad } from "./useLoad";
+import styles from "./structure.module.css";
 
-type Flash = { tone: "ok" | "bad"; text: string };
+/**
+ * Academic Structure (D-096): the school as sections, then programmes, then levels, built by the Admin (D-087, D-095).
+ * Everything shown is read from the one programme list (`GET /api/academics/programmes`): the four figures, each
+ * section's, programme's and level's counts, and the students of the active year. Nothing is deleted: a programme or a
+ * level is switched off and keeps its history.
+ */
 
-function LevelAdder({ programme, onAdd }: { programme: Programme; onAdd: (programme: Programme, name: string) => Promise<boolean> }) {
-  const { term } = useConfig();
-  const words = termWords(term);
-  const [name, setName] = useState("");
-  const [saving, setSaving] = useState(false);
+export type Structure = components["schemas"]["ProgrammeList"];
+type Section = Structure["sections"][number];
+type Words = ReturnType<typeof termWords>;
+type Tone = "primary" | "ok" | "accent" | "warn";
 
-  async function submit(event: FormEvent) {
-    event.preventDefault();
-    if (saving || !name.trim()) return;
-    setSaving(true);
-    const added = await onAdd(programme, name.trim());
-    setSaving(false);
-    if (added) setName("");
-  }
-
-  return (
-    <form onSubmit={submit} noValidate className={styles.inline}>
-      <Field label={t("setup.programmes.levelName", words)} value={name} maxLength={60} autoComplete="off" onChange={(event) => setName(event.target.value)} />
-      <Button type="submit" variant="secondary" loading={saving} loadingLabel={t("setup.working")}>
-        {t("setup.programmes.addLevel", words)}
-      </Button>
-    </form>
-  );
-}
-
-export interface ProgrammesViewProps {
-  programmes: readonly Programme[];
-  canManage: boolean;
-  busy: string | null;
-  onToggleProgramme: (programme: Programme) => void;
-  onToggleLevel: (level: Level, programme: Programme) => void;
-  onAddLevel: (programme: Programme, name: string) => Promise<boolean>;
-  /** Sets the programme's grading policy (Phase 7, D-079); without it, its classes' results cannot be published. */
-  onSetPolicy?: (programme: Programme, policy: Programme["gradingPolicy"]) => void;
-}
+/** Each card's icon tile takes the next tone, so neighbours read apart. Colour only tells them apart; the name says what each is. */
+const TONES: readonly Tone[] = ["primary", "ok", "accent", "warn"];
+const toneAt = (index: number): Tone => TONES[index % TONES.length]!;
 
 const POLICY_LABEL: Record<NonNullable<Programme["gradingPolicy"]> | "none", MessageKey> = {
   none: "setup.grading.none",
@@ -57,96 +52,89 @@ const POLICY_LABEL: Record<NonNullable<Programme["gradingPolicy"]> | "none", Mes
   percentage_division: "setup.grading.percentage",
 };
 
-/** Each programme with its levels in order. Switching off keeps the history; nothing is deleted. */
-export function ProgrammesView({ programmes, canManage, busy, onToggleProgramme, onToggleLevel, onAddLevel, onSetPolicy }: ProgrammesViewProps) {
-  const { term } = useConfig();
-  const words = termWords(term);
-  if (programmes.length === 0) return <p className={styles.empty}>{t("setup.programmes.empty", words)}</p>;
+const count = (n: number) => n.toLocaleString("en-IN");
 
+/** The school's words in the middle of a sentence: "sections, programmes and levels". */
+const inSentence = (words: Words): Words => ({ programme: words.programme.toLowerCase(), level: words.level.toLowerCase(), section: words.section.toLowerCase(), terminal: words.terminal.toLowerCase() });
+
+/** "1 Student", "780 Students"; "1 Level", "4 Levels": in the school's own words. */
+const studentsText = (n: number, student: string) => t(n === 1 ? "structure.studentsOne" : "structure.students", { count: count(n), student });
+const levelsText = (n: number, level: string) => t(n === 1 ? "structure.levelsOne" : "structure.levelsCount", { count: count(n), level });
+const programmesText = (n: number, programme: string) => t(n === 1 ? "structure.programmesOne" : "structure.programmesCount", { count: count(n), programme });
+
+/** What every change on the page goes through: it returns whether it worked, and the screen says so. */
+export interface StructureActions {
+  addSection: (name: string) => Promise<boolean>;
+  renameSection: (key: string, name: string) => Promise<boolean>;
+  addProgramme: (sectionKey: string, values: { name: string; affiliation: string }) => Promise<boolean>;
+  editProgramme: (programme: Programme, values: { name: string; affiliation: string; gradingPolicy: Programme["gradingPolicy"] }) => Promise<boolean>;
+  setProgrammeActive: (programme: Programme, active: boolean) => Promise<boolean>;
+  addLevel: (programme: Programme, name: string) => Promise<boolean>;
+  renameLevel: (level: Level, name: string) => Promise<boolean>;
+  setLevelActive: (level: Level, active: boolean) => Promise<boolean>;
+  setSectionActive: (section: Section, active: boolean) => Promise<boolean>;
+  /** Only offered when nothing is attached (D-097); the server checks again. */
+  deleteSection: (section: Section) => Promise<boolean>;
+  deleteProgramme: (programme: Programme) => Promise<boolean>;
+  deleteLevel: (level: Level) => Promise<boolean>;
+}
+
+// --- Small pieces --------------------------------------------------------------------------------------
+
+function Tile({ icon: Icon, tone, size = "large" }: { icon: LucideIcon; tone: Tone; size?: "large" | "small" }) {
   return (
-    <ul className={styles.list}>
-      {programmes.map((programme) => (
-        <li key={programme.id} className={styles.item}>
-          <h2 className={styles.itemTitle}>{programme.name}</h2>
-          <div className={styles.badges}>
-            <Badge>{programme.section.name}</Badge>
-            <Badge>{programme.affiliation}</Badge>
-            {programme.active ? null : <Badge>{t("setup.programmes.off")}</Badge>}
-            {canManage && onSetPolicy ? null : <Badge>{t(POLICY_LABEL[programme.gradingPolicy ?? "none"])}</Badge>}
-          </div>
-          {canManage && onSetPolicy ? (
-            <Select
-              label={t("setup.programmes.grading")}
-              hint={t("setup.programmes.gradingHint")}
-              value={programme.gradingPolicy ?? ""}
-              disabled={busy !== null}
-              onChange={(event) => onSetPolicy(programme, event.target.value === "neb_gpa" || event.target.value === "percentage_division" ? event.target.value : null)}
-              options={[
-                { value: "", label: t(POLICY_LABEL.none) },
-                { value: "neb_gpa", label: t(POLICY_LABEL.neb_gpa) },
-                { value: "percentage_division", label: t(POLICY_LABEL.percentage_division) },
-              ]}
-            />
-          ) : null}
-
-          {programme.levels.length === 0 ? (
-            <p className={styles.muted}>{t("setup.programmes.noLevels", words)}</p>
-          ) : (
-            <ul className={styles.levels} aria-label={t("setup.programmes.levelsOf", { ...words, name: programme.name })}>
-              {programme.levels.map((level) => (
-                <li key={level.id} className={styles.level}>
-                  <span className={styles.levelName}>{level.name}</span>
-                  {level.active ? null : <Badge>{t("setup.programmes.off")}</Badge>}
-                  {canManage ? (
-                    <Button
-                      variant="quiet"
-                      loading={busy === level.id}
-                      loadingLabel={t("setup.working")}
-                      disabled={busy !== null && busy !== level.id}
-                      aria-label={t(level.active ? "setup.programmes.switchOffItem" : "setup.programmes.switchOnItem", { name: level.name })}
-                      onClick={() => onToggleLevel(level, programme)}
-                    >
-                      {t(level.active ? "setup.programmes.switchOff" : "setup.programmes.switchOn")}
-                    </Button>
-                  ) : null}
-                </li>
-              ))}
-            </ul>
-          )}
-
-          {canManage ? (
-            <>
-              {programme.active ? <LevelAdder programme={programme} onAdd={onAddLevel} /> : null}
-              <div className={styles.actions}>
-                <Button
-                  variant="quiet"
-                  loading={busy === programme.id}
-                  loadingLabel={t("setup.working")}
-                  disabled={busy !== null && busy !== programme.id}
-                  aria-label={t(programme.active ? "setup.programmes.switchOffItem" : "setup.programmes.switchOnItem", { name: programme.name })}
-                  onClick={() => onToggleProgramme(programme)}
-                >
-                  {t(programme.active ? "setup.programmes.switchOff" : "setup.programmes.switchOn")}
-                </Button>
-              </div>
-            </>
-          ) : null}
-        </li>
-      ))}
-    </ul>
+    <span className={styles.tile} data-tone={tone} data-size={size} aria-hidden>
+      <Icon strokeWidth={1.75} />
+    </span>
   );
 }
 
-function ProgrammeForm({ sections, onAdded, onProblem, showTitle = true }: { sections: readonly { key: string; name: string }[]; onAdded: () => void; onProblem: (key: MessageKey) => void; showTitle?: boolean }) {
-  const { api } = useSession();
-  const { term } = useConfig();
-  const words = termWords(term);
-  const [name, setName] = useState("");
-  const [affiliation, setAffiliation] = useState("");
-  const [sectionKey, setSectionKey] = useState(sections.length === 1 ? sections[0]!.key : "");
-  const [errors, setErrors] = useState<{ name?: MessageKey; affiliation?: MessageKey; section?: MessageKey }>({});
+/** The show/hide control of a section or programme: a real button that says what it opens and whether it is open. */
+function Disclosure({ open, controls, name, onToggle }: { open: boolean; controls: string; name: string; onToggle: () => void }) {
+  return (
+    <button type="button" className={styles.disclosure} aria-expanded={open} aria-controls={controls} aria-label={t(open ? "structure.hide" : "structure.show", { name })} onClick={onToggle}>
+      <ChevronDown aria-hidden className={styles.chevron} data-open={open} />
+    </button>
+  );
+}
+
+/** One name and a Save: adding or renaming a section or level. */
+function NameForm({ label, hint, initial = "", submitLabel, required, onSave, children }: { label: string; hint?: string; initial?: string; submitLabel: string; required: string; onSave: (name: string) => Promise<boolean>; children?: ReactNode }) {
+  const [name, setName] = useState(initial);
+  const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
-  const say = (key: MessageKey | undefined) => (key ? t(key, words) : undefined);
+
+  async function submit(event: FormEvent) {
+    event.preventDefault();
+    if (saving) return;
+    if (!name.trim()) return setError(required);
+    setError(null);
+    setSaving(true);
+    const saved = await onSave(name.trim());
+    setSaving(false);
+    if (saved && !initial) setName("");
+  }
+
+  return (
+    <form onSubmit={submit} noValidate className={styles.form}>
+      <Field label={label} hint={hint} value={name} maxLength={60} autoComplete="off" onChange={(event) => setName(event.target.value)} error={error ?? undefined} />
+      <div className={styles.formActions}>
+        {children}
+        <Button type="submit" loading={saving} loadingLabel={t("setup.working")}>
+          {submitLabel}
+        </Button>
+      </div>
+    </form>
+  );
+}
+
+/** A programme's name, affiliation and grading: for adding one to a section, and for editing it. */
+function ProgrammeFields({ words, initial, withGrading, submitLabel, onSave, children }: { words: Words; initial?: Programme; withGrading: boolean; submitLabel: string; onSave: (values: { name: string; affiliation: string; gradingPolicy: Programme["gradingPolicy"] }) => Promise<boolean>; children?: ReactNode }) {
+  const [name, setName] = useState(initial?.name ?? "");
+  const [affiliation, setAffiliation] = useState(initial?.affiliation ?? "");
+  const [policy, setPolicy] = useState<Programme["gradingPolicy"]>(initial?.gradingPolicy ?? null);
+  const [errors, setErrors] = useState<{ name?: MessageKey; affiliation?: MessageKey }>({});
+  const [saving, setSaving] = useState(false);
 
   async function submit(event: FormEvent) {
     event.preventDefault();
@@ -154,33 +142,20 @@ function ProgrammeForm({ sections, onAdded, onProblem, showTitle = true }: { sec
     const found: typeof errors = {};
     if (!name.trim()) found.name = "setup.error.nameRequired";
     if (!affiliation.trim()) found.affiliation = "setup.error.affiliationRequired";
-    if (!sectionKey) found.section = "setup.error.sectionRequired";
     setErrors(found);
     if (Object.keys(found).length > 0) return;
-
     setSaving(true);
-    const result = await createProgramme(api, { name: name.trim(), sectionKey, affiliation: affiliation.trim() });
+    const saved = await onSave({ name: name.trim(), affiliation: affiliation.trim(), gradingPolicy: policy });
     setSaving(false);
-    if (result.ok) {
+    if (saved && !initial) {
       setName("");
       setAffiliation("");
-      onAdded();
-    } else {
-      onProblem(REASON_MESSAGE[result.reason]);
     }
   }
 
   return (
     <form onSubmit={submit} noValidate className={styles.form}>
-      {showTitle ? <h2 className={styles.formTitle}>{t("setup.programmes.add", words)}</h2> : null}
-      <Field label={t("setup.programmes.name")} value={name} maxLength={120} autoComplete="off" onChange={(event) => setName(event.target.value)} error={say(errors.name)} />
-      <Select
-        label={t("setup.programmes.section", words)}
-        value={sectionKey}
-        onChange={(event) => setSectionKey(event.target.value)}
-        options={[{ value: "", label: t("setup.programmes.choose") }, ...sections.map((s) => ({ value: s.key, label: s.name }))]}
-        error={say(errors.section)}
-      />
+      <Field label={t("setup.programmes.name")} value={name} maxLength={120} autoComplete="off" onChange={(event) => setName(event.target.value)} error={errors.name ? t(errors.name, words) : undefined} />
       <Field
         label={t("setup.programmes.affiliation")}
         hint={t("setup.programmes.affiliationHint")}
@@ -188,88 +163,453 @@ function ProgrammeForm({ sections, onAdded, onProblem, showTitle = true }: { sec
         maxLength={120}
         autoComplete="off"
         onChange={(event) => setAffiliation(event.target.value)}
-        error={say(errors.affiliation)}
+        error={errors.affiliation ? t(errors.affiliation, words) : undefined}
       />
-      <Button type="submit" loading={saving} loadingLabel={t("setup.working")}>
-        {t("setup.programmes.add", words)}
-      </Button>
+      {withGrading ? (
+        <Select
+          label={t("setup.programmes.grading")}
+          hint={t("setup.programmes.gradingHint")}
+          value={policy ?? ""}
+          onChange={(event) => setPolicy(event.target.value === "neb_gpa" || event.target.value === "percentage_division" ? event.target.value : null)}
+          options={[
+            { value: "", label: t(POLICY_LABEL.none) },
+            { value: "neb_gpa", label: t(POLICY_LABEL.neb_gpa) },
+            { value: "percentage_division", label: t(POLICY_LABEL.percentage_division) },
+          ]}
+        />
+      ) : null}
+      <div className={styles.formActions}>
+        {children}
+        <Button type="submit" loading={saving} loadingLabel={t("setup.working")}>
+          {submitLabel}
+        </Button>
+      </div>
     </form>
   );
 }
 
-export function ProgrammesScreen() {
-  const { api, me } = useSession();
-  const { config, term } = useConfig();
-  const roles = me?.roles ?? [];
-  // Programmes and their levels are the Admin's (D-087): every section is theirs, and no Co-ordinator changes them.
-  const canManage = canManageProgrammes(roles);
-  const sections = canManage ? (config?.sections ?? []) : [];
+/** Switch a programme or level off (or back on), from inside its Edit or options pop-up. Nothing is deleted. */
+function SwitchButton({ active, name, onSwitch }: { active: boolean; name: string; onSwitch: () => Promise<boolean> }) {
+  const [working, setWorking] = useState(false);
+  return (
+    <Button
+      variant="quiet"
+      loading={working}
+      loadingLabel={t("setup.working")}
+      aria-label={t(active ? "setup.programmes.switchOffItem" : "setup.programmes.switchOnItem", { name })}
+      onClick={async () => {
+        setWorking(true);
+        await onSwitch();
+        setWorking(false);
+      }}
+    >
+      {t(active ? "setup.programmes.switchOff" : "setup.programmes.switchOn")}
+    </Button>
+  );
+}
+
+/**
+ * Delete, inside an Edit or options pop-up (D-097). Offered only when nothing is attached; it then asks once more,
+ * because it cannot be undone. When something is attached, it says why it cannot be deleted and what to do instead.
+ */
+export function DeleteControl({ name, canDelete, blocked, onDelete }: { name: string; canDelete: boolean; blocked?: MessageKey; onDelete: () => Promise<boolean> }) {
+  const [confirming, setConfirming] = useState(false);
+  const [working, setWorking] = useState(false);
+  if (!canDelete) return blocked ? <p className={styles.deleteNote}>{t(blocked)}</p> : null;
+  if (!confirming)
+    return (
+      <div className={styles.deleteRow}>
+        <Button variant="quiet" aria-label={t("structure.deleteItem", { name })} onClick={() => setConfirming(true)}>
+          {t("structure.delete")}
+        </Button>
+      </div>
+    );
+  return (
+    <div className={styles.confirm} role="group" aria-label={t("structure.deleteItem", { name })}>
+      <p className={styles.confirmText}>{t("structure.deleteConfirm", { name })}</p>
+      <div className={styles.formActions}>
+        <Button variant="quiet" onClick={() => setConfirming(false)}>
+          {t("structure.keep")}
+        </Button>
+        <Button
+          variant="secondary"
+          loading={working}
+          loadingLabel={t("setup.working")}
+          onClick={async () => {
+            setWorking(true);
+            const deleted = await onDelete();
+            setWorking(false);
+            if (!deleted) setConfirming(false);
+          }}
+        >
+          {t("structure.deleteYes", { name })}
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+// --- The hierarchy ---------------------------------------------------------------------------------------
+
+function LevelRow({ level, words, student, canManage, actions }: { level: Level; words: Words; student: string; canManage: boolean; actions: StructureActions }) {
+  return (
+    <li className={styles.level} data-off={!level.active}>
+      <Tile icon={BookOpen} tone="primary" size="small" />
+      <span className={styles.levelName}>{level.name}</span>
+      <span className={styles.meta}>{studentsText(level.students, student)}</span>
+      {level.active ? null : <Badge>{t("setup.programmes.off")}</Badge>}
+      {canManage ? (
+        <span className={styles.rowEnd}>
+          <AddDialog
+            label={t("structure.levelOptions", { name: level.name })}
+            title={level.name}
+            variant="quiet"
+            icon={<MoreVertical aria-hidden className={styles.moreIcon} />}
+            hideLabel
+          >
+            {(close) => (
+              <>
+                <NameForm
+                  label={t("setup.programmes.levelName", words)}
+                  initial={level.name}
+                  submitLabel={t("structure.saveName")}
+                  required={t("structure.nameRequired")}
+                  onSave={async (name) => (await actions.renameLevel(level, name)) && (close(), true)}
+                >
+                  <SwitchButton active={level.active} name={level.name} onSwitch={async () => (await actions.setLevelActive(level, !level.active)) && (close(), true)} />
+                </NameForm>
+                <DeleteControl name={level.name} canDelete={level.canDelete} blocked="structure.levelInUse" onDelete={async () => (await actions.deleteLevel(level)) && (close(), true)} />
+              </>
+            )}
+          </AddDialog>
+        </span>
+      ) : null}
+    </li>
+  );
+}
+
+function ProgrammeCard({ programme, index, open, onToggle, words, student, canManage, actions }: { programme: Programme; index: number; open: boolean; onToggle: () => void; words: Words; student: string; canManage: boolean; actions: StructureActions }) {
+  const bodyId = useId();
+  const levelsOn = programme.levels.filter((l) => l.active).length;
+  return (
+    <li className={styles.programme} data-open={open}>
+      <div className={styles.programmeHead}>
+        <Tile icon={BookOpen} tone={toneAt(index + 1)} />
+        <div className={styles.headText}>
+          <div className={styles.titleLine}>
+            <h3 className={styles.programmeName}>{programme.name}</h3>
+            <Badge tone="ok">{programme.affiliation}</Badge>
+            {programme.active ? null : <Badge>{t("setup.programmes.off")}</Badge>}
+          </div>
+          <p className={styles.meta}>
+            {levelsText(levelsOn, words.level)} · {studentsText(programme.students, student)} · {t(POLICY_LABEL[programme.gradingPolicy ?? "none"])}
+          </p>
+        </div>
+        <div className={styles.headActions}>
+          {canManage ? (
+            <AddDialog label={t("structure.edit")} ariaLabel={t("structure.editItem", { name: programme.name })} title={t("structure.editTitle", { name: programme.name })} variant="secondary" plus={false}>
+              {(close) => (
+                <>
+                  <ProgrammeFields words={words} initial={programme} withGrading submitLabel={t("structure.saveChanges")} onSave={async (values) => (await actions.editProgramme(programme, values)) && (close(), true)}>
+                    <SwitchButton active={programme.active} name={programme.name} onSwitch={async () => (await actions.setProgrammeActive(programme, !programme.active)) && (close(), true)} />
+                  </ProgrammeFields>
+                  <DeleteControl name={programme.name} canDelete={programme.canDelete} blocked="structure.programmeInUse" onDelete={async () => (await actions.deleteProgramme(programme)) && (close(), true)} />
+                </>
+              )}
+            </AddDialog>
+          ) : null}
+          <Disclosure open={open} controls={bodyId} name={programme.name} onToggle={onToggle} />
+        </div>
+      </div>
+      {open ? (
+        <div id={bodyId} className={styles.body}>
+          <div className={styles.bodyHead}>
+            <h4 className={styles.bodyTitle}>{t("structure.levelsTitle", words)}</h4>
+            {canManage && programme.active ? (
+              <AddDialog label={t("setup.programmes.addLevel", words)} title={t("structure.addLevelTo", { ...words, name: programme.name })} variant="secondary">
+                {(close) => (
+                  <NameForm
+                    label={t("setup.programmes.levelName", words)}
+                    hint={t("structure.levelHint")}
+                    submitLabel={t("setup.programmes.addLevel", words)}
+                    required={t("structure.nameRequired")}
+                    onSave={async (name) => (await actions.addLevel(programme, name)) && (close(), true)}
+                  />
+                )}
+              </AddDialog>
+            ) : null}
+          </div>
+          {programme.levels.length === 0 ? (
+            <p className={styles.empty}>{t("structure.noLevels", words)}</p>
+          ) : (
+            <ul className={styles.levels} aria-label={t("setup.programmes.levelsOf", { ...words, name: programme.name })}>
+              {programme.levels.map((level) => (
+                <LevelRow key={level.id} level={level} words={words} student={student} canManage={canManage} actions={actions} />
+              ))}
+            </ul>
+          )}
+        </div>
+      ) : null}
+    </li>
+  );
+}
+
+function SectionCard({ section, index, programmes, open, isOpen, onToggle, words, student, canManage, actions }: { section: Section; index: number; programmes: Programme[]; open: boolean; isOpen: (id: string) => boolean; onToggle: (id: string) => void; words: Words; student: string; canManage: boolean; actions: StructureActions }) {
+  const bodyId = useId();
+  const on = programmes.filter((p) => p.active);
+  const levels = on.reduce((n, p) => n + p.levels.filter((l) => l.active).length, 0);
+  const students = programmes.reduce((n, p) => n + p.students, 0);
+  return (
+    <article className={styles.section} aria-labelledby={`${bodyId}-name`} data-open={open}>
+      <div className={styles.sectionHead}>
+        <Tile icon={GraduationCap} tone={toneAt(index)} />
+        <div className={styles.headText}>
+          <div className={styles.titleLine}>
+            <h2 id={`${bodyId}-name`} className={styles.sectionName}>
+              {section.name}
+            </h2>
+            {section.active ? null : <Badge>{t("setup.programmes.off")}</Badge>}
+          </div>
+          <p className={styles.meta}>
+            {programmesText(on.length, words.programme)} · {levelsText(levels, words.level)} · {studentsText(students, student)}
+          </p>
+        </div>
+        <div className={styles.headActions}>
+          {canManage ? (
+            <AddDialog label={t("structure.edit")} ariaLabel={t("structure.editItem", { name: section.name })} title={t("structure.editTitle", { name: section.name })} variant="secondary" plus={false}>
+              {(close) => (
+                <>
+                  <NameForm
+                    label={t("setup.sections.name", words)}
+                    initial={section.name}
+                    submitLabel={t("structure.saveName")}
+                    required={t("structure.nameRequired")}
+                    onSave={async (name) => (await actions.renameSection(section.key, name)) && (close(), true)}
+                  >
+                    <SwitchButton active={section.active} name={section.name} onSwitch={async () => (await actions.setSectionActive(section, !section.active)) && (close(), true)} />
+                  </NameForm>
+                  <DeleteControl name={section.name} canDelete={section.canDelete} blocked="structure.sectionInUse" onDelete={async () => (await actions.deleteSection(section)) && (close(), true)} />
+                </>
+              )}
+            </AddDialog>
+          ) : null}
+          <Disclosure open={open} controls={bodyId} name={section.name} onToggle={() => onToggle(section.key)} />
+        </div>
+      </div>
+      {open ? (
+        <div id={bodyId} className={styles.body}>
+          <div className={styles.bodyHead}>
+            <h3 className={styles.bodyTitle}>{t("structure.programmesTitle", words)}</h3>
+            {canManage && section.active ? (
+              <AddDialog label={t("setup.programmes.add", words)} title={t("structure.addProgrammeTo", { ...words, name: section.name })} variant="secondary">
+                {(close) => (
+                  <ProgrammeFields words={words} withGrading={false} submitLabel={t("setup.programmes.add", words)} onSave={async (values) => (await actions.addProgramme(section.key, values)) && (close(), true)} />
+                )}
+              </AddDialog>
+            ) : null}
+          </div>
+          {programmes.length === 0 ? (
+            <p className={styles.empty}>{t("structure.noProgrammes", { ...inSentence(words), programme: words.programme })}</p>
+          ) : (
+            <ul className={styles.programmes}>
+              {programmes.map((programme, i) => (
+                <ProgrammeCard key={programme.id} programme={programme} index={i} open={isOpen(programme.id)} onToggle={() => onToggle(programme.id)} words={words} student={student} canManage={canManage} actions={actions} />
+              ))}
+            </ul>
+          )}
+        </div>
+      ) : null}
+    </article>
+  );
+}
+
+function Totals({ totals, words, student }: { totals: Structure["totals"]; words: Words; student: string }) {
+  const cards: { icon: LucideIcon; tone: Tone; label: string; value: number }[] = [
+    { icon: Layers, tone: "accent", label: t("structure.totalSections", words), value: totals.sections },
+    { icon: BookOpen, tone: "primary", label: t("structure.totalProgrammes", words), value: totals.programmes },
+    { icon: Database, tone: "ok", label: t("structure.totalLevels", words), value: totals.levels },
+    { icon: Users, tone: "warn", label: t("structure.totalStudents", { student }), value: totals.students },
+  ];
+  return (
+    <dl className={styles.totals}>
+      {cards.map((card) => (
+        <div key={card.label} className={styles.total}>
+          <Tile icon={card.icon} tone={card.tone} />
+          <div className={styles.totalText}>
+            <dt className={styles.totalLabel}>{card.label}</dt>
+            <dd className={styles.totalValue}>{count(card.value)}</dd>
+          </div>
+        </div>
+      ))}
+    </dl>
+  );
+}
+
+/** The page once its data is here. Pure, so it is drawn in tests without a network. The first section and its first programme start open. */
+export function AcademicStructureView({ data, canManage, actions }: { data: Structure; canManage: boolean; actions: StructureActions }) {
+  const { term } = useConfig();
   const words = termWords(term);
-  // `?add=1` (the dashboard's Add Program, D-089) opens the Add pop-up straight away.
-  const search = useAddressQuery();
-  const askedToAdd = search !== null && new URLSearchParams(search).get("add") === "1";
-  const load = useCallback(() => loadProgrammes(api), [api]);
-  const { view, reload } = useLoad(load);
-  const [flash, setFlash] = useState<Flash | null>(null);
-  const [busy, setBusy] = useState<string | null>(null);
-
-  const said = (result: { ok: true } | { ok: false; reason: keyof typeof REASON_MESSAGE }, done: MessageKey) =>
-    setFlash(result.ok ? { tone: "ok", text: t(done) } : { tone: "bad", text: t(REASON_MESSAGE[result.reason]) });
-
-  async function toggle(id: string, run: () => ReturnType<typeof setProgrammeActive>, done: MessageKey) {
-    if (busy) return;
-    setBusy(id);
-    setFlash(null);
-    const result = await run();
-    setBusy(null);
-    said(result, done);
-    await reload();
-  }
-
-  async function add(programme: Programme, name: string): Promise<boolean> {
-    setFlash(null);
-    const result = await addLevel(api, programme.id, name);
-    said(result, "setup.done.added");
-    if (result.ok) await reload();
-    return result.ok;
-  }
+  const student = term("role.student");
+  const first = data.sections[0]?.key;
+  const firstProgramme = data.programmes.find((p) => p.section.key === first)?.id;
+  const [toggled, setToggled] = useState<Record<string, boolean>>({});
+  const isOpen = (id: string) => toggled[id] ?? (id === first || id === firstProgramme);
+  const toggle = useCallback((id: string) => setToggled((now) => ({ ...now, [id]: !(now[id] ?? (id === first || id === firstProgramme)) })), [first, firstProgramme]);
 
   return (
     <>
+      <Totals totals={data.totals} words={words} student={student} />
+      {data.sections.length === 0 ? (
+        <div className={styles.emptyCard}>
+          <Tile icon={Layers} tone="accent" />
+          <h2 className={styles.sectionName}>{t("structure.emptyTitle", words)}</h2>
+          <p className={styles.meta}>{t(canManage ? "structure.emptyBody" : "structure.emptyReadOnly", inSentence(words))}</p>
+        </div>
+      ) : (
+        <div className={styles.sections}>
+          {data.sections.map((section, index) => (
+            <SectionCard
+              key={section.key}
+              section={section}
+              index={index}
+              programmes={data.programmes.filter((p) => p.section.key === section.key)}
+              open={isOpen(section.key)}
+              isOpen={isOpen}
+              onToggle={toggle}
+              words={words}
+              student={student}
+              canManage={canManage}
+              actions={actions}
+            />
+          ))}
+        </div>
+      )}
+    </>
+  );
+}
+
+/** The shape of the page while it loads: four figures, then two sections. */
+function StructureSkeleton() {
+  return (
+    <div role="status" aria-busy="true">
+      <span className="sr-only">{t("structure.loading")}</span>
+      <div className={styles.totals} aria-hidden>
+        {[0, 1, 2, 3].map((i) => (
+          <div key={i} className={styles.total}>
+            <Skeleton width="3rem" height="3rem" />
+            <div className={styles.totalText}>
+              <Skeleton width="60%" />
+              <Skeleton width="40%" height="1.75rem" />
+            </div>
+          </div>
+        ))}
+      </div>
+      <div className={styles.sections} aria-hidden>
+        {[0, 1].map((i) => (
+          <div key={i} className={styles.section}>
+            <div className={styles.sectionHead}>
+              <Skeleton width="3rem" height="3rem" />
+              <div className={styles.headText}>
+                <Skeleton width="40%" height="1.5rem" />
+                <Skeleton width="30%" />
+              </div>
+            </div>
+            <div className={styles.body}>
+              <Skeleton height="4.5rem" />
+              <Skeleton height="3rem" />
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// --- The screen --------------------------------------------------------------------------------------------
+
+export function ProgrammesScreen() {
+  const { api, me } = useSession();
+  const { term, retry } = useConfig();
+  const words = termWords(term);
+  const canManage = canManageProgrammes(me?.roles ?? []); // the Admin's (D-087, D-095); others look only
+  const load = useCallback(() => loadProgrammes(api), [api]);
+  const { view, reload } = useLoad(load);
+  const [flash, setFlash] = useState<{ tone: "ok" | "bad"; text: string } | null>(null);
+  // `?add=1` (the dashboard's Add Program, D-089) opens Add a Section when the school has none yet.
+  const search = useAddressQuery();
+  const askedToAdd = search !== null && new URLSearchParams(search).get("add") === "1";
+
+  /** Runs one change, says how it went, and on success reads the structure again so every count is right. */
+  const run = useCallback(
+    async (result: Promise<WriteResult | { ok: true; id: string } | { ok: false; reason: keyof typeof REASON_MESSAGE }>, done: MessageKey, refreshConfig = false) => {
+      setFlash(null);
+      const outcome = await result;
+      setFlash(outcome.ok ? { tone: "ok", text: t(done) } : { tone: "bad", text: t(REASON_MESSAGE[outcome.reason]) });
+      if (outcome.ok) {
+        await reload();
+        if (refreshConfig) retry(); // other screens read the sections from the school's configuration
+      }
+      return outcome.ok;
+    },
+    [reload, retry],
+  );
+
+  const actions: StructureActions = {
+    addSection: (name) => run(createSection(api, name), "setup.done.sectionAdded", true),
+    renameSection: (key, name) => run(renameSection(api, key, name), "setup.done.sectionRenamed", true),
+    addProgramme: (sectionKey, values) => run(createProgramme(api, { ...values, sectionKey }), "setup.done.added"),
+    editProgramme: (programme, values) => run(updateProgramme(api, programme.id, values), "structure.done.saved"),
+    setProgrammeActive: (programme, active) => run(setProgrammeActive(api, programme.id, active), active ? "setup.done.switchedOn" : "setup.done.switchedOff"),
+    addLevel: (programme, name) => run(addLevel(api, programme.id, name), "setup.done.added"),
+    renameLevel: (level, name) => run(renameLevel(api, level.id, name), "structure.done.saved"),
+    setLevelActive: (level, active) => run(setLevelActive(api, level.id, active), active ? "setup.done.switchedOn" : "setup.done.switchedOff"),
+    setSectionActive: (section, active) => run(setSectionActive(api, section.key, active), active ? "setup.done.switchedOn" : "setup.done.switchedOff", true),
+    deleteSection: (section) => run(deleteSection(api, section.key), "structure.done.deleted", true),
+    deleteProgramme: (programme) => run(deleteProgramme(api, programme.id), "structure.done.deleted"),
+    deleteLevel: (level) => run(deleteLevel(api, level.id), "structure.done.deleted"),
+  };
+
+  const none = view.status === "ready" && view.data.sections.length === 0;
+  return (
+    <div className={styles.page}>
       <TitleRow>
-        <h1 className={styles.title}>{t("setup.programmes.title", words)}</h1>
-        {canManage && sections.length > 0 ? (
-          <AddDialog label={t("setup.programmes.add", words)} title={t("setup.programmes.add", words)} openNow={askedToAdd}>
+        <div className={styles.titleBlock}>
+          <h1 className={styles.title}>{t("structure.title")}</h1>
+          <p className={styles.subtitle}>{t("structure.subtitle", inSentence(words))}</p>
+        </div>
+        {canManage ? (
+          <AddDialog label={t("setup.sections.add", words)} title={t("setup.sections.add", words)} openNow={askedToAdd && none}>
             {(close) => (
-              <ProgrammeForm
-                sections={sections}
-                showTitle={false}
-                onAdded={() => {
-                  close();
-                  setFlash({ tone: "ok", text: t("setup.done.added") });
-                  void reload();
-                }}
-                onProblem={(key) => setFlash({ tone: "bad", text: t(key) })}
+              <NameForm
+                label={t("setup.sections.name", words)}
+                hint={t("setup.sections.nameHint")}
+                submitLabel={t("setup.sections.add", words)}
+                required={t("setup.error.sectionNameRequired", words)}
+                onSave={async (name) => (await actions.addSection(name)) && (close(), true)}
               />
             )}
           </AddDialog>
         ) : null}
       </TitleRow>
-      {flash ? <Notice tone={flash.tone}>{flash.text}</Notice> : null}
-      <Gate view={view} onRetry={() => void reload()}>
-        {({ programmes }) => (
-          <ProgrammesView
-            programmes={programmes}
-            canManage={canManage}
-            busy={busy}
-            onToggleProgramme={(p) => void toggle(p.id, () => setProgrammeActive(api, p.id, !p.active), p.active ? "setup.done.switchedOff" : "setup.done.switchedOn")}
-            onToggleLevel={(l) => void toggle(l.id, () => setLevelActive(api, l.id, !l.active), l.active ? "setup.done.switchedOff" : "setup.done.switchedOn")}
-            onAddLevel={add}
-            onSetPolicy={(p, policy) => void toggle(p.id, () => setProgrammePolicy(api, p.id, policy), "setup.done.gradingSet")}
-          />
-        )}
-      </Gate>
+      {flash ? (
+        <div aria-live="polite">
+          <Notice tone={flash.tone}>{flash.text}</Notice>
+        </div>
+      ) : null}
+      {view.status === "loading" ? <StructureSkeleton /> : null}
+      {view.status === "failed" ? (
+        <Notice tone="bad">
+          <span className={styles.failed}>
+            {t("structure.loadFailed")}
+            <Button variant="secondary" onClick={() => void reload()}>
+              {t("setup.retry")}
+            </Button>
+          </span>
+        </Notice>
+      ) : null}
+      {view.status === "forbidden" ? <Notice tone="bad">{t("setup.forbidden")}</Notice> : null}
+      {view.status === "ready" ? <AcademicStructureView data={view.data} canManage={canManage} actions={actions} /> : null}
       {canManage ? null : <Notice>{t("setup.programmes.readOnly", { admin: term("role.admin") })}</Notice>}
-    </>
+    </div>
   );
 }

@@ -10,12 +10,13 @@ import { ownPasswordFailure, profileProblems } from "@/settings/model";
 import { PasswordCard, ProfileCard } from "@/settings/SettingsScreen";
 import { fakeSession } from "./session";
 import royal from "../../../packs/royal-softech/pack.json";
+import { TEST_SECTIONS } from "./sections";
 
 vi.mock("next/navigation", () => ({ usePathname: () => "/portal/settings", useRouter: () => ({ replace: vi.fn(), push: vi.fn() }) }));
 
 const config: PublicConfig = {
   school: { name: royal.school.name, shortName: royal.school.shortName, currency: "NPR", timezone: "Asia/Kathmandu", region: "nepal", template: null },
-  sections: royal.sections,
+  sections: TEST_SECTIONS.royal,
   modules: {},
   terms: {},
   theme: royal.theme as PublicConfig["theme"],

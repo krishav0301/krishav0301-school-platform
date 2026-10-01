@@ -16,6 +16,7 @@ import { fakeSession } from "./session";
 import { siteFrom } from "./site-fixture";
 import royalJson from "../../../packs/royal-softech/pack.json";
 import sampleJson from "../../../packs/sample-basic-school/pack.json";
+import { TEST_SECTIONS, sectionsOf } from "./sections";
 
 vi.mock("next/navigation", () => ({ usePathname: () => "/programmes", useRouter: () => ({ replace: vi.fn(), push: vi.fn() }) }));
 
@@ -27,7 +28,7 @@ describe.each([
   { label: "Royal Softech", json: royalJson },
   { label: "Sample Basic School", json: sampleJson },
 ])("$label's pages", ({ json }) => {
-  const pack = { sections: json.sections };
+  const pack = { sections: sectionsOf(json) };
   const site = siteFrom(json);
 
   it("Programmes: every programme is a card with its anchor, grouped under its section", () => {
@@ -104,7 +105,7 @@ describe("text from the pack is shown as text, never run", () => {
   bad.site.scholarships.items[0].title = script;
   bad.site.facilities.items[0].name = script;
   bad.site.contact.address = script;
-  const pack = { site: siteFrom(bad), sections: bad.sections };
+  const pack = { site: siteFrom(bad), sections: TEST_SECTIONS.royal };
 
   it("on every page", () => {
     const html = [
@@ -166,7 +167,7 @@ describe("the frame around a page's words", () => {
 describe("a page as the visitor first sees it", () => {
   const config: PublicConfig = {
     school: { name: "Royal Softech College", shortName: "Royal Softech", currency: "NPR", timezone: "Asia/Kathmandu", region: "nepal", template: null },
-    sections: royalJson.sections,
+    sections: TEST_SECTIONS.royal,
     modules: {},
     terms: { "role.student": "Student", "role.teacher": "Teacher", "role.coordinator": "Co-ordinator", "role.accountant": "Accountant", "role.admin": "Admin", "term.terminal": "Terminal", "term.programme": "Programme", "term.level": "Level", "term.section": "Section" },
     theme: royalJson.theme as PublicConfig["theme"],

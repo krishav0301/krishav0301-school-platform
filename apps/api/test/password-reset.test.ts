@@ -3,7 +3,8 @@ import { describe, expect, it } from "vitest";
 
 import { createApp } from "../src/app";
 import { verifyAuditChain } from "../src/core/audit";
-import { applyPack, parsePack } from "../src/core/config";
+import { applyPack } from "../src/core/config";
+import { testPack } from "./programme-fixtures";
 import { runOutbox } from "../src/core/notifications";
 import { verifyPassword } from "../src/core/passwords";
 import { sha256Hex } from "../src/core/tokens";
@@ -49,7 +50,7 @@ const post = (path: string, body: unknown, headers: Record<string, string> = {})
 
 describe("requesting a reset", () => {
   it("prepares the school so emails can name it", async () => {
-    await applyPack(db, parsePack(royalJson));
+    await applyPack(db, testPack(royalJson));
   });
 
   it("for a real account: one reset, one queued email, and after delivery a link that carries the token", async () => {
