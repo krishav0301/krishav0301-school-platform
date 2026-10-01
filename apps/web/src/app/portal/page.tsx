@@ -3,6 +3,7 @@
 import { StudentRecordCard } from "@/admissions/StudentRecordCard";
 import { OwnAttendanceCard } from "@/attendance/OwnAttendanceCard";
 import { AdminDashboard } from "@/dashboard/AdminDashboard";
+import { ROLE_BRIEFS, RoleBrief } from "@/dashboard/RoleBrief";
 import { SchoolDayCard, StudentTodayCard, TeacherTodayCard } from "@/dashboard/TodayCards";
 import { useConfig } from "@/config/ConfigProvider";
 import { t } from "@/i18n/messages";
@@ -44,13 +45,19 @@ function Dashboard() {
           ))}
         </ul>
       </Card>
+      {/* What each of the person's roles can do, one card per role (the PM, 2026-10-01). */}
+      {[...new Set(me.roles.map((r) => r.role))]
+        .filter((role): role is keyof typeof ROLE_BRIEFS => role in ROLE_BRIEFS)
+        .map((role) => (
+          <RoleBrief key={role} role={role} />
+        ))}
       {me.roles.some((r) => r.role === "teacher") ? <TeacherTodayCard /> : null}
       {me.roles.some((r) => r.role === "coordinator") ? <SchoolDayCard /> : null}
       {me.roles.some((r) => r.role === "coordinator") ? <ChecklistCard /> : null}
       {me.roles.some((r) => r.role === "student") ? <StudentRecordCard /> : null}
       {me.roles.some((r) => r.role === "student") && config?.modules.attendance ? <OwnAttendanceCard /> : null}
       {me.roles.some((r) => r.role === "student") ? <StudentTodayCard /> : null}
-      {me.roles.some((r) => r.role === "coordinator" || r.role === "student" || r.role === "teacher") ? null : <p className={styles.note}>{t("portal.nothingYet")}</p>}
+      {me.roles.some((r) => r.role in ROLE_BRIEFS) ? null : <p className={styles.note}>{t("portal.nothingYet")}</p>}
     </>
   );
 }
