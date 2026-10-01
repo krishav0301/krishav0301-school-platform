@@ -2611,6 +2611,12 @@ export interface components {
         ProgrammeList: {
             programmes: components["schemas"]["Programme"][];
             sections: components["schemas"]["Section"][];
+            totals: {
+                sections: number;
+                programmes: number;
+                levels: number;
+                students: number;
+            };
         };
         Programme: {
             id: string;
@@ -2625,12 +2631,14 @@ export interface components {
             /** @enum {string|null} */
             gradingPolicy: "neb_gpa" | "percentage_division" | null;
             levels: components["schemas"]["Level"][];
+            students: number;
         };
         Level: {
             id: string;
             ordinal: number;
             name: string;
             active: boolean;
+            students: number;
         };
         Section: {
             key: string;

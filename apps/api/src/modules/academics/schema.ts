@@ -106,7 +106,16 @@ export const AcademicYearSchema = z
 export const AcademicYearListSchema = z.object({ years: z.array(AcademicYearSchema) }).openapi("AcademicYearList");
 export type AcademicYearList = z.infer<typeof AcademicYearListSchema>;
 
-export const LevelSchema = z.object({ id: z.string(), ordinal: z.number().int(), name: z.string(), active: z.boolean() }).openapi("Level");
+export const LevelSchema = z
+  .object({
+    id: z.string(),
+    ordinal: z.number().int(),
+    name: z.string(),
+    active: z.boolean(),
+    /** Students enrolled at this level in the active year (D-096); 0 when no year is active. */
+    students: z.number().int(),
+  })
+  .openapi("Level");
 export const ProgrammeSchema = z
   .object({
     id: z.string(),
@@ -117,6 +126,8 @@ export const ProgrammeSchema = z
     active: z.boolean(),
     gradingPolicy: GradingPolicySchema.nullable(),
     levels: z.array(LevelSchema),
+    /** Students enrolled in this programme in the active year: the sum of its levels' (D-096). */
+    students: z.number().int(),
   })
   .openapi("Programme");
 export const SectionSchema = z.object({ key: z.string(), name: z.string() }).openapi("Section");
@@ -125,6 +136,11 @@ export const ProgrammeListSchema = z
     programmes: z.array(ProgrammeSchema),
     /** The sections the person may see, in order, with or without programmes: the Programs screen lists and adds to them (D-095). */
     sections: z.array(SectionSchema),
+    /**
+     * The Academic Structure page's four figures (D-096), worked out here from the same rows: sections, programmes
+     * switched on, levels switched on (of programmes switched on), and students enrolled in the active year.
+     */
+    totals: z.object({ sections: z.number().int(), programmes: z.number().int(), levels: z.number().int(), students: z.number().int() }),
   })
   .openapi("ProgrammeList");
 export type ProgrammeList = z.infer<typeof ProgrammeListSchema>;

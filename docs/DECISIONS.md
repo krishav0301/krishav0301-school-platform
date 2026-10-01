@@ -723,6 +723,48 @@ The matrix lives in code (61 actions, 8 groups, from the reviewed `permission-ma
   - The public website's Programmes page still groups by the section key each public programme names in the pack's site words. With no matching section, those programmes are listed without a heading.
   - `OPEN:` whether the public site's programme list should come from the Admin's programmes rather than the pack's words is a PM decision.
 
+**D-096 The Programs screen becomes "Academic Structure".** 2026-10-01, from the PM's reference image and written brief. The page shows sections, then programmes, then levels, after the PM's design. No permission or money rule changed. The page reuses the existing models and routes; there is no new table and no second API.
+- **Built.**
+  - **The data.** `GET /api/academics/programmes` now carries, in the same single round trip:
+    - each level's `students`: active enrollments in the active year, counted by one grouped query, never by fetching records;
+    - each programme's `students`;
+    - `totals` for sections, programmes switched on, levels switched on of programmes switched on, and students.
+
+    A section-scoped person's figures cover only their section.
+  - **The layout.**
+    - The page title is "Academic Structure", with the subtitle in the school's own words, lower-case mid-sentence.
+    - "Add a Section" is the page's one prominent button.
+    - Four figure cards.
+    - Each section is a raised card showing its programmes, levels and students, with Rename and a show/hide chevron.
+    - Inside a section: "Programmes" with Add a Programme, and each programme as a bordered card. A programme card shows its affiliation badge (the existing affiliation; nothing like "NAAC" is invented), its counts and grading, Edit (name, affiliation, grading, switch off/on) and a chevron.
+    - Inside a programme: "Levels" with Add a Level, and each level as a row with its students and a ⋮ that opens rename and switch off/on.
+    - The first section and its first programme start open.
+    - Singular forms read correctly ("1 Level · 1 Student").
+    - Empty, loading (skeleton of the page's shape) and failed (inline, with Try again) states. Change failures are announced politely.
+  - **Kept as it was.**
+    - Nothing is deleted: a programme or level is switched off and keeps its history.
+    - Every change goes through the existing service, which re-checks the person inside its batch and is audited.
+  - **Smaller changes.** AddDialog gained `icon` and `hideLabel` for the icon-only ⋮. The old ProgrammesView and SectionsCard were replaced, and their now-unused words removed.
+- **Not built, and why.**
+  - **Reordering levels.** A level's ordinal is its place in the programme, which the year lifecycle (Phase 8: promotion) will rely on. Changing it is a Phase 8 decision.
+  - **Deleting anything.** Not allowed (CLAUDE.md section 6).
+  - **The ⋮ on sections and programmes.** It would have held one entry or none, and D-030 says a menu of one entry is not shown.
+  - **Header search and bell.** Left out by the PM.
+  - **Programme-specific icons.** The model has no programme type to choose them by, so each programme gets the same book icon in a rotating tint.
+- **Tests.**
+  - API `academic-structure.test.ts` (3 tests): counts per level and programme, students who have left not counted; totals ignore switched-off items; a section-scoped person's figures cover only their section.
+  - `academics-routes.test.ts` level shape updated.
+  - Web `setup-screens.test.tsx` (10 tests): figures, section counts, what starts open, heading levels 2, 3 and 4, badges and singular forms, the Admin's named controls with no second prominent button, a read-only view with no controls, empty states, and no colour of its own.
+  - Totals: API 1,539 tests, web 596, plus typecheck, lint, build, page weight, BOM, boundaries and a wrangler dry run.
+  - Checked in the browser preview as a Co-ordinator at 1440 px and 320 px, with no sideways scroll.
+- **Design** (`ui-ux-pro-max`): the "nested accordion" and "progressive disclosure" searches returned no matching guidance, so the built-in defaults were used: real buttons with `aria-expanded`, 44 px targets, transform and opacity motion only, reduced motion respected.
+- **Review** (`apple-design`):
+  - `hig/layout.md › Best practices` (group related items) and `› Visual hierarchy` (alignment and indentation show the hierarchy), applied as raised card, then bordered card, then row.
+  - `hig/disclosure-controls.md › Disclosure triangles` (a descriptive label: "Show Mechanical Engineering").
+  - The same page's "no more than one disclosure *button* in a view" concerns a different control; the chevrons here are disclosure triangles, one per row, as the PM's design asks.
+  - `hig/entering-data.md › Best practices` (each form says what it needs, with examples).
+- **Seen in passing.** Next.js link prefetches log 404s for page-data files on every portal page. This was already the case before this change; it is flagged as a separate task.
+
 ## Open items carried forward
 
 - **No CAPTCHA on the public apply form (D-063).** Relies on rate limiting and an off-screen honeypot, which meets section 7's "rate limiting, CAPTCHA or similar" but is not a CAPTCHA. Add one only if real abuse appears.

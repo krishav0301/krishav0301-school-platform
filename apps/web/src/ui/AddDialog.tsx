@@ -26,6 +26,8 @@ export function AddDialog({
   openNow = false,
   variant = "primary",
   plus = true,
+  icon,
+  hideLabel = false,
   ariaLabel,
   children,
 }: {
@@ -36,6 +38,10 @@ export function AddDialog({
   variant?: "primary" | "secondary" | "quiet";
   /** The plus sign says "adds"; a dialog that changes something already there leaves it out. */
   plus?: boolean;
+  /** An icon in place of the plus sign, such as the "more" dots of a row's options. */
+  icon?: ReactNode;
+  /** Show only the icon; the label is still read out (an icon-only button always has a name). */
+  hideLabel?: boolean;
   /** A fuller name for a short button, such as "Rename Bachelor's" for "Rename". */
   ariaLabel?: string;
   children: (close: () => void) => ReactNode;
@@ -67,8 +73,8 @@ export function AddDialog({
         aria-label={ariaLabel}
         onClick={() => setOpen(true)}
       >
-        {plus ? <Plus aria-hidden className={styles.icon} /> : null}
-        {label}
+        {icon ?? (plus ? <Plus aria-hidden className={styles.icon} /> : null)}
+        {hideLabel ? <span className="sr-only">{label}</span> : label}
       </Button>
       <dialog
         ref={ref}

@@ -143,7 +143,7 @@ describe("setting up a year, end to end", () => {
     const programmes = (await (await get("/programmes", coordinator)).json()) as { programmes: { id: string; section: { key: string }; levels: { id: string; ordinal: number; name: string; active: boolean }[] }[] };
     const programme = programmes.programmes.find((p) => p.id === programmeId)!;
     expect(programme.section.key).toBe("bachelors");
-    expect(programme.levels).toEqual([{ id: levelId, ordinal: 1, name: "Level 1", active: true }]);
+    expect(programme.levels).toEqual([{ id: levelId, ordinal: 1, name: "Level 1", active: true, students: 0 }]); // no one enrolled yet (D-096)
 
     const classes = (await (await get(`/classes?year=${yearId}`, coordinator)).json()) as { classes: { id: string; label: string; levelName: string; programmeName: string; active: boolean }[] };
     expect(classes.classes).toMatchObject([{ id: classId, label: "Morning", levelName: "Level 1", active: true }]);

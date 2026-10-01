@@ -723,11 +723,35 @@
             "items": {
               "$ref": "#/components/schemas/Section"
             }
+          },
+          "totals": {
+            "type": "object",
+            "properties": {
+              "sections": {
+                "type": "integer"
+              },
+              "programmes": {
+                "type": "integer"
+              },
+              "levels": {
+                "type": "integer"
+              },
+              "students": {
+                "type": "integer"
+              }
+            },
+            "required": [
+              "sections",
+              "programmes",
+              "levels",
+              "students"
+            ]
           }
         },
         "required": [
           "programmes",
-          "sections"
+          "sections",
+          "totals"
         ]
       },
       "Programme": {
@@ -779,6 +803,9 @@
             "items": {
               "$ref": "#/components/schemas/Level"
             }
+          },
+          "students": {
+            "type": "integer"
           }
         },
         "required": [
@@ -789,7 +816,8 @@
           "affiliation",
           "active",
           "gradingPolicy",
-          "levels"
+          "levels",
+          "students"
         ]
       },
       "Level": {
@@ -806,13 +834,17 @@
           },
           "active": {
             "type": "boolean"
+          },
+          "students": {
+            "type": "integer"
           }
         },
         "required": [
           "id",
           "ordinal",
           "name",
-          "active"
+          "active",
+          "students"
         ]
       },
       "Section": {

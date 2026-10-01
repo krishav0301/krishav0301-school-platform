@@ -51,7 +51,7 @@ interface ProgrammeRow {
 /** The programmes of these sections, each with its levels in order. One database round trip. */
 export async function listProgrammes(db: D1Database, sections: "all" | readonly string[]): Promise<ProgrammeList> {
   const filter = sectionFilter(sections);
-  const [rows, sectionRows] = await db.batch([
+  const [rows, sectionRows, countRows] = await db.batch([
     db
       .prepare(
         `SELECT p.public_id, p.key, p.name, p.affiliation, p.is_active, p.grading_policy, s.key AS section_key, s.name AS section_name,
@@ -64,8 +64,23 @@ export async function listProgrammes(db: D1Database, sections: "all" | readonly 
       )
       .bind(filter),
     db.prepare("SELECT key, name FROM sections WHERE (?1 IS NULL OR key IN (SELECT value FROM json_each(?1))) ORDER BY ordering, id").bind(filter),
+    // Students per level in the active year (D-096): counted here, never by fetching their records.
+    db
+      .prepare(
+        `SELECT l.public_id AS level_id, COUNT(*) AS students
+           FROM enrollments e
+           JOIN classes c ON c.id = e.class_id
+           JOIN academic_years y ON y.id = c.academic_year_id AND y.status = 'active'
+           JOIN levels l ON l.id = c.level_id
+           JOIN programmes p ON p.id = l.programme_id
+           JOIN sections s ON s.id = p.section_id
+          WHERE e.status = 'active' AND (?1 IS NULL OR s.key IN (SELECT value FROM json_each(?1)))
+          GROUP BY l.id`,
+      )
+      .bind(filter),
   ]);
   const results = rows!.results as unknown as ProgrammeRow[];
+  const studentsAt = new Map((countRows!.results as unknown as { level_id: string; students: number }[]).map((r) => [r.level_id, r.students]));
 
   const programmes: ProgrammeList["programmes"] = [];
   for (const r of results) {
@@ -80,12 +95,28 @@ export async function listProgrammes(db: D1Database, sections: "all" | readonly 
         active: r.is_active === 1,
         gradingPolicy: r.grading_policy,
         levels: [],
+        students: 0,
       };
       programmes.push(programme);
     }
-    if (r.level_id !== null) programme.levels.push({ id: r.level_id, ordinal: r.ordinal!, name: r.level_name!, active: r.level_active === 1 });
+    if (r.level_id !== null) {
+      const students = studentsAt.get(r.level_id) ?? 0;
+      programme.levels.push({ id: r.level_id, ordinal: r.ordinal!, name: r.level_name!, active: r.level_active === 1, students });
+      programme.students += students;
+    }
   }
-  return { programmes, sections: sectionRows!.results as unknown as ProgrammeList["sections"] };
+  const listed = sectionRows!.results as unknown as ProgrammeList["sections"];
+  const on = programmes.filter((p) => p.active);
+  return {
+    programmes,
+    sections: listed,
+    totals: {
+      sections: listed.length,
+      programmes: on.length,
+      levels: on.reduce((n, p) => n + p.levels.filter((l) => l.active).length, 0),
+      students: programmes.reduce((n, p) => n + p.students, 0),
+    },
+  };
 }
 
 interface ClassRow {

@@ -61,8 +61,8 @@ describe("defaultYearId", () => {
 
 describe("levelChoices", () => {
   const programmes: Programme[] = [
-    { id: "p1", key: "bbs", name: "BBS", section: { key: "bachelors", name: "Bachelor's" }, affiliation: "TU", active: true, gradingPolicy: null, levels: [{ id: "l1", ordinal: 1, name: "Year 1", active: true }, { id: "l2", ordinal: 2, name: "Year 2", active: false }] },
-    { id: "p2", key: "old", name: "Old", section: { key: "plus2", name: "+2" }, affiliation: "NEB", active: false, gradingPolicy: null, levels: [{ id: "l3", ordinal: 1, name: "Grade 11", active: true }] },
+    { id: "p1", key: "bbs", name: "BBS", section: { key: "bachelors", name: "Bachelor's" }, affiliation: "TU", active: true, gradingPolicy: null, students: 0, levels: [{ id: "l1", ordinal: 1, name: "Year 1", active: true, students: 0 }, { id: "l2", ordinal: 2, name: "Year 2", active: false, students: 0 }] },
+    { id: "p2", key: "old", name: "Old", section: { key: "plus2", name: "+2" }, affiliation: "NEB", active: false, gradingPolicy: null, students: 0, levels: [{ id: "l3", ordinal: 1, name: "Grade 11", active: true, students: 0 }] },
   ];
   it("lists only the active levels of active programmes, named with their programme", () => {
     expect(levelChoices(programmes)).toEqual([{ value: "l1", label: "BBS · Year 1" }]);

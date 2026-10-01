@@ -90,6 +90,13 @@ export const renameSection = async (api: ApiClient, key: string, name: string): 
 export const createProgramme = async (api: ApiClient, body: { name: string; sectionKey: string; affiliation: string }): Promise<CreateResult> =>
   created(await send(() => api.POST("/api/academics/programmes", { body })));
 
+/** Changes a programme's name, affiliation or grading policy (D-096's Edit). */
+export const updateProgramme = async (api: ApiClient, id: string, body: { name?: string; affiliation?: string; gradingPolicy?: "neb_gpa" | "percentage_division" | null }): Promise<WriteResult> =>
+  done(await send(() => api.PATCH("/api/academics/programmes/{id}", { params: { path: { id } }, body })));
+
+export const renameLevel = async (api: ApiClient, id: string, name: string): Promise<WriteResult> =>
+  done(await send(() => api.PATCH("/api/academics/levels/{id}", { params: { path: { id } }, body: { name } })));
+
 export const setProgrammeActive = async (api: ApiClient, id: string, active: boolean): Promise<WriteResult> =>
   done(await send(() => api.PATCH("/api/academics/programmes/{id}", { params: { path: { id } }, body: { active } })));
 
