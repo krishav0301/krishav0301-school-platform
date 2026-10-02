@@ -565,6 +565,14 @@
               "null"
             ],
             "pattern": "^[a-z][a-z0-9_]{0,30}$"
+          },
+          "sectionKeys": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9_]{0,30}$"
+            },
+            "maxItems": 20
           }
         },
         "required": [
@@ -644,6 +652,227 @@
         "required": [
           "temporaryPassword"
         ]
+      },
+      "PeopleList": {
+        "type": "object",
+        "properties": {
+          "people": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Person"
+            }
+          },
+          "total": {
+            "type": "integer"
+          },
+          "page": {
+            "type": "integer"
+          },
+          "pageSize": {
+            "type": "integer"
+          },
+          "counts": {
+            "type": "object",
+            "properties": {
+              "teachers": {
+                "type": "integer"
+              },
+              "coordinators": {
+                "type": "integer"
+              },
+              "accountants": {
+                "type": "integer"
+              }
+            },
+            "required": [
+              "teachers",
+              "coordinators",
+              "accountants"
+            ]
+          },
+          "sections": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "key": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "active": {
+                  "type": "boolean"
+                }
+              },
+              "required": [
+                "key",
+                "name",
+                "active"
+              ]
+            }
+          }
+        },
+        "required": [
+          "people",
+          "total",
+          "page",
+          "pageSize",
+          "counts",
+          "sections"
+        ]
+      },
+      "Person": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "fullName": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          },
+          "phone": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "coordinator",
+              "accountant",
+              "teacher"
+            ]
+          },
+          "sections": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "key": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "key",
+                "name"
+              ]
+            }
+          },
+          "homeSection": {
+            "type": [
+              "object",
+              "null"
+            ],
+            "properties": {
+              "key": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "key",
+              "name"
+            ]
+          },
+          "active": {
+            "type": "boolean"
+          },
+          "mustChangePassword": {
+            "type": "boolean"
+          },
+          "lastSignInAt": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "subjects": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "programmes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "addedBy": {
+            "type": [
+              "object",
+              "null"
+            ],
+            "properties": {
+              "name": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "role": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "support": {
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "name",
+              "role",
+              "support"
+            ]
+          },
+          "canManage": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id",
+          "fullName",
+          "email",
+          "phone",
+          "role",
+          "sections",
+          "homeSection",
+          "active",
+          "mustChangePassword",
+          "lastSignInAt",
+          "subjects",
+          "programmes",
+          "addedBy",
+          "canManage"
+        ]
+      },
+      "AccessChanges": {
+        "type": "object",
+        "properties": {
+          "sectionKeys": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9_]{0,30}$"
+            },
+            "maxItems": 20
+          }
+        },
+        "required": [
+          "sectionKeys"
+        ],
+        "additionalProperties": false
       },
       "AcademicYearList": {
         "type": "object",
@@ -2155,7 +2384,7 @@
           },
           "body": {
             "type": "string",
-            "description": "Plain text. A blank line starts a new paragraph."
+            "description": "Text with a few marks (D-098): a blank line starts a paragraph; **bold**, *italic*, __underline__, [a link](https://…), lines starting \"- \" or \"1. \" make a list, and \"## \" a heading. Nothing else is interpreted."
           },
           "contact": {
             "type": [
@@ -2240,7 +2469,9 @@
           "holiday",
           "routine",
           "vacancy",
-          "post"
+          "post",
+          "event",
+          "information"
         ]
       },
       "AdminContent": {
@@ -2252,16 +2483,63 @@
               "$ref": "#/components/schemas/AdminContentSummary"
             }
           },
+          "total": {
+            "type": "integer"
+          },
+          "page": {
+            "type": "integer"
+          },
+          "pageSize": {
+            "type": "integer"
+          },
+          "counts": {
+            "$ref": "#/components/schemas/ContentCounts"
+          },
+          "site": {
+            "type": "object",
+            "properties": {
+              "address": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "live": {
+                "type": "boolean"
+              },
+              "lastPublishedAt": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            },
+            "required": [
+              "address",
+              "live",
+              "lastPublishedAt"
+            ]
+          },
           "todayBs": {
             "type": [
               "string",
               "null"
             ]
+          },
+          "nowTime": {
+            "type": "string",
+            "pattern": "^([01]\\d|2[0-3]):[0-5]\\d$"
           }
         },
         "required": [
           "items",
-          "todayBs"
+          "total",
+          "page",
+          "pageSize",
+          "counts",
+          "site",
+          "todayBs",
+          "nowTime"
         ]
       },
       "AdminContentSummary": {
@@ -2284,7 +2562,8 @@
             "enum": [
               "draft",
               "waiting",
-              "live"
+              "live",
+              "archived"
             ]
           },
           "state": {
@@ -2293,6 +2572,10 @@
           "publishOn": {
             "type": "string",
             "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+          },
+          "publishTime": {
+            "type": "string",
+            "pattern": "^([01]\\d|2[0-3]):[0-5]\\d$"
           },
           "hideAfter": {
             "type": [
@@ -2350,6 +2633,22 @@
               "string",
               "null"
             ]
+          },
+          "archivedAt": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "authorName": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "excerpt": {
+            "type": "string",
+            "description": "The first 200 characters of the text, marks included."
           }
         },
         "required": [
@@ -2360,6 +2659,7 @@
           "status",
           "state",
           "publishOn",
+          "publishTime",
           "hideAfter",
           "publishOnBs",
           "hideAfterBs",
@@ -2369,7 +2669,10 @@
           "holidayToBs",
           "createdAt",
           "updatedAt",
-          "publishedAt"
+          "publishedAt",
+          "archivedAt",
+          "authorName",
+          "excerpt"
         ]
       },
       "ContentState": {
@@ -2379,7 +2682,40 @@
           "waiting",
           "scheduled",
           "showing",
-          "expired"
+          "expired",
+          "archived"
+        ]
+      },
+      "ContentCounts": {
+        "type": "object",
+        "properties": {
+          "published": {
+            "type": "integer"
+          },
+          "drafts": {
+            "type": "integer"
+          },
+          "scheduled": {
+            "type": "integer"
+          },
+          "urgent": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "published",
+          "drafts",
+          "scheduled",
+          "urgent"
+        ]
+      },
+      "ContentGroup": {
+        "type": "string",
+        "enum": [
+          "published",
+          "draft",
+          "scheduled",
+          "archived"
         ]
       },
       "AdminContentItem": {
@@ -2411,7 +2747,8 @@
             "enum": [
               "draft",
               "waiting",
-              "live"
+              "live",
+              "archived"
             ]
           },
           "state": {
@@ -2420,6 +2757,10 @@
           "publishOn": {
             "type": "string",
             "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+          },
+          "publishTime": {
+            "type": "string",
+            "pattern": "^([01]\\d|2[0-3]):[0-5]\\d$"
           },
           "hideAfter": {
             "type": [
@@ -2477,6 +2818,18 @@
               "string",
               "null"
             ]
+          },
+          "archivedAt": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "authorName": {
+            "type": [
+              "string",
+              "null"
+            ]
           }
         },
         "required": [
@@ -2489,6 +2842,7 @@
           "status",
           "state",
           "publishOn",
+          "publishTime",
           "hideAfter",
           "publishOnBs",
           "hideAfterBs",
@@ -2498,7 +2852,9 @@
           "holidayToBs",
           "createdAt",
           "updatedAt",
-          "publishedAt"
+          "publishedAt",
+          "archivedAt",
+          "authorName"
         ]
       },
       "ContentError": {
@@ -2563,6 +2919,11 @@
             "type": "string",
             "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
           },
+          "publishTime": {
+            "type": "string",
+            "pattern": "^([01]\\d|2[0-3]):[0-5]\\d$",
+            "default": "00:00"
+          },
           "hideAfter": {
             "type": [
               "string",
@@ -2623,6 +2984,10 @@
           "publishOn": {
             "type": "string",
             "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+          },
+          "publishTime": {
+            "type": "string",
+            "pattern": "^([01]\\d|2[0-3]):[0-5]\\d$"
           },
           "hideAfter": {
             "type": [
@@ -8937,7 +9302,7 @@
         "tags": [
           "accounts"
         ],
-        "description": "Adds a Co-ordinator or an Accountant, whole-school or limited to one section. The answer carries a one-time temporary password, shown to the person adding them and never again; the new person must choose their own at first sign-in.",
+        "description": "Adds a Co-ordinator or an Accountant, whole-school or limited to some switched-on sections (`sectionKeys`, D-099; `sectionKey` for one). The answer carries a one-time temporary password, shown to the person adding them and never again; the new person must choose their own at first sign-in.",
         "requestBody": {
           "required": true,
           "content": {
@@ -9180,6 +9545,194 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/TemporaryPassword"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed (not your role, not your section, not your own account, or switched off since signing in)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StaffError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such person or section",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StaffError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "That email address is already used (`email_taken`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StaffError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "The change breaks a rule; nothing changed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StaffInvalid"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/people": {
+      "get": {
+        "operationId": "list_people",
+        "tags": [
+          "accounts"
+        ],
+        "description": "The People & Access screen (D-099): one page of the administrative staff (`group=admin`: Co-ordinators and Accountants) or the teaching staff (`group=teaching`), searched, filtered and paged in the database, with the switched-on counts and every section. An Admin or Super Admin sees both lists; a Co-ordinator sees only teachers, and only their own sections' if limited. A teacher carries their subjects, programmes and who added them. Never a password or hash.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "enum": [
+                "admin",
+                "teaching"
+              ]
+            },
+            "required": true,
+            "name": "group",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "maxLength": 100
+            },
+            "required": false,
+            "name": "q",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "enum": [
+                "coordinator",
+                "accountant"
+              ]
+            },
+            "required": false,
+            "name": "role",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "enum": [
+                "active",
+                "off"
+              ]
+            },
+            "required": false,
+            "name": "status",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9_]{0,30}$"
+            },
+            "required": false,
+            "name": "section",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{32}$"
+            },
+            "required": false,
+            "name": "programme",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 10000
+            },
+            "required": false,
+            "name": "page",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 50
+            },
+            "required": false,
+            "name": "pageSize",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The page",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PeopleList"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/staff/{id}/access": {
+      "patch": {
+        "operationId": "update_staff_access",
+        "tags": [
+          "accounts"
+        ],
+        "description": "Changes which sections a Co-ordinator's or Accountant's access reaches (D-099): `[]` for the whole school, or switched-on sections. Admin or Super Admin only, never for themselves. Takes effect at the person's next sign-in renewal (within 30 minutes); money, approval and publish actions re-check at once. Audited.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{32}$"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AccessChanges"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Done (or already so)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StaffOk"
                 }
               }
             }
@@ -11688,7 +12241,7 @@
         "tags": [
           "content"
         ],
-        "description": "Every item in every state, most recently touched first, at most 200, WITHOUT the text (fetch one item for that). `state` says where each stands today, and `todayBs` is today in Bikram Sambat.",
+        "description": "One page of the items, most recently touched first, WITHOUT the text (fetch one item for that), filtered by kind, state or group, urgency and words in the title, text or author's name, all in the database. With how many match, the four figures for the top of the screen, the public website's address and last publish, and today's Bikram Sambat date and Nepal time for a new item. `state` says where each item stands now.",
         "parameters": [
           {
             "schema": {
@@ -11708,9 +12261,58 @@
           },
           {
             "schema": {
+              "$ref": "#/components/schemas/ContentGroup"
+            },
+            "required": false,
+            "name": "group",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "maxLength": 100
+            },
+            "required": false,
+            "name": "q",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "enum": [
+                "true",
+                "false"
+              ]
+            },
+            "required": false,
+            "name": "urgent",
+            "in": "query"
+          },
+          {
+            "schema": {
               "type": "integer",
               "minimum": 1,
-              "maximum": 200
+              "maximum": 10000
+            },
+            "required": false,
+            "name": "page",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 50
+            },
+            "required": false,
+            "name": "pageSize",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 50
             },
             "required": false,
             "name": "limit",
@@ -11917,7 +12519,7 @@
         "tags": [
           "content"
         ],
-        "description": "Puts a draft on the public site, from its publish day. Two people doing it at once: one succeeds, the other gets 409.",
+        "description": "Puts a draft on the public site, from its publish day and time: `state` says whether it shows now or is scheduled. Two people doing it at once: one succeeds, the other gets 409. An archived item is moved to the drafts first (409 `archived`).",
         "parameters": [
           {
             "schema": {
@@ -11942,10 +12544,14 @@
                       "enum": [
                         true
                       ]
+                    },
+                    "state": {
+                      "$ref": "#/components/schemas/ContentState"
                     }
                   },
                   "required": [
-                    "ok"
+                    "ok",
+                    "state"
                   ]
                 }
               }
@@ -11972,7 +12578,7 @@
             }
           },
           "409": {
-            "description": "Already live",
+            "description": "Already live, or archived",
             "content": {
               "application/json": {
                 "schema": {
@@ -11990,7 +12596,7 @@
         "tags": [
           "content"
         ],
-        "description": "Takes an item off the public site. It goes back to a draft and can be published again.",
+        "description": "Takes an item off the public site, or out of the archive. It goes back to a draft and can be published again.",
         "parameters": [
           {
             "schema": {
@@ -12045,7 +12651,80 @@
             }
           },
           "409": {
-            "description": "It is not live",
+            "description": "It is neither live nor archived",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ContentError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/content/{id}/archive": {
+      "post": {
+        "operationId": "archive_content",
+        "tags": [
+          "content"
+        ],
+        "description": "Archives a draft or a live item (D-098): it is off the website at once and kept as a record, never deleted. Unpublish moves it back to the drafts. An item waiting for approval cannot be archived (409 `waiting`).",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{32}$"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Archived",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": {
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
+                    }
+                  },
+                  "required": [
+                    "ok"
+                  ]
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed (for example, switched off since signing in)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ContentError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such item",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ContentError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Already archived, or waiting for approval",
             "content": {
               "application/json": {
                 "schema": {

@@ -365,10 +365,10 @@ describe("GET /api/content", () => {
     expect((await positions()).second).toBeLessThan((await positions()).first);
   });
 
-  it("carries the state but never the text, the contact or who wrote it", async () => {
+  it("carries the state and the author's name (D-098), but never the text or the contact", async () => {
     const id = await newDraft();
     const item = (await list(admin.cookie)).items.find((i) => i.id === id)!;
-    expect(Object.keys(item).sort()).toEqual(["createdAt", "hideAfter", "hideAfterBs", "holidayFrom", "holidayFromBs", "holidayTo", "holidayToBs", "id", "kind", "publishOn", "publishOnBs", "publishedAt", "state", "status", "title", "updatedAt", "urgent"]);
+    expect(Object.keys(item).sort()).toEqual(["archivedAt", "authorName", "createdAt", "excerpt", "hideAfter", "hideAfterBs", "holidayFrom", "holidayFromBs", "holidayTo", "holidayToBs", "id", "kind", "publishOn", "publishOnBs", "publishTime", "publishedAt", "state", "status", "title", "updatedAt", "urgent"]);
   });
 });
 
@@ -384,7 +384,7 @@ describe("GET /api/content/{id}", () => {
     expect(item).toMatchObject({ id, kind: "vacancy", title: "Teacher wanted", body: "First\n\nSecond", contact: "jobs@school.example", urgent: true, status: "draft", state: "draft", publishOn: "2020-01-01", hideAfter: "2020-02-01" });
     expect(item.publishOnBs).toBe(adToBsText("2020-01-01"));
     expect(item.hideAfterBs).toBe(adToBsText("2020-02-01"));
-    expect(Object.keys(item).sort()).toEqual(["body", "contact", "createdAt", "hideAfter", "hideAfterBs", "holidayFrom", "holidayFromBs", "holidayTo", "holidayToBs", "id", "kind", "publishOn", "publishOnBs", "publishedAt", "state", "status", "title", "updatedAt", "urgent"]);
+    expect(Object.keys(item).sort()).toEqual(["archivedAt", "authorName", "body", "contact", "createdAt", "hideAfter", "hideAfterBs", "holidayFrom", "holidayFromBs", "holidayTo", "holidayToBs", "id", "kind", "publishOn", "publishOnBs", "publishTime", "publishedAt", "state", "status", "title", "updatedAt", "urgent"]);
   });
 
   it("says where a live item stands today", async () => {
@@ -407,9 +407,10 @@ describe("GET /api/content?limit", () => {
     expect(one.items).toHaveLength(1);
     expect(one.todayBs).toBe(adToBsText(today()));
 
-    for (const limit of ["0", "-1", "201", "abc", "1.5"]) {
+    // A page is at most 50 items since D-098 (paging happens in the database).
+    for (const limit of ["0", "-1", "51", "abc", "1.5"]) {
       expect((await call(`/api/content?limit=${limit}`, { cookie: admin.cookie })).status, limit).toBe(400);
     }
-    expect((await call("/api/content?limit=200", { cookie: admin.cookie })).status).toBe(200);
+    expect((await call("/api/content?limit=50", { cookie: admin.cookie })).status).toBe(200);
   });
 });

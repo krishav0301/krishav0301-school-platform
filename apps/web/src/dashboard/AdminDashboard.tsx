@@ -347,7 +347,7 @@ function Attention({ o }: { o: Overview }) {
 const ACTIONS: { href: string; icon: LucideIcon; tone: Tone; title: MessageKey; detail: MessageKey }[] = [
   { href: "/portal/people?add=coordinator", icon: UserPlus, tone: "primary", title: "dashboard.actions.coordinator", detail: "dashboard.actions.coordinatorDetail" },
   { href: "/portal/people?add=accountant", icon: UserPlus, tone: "ok", title: "dashboard.actions.accountant", detail: "dashboard.actions.accountantDetail" },
-  { href: "/portal/content/edit?kind=post", icon: FileText, tone: "accent", title: "dashboard.actions.post", detail: "dashboard.actions.postDetail" },
+  { href: "/portal/content?new=post", icon: FileText, tone: "accent", title: "dashboard.actions.post", detail: "dashboard.actions.postDetail" },
   { href: "/portal/setup/programmes?add=1", icon: BookOpen, tone: "warn", title: "dashboard.actions.programme", detail: "dashboard.actions.programmeDetail" },
 ];
 

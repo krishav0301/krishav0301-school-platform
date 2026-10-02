@@ -89,7 +89,7 @@ describe("the Principal's dashboard (D-088)", () => {
   });
 
   it("quick actions lead to the real flows", () => {
-    for (const href of ["/portal/people?add=coordinator", "/portal/people?add=accountant", "/portal/content/edit?kind=post", "/portal/setup/programmes?add=1"]) {
+    for (const href of ["/portal/people?add=coordinator", "/portal/people?add=accountant", "/portal/content?new=post", "/portal/setup/programmes?add=1"]) {
       expect(html).toContain(`href="${href.replace(/&/g, "&amp;")}"`);
     }
   });

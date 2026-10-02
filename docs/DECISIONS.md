@@ -800,6 +800,118 @@ The matrix lives in code (61 actions, 8 groups, from the reviewed `permission-ma
   - Web: 3 new tests.
   - Totals: API 1,547 tests, web 599, plus typecheck, lint, build, page weight, BOM, boundaries and a wrangler dry run.
 
+**D-098 Website Content: the Principal's publishing page, redesigned to the PM's reference.** 2026-10-01, at the PM's request (a reference screenshot and a written brief: "REFERENCE IMAGE = VISUAL SOURCE OF TRUTH. EXISTING CODEBASE = TECHNICAL SOURCE OF TRUTH."). As in D-089, the PM's reference is the design for this screen. **Touches the audit log** (a new action, `content.archived`, written in the same batch as the change, by the existing `recordAudit`). **No permission row changed:** archive uses the existing `content.publish` (Admin, Super Admin), and listing still needs `content.draft`. No fee or result rule is touched.
+- **PM answers (2026-10-01):** Post becomes **News** (existing posts become News); **Event** and **Information** are added; **Routine stays** as a seventh type, because routines are in the original requirements (§6.7). An Event is a plain post, with no date of its own (unlike a Holiday, D-094). **No images**, anywhere in the flow: posts are text first.
+- **Data (migration 0027).** `content_items` is rebuilt, since SQLite cannot change a CHECK in place. Every row, id and rule is kept, and the index and the holiday triggers are made again. Changes:
+  - Kinds `event` and `information` are added. `post` keeps its key and reads "News", so nothing stored or linked changes.
+  - `publish_time` holds Nepal time "HH:MM". Existing items get 00:00, so nothing that showed stops showing.
+  - Status `archived`, with `archived_at` and `archived_by`. A CHECK keeps the stamp and the status together.
+  - The migration was applied to a local database holding real rows; they came through unchanged.
+- **Scheduling stays derived, not a job.** An item shows from its publish day and time (Nepal) to the end of its hide-after day. This is worked out in the query on every request: the public list, the Worker's copy of `/notices`, and the Admin list's state all compare against `nepalMinute(now)`. A scheduled item appears, and a finished one goes, without a job having to run (D-039's design, now to the minute). Publishing answers with `state`, so the screen says "Published" or "Scheduled". The public answer is still cached for up to a minute (D-039).
+- **Archive.** It takes a draft or a live item off the website at once and keeps it. A waiting item is the approval's to settle first. "Move to drafts" (the existing unpublish route, now also from archived) brings it back. Publishing straight from the archive is refused (409 `archived`). A Co-ordinator may no longer edit an archived item (they could only edit drafts and waiting items before; an archived item was once live). The **Archived** filter shows archived and expired items, since both are no longer shown. Nothing is deleted.
+- **The list (`GET /api/content`).** Filters by kind, by group (Published = on the website now; Draft = draft or waiting for approval; Scheduled; Archived = archived or past hide-after) and by urgency. A search covers the title, the text and the author's name; `%` and `_` are taken literally, and the build team is neither shown nor found by name, appearing as "Support". Results come in pages of 10, at most 50. The same answer carries:
+  - the total;
+  - the four figures, counted over everything whatever the filters (Published, Drafts, Scheduled, and Urgent meaning urgent and on the website or scheduled);
+  - the public website's address (`SITE_ORIGIN`), whether this is the real deployment (`ENVIRONMENT=production` reads "Live"; anything else reads "Test site", so a test copy never claims to be the school's website), and when anything was last published;
+  - today in BS and the time now, for a new item;
+  - each item's author name and a 200-character excerpt.
+
+  All of it is one database round trip (one `batch()`). The old `limit` still works, as the page size.
+- **Text formatting, safely.** The brief asked for a rich-text editor with server-side HTML sanitising. Built instead: text stays plain, with a few marks that are read into a small tree and drawn only as React elements (app) or escaped HTML (the Worker's crawler copy). There is no HTML to sanitise, so nothing typed can ever run. The marks are a blank line for a paragraph, `## ` for a heading, `- ` and `1. ` for lists, and `**bold**`, `*italic*`, `__underline__` and `[words](https://…)`. A link goes only to http(s), mailto: or tel:. The toolbar buttons (Paragraph or Heading, B, I, U, two lists, Link; Ctrl or Cmd with B, I or U) write these marks. The app and the Worker cannot share a file, so both readers are held to one fixture (`apps/api/test/fixtures/text-format.json`), and a web test compares the two outputs.
+- **Screens (after the reference).**
+  - The header, with "+ New content" as the one prominent button.
+  - Four figure cards and the Public website card (status, address, last updated, View website).
+  - Type and status filters as segmented buttons, and a server-side search that waits until typing stops.
+  - The table: title and excerpt with the kind's icon, a type chip, Urgent, a status with "On website", "Will be published" or "Not visible", the BS date and time, the author with "x ago", View (items on the website) or Edit, and a ⋮ menu (Edit, Publish, Take down, Archive, Move to drafts, Send for approval for a Co-ordinator). Publish and Take down keep their Undo (D-048). A menu of one entry is drawn as a button instead (D-030).
+  - Paging ("Showing 1–10 of 12 items").
+  - Placeholder shapes while loading, the two empty states, and the load error with Try again.
+  - New content and Edit open in the browser's own modal dialog. Inside:
+    - seven type cards (radios; locked after saving);
+    - Title, and Content with the toolbar;
+    - the contact (vacancy) and the holiday days (holiday);
+    - Mark as urgent;
+    - the publish date (BS day, month, year) and time;
+    - Hide after;
+    - Cancel, Save draft and Publish, with the live preview beside them.
+
+    The preview is drawn by the public board's own component, with the same date line. If publishing fails, everything typed stays in the form. On a narrower screen each row becomes a card.
+  - The dashboard's Publish Post now opens the pop-up (`/portal/content?new=post`). The old edit page still works.
+- **Reference vs built, decided by the rules.**
+  - Dates are BS with a time. The reference's second AD line is left out (CLAUDE.md section 6). The public website card's "Last updated" is AD with time, as the dashboard's card already is (D-089).
+  - The date is entered as day, month and year boxes, not the reference's calendar pop-up: the web app does no BS conversion (D-014).
+  - News and Information keep the brand blue on their icon only, not on their label (D-030).
+  - No header search and no bell: the PM left these out (D-089, D-091).
+  - No "Manage" link on the website card: there is no website-settings screen to link to.
+- **Build setting (affects every page, PM to note).** The new screen's stylesheet pushed `/sign-in` 1.2 KB over its 210 KB budget. The default CSS chunking merged every route's CSS into one shared file, so portal styles rode along on public pages (`main`: 208.2 KB). `next.config.ts` now sets `experimental.cssChunking: "graph"` for the export build. This is Turbopack's documented strategy for that problem. Every public page is now within budget; sign-in is at 208.1 KB, slightly under `main`. Pages were checked by eye afterwards: home, Notices, sign-in, the dashboard, People and Website Content. The budget is unchanged.
+- **Tested.**
+  - API, `content-redesign.test.ts` (28): Event and Information, and the database refusing an unknown kind; the publish time to the minute, Nepal midnight, the state matching the public list, a bad time refused by the service and by the database, edits audited; archive (live and draft, a repeat changes nothing, waiting refused, publisher only, Co-ordinator cannot edit it, not publishable until moved to drafts, the stamp tied to the status, the audit chain still whole); search (title, text, author, literal `%` and `_`, Support not found by name); the four groups; type, group and urgency combined; paging and its order; the four figures; the author shown as Support; the routes (shape, bad filters 400, who may list and archive, publish answers with its state).
+  - API, `text-format.test.ts` (17) and updated content tests. Web: `text-format.test.tsx` (19: the shared fixture, agreement with the Worker, the same markup, no script or element from typed text), `text-edit.test.ts` (10: every toolbar button), and updated model, client, outcome and screen tests (seven type cards, the toolbar, labels, time, the preview's marks, no image anywhere, the list's filters and figures). A guard keeps button labels wrapping on this page.
+  - In a browser on the local copy, as the Principal, with sample content loaded through the API: the list, the menu, the pop-up (bold and urgent shown live in the preview), search, a phone at 375 px, and 320 px with text at 200% (no sideways scroll on the page or in the pop-up). No console errors.
+  - Totals: API 95 files / 1,592 tests, web 52 / 637, plus lint, typechecks, build, page weight, BOM and boundaries, all clean.
+- **Not done.**
+  - No `apple-design` review beyond the house rules and the 320 px / 200% check, as for D-089: the PM's reference is the design.
+  - The dashboard's quick action still says "Publish Post".
+  - A "View" link goes to the public Notices page, since a post has no page of its own (D-039).
+  - Two people editing one item at once: the last save wins (as before, D-041).
+
+**D-099 People & Access: the Principal's access-control centre, redesigned to the PM's reference.** 2026-10-02, at the PM's request (a reference image and a written brief: "REFERENCE IMAGE = visual source of truth. EXISTING CODEBASE = technical source of truth. DATABASE = data source of truth."). As in D-089 and D-098, the PM's reference is the design for this screen. **Touches permissions:** a new matrix row, `accounts.staff.access` ("Change which sections a Co-ordinator's or Accountant's access reaches"), for Admin and Super Admin only, with a hand-written rule in `permission-matrix.test.ts`; `docs/permission-matrix.md` is regenerated. **Touches the audit log:** a new action, `accounts.access.changed`, with the scope before and after, written in the same batch as the change. No fee or result rule is touched.
+- **The model, unchanged, and used as it is.**
+  - The hierarchy is the one already enforced server-side (D-059): the Principal (Admin) gives access to Co-ordinators and Accountants; a Co-ordinator adds and manages teachers; a teacher reaches only their assigned classes.
+  - No new user, role or permission tables.
+  - Several sections at once uses the existing model: one role row per section. The permission layer already combines them (`authorize` gathers every section claim), and so do the SQL guards.
+  - "Permissions" are not per-person switches, because the platform has none: each role's actions are fixed in the matrix. The screens show what a role can do in the plain words of its home-page brief (D-092), never permission ids.
+- **Built (API).**
+  - `GET /api/people` (`accounts.staff.view`). One page of the administrative staff (`group=admin`: Co-ordinators and Accountants, never teachers or Admins) or the teaching staff (`group=teaching`).
+    - Search covers name and email, taken literally.
+    - Filters: role, account status, section (a whole-school person counts for every section), and for teachers their home section and a programme they teach in.
+    - Pages of 10, at most 50, in one round trip.
+    - The answer also carries the switched-on counts (teachers; Co-ordinators and Accountants for the Principal only) and every section.
+    - Each person carries their sections (empty is the whole school), home section, account status and last sign-in as separate facts, whether the viewer may manage them (the same SQL guard the writes use), and for a teacher their subjects, programmes and who added them. "Added by" is read from the audit log's creation entry; the build team shows as Support, never by name.
+    - Visibility is the same as `/api/staff`: a Co-ordinator sees only teachers, and only their own sections' if limited; an Accountant, a teacher or a student sees nobody.
+  - `academics` exports three SQL fragments (`teacherSubjectsJson`, `teacherProgrammesJson`, `teachesInProgramme`), so `accounts` never names its tables. This is the same pattern as `teacherManageableBy` (D-060). Only active assignments in years that are not closed count.
+  - `POST /api/staff` takes `sectionKeys` (several sections; `sectionKey` still works). Every section must exist and be switched on (D-097).
+  - `PATCH /api/staff/{id}/access` (`accounts.staff.access`) sets the whole school (`[]`) or switched-on sections. It applies to a Co-ordinator or an Accountant only, never to oneself, and the actor is re-checked inside the batch. Missing rows are added switched off, then one statement switches on exactly the new scope. Nothing is deleted, a repeat records nothing, and the change is audited. It takes effect at the person's next sign-in renewal, within 30 minutes (D-021); fee, approval and publish actions re-check at once.
+- **Built (web).** The Principal and Support get People & Access at `/portal/people`; a Co-ordinator keeps the existing Staff and Teaching screens unchanged.
+  - The page: title and subtitle; three counts; "How access works" (two plain sentences, a "Learn more" that opens in place, and a small Principal → Co-ordinator / Accountant → Teacher picture, using the school's own role words); and two tabs (WAI-ARIA tabs, arrow keys).
+  - **Staff & Access.** "Administrative staff" with search, role, status and access filters, and "+ Add a person" as the one prominent button. One card per person: initials, name and email, a role chip, an access chip, then Active or Switched off with the last sign-in under it. "Manage access" (or "Switch on" for a switched-off person) and a ⋮ menu (Switch off/on, New temporary password).
+  - **Add a person** is a pop-up in four steps:
+    1. Role: two cards, Co-ordinator or Accountant. There is no Teacher, and a line says teachers are added by a Co-ordinator.
+    2. Name, email and phone.
+    3. Access: the whole school, or selected sections.
+    4. Review, with what the role can do.
+
+    The one-time temporary password is shown once (the existing D-059 notice). A failure keeps everything typed; an email already in use goes back to step 2 with the message on the field.
+  - **Manage access** shows the person, role, account, sign-in ("has not chosen their own password yet"), access now, the scope choice with Save access (enabled only after a change), what the role can do, Switch off/on and New temporary password.
+  - **Teaching**, for oversight. Search, and section, programme and status filters. A table (cards on a phone) of name and email, subjects, home section and programmes, "Added by" (name and role), status and last sign-in, with a "View teaching" link to the assignments page. There is no create-teacher button, and the Principal cannot switch teachers off; their Co-ordinator does.
+  - Loading shapes, both empty states, "No people found" with Clear filters, "People couldn't be loaded." with Try again.
+  - The row menu moved from `content/` to `ui/RowMenu`, so both pages share it.
+- **Reference vs built, decided by the rules.**
+  - No header search and no bell (the PM, D-089 and D-091).
+  - Role and status colours keep the brand blue off labels (D-030): Co-ordinator is the theme's accent, Accountant its green.
+  - "Last signed in" is shown as "x ago", in the dashboard's words.
+  - The Teaching column is "Added by", not "Assigned by": the record is who created the account; who gave each subject is in the assignments.
+  - The reference's teacher ⋮ is a "View teaching" link, since a menu of one entry is not shown (D-030).
+- **Tested.**
+  - API `people.test.ts` (23):
+    - several sections on create, the old one-section way, and refusals (unknown, switched off, twice, both ways);
+    - the permission layer seeing every section;
+    - changing access there and back, audited with before and after, with nothing deleted, and a repeat recording nothing;
+    - who may change access: Admin and Support yes; Co-ordinators, Accountants and teachers no; never a teacher, never oneself; an Admin switched off a moment ago changes nothing and leaves no entry;
+    - the route's answers (200, 401, 403, 400);
+    - the two lists: who is in each, separate status and sign-in, never a password, the filters, a teacher's subjects, programme and "Added by" (Support unnamed), the Principal seeing but not managing teachers, a limited Co-ordinator's view, an Accountant and a teacher seeing nobody, paging and order, counts, and the route.
+
+    Plus a hand-written permission rule. Web `people-access.test.tsx` (15): who gets the screen, the plain words, step checks, the page's markup (no hard-coded names or numbers, no create-teacher), Add a person (no Teacher), and Manage access (no switched-off section, no permission ids, Save waits for a change). The People page test is updated.
+  - In a browser on the local copy, with sample people and teaching added through the API:
+    - both tabs and both pop-ups;
+    - changing Hari's access to two sections, and adding an Accountant through all four steps to the one-time password, both through the screens;
+    - 320 px with text at 200% on both tabs: no sideways scroll, and labels break between words;
+    - no console errors.
+  - Totals: API 96 files / 1,617 tests, web 53 / 652, plus lint, typechecks, build, page weight, BOM and boundaries, all clean.
+- **Not done.**
+  - Sign-in times show "Never" for the sample people, who have not signed in.
+  - A Co-ordinator's own screens were not redesigned.
+  - Changing a person's role (Co-ordinator ↔ Accountant) is not offered: the brief did not ask for it, and today it is a new account.
+
 ## Open items carried forward
 
 - **No CAPTCHA on the public apply form (D-063).** Relies on rate limiting and an off-screen honeypot, which meets section 7's "rate limiting, CAPTCHA or similar" but is not a CAPTCHA. Add one only if real abuse appears.

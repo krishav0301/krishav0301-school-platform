@@ -1,0 +1,378 @@
+[
+  {
+    "input": "Plain words.",
+    "blocks": [
+      {
+        "type": "paragraph",
+        "lines": [
+          [
+            {
+              "type": "text",
+              "text": "Plain words."
+            }
+          ]
+        ]
+      }
+    ]
+  },
+  {
+    "input": "First paragraph.\n\nSecond paragraph.",
+    "blocks": [
+      {
+        "type": "paragraph",
+        "lines": [
+          [
+            {
+              "type": "text",
+              "text": "First paragraph."
+            }
+          ]
+        ]
+      },
+      {
+        "type": "paragraph",
+        "lines": [
+          [
+            {
+              "type": "text",
+              "text": "Second paragraph."
+            }
+          ]
+        ]
+      }
+    ]
+  },
+  {
+    "input": "Line one\nline two",
+    "blocks": [
+      {
+        "type": "paragraph",
+        "lines": [
+          [
+            {
+              "type": "text",
+              "text": "Line one"
+            }
+          ],
+          [
+            {
+              "type": "text",
+              "text": "line two"
+            }
+          ]
+        ]
+      }
+    ]
+  },
+  {
+    "input": "Classes start **Sunday** at *10 AM*, __bring__ your ID.",
+    "blocks": [
+      {
+        "type": "paragraph",
+        "lines": [
+          [
+            {
+              "type": "text",
+              "text": "Classes start "
+            },
+            {
+              "type": "bold",
+              "text": "Sunday"
+            },
+            {
+              "type": "text",
+              "text": " at "
+            },
+            {
+              "type": "italic",
+              "text": "10 AM"
+            },
+            {
+              "type": "text",
+              "text": ", "
+            },
+            {
+              "type": "underline",
+              "text": "bring"
+            },
+            {
+              "type": "text",
+              "text": " your ID."
+            }
+          ]
+        ]
+      }
+    ]
+  },
+  {
+    "input": "## Timetable\n- Science: Hall A\n- Management: Hall B",
+    "blocks": [
+      {
+        "type": "heading",
+        "content": [
+          {
+            "type": "text",
+            "text": "Timetable"
+          }
+        ]
+      },
+      {
+        "type": "bullets",
+        "items": [
+          [
+            {
+              "type": "text",
+              "text": "Science: Hall A"
+            }
+          ],
+          [
+            {
+              "type": "text",
+              "text": "Management: Hall B"
+            }
+          ]
+        ]
+      }
+    ]
+  },
+  {
+    "input": "1. Fill the form\n2. Pay the fee\n3) Collect the card",
+    "blocks": [
+      {
+        "type": "numbers",
+        "items": [
+          [
+            {
+              "type": "text",
+              "text": "Fill the form"
+            }
+          ],
+          [
+            {
+              "type": "text",
+              "text": "Pay the fee"
+            }
+          ],
+          [
+            {
+              "type": "text",
+              "text": "Collect the card"
+            }
+          ]
+        ]
+      }
+    ]
+  },
+  {
+    "input": "Read [the notice](https://example.org/notice) or [mail us](mailto:office@school.example) or [call](tel:+977-33-560000).",
+    "blocks": [
+      {
+        "type": "paragraph",
+        "lines": [
+          [
+            {
+              "type": "text",
+              "text": "Read "
+            },
+            {
+              "type": "link",
+              "text": "the notice",
+              "href": "https://example.org/notice"
+            },
+            {
+              "type": "text",
+              "text": " or "
+            },
+            {
+              "type": "link",
+              "text": "mail us",
+              "href": "mailto:office@school.example"
+            },
+            {
+              "type": "text",
+              "text": " or "
+            },
+            {
+              "type": "link",
+              "text": "call",
+              "href": "tel:+977-33-560000"
+            },
+            {
+              "type": "text",
+              "text": "."
+            }
+          ]
+        ]
+      }
+    ]
+  },
+  {
+    "input": "Not a link: [click](javascript:alert(1)) and [x](data:text/html,hi).",
+    "blocks": [
+      {
+        "type": "paragraph",
+        "lines": [
+          [
+            {
+              "type": "text",
+              "text": "Not a link: [click](javascript:alert(1)) and [x](data:text/html,hi)."
+            }
+          ]
+        ]
+      }
+    ]
+  },
+  {
+    "input": "<script>alert(1)</script> & \"quotes\"",
+    "blocks": [
+      {
+        "type": "paragraph",
+        "lines": [
+          [
+            {
+              "type": "text",
+              "text": "<script>alert(1)</script> & \"quotes\""
+            }
+          ]
+        ]
+      }
+    ]
+  },
+  {
+    "input": "5 * 3 * 2 = 30, and a lone ** stays.",
+    "blocks": [
+      {
+        "type": "paragraph",
+        "lines": [
+          [
+            {
+              "type": "text",
+              "text": "5 * 3 * 2 = 30, and a lone ** stays."
+            }
+          ]
+        ]
+      }
+    ]
+  },
+  {
+    "input": "**unclosed bold and *unclosed italic",
+    "blocks": [
+      {
+        "type": "paragraph",
+        "lines": [
+          [
+            {
+              "type": "text",
+              "text": "**unclosed bold and *unclosed italic"
+            }
+          ]
+        ]
+      }
+    ]
+  },
+  {
+    "input": "Intro line\n- one\n- two\nAfter the list",
+    "blocks": [
+      {
+        "type": "paragraph",
+        "lines": [
+          [
+            {
+              "type": "text",
+              "text": "Intro line"
+            }
+          ]
+        ]
+      },
+      {
+        "type": "bullets",
+        "items": [
+          [
+            {
+              "type": "text",
+              "text": "one"
+            }
+          ],
+          [
+            {
+              "type": "text",
+              "text": "two"
+            }
+          ]
+        ]
+      },
+      {
+        "type": "paragraph",
+        "lines": [
+          [
+            {
+              "type": "text",
+              "text": "After the list"
+            }
+          ]
+        ]
+      }
+    ]
+  },
+  {
+    "input": "\r\nWindows\r\n\r\nlines\r\n",
+    "blocks": [
+      {
+        "type": "paragraph",
+        "lines": [
+          [
+            {
+              "type": "text",
+              "text": "Windows"
+            }
+          ]
+        ]
+      },
+      {
+        "type": "paragraph",
+        "lines": [
+          [
+            {
+              "type": "text",
+              "text": "lines"
+            }
+          ]
+        ]
+      }
+    ]
+  },
+  {
+    "input": "### Small heading with **bold**",
+    "blocks": [
+      {
+        "type": "heading",
+        "content": [
+          {
+            "type": "text",
+            "text": "Small heading with "
+          },
+          {
+            "type": "bold",
+            "text": "bold"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "input": "#NoSpace is not a heading",
+    "blocks": [
+      {
+        "type": "paragraph",
+        "lines": [
+          [
+            {
+              "type": "text",
+              "text": "#NoSpace is not a heading"
+            }
+          ]
+        ]
+      }
+    ]
+  }
+]

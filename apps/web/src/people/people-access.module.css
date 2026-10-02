@@ -1,0 +1,1097 @@
+/*
+ * People & Access (D-099), after the PM's reference design. Theme tokens only: every colour is a theme colour or a mix
+ * of one with the surface, and no font is named but the theme's heading and body fonts. Controls are a full 44px;
+ * padding is capped by screen width so enlarged text cannot widen a narrow phone; motion is transform and opacity only.
+ */
+
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+
+.muted {
+  display: block;
+  margin: 0;
+  color: var(--color-text-muted);
+  overflow-wrap: anywhere;
+}
+
+/* Button labels may wrap, so enlarged text cannot widen the page at 320px (as on Website Content, D-098). */
+.page :is(button, a),
+.dialog :is(button, a) {
+  white-space: normal;
+}
+
+/* --- Top ---------------------------------------------------------------------------------- */
+
+.top {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-4);
+}
+
+@media (min-width: 72rem) {
+  .top {
+    grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr);
+    align-items: end;
+  }
+}
+
+.topMain {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+.title {
+  margin: 0;
+  font-family: var(--font-heading);
+  font-size: clamp(var(--text-2xl), 4vw, 2.5rem);
+  font-weight: var(--weight-bold);
+  letter-spacing: -0.01em;
+  line-height: var(--leading-tight);
+}
+
+.intro {
+  margin: 0 0 var(--space-3);
+  color: var(--color-text-muted);
+  font-size: var(--text-lg);
+}
+
+.summary {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 10rem), 1fr));
+  gap: var(--space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.summaryCard,
+.how,
+.panel {
+  border: 1px solid color-mix(in srgb, var(--color-border) 70%, transparent);
+  border-radius: var(--radius-card);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-card);
+}
+
+.summaryCard {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+  min-width: 0;
+  padding: min(var(--space-4), 4vw);
+}
+
+.summaryBody {
+  display: flex;
+  flex: 1 1 7rem;
+  flex-direction: column;
+  min-width: 0;
+}
+
+/* Words in a count's label break between words only, never inside one. */
+.summaryBody .muted {
+  overflow-wrap: normal;
+}
+
+.summaryValue {
+  font-size: var(--text-2xl);
+  font-weight: var(--weight-bold);
+  line-height: var(--leading-tight);
+}
+
+/* Tones as two variables, a colour and its soft tint; with neither, the quiet neutral. */
+:is(.tile, .node, .roleChip)[data-tone="primary"] {
+  --tone: var(--color-primary);
+  --tone-soft: color-mix(in srgb, var(--color-primary) 12%, var(--color-surface));
+}
+
+:is(.tile, .node, .roleChip)[data-tone="accent"] {
+  --tone: var(--color-accent);
+  --tone-soft: var(--color-accent-soft);
+}
+
+:is(.tile, .node, .roleChip)[data-tone="ok"] {
+  --tone: var(--color-ok);
+  --tone-soft: var(--color-ok-soft);
+}
+
+:is(.tile, .node, .roleChip)[data-tone="warn"] {
+  --tone: var(--color-warn);
+  --tone-soft: var(--color-warn-soft);
+}
+
+.tile {
+  display: inline-grid;
+  flex: none;
+  place-items: center;
+  width: 3rem;
+  height: 3rem;
+  border-radius: calc(var(--radius-card) - 6px);
+  background: var(--tone-soft, color-mix(in srgb, var(--color-text) 6%, var(--color-surface)));
+  color: var(--tone, var(--color-text-muted));
+}
+
+.tile svg {
+  width: 1.4rem;
+  height: 1.4rem;
+}
+
+/* How access works: words on one side, the small hierarchy on the other. */
+.how {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-4);
+  padding: min(var(--space-4), 4vw);
+  background: color-mix(in srgb, var(--color-primary) 4%, var(--color-surface));
+}
+
+@media (min-width: 40rem) {
+  .how {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr);
+    align-items: center;
+  }
+}
+
+.howText {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+.howTitle {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin: 0;
+  font-size: var(--text-base);
+  font-weight: var(--weight-bold);
+}
+
+.howTitle svg {
+  flex: none;
+  width: 1.1rem;
+  height: 1.1rem;
+  color: var(--color-primary);
+}
+
+.more summary {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--control-height);
+  color: var(--color-primary);
+  font-weight: var(--weight-medium);
+  cursor: pointer;
+}
+
+.more p {
+  margin-top: var(--space-1);
+  font-size: var(--text-sm);
+}
+
+.tree {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: var(--text-sm);
+}
+
+.branch {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-1);
+  width: 100%;
+}
+
+.arrow {
+  width: 1rem;
+  height: 1rem;
+  color: var(--color-text-muted);
+}
+
+.pair {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.node {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid color-mix(in srgb, var(--tone, var(--color-border)) 35%, var(--color-surface));
+  border-radius: var(--radius-control);
+  background: var(--tone-soft, var(--color-surface));
+  color: var(--color-text);
+  font-weight: var(--weight-medium);
+}
+
+.node svg {
+  flex: none;
+  width: 1.1rem;
+  height: 1.1rem;
+  color: var(--tone, var(--color-text-muted));
+}
+
+.node small {
+  display: block;
+  color: var(--color-text-muted);
+  font-size: 0.8em;
+  font-weight: var(--weight-regular);
+}
+
+/* --- Tabs ---------------------------------------------------------------------------------- */
+
+.tabs {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-self: flex-start;
+  max-width: 100%;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-control);
+  overflow: hidden;
+}
+
+.tab {
+  min-height: var(--control-height);
+  padding: 0 var(--space-5);
+  border: 0;
+  background: var(--color-surface);
+  color: var(--color-text);
+  font: inherit;
+  cursor: pointer;
+}
+
+.tab + .tab {
+  border-left: 1px solid var(--color-border);
+}
+
+.tab[aria-selected="true"] {
+  background: color-mix(in srgb, var(--color-primary) 10%, var(--color-surface));
+  color: var(--color-primary);
+  font-weight: var(--weight-medium);
+  box-shadow: inset 0 0 0 1px var(--color-primary);
+}
+
+.tab:focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: -3px;
+}
+
+/* --- A panel: heading, search, filters, the list ------------------------------------------- */
+
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  min-width: 0;
+  padding: min(var(--space-5), 4vw);
+}
+
+.panelHead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-3) var(--space-4);
+}
+
+.panelHead > div:first-child {
+  flex: 1 1 18rem;
+  min-width: 0;
+}
+
+.panelTitle {
+  margin: 0 0 var(--space-1);
+  font-family: var(--font-heading);
+  font-size: var(--text-xl);
+  font-weight: var(--weight-bold);
+}
+
+.panelTools {
+  display: flex;
+  flex: 1 1 22rem;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+.search {
+  display: flex;
+  flex: 1 1 12rem;
+  align-items: center;
+  gap: var(--space-2);
+  min-width: 0;
+  min-height: var(--control-height);
+  padding: 0 var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-control);
+  background: var(--color-surface);
+}
+
+.search:focus-within {
+  outline: var(--focus-ring);
+  outline-offset: 2px;
+}
+
+.search svg {
+  flex: none;
+  width: 1.1rem;
+  height: 1.1rem;
+  color: var(--color-text-muted);
+}
+
+.search input {
+  flex: 1;
+  width: 100%;
+  min-width: 0;
+  min-height: calc(var(--control-height) - 2px);
+  border: 0;
+  background: transparent;
+  color: var(--color-text);
+  font: inherit;
+  outline: none;
+}
+
+.addButton {
+  gap: var(--space-2);
+}
+
+.addButton svg {
+  width: 1.2rem;
+  height: 1.2rem;
+}
+
+.filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+}
+
+.filter {
+  display: flex;
+  flex: 0 1 12rem;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-width: 0;
+}
+
+.filterLabel {
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+}
+
+.select {
+  width: 100%;
+  min-height: var(--control-height);
+  padding: 0 var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-control);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font: inherit;
+}
+
+.select:focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: 2px;
+}
+
+.state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-6) var(--space-4);
+  text-align: center;
+}
+
+.stateTitle {
+  margin: 0;
+  font-family: var(--font-heading);
+  font-size: var(--text-xl);
+  font-weight: var(--weight-bold);
+}
+
+.skeletons {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.skeletonRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-3);
+}
+
+.skeletonText {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+/* Administrative staff: one horizontal card each, wrapping into a column on a narrow screen. */
+.cards {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.personCard {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: var(--space-3) var(--space-4);
+  padding: min(var(--space-4), 4vw);
+  border: 1px solid color-mix(in srgb, var(--color-border) 70%, transparent);
+  border-radius: var(--radius-card);
+  background: var(--color-surface);
+}
+
+/* On a narrower screen the chips and the status sit under the name, beside the circle, not in its column. */
+.personCard > .chips,
+.personCard > .personStatus {
+  grid-column: 2;
+}
+
+@media (min-width: 64rem) {
+  .personCard {
+    grid-template-columns: auto minmax(12rem, 1.4fr) minmax(10rem, 1.2fr) minmax(10rem, 1fr) auto;
+  }
+
+  .personCard > .chips,
+  .personCard > .personStatus {
+    grid-column: auto;
+  }
+}
+
+.personCard[data-busy] {
+  opacity: 0.6;
+}
+
+.avatar {
+  display: inline-grid;
+  flex: none;
+  place-items: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--color-primary) 12%, var(--color-surface));
+  color: var(--color-primary);
+  font-weight: var(--weight-bold);
+}
+
+.personMain {
+  min-width: 0;
+}
+
+.personMain p,
+.personMain .muted {
+  overflow-wrap: anywhere;
+}
+
+.personName {
+  display: block;
+  margin: 0;
+  font-weight: var(--weight-bold);
+  overflow-wrap: anywhere;
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+.roleChip,
+.scopeChip {
+  display: inline-flex;
+  align-items: center;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  padding: 0.2rem var(--space-3);
+  border-radius: 999px;
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+}
+
+.roleChip {
+  background: var(--tone-soft, color-mix(in srgb, var(--color-text) 6%, var(--color-surface)));
+  color: var(--tone, var(--color-text));
+}
+
+.scopeChip {
+  border: 1px solid var(--color-border);
+  color: var(--color-text);
+}
+
+.personStatus {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  min-width: 0;
+  font-size: var(--text-sm);
+}
+
+.status,
+.statusPill {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-weight: var(--weight-medium);
+}
+
+.dot {
+  flex: none;
+  width: 0.55rem;
+  height: 0.55rem;
+  border-radius: 50%;
+  background: var(--color-bad);
+}
+
+[data-active="true"] > .dot {
+  background: var(--color-ok);
+}
+
+.personStatus > * {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.status {
+  flex-wrap: wrap;
+}
+
+.status[data-active="true"] {
+  color: var(--color-ok);
+}
+
+.status[data-active="false"] {
+  color: var(--color-bad);
+}
+
+.statusPill {
+  padding: 0.2rem var(--space-3);
+  border-radius: 999px;
+  background: var(--color-bad-soft);
+  color: var(--color-bad);
+  font-size: var(--text-sm);
+}
+
+.statusPill[data-active="true"] {
+  background: var(--color-ok-soft);
+  color: var(--color-ok);
+}
+
+.personActions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  grid-column: 1 / -1;
+}
+
+@media (min-width: 64rem) {
+  .personActions {
+    grid-column: auto;
+    justify-content: flex-end;
+  }
+}
+
+.personActions > button {
+  padding-inline: min(var(--space-5), 4vw);
+}
+
+/* Teaching: a table that becomes cards on a narrower screen. */
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--text-sm);
+}
+
+.table th {
+  padding: var(--space-3);
+  border-bottom: 1px solid var(--color-border);
+  color: var(--color-text-muted);
+  font-weight: var(--weight-medium);
+  text-align: left;
+}
+
+.table td {
+  padding: var(--space-3);
+  border-bottom: 1px solid color-mix(in srgb, var(--color-border) 60%, transparent);
+  vertical-align: middle;
+}
+
+.nameWrap {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-width: 0;
+}
+
+.nameWrap > span:last-child {
+  min-width: 0;
+}
+
+.cellMain {
+  display: block;
+}
+
+.nameCell {
+  width: 28%;
+}
+
+/* On a wide screen the status pill and "View teaching" stay on one line; on a phone they may wrap like everything else. */
+@media (min-width: 64rem) {
+  .page .viewLink,
+  .statusPill {
+    white-space: nowrap;
+  }
+}
+
+.actionsCell {
+  text-align: right;
+}
+
+.viewLink {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--control-height);
+  color: var(--color-primary);
+  font-weight: var(--weight-medium);
+}
+
+@media (max-width: 63.99rem) {
+  .table thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+  }
+
+  .table,
+  .table tbody,
+  .table tr,
+  .table td {
+    display: block;
+  }
+
+  .table tr {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 10rem), 1fr));
+    gap: var(--space-3);
+    padding: var(--space-4) 0;
+    border-bottom: 1px solid var(--color-border);
+  }
+
+  .table td {
+    padding: 0;
+    border: 0;
+  }
+
+  .table td.nameCell,
+  .table td.actionsCell {
+    grid-column: 1 / -1;
+    text-align: left;
+  }
+
+  .table td[data-label]::before {
+    content: attr(data-label);
+    display: block;
+    margin-bottom: var(--space-1);
+    color: var(--color-text-muted);
+  }
+}
+
+.pager {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.pages {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.pageButton {
+  display: inline-grid;
+  place-items: center;
+  min-width: var(--control-height);
+  min-height: var(--control-height);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-control);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font: inherit;
+  cursor: pointer;
+}
+
+.pageButton svg {
+  width: 1.1rem;
+  height: 1.1rem;
+}
+
+.pageButton[aria-current="page"] {
+  border-color: var(--color-primary);
+  background: color-mix(in srgb, var(--color-primary) 10%, var(--color-surface));
+  color: var(--color-primary);
+  font-weight: var(--weight-bold);
+}
+
+.pageButton:disabled {
+  cursor: default;
+  opacity: 0.45;
+}
+
+/* --- The pop-ups ---------------------------------------------------------------------------- */
+
+.dialog {
+  width: min(42rem, calc(100vw - 2 * var(--page-gutter)));
+  max-height: calc(100dvh - 2 * var(--space-4));
+  padding: min(var(--space-5), 5vw);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-card);
+  background: var(--color-surface);
+  color: var(--color-text);
+  box-shadow: var(--shadow-card);
+}
+
+.dialog[open] {
+  animation: rise var(--motion-fast) var(--motion-ease);
+}
+
+.dialog::backdrop {
+  background: color-mix(in srgb, var(--color-text) 35%, transparent);
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(0.5rem);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.dialogHead {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-4);
+  margin-bottom: var(--space-4);
+}
+
+.dialogTitle {
+  margin: 0 0 var(--space-1);
+  font-family: var(--font-heading);
+  font-size: var(--text-2xl);
+  font-weight: var(--weight-bold);
+}
+
+.iconButton {
+  display: inline-grid;
+  place-items: center;
+  min-width: var(--control-height);
+  min-height: var(--control-height);
+  border: 0;
+  border-radius: var(--radius-control);
+  background: transparent;
+  color: var(--color-text-muted);
+  cursor: pointer;
+}
+
+.iconButton:hover {
+  background: color-mix(in srgb, var(--color-text) 6%, var(--color-surface));
+  color: var(--color-text);
+}
+
+.iconButton svg {
+  width: 1.25rem;
+  height: 1.25rem;
+}
+
+.steps {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin: 0 0 var(--space-4);
+  padding: 0;
+  list-style: none;
+  counter-reset: step;
+  font-size: var(--text-sm);
+}
+
+.steps li {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  color: var(--color-text-muted);
+  counter-increment: step;
+}
+
+.steps li::before {
+  content: counter(step);
+  display: inline-grid;
+  place-items: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  border: 1px solid var(--color-border);
+  border-radius: 50%;
+}
+
+.steps li[aria-current="step"] {
+  color: var(--color-primary);
+  font-weight: var(--weight-bold);
+}
+
+.steps li[aria-current="step"]::before,
+.steps li[data-done]::before {
+  border-color: var(--color-primary);
+  background: var(--color-primary);
+  color: var(--color-primary-text);
+}
+
+.roleCards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 14rem), 1fr));
+  gap: var(--space-3);
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.roleCard {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: min(var(--space-4), 4vw);
+  padding-right: var(--space-7);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-card);
+  cursor: pointer;
+  transition: transform var(--motion-fast) var(--motion-ease);
+}
+
+.roleCard:hover {
+  transform: translateY(-1px);
+}
+
+.roleCard[data-checked] {
+  border-color: var(--color-primary);
+  background: color-mix(in srgb, var(--color-primary) 6%, var(--color-surface));
+  box-shadow: inset 0 0 0 1px var(--color-primary);
+}
+
+.roleCard:has(.hiddenRadio:focus-visible) {
+  outline: var(--focus-ring);
+  outline-offset: 2px;
+}
+
+.hiddenRadio {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.radioMark {
+  position: absolute;
+  top: var(--space-4);
+  right: var(--space-4);
+  width: 1.25rem;
+  height: 1.25rem;
+  border: 2px solid var(--color-border);
+  border-radius: 50%;
+}
+
+.roleCard[data-checked] .radioMark {
+  border-color: var(--color-primary);
+  box-shadow: inset 0 0 0 3px var(--color-surface);
+  background: var(--color-primary);
+}
+
+.roleName {
+  font-size: var(--text-lg);
+  font-weight: var(--weight-bold);
+}
+
+.note {
+  grid-column: 1 / -1;
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+}
+
+.error {
+  grid-column: 1 / -1;
+  margin: 0;
+  color: var(--color-bad);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+}
+
+.fields,
+.review,
+.manage {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.scope {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.legend {
+  margin-bottom: var(--space-2);
+  padding: 0;
+  font-weight: var(--weight-bold);
+}
+
+.choice,
+.check {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  min-height: var(--control-height);
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-control);
+  cursor: pointer;
+}
+
+.choice input,
+.check input {
+  width: 1.25rem;
+  height: 1.25rem;
+  margin-top: 0.15rem;
+  accent-color: var(--color-primary);
+}
+
+.choice:has(input:checked) {
+  border-color: var(--color-primary);
+}
+
+.choiceTitle {
+  display: block;
+  font-weight: var(--weight-medium);
+}
+
+.sectionList {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 12rem), 1fr));
+  gap: var(--space-2);
+  padding-left: var(--space-5);
+}
+
+.check {
+  align-items: center;
+}
+
+.facts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 11rem), 1fr));
+  gap: var(--space-3);
+  margin: 0;
+}
+
+.facts dt {
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+}
+
+.facts dd {
+  margin: 0;
+  font-weight: var(--weight-medium);
+  overflow-wrap: anywhere;
+}
+
+.can {
+  padding: min(var(--space-4), 4vw);
+  border-radius: var(--radius-control);
+  background: color-mix(in srgb, var(--color-text) 3%, var(--color-surface));
+}
+
+.canTitle {
+  margin: 0 0 var(--space-2);
+  font-weight: var(--weight-bold);
+}
+
+.canList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.canList li {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+}
+
+.canList svg {
+  flex: none;
+  width: 1.1rem;
+  height: 1.1rem;
+  margin-top: 0.15rem;
+  color: var(--color-ok);
+}
+
+.who {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.dialogActions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: var(--space-2);
+  margin-top: var(--space-4);
+}
+
+.dialogActions > * {
+  padding-inline: min(var(--space-5), 4vw);
+}

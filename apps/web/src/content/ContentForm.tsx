@@ -2,19 +2,24 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
+import { useEffect, useId, useMemo, useRef, useState, type FormEvent } from "react";
 
 import { t, type MessageKey } from "@/i18n/messages";
 import { useSession } from "@/session/SessionProvider";
-import { Badge, Button, Card, Checkbox, Field, Notice, Select, Skeleton, TextArea, buttonClass } from "@/ui";
+import { Bell } from "lucide-react";
+
+import { Button, Card, Checkbox, Field, Notice, Skeleton, buttonClass } from "@/ui";
 
 import { useAddressQuery } from "./address";
 import { BsDateField } from "./BsDateField";
 import { loadContent, loadItem, submitForm } from "./client";
 import { ContentPreview } from "./ContentPreview";
+import { KindTile } from "./KindIcon";
+import { TextEditor } from "./TextEditor";
 import {
   KINDS,
   KIND_LABEL,
+  KIND_TONE,
   emptyForm,
   firstInvalid,
   formFromItem,
@@ -24,9 +29,9 @@ import {
   type FlashKind,
   type FormErrors,
   type FormValues,
-  type Kind,
 } from "./model";
-import styles from "./content.module.css";
+import contentStyles from "./content.module.css";
+import styles from "./website.module.css";
 
 type Loaded = { status: "loading" } | { status: "ready"; values: FormValues; live: boolean } | { status: "not_found" }
   | { status: "forbidden" }
@@ -51,10 +56,10 @@ export function ContentForm() {
         setLoaded(result.ok ? { status: "ready", values: formFromItem(result.item), live: result.item.status === "live" } : { status: result.reason });
         return;
       }
-      // A new item starts on today's Nepali date; one light request gets it.
-      const result = await loadContent(api, { limit: 1 });
+      // A new item starts at today's Nepali date and the time now; one light request gets both.
+      const result = await loadContent(api, { pageSize: 1 });
       if (!active) return;
-      setLoaded(result.ok ? { status: "ready", values: emptyForm(result.todayBs, target.kind), live: false } : { status: result.reason });
+      setLoaded(result.ok ? { status: "ready", values: emptyForm(result.todayBs, target.kind, result.nowTime), live: false } : { status: result.reason });
     })();
     return () => {
       active = false;
@@ -65,7 +70,7 @@ export function ContentForm() {
     return (
       <div role="status" aria-busy="true">
         <span className="sr-only">{t("contentForm.loading")}</span>
-        <div className={styles.fields} aria-hidden>
+        <div className={contentStyles.fields} aria-hidden>
           <Skeleton width="40%" height="1.75rem" />
           <Skeleton height="2.75rem" />
           <Skeleton height="8rem" />
@@ -76,9 +81,9 @@ export function ContentForm() {
 
   if (loaded.status === "not_found") {
     return (
-      <Card className={styles.message}>
-        <h1 className={styles.title}>{t("contentForm.notFoundTitle")}</h1>
-        <p className={styles.muted}>{t("contentForm.notFoundBody")}</p>
+      <Card className={contentStyles.message}>
+        <h1 className={contentStyles.title}>{t("contentForm.notFoundTitle")}</h1>
+        <p className={contentStyles.muted}>{t("contentForm.notFoundBody")}</p>
         <Link href="/portal/content" className={buttonClass({ variant: "secondary" })}>
           {t("contentForm.backToList")}
         </Link>
@@ -92,19 +97,46 @@ export function ContentForm() {
 
   const id = target?.mode === "edit" ? target.id : null;
   return (
-    <ContentEditor
+    <>
+      <div className={contentStyles.header}>
+        <div>
+          <h1 className={contentStyles.title}>{t(id === null ? "contentForm.newTitle" : "contentForm.editTitle")}</h1>
+          <p className={contentStyles.muted}>{t(id === null ? "contentForm.newSubtitle" : "contentForm.editSubtitle")}</p>
+        </div>
+      </div>
+      <ContentEditor
       key={id ?? "new"}
       id={id}
       initial={loaded.values}
       live={loaded.live}
       onSaved={(outcome) => router.push(`/portal/content?done=${outcome}`)}
       onGone={() => setLoaded({ status: "not_found" })}
-    />
+      />
+    </>
   );
 }
 
-/** The form itself, once the item (or today's date) is loaded. Exported so it can be drawn in tests without a network. */
-export function ContentEditor({ id, initial, live, onSaved, onGone }: { id: string | null; initial: FormValues; live: boolean; onSaved: (outcome: FlashKind) => void; onGone: () => void }) {
+/**
+ * The form itself, once the item (or today's date) is loaded: on the edit page, and in the pop-up the list opens
+ * (D-098). Laid out after the PM's reference: what it is and what it says on the left; urgency, when it shows and
+ * the buttons in the middle; the live preview on the right. Exported so it can be drawn in tests without a network.
+ * `onCancel` closes the pop-up; without it, Cancel goes back to the list.
+ */
+export function ContentEditor({
+  id,
+  initial,
+  live,
+  onSaved,
+  onGone,
+  onCancel,
+}: {
+  id: string | null;
+  initial: FormValues;
+  live: boolean;
+  onSaved: (outcome: FlashKind) => void;
+  onGone: () => void;
+  onCancel?: () => void;
+}) {
   const { api } = useSession();
   const [values, setValues] = useState<FormValues>(initial);
   const [errors, setErrors] = useState<FormErrors>({});
@@ -112,15 +144,17 @@ export function ContentEditor({ id, initial, live, onSaved, onGone }: { id: stri
   // Which button is working: saving a draft (or the changes), or saving and publishing.
   const [pending, setPending] = useState<"draft" | "publish" | null>(null);
   const [focus, setFocus] = useState<{ field: FieldName; tick: number } | null>(null);
+  const typeLegend = useId();
 
   const title = useRef<HTMLInputElement>(null);
   const body = useRef<HTMLTextAreaElement>(null);
   const contact = useRef<HTMLInputElement>(null);
   const publishOn = useRef<HTMLInputElement>(null);
+  const publishTime = useRef<HTMLInputElement>(null);
   const hideAfter = useRef<HTMLInputElement>(null);
   const holidayFrom = useRef<HTMLInputElement>(null);
   const holidayTo = useRef<HTMLInputElement>(null);
-  const fieldRefs = { title, body, contact, holidayFromBs: holidayFrom, holidayToBs: holidayTo, publishOnBs: publishOn, hideAfterBs: hideAfter };
+  const fieldRefs = { title, body, contact, holidayFromBs: holidayFrom, holidayToBs: holidayTo, publishOnBs: publishOn, publishTime, hideAfterBs: hideAfter };
   const isHoliday = values.kind === "holiday";
 
   // Move the cursor to the first field with a problem, once the messages are on screen.
@@ -132,10 +166,11 @@ export function ContentEditor({ id, initial, live, onSaved, onGone }: { id: stri
   const set = <K extends keyof FormValues>(name: K, value: FormValues[K]) => setValues((current) => ({ ...current, [name]: value }));
 
   /**
-   * Saves, and with `publish` puts it on the website too. Pressing Enter in a box saves (a draft, or the
-   * changes to a live item): only a deliberate click on Publish goes public. If the save works but the
-   * publishing does not, the item is already saved, so the person is taken to the list and told so; staying
-   * here would let a second click make a second copy.
+   * Saves, and with `publish` puts it on the website too (or schedules it, when its date and time are still to
+   * come). Pressing Enter in a box saves (a draft, or the changes to a live item): only a deliberate click on
+   * Publish goes public. If the save works but the publishing does not, the item is already saved, so the person
+   * is taken to the list and told so; staying here would let a second click make a second copy. If nothing is
+   * saved, the form keeps everything typed.
    */
   async function run(publish: boolean) {
     if (pending) return;
@@ -152,7 +187,9 @@ export function ContentEditor({ id, initial, live, onSaved, onGone }: { id: stri
     if ("fields" in result) return showProblems(result.fields);
     if ("gone" in result) return onGone();
     setErrors({});
-    setFailure(result.problem === "forbidden" ? "content.forbidden" : result.problem === "rejected" ? "contentForm.error.rejected" : "contentForm.error.saveFailed");
+    setFailure(
+      result.problem === "forbidden" ? "content.forbidden" : result.problem === "rejected" ? "contentForm.error.rejected" : publish ? "contentForm.error.publishFailed" : "contentForm.error.saveFailed",
+    );
   }
 
   function submit(event: FormEvent<HTMLFormElement>) {
@@ -167,126 +204,162 @@ export function ContentEditor({ id, initial, live, onSaved, onGone }: { id: stri
     if (first) setFocus((current) => ({ field: first, tick: (current?.tick ?? 0) + 1 }));
   }
 
+  const cancel = onCancel ? (
+    <Button variant="secondary" onClick={onCancel}>
+      {t("contentForm.cancel")}
+    </Button>
+  ) : (
+    <Link href="/portal/content" className={buttonClass({ variant: "secondary" })}>
+      {t("contentForm.cancel")}
+    </Link>
+  );
+
   return (
-    <>
-      <h1 className={styles.title}>{t(id === null ? "contentForm.newTitle" : "contentForm.editTitle")}</h1>
-      {live ? <Notice>{t("contentForm.liveNotice")}</Notice> : null}
+    <form onSubmit={submit} noValidate className={styles.editorGrid}>
+      <div className={styles.editorMain}>
+        {failure ? <Notice tone="bad">{t(failure)}</Notice> : null}
+        {live ? <Notice>{t("contentForm.liveNotice")}</Notice> : null}
 
-      <div className={styles.formGrid}>
-        <Card className={styles.formCard}>
-          <form onSubmit={submit} noValidate className={styles.fields}>
-            {failure ? <Notice tone="bad">{t(failure)}</Notice> : null}
-
-            {id === null ? (
-              <Select
-                label={t("contentForm.type")}
-                value={values.kind}
-                onChange={(event) => set("kind", event.target.value as Kind)}
-                options={KINDS.map((k) => ({ value: k, label: t(KIND_LABEL[k]) }))}
-              />
-            ) : (
-              <div className={styles.locked}>
-                <span className={styles.lockedLabel}>{t("contentForm.type")}</span>
-                <Badge>{t(KIND_LABEL[values.kind])}</Badge>
-                <span className={styles.muted}>{t("contentForm.typeLocked")}</span>
-              </div>
-            )}
-
-            <Field
-              ref={title}
-              label={t("contentForm.titleField")}
-              value={values.title}
-              autoComplete="off"
-              onChange={(event) => set("title", event.target.value)}
-              error={errors.title ? t(errors.title) : undefined}
-            />
-            <TextArea
-              ref={body}
-              label={t("contentForm.body")}
-              hint={t("contentForm.bodyHint")}
-              value={values.body}
-              rows={8}
-              onChange={(event) => set("body", event.target.value)}
-              error={errors.body ? t(errors.body) : undefined}
-            />
-            {values.kind === "vacancy" ? (
-              <Field
-                ref={contact}
-                label={t("contentForm.contact")}
-                hint={t("contentForm.contactHint")}
-                value={values.contact}
-                autoComplete="off"
-                onChange={(event) => set("contact", event.target.value)}
-                error={errors.contact ? t(errors.contact) : undefined}
-              />
-            ) : null}
-            <Checkbox label={t("contentForm.urgent")} hint={t("contentForm.urgentHint")} checked={values.urgent} onChange={(event) => set("urgent", event.target.checked)} />
-            {isHoliday ? (
-              // A holiday names its own day first, so nobody mistakes "Show from" for it (D-094).
-              <>
-                <BsDateField
-                  ref={holidayFrom}
-                  legend={t("contentForm.holidayFrom")}
-                  hint={t("contentForm.holidayFromHint")}
-                  value={values.holidayFromBs}
-                  onChange={(text) => set("holidayFromBs", text)}
-                  error={errors.holidayFromBs ? t(errors.holidayFromBs) : undefined}
+        <fieldset className={styles.typeCards} aria-describedby={id === null ? undefined : typeLegend}>
+          <legend className={styles.typeLegend}>{t("contentForm.type")}</legend>
+          <div className={styles.typeGrid}>
+            {KINDS.map((k) => (
+              <label key={k} className={styles.typeCard} data-tone={KIND_TONE[k]} data-checked={values.kind === k ? true : undefined}>
+                <input
+                  type="radio"
+                  name="kind"
+                  value={k}
+                  className={styles.typeRadio}
+                  checked={values.kind === k}
+                  // The type is fixed once the item is saved; the others are shown, but cannot be chosen.
+                  disabled={id !== null && values.kind !== k}
+                  onChange={() => set("kind", k)}
                 />
-                <BsDateField
-                  ref={holidayTo}
-                  legend={t("contentForm.holidayTo")}
-                  hint={t("contentForm.holidayToHint")}
-                  value={values.holidayToBs}
-                  onChange={(text) => set("holidayToBs", text)}
-                  error={errors.holidayToBs ? t(errors.holidayToBs) : undefined}
-                />
-              </>
-            ) : null}
-            <BsDateField
-              ref={publishOn}
-              legend={t("contentForm.publishOn")}
-              hint={t(isHoliday ? "contentForm.holidayShowHint" : "contentForm.dateHint")}
-              value={values.publishOnBs}
-              onChange={(text) => set("publishOnBs", text)}
-              error={errors.publishOnBs ? t(errors.publishOnBs) : undefined}
-            />
-            {isHoliday ? null : (
-              <BsDateField
-                ref={hideAfter}
-                legend={t("contentForm.hideAfter")}
-                hint={t("contentForm.hideAfterHint")}
-                value={values.hideAfterBs}
-                onChange={(text) => set("hideAfterBs", text)}
-                error={errors.hideAfterBs ? t(errors.hideAfterBs) : undefined}
-              />
-            )}
+                <KindTile kind={k} size="small" />
+                <span className={styles.typeName}>{t(KIND_LABEL[k])}</span>
+              </label>
+            ))}
+          </div>
+          {id !== null ? (
+            <p id={typeLegend} className={styles.muted}>
+              {t("contentForm.typeLocked")}
+            </p>
+          ) : null}
+        </fieldset>
 
-            <div className={styles.actions}>
-              <Link href="/portal/content" className={buttonClass({ variant: "quiet" })}>
-                {t("contentForm.cancel")}
-              </Link>
-              {live ? (
-                // An item that is already on the website has one action: save the changes (they go live at once).
-                <Button type="submit" loading={pending === "draft"} loadingLabel={t("contentForm.saving")}>
-                  {pending === "draft" ? t("contentForm.saving") : t("contentForm.saveChanges")}
-                </Button>
-              ) : (
-                <>
-                  {/* Save draft comes first and is the only submit button, so Enter in a box saves and never publishes. */}
-                  <Button type="submit" variant="secondary" loading={pending === "draft"} disabled={pending === "publish"} loadingLabel={t("contentForm.saving")}>
-                    {pending === "draft" ? t("contentForm.saving") : t("contentForm.save")}
-                  </Button>
-                  <Button loading={pending === "publish"} disabled={pending === "draft"} loadingLabel={t("contentForm.publishing")} onClick={() => void run(true)}>
-                    {pending === "publish" ? t("contentForm.publishing") : t("contentForm.publish")}
-                  </Button>
-                </>
-              )}
-            </div>
-          </form>
-        </Card>
-
-        <ContentPreview values={values} />
+        <Field
+          ref={title}
+          label={`${t("contentForm.titleField")} *`}
+          value={values.title}
+          placeholder={t("contentForm.titlePlaceholder")}
+          autoComplete="off"
+          aria-required
+          onChange={(event) => set("title", event.target.value)}
+          error={errors.title ? t(errors.title) : undefined}
+        />
+        <TextEditor
+          ref={body}
+          label={t("contentForm.body")}
+          hint={t("contentForm.bodyHint")}
+          placeholder={t("contentForm.bodyPlaceholder")}
+          value={values.body}
+          onChange={(text) => set("body", text)}
+          error={errors.body ? t(errors.body) : undefined}
+        />
+        {values.kind === "vacancy" ? (
+          <Field
+            ref={contact}
+            label={t("contentForm.contact")}
+            hint={t("contentForm.contactHint")}
+            value={values.contact}
+            autoComplete="off"
+            onChange={(event) => set("contact", event.target.value)}
+            error={errors.contact ? t(errors.contact) : undefined}
+          />
+        ) : null}
       </div>
-    </>
+
+      <div className={styles.editorSide}>
+        <div className={styles.urgentBox}>
+          <Checkbox
+            label={t("contentForm.urgent")}
+            hint={t("contentForm.urgentHint")}
+            checked={values.urgent}
+            onChange={(event) => set("urgent", event.target.checked)}
+          />
+          <Bell aria-hidden className={styles.urgentIcon} />
+        </div>
+        {isHoliday ? (
+          // A holiday names its own day first, so nobody mistakes the publish date for it (D-094).
+          <>
+            <BsDateField
+              ref={holidayFrom}
+              legend={t("contentForm.holidayFrom")}
+              hint={t("contentForm.holidayFromHint")}
+              value={values.holidayFromBs}
+              onChange={(text) => set("holidayFromBs", text)}
+              error={errors.holidayFromBs ? t(errors.holidayFromBs) : undefined}
+            />
+            <BsDateField
+              ref={holidayTo}
+              legend={t("contentForm.holidayTo")}
+              hint={t("contentForm.holidayToHint")}
+              value={values.holidayToBs}
+              onChange={(text) => set("holidayToBs", text)}
+              error={errors.holidayToBs ? t(errors.holidayToBs) : undefined}
+            />
+          </>
+        ) : null}
+        <BsDateField
+          ref={publishOn}
+          legend={`${t("contentForm.publishOn")} *`}
+          hint={t(isHoliday ? "contentForm.holidayShowHint" : "contentForm.dateHint")}
+          value={values.publishOnBs}
+          onChange={(text) => set("publishOnBs", text)}
+          error={errors.publishOnBs ? t(errors.publishOnBs) : undefined}
+        />
+        <Field
+          ref={publishTime}
+          type="time"
+          label={t("contentForm.time")}
+          hint={t("contentForm.timeHint")}
+          value={values.publishTime}
+          onChange={(event) => set("publishTime", event.target.value)}
+          error={errors.publishTime ? t(errors.publishTime) : undefined}
+        />
+        {isHoliday ? null : (
+          <BsDateField
+            ref={hideAfter}
+            legend={t("contentForm.hideAfter")}
+            hint={t("contentForm.hideAfterHint")}
+            value={values.hideAfterBs}
+            onChange={(text) => set("hideAfterBs", text)}
+            error={errors.hideAfterBs ? t(errors.hideAfterBs) : undefined}
+          />
+        )}
+
+        <div className={styles.editorActions}>
+          {cancel}
+          {live ? (
+            // An item that is already on the website has one action: save the changes (they go live at once).
+            <Button type="submit" loading={pending === "draft"} loadingLabel={t("contentForm.saving")}>
+              {pending === "draft" ? t("contentForm.saving") : t("contentForm.saveChanges")}
+            </Button>
+          ) : (
+            <>
+              {/* Save draft comes first and is the only submit button, so Enter in a box saves and never publishes. */}
+              <Button type="submit" variant="secondary" loading={pending === "draft"} disabled={pending === "publish"} loadingLabel={t("contentForm.saving")}>
+                {pending === "draft" ? t("contentForm.saving") : t("contentForm.save")}
+              </Button>
+              <Button loading={pending === "publish"} disabled={pending === "draft"} loadingLabel={t("contentForm.publishing")} onClick={() => void run(true)}>
+                {pending === "publish" ? t("contentForm.publishing") : t("contentForm.publish")}
+              </Button>
+            </>
+          )}
+        </div>
+      </div>
+
+      <ContentPreview values={values} />
+    </form>
   );
 }

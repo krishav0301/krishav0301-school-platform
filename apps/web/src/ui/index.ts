@@ -12,3 +12,4 @@ export { Spinner } from "./Spinner";
 export { Table } from "./Table";
 export { TextArea } from "./TextArea";
 export { AddDialog, TitleRow } from "./AddDialog";
+export { RowMenu, type MenuAction } from "./RowMenu";

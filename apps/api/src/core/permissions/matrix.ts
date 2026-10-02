@@ -96,6 +96,7 @@ export const MATRIX = [
     SUP: all,
   }),
   row(G.access, "accounts.staff.view", "View the staff list", 3, { COO: only(inst, "teachers"), ADM: read, SUP: all }),
+  row(G.access, "accounts.staff.access", "Change which sections a Co-ordinator's or Accountant's access reaches", 3, { ADM: all, SUP: all }),
   row(G.access, "accounts.password.issue", "Give a person a new temporary password", 3, {
     COO: only(inst, "teachers"),
     ADM: only(all, "co-ordinators, accountants"),

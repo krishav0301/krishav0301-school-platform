@@ -23,7 +23,7 @@ export function outcomeOfToggle(result: ToggleResult, action: { id: string; titl
     if (isUndo) return { tone: "ok", message: publish ? "content.undone.published" : "content.undone.draft", refresh: true };
     return {
       tone: "ok",
-      message: publish ? "content.done.published" : "content.done.takenDown",
+      message: publish ? (result.scheduled ? "content.done.scheduled" : "content.done.published") : "content.done.takenDown",
       refresh: true,
       undo: { id, title, publish: !publish },
     };

@@ -151,10 +151,11 @@ describe("the staff screen and its page", () => {
     expect(html).toContain(">Add a person<");
   });
 
-  it("the page has the portal around it", () => {
+  it("the page has the portal around it: People & Access for the Principal (D-099), Staff for a Co-ordinator", () => {
     const html = inContext(<PeoplePage />);
-    expect(html).toContain(">Staff</h1>");
+    expect(html).toContain(">People &amp; Access</h1>");
     expect(html).toContain("Skip to main content");
+    expect(inContext(<PeoplePage />, as("coordinator", "institution"))).toContain(">Staff</h1>");
   });
 });
 

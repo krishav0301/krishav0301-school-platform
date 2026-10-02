@@ -1,14 +1,39 @@
-import { t } from "@/i18n/messages";
-import { Badge } from "@/ui";
+import { BellRing, CalendarDays } from "lucide-react";
 
-import { KIND_LABEL, contactHref, paragraphs, type Kind } from "./model";
+import { t } from "@/i18n/messages";
+
+import { FormattedText } from "./FormattedText";
+import { KIND_ICON } from "./kind-icons";
+import { KIND_LABEL, KIND_TONE, contactHref, type Kind } from "./model";
 import styles from "./content.module.css";
+
+/** A kind's name with its icon, in its tone (D-098). News and Information keep their blue to the icon (D-030). */
+export function KindChip({ kind }: { kind: Kind }) {
+  const Icon = KIND_ICON[kind];
+  return (
+    <span className={styles.kindChip} data-tone={KIND_TONE[kind]}>
+      <Icon aria-hidden />
+      {t(KIND_LABEL[kind])}
+    </span>
+  );
+}
+
+/** Urgent, set apart in the theme's red with a bell (D-098). */
+export function UrgentChip() {
+  return (
+    <span className={styles.urgentChip}>
+      <BellRing aria-hidden />
+      {t("content.urgent")}
+    </span>
+  );
+}
 
 /**
  * One item as the public reads it: what kind it is, its title, its text, a vacancy's contact, and a line
  * of dates. The Admin's preview and the public notice board both draw this, so the preview is the page.
  *
- * The text is shown as typed: nothing in it is interpreted, and a blank line starts a new paragraph.
+ * The text carries only the few marks of D-098 (bold, italic, underline, lists, links, a heading), drawn as
+ * React elements by `FormattedText`; nothing typed is ever run as HTML.
  * A contact is a link only when it is an email address or a phone number (`contactHref`).
  */
 export function PublicEntry({
@@ -41,16 +66,12 @@ export function PublicEntry({
   return (
     <article className={styles.entry}>
       <div className={styles.badges}>
-        <Badge>{t(KIND_LABEL[kind])}</Badge>
-        {urgent ? <Badge>{t("content.urgent")}</Badge> : null}
+        <KindChip kind={kind} />
+        {urgent ? <UrgentChip /> : null}
       </div>
       <Heading className={titleIsPlaceholder ? `${styles.entryTitle} ${styles.muted}` : styles.entryTitle}>{title}</Heading>
       {holiday ? <p className={styles.holiday}>{holiday}</p> : null}
-      {paragraphs(body).map((paragraph, index) => (
-        <p key={index} className={styles.paragraph}>
-          {paragraph}
-        </p>
-      ))}
+      <FormattedText body={body} />
       {kind === "vacancy" && contact ? (
         <p className={styles.contact}>
           <span className={styles.contactLabel}>{t("content.contact")}</span>
@@ -63,7 +84,10 @@ export function PublicEntry({
           )}
         </p>
       ) : null}
-      <p className={styles.muted}>{dates}</p>
+      <p className={styles.entryDate}>
+        <CalendarDays aria-hidden />
+        {dates}
+      </p>
     </article>
   );
 }

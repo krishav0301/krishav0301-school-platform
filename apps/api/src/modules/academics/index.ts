@@ -2,3 +2,4 @@
 export { getCurriculum, getTeaching, listClasses, listProgrammes, listSubjects, listTerminals, listYears } from "./queries";
 export type { AcademicYearList, Curriculum, ProgrammeList, SchoolClassList, SubjectList, Teaching, TerminalList } from "./schema";
 export { programmesDashboardPart, type ProgrammeDashboardRow } from "./queries";
+export { teacherProgrammesJson, teacherSubjectsJson, teachesInProgramme } from "./teaching-summary";

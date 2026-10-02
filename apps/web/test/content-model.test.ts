@@ -2,14 +2,14 @@ import { describe, expect, it } from "vitest";
 
 import { BS_MONTH_NAMES } from "../../api/src/core/dates";
 import { en, t } from "@/i18n/messages";
-import { KINDS, STATES, contactHref, emptyForm, firstInvalid, formFromItem, formatBsDate, holidayLine, paragraphs, joinBs, parseEditTarget, parseFlash, splitBs, validateForm, type FormValues } from "@/content/model";
+import { GROUPS, KINDS, STATES, contactHref, emptyForm, firstInvalid, formFromItem, formatBsDate, formatTime, holidayLine, joinBs, parseEditTarget, parseFlash, parseNewKind, splitBs, validateForm, type FormValues } from "@/content/model";
 
-const valid: FormValues = { kind: "notice", title: "Winter break", body: "Closed on Friday.", contact: "", urgent: false, publishOnBs: "2083-06-10", hideAfterBs: "", holidayFromBs: "", holidayToBs: "" };
+const valid: FormValues = { kind: "notice", title: "Winter break", body: "Closed on Friday.", contact: "", urgent: false, publishOnBs: "2083-06-10", publishTime: "10:00", hideAfterBs: "", holidayFromBs: "", holidayToBs: "" };
 const errorsOf = (over: Partial<FormValues>) => validateForm({ ...valid, ...over });
 
 describe("a new form", () => {
-  it("starts as a notice, with today's Nepali date as the start day and nothing else filled in", () => {
-    expect(emptyForm("2083-06-05")).toEqual({ kind: "notice", title: "", body: "", contact: "", urgent: false, publishOnBs: "2083-06-05", hideAfterBs: "", holidayFromBs: "", holidayToBs: "" });
+  it("starts as News (D-098), shown from today's Nepali date at the time now, and nothing else filled in", () => {
+    expect(emptyForm("2083-06-05", undefined, "14:35")).toEqual({ kind: "post", title: "", body: "", contact: "", urgent: false, publishOnBs: "2083-06-05", publishTime: "14:35", hideAfterBs: "", holidayFromBs: "", holidayToBs: "" });
   });
 
   it("starts with an empty start day when today's date is not known (past the verified years)", () => {
@@ -19,8 +19,8 @@ describe("a new form", () => {
 
 describe("a form for an existing item", () => {
   it("carries the words and the Nepali days, with blanks instead of nulls", () => {
-    const item = { kind: "vacancy", title: "Teacher", body: "Maths", contact: "jobs@school.example", urgent: true, publishOnBs: "2083-01-05", hideAfterBs: null } as never;
-    expect(formFromItem(item)).toEqual({ kind: "vacancy", title: "Teacher", body: "Maths", contact: "jobs@school.example", urgent: true, publishOnBs: "2083-01-05", hideAfterBs: "", holidayFromBs: "", holidayToBs: "" });
+    const item = { kind: "vacancy", title: "Teacher", body: "Maths", contact: "jobs@school.example", urgent: true, publishOnBs: "2083-01-05", publishTime: "09:30", hideAfterBs: null } as never;
+    expect(formFromItem(item)).toEqual({ kind: "vacancy", title: "Teacher", body: "Maths", contact: "jobs@school.example", urgent: true, publishOnBs: "2083-01-05", publishTime: "09:30", hideAfterBs: "", holidayFromBs: "", holidayToBs: "" });
   });
 
   it("a day beyond the verified years shows as blank, so it must be entered again", () => {
@@ -104,15 +104,18 @@ describe("formatBsDate", () => {
   });
 });
 
-describe("paragraphs", () => {
-  it("splits on blank lines, trims each, and drops empty ones", () => {
-    expect(paragraphs("One\n\nTwo\n\n\n\n  Three  \n")).toEqual(["One", "Two", "Three"]);
-    expect(paragraphs("Single line\nstill the same paragraph")).toEqual(["Single line\nstill the same paragraph"]);
-    expect(paragraphs("   ")).toEqual([]);
+describe("the publish time (D-098)", () => {
+  it("must be a 24-hour time", () => {
+    for (const bad of ["", "24:00", "9:00", "10:60", "noon"]) expect(errorsOf({ publishTime: bad }).publishTime, bad).toBe("contentForm.error.timeRequired");
+    for (const good of ["00:00", "09:05", "23:59"]) expect(errorsOf({ publishTime: good }).publishTime, good).toBeUndefined();
   });
 
-  it("keeps markup as text: nothing is interpreted", () => {
-    expect(paragraphs("<script>alert(1)</script>")).toEqual(["<script>alert(1)</script>"]);
+  it("reads as a person says it", () => {
+    expect(formatTime("00:00")).toBe("12:00 AM");
+    expect(formatTime("09:05")).toBe("9:05 AM");
+    expect(formatTime("12:30")).toBe("12:30 PM");
+    expect(formatTime("23:59")).toBe("11:59 PM");
+    expect(formatTime("odd")).toBe("odd");
   });
 });
 
@@ -167,8 +170,8 @@ describe("parseEditTarget: what the edit page was asked to open", () => {
     expect(parseEditTarget("?kind=post")).toEqual({ mode: "new", kind: "post" });
     expect(parseEditTarget("?kind=vacancy")).toEqual({ mode: "new", kind: "vacancy" });
     expect(parseEditTarget("?kind=evil")).toEqual({ mode: "new" });
-    expect(emptyForm("2083-06-05", "post").kind).toBe("post");
-    expect(emptyForm("2083-06-05").kind).toBe("notice");
+    expect(emptyForm("2083-06-05", "vacancy").kind).toBe("vacancy");
+    expect(emptyForm("2083-06-05").kind).toBe("post");
   });
 
   it("a well-formed id means that item", () => {
@@ -184,12 +187,21 @@ describe("parseEditTarget: what the edit page was asked to open", () => {
 });
 
 describe("parseFlash: what the list was told just happened", () => {
-  it("knows the four outcomes a form can report, and nothing else", () => {
+  it("knows the five outcomes a form can report, and nothing else", () => {
+    expect(parseFlash("?done=scheduled")).toBe("scheduled");
     expect(parseFlash("?done=created")).toBe("created");
     expect(parseFlash("?done=updated")).toBe("updated");
     expect(parseFlash("?done=published")).toBe("published");
     expect(parseFlash("?done=saved_unpublished")).toBe("saved_unpublished");
     for (const bad of ["", "?done=", "?done=deleted", "?done=<b>", "?done=CREATED", "?other=created"]) expect(parseFlash(bad), bad).toBeNull();
+  });
+});
+
+describe("parseNewKind: a new item the list is asked to open (the dashboard's quick action, D-098)", () => {
+  it("knows every kind, and nothing else", () => {
+    expect(parseNewKind("?new=post")).toBe("post");
+    expect(parseNewKind("?new=information")).toBe("information");
+    for (const bad of ["", "?new=", "?new=gallery", "?new=POST", "?kind=post"]) expect(parseNewKind(bad), bad).toBeNull();
   });
 });
 
@@ -253,13 +265,17 @@ describe("the words for the content screens", () => {
 
 describe("the lists", () => {
   it("has every kind and every state the server knows", () => {
-    expect([...KINDS]).toEqual(["notice", "holiday", "routine", "vacancy", "post"]);
-    expect([...STATES]).toEqual(["draft", "waiting", "scheduled", "showing", "expired"]);
+    // In the order the type cards show them (D-098): News (the "post" kind) first, Routine last.
+    expect([...KINDS]).toEqual(["post", "notice", "holiday", "event", "vacancy", "information", "routine"]);
+    expect([...STATES]).toEqual(["draft", "waiting", "scheduled", "showing", "expired", "archived"]);
+    expect([...GROUPS]).toEqual(["published", "draft", "scheduled", "archived"]);
   });
 
   it("has a word for each kind and each state", () => {
     for (const kind of KINDS) expect(en[`content.kind.${kind}` as keyof typeof en], kind).toBeTruthy();
     for (const state of STATES) expect(en[`content.state.${state}` as keyof typeof en], state).toBeTruthy();
+    for (const group of GROUPS) expect(en[`content.group.${group}` as keyof typeof en], group).toBeTruthy();
+    expect(t("content.kind.post")).toBe("News");
   });
 });
 

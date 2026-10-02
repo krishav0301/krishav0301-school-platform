@@ -1,7 +1,9 @@
 import { recordAudit } from "../../core/audit";
+import { nepalMinute } from "../../core/dates";
 import { newPublicId } from "../../core/ids";
 import { registerApprovalHandler, type ApprovalHandler } from "../approvals/service";
-import { ContentInputSchema, type ContentChanges, type ContentInput, type ContentKind } from "./schema";
+import { stateOf } from "./queries";
+import { ContentInputSchema, type ContentChanges, type ContentInput, type ContentKind, type ContentState } from "./schema";
 
 /**
  * All writes to website content. A Co-ordinator may draft and edit (D-061; sent for approval, never
@@ -17,7 +19,15 @@ import { ContentInputSchema, type ContentChanges, type ContentInput, type Conten
 export type WriteFailure = { ok: false; reason: "not_allowed" | "not_found" };
 export type Invalid = { ok: false; reason: "invalid"; message: string };
 
-const KIND_LABEL: Record<ContentKind, string> = { notice: "Notice", holiday: "Holiday", routine: "Routine", vacancy: "Vacancy", post: "Post" };
+const KIND_LABEL: Record<ContentKind, string> = {
+  notice: "Notice",
+  holiday: "Holiday",
+  routine: "Routine",
+  vacancy: "Vacancy",
+  post: "News",
+  event: "Event",
+  information: "Information",
+};
 
 /** True for an active person who holds an active Admin or Super Admin assignment. `?N` is the person's public id. */
 const isPublisher = (n: number) =>
@@ -39,8 +49,9 @@ interface ItemRow {
   body: string;
   contact: string | null;
   is_urgent: number;
-  status: "draft" | "waiting" | "live";
+  status: "draft" | "waiting" | "live" | "archived";
   publish_on: string;
+  publish_time: string;
   hide_after: string | null;
   holiday_from: string | null;
   holiday_to: string | null;
@@ -53,6 +64,7 @@ const toInput = (row: ItemRow): ContentInput => ({
   contact: row.contact,
   urgent: row.is_urgent === 1,
   publishOn: row.publish_on,
+  publishTime: row.publish_time,
   hideAfter: row.hide_after,
   holidayFrom: row.holiday_from,
   holidayTo: row.holiday_to,
@@ -63,7 +75,7 @@ async function inspect(db: D1Database, publicId: string, actorPublicId: string, 
   const [allowed, item] = await db.batch([
     db.prepare(`SELECT ${guard(1)} AS ok`).bind(actorPublicId),
     db
-      .prepare("SELECT kind, title, body, contact, is_urgent, status, publish_on, hide_after, holiday_from, holiday_to FROM content_items WHERE public_id = ?1")
+      .prepare("SELECT kind, title, body, contact, is_urgent, status, publish_on, publish_time, hide_after, holiday_from, holiday_to FROM content_items WHERE public_id = ?1")
       .bind(publicId),
   ]);
   return {
@@ -74,8 +86,8 @@ async function inspect(db: D1Database, publicId: string, actorPublicId: string, 
 
 /**
  * One round trip: may this person edit this item, given both what they are and what the item is now?
- * A publisher may edit anything; a drafting Co-ordinator may edit a draft or a waiting item, but a live
- * item stays the publisher's alone (D-039 keeps the Admin publishing directly, and an unreviewed edit to
+ * A publisher may edit anything; a drafting Co-ordinator may edit a draft or a waiting item, but a live (or
+ * archived, once-live) item stays the publisher's alone (D-039 keeps the Admin publishing directly, and an unreviewed edit to
  * something already public would undo the point of gating the way there).
  */
 async function inspectForEdit(db: D1Database, publicId: string, actorPublicId: string) {
@@ -83,13 +95,13 @@ async function inspectForEdit(db: D1Database, publicId: string, actorPublicId: s
     db.prepare(`SELECT ${isPublisher(1)} AS ok`).bind(actorPublicId),
     db.prepare(`SELECT ${mayDraft(1)} AS ok`).bind(actorPublicId),
     db
-      .prepare("SELECT kind, title, body, contact, is_urgent, status, publish_on, hide_after, holiday_from, holiday_to FROM content_items WHERE public_id = ?1")
+      .prepare("SELECT kind, title, body, contact, is_urgent, status, publish_on, publish_time, hide_after, holiday_from, holiday_to FROM content_items WHERE public_id = ?1")
       .bind(publicId),
   ]);
   const isPublisherActor = (publisher!.results[0] as { ok: number } | undefined)?.ok === 1;
   const isDrafterActor = (drafter!.results[0] as { ok: number } | undefined)?.ok === 1;
   const row = (item!.results[0] as unknown as ItemRow | undefined) ?? null;
-  const allowed = isPublisherActor || (isDrafterActor && row !== null && row.status !== "live");
+  const allowed = isPublisherActor || (isDrafterActor && row !== null && (row.status === "draft" || row.status === "waiting"));
   return { allowed, item: row };
 }
 
@@ -126,11 +138,11 @@ export async function createContent(
       db
         .prepare(
           `INSERT INTO content_items
-             (public_id, kind, title, body, contact, is_urgent, status, publish_on, hide_after, created_by, created_at, updated_at, holiday_from, holiday_to)
-           SELECT ?1, ?2, ?3, ?4, ?5, ?6, 'draft', ?7, ?8, u.id, ?9, ?9, ?11, ?12
+             (public_id, kind, title, body, contact, is_urgent, status, publish_on, hide_after, created_by, created_at, updated_at, holiday_from, holiday_to, publish_time)
+           SELECT ?1, ?2, ?3, ?4, ?5, ?6, 'draft', ?7, ?8, u.id, ?9, ?9, ?11, ?12, ?13
              FROM users u WHERE u.public_id = ?10 AND ${mayDraft(10)}`,
         )
-        .bind(publicId, c.kind, c.title, c.body, c.contact, c.urgent ? 1 : 0, c.publishOn, c.hideAfter, at, actorPublicId, c.holidayFrom, c.holidayTo),
+        .bind(publicId, c.kind, c.title, c.body, c.contact, c.urgent ? 1 : 0, c.publishOn, c.hideAfter, at, actorPublicId, c.holidayFrom, c.holidayTo, c.publishTime),
     ],
     { onlyIfLastChanged: true },
   );
@@ -154,7 +166,7 @@ export async function updateContent(
   if (!item) return { ok: false, reason: "not_found" };
 
   // Only these fields can change: the kind is fixed, and the status moves only by publishing and taking down.
-  const { title, body, contact, urgent, publishOn, hideAfter, holidayFrom, holidayTo } = changes;
+  const { title, body, contact, urgent, publishOn, publishTime, hideAfter, holidayFrom, holidayTo } = changes;
   const before = toInput(item);
   const merged = {
     ...before,
@@ -163,6 +175,7 @@ export async function updateContent(
     ...(contact !== undefined && { contact }),
     ...(urgent !== undefined && { urgent }),
     ...(publishOn !== undefined && { publishOn }),
+    ...(publishTime !== undefined && { publishTime }),
     ...(hideAfter !== undefined && { hideAfter }),
     ...(holidayFrom !== undefined && { holidayFrom }),
     ...(holidayTo !== undefined && { holidayTo }),
@@ -189,10 +202,10 @@ export async function updateContent(
         .prepare(
           `UPDATE content_items
               SET title = ?2, body = ?3, contact = ?4, is_urgent = ?5, publish_on = ?6, hide_after = ?7, updated_at = ?8,
-                  holiday_from = ?10, holiday_to = ?11, version = version + 1
-            WHERE public_id = ?1 AND (${isPublisher(9)} OR (${mayDraft(9)} AND status <> 'live'))`,
+                  holiday_from = ?10, holiday_to = ?11, publish_time = ?12, version = version + 1
+            WHERE public_id = ?1 AND (${isPublisher(9)} OR (${mayDraft(9)} AND status IN ('draft', 'waiting')))`,
         )
-        .bind(publicId, after.title, after.body, after.contact, after.urgent ? 1 : 0, after.publishOn, after.hideAfter, now.toISOString(), actorPublicId, after.holidayFrom, after.holidayTo),
+        .bind(publicId, after.title, after.body, after.contact, after.urgent ? 1 : 0, after.publishOn, after.hideAfter, now.toISOString(), actorPublicId, after.holidayFrom, after.holidayTo, after.publishTime),
     ],
     { onlyIfLastChanged: true },
   );
@@ -200,9 +213,13 @@ export async function updateContent(
   return applied ? { ok: true } : { ok: false, reason: "not_allowed" };
 }
 
-export type PublishResult = { ok: true } | WriteFailure | { ok: false; reason: "already_live" };
+export type PublishResult = { ok: true; state: ContentState } | WriteFailure | { ok: false; reason: "already_live" | "archived" };
 
-/** Puts a draft on the public site. Two people doing it at once: one wins, the other is told it is already live. */
+/**
+ * Puts a draft on the public site. It shows from its publish day and time: if that is still to come, the
+ * answer's `state` is "scheduled" and it appears then by itself (D-098). Two people doing it at once: one
+ * wins, the other is told it is already live. An archived item goes back to the drafts first.
+ */
 export async function publishContent(
   db: D1Database,
   auditKey: string,
@@ -214,6 +231,7 @@ export async function publishContent(
   if (!first.allowed) return { ok: false, reason: "not_allowed" };
   if (!first.item) return { ok: false, reason: "not_found" };
   if (first.item.status === "live") return { ok: false, reason: "already_live" };
+  if (first.item.status === "archived") return { ok: false, reason: "archived" };
 
   const at = now.toISOString();
   const { applied } = await recordAudit(
@@ -226,7 +244,7 @@ export async function publishContent(
       actorPublicId,
       summary: `${KIND_LABEL[first.item.kind]} "${first.item.title}" published`,
       before: { status: first.item.status },
-      after: { status: "live", publishOn: first.item.publish_on, hideAfter: first.item.hide_after },
+      after: { status: "live", publishOn: first.item.publish_on, publishTime: first.item.publish_time, hideAfter: first.item.hide_after },
     },
     [
       db
@@ -239,7 +257,7 @@ export async function publishContent(
     ],
     { onlyIfLastChanged: true },
   );
-  if (applied) return { ok: true };
+  if (applied) return { ok: true, state: stateOf("live", first.item.publish_on, first.item.publish_time, first.item.hide_after, nepalMinute(now)) };
 
   // Nothing changed: someone else got there first, or the person was switched off a moment ago.
   const second = await inspect(db, publicId, actorPublicId);
@@ -249,7 +267,7 @@ export async function publishContent(
 
 export type UnpublishResult = { ok: true } | WriteFailure | { ok: false; reason: "not_live" };
 
-/** Takes an item off the public site. It goes back to a draft and can be published again. */
+/** Takes an item off the public site, or out of the archive: either way it goes back to a draft and can be published again. */
 export async function unpublishContent(
   db: D1Database,
   auditKey: string,
@@ -260,7 +278,8 @@ export async function unpublishContent(
   const first = await inspect(db, publicId, actorPublicId);
   if (!first.allowed) return { ok: false, reason: "not_allowed" };
   if (!first.item) return { ok: false, reason: "not_found" };
-  if (first.item.status !== "live") return { ok: false, reason: "not_live" };
+  const from = first.item.status;
+  if (from !== "live" && from !== "archived") return { ok: false, reason: "not_live" };
 
   const { applied } = await recordAudit(
     db,
@@ -270,14 +289,17 @@ export async function unpublishContent(
       entityType: "content_item",
       entityPublicId: publicId,
       actorPublicId,
-      summary: `${KIND_LABEL[first.item.kind]} "${first.item.title}" taken off the site`,
-      before: { status: "live" },
+      summary: `${KIND_LABEL[first.item.kind]} "${first.item.title}" ${from === "live" ? "taken off the site" : "moved from the archive to the drafts"}`,
+      before: { status: from },
       after: { status: "draft" },
     },
     [
       db
-        .prepare(`UPDATE content_items SET status = 'draft', updated_at = ?2 WHERE public_id = ?1 AND status = 'live' AND ${isPublisher(3)}`)
-        .bind(publicId, now.toISOString(), actorPublicId),
+        .prepare(
+          `UPDATE content_items SET status = 'draft', archived_at = NULL, archived_by = NULL, updated_at = ?2, version = version + 1
+            WHERE public_id = ?1 AND status = ?4 AND ${isPublisher(3)}`,
+        )
+        .bind(publicId, now.toISOString(), actorPublicId, from),
     ],
     { onlyIfLastChanged: true },
   );
@@ -286,6 +308,59 @@ export async function unpublishContent(
   const second = await inspect(db, publicId, actorPublicId);
   if (!second.allowed) return { ok: false, reason: "not_allowed" };
   return second.item ? { ok: false, reason: "not_live" } : { ok: false, reason: "not_found" };
+}
+
+export type ArchiveResult = { ok: true } | WriteFailure | { ok: false; reason: "already_archived" | "waiting" };
+
+/**
+ * Archives an item (D-098): it leaves the website at once, or never reaches it, and is kept as a record.
+ * Nothing is deleted. A draft or a live item may be archived; an item waiting for approval is the
+ * approval's to settle first. "Move to drafts" (`unpublishContent`) brings it back.
+ */
+export async function archiveContent(
+  db: D1Database,
+  auditKey: string,
+  actorPublicId: string,
+  publicId: string,
+  now: Date = new Date(),
+): Promise<ArchiveResult> {
+  const first = await inspect(db, publicId, actorPublicId);
+  if (!first.allowed) return { ok: false, reason: "not_allowed" };
+  if (!first.item) return { ok: false, reason: "not_found" };
+  if (first.item.status === "archived") return { ok: false, reason: "already_archived" };
+  if (first.item.status === "waiting") return { ok: false, reason: "waiting" };
+
+  const at = now.toISOString();
+  const from = first.item.status;
+  const { applied } = await recordAudit(
+    db,
+    auditKey,
+    {
+      action: "content.archived",
+      entityType: "content_item",
+      entityPublicId: publicId,
+      actorPublicId,
+      summary: `${KIND_LABEL[first.item.kind]} "${first.item.title}" archived`,
+      before: { status: from },
+      after: { status: "archived" },
+    },
+    [
+      db
+        .prepare(
+          `UPDATE content_items
+              SET status = 'archived', archived_at = ?2, archived_by = (SELECT id FROM users WHERE public_id = ?3), updated_at = ?2, version = version + 1
+            WHERE public_id = ?1 AND status = ?4 AND ${isPublisher(3)}`,
+        )
+        .bind(publicId, at, actorPublicId, from),
+    ],
+    { onlyIfLastChanged: true },
+  );
+  if (applied) return { ok: true };
+
+  const second = await inspect(db, publicId, actorPublicId);
+  if (!second.allowed) return { ok: false, reason: "not_allowed" };
+  if (!second.item) return { ok: false, reason: "not_found" };
+  return second.item.status === "waiting" ? { ok: false, reason: "waiting" } : { ok: false, reason: "already_archived" };
 }
 
 // --- The approval handler (D-061) ---------------------------------------------------------------------

@@ -159,6 +159,18 @@ export function nepalDate(instant: Date): string {
   return NEPAL_DAY.format(instant);
 }
 
+const NEPAL_CLOCK = new Intl.DateTimeFormat("en-GB", { timeZone: "Asia/Kathmandu", hour: "2-digit", minute: "2-digit", hourCycle: "h23" });
+
+/** The time of day in Nepal at an instant, 24-hour "HH:MM". */
+export function nepalTime(instant: Date): string {
+  return NEPAL_CLOCK.format(instant);
+}
+
+/** The minute in Nepal at an instant, "YYYY-MM-DD HH:MM": it sorts in time order as text. */
+export function nepalMinute(instant: Date): string {
+  return `${nepalDate(instant)} ${nepalTime(instant)}`;
+}
+
 /** Today in BS, by Nepal's clock. Pass `now` in tests. */
 export function todayBs(now: Date = new Date()): BsDate {
   return adToBs(nepalDate(now));

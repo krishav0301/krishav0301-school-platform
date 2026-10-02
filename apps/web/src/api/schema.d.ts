@@ -253,7 +253,7 @@ export interface paths {
         /** @description The staff the person may see: an Admin sees Co-ordinators, Accountants and teachers; a Co-ordinator sees only teachers (only their own section's, if their scope is one section); a Super Admin also sees Admins. Never a Super Admin, and never a password or hash. */
         get: operations["list_staff"];
         put?: never;
-        /** @description Adds a Co-ordinator or an Accountant, whole-school or limited to one section. The answer carries a one-time temporary password, shown to the person adding them and never again; the new person must choose their own at first sign-in. */
+        /** @description Adds a Co-ordinator or an Accountant, whole-school or limited to some switched-on sections (`sectionKeys`, D-099; `sectionKey` for one). The answer carries a one-time temporary password, shown to the person adding them and never again; the new person must choose their own at first sign-in. */
         post: operations["create_staff"];
         delete?: never;
         options?: never;
@@ -310,6 +310,40 @@ export interface paths {
         options?: never;
         head?: never;
         patch?: never;
+        trace?: never;
+    };
+    "/api/people": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description The People & Access screen (D-099): one page of the administrative staff (`group=admin`: Co-ordinators and Accountants) or the teaching staff (`group=teaching`), searched, filtered and paged in the database, with the switched-on counts and every section. An Admin or Super Admin sees both lists; a Co-ordinator sees only teachers, and only their own sections' if limited. A teacher carries their subjects, programmes and who added them. Never a password or hash. */
+        get: operations["list_people"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/staff/{id}/access": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** @description Changes which sections a Co-ordinator's or Accountant's access reaches (D-099): `[]` for the whole school, or switched-on sections. Admin or Super Admin only, never for themselves. Takes effect at the person's next sign-in renewal (within 30 minutes); money, approval and publish actions re-check at once. Audited. */
+        patch: operations["update_staff_access"];
         trace?: never;
     };
     "/api/academics/years": {
@@ -821,7 +855,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** @description Every item in every state, most recently touched first, at most 200, WITHOUT the text (fetch one item for that). `state` says where each stands today, and `todayBs` is today in Bikram Sambat. */
+        /** @description One page of the items, most recently touched first, WITHOUT the text (fetch one item for that), filtered by kind, state or group, urgency and words in the title, text or author's name, all in the database. With how many match, the four figures for the top of the screen, the public website's address and last publish, and today's Bikram Sambat date and Nepal time for a new item. `state` says where each item stands now. */
         get: operations["list_content"];
         put?: never;
         /** @description Saves a new item as a draft. It is not public until it is published. */
@@ -859,7 +893,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** @description Puts a draft on the public site, from its publish day. Two people doing it at once: one succeeds, the other gets 409. */
+        /** @description Puts a draft on the public site, from its publish day and time: `state` says whether it shows now or is scheduled. Two people doing it at once: one succeeds, the other gets 409. An archived item is moved to the drafts first (409 `archived`). */
         post: operations["publish_content"];
         delete?: never;
         options?: never;
@@ -876,8 +910,25 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** @description Takes an item off the public site. It goes back to a draft and can be published again. */
+        /** @description Takes an item off the public site, or out of the archive. It goes back to a draft and can be published again. */
         post: operations["unpublish_content"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/content/{id}/archive": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Archives a draft or a live item (D-098): it is off the website at once and kept as a record, never deleted. Unpublish moves it back to the drafts. An item waiting for approval cannot be archived (409 `waiting`). */
+        post: operations["archive_content"];
         delete?: never;
         options?: never;
         head?: never;
@@ -2581,6 +2632,7 @@ export interface components {
             /** @enum {string} */
             role: "coordinator" | "accountant";
             sectionKey?: string | null;
+            sectionKeys?: string[];
         };
         CreateTeacher: {
             fullName: string;
@@ -2597,6 +2649,52 @@ export interface components {
         };
         TemporaryPassword: {
             temporaryPassword: string;
+        };
+        PeopleList: {
+            people: components["schemas"]["Person"][];
+            total: number;
+            page: number;
+            pageSize: number;
+            counts: {
+                teachers: number;
+                coordinators: number;
+                accountants: number;
+            };
+            sections: {
+                key: string;
+                name: string;
+                active: boolean;
+            }[];
+        };
+        Person: {
+            id: string;
+            fullName: string;
+            email: string;
+            phone: string | null;
+            /** @enum {string} */
+            role: "coordinator" | "accountant" | "teacher";
+            sections: {
+                key: string;
+                name: string;
+            }[];
+            homeSection: {
+                key: string;
+                name: string;
+            } | null;
+            active: boolean;
+            mustChangePassword: boolean;
+            lastSignInAt: string | null;
+            subjects: string[];
+            programmes: string[];
+            addedBy: {
+                name: string | null;
+                role: string | null;
+                support: boolean;
+            } | null;
+            canManage: boolean;
+        };
+        AccessChanges: {
+            sectionKeys: string[];
         };
         AcademicYearList: {
             years: components["schemas"]["AcademicYear"][];
@@ -2950,7 +3048,7 @@ export interface components {
             id: string;
             kind: components["schemas"]["ContentKind"];
             title: string;
-            /** @description Plain text. A blank line starts a new paragraph. */
+            /** @description Text with a few marks (D-098): a blank line starts a paragraph; **bold**, *italic*, __underline__, [a link](https://…), lines starting "- " or "1. " make a list, and "## " a heading. Nothing else is interpreted. */
             body: string;
             contact: string | null;
             urgent: boolean;
@@ -2964,10 +3062,20 @@ export interface components {
             holidayToBs: string | null;
         };
         /** @enum {string} */
-        ContentKind: "notice" | "holiday" | "routine" | "vacancy" | "post";
+        ContentKind: "notice" | "holiday" | "routine" | "vacancy" | "post" | "event" | "information";
         AdminContent: {
             items: components["schemas"]["AdminContentSummary"][];
+            total: number;
+            page: number;
+            pageSize: number;
+            counts: components["schemas"]["ContentCounts"];
+            site: {
+                address: string | null;
+                live: boolean;
+                lastPublishedAt: string | null;
+            };
             todayBs: string | null;
+            nowTime: string;
         };
         AdminContentSummary: {
             id: string;
@@ -2975,9 +3083,10 @@ export interface components {
             title: string;
             urgent: boolean;
             /** @enum {string} */
-            status: "draft" | "waiting" | "live";
+            status: "draft" | "waiting" | "live" | "archived";
             state: components["schemas"]["ContentState"];
             publishOn: string;
+            publishTime: string;
             hideAfter: string | null;
             publishOnBs: string | null;
             hideAfterBs: string | null;
@@ -2988,9 +3097,21 @@ export interface components {
             createdAt: string;
             updatedAt: string;
             publishedAt: string | null;
+            archivedAt: string | null;
+            authorName: string | null;
+            /** @description The first 200 characters of the text, marks included. */
+            excerpt: string;
         };
         /** @enum {string} */
-        ContentState: "draft" | "waiting" | "scheduled" | "showing" | "expired";
+        ContentState: "draft" | "waiting" | "scheduled" | "showing" | "expired" | "archived";
+        ContentCounts: {
+            published: number;
+            drafts: number;
+            scheduled: number;
+            urgent: number;
+        };
+        /** @enum {string} */
+        ContentGroup: "published" | "draft" | "scheduled" | "archived";
         AdminContentItem: {
             id: string;
             kind: components["schemas"]["ContentKind"];
@@ -2999,9 +3120,10 @@ export interface components {
             contact: string | null;
             urgent: boolean;
             /** @enum {string} */
-            status: "draft" | "waiting" | "live";
+            status: "draft" | "waiting" | "live" | "archived";
             state: components["schemas"]["ContentState"];
             publishOn: string;
+            publishTime: string;
             hideAfter: string | null;
             publishOnBs: string | null;
             hideAfterBs: string | null;
@@ -3012,6 +3134,8 @@ export interface components {
             createdAt: string;
             updatedAt: string;
             publishedAt: string | null;
+            archivedAt: string | null;
+            authorName: string | null;
         };
         ContentError: {
             error: string;
@@ -3030,6 +3154,8 @@ export interface components {
             /** @default false */
             urgent: boolean;
             publishOn: string;
+            /** @default 00:00 */
+            publishTime: string;
             /** @default null */
             hideAfter: string | null;
             /** @default null */
@@ -3043,6 +3169,7 @@ export interface components {
             contact?: string | null;
             urgent?: boolean;
             publishOn?: string;
+            publishTime?: string;
             hideAfter?: string | null;
             holidayFrom?: string | null;
             holidayTo?: string | null;
@@ -5073,6 +5200,97 @@ export interface operations {
             };
         };
     };
+    list_people: {
+        parameters: {
+            query: {
+                group: "admin" | "teaching";
+                q?: string;
+                role?: "coordinator" | "accountant";
+                status?: "active" | "off";
+                section?: string;
+                programme?: string;
+                page?: number;
+                pageSize?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The page */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PeopleList"];
+                };
+            };
+        };
+    };
+    update_staff_access: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AccessChanges"];
+            };
+        };
+        responses: {
+            /** @description Done (or already so) */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StaffOk"];
+                };
+            };
+            /** @description Not allowed (not your role, not your section, not your own account, or switched off since signing in) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StaffError"];
+                };
+            };
+            /** @description No such person or section */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StaffError"];
+                };
+            };
+            /** @description That email address is already used (`email_taken`) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StaffError"];
+                };
+            };
+            /** @description The change breaks a rule; nothing changed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StaffInvalid"];
+                };
+            };
+        };
+    };
     list_academic_years: {
         parameters: {
             query?: never;
@@ -7001,6 +7219,11 @@ export interface operations {
             query?: {
                 kind?: components["schemas"]["ContentKind"];
                 state?: components["schemas"]["ContentState"];
+                group?: components["schemas"]["ContentGroup"];
+                q?: string;
+                urgent?: "true" | "false";
+                page?: number;
+                pageSize?: number;
                 limit?: number;
             };
             header?: never;
@@ -7171,6 +7394,7 @@ export interface operations {
                     "application/json": {
                         /** @enum {boolean} */
                         ok: true;
+                        state: components["schemas"]["ContentState"];
                     };
                 };
             };
@@ -7192,7 +7416,7 @@ export interface operations {
                     "application/json": components["schemas"]["ContentError"];
                 };
             };
-            /** @description Already live */
+            /** @description Already live, or archived */
             409: {
                 headers: {
                     [name: string]: unknown;
@@ -7244,7 +7468,59 @@ export interface operations {
                     "application/json": components["schemas"]["ContentError"];
                 };
             };
-            /** @description It is not live */
+            /** @description It is neither live nor archived */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ContentError"];
+                };
+            };
+        };
+    };
+    archive_content: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Archived */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {boolean} */
+                        ok: true;
+                    };
+                };
+            };
+            /** @description Not allowed (for example, switched off since signing in) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ContentError"];
+                };
+            };
+            /** @description No such item */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ContentError"];
+                };
+            };
+            /** @description Already archived, or waiting for approval */
             409: {
                 headers: {
                     [name: string]: unknown;
