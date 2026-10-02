@@ -117,6 +117,14 @@ describe("the other writes", () => {
     ]);
   });
 
+  it("Add a Programme sends no grading choice, which the API's strict body would refuse (FUT F-02)", async () => {
+    const { api, seen } = fake(() => reply(201, { id }));
+    // What the Add a Programme form hands over: its values include the (hidden) grading choice.
+    const fromForm = { name: "+2 Science", affiliation: "NEB", gradingPolicy: null, sectionKey: "plus2" };
+    await createProgramme(api, fromForm);
+    expect(seen[0]!.body).toEqual({ name: "+2 Science", sectionKey: "plus2", affiliation: "NEB" });
+  });
+
   it("switch things off and on, and make a year current", async () => {
     const { api, seen } = fake(() => reply(200, { ok: true }));
     expect(await setProgrammeActive(api, id, false)).toEqual({ ok: true });

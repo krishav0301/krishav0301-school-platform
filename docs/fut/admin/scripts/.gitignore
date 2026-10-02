@@ -1,0 +1,7 @@
+state.json
+secrets.json
+manifest.json
+denied.json
+findings.md
+dues.csv
+*.png

@@ -101,8 +101,9 @@ export const deleteClass = async (api: ApiClient, id: string): Promise<WriteResu
 export const deleteLevel = async (api: ApiClient, id: string): Promise<WriteResult> =>
   done(await send(() => api.DELETE("/api/academics/levels/{id}", { params: { path: { id } } })));
 
-export const createProgramme = async (api: ApiClient, body: { name: string; sectionKey: string; affiliation: string }): Promise<CreateResult> =>
-  created(await send(() => api.POST("/api/academics/programmes", { body })));
+/** Sends only the three fields the API takes: it refuses any other (a strict body), such as the form's grading choice. */
+export const createProgramme = async (api: ApiClient, { name, sectionKey, affiliation }: { name: string; sectionKey: string; affiliation: string }): Promise<CreateResult> =>
+  created(await send(() => api.POST("/api/academics/programmes", { body: { name, sectionKey, affiliation } })));
 
 /** Changes a programme's name, affiliation or grading policy (D-096's Edit). */
 export const updateProgramme = async (api: ApiClient, id: string, body: { name?: string; affiliation?: string; gradingPolicy?: "neb_gpa" | "percentage_division" | null }): Promise<WriteResult> =>
