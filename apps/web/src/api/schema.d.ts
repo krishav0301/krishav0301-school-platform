@@ -253,7 +253,7 @@ export interface paths {
         /** @description The staff the person may see: an Admin sees Co-ordinators, Accountants and teachers; a Co-ordinator sees only teachers (only their own section's, if their scope is one section); a Super Admin also sees Admins. Never a Super Admin, and never a password or hash. */
         get: operations["list_staff"];
         put?: never;
-        /** @description Adds a Co-ordinator or an Accountant, whole-school or limited to one section. The answer carries a one-time temporary password, shown to the person adding them and never again; the new person must choose their own at first sign-in. */
+        /** @description Adds a Co-ordinator or an Accountant, whole-school or limited to some switched-on sections (`sectionKeys`, D-099; `sectionKey` for one). The answer carries a one-time temporary password, shown to the person adding them and never again; the new person must choose their own at first sign-in. */
         post: operations["create_staff"];
         delete?: never;
         options?: never;
@@ -310,6 +310,40 @@ export interface paths {
         options?: never;
         head?: never;
         patch?: never;
+        trace?: never;
+    };
+    "/api/people": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description The People & Access screen (D-099): one page of the administrative staff (`group=admin`: Co-ordinators and Accountants) or the teaching staff (`group=teaching`), searched, filtered and paged in the database, with the switched-on counts and every section. An Admin or Super Admin sees both lists; a Co-ordinator sees only teachers, and only their own sections' if limited. A teacher carries their subjects, programmes and who added them. Never a password or hash. */
+        get: operations["list_people"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/staff/{id}/access": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** @description Changes which sections a Co-ordinator's or Accountant's access reaches (D-099): `[]` for the whole school, or switched-on sections. Admin or Super Admin only, never for themselves. Takes effect at the person's next sign-in renewal (within 30 minutes); money, approval and publish actions re-check at once. Audited. */
+        patch: operations["update_staff_access"];
         trace?: never;
     };
     "/api/academics/years": {
@@ -2598,6 +2632,7 @@ export interface components {
             /** @enum {string} */
             role: "coordinator" | "accountant";
             sectionKey?: string | null;
+            sectionKeys?: string[];
         };
         CreateTeacher: {
             fullName: string;
@@ -2614,6 +2649,52 @@ export interface components {
         };
         TemporaryPassword: {
             temporaryPassword: string;
+        };
+        PeopleList: {
+            people: components["schemas"]["Person"][];
+            total: number;
+            page: number;
+            pageSize: number;
+            counts: {
+                teachers: number;
+                coordinators: number;
+                accountants: number;
+            };
+            sections: {
+                key: string;
+                name: string;
+                active: boolean;
+            }[];
+        };
+        Person: {
+            id: string;
+            fullName: string;
+            email: string;
+            phone: string | null;
+            /** @enum {string} */
+            role: "coordinator" | "accountant" | "teacher";
+            sections: {
+                key: string;
+                name: string;
+            }[];
+            homeSection: {
+                key: string;
+                name: string;
+            } | null;
+            active: boolean;
+            mustChangePassword: boolean;
+            lastSignInAt: string | null;
+            subjects: string[];
+            programmes: string[];
+            addedBy: {
+                name: string | null;
+                role: string | null;
+                support: boolean;
+            } | null;
+            canManage: boolean;
+        };
+        AccessChanges: {
+            sectionKeys: string[];
         };
         AcademicYearList: {
             years: components["schemas"]["AcademicYear"][];
@@ -5079,6 +5160,97 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["TemporaryPassword"];
+                };
+            };
+            /** @description Not allowed (not your role, not your section, not your own account, or switched off since signing in) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StaffError"];
+                };
+            };
+            /** @description No such person or section */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StaffError"];
+                };
+            };
+            /** @description That email address is already used (`email_taken`) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StaffError"];
+                };
+            };
+            /** @description The change breaks a rule; nothing changed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StaffInvalid"];
+                };
+            };
+        };
+    };
+    list_people: {
+        parameters: {
+            query: {
+                group: "admin" | "teaching";
+                q?: string;
+                role?: "coordinator" | "accountant";
+                status?: "active" | "off";
+                section?: string;
+                programme?: string;
+                page?: number;
+                pageSize?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The page */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PeopleList"];
+                };
+            };
+        };
+    };
+    update_staff_access: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AccessChanges"];
+            };
+        };
+        responses: {
+            /** @description Done (or already so) */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StaffOk"];
                 };
             };
             /** @description Not allowed (not your role, not your section, not your own account, or switched off since signing in) */

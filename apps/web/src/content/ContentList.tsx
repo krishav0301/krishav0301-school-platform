@@ -9,7 +9,7 @@ import { RequestsPanel } from "@/approvals/RequestsPanel";
 import { relativeTime } from "@/dashboard/admin-model";
 import { t, type MessageKey } from "@/i18n/messages";
 import { useSession } from "@/session/SessionProvider";
-import { Button, Notice, Skeleton, buttonClass } from "@/ui";
+import { Button, Notice, RowMenu, Skeleton, buttonClass, type MenuAction } from "@/ui";
 
 import { useAddressQuery } from "./address";
 import { archiveItem, loadContent, setPublished, type ContentPage, type ToggleResult } from "./client";
@@ -34,7 +34,6 @@ import {
 } from "./model";
 import { outcomeOfToggle, type ToggleOutcome } from "./outcome";
 import { KindChip, UrgentChip } from "./PublicEntry";
-import { RowMenu, type MenuAction } from "./RowMenu";
 import { plainText } from "./text-format";
 import styles from "./website.module.css";
 

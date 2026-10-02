@@ -854,6 +854,64 @@ The matrix lives in code (61 actions, 8 groups, from the reviewed `permission-ma
   - A "View" link goes to the public Notices page, since a post has no page of its own (D-039).
   - Two people editing one item at once: the last save wins (as before, D-041).
 
+**D-099 People & Access: the Principal's access-control centre, redesigned to the PM's reference.** 2026-10-02, at the PM's request (a reference image and a written brief: "REFERENCE IMAGE = visual source of truth. EXISTING CODEBASE = technical source of truth. DATABASE = data source of truth."). As in D-089 and D-098, the PM's reference is the design for this screen. **Touches permissions:** a new matrix row, `accounts.staff.access` ("Change which sections a Co-ordinator's or Accountant's access reaches"), for Admin and Super Admin only, with a hand-written rule in `permission-matrix.test.ts`; `docs/permission-matrix.md` is regenerated. **Touches the audit log:** a new action, `accounts.access.changed`, with the scope before and after, written in the same batch as the change. No fee or result rule is touched.
+- **The model, unchanged, and used as it is.**
+  - The hierarchy is the one already enforced server-side (D-059): the Principal (Admin) gives access to Co-ordinators and Accountants; a Co-ordinator adds and manages teachers; a teacher reaches only their assigned classes.
+  - No new user, role or permission tables.
+  - Several sections at once uses the existing model: one role row per section. The permission layer already combines them (`authorize` gathers every section claim), and so do the SQL guards.
+  - "Permissions" are not per-person switches, because the platform has none: each role's actions are fixed in the matrix. The screens show what a role can do in the plain words of its home-page brief (D-092), never permission ids.
+- **Built (API).**
+  - `GET /api/people` (`accounts.staff.view`). One page of the administrative staff (`group=admin`: Co-ordinators and Accountants, never teachers or Admins) or the teaching staff (`group=teaching`).
+    - Search covers name and email, taken literally.
+    - Filters: role, account status, section (a whole-school person counts for every section), and for teachers their home section and a programme they teach in.
+    - Pages of 10, at most 50, in one round trip.
+    - The answer also carries the switched-on counts (teachers; Co-ordinators and Accountants for the Principal only) and every section.
+    - Each person carries their sections (empty is the whole school), home section, account status and last sign-in as separate facts, whether the viewer may manage them (the same SQL guard the writes use), and for a teacher their subjects, programmes and who added them. "Added by" is read from the audit log's creation entry; the build team shows as Support, never by name.
+    - Visibility is the same as `/api/staff`: a Co-ordinator sees only teachers, and only their own sections' if limited; an Accountant, a teacher or a student sees nobody.
+  - `academics` exports three SQL fragments (`teacherSubjectsJson`, `teacherProgrammesJson`, `teachesInProgramme`), so `accounts` never names its tables. This is the same pattern as `teacherManageableBy` (D-060). Only active assignments in years that are not closed count.
+  - `POST /api/staff` takes `sectionKeys` (several sections; `sectionKey` still works). Every section must exist and be switched on (D-097).
+  - `PATCH /api/staff/{id}/access` (`accounts.staff.access`) sets the whole school (`[]`) or switched-on sections. It applies to a Co-ordinator or an Accountant only, never to oneself, and the actor is re-checked inside the batch. Missing rows are added switched off, then one statement switches on exactly the new scope. Nothing is deleted, a repeat records nothing, and the change is audited. It takes effect at the person's next sign-in renewal, within 30 minutes (D-021); fee, approval and publish actions re-check at once.
+- **Built (web).** The Principal and Support get People & Access at `/portal/people`; a Co-ordinator keeps the existing Staff and Teaching screens unchanged.
+  - The page: title and subtitle; three counts; "How access works" (two plain sentences, a "Learn more" that opens in place, and a small Principal → Co-ordinator / Accountant → Teacher picture, using the school's own role words); and two tabs (WAI-ARIA tabs, arrow keys).
+  - **Staff & Access.** "Administrative staff" with search, role, status and access filters, and "+ Add a person" as the one prominent button. One card per person: initials, name and email, a role chip, an access chip, then Active or Switched off with the last sign-in under it. "Manage access" (or "Switch on" for a switched-off person) and a ⋮ menu (Switch off/on, New temporary password).
+  - **Add a person** is a pop-up in four steps:
+    1. Role: two cards, Co-ordinator or Accountant. There is no Teacher, and a line says teachers are added by a Co-ordinator.
+    2. Name, email and phone.
+    3. Access: the whole school, or selected sections.
+    4. Review, with what the role can do.
+
+    The one-time temporary password is shown once (the existing D-059 notice). A failure keeps everything typed; an email already in use goes back to step 2 with the message on the field.
+  - **Manage access** shows the person, role, account, sign-in ("has not chosen their own password yet"), access now, the scope choice with Save access (enabled only after a change), what the role can do, Switch off/on and New temporary password.
+  - **Teaching**, for oversight. Search, and section, programme and status filters. A table (cards on a phone) of name and email, subjects, home section and programmes, "Added by" (name and role), status and last sign-in, with a "View teaching" link to the assignments page. There is no create-teacher button, and the Principal cannot switch teachers off; their Co-ordinator does.
+  - Loading shapes, both empty states, "No people found" with Clear filters, "People couldn't be loaded." with Try again.
+  - The row menu moved from `content/` to `ui/RowMenu`, so both pages share it.
+- **Reference vs built, decided by the rules.**
+  - No header search and no bell (the PM, D-089 and D-091).
+  - Role and status colours keep the brand blue off labels (D-030): Co-ordinator is the theme's accent, Accountant its green.
+  - "Last signed in" is shown as "x ago", in the dashboard's words.
+  - The Teaching column is "Added by", not "Assigned by": the record is who created the account; who gave each subject is in the assignments.
+  - The reference's teacher ⋮ is a "View teaching" link, since a menu of one entry is not shown (D-030).
+- **Tested.**
+  - API `people.test.ts` (23):
+    - several sections on create, the old one-section way, and refusals (unknown, switched off, twice, both ways);
+    - the permission layer seeing every section;
+    - changing access there and back, audited with before and after, with nothing deleted, and a repeat recording nothing;
+    - who may change access: Admin and Support yes; Co-ordinators, Accountants and teachers no; never a teacher, never oneself; an Admin switched off a moment ago changes nothing and leaves no entry;
+    - the route's answers (200, 401, 403, 400);
+    - the two lists: who is in each, separate status and sign-in, never a password, the filters, a teacher's subjects, programme and "Added by" (Support unnamed), the Principal seeing but not managing teachers, a limited Co-ordinator's view, an Accountant and a teacher seeing nobody, paging and order, counts, and the route.
+
+    Plus a hand-written permission rule. Web `people-access.test.tsx` (15): who gets the screen, the plain words, step checks, the page's markup (no hard-coded names or numbers, no create-teacher), Add a person (no Teacher), and Manage access (no switched-off section, no permission ids, Save waits for a change). The People page test is updated.
+  - In a browser on the local copy, with sample people and teaching added through the API:
+    - both tabs and both pop-ups;
+    - changing Hari's access to two sections, and adding an Accountant through all four steps to the one-time password, both through the screens;
+    - 320 px with text at 200% on both tabs: no sideways scroll, and labels break between words;
+    - no console errors.
+  - Totals: API 96 files / 1,617 tests, web 53 / 652, plus lint, typechecks, build, page weight, BOM and boundaries, all clean.
+- **Not done.**
+  - Sign-in times show "Never" for the sample people, who have not signed in.
+  - A Co-ordinator's own screens were not redesigned.
+  - Changing a person's role (Co-ordinator ↔ Accountant) is not offered: the brief did not ask for it, and today it is a new account.
+
 ## Open items carried forward
 
 - **No CAPTCHA on the public apply form (D-063).** Relies on rate limiting and an off-screen honeypot, which meets section 7's "rate limiting, CAPTCHA or similar" but is not a CAPTCHA. Add one only if real abuse appears.

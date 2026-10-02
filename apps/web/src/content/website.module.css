@@ -702,15 +702,8 @@
   }
 }
 
-/* --- The "more" menu --------------------------------------------------------------------- */
+/* --- Icon-only buttons ------------------------------------------------------------------- */
 
-.menuWrap {
-  position: relative;
-  display: inline-block;
-  vertical-align: middle;
-}
-
-.menuButton,
 .dialogClose,
 .toolButton {
   display: inline-grid;
@@ -724,58 +717,16 @@
   cursor: pointer;
 }
 
-.menuButton:hover,
 .dialogClose:hover,
 .toolButton:hover {
   background: color-mix(in srgb, var(--color-text) 6%, var(--color-surface));
   color: var(--color-text);
 }
 
-.menuButton svg,
 .dialogClose svg,
 .toolButton svg {
   width: 1.25rem;
   height: 1.25rem;
-}
-
-.menuButton:disabled {
-  cursor: default;
-  opacity: 0.45;
-}
-
-.menu {
-  position: absolute;
-  z-index: 10;
-  right: 0;
-  min-width: 12rem;
-  margin: var(--space-1) 0 0;
-  padding: var(--space-1);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-control);
-  background: var(--color-surface);
-  box-shadow: var(--shadow-card);
-  list-style: none;
-}
-
-.menuItem {
-  display: flex;
-  align-items: center;
-  width: 100%;
-  min-height: var(--control-height);
-  padding: 0 var(--space-3);
-  border: 0;
-  border-radius: calc(var(--radius-control) - 4px);
-  background: transparent;
-  color: var(--color-text);
-  font: inherit;
-  text-align: left;
-  cursor: pointer;
-}
-
-.menuItem:hover,
-.menuItem:focus-visible {
-  background: color-mix(in srgb, var(--color-primary) 10%, var(--color-surface));
-  outline: none;
 }
 
 /* --- The pop-up --------------------------------------------------------------------------- */

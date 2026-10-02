@@ -228,6 +228,13 @@ describe("sensitive rules, stated independently (docs/source/sample-creation-inf
     // Only the whole-school reach may issue a password: a Student, Teacher and Accountant never.
     for (const code of ["STU", "TEA", "ACC"] as const) expect(authorize([claim(code)], "accounts.password.issue"), code).toBeNull();
   });
+
+  it("only the Principal (Admin) and Support decide where a Co-ordinator's or Accountant's access reaches (D-099)", () => {
+    expect(authorize([claim("ADM")], "accounts.staff.access")).not.toBeNull();
+    expect(authorize([claim("ADM")], "accounts.staff.access")!.readOnly).toBe(false);
+    expect(authorize([claim("SUP")], "accounts.staff.access")).not.toBeNull();
+    for (const code of ["STU", "TEA", "COO", "ACC"] as const) expect(authorize([claim(code)], "accounts.staff.access"), code).toBeNull();
+  });
 });
 
 // ---------------------------------------------------------------------------------------------

@@ -21,13 +21,14 @@ export type StaffPassword = { ok: true; temporaryPassword: string } | { ok: fals
 
 const firstMessage = (error: { issues: { message: string }[] }) => error.issues[0]?.message ?? "That is not valid";
 
-/** Adds a Co-ordinator or an Accountant, whole-school or limited to one section. Returns the temporary password, once. */
+/** Adds a Co-ordinator or an Accountant, whole-school or limited to some switched-on sections. Returns the temporary password, once. */
 export async function createStaff(db: D1Database, auditKey: string, actor: string, input: StaffInput): Promise<StaffCreated> {
   const parsed = CreateStaffSchema.safeParse(input);
   if (!parsed.success) return { ok: false, reason: "invalid", message: firstMessage(parsed.error) };
   const p = parsed.data;
-  const sectionKey = p.sectionKey ?? null;
-  const scope = sectionKey ? "section" : "institution";
+  const sectionKeys = p.sectionKeys ?? (p.sectionKey ? [p.sectionKey] : []);
+  const scope = sectionKeys.length > 0 ? "section" : "institution";
+  const keysJson = JSON.stringify(sectionKeys);
 
   const publicId = newPublicId();
   const temporaryPassword = generateTemporaryPassword();
@@ -40,23 +41,26 @@ export async function createStaff(db: D1Database, auditKey: string, actor: strin
       entityPublicId: publicId,
       actorPublicId: actor,
       summary: `${p.role === "coordinator" ? "Co-ordinator" : "Accountant"} account created for ${p.fullName}`,
-      after: { email: p.email, role: p.role, scope, section: sectionKey },
+      after: { email: p.email, role: p.role, scope, sections: sectionKeys },
     },
     [
       db
         .prepare(
           `INSERT INTO users (public_id, email, password_hash, full_name, phone, must_change_password)
            SELECT ?1, ?2, ?3, ?4, ?5, 1
-            WHERE ${actorMayCreateStaff(6)} AND (?7 IS NULL OR EXISTS (SELECT 1 FROM sections WHERE key = ?7))`,
+            WHERE ${actorMayCreateStaff(6)} AND ${allSwitchedOnSections(7)}`,
         )
-        .bind(publicId, p.email, hashPassword(temporaryPassword), p.fullName, p.phone ?? null, actor, sectionKey),
+        .bind(publicId, p.email, hashPassword(temporaryPassword), p.fullName, p.phone ?? null, actor, keysJson),
       // Last: it changes a row only if the person was made, which is what decides whether the audit entry is written.
+      // One row for the whole school, or one per section (D-099).
       db
         .prepare(
           `INSERT INTO role_assignments (user_id, role, scope_type, section_id)
-           SELECT u.id, ?2, ?3, (SELECT id FROM sections WHERE key = ?4) FROM users u WHERE u.public_id = ?1`,
+           SELECT u.id, ?2, 'institution', NULL FROM users u WHERE u.public_id = ?1 AND json_array_length(?3) = 0
+           UNION ALL
+           SELECT u.id, ?2, 'section', s.id FROM users u JOIN sections s ON s.key IN (SELECT value FROM json_each(?3)) WHERE u.public_id = ?1`,
         )
-        .bind(publicId, p.role, scope, sectionKey),
+        .bind(publicId, p.role, keysJson),
     ],
   );
 
@@ -65,8 +69,8 @@ export async function createStaff(db: D1Database, auditKey: string, actor: strin
   if (outcome === "check_failed") return { ok: false, reason: "not_found" };
 
   const check = await db
-    .prepare(`SELECT ${actorMayCreateStaff(1)} AS allowed, (?2 IS NULL OR EXISTS (SELECT 1 FROM sections WHERE key = ?2)) AS section_ok`)
-    .bind(actor, sectionKey)
+    .prepare(`SELECT ${actorMayCreateStaff(1)} AS allowed, ${allSwitchedOnSections(2)} AS section_ok`)
+    .bind(actor, keysJson)
     .first<{ allowed: number; section_ok: number }>();
   if (check?.allowed !== 1) return { ok: false, reason: "not_allowed" };
   return { ok: false, reason: check.section_ok === 1 ? "not_allowed" : "not_found" };
@@ -118,6 +122,96 @@ export async function createTeacher(db: D1Database, auditKey: string, actor: str
     .first<{ allowed: number; section_ok: number }>();
   if (check?.section_ok !== 1 && check?.allowed === 1) return { ok: false, reason: "not_found" };
   return { ok: false, reason: "not_allowed" };
+}
+
+/** True when every key in the JSON array `?k` is a switched-on section (D-097: a switched-off section takes nothing new). */
+const allSwitchedOnSections = (k: number) =>
+  `NOT EXISTS (SELECT 1 FROM json_each(?${k}) jk WHERE NOT EXISTS (SELECT 1 FROM sections sk WHERE sk.key = jk.value AND sk.is_active = 1))`;
+
+/**
+ * May the actor change where this person's access reaches (D-099)? An active Admin or Super Admin, never for
+ * themselves, and only for a Co-ordinator or an Accountant (who is not also an Admin). Unlike `actorMayManage`, this
+ * does not ask whether the target's role is switched on now, because the change itself switches rows off and on.
+ */
+const actorMayChangeAccess = (a: number, t: number) =>
+  `(${actorMayCreateStaff(a)} AND ?${a} <> ?${t}
+    AND EXISTS (SELECT 1 FROM users cu JOIN role_assignments cr ON cr.user_id = cu.id
+                 WHERE cu.public_id = ?${t} AND cr.role IN ('coordinator', 'accountant'))
+    AND NOT EXISTS (SELECT 1 FROM users xu JOIN role_assignments xr ON xr.user_id = xu.id
+                     WHERE xu.public_id = ?${t} AND xr.role IN ('admin', 'super_admin', 'teacher', 'student') AND xr.is_active = 1))`;
+
+export type AccessResult = { ok: true } | { ok: false; reason: "not_allowed" | "not_found" } | { ok: false; reason: "invalid"; message: string };
+
+/**
+ * Changes where a Co-ordinator's or Accountant's access reaches (D-099): the whole school (`[]`) or these sections.
+ * One audited batch: missing rows are added switched off, then one statement switches on exactly the rows of the new
+ * scope and off every other row of that role, under the guard, so nothing is half-changed and nothing is deleted. It
+ * takes effect at the person's next sign-in renewal, within 30 minutes (D-021); money, approval and publish actions
+ * re-check assignments inside their own batch, so a narrowed scope holds there at once.
+ */
+export async function setStaffAccess(db: D1Database, auditKey: string, actor: string, target: string, sectionKeys: string[]): Promise<AccessResult> {
+  const keysJson = JSON.stringify([...new Set(sectionKeys)].sort());
+  const [state] = await db.batch([
+    db
+      .prepare(
+        `SELECT u.full_name, ${actorMayChangeAccess(1, 2)} AS allowed, ${allSwitchedOnSections(3)} AS sections_ok,
+                (SELECT ra.role FROM role_assignments ra WHERE ra.user_id = u.id AND ra.role IN ('coordinator', 'accountant') ORDER BY ra.is_active DESC, ra.id LIMIT 1) AS role,
+                (SELECT json_group_array(k) FROM (SELECT s.key AS k FROM role_assignments rs JOIN sections s ON s.id = rs.section_id
+                  WHERE rs.user_id = u.id AND rs.is_active = 1 AND rs.role IN ('coordinator', 'accountant') ORDER BY s.key)) AS sections_now,
+                EXISTS (SELECT 1 FROM role_assignments ri WHERE ri.user_id = u.id AND ri.is_active = 1 AND ri.scope_type = 'institution' AND ri.role IN ('coordinator', 'accountant')) AS whole_now
+           FROM users u WHERE u.public_id = ?2`,
+      )
+      .bind(actor, target, keysJson),
+  ]);
+  const row = state!.results[0] as { full_name: string; allowed: number; sections_ok: number; role: "coordinator" | "accountant" | null; sections_now: string; whole_now: number } | undefined;
+  if (!row) return { ok: false, reason: "not_found" };
+  if (row.allowed !== 1 || !row.role) return { ok: false, reason: "not_allowed" };
+  if (row.sections_ok !== 1) return { ok: false, reason: "invalid", message: "Choose sections that exist and are switched on" };
+
+  const before = row.whole_now === 1 ? [] : (JSON.parse(row.sections_now) as string[]);
+  const after = JSON.parse(keysJson) as string[];
+  if (JSON.stringify(before) === keysJson && (row.whole_now === 1) === (after.length === 0)) return { ok: true }; // no change, nothing recorded
+
+  const outcome = await write(
+    db,
+    auditKey,
+    {
+      action: "accounts.access.changed",
+      entityType: "user",
+      entityPublicId: target,
+      actorPublicId: actor,
+      summary: `${row.full_name}'s access changed to ${after.length === 0 ? "the whole school" : `${after.length} section${after.length === 1 ? "" : "s"}`}`,
+      before: { role: row.role, sections: before.length === 0 ? "whole school" : before },
+      after: { role: row.role, sections: after.length === 0 ? "whole school" : after },
+    },
+    [
+      // The rows the new scope needs and does not have yet, switched off for now.
+      db
+        .prepare(
+          `INSERT INTO role_assignments (user_id, role, scope_type, section_id, is_active)
+           SELECT u.id, ?3, 'institution', NULL, 0 FROM users u
+            WHERE u.public_id = ?2 AND json_array_length(?4) = 0 AND ${actorMayChangeAccess(1, 2)}
+              AND NOT EXISTS (SELECT 1 FROM role_assignments e WHERE e.user_id = u.id AND e.role = ?3 AND e.scope_type = 'institution')
+           UNION ALL
+           SELECT u.id, ?3, 'section', s.id, 0 FROM users u JOIN sections s ON s.key IN (SELECT value FROM json_each(?4))
+            WHERE u.public_id = ?2 AND ${actorMayChangeAccess(1, 2)}
+              AND NOT EXISTS (SELECT 1 FROM role_assignments e WHERE e.user_id = u.id AND e.role = ?3 AND e.section_id = s.id)`,
+        )
+        .bind(actor, target, row.role, keysJson),
+      // Last, and it always changes rows when allowed: exactly the new scope's rows on, every other row of the role off.
+      db
+        .prepare(
+          `UPDATE role_assignments
+              SET is_active = CASE
+                    WHEN json_array_length(?4) = 0 THEN (scope_type = 'institution')
+                    ELSE (scope_type = 'section' AND section_id IN (SELECT id FROM sections WHERE key IN (SELECT value FROM json_each(?4))))
+                  END
+            WHERE user_id = (SELECT id FROM users WHERE public_id = ?2) AND role = ?3 AND ${actorMayChangeAccess(1, 2)}`,
+        )
+        .bind(actor, target, row.role, keysJson),
+    ],
+  );
+  return outcome === "done" ? { ok: true } : { ok: false, reason: "not_allowed" };
 }
 
 interface Look {

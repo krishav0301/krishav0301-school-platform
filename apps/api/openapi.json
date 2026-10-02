@@ -565,6 +565,14 @@
               "null"
             ],
             "pattern": "^[a-z][a-z0-9_]{0,30}$"
+          },
+          "sectionKeys": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9_]{0,30}$"
+            },
+            "maxItems": 20
           }
         },
         "required": [
@@ -644,6 +652,227 @@
         "required": [
           "temporaryPassword"
         ]
+      },
+      "PeopleList": {
+        "type": "object",
+        "properties": {
+          "people": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Person"
+            }
+          },
+          "total": {
+            "type": "integer"
+          },
+          "page": {
+            "type": "integer"
+          },
+          "pageSize": {
+            "type": "integer"
+          },
+          "counts": {
+            "type": "object",
+            "properties": {
+              "teachers": {
+                "type": "integer"
+              },
+              "coordinators": {
+                "type": "integer"
+              },
+              "accountants": {
+                "type": "integer"
+              }
+            },
+            "required": [
+              "teachers",
+              "coordinators",
+              "accountants"
+            ]
+          },
+          "sections": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "key": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "active": {
+                  "type": "boolean"
+                }
+              },
+              "required": [
+                "key",
+                "name",
+                "active"
+              ]
+            }
+          }
+        },
+        "required": [
+          "people",
+          "total",
+          "page",
+          "pageSize",
+          "counts",
+          "sections"
+        ]
+      },
+      "Person": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "fullName": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          },
+          "phone": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "coordinator",
+              "accountant",
+              "teacher"
+            ]
+          },
+          "sections": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "key": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "key",
+                "name"
+              ]
+            }
+          },
+          "homeSection": {
+            "type": [
+              "object",
+              "null"
+            ],
+            "properties": {
+              "key": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "key",
+              "name"
+            ]
+          },
+          "active": {
+            "type": "boolean"
+          },
+          "mustChangePassword": {
+            "type": "boolean"
+          },
+          "lastSignInAt": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "subjects": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "programmes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "addedBy": {
+            "type": [
+              "object",
+              "null"
+            ],
+            "properties": {
+              "name": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "role": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "support": {
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "name",
+              "role",
+              "support"
+            ]
+          },
+          "canManage": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id",
+          "fullName",
+          "email",
+          "phone",
+          "role",
+          "sections",
+          "homeSection",
+          "active",
+          "mustChangePassword",
+          "lastSignInAt",
+          "subjects",
+          "programmes",
+          "addedBy",
+          "canManage"
+        ]
+      },
+      "AccessChanges": {
+        "type": "object",
+        "properties": {
+          "sectionKeys": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9_]{0,30}$"
+            },
+            "maxItems": 20
+          }
+        },
+        "required": [
+          "sectionKeys"
+        ],
+        "additionalProperties": false
       },
       "AcademicYearList": {
         "type": "object",
@@ -9073,7 +9302,7 @@
         "tags": [
           "accounts"
         ],
-        "description": "Adds a Co-ordinator or an Accountant, whole-school or limited to one section. The answer carries a one-time temporary password, shown to the person adding them and never again; the new person must choose their own at first sign-in.",
+        "description": "Adds a Co-ordinator or an Accountant, whole-school or limited to some switched-on sections (`sectionKeys`, D-099; `sectionKey` for one). The answer carries a one-time temporary password, shown to the person adding them and never again; the new person must choose their own at first sign-in.",
         "requestBody": {
           "required": true,
           "content": {
@@ -9316,6 +9545,194 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/TemporaryPassword"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed (not your role, not your section, not your own account, or switched off since signing in)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StaffError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such person or section",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StaffError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "That email address is already used (`email_taken`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StaffError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "The change breaks a rule; nothing changed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StaffInvalid"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/people": {
+      "get": {
+        "operationId": "list_people",
+        "tags": [
+          "accounts"
+        ],
+        "description": "The People & Access screen (D-099): one page of the administrative staff (`group=admin`: Co-ordinators and Accountants) or the teaching staff (`group=teaching`), searched, filtered and paged in the database, with the switched-on counts and every section. An Admin or Super Admin sees both lists; a Co-ordinator sees only teachers, and only their own sections' if limited. A teacher carries their subjects, programmes and who added them. Never a password or hash.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "enum": [
+                "admin",
+                "teaching"
+              ]
+            },
+            "required": true,
+            "name": "group",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "maxLength": 100
+            },
+            "required": false,
+            "name": "q",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "enum": [
+                "coordinator",
+                "accountant"
+              ]
+            },
+            "required": false,
+            "name": "role",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "enum": [
+                "active",
+                "off"
+              ]
+            },
+            "required": false,
+            "name": "status",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9_]{0,30}$"
+            },
+            "required": false,
+            "name": "section",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{32}$"
+            },
+            "required": false,
+            "name": "programme",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 10000
+            },
+            "required": false,
+            "name": "page",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 50
+            },
+            "required": false,
+            "name": "pageSize",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The page",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PeopleList"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/staff/{id}/access": {
+      "patch": {
+        "operationId": "update_staff_access",
+        "tags": [
+          "accounts"
+        ],
+        "description": "Changes which sections a Co-ordinator's or Accountant's access reaches (D-099): `[]` for the whole school, or switched-on sections. Admin or Super Admin only, never for themselves. Takes effect at the person's next sign-in renewal (within 30 minutes); money, approval and publish actions re-check at once. Audited.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{32}$"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AccessChanges"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Done (or already so)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StaffOk"
                 }
               }
             }

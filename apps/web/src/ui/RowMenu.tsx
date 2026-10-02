@@ -3,7 +3,7 @@
 import { EllipsisVertical } from "lucide-react";
 import { useEffect, useId, useRef, useState, type KeyboardEvent } from "react";
 
-import styles from "./website.module.css";
+import styles from "./RowMenu.module.css";
 
 export interface MenuAction {
   key: string;
@@ -12,7 +12,7 @@ export interface MenuAction {
 }
 
 /**
- * A row's "more" menu (D-098, the reference's three dots). A button that opens a short list of actions: the
+ * A row's "more" menu (D-098, D-099: the references' three dots). A button that opens a short list of actions: the
  * arrow keys move between them, Enter chooses, Escape or a click elsewhere closes it, and focus goes back to
  * the button. Nothing is shown when there is nothing to choose (a menu of one entry is not shown either, D-030:
  * the caller puts a lone action on the row itself).

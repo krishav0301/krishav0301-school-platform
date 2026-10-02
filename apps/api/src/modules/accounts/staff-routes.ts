@@ -3,8 +3,9 @@ import type { Context } from "hono";
 
 import { defineRoute } from "../../core/routes";
 import type { App, AppEnv } from "../../core/types";
-import { createStaff, createTeacher, issueTemporaryPassword, listStaff, setStaffActive, type StaffFailure } from "./staff";
-import { CreateStaffSchema, CreateTeacherSchema, StaffChangesSchema, StaffListSchema } from "./staff-schema";
+import { listPeople } from "./people";
+import { createStaff, createTeacher, issueTemporaryPassword, listStaff, setStaffAccess, setStaffActive, type StaffFailure } from "./staff";
+import { AccessChangesSchema, CreateStaffSchema, CreateTeacherSchema, PeopleListSchema, PeopleQuerySchema, StaffChangesSchema, StaffListSchema } from "./staff-schema";
 
 const json = <T extends z.ZodType>(schema: T) => ({ "application/json": { schema } });
 const ErrorSchema = z.object({ error: z.string() }).openapi("StaffError");
@@ -65,7 +66,7 @@ export function registerStaff(app: App): void {
       operationId: "create_staff",
       tags: ["accounts"],
       description:
-        "Adds a Co-ordinator or an Accountant, whole-school or limited to one section. The answer carries a one-time temporary password, shown to the person adding them and never again; the new person must choose their own at first sign-in.",
+        "Adds a Co-ordinator or an Accountant, whole-school or limited to some switched-on sections (`sectionKeys`, D-099; `sectionKey` for one). The answer carries a one-time temporary password, shown to the person adding them and never again; the new person must choose their own at first sign-in.",
       access: { action: "accounts.staff.create" },
       request: { body: { required: true, content: json(CreateStaffSchema) } },
       responses: { 201: { description: "Added, with the temporary password (never cached)", content: json(StaffCreatedSchema) }, ...writeErrors },
@@ -135,6 +136,45 @@ export function registerStaff(app: App): void {
       if (!result.ok) return fail(c, result);
       c.header("Cache-Control", "no-store");
       return c.json({ temporaryPassword: result.temporaryPassword }, 200);
+    },
+  );
+
+  defineRoute(
+    app,
+    {
+      method: "get",
+      path: "/api/people",
+      operationId: "list_people",
+      tags: ["accounts"],
+      description:
+        "The People & Access screen (D-099): one page of the administrative staff (`group=admin`: Co-ordinators and Accountants) or the teaching staff (`group=teaching`), searched, filtered and paged in the database, with the switched-on counts and every section. An Admin or Super Admin sees both lists; a Co-ordinator sees only teachers, and only their own sections' if limited. A teacher carries their subjects, programmes and who added them. Never a password or hash.",
+      access: { action: "accounts.staff.view" },
+      request: { query: PeopleQuerySchema },
+      responses: { 200: { description: "The page", content: json(PeopleListSchema) } },
+    },
+    async (c) => {
+      const auth = c.get("auth")!;
+      c.header("Cache-Control", "no-store");
+      return c.json(await listPeople(c.env.DB, auth.roles, auth.userPublicId, c.req.valid("query")), 200);
+    },
+  );
+
+  defineRoute(
+    app,
+    {
+      method: "patch",
+      path: "/api/staff/{id}/access",
+      operationId: "update_staff_access",
+      tags: ["accounts"],
+      description:
+        "Changes which sections a Co-ordinator's or Accountant's access reaches (D-099): `[]` for the whole school, or switched-on sections. Admin or Super Admin only, never for themselves. Takes effect at the person's next sign-in renewal (within 30 minutes); money, approval and publish actions re-check at once. Audited.",
+      access: { action: "accounts.staff.access" },
+      request: { params: IdParam, body: { required: true, content: json(AccessChangesSchema) } },
+      responses: { 200: { description: "Done (or already so)", content: json(OkSchema) }, ...writeErrors },
+    },
+    async (c) => {
+      const result = await setStaffAccess(c.env.DB, c.env.AUDIT_HMAC_KEY, c.get("auth")!.userPublicId, c.req.valid("param").id, c.req.valid("json").sectionKeys);
+      return result.ok ? c.json({ ok: true as const }, 200) : fail(c, result);
     },
   );
 }
