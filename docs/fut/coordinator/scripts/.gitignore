@@ -1,0 +1,7 @@
+state.json
+secrets.json
+manifest.json
+denied.json
+scope.json
+findings.md
+*.png
