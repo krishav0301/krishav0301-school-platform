@@ -1,13 +1,14 @@
 // Builds docs/fut/admin/admin-fut.docx from docs/fut/admin/README.md and its screenshots, for readers who want a Word file.
 // Handles only the Markdown the README generator writes: headings, paragraphs, bullets, tables, step anchors and images.
-// Run: node docs/fut/admin/scripts/gen-docx.cjs
+// Run: node docs/fut/admin/scripts/gen-docx.cjs [folder] [file name]
+// With no arguments it builds the admin FUT; `docs/fut/coordinator coordinator-fut.docx` builds the Co-ordinator's.
 const fs = require("fs");
 const path = require("path");
 const d = require("docx");
 
-const DIR = path.resolve(__dirname, "..");
+const DIR = process.argv[2] ? path.resolve(process.argv[2]) : path.resolve(__dirname, "..");
 const SRC = path.join(DIR, "README.md");
-const OUT = path.join(DIR, "admin-fut.docx");
+const OUT = path.join(DIR, process.argv[3] ?? "admin-fut.docx");
 
 // A4 portrait, 2 cm margins: the text block is 170 mm wide.
 const PAGE_W = 11906;
