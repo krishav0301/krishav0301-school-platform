@@ -159,11 +159,11 @@ export function StatusWord({ tone = "neutral", children }: { tone?: "neutral" | 
   );
 }
 
-/** "Open →", a quiet link to the row's own page. The name read out says what it opens. */
-export function OpenLink({ href, label }: { href: string; label: string }) {
+/** "Open →", a quiet link to the row's own page. The name read out says what it opens; `text` changes the visible word. */
+export function OpenLink({ href, label, text }: { href: string; label: string; text?: string }) {
   return (
     <Link href={href} className={styles.rowLink} aria-label={label}>
-      {t("read.open")}
+      {text ?? t("read.open")}
       <ChevronRight aria-hidden />
     </Link>
   );

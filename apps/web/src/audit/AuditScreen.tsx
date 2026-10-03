@@ -8,7 +8,8 @@ import { t, type MessageKey } from "@/i18n/messages";
 import { useSession } from "@/session/SessionProvider";
 import setupStyles from "@/setup/setup.module.css";
 import { useLoad } from "@/setup/useLoad";
-import { Badge, Button, Field, Notice, Select, Skeleton } from "@/ui";
+import { EmptyLine, Panel, ReadFailure, ReadHeader, StatusWord, TableSkeleton, readStyles } from "@/read/ReadView";
+import { Button, Field, Select } from "@/ui";
 
 import styles from "./audit.module.css";
 import { AREAS, loadAuditTrail, loadSignIns, type Area, type AuditTrail, type SignInLog } from "./client";
@@ -86,49 +87,18 @@ function Pager({ page, pageSize, total, onPage }: { page: number; pageSize: numb
   );
 }
 
-/** The shape of the list while it loads: rows, not a lone spinner (D-030). */
-function ListSkeleton() {
-  return (
-    <div role="status" aria-busy="true">
-      <span className="sr-only">{t("setup.loading")}</span>
-      <ul className={styles.list} aria-hidden>
-        {[0, 1, 2, 3].map((n) => (
-          <li key={n} className={styles.row}>
-            <Skeleton width="70%" height="1.1rem" />
-            <Skeleton width="40%" />
-          </li>
-        ))}
-      </ul>
-    </div>
-  );
-}
-
-function Failed({ status, onRetry }: { status: "failed" | "forbidden"; onRetry: () => void }) {
-  if (status === "forbidden") return <Notice tone="bad">{t("audit.forbidden")}</Notice>;
-  return (
-    <Notice tone="bad">
-      <span className={styles.line}>
-        {t("audit.loadFailed")}
-        <Button variant="secondary" onClick={onRetry}>
-          {t("audit.retry")}
-        </Button>
-      </span>
-    </Notice>
-  );
-}
-
 /** One page of the audit trail. Pure, so tests draw it without a network. */
 export function AuditTrailList({ data }: { data: AuditTrail }) {
-  if (data.rows.length === 0) return <p className={setupStyles.empty}>{t("audit.empty")}</p>;
+  if (data.rows.length === 0) return <EmptyLine>{t("audit.empty")}</EmptyLine>;
   return (
-    <ul className={styles.list}>
+    <ul className={readStyles.rows}>
       {data.rows.map((row) => (
-        <li key={row.id} className={styles.row}>
-          <p className={styles.summary}>{row.summary}</p>
-          <p className={styles.meta}>
+        <li key={row.id} className={readStyles.rowItem}>
+          <p className={readStyles.rowTitle}>{row.summary}</p>
+          <p className={readStyles.rowMeta}>
             {row.actor ?? t("audit.bySystem")} · {whenText(row.onBs, row.time, row.at)}
           </p>
-          {row.reason ? <p className={styles.meta}>{t("audit.reason", { reason: row.reason })}</p> : null}
+          {row.reason ? <p className={readStyles.rowMeta}>{t("audit.reason", { reason: row.reason })}</p> : null}
         </li>
       ))}
     </ul>
@@ -137,23 +107,23 @@ export function AuditTrailList({ data }: { data: AuditTrail }) {
 
 /** One page of sign-in attempts. Pure, so tests draw it without a network. Success or failure is said in words. */
 export function SignInList({ data }: { data: SignInLog }) {
-  if (data.rows.length === 0) return <p className={setupStyles.empty}>{t("audit.empty")}</p>;
+  if (data.rows.length === 0) return <EmptyLine>{t("audit.empty")}</EmptyLine>;
   return (
-    <ul className={styles.list}>
+    <ul className={readStyles.rows}>
       {data.rows.map((row) => {
         const why = signInReason(row.reason);
         return (
-          <li key={row.id} className={styles.row}>
-            <span className={styles.line}>
-              <Badge tone={row.success ? "ok" : "bad"}>{t(row.success ? "audit.signIn.ok" : "audit.signIn.failed")}</Badge>
-              <span className={styles.summary}>{row.name ?? row.email}</span>
-            </span>
-            <p className={styles.meta}>
+          <li key={row.id} className={readStyles.rowItem}>
+            <div className={readStyles.rowHead}>
+              <p className={readStyles.rowTitle}>{row.name ?? row.email}</p>
+              <StatusWord tone={row.success ? "ok" : "bad"}>{t(row.success ? "audit.signIn.ok" : "audit.signIn.failed")}</StatusWord>
+            </div>
+            <p className={readStyles.rowMeta}>
               {row.name && row.name !== row.email ? `${row.email} · ` : ""}
               {whenText(row.onBs, row.time, row.at)}
               {row.ip ? ` · ${t("audit.signIn.ip", { ip: row.ip })}` : ""}
             </p>
-            {why ? <p className={styles.meta}>{why}</p> : null}
+            {why ? <p className={readStyles.rowMeta}>{why}</p> : null}
           </li>
         );
       })}
@@ -187,10 +157,9 @@ export function AuditTrailScreen() {
   const load = useCallback(() => loadAuditTrail(api, query), [api, query]);
   const { view, reload } = useLoad(load);
   return (
-    <div className={styles.page}>
-      <h1 className={setupStyles.title}>{t("audit.title")}</h1>
+    <div className={readStyles.page}>
       <Tabs current="trail" />
-      <p className={setupStyles.muted}>{t("audit.intro")}</p>
+      <ReadHeader title={t("audit.title")} subtitle={t("audit.intro")} crumbs={[{ label: t("reports.title"), href: "/portal/reports" }, { label: t("audit.title") }]} />
       <SearchForm initial={query.q ?? ""} onSearch={(q) => setQuery((old) => ({ ...old, page: 1, q: q || undefined }))}>
         <Select
           label={t("audit.area")}
@@ -202,11 +171,13 @@ export function AuditTrailScreen() {
           options={[{ value: "", label: t("audit.area.all") }, ...AREAS.map((a) => ({ value: a, label: t(AREA_LABEL[a]) }))]}
         />
       </SearchForm>
-      {view.status === "loading" ? <ListSkeleton /> : null}
-      {view.status === "failed" || view.status === "forbidden" ? <Failed status={view.status} onRetry={() => void reload()} /> : null}
+      {view.status === "loading" ? <TableSkeleton rows={6} /> : null}
+      {view.status === "failed" || view.status === "forbidden" ? <ReadFailure status={view.status} onRetry={() => void reload()} /> : null}
       {view.status === "ready" ? (
         <>
-          <AuditTrailList data={view.data} />
+          <Panel>
+            <AuditTrailList data={view.data} />
+          </Panel>
           <Pager page={view.data.page} pageSize={view.data.pageSize} total={view.data.total} onPage={(page) => setQuery((old) => ({ ...old, page }))} />
         </>
       ) : null}
@@ -220,10 +191,9 @@ export function SignInsScreen() {
   const load = useCallback(() => loadSignIns(api, query), [api, query]);
   const { view, reload } = useLoad(load);
   return (
-    <div className={styles.page}>
-      <h1 className={setupStyles.title}>{t("audit.signIns.title")}</h1>
+    <div className={readStyles.page}>
       <Tabs current="signIns" />
-      <p className={setupStyles.muted}>{t("audit.signIns.intro")}</p>
+      <ReadHeader title={t("audit.signIns.title")} subtitle={t("audit.signIns.intro")} crumbs={[{ label: t("reports.title"), href: "/portal/reports" }, { label: t("audit.signIns.title") }]} />
       <SearchForm initial={query.q ?? ""} onSearch={(q) => setQuery((old) => ({ ...old, page: 1, q: q || undefined }))}>
         <Select
           label={t("audit.show")}
@@ -235,11 +205,13 @@ export function SignInsScreen() {
           ]}
         />
       </SearchForm>
-      {view.status === "loading" ? <ListSkeleton /> : null}
-      {view.status === "failed" || view.status === "forbidden" ? <Failed status={view.status} onRetry={() => void reload()} /> : null}
+      {view.status === "loading" ? <TableSkeleton rows={6} /> : null}
+      {view.status === "failed" || view.status === "forbidden" ? <ReadFailure status={view.status} onRetry={() => void reload()} /> : null}
       {view.status === "ready" ? (
         <>
-          <SignInList data={view.data} />
+          <Panel>
+            <SignInList data={view.data} />
+          </Panel>
           <Pager page={view.data.page} pageSize={view.data.pageSize} total={view.data.total} onPage={(page) => setQuery((old) => ({ ...old, page }))} />
         </>
       ) : null}

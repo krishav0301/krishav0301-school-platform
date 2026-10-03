@@ -8,6 +8,7 @@ import { QueueRow } from "@/admissions/QueueScreen";
 import { RegisterScreen } from "@/admissions/RegisterScreen";
 import { SearchScreen } from "@/admissions/SearchScreen";
 import { StudentRecordCard } from "@/admissions/StudentRecordCard";
+import { StudentsTable } from "@/admissions/SearchScreen";
 import { StudentDetails } from "@/admissions/StudentScreen";
 import AdmissionsPage from "@/app/portal/admissions/page";
 import RegisterPage from "@/app/portal/admissions/register/page";
@@ -199,5 +200,16 @@ describe("a student's record from Student search (admin FUT F-09)", () => {
     expect(html).toContain("19 Baisakh 2065");
     expect(html).toContain("Ram Kumar");
     expect(html).not.toMatch(/<input|<button/);
+  });
+
+  it("says Active, Left or Graduated in words, and offers the fee account only where asked (D-104)", () => {
+    const student = { id: "s1", sid: "2083-00012", firstName: "Rishav", middleName: null, lastName: "Kumar", dob: "2008-05-01", dobBs: "2065-01-19", phone: null, email: null, guardianName: "Ram Kumar", guardianPhone: "9811111111", previousSchool: null, status: "left" as const, className: "BBS · Year 1", createdAt: "2026-09-01T00:00:00Z" };
+    const html = inContext(<StudentDetails student={student} feesLink />, as("admin"));
+    expect(html).toContain(">Left<");
+    expect(html).toContain('href="/portal/fees/student?id=s1"');
+    expect(inContext(<StudentDetails student={student} />, as("coordinator"))).not.toContain("/portal/fees/");
+    const found = inContext(<StudentsTable students={[{ id: "s1", sid: "2083-00012", firstName: "Rishav", lastName: "Kumar", status: "graduated", className: null }]} />, as("admin"));
+    expect(found).toContain('href="/portal/admissions/student?id=s1"');
+    expect(found).toContain(">Graduated<");
   });
 });
