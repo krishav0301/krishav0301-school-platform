@@ -1,6 +1,6 @@
 # Admin (Principal) functional user test (FUT)
 
-Royal Softech College on the school platform. Every operation the Admin (the Principal) can do, run through the real screens, with a screenshot of each step. The first run (2 October 2026, 16 Ashwin 2083) found 19 findings; all of them were fixed (D-100, D-102), and this is the run again on a fresh local school on 2026-10-03 (17 Ashwin 2083) against the fixed code (commit `05a49be` with this document).
+Royal Softech College on the school platform. Every operation the Admin (the Principal) can do, run through the real screens, with a screenshot of each step. The first run (2 October 2026, 16 Ashwin 2083) found 19 findings; all of them were fixed (D-100, D-102), and this is the run again on a fresh local school on 2026-10-03 (17 Ashwin 2083) against the fixed code (commit `2a23d9c` with this document).
 
 ## Summary
 
@@ -524,25 +524,25 @@ Everything the Principal reads but does not change.
 | # | Step | Result | Page |
 |---|---|---|---|
 | [07-01](#07-01-attendance-classes) | Attendance: the day at a glance (present, absent, classes not marked, teachers on leave), then each class with its Class Teacher; Grade 12 is not marked yet, so it comes first | Pass | `/portal/attendance` |
-| [07-02](#07-02-attendance-class) | A class's register for today (two absent), in words; the Principal can look but not mark | Pass | `/portal/attendance/class?id=a4c753fffe36bd94bd4aa2b8a99f1efb` |
-| [07-02](#07-02b-attendance-year) | The same class, this year so far: days present, the percentage and who is below 75% | Pass | `/portal/attendance/class?id=a4c753fffe36bd94bd4aa2b8a99f1efb` |
-| [07-03](#07-03-attendance-not-marked) | Grade 12: no register marked yet today | Pass | `/portal/attendance/class?id=4e56d68d12f038b6cc0d9dd13e4c8d35` |
+| [07-02](#07-02-attendance-class) | A class's register for today (two absent), in words; the Principal can look but not mark | Pass | `/portal/attendance/class?id=4e38f22d20e7f275ad94e416ecfa89b8` |
+| [07-02](#07-02b-attendance-year) | The same class, this year so far: days present, the percentage and who is below 75% | Pass | `/portal/attendance/class?id=4e38f22d20e7f275ad94e416ecfa89b8` |
+| [07-03](#07-03-attendance-not-marked) | Grade 12: no register marked yet today | Pass | `/portal/attendance/class?id=c641a216c9846a0c42836e1de70dbacf` |
 | [07-04](#07-04-teacher-attendance) | Teacher attendance for today, marked by the Co-ordinator (Suresh Karki on leave); read only for the Principal | Pass | `/portal/attendance/teachers` |
 | [07-05](#07-05a-incomplete-date) | Change date with only the day filled in (no month or year) asks for the day, the month and the year (F-19 fixed) | Pass (F-19 fixed) | `/portal/attendance/teachers` |
 | [07-05](#07-05b-teacher-attendance-other-day) | Another day, 15 Ashwin 2083: nothing was marked that day | Pass | `/portal/attendance/teachers` |
 | [07-06](#07-06-unverified-year) | 1 Baisakh 2090, outside the verified calendar (2000 to 2083), is refused | Pass | `/portal/attendance/teachers` |
 | [07-07](#07-07-classwork) | Classwork: today's activity log for each class | Pass | `/portal/classwork` |
-| [07-08](#07-08-classwork-class) | Grade 11's activity log today: what each subject teacher wrote, and the subjects with nothing yet | Pass | `/portal/classwork/class?id=a4c753fffe36bd94bd4aa2b8a99f1efb` |
+| [07-08](#07-08-classwork-class) | Grade 11's activity log today: what each subject teacher wrote, and the subjects with nothing yet | Pass | `/portal/classwork/class?id=4e38f22d20e7f275ad94e416ecfa89b8` |
 | [07-09](#07-09-fees-find) | Fees: find a student's fee account by name, SID or phone | Pass | `/portal/fees` |
 | [07-10](#07-10-fees-search) | Searching 'Sita': the matching student | Pass | `/portal/fees` |
-| [07-11](#07-11-fee-account-discount) | Sita Chaudhary's fee account: charges, her cash payment and the approved 10% discount; the balance is worked out, never stored | Pass | `/portal/fees/student?id=35ed50ee95d333f9201666cb5a151fd0` |
-| [07-12](#07-12-fee-account-refund) | Puja Yadav (found by SID): overpaid, with the approved refund | Pass | `/portal/fees/student?id=eab562ee2a7ef8fc48589b4702a900b0` |
-| [07-13](#07-13-fee-account-reversal) | Nabin Thakur: the wrong payment and its approved reversal, both kept in the ledger | Pass | `/portal/fees/student?id=110907079815f77fe5a3b70e806912ae` |
-| [07-14](#07-14-fee-account-receipts) | Aarav Mandal: a cash payment (sent twice, recorded once) and a verified bank voucher, each with a receipt | Pass | `/portal/fees/student?id=aca21449f0c6b356242de847bcd599d2` |
-| [07-15](#07-15-receipt) | A receipt, generated from the ledger, never edited | Pass (F-18 fixed) | `/portal/fees/receipt?id=0353a5564f03bb84557a33d0d202f0ae` |
+| [07-11](#07-11-fee-account-discount) | Sita Chaudhary's fee account: charges, her cash payment and the approved 10% discount; the balance is worked out, never stored | Pass | `/portal/fees/student?id=1fa643996df5ee965a1c65388bbd7f72` |
+| [07-12](#07-12-fee-account-refund) | Puja Yadav (found by SID): overpaid, with the approved refund | Pass | `/portal/fees/student?id=b1c454f0af5ff7dcf1c28065e7997b12` |
+| [07-13](#07-13-fee-account-reversal) | Nabin Thakur: the wrong payment and its approved reversal, both kept in the ledger | Pass | `/portal/fees/student?id=c9e7519c76f442350b9381b45eef007d` |
+| [07-14](#07-14-fee-account-receipts) | Aarav Mandal: a cash payment (sent twice, recorded once) and a verified bank voucher, each with a receipt | Pass | `/portal/fees/student?id=a237903eb5fb13a251464f930dac056e` |
+| [07-15](#07-15-receipt) | A receipt, generated from the ledger, never edited | Pass (F-18 fixed) | `/portal/fees/receipt?id=9086dc7a3a78b6bfeaf21924e4c2bd18` |
 | [07-16](#07-16-fees-search-none) | A search that finds nobody | Pass | `/portal/fees` |
 | [07-17](#07-17-fee-structures) | Fee structures for the year: live (approved) ones | Pass | `/portal/fees/structures` |
-| [07-18](#07-18-fee-structure) | The Grade 11 fee structure: monthly, yearly and one-time items; read only for the Principal | Pass | `/portal/fees/structure?id=d58dc1d7e1788967487ed57cb36928bb` |
+| [07-18](#07-18-fee-structure) | The Grade 11 fee structure: monthly, yearly and one-time items; read only for the Principal | Pass | `/portal/fees/structure?id=0feed4f1e73b449b4583381572d504a0` |
 | [07-19](#07-19-dues) | Dues: what each student owes and how much is overdue, with a CSV download | Pass (F-10 fixed) | `/portal/fees/dues` |
 | [07-20](#07-20-results-changes) | Results: changes after publishing (rechecks); none yet | Pass | `/portal/results` |
 | [07-21](#07-21-class-sheets) | Class sheets: choose a class and a published terminal | Pass | `/portal/results/sheets` |
@@ -556,7 +556,7 @@ Everything the Principal reads but does not change.
 | [07-29](#07-29-curriculum) | Curriculum: what each level studies, credit hours and marks (read only) | Pass | `/portal/setup/curriculum` |
 | [07-30](#07-30-teaching) | Teaching: who teaches what, and each Class Teacher | Pass | `/portal/people/teaching` |
 | [07-31](#07-31-student-search) | Find a student: 'Rai' finds Suman Rai; the name opens the record (F-09 fixed), and there is no Register tab (F-08 fixed) | Pass (F-08, F-09 fixed) | `/portal/admissions/search` |
-| [07-32](#07-32-student-record) | Suman Rai's record: student ID, class, date of birth, contacts and guardian; read only for the Principal | Pass (F-09 fixed) | `/portal/admissions/student?id=fb39ad094b606c2f51e15e5da4e31e4b` |
+| [07-32](#07-32-student-record) | Suman Rai's record: student ID, class, date of birth, contacts and guardian; read only for the Principal | Pass (F-09 fixed) | `/portal/admissions/student?id=e2b9e1d3504f66b645d75eb82ed6b662` |
 | [07-33](#07-33-register-tab-not-allowed) | The registration form's address, opened by the Principal: "You do not have access to this page" (F-08, F-14 fixed) | Pass (F-08 fixed) | `/portal/admissions/register` |
 | [07-34](#07-34-reports-oversight) | Reports now has Oversight: the Audit trail and Sign-ins (F-11 fixed) | Pass (F-11 fixed) | `/portal/reports` |
 | [07-35](#07-35-audit-trail) | The audit trail: every change, newest first, who made it and when in the Nepali calendar; nobody can change an entry | Pass (F-11 fixed) | `/portal/reports/activity` |
@@ -940,10 +940,10 @@ The Principal's own account and its security rules.
 | [09-17](#09-17-forgot-password) | Forgot your password: ask for a reset link | Pass | `/reset-password` |
 | [09-18](#09-18-reset-sent) | The same answer whether or not the email has an account, so nobody can probe for accounts | Pass | `/reset-password` |
 | [09-19](#09-19-mailbox-reset-email) | The test mailbox (only where email is not really sent) shows the reset email | Pass | `/portal/mailbox` |
-| [09-20](#09-20-reset-new-password) | The reset link opens Choose a new password | Pass | `/reset-password#token=V_qB57QHSULI90RUCO7JzE-QtNNfzewiCZdVxgaPuh8` |
-| [09-21](#09-21-reset-weak) | A new password with the school's name in it is refused here too | Pass | `/reset-password#token=V_qB57QHSULI90RUCO7JzE-QtNNfzewiCZdVxgaPuh8` |
+| [09-20](#09-20-reset-new-password) | The reset link opens Choose a new password | Pass | `/reset-password#token=g16YFPbJ493sQWn097Kp7FgdUYDbMiPzDK3EfcyM7U8` |
+| [09-21](#09-21-reset-weak) | A new password with the school's name in it is refused here too | Pass | `/reset-password#token=g16YFPbJ493sQWn097Kp7FgdUYDbMiPzDK3EfcyM7U8` |
 | [09-22](#09-22-reset-done) | Password changed; sign in with the new one | Pass | `/reset-password` |
-| [09-23](#09-23-reset-link-reused) | The same reset link opened again: refused, the link expired or was already used | Pass | `/reset-password#token=V_qB57QHSULI90RUCO7JzE-QtNNfzewiCZdVxgaPuh8` |
+| [09-23](#09-23-reset-link-reused) | The same reset link opened again: refused, the link expired or was already used | Pass | `/reset-password#token=g16YFPbJ493sQWn097Kp7FgdUYDbMiPzDK3EfcyM7U8` |
 | [09-24](#09-24-lockout) | Six wrong tries for one email (even an unknown one): Too many attempts, wait a few minutes | Pass | `/sign-in` |
 | [09-25](#09-25-signed-in-new-password) | Signed in with the reset password and the authenticator code | Pass | `/portal` |
 
