@@ -7986,6 +7986,18 @@
                     "null"
                   ]
                 },
+                "decidedOnBs": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "requestedOnBs": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
                 "decidedBy": {
                   "type": [
                     "string",
@@ -8042,6 +8054,8 @@
                 "studentName",
                 "sid",
                 "decidedAt",
+                "decidedOnBs",
+                "requestedOnBs",
                 "decidedBy",
                 "marks"
               ]

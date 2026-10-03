@@ -6,6 +6,7 @@ import { useCallback, useMemo, useState } from "react";
 import { useAddressQuery } from "@/content/address";
 import { useConfig } from "@/config/ConfigProvider";
 import { t } from "@/i18n/messages";
+import { EmptyLine, Panel, ReadFailure, ReadHeader, ReadTable, TableSkeleton, readStyles } from "@/read/ReadView";
 import { useSession } from "@/session/SessionProvider";
 import setupStyles from "@/setup/setup.module.css";
 import { Gate, useLoad } from "@/setup/useLoad";
@@ -238,7 +239,24 @@ export function MarksCardScreen() {
   );
 }
 
-/** The Top 20 (CLAUDE.md section 6): a student sees their own list, name and rank only; staff see every list with class and score. */
+/** One Top 20 list: rank and name, with class (and score) only when the server gives them to this reader. Pure. */
+export function Top20Table({ entries }: { entries: Top20["pools"][number]["entries"] }) {
+  const withClass = entries.some((e) => e.className !== undefined);
+  return (
+    <ReadTable
+      caption={t("results.top20.title")}
+      rows={entries}
+      rowKey={(e) => `${e.rank}-${e.name}`}
+      columns={[
+        { key: "rank", label: t("results.sheets.rank"), cell: (e) => <span className={readStyles.number}>{e.rank}</span> },
+        { key: "name", label: t("results.grid.student"), primary: true, cell: (e) => e.name },
+        ...(withClass ? [{ key: "class", label: t("attendance.col.class"), cell: (e: Top20["pools"][number]["entries"][number]) => e.className ?? "—" }] : []),
+      ]}
+    />
+  );
+}
+
+/** The Top 20 (CLAUDE.md section 6, redesigned in D-104): per section and level, only from published results; ties share a rank. */
 export function Top20Screen() {
   const { api } = useSession();
   const [terminalId, setTerminalId] = useState<string | undefined>(undefined);
@@ -248,65 +266,28 @@ export function Top20Screen() {
   }, [api, terminalId]);
   const { view, reload } = useLoad<Top20>(loadNow);
   return (
-    <>
-      <h1 className={setupStyles.title}>{t("results.top20.title")}</h1>
-      <Gate view={view} onRetry={() => void reload()}>
-        {(top) => (
-          <>
-            {top.terminals.length > 1 ? (
-              <Select
-                label={t("results.terminal")}
-                value={top.terminalId ?? ""}
-                onChange={(event) => setTerminalId(event.target.value)}
-                options={top.terminals.map((x) => ({
-                  value: x.id,
-                  label: x.name,
-                }))}
-              />
-            ) : null}
-            {top.pools.length === 0 ? (
-              <p className={setupStyles.empty}>{t("results.top20.none")}</p>
-            ) : (
-              top.pools.map((pool) => (
-                <section
-                  key={`${pool.sectionName}-${pool.levelName}`}
-                  className={styles.card}
-                  aria-label={t("results.top20.pool", {
-                    section: pool.sectionName,
-                    level: pool.levelName,
-                  })}
-                >
-                  <h2 className={setupStyles.subhead}>
-                    {t("results.top20.pool", {
-                      section: pool.sectionName,
-                      level: pool.levelName,
-                    })}
-                  </h2>
-                  <ol className={styles.list}>
-                    {pool.entries.map((e, i) => (
-                      <li key={`${e.rank}-${i}`} className={styles.row}>
-                        <span>
-                          {e.name}
-                          {e.className ? (
-                            <>
-                              <br />
-                              <span className={styles.meta}>{e.className}</span>
-                            </>
-                          ) : null}
-                        </span>
-                        <span className={styles.state}>
-                          <span className={styles.number}>{t("results.top20.rank", { rank: e.rank })}</span>
-                          {e.score !== undefined ? <span className={`${styles.number} ${styles.meta}`}>{hundredthsText(e.score)}</span> : null}
-                        </span>
-                      </li>
-                    ))}
-                  </ol>
-                </section>
-              ))
-            )}
-          </>
-        )}
-      </Gate>
-    </>
+    <div className={readStyles.page}>
+      <ReadHeader title={t("results.top20.title")} subtitle={t("results.top20.subtitle")} />
+      {view.status === "loading" ? <TableSkeleton rows={8} /> : null}
+      {view.status === "failed" || view.status === "forbidden" ? <ReadFailure status={view.status} onRetry={() => void reload()} /> : null}
+      {view.status === "ready" ? (
+        <>
+          {view.data.terminals.length > 1 ? (
+            <div className={readStyles.search}>
+              <Select label={t("results.terminal")} value={view.data.terminalId ?? ""} onChange={(event) => setTerminalId(event.target.value)} options={view.data.terminals.map((x) => ({ value: x.id, label: x.name }))} />
+            </div>
+          ) : null}
+          {view.data.pools.length === 0 ? (
+            <EmptyLine>{t("results.top20.none")}</EmptyLine>
+          ) : (
+            view.data.pools.map((pool, i) => (
+              <Panel key={`${pool.sectionName}-${pool.levelName}`} title={t("results.top20.pool", { section: pool.sectionName, level: pool.levelName })} labelledBy={`top20-${i}`}>
+                <Top20Table entries={pool.entries} />
+              </Panel>
+            ))
+          )}
+        </>
+      ) : null}
+    </div>
   );
 }

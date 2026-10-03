@@ -7,8 +7,11 @@ import { t, type MessageKey } from "@/i18n/messages";
 import { useSession } from "@/session/SessionProvider";
 import { AddDialog, Badge, Button, Field, Notice, TitleRow } from "@/ui";
 
+import { ReadOnlyNote } from "@/read/ReadView";
+
 import { createSubject, loadSubjects, setSubjectArchived } from "./client";
 import { REASON_MESSAGE, canManageInstitution, canManageStructure, type Subject } from "./model";
+import { ReadSetupHeader, SubjectsTable } from "./ReadSetup";
 import { Gate, useLoad } from "./useLoad";
 import styles from "./setup.module.css";
 
@@ -127,30 +130,36 @@ export function SubjectsScreen() {
 
   return (
     <>
-      <TitleRow>
-        <h1 className={styles.title}>{t("setup.subjects.title")}</h1>
-        {canAdd ? (
-          <AddDialog label={t("setup.subjects.add")} title={t("setup.subjects.add")}>
-            {(close) => (
-              <SubjectForm
-                showTitle={false}
-                onAdded={() => {
-                  close();
-                  setFlash({ tone: "ok", text: t("setup.done.added") });
-                  void reload();
-                }}
-              />
-            )}
-          </AddDialog>
-        ) : null}
-      </TitleRow>
-      <p className={styles.muted}>{t("setup.subjects.intro")}</p>
+      {canAdd ? (
+        <>
+        <TitleRow>
+          <h1 className={styles.title}>{t("setup.subjects.title")}</h1>
+          {canAdd ? (
+            <AddDialog label={t("setup.subjects.add")} title={t("setup.subjects.add")}>
+              {(close) => (
+                <SubjectForm
+                  showTitle={false}
+                  onAdded={() => {
+                    close();
+                    setFlash({ tone: "ok", text: t("setup.done.added") });
+                    void reload();
+                  }}
+                />
+              )}
+            </AddDialog>
+          ) : null}
+        </TitleRow>
+        <p className={styles.muted}>{t("setup.subjects.intro")}</p>
+        </>
+      ) : (
+        <ReadSetupHeader title={t("setup.subjects.title")} subtitle={t("setup.read.subjectsSubtitle")} />
+      )}
       {flash ? <Notice tone={flash.tone}>{flash.text}</Notice> : null}
       <Gate view={view} onRetry={() => void reload()}>
-        {({ subjects }) => <SubjectsView subjects={subjects} canArchive={canArchive} canAdd={canAdd} busy={busy} onToggle={(s) => void toggle(s)} />}
+        {({ subjects }) => (canAdd ? <SubjectsView subjects={subjects} canArchive={canArchive} canAdd={canAdd} busy={busy} onToggle={(s) => void toggle(s)} /> : <SubjectsTable subjects={subjects} />)}
       </Gate>
       {canAdd && !canArchive ? <Notice>{t("setup.subjects.onlyWholeSchool", { coordinator })}</Notice> : null}
-      {canAdd ? null : <Notice>{t("setup.readOnly", { coordinator })}</Notice>}
+      {canAdd ? null : <ReadOnlyNote>{t("setup.read.readOnly", { coordinator })}</ReadOnlyNote>}
     </>
   );
 }

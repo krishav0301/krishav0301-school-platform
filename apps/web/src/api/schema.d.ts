@@ -4311,6 +4311,8 @@ export interface components {
                 studentName: string;
                 sid: string;
                 decidedAt: string | null;
+                decidedOnBs: string | null;
+                requestedOnBs: string | null;
                 decidedBy: string | null;
                 marks: {
                     componentId: string;

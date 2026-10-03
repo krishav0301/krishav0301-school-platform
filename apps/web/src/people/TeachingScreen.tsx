@@ -12,6 +12,7 @@ import setupStyles from "@/setup/setup.module.css";
 import { Gate, useLoad } from "@/setup/useLoad";
 import { Notice, Select } from "@/ui";
 
+import { TeachingRead } from "./TeachingRead";
 import { loadTeaching, setAssignment, setClassTeacher } from "./teaching-client";
 import { REASON_MESSAGE, type Teaching, type TeachingFailReason } from "./teaching-model";
 
@@ -90,7 +91,14 @@ export function TeachingView({
   );
 }
 
+/** Teaching: the Co-ordinator assigns, class by class; the Principal reads it by teacher (D-104). */
 export function TeachingScreen() {
+  const { me } = useSession();
+  if (!canManageStructure(me?.roles ?? [])) return <TeachingRead />;
+  return <TeachingManage />;
+}
+
+function TeachingManage() {
   const { api, me } = useSession();
   const { term } = useConfig();
   const canManage = canManageStructure(me?.roles ?? []);

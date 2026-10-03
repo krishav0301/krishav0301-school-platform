@@ -1,4 +1,5 @@
 import { recordAudit } from "../../core/audit";
+import { adToBsText, nepalDate } from "../../core/dates";
 import { newPublicId } from "../../core/ids";
 import { gradeResult, type GradingPolicy } from "./grading";
 import { CLASS_JOINS, NAMING_COLUMNS, coordinatorFor, naming, sectionInReach, type Reach } from "./guard";
@@ -59,7 +60,7 @@ export async function listRechecks(db: D1Database, reach: Reach): Promise<Rechec
   const { results } = await db
     .prepare(
       `SELECT r.public_id AS id, o.public_id AS offering_id, sb.name AS subject_name, r.reason, r.status, r.requested_at, r.decision_reason, r.decided_at,
-              du.full_name AS decided_by, cl.public_id AS class_id, ${NAMING_COLUMNS}, t.name AS terminal_name,
+              CASE WHEN EXISTS (SELECT 1 FROM role_assignments ra WHERE ra.user_id = du.id AND ra.role = 'super_admin') THEN 'Support' ELSE du.full_name END AS decided_by, cl.public_id AS class_id, ${NAMING_COLUMNS}, t.name AS terminal_name,
               st.first_name || ' ' || st.last_name AS student_name, st.sid,
               (SELECT json_group_array(json_object('id', mc.public_id, 'n', mc.name, 'x', mc.max_hundredths, 'v', m.value_hundredths, 'a', COALESCE(m.absent, 0)))
                  FROM mark_components mc LEFT JOIN marks m ON m.component_id = mc.id AND m.sheet_id = ms.id AND m.enrollment_id = r.enrollment_id
@@ -102,6 +103,8 @@ export async function listRechecks(db: D1Database, reach: Reach): Promise<Rechec
       requestedAt: r.requested_at,
       decisionReason: r.decision_reason,
       decidedAt: r.decided_at,
+      decidedOnBs: r.decided_at ? adToBsText(nepalDate(new Date(r.decided_at))) : null,
+      requestedOnBs: adToBsText(nepalDate(new Date(r.requested_at))),
       decidedBy: r.decided_by,
       classId: r.class_id,
       ...naming(r),

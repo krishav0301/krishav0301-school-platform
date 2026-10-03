@@ -6,6 +6,8 @@ import { SheetGrid, draftOf } from "@/results/MarkSheetScreen";
 import { formatMarks, markText, parseMark, scoreText, type MarkSheet } from "@/results/model";
 import { ResultsHome } from "@/results/ResultsHome";
 import { ResultsTabs } from "@/results/ResultsTabs";
+import { Top20Table } from "@/results/OwnResultsScreen";
+import { RecheckList, SheetTable } from "@/results/StaffScreens";
 import { SessionContext } from "@/session/SessionProvider";
 import { fakeSession } from "./session";
 import royal from "../../../packs/royal-softech/pack.json";
@@ -142,5 +144,66 @@ describe("results places", () => {
     expect(inContext(<ResultsHome />)).toContain("Review results");
     expect(inContext(<ResultsHome />, as("admin"))).toContain("Changes after publishing");
     expect(inContext(<ResultsHome />)).toMatch(/role="status"[^>]*aria-busy="true"/);
+  });
+});
+
+describe("the Principal reads results (D-104, after the PM's topic 7 reference)", () => {
+  const naming = { programmeName: "+2 Science", levelName: "Grade 11", label: "A" };
+  const sheet = {
+    classId: "c1",
+    ...naming,
+    terminal: { id: "t1", name: "First terminal" },
+    policy: "neb_gpa" as const,
+    publishedAt: "2026-10-01T05:00:00.000Z",
+    subjects: [
+      { offeringId: "o1", name: "English" },
+      { offeringId: "o2", name: "Physics" },
+    ],
+    students: [
+      { enrollmentId: "e1", cardId: "k1", sid: "2083-00001", name: "Aarav Mandal", rank: 1, gpaHundredths: 360, percentHundredths: null, outcome: "Passed", version: 1, subjects: [{ offeringId: "o1", grade: "A", percentHundredths: 8500 }, { offeringId: "o2", grade: "A+", percentHundredths: 9200 }] },
+      { enrollmentId: "e2", cardId: "k2", sid: "2083-00002", name: "Sita Chaudhary", rank: 1, gpaHundredths: 360, percentHundredths: null, outcome: "Passed", version: 2, subjects: [{ offeringId: "o1", grade: "A+", percentHundredths: 9100 }, null] },
+    ],
+  };
+
+  it("a class sheet: rank, the student opening their marks card, grades, GPA; ties share a rank; a corrected one says so", () => {
+    const html = inContext(<SheetTable sheet={sheet} />, as("admin"));
+    expect(html).toContain('href="/portal/results/card?id=k1"');
+    expect(html.match(/<td data-align="end">1<\/td>/g)).toHaveLength(2);
+    expect(html).toContain(">A+<");
+    expect(html).toContain(">Corrected<");
+    expect(html).toContain("data-sticky"); // the student column stays in view while the subjects scroll
+    expect(html).toMatch(/role="region"[^>]*tabindex="0"|tabindex="0"[^>]*role="region"/i);
+  });
+
+  const recheck = {
+    id: "r1",
+    offeringId: "o2",
+    subjectName: "Physics",
+    reason: "Question 4 was not added",
+    status: "changed" as const,
+    requestedAt: "2026-10-01T05:00:00.000Z",
+    requestedOnBs: "2083-06-15",
+    decisionReason: "Added question 4",
+    decidedAt: "2026-10-02T05:00:00.000Z",
+    decidedOnBs: "2083-06-16",
+    decidedBy: "Support",
+    classId: "c1",
+    ...naming,
+    terminalName: "First terminal",
+    studentName: "Sita Chaudhary",
+    sid: "2083-00002",
+    marks: [{ componentId: "m1", name: "Theory", maxHundredths: 7500, valueHundredths: 6000, absent: false }],
+  };
+
+  it("a change after publishing: student and subject, status in words, why, the marks now, who decided and when, in BS; no controls", () => {
+    const html = inContext(<RecheckList rechecks={[recheck]} />, as("admin"));
+    for (const text of ["Sita Chaudhary · Physics", ">Marks changed<", "Asked: Question 4 was not added", "Theory 60 of 75", "Decided by Support on 16 Ashwin 2083: Added question 4", "asked 15 Ashwin 2083"]) expect(html).toContain(text);
+    expect(html).not.toMatch(/<(input|button|select)/);
+  });
+
+  it("Top 20: rank and name, with the class only when the server gives it", () => {
+    const html = inContext(<Top20Table entries={[{ rank: 1, name: "Aarav Mandal", className: "Grade 11 · A" }, { rank: 1, name: "Sita Chaudhary", className: "Grade 11 · A" }]} />, as("admin"));
+    expect(html).toContain("Grade 11 · A");
+    expect(inContext(<Top20Table entries={[{ rank: 1, name: "Aarav Mandal" }]} />, as("student", "own"))).not.toContain(">Class<");
   });
 });

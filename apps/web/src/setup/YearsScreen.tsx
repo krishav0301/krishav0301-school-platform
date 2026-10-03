@@ -9,8 +9,11 @@ import { t, type MessageKey } from "@/i18n/messages";
 import { useSession } from "@/session/SessionProvider";
 import { AddDialog, Badge, Button, Field, Notice, TitleRow } from "@/ui";
 
+import { ReadOnlyNote } from "@/read/ReadView";
+
 import { activateYear, createYear, loadYears } from "./client";
 import { REASON_MESSAGE, YEAR_STATUS_LABEL, canManageInstitution, emptyYearForm, type Year, type YearFormErrors, type YearFormValues } from "./model";
+import { ReadSetupHeader, YearsTable } from "./ReadSetup";
 import { Gate, useLoad } from "./useLoad";
 import styles from "./setup.module.css";
 
@@ -123,28 +126,32 @@ export function YearsScreen() {
 
   return (
     <>
-      <TitleRow>
-        <h1 className={styles.title}>{t("setup.years.title")}</h1>
-        {canManage ? (
-          <AddDialog label={t("setup.years.add")} title={t("setup.years.add")}>
-            {(close) => (
-              <YearForm
-                showTitle={false}
-                onAdded={() => {
-                  close();
-                  setFlash({ tone: "ok", text: t("setup.done.added") });
-                  void reload();
-                }}
-              />
-            )}
-          </AddDialog>
-        ) : null}
-      </TitleRow>
+      {canManage ? (
+        <TitleRow>
+          <h1 className={styles.title}>{t("setup.years.title")}</h1>
+          {canManage ? (
+            <AddDialog label={t("setup.years.add")} title={t("setup.years.add")}>
+              {(close) => (
+                <YearForm
+                  showTitle={false}
+                  onAdded={() => {
+                    close();
+                    setFlash({ tone: "ok", text: t("setup.done.added") });
+                    void reload();
+                  }}
+                />
+              )}
+            </AddDialog>
+          ) : null}
+        </TitleRow>
+      ) : (
+        <ReadSetupHeader title={t("setup.years.title")} subtitle={t("setup.read.yearsSubtitle")} />
+      )}
       {flash ? <Notice tone={flash.tone}>{flash.text}</Notice> : null}
       <Gate view={view} onRetry={() => void reload()}>
-        {({ years }) => <YearsView years={years} canManage={canManage} busy={busy} onActivate={(year) => void activate(year)} />}
+        {({ years }) => (canManage ? <YearsView years={years} canManage={canManage} busy={busy} onActivate={(year) => void activate(year)} /> : <YearsTable years={years} />)}
       </Gate>
-      {canManage ? null : <Notice>{t(roles.some((r) => r.role === "coordinator") ? "setup.institutionOnly" : "setup.readOnly", { coordinator })}</Notice>}
+      {canManage ? null : <ReadOnlyNote>{t(roles.some((r) => r.role === "coordinator") ? "setup.institutionOnly" : "setup.read.readOnly", { coordinator })}</ReadOnlyNote>}
     </>
   );
 }

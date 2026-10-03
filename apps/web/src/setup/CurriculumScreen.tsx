@@ -4,6 +4,7 @@ import { useCallback, useState, type FormEvent } from "react";
 
 import { useConfig } from "@/config/ConfigProvider";
 import { t, type MessageKey } from "@/i18n/messages";
+import { ReadOnlyNote } from "@/read/ReadView";
 import { useSession } from "@/session/SessionProvider";
 import { Badge, Button, Field, Notice, Select } from "@/ui";
 
@@ -35,6 +36,7 @@ import {
   type Offering,
   type Subject,
 } from "./model";
+import { CurriculumTable, ReadSetupHeader, midSentence } from "./ReadSetup";
 import { Gate, useLoad } from "./useLoad";
 import styles from "./setup.module.css";
 
@@ -341,7 +343,10 @@ export function CurriculumScreen() {
   const loadSubjectsNow = useCallback(() => loadSubjects(api), [api]);
   const programmes = useLoad(loadProgrammesNow);
   const subjects = useLoad(loadSubjectsNow);
-  const [levelId, setLevelId] = useState("");
+  const [picked, setLevelId] = useState("");
+  // The Principal reads; an empty "Choose…" is a dead end, so the first level opens (D-104).
+  const firstLevel = !canManage && programmes.view.status === "ready" ? (levelChoices(programmes.view.data.programmes)[0]?.value ?? "") : "";
+  const levelId = picked || firstLevel;
   const loadCurriculumNow = useCallback(
     (): Promise<Loaded<Curriculum | null>> => (levelId ? loadCurriculum(api, levelId) : Promise.resolve({ ok: true, data: null })),
     [api, levelId],
@@ -367,8 +372,14 @@ export function CurriculumScreen() {
 
   return (
     <>
-      <h1 className={styles.title}>{t("setup.curriculum.title")}</h1>
-      <p className={styles.muted}>{t("setup.curriculum.intro", words)}</p>
+      {canManage ? (
+        <>
+          <h1 className={styles.title}>{t("setup.curriculum.title")}</h1>
+          <p className={styles.muted}>{t("setup.curriculum.intro", words)}</p>
+        </>
+      ) : (
+        <ReadSetupHeader title={t("setup.curriculum.title")} subtitle={t("setup.read.curriculumSubtitle", midSentence(words))} />
+      )}
       {flash ? <Notice tone={flash.tone}>{flash.text}</Notice> : null}
 
       <Gate view={programmes.view} onRetry={() => void programmes.reload()}>
@@ -384,7 +395,7 @@ export function CurriculumScreen() {
                   setFlash(null);
                   setLevelId(event.target.value);
                 }}
-                options={[{ value: "", label: t("setup.programmes.choose") }, ...choices]}
+                options={canManage ? [{ value: "", label: t("setup.programmes.choose") }, ...choices] : choices}
               />
             </div>
           );
@@ -395,6 +406,7 @@ export function CurriculumScreen() {
         <Gate view={curriculum.view} onRetry={() => void curriculum.reload()}>
           {(data) =>
             data === null ? null : (
+              canManage ? (
               <>
                 <CurriculumView
                   curriculum={data}
@@ -413,12 +425,15 @@ export function CurriculumScreen() {
                   </>
                 ) : null}
               </>
+              ) : (
+                <CurriculumTable curriculum={data} />
+              )
             )
           }
         </Gate>
       ) : null}
 
-      {canManage ? null : <Notice>{t("setup.readOnly", { coordinator: term("role.coordinator") })}</Notice>}
+      {canManage ? null : <ReadOnlyNote>{t("setup.read.readOnly", { coordinator: term("role.coordinator") })}</ReadOnlyNote>}
     </>
   );
 }

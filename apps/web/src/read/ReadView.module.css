@@ -425,3 +425,137 @@
   flex: 1 1 14rem;
   min-width: 0;
 }
+
+/* Two pickers side by side on a wide screen, stacked on a phone. */
+.searchWide {
+  max-width: 44rem;
+}
+
+/* A wide sheet (a class's results) scrolls inside its own card, never the page; the student column stays in view. */
+.scroll {
+  max-width: 100%;
+  overflow-x: auto;
+  border-radius: var(--radius-control);
+}
+
+.scroll:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.sheet {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--text-sm);
+  font-variant-numeric: tabular-nums;
+}
+
+.sheet th,
+.sheet td {
+  padding: var(--space-3);
+  border-bottom: 1px solid var(--color-border);
+  text-align: start;
+  white-space: nowrap;
+}
+
+.sheet thead th {
+  color: var(--color-text-muted);
+  font-weight: var(--weight-medium);
+}
+
+.sheet [data-align="end"] {
+  text-align: end;
+}
+
+.sheet [data-align="center"] {
+  text-align: center;
+}
+
+.sheet [data-sticky] {
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  background: var(--color-surface);
+  box-shadow: 1px 0 0 var(--color-border);
+}
+
+.sheet tbody th {
+  font-weight: var(--weight-medium);
+}
+
+.sheet tbody tr:last-child th,
+.sheet tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.cellMeta {
+  display: block;
+  color: var(--color-text-muted);
+  font-weight: var(--weight-regular);
+}
+
+.cellWords {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+/* A list of things to read one by one (rechecks): each a block between hairlines, its status beside its name. */
+.rows {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.rowItem {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-4) 0;
+  border-top: 1px solid var(--color-border);
+}
+
+.rowItem:first-child {
+  padding-top: 0;
+  border-top: 0;
+}
+
+.rowItem:last-child {
+  padding-bottom: 0;
+}
+
+.rowItem p {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.rowHead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-2) var(--space-3);
+}
+
+.rowTitle {
+  margin: 0;
+  font-size: var(--text-base);
+  font-weight: var(--weight-medium);
+  overflow-wrap: anywhere;
+}
+
+.rowMeta {
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+}
+
+/* Groups of links (Reports): two columns when there is room, one on a phone. */
+.groups {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(24rem, 100%), 1fr));
+  align-items: start;
+  gap: var(--space-5);
+}

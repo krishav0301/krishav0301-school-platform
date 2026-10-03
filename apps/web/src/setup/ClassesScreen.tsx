@@ -7,9 +7,12 @@ import { t, type MessageKey } from "@/i18n/messages";
 import { useSession } from "@/session/SessionProvider";
 import { AddDialog, Badge, Button, Field, Notice, Select, TitleRow } from "@/ui";
 
+import { ReadOnlyNote } from "@/read/ReadView";
+
 import { createClass, deleteClass, loadClasses, loadProgrammes, loadYears, setClassActive, type Loaded } from "./client";
 import { REASON_MESSAGE, canManageStructure, classTitle, defaultYearId, levelChoices, termWords, type Programme, type SchoolClass, type Year } from "./model";
 import { DeleteControl } from "./ProgrammesScreen";
+import { ClassesTable, ReadSetupHeader } from "./ReadSetup";
 import { Gate, useLoad } from "./useLoad";
 import styles from "./setup.module.css";
 
@@ -157,26 +160,30 @@ export function ClassesScreen() {
 
   return (
     <>
-      <TitleRow>
-        <h1 className={styles.title}>{t("setup.classes.title")}</h1>
-        {canManage && yearId && programmes.view.status === "ready" ? (
-          <AddDialog label={t("setup.classes.add")} title={t("setup.classes.add")}>
-            {(close) => (
-              <ClassForm
-                key={yearId}
-                yearId={yearId}
-                programmes={programmes.view.status === "ready" ? programmes.view.data.programmes : []}
-                showTitle={false}
-                onAdded={() => {
-                  close();
-                  setFlash({ tone: "ok", text: t("setup.done.added") });
-                  void classes.reload();
-                }}
-              />
-            )}
-          </AddDialog>
-        ) : null}
-      </TitleRow>
+      {canManage ? (
+        <TitleRow>
+          <h1 className={styles.title}>{t("setup.classes.title")}</h1>
+          {canManage && yearId && programmes.view.status === "ready" ? (
+            <AddDialog label={t("setup.classes.add")} title={t("setup.classes.add")}>
+              {(close) => (
+                <ClassForm
+                  key={yearId}
+                  yearId={yearId}
+                  programmes={programmes.view.status === "ready" ? programmes.view.data.programmes : []}
+                  showTitle={false}
+                  onAdded={() => {
+                    close();
+                    setFlash({ tone: "ok", text: t("setup.done.added") });
+                    void classes.reload();
+                  }}
+                />
+              )}
+            </AddDialog>
+          ) : null}
+        </TitleRow>
+      ) : (
+        <ReadSetupHeader title={t("setup.classes.title")} subtitle={t("setup.read.classesSubtitle")} />
+      )}
       {flash ? <Notice tone={flash.tone}>{flash.text}</Notice> : null}
       <Gate view={years.view} onRetry={() => void years.reload()}>
         {({ years: list }) =>
@@ -188,13 +195,13 @@ export function ClassesScreen() {
                 <YearPicker years={list} value={yearId} onChange={setPicked} />
               </div>
               <Gate view={classes.view} onRetry={() => void classes.reload()}>
-                {(data) => <ClassesView classes={data.classes} canManage={canManage} busy={busy} onToggle={(c) => void toggle(c)} onDelete={remove} />}
+                {(data) => (canManage ? <ClassesView classes={data.classes} canManage={canManage} busy={busy} onToggle={(c) => void toggle(c)} onDelete={remove} /> : <ClassesTable classes={data.classes} />)}
               </Gate>
             </>
           )
         }
       </Gate>
-      {canManage ? null : <Notice>{t("setup.readOnly", { coordinator: term("role.coordinator") })}</Notice>}
+      {canManage ? null : <ReadOnlyNote>{t("setup.read.readOnly", { coordinator: term("role.coordinator") })}</ReadOnlyNote>}
     </>
   );
 }

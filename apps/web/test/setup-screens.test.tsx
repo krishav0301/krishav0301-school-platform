@@ -104,7 +104,7 @@ describe("the years screen", () => {
     expect(section).toContain("Vice Principal");
     const admin = inContext(<YearsScreen />, as("admin", "institution"));
     expect(admin).not.toContain("Add a year");
-    expect(admin).toContain("only a Vice Principal can change it");
+    expect(admin).toContain("Read only. The Vice Principal manages this.");
   });
 });
 

@@ -200,6 +200,24 @@ describe("rechecks", () => {
     expect(list.rechecks.find((r) => r.id === recheckId)!.decidedBy).toBeTruthy();
   });
 
+  it("names the build team as Support, never by name (CLAUDE.md section 5, D-104)", async () => {
+    const coordinatorId = (await db.prepare("SELECT id FROM users WHERE public_id = ?1").bind(coordinator.publicId).first<{ id: number }>())!.id;
+    await db.prepare("INSERT INTO role_assignments (user_id, role, scope_type) VALUES (?1, 'super_admin', 'institution')").bind(coordinatorId).run();
+    try {
+      const list = (await (await call("/api/results/rechecks", { cookie: admin.cookie })).json()) as { rechecks: { id: string; decidedBy: string }[] };
+      expect(list.rechecks.find((r) => r.id === recheckId)!.decidedBy).toBe("Support");
+    } finally {
+      await db.prepare("DELETE FROM role_assignments WHERE user_id = ?1 AND role = 'super_admin'").bind(coordinatorId).run();
+    }
+  });
+
+  it("says the day it was asked and decided in BS, from the server (D-104)", async () => {
+    const list = (await (await call("/api/results/rechecks", { cookie: admin.cookie })).json()) as { rechecks: { id: string; requestedOnBs: string | null; decidedOnBs: string | null }[] };
+    const row = list.rechecks.find((r) => r.id === recheckId)!;
+    expect(row.requestedOnBs).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+    expect(row.decidedOnBs).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+  });
+
   it("unchanged needs a reason and leaves the card alone; after that the published marks are locked again", async () => {
     const made = await post(`/api/results/publications/${publicationId}/rechecks`, { offeringId: maths.offeringId, reason: "Please look again" }, fixture.pupils[2]!.person);
     const id = ((await made.json()) as { id: string }).id;

@@ -7,9 +7,12 @@ import { t, type MessageKey } from "@/i18n/messages";
 import { useSession } from "@/session/SessionProvider";
 import { AddDialog, Button, Field, Notice, TitleRow } from "@/ui";
 
+import { ReadOnlyNote } from "@/read/ReadView";
+
 import { YearPicker } from "./ClassesScreen";
 import { createTerminal, loadTerminals, loadYears, type Loaded } from "./client";
 import { REASON_MESSAGE, canManageInstitution, defaultYearId, termWords, type Terminal } from "./model";
+import { ReadSetupHeader, TerminalsTable, midSentence } from "./ReadSetup";
 import { Gate, useLoad } from "./useLoad";
 import styles from "./setup.module.css";
 
@@ -90,25 +93,29 @@ export function TerminalsScreen() {
 
   return (
     <>
-      <TitleRow>
-        <h1 className={styles.title}>{t("setup.terminals.title", words)}</h1>
-        {canManage && yearId ? (
-          <AddDialog label={t("setup.terminals.add", words)} title={t("setup.terminals.add", words)}>
-            {(close) => (
-              <TerminalForm
-                key={yearId}
-                yearId={yearId}
-                showTitle={false}
-                onAdded={() => {
-                  close();
-                  setSaved(true);
-                  void terminals.reload();
-                }}
-              />
-            )}
-          </AddDialog>
-        ) : null}
-      </TitleRow>
+      {canManage ? (
+        <TitleRow>
+          <h1 className={styles.title}>{t("setup.terminals.title", words)}</h1>
+          {canManage && yearId ? (
+            <AddDialog label={t("setup.terminals.add", words)} title={t("setup.terminals.add", words)}>
+              {(close) => (
+                <TerminalForm
+                  key={yearId}
+                  yearId={yearId}
+                  showTitle={false}
+                  onAdded={() => {
+                    close();
+                    setSaved(true);
+                    void terminals.reload();
+                  }}
+                />
+              )}
+            </AddDialog>
+          ) : null}
+        </TitleRow>
+      ) : (
+        <ReadSetupHeader title={t("setup.terminals.title", words)} subtitle={t("setup.read.terminalsSubtitle", midSentence(words))} />
+      )}
       {saved ? <Notice tone="ok">{t("setup.done.added")}</Notice> : null}
       <Gate view={years.view} onRetry={() => void years.reload()}>
         {({ years: list }) =>
@@ -127,13 +134,13 @@ export function TerminalsScreen() {
                 />
               </div>
               <Gate view={terminals.view} onRetry={() => void terminals.reload()}>
-                {(data) => <TerminalsView terminals={data.terminals} />}
+                {(data) => (canManage ? <TerminalsView terminals={data.terminals} /> : <TerminalsTable terminals={data.terminals} words={words} />)}
               </Gate>
             </>
           )
         }
       </Gate>
-      {canManage ? null : <Notice>{t(roles.some((r) => r.role === "coordinator") ? "setup.institutionOnly" : "setup.readOnly", { coordinator: term("role.coordinator") })}</Notice>}
+      {canManage ? null : <ReadOnlyNote>{t(roles.some((r) => r.role === "coordinator") ? "setup.institutionOnly" : "setup.read.readOnly", { coordinator: term("role.coordinator") })}</ReadOnlyNote>}
     </>
   );
 }
