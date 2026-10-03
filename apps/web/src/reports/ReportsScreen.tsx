@@ -7,6 +7,8 @@ import {
   CalendarRange,
   ChevronRight,
   FileSpreadsheet,
+  History,
+  KeyRound,
   ListChecks,
   Presentation,
   School,
@@ -62,6 +64,13 @@ export const REPORT_GROUPS: { title: MessageKey; entries: Entry[] }[] = [
     entries: [
       { href: "/portal/results/sheets", icon: FileSpreadsheet, title: "reports.sheets", detail: "reports.sheetsDetail" },
       { href: "/portal/results/top20", icon: Trophy, title: "reports.top20", detail: "reports.top20Detail" },
+    ],
+  },
+  {
+    title: "reports.group.oversight",
+    entries: [
+      { href: "/portal/reports/activity", icon: History, title: "reports.activity", detail: "reports.activityDetail" },
+      { href: "/portal/reports/sign-ins", icon: KeyRound, title: "reports.signIns", detail: "reports.signInsDetail" },
     ],
   },
 ];

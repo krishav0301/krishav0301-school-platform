@@ -113,9 +113,9 @@ describe("Academic Structure (D-095, D-096)", () => {
   const level = (id: string, ordinal: number, name: string, students: number, active = true, canDelete = students === 0) => ({ id, ordinal, name, active, students, canDelete });
   const structure: Structure = {
     sections: [
-      { key: "s1", name: "Bachelor of Engineering", active: true, canDelete: false },
-      { key: "s2", name: "School", active: true, canDelete: false },
-      { key: "s3", name: "Master's", active: true, canDelete: false },
+      { key: "s1", name: "Bachelor of Engineering", active: true, receiptCode: "BE", receiptCodeLocked: true, canDelete: false },
+      { key: "s2", name: "School", active: true, receiptCode: "SCH", receiptCodeLocked: false, canDelete: false },
+      { key: "s3", name: "Master's", active: true, receiptCode: null, receiptCodeLocked: false, canDelete: false },
     ],
     programmes: [
       { id: "p1", key: "cse", name: "Computer Science", section: { key: "s1", name: "Bachelor of Engineering" }, affiliation: "TU", active: true, gradingPolicy: "percentage_division", students: 158, canDelete: false, levels: [level("l1", 1, "1st Year", 80), level("l2", 2, "2nd Year", 78), level("l3", 3, "3rd Year", 0, false)] },
@@ -126,7 +126,7 @@ describe("Academic Structure (D-095, D-096)", () => {
   };
   const actions: StructureActions = {
     addSection: async () => true,
-    renameSection: async () => true,
+    editSection: async () => true,
     addProgramme: async () => true,
     editProgramme: async () => true,
     setProgrammeActive: async () => true,
@@ -197,6 +197,16 @@ describe("Academic Structure (D-095, D-096)", () => {
     expect(readOnly).not.toContain(">Edit<");
   });
 
+  it("each section shows its receipt code; its Edit offers the code until receipts are issued, then shows it fixed (D-102, admin FUT F-18)", () => {
+    expect(html).toContain("Receipt code BE");
+    expect(html).toContain("Receipt code BE. It is fixed: receipts have been issued with it.");
+    // School's code may still change: a field holding it, with an example number.
+    expect(html).toMatch(/<input[^>]*value="SCH"/);
+    expect(html).toContain("Receipt numbers start with it, such as SCH-2083-00001. 2 to 6 letters or digits.");
+    // A section from before codes says it has none yet.
+    expect(html).toContain("Not set yet: receipts use an internal code until you give one. Once given, it is fixed.");
+  });
+
   it("a school with no sections says what to do first", () => {
     const empty = view({ sections: [], programmes: [], totals: { sections: 0, programmes: 0, levels: 0, students: 0 } });
     expect(empty).toContain("No Sections yet");
@@ -205,12 +215,12 @@ describe("Academic Structure (D-095, D-096)", () => {
 
   it("a section with no programmes, and a programme with no levels, say so", () => {
     const bare = view({
-      sections: [{ key: "s1", name: "Master's", active: true, canDelete: false }],
+      sections: [{ key: "s1", name: "Master's", active: true, receiptCode: null, receiptCodeLocked: false, canDelete: false }],
       programmes: [{ id: "p9", key: "me", name: "ME Civil", section: { key: "s1", name: "Master's" }, affiliation: "TU", active: true, gradingPolicy: null, students: 0, canDelete: false, levels: [] }],
       totals: { sections: 1, programmes: 1, levels: 0, students: 0 },
     });
     expect(bare).toContain("No Levels yet.");
-    const none = view({ sections: [{ key: "s1", name: "Master's", active: true, canDelete: false }], programmes: [], totals: { sections: 1, programmes: 0, levels: 0, students: 0 } });
+    const none = view({ sections: [{ key: "s1", name: "Master's", active: true, receiptCode: null, receiptCodeLocked: false, canDelete: false }], programmes: [], totals: { sections: 1, programmes: 0, levels: 0, students: 0 } });
     expect(none).toContain("No Programmes in this section yet.");
   });
 
@@ -226,7 +236,7 @@ describe("Academic Structure (D-095, D-096)", () => {
 
   it("an empty section offers Delete, and a switched-off one says so and takes no new programmes", () => {
     const off = view({
-      sections: [{ key: "s1", name: "Evening", active: false, canDelete: true }],
+      sections: [{ key: "s1", name: "Evening", active: false, receiptCode: null, receiptCodeLocked: false, canDelete: true }],
       programmes: [],
       totals: { sections: 1, programmes: 0, levels: 0, students: 0 },
     });

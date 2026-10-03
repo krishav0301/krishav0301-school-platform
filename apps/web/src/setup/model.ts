@@ -59,7 +59,7 @@ export const YEAR_STATUS_LABEL: Record<Year["status"], MessageKey> = {
   closed: "setup.status.closed",
 };
 
-export type FailReason = "forbidden" | "not_found" | "conflict" | "year_closed" | "another_active" | "in_use" | "rejected" | "failed";
+export type FailReason = "forbidden" | "not_found" | "conflict" | "year_closed" | "another_active" | "in_use" | "code_taken" | "code_locked" | "rejected" | "failed";
 
 export const REASON_MESSAGE: Record<FailReason, MessageKey> = {
   forbidden: "setup.error.forbidden",
@@ -68,6 +68,8 @@ export const REASON_MESSAGE: Record<FailReason, MessageKey> = {
   year_closed: "setup.error.yearClosed",
   another_active: "setup.error.anotherActive",
   in_use: "setup.error.inUse",
+  code_taken: "setup.error.codeTaken",
+  code_locked: "setup.error.codeLocked",
   rejected: "setup.error.rejected",
   failed: "setup.error.failed",
 };
@@ -124,3 +126,18 @@ export function subjectChoices(subjects: readonly Subject[], offerings: readonly
   const taken = new Set(offerings.map((o) => o.subject.id));
   return subjects.filter((s) => !s.archived && !taken.has(s.id)).map((s) => ({ value: s.id, label: s.code ? `${s.name} (${s.code})` : s.name }));
 }
+
+/**
+ * A receipt code suggested from a section's name (D-102), the same as the server makes when none is given: the
+ * initials of its words (a run of digits kept whole), or the first four letters of a one-word name. "Master's Degrees"
+ * gives MD, "Bachelor's" BACH. Only a suggestion: the Principal may type another.
+ */
+export function suggestReceiptCode(name: string): string {
+  const words = name.replace(/['’]/g, "").toUpperCase().match(/[A-Z]+|[0-9]+/g) ?? [];
+  const initials = words.map((w) => (/^[0-9]/.test(w) ? w : w[0])).join("");
+  const code = initials.length >= 2 ? initials : words.join("").slice(0, 4);
+  return name.trim() === "" ? "" : (code.length >= 2 ? code : `${code}SEC`).slice(0, 6);
+}
+
+/** 2 to 6 letters or digits (D-102); the server stores it in capitals. */
+export const isReceiptCode = (code: string): boolean => /^[A-Za-z0-9]{2,6}$/.test(code.trim());

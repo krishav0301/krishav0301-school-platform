@@ -44,9 +44,18 @@ const LevelName = z.string().trim().min(1, "Give the level a name").max(60, "Kee
  * numbering and the Top 20 are keyed by it. Only the name may change.
  */
 const SectionName = z.string().trim().min(1, "Give the section a name").max(60, "Keep the name to 60 characters");
-export const CreateSectionSchema = z.strictObject({ name: SectionName }).openapi("CreateSection");
+/**
+ * The short code a section's receipt numbers start with (D-102), such as "P2" in P2-2083-00007: 2 to 6 letters or
+ * digits, stored in capitals. Left out when adding a section, one is made from the name.
+ */
+export const ReceiptCode = z
+  .string()
+  .trim()
+  .toUpperCase()
+  .regex(/^[A-Z0-9]{2,6}$/, "Use 2 to 6 letters or digits for the receipt code, such as P2 or BACH");
+export const CreateSectionSchema = z.strictObject({ name: SectionName, receiptCode: ReceiptCode.optional() }).openapi("CreateSection");
 export type SectionInput = z.input<typeof CreateSectionSchema>;
-export const SectionChangesSchema = z.strictObject({ name: SectionName, active: z.boolean() }).partial().openapi("SectionChanges");
+export const SectionChangesSchema = z.strictObject({ name: SectionName, active: z.boolean(), receiptCode: ReceiptCode }).partial().openapi("SectionChanges");
 export type SectionChanges = z.infer<typeof SectionChangesSchema>;
 export const SectionKeyParam = z.object({ key: z.string().regex(/^[a-z][a-z0-9_]{0,30}$/) });
 
@@ -140,6 +149,10 @@ export const SectionSchema = z
     name: z.string(),
     /** Switched off sections keep their history and take no new programmes (D-097). */
     active: z.boolean(),
+    /** What its receipt numbers start with (D-102); null for a section made before codes, which numbers with its key. */
+    receiptCode: z.string().nullable(),
+    /** The receipt code is fixed once the section has issued a receipt under it (D-102). */
+    receiptCodeLocked: z.boolean(),
     /** Nothing is attached to it (no programme, staff scope or home section, receipt or receipt counter), so it may be deleted (D-097). */
     canDelete: z.boolean(),
   })

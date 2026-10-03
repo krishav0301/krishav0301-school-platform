@@ -8,3 +8,4 @@ export {
   type VerifyResult,
 } from "./verify";
 export { ACTIVITY_ACTIONS, recentActivityPart, type ActivityRow } from "./recent";
+export { AUDIT_AREAS, AUDIT_PAGE_SIZE, auditTrail, signInLog, type AuditArea, type AuditTrailRow, type Paged, type SignInRow } from "./trail";

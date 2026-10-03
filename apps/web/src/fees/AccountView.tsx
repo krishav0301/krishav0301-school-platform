@@ -3,6 +3,7 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 
+import { formatBsDate } from "@/content/model";
 import { t } from "@/i18n/messages";
 import setupStyles from "@/setup/setup.module.css";
 import { Badge } from "@/ui";
@@ -80,7 +81,7 @@ export function AccountView({ account, entryAction }: { account: Account; entryA
                 <span>
                   <Link href={`/portal/fees/receipt?id=${r.id}`}>{t("fees.receipts.open", { number: r.number })}</Link>
                   <br />
-                  <span className={styles.meta}>{r.issuedOnBs}</span>
+                  <span className={styles.meta}>{formatBsDate(r.issuedOnBs)}</span>
                 </span>
                 <span className={styles.amount}>
                   {npr(r.amountPaisa)} {r.reversed ? <Badge tone="bad">{t("fees.history.reversed")}</Badge> : null}
@@ -106,7 +107,7 @@ export function AccountView({ account, entryAction }: { account: Account; entryA
                   {e.memo ? ` · ${e.memo}` : ""}
                   <br />
                   <span className={styles.meta}>
-                    {e.dueOnBs ? t("fees.history.dueOn", { date: e.dueOnBs }) : e.createdOnBs}
+                    {e.dueOnBs ? t("fees.history.dueOn", { date: formatBsDate(e.dueOnBs) }) : formatBsDate(e.createdOnBs)}
                     {e.period && e.period.includes("-") ? ` · ${e.period}` : ""}
                   </span>
                 </span>

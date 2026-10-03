@@ -2435,6 +2435,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/audit/events": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description The audit trail, newest first, 25 to a page, optionally of one area and matching a search. Support's own actions show as "Support". */
+        get: operations["audit_trail"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/audit/sign-ins": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Sign-in attempts, newest first, 25 to a page, optionally only the failed ones (failed passwords and failed second steps) or matching a search. */
+        get: operations["sign_in_log"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/dates/to-ad": {
         parameters: {
             query?: never;
@@ -2748,6 +2782,8 @@ export interface components {
             key: string;
             name: string;
             active: boolean;
+            receiptCode: string | null;
+            receiptCodeLocked: boolean;
             canDelete: boolean;
         };
         SchoolClassList: {
@@ -2811,10 +2847,12 @@ export interface components {
         };
         CreateSection: {
             name: string;
+            receiptCode?: string;
         };
         SectionChanges: {
             name?: string;
             active?: boolean;
+            receiptCode?: string;
         };
         CreateProgramme: {
             name: string;
@@ -4311,6 +4349,38 @@ export interface components {
                 entityType: string;
                 entityId: string | null;
             }[];
+        };
+        AuditTrail: {
+            rows: {
+                id: number;
+                onBs: string | null;
+                time: string;
+                at: string;
+                action: string;
+                entityType: string;
+                summary: string;
+                reason: string | null;
+                actor: string | null;
+            }[];
+            total: number;
+            page: number;
+            pageSize: number;
+        };
+        SignInLog: {
+            rows: {
+                id: number;
+                onBs: string | null;
+                time: string;
+                at: string;
+                name: string | null;
+                email: string;
+                success: boolean;
+                reason: string | null;
+                ip: string | null;
+            }[];
+            total: number;
+            page: number;
+            pageSize: number;
         };
         DateConversionFailure: {
             /** @enum {string} */
@@ -11443,6 +11513,54 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["DashboardOverview"];
+                };
+            };
+        };
+    };
+    audit_trail: {
+        parameters: {
+            query?: {
+                page?: number;
+                area?: "people" | "structure" | "admissions" | "daily" | "fees" | "results" | "approvals" | "website";
+                q?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description One page of the audit trail */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuditTrail"];
+                };
+            };
+        };
+    };
+    sign_in_log: {
+        parameters: {
+            query?: {
+                page?: number;
+                failed?: "0" | "1";
+                q?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description One page of sign-in attempts */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SignInLog"];
                 };
             };
         };

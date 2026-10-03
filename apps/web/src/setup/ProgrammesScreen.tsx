@@ -1,7 +1,7 @@
 "use client";
 
 import { BookOpen, ChevronDown, Database, GraduationCap, Layers, MoreVertical, Users, type LucideIcon } from "lucide-react";
-import { useCallback, useId, useState, type FormEvent, type ReactNode } from "react";
+import { createContext, useCallback, useContext, useId, useState, type FormEvent, type ReactNode } from "react";
 
 import type { components } from "@/api/schema";
 import { useConfig } from "@/config/ConfigProvider";
@@ -19,14 +19,14 @@ import {
   deleteSection,
   loadProgrammes,
   renameLevel,
-  renameSection,
+  updateSection,
   setLevelActive,
   setProgrammeActive,
   setSectionActive,
   updateProgramme,
   type WriteResult,
 } from "./client";
-import { REASON_MESSAGE, canManageProgrammes, termWords, type Level, type Programme } from "./model";
+import { REASON_MESSAGE, canManageProgrammes, isReceiptCode, suggestReceiptCode, termWords, type Level, type Programme } from "./model";
 import { useLoad } from "./useLoad";
 import styles from "./structure.module.css";
 
@@ -64,8 +64,8 @@ const programmesText = (n: number, programme: string) => t(n === 1 ? "structure.
 
 /** What every change on the page goes through: it returns whether it worked, and the screen says so. */
 export interface StructureActions {
-  addSection: (name: string) => Promise<boolean>;
-  renameSection: (key: string, name: string) => Promise<boolean>;
+  addSection: (values: SectionValues) => Promise<boolean>;
+  editSection: (section: Section, values: SectionValues) => Promise<boolean>;
   addProgramme: (sectionKey: string, values: { name: string; affiliation: string }) => Promise<boolean>;
   editProgramme: (programme: Programme, values: { name: string; affiliation: string; gradingPolicy: Programme["gradingPolicy"] }) => Promise<boolean>;
   setProgrammeActive: (programme: Programme, active: boolean) => Promise<boolean>;
@@ -118,6 +118,105 @@ function NameForm({ label, hint, initial = "", submitLabel, required, onSave, ch
   return (
     <form onSubmit={submit} noValidate className={styles.form}>
       <Field label={label} hint={hint} value={name} maxLength={60} autoComplete="off" onChange={(event) => setName(event.target.value)} error={error ?? undefined} />
+      <div className={styles.formActions}>
+        {children}
+        <Button type="submit" loading={saving} loadingLabel={t("setup.working")}>
+          {submitLabel}
+        </Button>
+      </div>
+    </form>
+  );
+}
+
+/**
+ * A failed change, said inside the pop-up it was made from (admin FUT F-01): the page's own notice sits behind the
+ * pop-up's backdrop, where it cannot be read. A pop-up shows only failures from after it opened.
+ */
+const FailureContext = createContext<{ text: string; at: number } | null>(null);
+
+function DialogFailure() {
+  const failure = useContext(FailureContext);
+  const [since] = useState(() => Date.now());
+  if (!failure || failure.at < since) return null;
+  return (
+    <div role="alert">
+      <Notice tone="bad">{failure.text}</Notice>
+    </div>
+  );
+}
+
+export interface SectionValues {
+  name: string;
+  /** Left out when it is fixed, or when a section from before codes is still given none. */
+  receiptCode?: string;
+}
+
+/**
+ * A section's name and receipt code (D-102): for adding one, and for editing it. While adding, the code follows the
+ * name as a suggestion until the Principal types their own. Once the section has issued a receipt the code is fixed
+ * and only shown.
+ */
+function SectionForm({ words, initial, submitLabel, onSave, children }: { words: Words; initial?: Section; submitLabel: string; onSave: (values: SectionValues) => Promise<boolean>; children?: ReactNode }) {
+  const [name, setName] = useState(initial?.name ?? "");
+  const [code, setCode] = useState(initial?.receiptCode ?? "");
+  const [codeTyped, setCodeTyped] = useState(initial !== undefined);
+  const [errors, setErrors] = useState<{ name?: string; code?: string }>({});
+  const [saving, setSaving] = useState(false);
+  const locked = initial?.receiptCodeLocked ?? false;
+  const legacy = initial !== undefined && initial.receiptCode === null;
+
+  async function submit(event: FormEvent) {
+    event.preventDefault();
+    if (saving) return;
+    const found: typeof errors = {};
+    if (!name.trim()) found.name = t(initial ? "structure.nameRequired" : "setup.error.sectionNameRequired", words);
+    if (!locked && !(legacy && code.trim() === "") && !isReceiptCode(code)) found.code = t("setup.error.receiptCodeInvalid");
+    setErrors(found);
+    if (Object.keys(found).length > 0) return;
+    setSaving(true);
+    const receiptCode = locked || code.trim() === "" ? undefined : code.trim().toUpperCase();
+    const saved = await onSave({ name: name.trim(), ...(receiptCode ? { receiptCode } : {}) });
+    setSaving(false);
+    if (saved && !initial) {
+      setName("");
+      setCode("");
+      setCodeTyped(false);
+    }
+  }
+
+  const example = `${(code.trim() || "P2").toUpperCase()}-2083-00001`;
+  return (
+    <form onSubmit={submit} noValidate className={styles.form}>
+      <Field
+        label={t("setup.sections.name", words)}
+        hint={initial ? undefined : t("setup.sections.nameHint")}
+        value={name}
+        maxLength={60}
+        autoComplete="off"
+        onChange={(event) => {
+          setName(event.target.value);
+          if (!codeTyped) setCode(suggestReceiptCode(event.target.value));
+        }}
+        error={errors.name}
+      />
+      {locked ? (
+        <p className={styles.meta}>{t("setup.sections.receiptCodeLocked", { code: initial?.receiptCode ?? "" })}</p>
+      ) : (
+        <Field
+          label={t("setup.sections.receiptCode")}
+          hint={legacy ? t("setup.sections.receiptCodeLegacyHint") : t("setup.sections.receiptCodeHint", { example })}
+          value={code}
+          maxLength={6}
+          autoComplete="off"
+          autoCapitalize="characters"
+          spellCheck={false}
+          onChange={(event) => {
+            setCode(event.target.value.toUpperCase());
+            setCodeTyped(true);
+          }}
+          error={errors.code}
+        />
+      )}
       <div className={styles.formActions}>
         {children}
         <Button type="submit" loading={saving} loadingLabel={t("setup.working")}>
@@ -269,6 +368,7 @@ function LevelRow({ level, words, student, canManage, actions }: { level: Level;
           >
             {(close) => (
               <>
+                <DialogFailure />
                 <NameForm
                   label={t("setup.programmes.levelName", words)}
                   initial={level.name}
@@ -310,6 +410,7 @@ function ProgrammeCard({ programme, index, open, onToggle, words, student, canMa
             <AddDialog label={t("structure.edit")} ariaLabel={t("structure.editItem", { name: programme.name })} title={t("structure.editTitle", { name: programme.name })} variant="secondary" plus={false}>
               {(close) => (
                 <>
+                  <DialogFailure />
                   <ProgrammeFields words={words} initial={programme} withGrading submitLabel={t("structure.saveChanges")} onSave={async (values) => (await actions.editProgramme(programme, values)) && (close(), true)}>
                     <SwitchButton active={programme.active} name={programme.name} onSwitch={async () => (await actions.setProgrammeActive(programme, !programme.active)) && (close(), true)} />
                   </ProgrammeFields>
@@ -328,13 +429,16 @@ function ProgrammeCard({ programme, index, open, onToggle, words, student, canMa
             {canManage && programme.active ? (
               <AddDialog label={t("setup.programmes.addLevel", words)} title={t("structure.addLevelTo", { ...words, name: programme.name })} variant="secondary">
                 {(close) => (
-                  <NameForm
+                  <>
+                    <DialogFailure />
+                    <NameForm
                     label={t("setup.programmes.levelName", words)}
                     hint={t("structure.levelHint")}
                     submitLabel={t("setup.programmes.addLevel", words)}
                     required={t("structure.nameRequired")}
                     onSave={async (name) => (await actions.addLevel(programme, name)) && (close(), true)}
                   />
+                  </>
                 )}
               </AddDialog>
             ) : null}
@@ -372,6 +476,7 @@ function SectionCard({ section, index, programmes, open, isOpen, onToggle, words
           </div>
           <p className={styles.meta}>
             {programmesText(on.length, words.programme)} · {levelsText(levels, words.level)} · {studentsText(students, student)}
+            {section.receiptCode ? ` · ${t("setup.sections.receiptCodeMeta", { code: section.receiptCode })}` : ""}
           </p>
         </div>
         <div className={styles.headActions}>
@@ -379,15 +484,10 @@ function SectionCard({ section, index, programmes, open, isOpen, onToggle, words
             <AddDialog label={t("structure.edit")} ariaLabel={t("structure.editItem", { name: section.name })} title={t("structure.editTitle", { name: section.name })} variant="secondary" plus={false}>
               {(close) => (
                 <>
-                  <NameForm
-                    label={t("setup.sections.name", words)}
-                    initial={section.name}
-                    submitLabel={t("structure.saveName")}
-                    required={t("structure.nameRequired")}
-                    onSave={async (name) => (await actions.renameSection(section.key, name)) && (close(), true)}
-                  >
+                  <DialogFailure />
+                  <SectionForm words={words} initial={section} submitLabel={t("structure.saveSection")} onSave={async (values) => (await actions.editSection(section, values)) && (close(), true)}>
                     <SwitchButton active={section.active} name={section.name} onSwitch={async () => (await actions.setSectionActive(section, !section.active)) && (close(), true)} />
-                  </NameForm>
+                  </SectionForm>
                   <DeleteControl name={section.name} canDelete={section.canDelete} blocked="structure.sectionInUse" onDelete={async () => (await actions.deleteSection(section)) && (close(), true)} />
                 </>
               )}
@@ -403,7 +503,10 @@ function SectionCard({ section, index, programmes, open, isOpen, onToggle, words
             {canManage && section.active ? (
               <AddDialog label={t("setup.programmes.add", words)} title={t("structure.addProgrammeTo", { ...words, name: section.name })} variant="secondary">
                 {(close) => (
-                  <ProgrammeFields words={words} withGrading={false} submitLabel={t("setup.programmes.add", words)} onSave={async (values) => (await actions.addProgramme(section.key, values)) && (close(), true)} />
+                  <>
+                    <DialogFailure />
+                    <ProgrammeFields words={words} withGrading={false} submitLabel={t("setup.programmes.add", words)} onSave={async (values) => (await actions.addProgramme(section.key, values)) && (close(), true)} />
+                  </>
                 )}
               </AddDialog>
             ) : null}
@@ -535,6 +638,7 @@ export function ProgrammesScreen() {
   const load = useCallback(() => loadProgrammes(api), [api]);
   const { view, reload } = useLoad(load);
   const [flash, setFlash] = useState<{ tone: "ok" | "bad"; text: string } | null>(null);
+  const [failure, setFailure] = useState<{ text: string; at: number } | null>(null);
   // `?add=1` (the dashboard's Add Program, D-089) opens Add a Section when the school has none yet.
   const search = useAddressQuery();
   const askedToAdd = search !== null && new URLSearchParams(search).get("add") === "1";
@@ -545,6 +649,7 @@ export function ProgrammesScreen() {
       setFlash(null);
       const outcome = await result;
       setFlash(outcome.ok ? { tone: "ok", text: t(done) } : { tone: "bad", text: t(REASON_MESSAGE[outcome.reason]) });
+      setFailure(outcome.ok ? null : { text: t(REASON_MESSAGE[outcome.reason]), at: Date.now() });
       if (outcome.ok) {
         await reload();
         if (refreshConfig) retry(); // other screens read the sections from the school's configuration
@@ -555,8 +660,14 @@ export function ProgrammesScreen() {
   );
 
   const actions: StructureActions = {
-    addSection: (name) => run(createSection(api, name), "setup.done.sectionAdded", true),
-    renameSection: (key, name) => run(renameSection(api, key, name), "setup.done.sectionRenamed", true),
+    addSection: (values) => run(createSection(api, values.name, values.receiptCode), "setup.done.sectionAdded", true),
+    editSection: (section, values) => {
+      const changes = {
+        ...(values.name !== section.name ? { name: values.name } : {}),
+        ...(values.receiptCode && values.receiptCode !== section.receiptCode ? { receiptCode: values.receiptCode } : {}),
+      };
+      return run(updateSection(api, section.key, changes), changes.name ? "setup.done.sectionRenamed" : "structure.done.saved", true);
+    },
     addProgramme: (sectionKey, values) => run(createProgramme(api, { ...values, sectionKey }), "setup.done.added"),
     editProgramme: (programme, values) => run(updateProgramme(api, programme.id, values), "structure.done.saved"),
     setProgrammeActive: (programme, active) => run(setProgrammeActive(api, programme.id, active), active ? "setup.done.switchedOn" : "setup.done.switchedOff"),
@@ -571,6 +682,7 @@ export function ProgrammesScreen() {
 
   const none = view.status === "ready" && view.data.sections.length === 0;
   return (
+    <FailureContext.Provider value={failure}>
     <div className={styles.page}>
       <TitleRow>
         <div className={styles.titleBlock}>
@@ -580,13 +692,10 @@ export function ProgrammesScreen() {
         {canManage ? (
           <AddDialog label={t("setup.sections.add", words)} title={t("setup.sections.add", words)} openNow={askedToAdd && none}>
             {(close) => (
-              <NameForm
-                label={t("setup.sections.name", words)}
-                hint={t("setup.sections.nameHint")}
-                submitLabel={t("setup.sections.add", words)}
-                required={t("setup.error.sectionNameRequired", words)}
-                onSave={async (name) => (await actions.addSection(name)) && (close(), true)}
-              />
+              <>
+                <DialogFailure />
+                <SectionForm words={words} submitLabel={t("setup.sections.add", words)} onSave={async (values) => (await actions.addSection(values)) && (close(), true)} />
+              </>
             )}
           </AddDialog>
         ) : null}
@@ -611,5 +720,6 @@ export function ProgrammesScreen() {
       {view.status === "ready" ? <AcademicStructureView data={view.data} canManage={canManage} actions={actions} /> : null}
       {canManage ? null : <Notice>{t("setup.programmes.readOnly", { admin: term("role.admin") })}</Notice>}
     </div>
+    </FailureContext.Provider>
   );
 }

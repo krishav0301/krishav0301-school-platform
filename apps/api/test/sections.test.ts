@@ -5,6 +5,7 @@ import { verifyAuditChain } from "../src/core/audit";
 import { applyPack, parsePack } from "../src/core/config";
 import { listProgrammes } from "../src/modules/academics/queries";
 import { createProgramme, createSection, updateSection } from "../src/modules/academics/service";
+import { suggestReceiptCode } from "../src/modules/academics/sections";
 import { createUser } from "../src/modules/accounts/service";
 import royalJson from "../../../packs/royal-softech/pack.json";
 
@@ -44,10 +45,10 @@ describe("the Admin makes sections", () => {
     expect(made).toMatchObject({ ok: true });
     const sectionKey = (made as { key: string }).key;
     expect(sectionKey).toMatch(/^s[0-9a-f]{10}$/);
-    expect((await listProgrammes(db, "all")).sections).toContainEqual({ key: sectionKey, name: "Bachelor's", active: true, canDelete: true });
+    expect((await listProgrammes(db, "all")).sections).toContainEqual({ key: sectionKey, name: "Bachelor's", active: true, receiptCode: "BACH", receiptCodeLocked: false, canDelete: true });
 
     const audit = await db.prepare("SELECT action, summary FROM audit_events WHERE entity_public_id = ?1").bind(sectionKey).all<{ action: string; summary: string }>();
-    expect(audit.results).toEqual([{ action: "academics.section.created", summary: `Section "Bachelor's" added` }]);
+    expect(audit.results).toEqual([{ action: "academics.section.created", summary: `Section "Bachelor's" added (receipt code BACH)` }]);
     expect((await verifyAuditChain(db, key)).ok).toBe(true);
   });
 
@@ -97,7 +98,7 @@ describe("renaming a section", () => {
 
     expect(await updateSection(db, key, people.admin, sectionKey, { name: "High School" })).toEqual({ ok: true });
     const list = await listProgrammes(db, "all");
-    expect(list.sections).toContainEqual({ key: sectionKey, name: "High School", active: true, canDelete: false });
+    expect(list.sections).toContainEqual({ key: sectionKey, name: "High School", active: true, receiptCode: "HIGH", receiptCodeLocked: false, canDelete: false });
     expect(list.programmes.find((p) => p.name === "Grade 9 to 10")!.section).toEqual({ key: sectionKey, name: "High School" });
 
     const last = await db
@@ -123,10 +124,45 @@ describe("renaming a section", () => {
   });
 });
 
+describe("a section's receipt code (D-102, admin FUT F-18)", () => {
+  it("is suggested from the name when none is given: initials, digits kept whole, or the first four letters", () => {
+    expect(suggestReceiptCode("Master's Degrees")).toBe("MD");
+    expect(suggestReceiptCode("Bachelor's")).toBe("BACH");
+    expect(suggestReceiptCode("+2 (Grade 11-12)")).toBe("2G1112");
+    expect(suggestReceiptCode("High School Section Number Twelve Plus")).toHaveLength(6);
+    expect(suggestReceiptCode("A")).toBe("ASEC");
+  });
+
+  it("may be typed instead, in any case, and is stored in capitals; a malformed one is refused", async () => {
+    const made = (await createSection(db, key, people.admin, { name: "Plus Two Code", receiptCode: " p2 " })) as { key: string };
+    expect((await listProgrammes(db, "all")).sections.find((s) => s.key === made.key)).toMatchObject({ receiptCode: "P2" });
+    for (const receiptCode of ["P", "TOOLONG7", "P-2", "पी२"])
+      expect(await createSection(db, key, people.admin, { name: `Bad ${receiptCode}`, receiptCode }), receiptCode).toMatchObject({ ok: false, reason: "invalid" });
+  });
+
+  it("two sections never share one: a typed duplicate is refused, a suggested one gets a digit", async () => {
+    await createSection(db, key, people.admin, { name: "Dup One", receiptCode: "DUP" });
+    expect(await createSection(db, key, people.admin, { name: "Dup Two", receiptCode: "dup" })).toEqual({ ok: false, reason: "code_taken" });
+    const a = (await createSection(db, key, people.admin, { name: "Evening Shift" })) as { key: string };
+    const b = (await createSection(db, key, people.admin, { name: "Extra Studies" })) as { key: string };
+    const codes = (await listProgrammes(db, "all")).sections.filter((s) => [a.key, b.key].includes(s.key)).map((s) => s.receiptCode);
+    expect(codes).toEqual(["ES", "ES2"]);
+    expect(await updateSection(db, key, people.admin, b.key, { receiptCode: "ES" })).toEqual({ ok: false, reason: "code_taken" });
+  });
+
+  it("can be changed until the section issues a receipt, then is fixed; the change is audited", async () => {
+    const made = (await createSection(db, key, people.admin, { name: "Recode Me" })) as { key: string };
+    expect(await updateSection(db, key, people.admin, made.key, { receiptCode: "RM1" })).toEqual({ ok: true });
+    const last = await db.prepare("SELECT summary, before_json, after_json FROM audit_events WHERE entity_public_id = ?1 ORDER BY id DESC LIMIT 1").bind(made.key).first<{ summary: string; before_json: string; after_json: string }>();
+    expect(last).toEqual({ summary: 'Section "Recode Me" receipt code set to RM1', before_json: JSON.stringify({ receiptCode: "RM" }), after_json: JSON.stringify({ receiptCode: "RM1" }) });
+    expect(await updateSection(db, key, people.coordinator, made.key, { receiptCode: "XX" })).toEqual({ ok: false, reason: "not_allowed" });
+  });
+});
+
 describe("who sees which sections", () => {
   it("a section-scoped person sees only their own section in the list (CLAUDE.md section 5)", async () => {
     const mine = ((await createSection(db, key, people.admin, { name: "Scoped A" })) as { key: string }).key;
     await createSection(db, key, people.admin, { name: "Scoped B" });
-    expect((await listProgrammes(db, [mine])).sections).toEqual([{ key: mine, name: "Scoped A", active: true, canDelete: true }]);
+    expect((await listProgrammes(db, [mine])).sections).toEqual([{ key: mine, name: "Scoped A", active: true, receiptCode: "SA", receiptCodeLocked: false, canDelete: true }]);
   });
 });

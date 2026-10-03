@@ -8,6 +8,8 @@ import {
   classTitle,
   defaultYearId,
   emptyYearForm,
+  isReceiptCode,
+  suggestReceiptCode,
   levelChoices,
   manageableSections,
   termWords,
@@ -93,5 +95,19 @@ describe("words", () => {
   it("the school's own words for programme, level, section and terminal come from its configuration", () => {
     const term = (key: string) => ({ "term.terminal": "Exam" })[key as "term.terminal"] ?? key;
     expect(termWords(term)).toEqual({ programme: "term.programme", level: "term.level", section: "term.section", terminal: "Exam" });
+  });
+});
+
+describe("a section's receipt code (D-102, admin FUT F-18)", () => {
+  it("is suggested from the name the way the server makes one", () => {
+    expect(suggestReceiptCode("Master's Degrees")).toBe("MD");
+    expect(suggestReceiptCode("Bachelor's")).toBe("BACH");
+    expect(suggestReceiptCode("+2 (Grade 11-12)")).toBe("2G1112");
+    expect(suggestReceiptCode("")).toBe("");
+  });
+
+  it("is 2 to 6 letters or digits", () => {
+    for (const ok of ["P2", "bach", "ABC123"]) expect(isReceiptCode(ok), ok).toBe(true);
+    for (const bad of ["P", "TOOLONG", "P-2", ""]) expect(isReceiptCode(bad), bad).toBe(false);
   });
 });

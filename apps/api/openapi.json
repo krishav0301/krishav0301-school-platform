@@ -1096,6 +1096,15 @@
           "active": {
             "type": "boolean"
           },
+          "receiptCode": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "receiptCodeLocked": {
+            "type": "boolean"
+          },
           "canDelete": {
             "type": "boolean"
           }
@@ -1104,6 +1113,8 @@
           "key",
           "name",
           "active",
+          "receiptCode",
+          "receiptCodeLocked",
           "canDelete"
         ]
       },
@@ -1347,6 +1358,10 @@
             "type": "string",
             "minLength": 1,
             "maxLength": 60
+          },
+          "receiptCode": {
+            "type": "string",
+            "pattern": "^[A-Z0-9]{2,6}$"
           }
         },
         "required": [
@@ -1364,6 +1379,10 @@
           },
           "active": {
             "type": "boolean"
+          },
+          "receiptCode": {
+            "type": "string",
+            "pattern": "^[A-Z0-9]{2,6}$"
           }
         },
         "additionalProperties": false
@@ -8215,6 +8234,159 @@
           "attention",
           "website",
           "activity"
+        ]
+      },
+      "AuditTrail": {
+        "type": "object",
+        "properties": {
+          "rows": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "integer"
+                },
+                "onBs": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "time": {
+                  "type": "string"
+                },
+                "at": {
+                  "type": "string"
+                },
+                "action": {
+                  "type": "string"
+                },
+                "entityType": {
+                  "type": "string"
+                },
+                "summary": {
+                  "type": "string"
+                },
+                "reason": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "actor": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                }
+              },
+              "required": [
+                "id",
+                "onBs",
+                "time",
+                "at",
+                "action",
+                "entityType",
+                "summary",
+                "reason",
+                "actor"
+              ]
+            }
+          },
+          "total": {
+            "type": "integer"
+          },
+          "page": {
+            "type": "integer"
+          },
+          "pageSize": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "rows",
+          "total",
+          "page",
+          "pageSize"
+        ]
+      },
+      "SignInLog": {
+        "type": "object",
+        "properties": {
+          "rows": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "integer"
+                },
+                "onBs": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "time": {
+                  "type": "string"
+                },
+                "at": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "email": {
+                  "type": "string"
+                },
+                "success": {
+                  "type": "boolean"
+                },
+                "reason": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "ip": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                }
+              },
+              "required": [
+                "id",
+                "onBs",
+                "time",
+                "at",
+                "name",
+                "email",
+                "success",
+                "reason",
+                "ip"
+              ]
+            }
+          },
+          "total": {
+            "type": "integer"
+          },
+          "page": {
+            "type": "integer"
+          },
+          "pageSize": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "rows",
+          "total",
+          "page",
+          "pageSize"
         ]
       },
       "DateConversionFailure": {
@@ -17986,6 +18158,120 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/DashboardOverview"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/audit/events": {
+      "get": {
+        "operationId": "audit_trail",
+        "tags": [
+          "audit"
+        ],
+        "description": "The audit trail, newest first, 25 to a page, optionally of one area and matching a search. Support's own actions show as \"Support\".",
+        "parameters": [
+          {
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 10000
+            },
+            "required": false,
+            "name": "page",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "enum": [
+                "people",
+                "structure",
+                "admissions",
+                "daily",
+                "fees",
+                "results",
+                "approvals",
+                "website"
+              ]
+            },
+            "required": false,
+            "name": "area",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "maxLength": 100
+            },
+            "required": false,
+            "name": "q",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "One page of the audit trail",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuditTrail"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/audit/sign-ins": {
+      "get": {
+        "operationId": "sign_in_log",
+        "tags": [
+          "audit"
+        ],
+        "description": "Sign-in attempts, newest first, 25 to a page, optionally only the failed ones (failed passwords and failed second steps) or matching a search.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 10000
+            },
+            "required": false,
+            "name": "page",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "enum": [
+                "0",
+                "1"
+              ]
+            },
+            "required": false,
+            "name": "failed",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "maxLength": 100
+            },
+            "required": false,
+            "name": "q",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "One page of sign-in attempts",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SignInLog"
                 }
               }
             }

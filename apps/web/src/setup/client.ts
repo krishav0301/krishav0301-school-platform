@@ -35,7 +35,7 @@ function reasonOf(response: Response, error: unknown): FailReason {
   if (status === 404) return "not_found";
   if (status === 409) {
     const code = (error as { error?: string } | undefined)?.error;
-    return code === "year_closed" || code === "another_active" || code === "in_use" ? code : "conflict";
+    return code === "year_closed" || code === "another_active" || code === "in_use" || code === "code_taken" || code === "code_locked" ? code : "conflict";
   }
   if (status === 400 || status === 422) return "rejected";
   return "failed";
@@ -78,14 +78,15 @@ export async function createYear(api: ApiClient, values: YearFormValues): Promis
 export const activateYear = async (api: ApiClient, id: string): Promise<WriteResult> =>
   done(await send(() => api.POST("/api/academics/years/{id}/activate", { params: { path: { id } } })));
 
-/** Adds a section (D-095). Its key comes back as the id. */
-export const createSection = async (api: ApiClient, name: string): Promise<CreateResult> => {
-  const sent = await send(() => api.POST("/api/academics/sections", { body: { name } }));
+/** Adds a section (D-095) with its receipt code (D-102). Its key comes back as the id. */
+export const createSection = async (api: ApiClient, name: string, receiptCode?: string): Promise<CreateResult> => {
+  const sent = await send(() => api.POST("/api/academics/sections", { body: receiptCode ? { name, receiptCode } : { name } }));
   return sent.ok ? { ok: true, id: (sent.data as { key: string }).key } : sent;
 };
 
-export const renameSection = async (api: ApiClient, key: string, name: string): Promise<WriteResult> =>
-  done(await send(() => api.PATCH("/api/academics/sections/{key}", { params: { path: { key } }, body: { name } })));
+/** Renames a section, or gives it a receipt code while it may still change (D-102). */
+export const updateSection = async (api: ApiClient, key: string, changes: { name?: string; receiptCode?: string }): Promise<WriteResult> =>
+  done(await send(() => api.PATCH("/api/academics/sections/{key}", { params: { path: { key } }, body: changes })));
 
 /** Switches a section off or on (D-097). */
 export const setSectionActive = async (api: ApiClient, key: string, active: boolean): Promise<WriteResult> =>

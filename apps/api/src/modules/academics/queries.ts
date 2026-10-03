@@ -72,6 +72,12 @@ export const SECTION_FREE = (s: string) =>
     AND NOT EXISTS (SELECT 1 FROM staff_profiles x WHERE x.home_section_id = ${s}.id) AND NOT EXISTS (SELECT 1 FROM receipt_counters x WHERE x.section_id = ${s}.id)
     AND NOT EXISTS (SELECT 1 FROM receipts x WHERE x.section_id = ${s}.id))`;
 
+/**
+ * A section's receipt code is fixed once it has a code and has issued a receipt (D-102). A section from before codes,
+ * with none, may still be given one: its earlier receipts keep their key-numbered form.
+ */
+export const CODE_LOCKED = (s: string) => `(${s}.receipt_code IS NOT NULL AND EXISTS (SELECT 1 FROM receipts x WHERE x.section_id = ${s}.id))`;
+
 /** The programmes of these sections, each with its levels in order. One database round trip. */
 export async function listProgrammes(db: D1Database, sections: "all" | readonly string[]): Promise<ProgrammeList> {
   const filter = sectionFilter(sections);
@@ -89,7 +95,7 @@ export async function listProgrammes(db: D1Database, sections: "all" | readonly 
       )
       .bind(filter),
     db
-      .prepare(`SELECT key, name, is_active, ${SECTION_FREE("sections")} AS can_delete FROM sections WHERE (?1 IS NULL OR key IN (SELECT value FROM json_each(?1))) ORDER BY ordering, id`)
+      .prepare(`SELECT key, name, is_active, receipt_code, ${CODE_LOCKED("sections")} AS code_locked, ${SECTION_FREE("sections")} AS can_delete FROM sections WHERE (?1 IS NULL OR key IN (SELECT value FROM json_each(?1))) ORDER BY ordering, id`)
       .bind(filter),
     // Students per level in the active year (D-096): counted here, never by fetching their records.
     db
@@ -133,7 +139,14 @@ export async function listProgrammes(db: D1Database, sections: "all" | readonly 
       programme.students += students;
     }
   }
-  const listed = (sectionRows!.results as unknown as { key: string; name: string; is_active: number; can_delete: number }[]).map((s) => ({ key: s.key, name: s.name, active: s.is_active === 1, canDelete: s.can_delete === 1 }));
+  const listed = (sectionRows!.results as unknown as { key: string; name: string; is_active: number; receipt_code: string | null; code_locked: number; can_delete: number }[]).map((s) => ({
+    key: s.key,
+    name: s.name,
+    active: s.is_active === 1,
+    receiptCode: s.receipt_code,
+    receiptCodeLocked: s.code_locked === 1,
+    canDelete: s.can_delete === 1,
+  }));
   const on = programmes.filter((p) => p.active);
   return {
     programmes,

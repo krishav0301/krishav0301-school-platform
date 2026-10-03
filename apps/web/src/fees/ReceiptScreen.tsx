@@ -3,6 +3,7 @@
 import { useCallback } from "react";
 
 import { useAddressQuery } from "@/content/address";
+import { formatBsDate } from "@/content/model";
 import { useConfig } from "@/config/ConfigProvider";
 import { t } from "@/i18n/messages";
 import { useSession } from "@/session/SessionProvider";
@@ -48,7 +49,7 @@ export function ReceiptScreen() {
             <dt>{t("fees.receipt.number")}</dt>
             <dd>{r.number}</dd>
             <dt>{t("fees.receipt.date")}</dt>
-            <dd>{r.issuedOnBs ?? r.issuedAt.slice(0, 10)}</dd>
+            <dd>{r.issuedOnBs ? formatBsDate(r.issuedOnBs) : r.issuedAt.slice(0, 10)}</dd>
             <dt>{t("fees.receipt.student")}</dt>
             <dd>
               {r.studentName} ({r.sid})
