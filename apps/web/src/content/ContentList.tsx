@@ -504,22 +504,24 @@ function Row({ item, now, busy, actions, onEdit }: { item: ContentSummary; now: 
         </div>
       </td>
       <td className={styles.actionsCell}>
-        {actions.primary === "view" ? (
-          <a href="/notices" className={`${buttonClass({ variant: "secondary" })} ${styles.rowButton}`} target="_blank" rel="noreferrer" aria-label={t("content.viewItem", { title: item.title })}>
-            {t("content.view")}
-          </a>
-        ) : actions.primary === "edit" ? (
-          <Button variant="secondary" className={styles.rowButton} disabled={busy !== null} aria-label={t("content.editItem", { title: item.title })} onClick={onEdit}>
-            {t("content.edit")}
-          </Button>
-        ) : null}
-        {actions.more.length === 1 ? (
-          <Button variant="quiet" disabled={busy !== null} onClick={actions.more[0]!.onSelect}>
-            {actions.more[0]!.label}
-          </Button>
-        ) : (
-          <RowMenu label={t("content.more", { title: item.title })} actions={actions.more} disabled={busy !== null} />
-        )}
+        <div className={styles.actionsRow}>
+          {actions.primary === "view" ? (
+            <a href="/notices" className={`${buttonClass({ variant: "secondary" })} ${styles.rowButton}`} target="_blank" rel="noreferrer" aria-label={t("content.viewItem", { title: item.title })}>
+              {t("content.view")}
+            </a>
+          ) : actions.primary === "edit" ? (
+            <Button variant="secondary" className={styles.rowButton} disabled={busy !== null} aria-label={t("content.editItem", { title: item.title })} onClick={onEdit}>
+              {t("content.edit")}
+            </Button>
+          ) : null}
+          {actions.more.length === 1 ? (
+            <Button variant="quiet" disabled={busy !== null} onClick={actions.more[0]!.onSelect}>
+              {actions.more[0]!.label}
+            </Button>
+          ) : (
+            <RowMenu label={t("content.more", { title: item.title })} actions={actions.more} disabled={busy !== null} />
+          )}
+        </div>
       </td>
     </tr>
   );

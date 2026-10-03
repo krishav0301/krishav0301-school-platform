@@ -45,7 +45,7 @@ const { open, shot, finish, BASE } = require("./lib.cjs");
     });
     await step("send", async () => {
       await go();
-      await shot(p, "14-04-draft-row", "The draft in the list, with Edit and Send for approval inside the table (F-09 checked)", { full: false });
+      await shot(p, "14-04-draft-row", "The draft in the list, with Edit and Send for approval inside the table (F-09 fixed)", { full: false });
       await p.getByRole("row", { name: /Parents' meeting/ }).getByRole("button", { name: /Send for approval/ }).or(p.getByRole("button", { name: /Send for approval/ }).first()).first().click();
       await p.waitForTimeout(1500);
       await shot(p, "14-05-sent-for-approval", "Sent: the notice waits for the Principal and is listed under Your requests");

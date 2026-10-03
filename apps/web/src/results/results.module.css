@@ -159,7 +159,7 @@ a.wrapLabel {
 }
 
 .publishRow > p {
-  flex: 1 1 16rem;
+  flex: 1 1 min(16rem, 100%);
   margin: 0;
 }
 
@@ -200,13 +200,15 @@ a.wrapLabel {
 }
 
 .pickRow > :first-child {
-  flex: 1 1 12rem;
+  flex: 1 1 min(12rem, 100%);
+  min-width: 0;
 }
 
 .picks {
   display: flex;
-  flex: 1 1 18rem;
+  flex: 1 1 min(18rem, 100%);
   flex-direction: column;
+  min-width: 0;
   gap: var(--space-3);
   max-width: 26rem;
 }

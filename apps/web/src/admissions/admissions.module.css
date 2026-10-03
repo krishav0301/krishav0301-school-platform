@@ -105,7 +105,7 @@
 }
 
 .footRow > * {
-  flex: 1 1 8rem;
+  flex: 1 1 min(8rem, 100%);
 }
 
 /* The walk-in and registration form (D-106): two columns where there is room, one on a phone. */

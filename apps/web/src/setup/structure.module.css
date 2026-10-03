@@ -162,7 +162,12 @@
   font-size: var(--text-xl);
   font-weight: var(--weight-bold);
   line-height: var(--leading-tight);
-  overflow-wrap: anywhere;
+  overflow-wrap: break-word;
+  /* Never wider than its card; a long word hyphenates rather than pushing the page sideways (D-105). */
+  max-width: 100%;
+  /* It does not shrink beside the badges; it moves to its own line instead, so its words stay whole. */
+  flex-shrink: 0;
+  hyphens: auto;
 }
 
 .meta {
@@ -289,7 +294,12 @@
   margin: 0;
   font-size: var(--text-lg);
   font-weight: var(--weight-bold);
-  overflow-wrap: anywhere;
+  overflow-wrap: break-word;
+  /* Never wider than its card; a long word hyphenates rather than pushing the page sideways (D-105). */
+  max-width: 100%;
+  /* It does not shrink beside the badges; it moves to its own line instead, so its words stay whole. */
+  flex-shrink: 0;
+  hyphens: auto;
 }
 
 /* --- Levels: rows inside their programme -------------------------------------------------------------- */
@@ -396,4 +406,36 @@
   margin: 0;
   color: var(--color-bad);
   font-weight: var(--weight-medium);
+}
+
+/* Enlarged text on a narrow phone (D-105, D-106): the icon tiles only repeat the words beside them, so they step aside,
+   and the nested cards' padding tightens, so a programme's name keeps whole words instead of a sliver of the width. */
+@media (max-width: 24em) {
+  .tile {
+    display: none;
+  }
+
+  .total,
+  .sectionHead {
+    padding: var(--space-3);
+  }
+
+  /* A programme's card sits inside its section's: the two layers of side padding are the narrowest they can be. */
+  .programmeHead {
+    padding: var(--space-3) var(--space-2);
+  }
+
+  .body,
+  .programme .body {
+    padding: 0 var(--space-2) var(--space-3);
+  }
+
+  /* One step smaller, so "+2 Management" keeps whole words at 320 px; hyphenation is not available everywhere. */
+  .sectionName {
+    font-size: var(--text-lg);
+  }
+
+  .programmeName {
+    font-size: var(--text-base);
+  }
 }

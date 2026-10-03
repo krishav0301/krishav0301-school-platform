@@ -30,7 +30,7 @@ const FIRST_RUN = [
   ["F-06", "Medium (gap)", "A search result could not be opened, and no screen or route corrected a student's details.", "A result opens the record, and Correct details saves changes with a reason in the audit trail (`PATCH /api/students/{id}`).", "09-07 to 09-09"],
   ["F-07", "Low", "The review board opened on the last terminal, and missing marks were counted per component.", "It opens on the terminal in progress, and counts students.", "12-01, 12-02"],
   ["F-08", "Medium", "The Co-ordinator's form offered Publish, which she may never do, and it led nowhere.", "The form offers Save draft and Send for approval in one step.", "14-02, 14-06"],
-  ["F-09", "Cosmetic", "The row's Send for approval link ran past the table's edge at 1440 px.", "Checked: it sits inside the table.", "14-04"],
+  ["F-09", "Cosmetic", "The row's Send for approval link ran past the table's edge at 1440 px.", "The row's actions wrap, the second under the first, inside the table.", "14-04"],
   ["F-10", "Low", "Reports worked by address but had no menu entry.", "Reports is in her menu, showing only the groups she may read.", "15-07"],
   ["F-11", "Low", "A Bachelor's-only Co-ordinator's walk-in form listed +2 levels.", "Only his section's levels are listed.", "16-07"],
   ["F-12", "Low", "At 375 px the phone's tab bar wrapped onto a second row.", "Checked: one row (fixed with the Principal's F-15).", "17-01"],
