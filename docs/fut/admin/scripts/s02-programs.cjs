@@ -20,7 +20,7 @@ const { open, shot, finish, BASE } = require("./lib.cjs");
     await shot(p, "02-02-section-name-required", "Add a Section with no name: the name is asked for", { el: "dialog[open]" });
 
     await dialog().getByLabel("Section name").fill("+2 (Grade 11–12)");
-    await shot(p, "02-03-section-name-typed", "Add a Section: typing the section's name", { el: "dialog[open]" });
+    await shot(p, "02-03-section-name-typed", "Add a Section: typing the section's name; the receipt code is suggested from the name (P2), and can be changed (F-18 fixed)", { el: "dialog[open]" });
     await dialog().getByRole("button", { name: "Add a Section" }).click();
     await p.waitForSelector('h2:has-text("+2 (Grade 11–12)")');
     await shot(p, "02-04-first-section-added", "The first section is added, with no programmes in it yet");
@@ -34,7 +34,7 @@ const { open, shot, finish, BASE } = require("./lib.cjs");
     await dialog().getByLabel("Section name").fill("Bachelor's");
     await dialog().getByRole("button", { name: "Add a Section" }).click();
     await p.waitForTimeout(1500);
-    await shot(p, "02-06-section-duplicate-name", "A second section with the same name is refused (\"That already exists.\"); the message shows on the page behind the dialog (finding F-01)", { full: false });
+    await shot(p, "02-06-section-duplicate-name", "A second section with the same name is refused (\"That already exists.\"); the message is said inside the dialog (F-01 fixed)", { full: false });
     await dialog().getByRole("button", { name: "Close" }).click();
   } catch (e) {
     console.error(e);

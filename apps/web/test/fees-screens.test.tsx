@@ -5,7 +5,7 @@ import { ConfigContext, makeConfigValue, type PublicConfig } from "@/config/Conf
 import { AccountView } from "@/fees/AccountView";
 import { FeesTabs } from "@/fees/FeesTabs";
 import { FeesHome } from "@/fees/FeesHome";
-import { DuesScreen } from "@/fees/DuesScreen";
+import { DuesScreen, dueState } from "@/fees/DuesScreen";
 import type { Account } from "@/fees/model";
 import { SessionContext } from "@/session/SessionProvider";
 import { fakeSession } from "./session";
@@ -84,5 +84,13 @@ describe("fees places", () => {
 
   it("the dues list shows the shape of the page while it loads", () => {
     expect(inContext(<DuesScreen />)).toMatch(/role="status"[^>]*aria-busy="true"/);
+  });
+});
+
+describe("the dues list's words (admin FUT F-10)", () => {
+  it("a student with nothing charged is not shown as paid up", () => {
+    expect(dueState({ chargedPaisa: 0, paidPaisa: 0, duePaisa: 0 })).toBe("nothing");
+    expect(dueState({ chargedPaisa: 300_000, paidPaisa: 300_000, duePaisa: 0 })).toBe("clear");
+    expect(dueState({ chargedPaisa: 300_000, paidPaisa: 0, duePaisa: 300_000 })).toBe("due");
   });
 });

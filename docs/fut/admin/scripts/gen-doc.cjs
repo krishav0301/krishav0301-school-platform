@@ -12,8 +12,8 @@ const findings = fs
   .trim()
   .split("\n")
   .map((l) => {
-    const [id, severity, where, what, shots] = l.split(" | ");
-    return { id, severity, where, what, shots };
+    const [id, severity, where, what, fix, shots] = l.split(" | ");
+    return { id, severity, where, what, fix, shots };
   });
 const commit = execFileSync("git", ["-C", require("path").resolve(__dirname, "../../../.."), "rev-parse", "--short", "HEAD"]).toString().trim();
 
@@ -32,7 +32,7 @@ const SECTIONS = [
   ["02", "Programs: sections", "The Principal builds the school's sections (D-095). No section is built in: a new school starts with none."],
   ["03", "Programs: programmes, levels and grading", "Programmes inside sections, their levels, the grading policy, rename, switch off and on, delete."],
   ["04", "People & Access: Co-ordinators and Accountants", "The Principal gives access to Co-ordinators and Accountants (never teachers), chooses where it reaches, and manages it (D-099)."],
-  ["05", "Approvals: fee structures and website drafts", "Requests from the Accountant and the Co-ordinator, approved or declined with a reason."],
+  ["05", "Approvals: fee structures and website drafts", "Requests from the Accountant and the Co-ordinator (D-102): each card offers Review; the panel shows everything the decision needs and holds Approve request, which asks once more; Decline request needs a reason."],
   ["06", "Approvals: money requests", "Discounts, a refund, a payment reversal and a corrected fee structure. Approve-and-apply happens once, even from two tabs."],
   ["07", "Reading the school: attendance, classwork, fees, results, reports", "Everything the Principal reads but does not change."],
   ["08", "Website Content", "All seven kinds of content, scheduling, hide-after, holidays, validation, filters, search, edit, take down, archive, and the public website (D-098)."],
@@ -48,14 +48,13 @@ const passCount = manifest.filter((e) => !findingFor[e.id]).length;
 
 w("# Admin (Principal) functional user test (FUT)");
 w();
-w(`Royal Softech College on the school platform. Every operation the Admin (the Principal) can do, run through the real screens, with a screenshot of each step. Run on ${new Date().toISOString().slice(0, 10)} (16 Ashwin 2083) against commit \`${commit}\` (main after PR #28) with the F-02 fix, on a fresh local school.`);
+w(`Royal Softech College on the school platform. Every operation the Admin (the Principal) can do, run through the real screens, with a screenshot of each step. The first run (2 October 2026, 16 Ashwin 2083) found ${findings.length} findings; all of them were fixed (D-100, D-102), and this is the run again on a fresh local school on ${new Date().toISOString().slice(0, 10)} (17 Ashwin 2083) against the fixed code (commit \`${commit}\` with this document).`);
 w();
 w("## Summary");
 w();
 w(`- **${manifest.length} steps** with a screenshot each, in ${SECTIONS.length} areas, plus **${denied.length} server checks** of things the Principal must not do.`);
-w(`- **${passCount} steps behaved as expected**; ${manifest.length - passCount} steps carry one of the findings below.`);
-w(`- **${findings.length} findings**: ${["High", "Medium", "Low", "Cosmetic"].map((sev) => `${findings.filter((f) => f.severity.startsWith(sev)).length} ${sev.toLowerCase()}`).join(", ")} (some are gaps rather than faults).`);
-w("- **One blocking bug was found and fixed during the test (F-02):** the Principal could not add any programme. The fix and its regression test are in the same commit as this document.");
+w(`- **Every step behaved as expected.** ${manifest.length - passCount} of them show where a finding of the first run is now fixed; they are marked in the Result column.`);
+w(`- **All ${findings.length} findings of the first run are fixed** (${["High", "Medium", "Low", "Cosmetic"].map((sev) => `${findings.filter((f) => f.severity.startsWith(sev)).length} ${sev.toLowerCase()}`).join(", ")}): see [Findings](#findings) for what each was and what changed. The largest: receipt numbers now start with a receipt code the Principal chooses for each section (F-18), the Audit trail and Sign-ins have their own screens (F-11), and Approvals was redesigned, with a review panel that shows everything a decision needs (F-03, F-06, F-07, F-13).`);
 w("- **Every forbidden action was refused by the server** (403), including approving one's own request. Permission is never left to the screens alone.");
 w();
 w("## How the test was run");
@@ -70,7 +69,7 @@ w("### Test data");
 w();
 w("| What | Made by | Detail |");
 w("|---|---|---|");
-w("| Sections | Principal (02) | +2 (Grade 11–12), Bachelor's, Master's (renamed Master's Degrees, then switched off) |");
+w("| Sections | Principal (02) | +2 (Grade 11–12), Bachelor's, Master's (renamed Master's Degrees, then switched off), each with its receipt code (P2, BACH, MAST) |");
 w("| Programmes | Principal (03) | +2 Science, +2 Management (NEB, NEB GPA); BBS (TU), BIT (PU) (percentage and division); MBS made and deleted |");
 w("| Co-ordinators | Principal (04) | Sita Sharma (whole school); Hari Prasad Yadav (Bachelor's, then +2 and Bachelor's) |");
 w("| Accountants | Principal (04) | Gita Thapa (whole school); Ramesh Shrestha (+2 only; switched off and on again) |");
@@ -96,7 +95,7 @@ for (const [prefix, title, intro] of SECTIONS) {
   w("|---|---|---|---|");
   for (const e of steps) {
     const f = findingFor[e.id];
-    const result = f ? `See ${f.join(", ")}` : "Pass";
+    const result = f ? `Pass (${f.join(", ")} fixed)` : "Pass";
     w(`| [${e.id.slice(0, 5)}](#${e.id}) | ${e.title.replace(/\|/g, "\\|")} | ${result} | \`${e.url || "/"}\` |`);
   }
   w();
@@ -115,8 +114,10 @@ for (const [prefix, title, intro] of SECTIONS) {
     w("| What the Principal tried | Request | Answer |");
     w("|---|---|---|");
     for (const r of denied) {
-      const ok = r.status === 403 || (r.what.startsWith("Create another Admin") && r.status === 400) || r.what.startsWith("Send own draft");
-      w(`| ${r.what} | \`${r.method} ${r.path}\` | ${r.status}${ok ? "" : " (unexpected)"} ${r.what.startsWith("Create another Admin") ? "(refused: the role must be Co-ordinator or Accountant)" : r.what.startsWith("Send own draft") ? "(allowed; see F-13)" : "forbidden"} |`);
+      const allowed = r.what.startsWith("Send own draft") || r.what.startsWith("Withdraw own request");
+      const ok = r.status === 403 || (r.what.startsWith("Create another Admin") && r.status === 400) || (allowed && r.status < 300);
+      const word = r.what.startsWith("Create another Admin") ? "(refused: the role must be Co-ordinator or Accountant)" : allowed ? "(allowed: one's own request may be sent and taken back, never decided)" : r.what.startsWith("Approve own request") ? "forbidden (own_request: another Admin must decide it)" : "forbidden";
+      w(`| ${r.what} | \`${r.method} ${r.path}\` | ${r.status}${ok ? "" : " (unexpected)"} ${word} |`);
     }
     w();
   }
@@ -124,13 +125,13 @@ for (const [prefix, title, intro] of SECTIONS) {
 
 w("## Findings");
 w();
-w("Severity: **High** blocks the Principal's work; **Medium** gives wrong or missing information on a real task; **Low** is confusing but has a way round; **Cosmetic** is appearance only.");
+w("What the first run found, and what changed. Severity: **High** blocked the Principal's work; **Medium** gave wrong or missing information on a real task; **Low** was confusing but had a way round; **Cosmetic** was appearance only. Every one is fixed; the Steps column shows where this run checks it.");
 w();
-w("| ID | Severity | Where | What happens | Steps |");
-w("|---|---|---|---|---|");
-for (const f of findings) w(`| ${f.id} | ${f.severity} | ${f.where} | ${f.what.replace(/\|/g, "\\|")} | ${f.shots} |`);
+w("| ID | Severity | Where | What the first run found | Fixed (D-100, D-102) | Steps |");
+w("|---|---|---|---|---|---|");
+for (const f of findings) w(`| ${f.id} | ${f.severity} | ${f.where} | ${f.what.replace(/\|/g, "\\|")} | ${f.fix.replace(/\|/g, "\\|")} | ${f.shots} |`);
 w();
-w("Only F-02 was fixed in this round, because it blocked the test. The others are for the PM to schedule: most are small and local to one screen; F-11 is a missing screen, and F-18 touches how receipt numbers are formed, which belongs to the fees rules.");
+w("F-18 changed how receipt numbers are formed, a fees rule, as the PM chose (a short code per section); F-13 widened `approvals.view.own` to the Admin and Support so they can take back their own request. Both are recorded in D-102 with the tests that cover them.");
 w();
 w("## What the Principal can do, and where it was tested");
 w();
@@ -149,7 +150,7 @@ const COVER = [
   ["content.draft / content.publish", "Draft and publish website content", "08"],
   ["setup.programmes.manage", "Sections, programmes, levels, grading", "02, 03"],
   ["setup.structure.view / subjects.view / assignments.view", "View years, classes, terminals, subjects, curriculum, teaching", "07-25 to 07-30, 12-05"],
-  ["students.search / students.personal.view", "Find a student, view personal details", "07-31 (record view not reachable, F-09)"],
+  ["students.search / students.personal.view", "Find a student, view personal details", "07-31, 07-32"],
   ["attendance.student.view / attendance.teacher.view", "View attendance", "07-01 to 07-06"],
   ["activity.read", "Read the activity log", "07-07, 07-08"],
   ["fees.structure.approve", "Approve a fee structure", "05-03, 05-06, 06-06"],
@@ -157,7 +158,8 @@ const COVER = [
   ["fees.discount.approve / reversal.approve / refund.approve", "Approve money requests", "06"],
   ["results.view / results.top20.view", "Published results, class sheets, Top 20", "07-20 to 07-23"],
   ["approvals.decide / approvals.request", "Decide requests; send own draft", "05, 06, 10-07, 10-08"],
-  ["audit.view", "Activity and sign-ins", "05-01, 12-06 (dashboard only; F-11)"],
+  ["approvals.view.own", "See and take back one's own request", "10-08, 10-08a"],
+  ["audit.view", "Audit trail and sign-ins", "05-01, 07-34 to 07-38"],
   ["dashboard.overview.view", "The Principal's dashboard", "01-08, 05-01, 12-06, 12-07"],
   ["dev.mailbox.view", "Test mailbox", "09-19"],
   ["reports.students / fees / results", "Reports and exports", "07-19 (dues CSV), 07-22 (results CSV), 07-24"],

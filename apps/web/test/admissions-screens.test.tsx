@@ -8,6 +8,12 @@ import { QueueRow } from "@/admissions/QueueScreen";
 import { RegisterScreen } from "@/admissions/RegisterScreen";
 import { SearchScreen } from "@/admissions/SearchScreen";
 import { StudentRecordCard } from "@/admissions/StudentRecordCard";
+import { StudentDetails } from "@/admissions/StudentScreen";
+import AdmissionsPage from "@/app/portal/admissions/page";
+import RegisterPage from "@/app/portal/admissions/register/page";
+import OwnAttendancePage from "@/app/portal/attendance/mine/page";
+import ReviewSheetPage from "@/app/portal/results/review/page";
+import { RoleGate } from "@/shell/RoleGate";
 import { emptyApplicantForm, validateApplicant, type ApplicationSummary, type OpenLevel } from "@/admissions/model";
 import { ConfigContext, makeConfigValue, type PublicConfig } from "@/config/ConfigProvider";
 import { SessionContext } from "@/session/SessionProvider";
@@ -163,5 +169,35 @@ describe("AdmissionsTabs", () => {
     expect(accountantHtml).not.toContain("Queue");
     expect(accountantHtml).toContain("Register");
     expect(accountantHtml).toContain("Search");
+  });
+
+  it("offers the Principal no Register form: Search is their only reach, and a menu of one is not shown (admin FUT F-08)", () => {
+    expect(inContext(<AdmissionsTabs pathname="/portal/admissions/search" />, as("admin"))).toBe("");
+    const html = inContext(<AdmissionsPage />, as("admin"));
+    expect(html).toContain("Student search");
+    expect(html).not.toContain("Register a student");
+  });
+});
+
+describe("pages of other roles, opened by address (admin FUT F-14)", () => {
+  it("say the same thing: no access, rather than an empty screen or a form", () => {
+    for (const page of [<RegisterPage key="r" />, <OwnAttendancePage key="a" />, <ReviewSheetPage key="v" />]) expect(inContext(page, as("admin"))).toContain("You do not have access to this page.");
+    expect(inContext(<RoleGate roles={["teacher"]}>shown</RoleGate>, as("teacher"))).toBe("shown");
+  });
+});
+
+describe("a student's record from Student search (admin FUT F-09)", () => {
+  it("search results open the record, which shows the personal details read only", () => {
+    const html = inContext(
+      <StudentDetails
+        student={{ id: "s1", sid: "2083-00012", firstName: "Rishav", middleName: null, lastName: "Kumar", dob: "2008-05-01", dobBs: "2065-01-19", phone: "9800000000", email: null, guardianName: "Ram Kumar", guardianPhone: "9811111111", previousSchool: null, status: "active", className: "BBS · Year 1", createdAt: "2026-09-01T00:00:00Z" }}
+      />,
+      as("admin"),
+    );
+    expect(html).toContain(">Rishav Kumar</h1>");
+    expect(html).toContain("2083-00012");
+    expect(html).toContain("19 Baisakh 2065");
+    expect(html).toContain("Ram Kumar");
+    expect(html).not.toMatch(/<input|<button/);
   });
 });

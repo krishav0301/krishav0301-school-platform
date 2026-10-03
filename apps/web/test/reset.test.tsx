@@ -92,7 +92,8 @@ describe("the reset pages", () => {
 
   it("the sign-in page offers 'Forgot your password?' as a quiet link, so it does not compete with Sign in", () => {
     const html = inContext(<SignInPage />);
-    expect(html).toMatch(/<a[^>]*class="button quiet full"[^>]*href="\/reset-password"[^>]*>Forgot your password\?<\/a>|<a[^>]*href="\/reset-password"[^>]*class="button quiet full"[^>]*>Forgot your password\?<\/a>/);
+    // It may wrap onto two lines at 320 px with text at 200% (admin FUT F-16), so it carries one more class.
+    expect(html).toMatch(/<a[^>]*class="button quiet full wrapLink"[^>]*href="\/reset-password"[^>]*>Forgot your password\?<\/a>|<a[^>]*href="\/reset-password"[^>]*class="button quiet full wrapLink"[^>]*>Forgot your password\?<\/a>/);
     expect(html.match(/class="button primary/g)).toHaveLength(1);
   });
 });

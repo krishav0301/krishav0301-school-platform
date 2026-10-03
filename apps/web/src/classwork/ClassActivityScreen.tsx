@@ -6,7 +6,8 @@ import { useCallback, useState } from "react";
 import { useAddressQuery } from "@/content/address";
 import { toAd } from "@/content/client";
 import { BsDateField } from "@/content/BsDateField";
-import { t } from "@/i18n/messages";
+import { isWholeBsDate } from "@/content/model";
+import { t, type MessageKey } from "@/i18n/messages";
 import { useSession } from "@/session/SessionProvider";
 import setupStyles from "@/setup/setup.module.css";
 import { Gate, useLoad } from "@/setup/useLoad";
@@ -23,7 +24,7 @@ export function ClassActivityScreen() {
   const id = search === null ? "" : (new URLSearchParams(search).get("id") ?? "");
   const [date, setDate] = useState<string | undefined>(undefined);
   const [bs, setBs] = useState("");
-  const [badDay, setBadDay] = useState(false);
+  const [dayError, setDayError] = useState<MessageKey | null>(null);
 
   const loadNow = useCallback(async () => {
     if (!id) return gateFailure("failed");
@@ -33,8 +34,10 @@ export function ClassActivityScreen() {
   const { view, reload } = useLoad<ClassActivityDay>(loadNow);
 
   async function show() {
+    // A day with its month or year missing asks for them, rather than blaming the calendar (admin FUT F-19).
+    if (!isWholeBsDate(bs)) return setDayError("attendance.class.incompleteDay");
     const result = await toAd(api, bs.trim());
-    setBadDay(!result.ok);
+    setDayError(result.ok ? null : "classwork.badDay");
     if (result.ok) setDate(result.ad);
   }
 
@@ -48,7 +51,7 @@ export function ClassActivityScreen() {
           <>
             <h1 className={setupStyles.title}>{className(day)}</h1>
             <div className={styles.dayPicker}>
-              <BsDateField legend={t("attendance.class.otherDay")} hint={t("classwork.pickDayHint")} error={badDay ? t("classwork.badDay") : undefined} value={bs} onChange={setBs} />
+              <BsDateField legend={t("attendance.class.otherDay")} hint={t("classwork.pickDayHint")} error={dayError ? t(dayError) : undefined} value={bs} onChange={setBs} />
               <Button className={styles.wrapLabel} variant="secondary" onClick={() => void show()}>
                 {t("classwork.show")}
               </Button>

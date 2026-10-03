@@ -1,6 +1,9 @@
 import { beforeAll, describe, expect, it } from "vitest";
 
+import { recordAudit } from "../src/core/audit";
 import { createSection } from "../src/modules/academics/service";
+import { seedSections } from "./academics-helpers";
+import { classWith } from "./schoolday-helpers";
 import { auditKey, call, db, person, type Person } from "./academics-helpers";
 
 /**
@@ -71,6 +74,20 @@ describe("the audit trail", () => {
       expect((await call("/api/audit/sign-ins", { cookie: who.cookie })).status, role).toBe(403);
     }
     expect((await call("/api/audit/events")).status).toBe(401);
+  });
+
+  it("an admission reads by the student's name and student ID, never an internal id (admin FUT F-04)", async () => {
+    await seedSections();
+    const fixture = await classWith("plus2", 1);
+    const student = await db
+      .prepare("SELECT st.public_id, st.sid, st.first_name || ' ' || st.last_name AS name FROM students st JOIN enrollments en ON en.student_id = st.id WHERE en.public_id = ?1")
+      .bind(fixture.pupils[0]!.enrollmentId)
+      .first<{ public_id: string; sid: string; name: string }>();
+    await recordAudit(db, auditKey, { action: "admissions.approved", entityType: "student", entityPublicId: student!.public_id, actorPublicId: admin.publicId, summary: `Application approved; student ${student!.public_id} created` });
+    const body = (await (await trail(admin, "?area=admissions")).json()) as Trail;
+    expect(body.rows[0]!.summary).toBe(`${student!.name} admitted (${student!.sid})`);
+    const dashboard = (await (await call("/api/dashboard/overview", { cookie: admin.cookie })).json()) as { activity: { summary: string }[] };
+    expect(dashboard.activity[0]!.summary).toBe(`${student!.name} admitted (${student!.sid})`);
   });
 
   it("offers no way to change an entry", async () => {

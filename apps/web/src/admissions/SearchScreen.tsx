@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { t } from "@/i18n/messages";
@@ -57,7 +58,10 @@ export function SearchScreen() {
               <li key={s.id} className={setupStyles.item}>
                 <div className={styles.queueItem}>
                   <h2 className={setupStyles.itemTitle}>
-                    {s.firstName} {s.lastName}
+                    {/* The whole record, read only (admin FUT F-09). */}
+                    <Link href={`/portal/admissions/student?id=${s.id}`}>
+                      {s.firstName} {s.lastName}
+                    </Link>
                   </h2>
                   <div className={styles.queueMeta}>
                     <Badge>{s.sid}</Badge>

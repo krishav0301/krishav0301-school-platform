@@ -15,6 +15,12 @@ import { formatNpr } from "./money";
 import { sentMessage } from "./OwnFees";
 
 /** The dues list (source 6.5): every student this year with what is due and overdue, a CSV download, and overdue reminders. */
+/** What a dues row says: nothing charged yet, paid up, or what is due (admin FUT F-10: nothing charged is not paid up). */
+export function dueState(row: { chargedPaisa: number; paidPaisa: number; duePaisa: number }): "nothing" | "clear" | "due" {
+  if (row.chargedPaisa === 0 && row.paidPaisa === 0) return "nothing";
+  return row.duePaisa === 0 ? "clear" : "due";
+}
+
 export function DuesScreen() {
   const { api, me } = useSession();
   const accountant = me?.roles.some((r) => r.role === "accountant") ?? false;
@@ -65,7 +71,14 @@ export function DuesScreen() {
                       </span>
                     </span>
                     <span className={styles.amount}>
-                      {s.duePaisa === 0 ? <Badge tone="ok">{t("fees.dues.clear")}</Badge> : t("fees.dues.row", { due: formatNpr(s.duePaisa), overdue: formatNpr(s.overduePaisa) })}
+                      {/* Nothing charged is not "paid up" (admin FUT F-10). */}
+                      {dueState(s) === "nothing" ? (
+                        <Badge>{t("fees.dues.nothingCharged")}</Badge>
+                      ) : dueState(s) === "clear" ? (
+                        <Badge tone="ok">{t("fees.dues.clear")}</Badge>
+                      ) : (
+                        t("fees.dues.row", { due: formatNpr(s.duePaisa), overdue: formatNpr(s.overduePaisa) })
+                      )}
                     </span>
                   </li>
                 ))}

@@ -1,4 +1,5 @@
 import { adToBsText, nepalDate, nepalTime } from "../dates";
+import { READABLE_SUMMARY, STUDENT_JOIN } from "./recent";
 
 /**
  * The Admin's Audit trail and Sign-ins views (CLAUDE.md section 6, D-102, admin FUT F-11): every audit entry, newest
@@ -70,18 +71,18 @@ export async function auditTrail(db: D1Database, options: { page?: number; area?
   const prefixes = options.area ? JSON.stringify(AUDIT_AREAS[options.area]) : null;
   const search = like(options.q);
   const where = `(?1 IS NULL OR EXISTS (SELECT 1 FROM json_each(?1) p WHERE ae.action LIKE p.value || '%'))
-     AND (?2 IS NULL OR ae.summary LIKE ?2 ESCAPE '\\' OR (u.full_name LIKE ?2 ESCAPE '\\' AND NOT ${IS_SUPPORT("ae.actor_user_id")}))`;
+     AND (?2 IS NULL OR ${READABLE_SUMMARY} LIKE ?2 ESCAPE '\\' OR (u.full_name LIKE ?2 ESCAPE '\\' AND NOT ${IS_SUPPORT("ae.actor_user_id")}))`;
   const [rows, count] = await db.batch([
     db
       .prepare(
-        `SELECT ae.id, ae.at, ae.action, ae.entity_type AS entityType, ae.summary, ae.reason,
+        `SELECT ae.id, ae.at, ae.action, ae.entity_type AS entityType, ${READABLE_SUMMARY} AS summary, ae.reason,
                 CASE WHEN ae.actor_user_id IS NULL THEN NULL WHEN ${IS_SUPPORT("ae.actor_user_id")} THEN 'Support' ELSE u.full_name END AS actor
-           FROM audit_events ae LEFT JOIN users u ON u.id = ae.actor_user_id
+           FROM audit_events ae LEFT JOIN users u ON u.id = ae.actor_user_id ${STUDENT_JOIN}
           WHERE ${where}
           ORDER BY ae.id DESC LIMIT ?3 OFFSET ?4`,
       )
       .bind(prefixes, search, AUDIT_PAGE_SIZE, (page - 1) * AUDIT_PAGE_SIZE),
-    db.prepare(`SELECT COUNT(*) AS n FROM audit_events ae LEFT JOIN users u ON u.id = ae.actor_user_id WHERE ${where}`).bind(prefixes, search),
+    db.prepare(`SELECT COUNT(*) AS n FROM audit_events ae LEFT JOIN users u ON u.id = ae.actor_user_id ${STUDENT_JOIN} WHERE ${where}`).bind(prefixes, search),
   ]);
   type Row = Omit<AuditTrailRow, "onBs" | "time">;
   return {

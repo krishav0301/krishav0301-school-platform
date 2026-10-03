@@ -94,7 +94,8 @@ function AttendanceChart({ trend }: { trend: Overview["attendance"]["trend"] }) 
   const line = points.map((p, i) => `${i === 0 ? "M" : "L"}${p.x},${p.y}`).join(" ");
   const area = points.length > 0 ? `${line} L${points.at(-1)!.x},${H - PAD} L${points[0]!.x},${H - PAD} Z` : "";
   return (
-    <svg viewBox={`0 0 ${W} ${H + 18}`} className={styles.chart} role="img" aria-label={trend.map((d) => `${bsDayMonth(d.dateBs)} ${d.percent ?? "–"}%`).join(", ")}>
+    // The view starts left of 0 so "100%", drawn to the left of the axis, is never cut (admin FUT F-05).
+    <svg viewBox={`-18 0 ${W + 18} ${H + 18}`} className={styles.chart} role="img" aria-label={trend.map((d) => `${bsDayMonth(d.dateBs)} ${d.percent ?? "–"}%`).join(", ")}>
       {[100, 80, 60, 40].map((v) => {
         const y = PAD + ((100 - v) / 60) * (H - 2 * PAD);
         return (

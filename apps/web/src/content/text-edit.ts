@@ -72,6 +72,13 @@ export function setLineStyle(edit: Edit, style: LineStyle): Edit {
   const toBreak = text.indexOf("\n", Math.max(end - (end > start && text[end - 1] === "\n" ? 1 : 0), start));
   const to = toBreak === -1 ? text.length : toBreak;
   const lines = text.slice(from, to).split("\n");
+  // An empty line starts the style, with the cursor after its mark, ready to type (admin FUT F-12).
+  if (lines.length === 1 && !lines[0]!.replace(PREFIX, "").trim() && style !== "paragraph") {
+    const mark = style === "heading" ? "## " : style === "bullets" ? "- " : "1. ";
+    const already = lineStyleAt(lines[0]!, 0) === style;
+    const line = already ? "" : mark;
+    return { text: text.slice(0, from) + line + text.slice(to), start: from + line.length, end: from + line.length };
+  }
   const same = style !== "paragraph" && lines.every((line) => !line.trim() || lineStyleAt(line, 0) === style);
   const target = same ? "paragraph" : style;
 

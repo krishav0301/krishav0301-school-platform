@@ -1,13 +1,12 @@
 # Admin (Principal) functional user test (FUT)
 
-Royal Softech College on the school platform. Every operation the Admin (the Principal) can do, run through the real screens, with a screenshot of each step. Run on 2026-10-02 (16 Ashwin 2083) against commit `091a6e5` (main after PR #28) with the F-02 fix, on a fresh local school.
+Royal Softech College on the school platform. Every operation the Admin (the Principal) can do, run through the real screens, with a screenshot of each step. The first run (2 October 2026, 16 Ashwin 2083) found 19 findings; all of them were fixed (D-100, D-102), and this is the run again on a fresh local school on 2026-10-03 (17 Ashwin 2083) against the fixed code (commit `b9ec2af` with this document).
 
 ## Summary
 
-- **180 steps** with a screenshot each, in 12 areas, plus **15 server checks** of things the Principal must not do.
-- **157 steps behaved as expected**; 23 steps carry one of the findings below.
-- **19 findings**: 1 high, 5 medium, 12 low, 1 cosmetic (some are gaps rather than faults).
-- **One blocking bug was found and fixed during the test (F-02):** the Principal could not add any programme. The fix and its regression test are in the same commit as this document.
+- **191 steps** with a screenshot each, in 12 areas, plus **15 server checks** of things the Principal must not do.
+- **Every step behaved as expected.** 33 of them show where a finding of the first run is now fixed; they are marked in the Result column.
+- **All 19 findings of the first run are fixed** (1 high, 5 medium, 12 low, 1 cosmetic): see [Findings](#findings) for what each was and what changed. The largest: receipt numbers now start with a receipt code the Principal chooses for each section (F-18), the Audit trail and Sign-ins have their own screens (F-11), and Approvals was redesigned, with a review panel that shows everything a decision needs (F-03, F-06, F-07, F-13).
 - **Every forbidden action was refused by the server** (403), including approving one's own request. Permission is never left to the screens alone.
 
 ## How the test was run
@@ -22,7 +21,7 @@ Royal Softech College on the school platform. Every operation the Admin (the Pri
 
 | What | Made by | Detail |
 |---|---|---|
-| Sections | Principal (02) | +2 (Grade 11–12), Bachelor's, Master's (renamed Master's Degrees, then switched off) |
+| Sections | Principal (02) | +2 (Grade 11–12), Bachelor's, Master's (renamed Master's Degrees, then switched off), each with its receipt code (P2, BACH, MAST) |
 | Programmes | Principal (03) | +2 Science, +2 Management (NEB, NEB GPA); BBS (TU), BIT (PU) (percentage and division); MBS made and deleted |
 | Co-ordinators | Principal (04) | Sita Sharma (whole school); Hari Prasad Yadav (Bachelor's, then +2 and Bachelor's) |
 | Accountants | Principal (04) | Gita Thapa (whole school); Ramesh Shrestha (+2 only; switched off and on again) |
@@ -97,10 +96,10 @@ The Principal builds the school's sections (D-095). No section is built in: a ne
 |---|---|---|---|
 | [02-01](#02-01-programs-empty) | Programs (Academic Structure) on a new school: no sections yet, one action to start | Pass | `/portal/setup/programmes` |
 | [02-02](#02-02-section-name-required) | Add a Section with no name: the name is asked for | Pass | `/portal/setup/programmes` |
-| [02-03](#02-03-section-name-typed) | Add a Section: typing the section's name | Pass | `/portal/setup/programmes` |
+| [02-03](#02-03-section-name-typed) | Add a Section: typing the section's name; the receipt code is suggested from the name (P2), and can be changed (F-18 fixed) | Pass (F-18 fixed) | `/portal/setup/programmes` |
 | [02-04](#02-04-first-section-added) | The first section is added, with no programmes in it yet | Pass | `/portal/setup/programmes` |
 | [02-05](#02-05-three-sections) | Three sections: +2, Bachelor's and Master's | Pass | `/portal/setup/programmes` |
-| [02-06](#02-06-section-duplicate-name) | A second section with the same name is refused ("That already exists."); the message shows on the page behind the dialog (finding F-01) | See F-01 | `/portal/setup/programmes` |
+| [02-06](#02-06-section-duplicate-name) | A second section with the same name is refused ("That already exists."); the message is said inside the dialog (F-01 fixed) | Pass (F-01 fixed) | `/portal/setup/programmes` |
 
 <a id="02-01-programs-empty"></a>
 **02-01** Programs (Academic Structure) on a new school: no sections yet, one action to start
@@ -113,9 +112,9 @@ The Principal builds the school's sections (D-095). No section is built in: a ne
 ![Add a Section with no name: the name is asked for](screens/02-02-section-name-required.jpg)
 
 <a id="02-03-section-name-typed"></a>
-**02-03** Add a Section: typing the section's name
+**02-03** Add a Section: typing the section's name; the receipt code is suggested from the name (P2), and can be changed (F-18 fixed)
 
-![Add a Section: typing the section's name](screens/02-03-section-name-typed.jpg)
+![Add a Section: typing the section's name; the receipt code is suggested from the name (P2), and can be changed (F-18 fixed)](screens/02-03-section-name-typed.jpg)
 
 <a id="02-04-first-section-added"></a>
 **02-04** The first section is added, with no programmes in it yet
@@ -128,9 +127,9 @@ The Principal builds the school's sections (D-095). No section is built in: a ne
 ![Three sections: +2, Bachelor's and Master's](screens/02-05-three-sections.jpg)
 
 <a id="02-06-section-duplicate-name"></a>
-**02-06** A second section with the same name is refused ("That already exists."); the message shows on the page behind the dialog (finding F-01)
+**02-06** A second section with the same name is refused ("That already exists."); the message is said inside the dialog (F-01 fixed)
 
-![A second section with the same name is refused ("That already exists."); the message shows on the page behind the dialog (finding F-01)](screens/02-06-section-duplicate-name.jpg)
+![A second section with the same name is refused ("That already exists."); the message is said inside the dialog (F-01 fixed)](screens/02-06-section-duplicate-name.jpg)
 
 ## 3. Programs: programmes, levels and grading
 
@@ -139,7 +138,7 @@ Programmes inside sections, their levels, the grading policy, rename, switch off
 | # | Step | Result | Page |
 |---|---|---|---|
 | [03-01](#03-01-programme-name-required) | Add a Programme with no name: the name is asked for | Pass | `/portal/setup/programmes` |
-| [03-02](#03-02-programme-form-filled) | Add a Programme: name and affiliation | See F-02 | `/portal/setup/programmes` |
+| [03-02](#03-02-programme-form-filled) | Add a Programme: name and affiliation | Pass (F-02 fixed) | `/portal/setup/programmes` |
 | [03-03](#03-03-programme-added) | The programme is added to the +2 section, with no levels yet | Pass | `/portal/setup/programmes` |
 | [03-04](#03-04-level-name-required) | Add a Level with no name: the name is asked for | Pass | `/portal/setup/programmes` |
 | [03-05](#03-05-levels-added) | +2 Science now has Grade 11 and Grade 12 | Pass | `/portal/setup/programmes` |
@@ -394,19 +393,21 @@ The Principal gives access to Co-ordinators and Accountants (never teachers), ch
 
 ## 5. Approvals: fee structures and website drafts
 
-Requests from the Accountant and the Co-ordinator, approved or declined with a reason.
+Requests from the Accountant and the Co-ordinator (D-102): each card offers Review; the panel shows everything the decision needs and holds Approve request, which asks once more; Decline request needs a reason.
 
 **Precondition (P1):** the Co-ordinator set up the year, classes, subjects, teachers and 17 students; teachers marked attendance, wrote the activity log and entered marks; results were published; the Accountant sent three fee structures; the Co-ordinator sent two website drafts.
 
 | # | Step | Result | Page |
 |---|---|---|---|
-| [05-01](#05-01-dashboard-with-requests) | The dashboard once the school is running: counts, attendance, and five requests needing the Principal | See F-04, F-05, F-11 | `/portal` |
-| [05-02](#05-02-approvals-inbox) | Approvals inbox: three fee structures from the Accountant and two website drafts from the Co-ordinator | Pass | `/portal/approvals` |
-| [05-03](#05-03-fee-structure-approved) | Grade 11 fee structure approved: it leaves the inbox and becomes the live structure | Pass | `/portal/approvals` |
-| [05-04](#05-04-decline-opened) | Decline opens a box for the reason; the Decline button stays disabled until a reason is written | Pass | `/portal/approvals` |
+| [05-01](#05-01-dashboard-with-requests) | The dashboard once the school is running: counts, attendance, and five requests needing the Principal | Pass (F-04, F-05 fixed) | `/portal` |
+| [05-02](#05-02-approvals-inbox) | Approvals inbox (D-102): three fee structures from the Accountant and two website drafts from the Co-ordinator, each with Review | Pass | `/portal/approvals` |
+| [05-03](#05-03-fee-structure-review) | Reviewing the Grade 11 fee structure: every item, the yearly total, who sent it and when | Pass | `/portal/approvals` |
+| [05-03](#05-03a-approve-confirm) | Approve request asks once more, naming the structure and its yearly total | Pass | `/portal/approvals` |
+| [05-03](#05-03b-fee-structure-approved) | Approved: the Grade 11 fee structure is now effective | Pass | `/portal/approvals` |
+| [05-04](#05-04-decline-empty) | Decline asks why; an empty reason is refused | Pass | `/portal/approvals` |
 | [05-05](#05-05-fee-structure-declined) | BBS Year 1 fee structure declined with a reason; it goes back to the Accountant | Pass | `/portal/approvals` |
-| [05-06](#05-06-notice-approved) | Grade 12 fees and the Co-ordinator's notice approved; the notice is published on the website at once | Pass | `/portal/approvals` |
-| [05-07](#05-07-inbox-empty) | Every request decided: the inbox is empty and the menu badge is gone | See F-03 | `/portal/approvals` |
+| [05-06](#05-06-notice-review) | Reviewing the Co-ordinator's notice: a preview of what will be published | Pass | `/portal/approvals` |
+| [05-07](#05-07-inbox-empty) | Every request decided: nothing is waiting, and the menu count is gone at once (F-03 fixed) | Pass (F-03 fixed) | `/portal/approvals` |
 
 <a id="05-01-dashboard-with-requests"></a>
 **05-01** The dashboard once the school is running: counts, attendance, and five requests needing the Principal
@@ -414,34 +415,44 @@ Requests from the Accountant and the Co-ordinator, approved or declined with a r
 ![The dashboard once the school is running: counts, attendance, and five requests needing the Principal](screens/05-01-dashboard-with-requests.jpg)
 
 <a id="05-02-approvals-inbox"></a>
-**05-02** Approvals inbox: three fee structures from the Accountant and two website drafts from the Co-ordinator
+**05-02** Approvals inbox (D-102): three fee structures from the Accountant and two website drafts from the Co-ordinator, each with Review
 
-![Approvals inbox: three fee structures from the Accountant and two website drafts from the Co-ordinator](screens/05-02-approvals-inbox.jpg)
+![Approvals inbox (D-102): three fee structures from the Accountant and two website drafts from the Co-ordinator, each with Review](screens/05-02-approvals-inbox.jpg)
 
-<a id="05-03-fee-structure-approved"></a>
-**05-03** Grade 11 fee structure approved: it leaves the inbox and becomes the live structure
+<a id="05-03-fee-structure-review"></a>
+**05-03** Reviewing the Grade 11 fee structure: every item, the yearly total, who sent it and when
 
-![Grade 11 fee structure approved: it leaves the inbox and becomes the live structure](screens/05-03-fee-structure-approved.jpg)
+![Reviewing the Grade 11 fee structure: every item, the yearly total, who sent it and when](screens/05-03-fee-structure-review.jpg)
 
-<a id="05-04-decline-opened"></a>
-**05-04** Decline opens a box for the reason; the Decline button stays disabled until a reason is written
+<a id="05-03a-approve-confirm"></a>
+**05-03** Approve request asks once more, naming the structure and its yearly total
 
-![Decline opens a box for the reason; the Decline button stays disabled until a reason is written](screens/05-04-decline-opened.jpg)
+![Approve request asks once more, naming the structure and its yearly total](screens/05-03a-approve-confirm.jpg)
+
+<a id="05-03b-fee-structure-approved"></a>
+**05-03** Approved: the Grade 11 fee structure is now effective
+
+![Approved: the Grade 11 fee structure is now effective](screens/05-03b-fee-structure-approved.jpg)
+
+<a id="05-04-decline-empty"></a>
+**05-04** Decline asks why; an empty reason is refused
+
+![Decline asks why; an empty reason is refused](screens/05-04-decline-empty.jpg)
 
 <a id="05-05-fee-structure-declined"></a>
 **05-05** BBS Year 1 fee structure declined with a reason; it goes back to the Accountant
 
 ![BBS Year 1 fee structure declined with a reason; it goes back to the Accountant](screens/05-05-fee-structure-declined.jpg)
 
-<a id="05-06-notice-approved"></a>
-**05-06** Grade 12 fees and the Co-ordinator's notice approved; the notice is published on the website at once
+<a id="05-06-notice-review"></a>
+**05-06** Reviewing the Co-ordinator's notice: a preview of what will be published
 
-![Grade 12 fees and the Co-ordinator's notice approved; the notice is published on the website at once](screens/05-06-notice-approved.jpg)
+![Reviewing the Co-ordinator's notice: a preview of what will be published](screens/05-06-notice-review.jpg)
 
 <a id="05-07-inbox-empty"></a>
-**05-07** Every request decided: the inbox is empty and the menu badge is gone
+**05-07** Every request decided: nothing is waiting, and the menu count is gone at once (F-03 fixed)
 
-![Every request decided: the inbox is empty and the menu badge is gone](screens/05-07-inbox-empty.jpg)
+![Every request decided: nothing is waiting, and the menu count is gone at once (F-03 fixed)](screens/05-07-inbox-empty.jpg)
 
 ## 6. Approvals: money requests
 
@@ -451,17 +462,25 @@ Discounts, a refund, a payment reversal and a corrected fee structure. Approve-a
 
 | # | Step | Result | Page |
 |---|---|---|---|
-| [06-01](#06-01-money-requests) | The Accountant's requests: two discounts, a refund, a payment reversal and the corrected BBS fee structure | See F-06 | `/portal/approvals` |
+| [06-01](#06-01-money-requests) | The Accountant's requests: two discounts, a refund, a payment reversal and the corrected BBS fee structure | Pass (F-06 fixed) | `/portal/approvals` |
+| [06-01](#06-01a-discount-review) | A discount shows the student, class, percentage and amount, the reason and the Accountant's note (F-06 fixed) | Pass (F-06, F-06 fixed) | `/portal/approvals` |
 | [06-02](#06-02-discount-approved) | Sita Chaudhary's discount approved: it is added to her fee account in the same step | Pass | `/portal/approvals` |
 | [06-03](#06-03-discount-decline-reason) | Declining Rohan Sah's 50% discount, with the reason the Accountant will see | Pass | `/portal/approvals` |
 | [06-04](#06-04-refund-approved) | Puja Yadav's refund approved; the Accountant can now record how it was paid | Pass | `/portal/approvals` |
-| [06-05](#06-05-refund-already-decided) | The same refund approved again from a second, older tab: refused as already decided; nothing is applied twice | See F-07 | `/portal/approvals` |
+| [06-04](#06-04a-refund-review) | A refund shows the student's credit and the amount; how it is paid back is left to the Accountant | Pass | `/portal/approvals` |
+| [06-05](#06-05-refund-already-decided) | The same refund approved again from a second, older tab: "Already decided", nothing applied twice (F-07 fixed) | Pass (F-07 fixed) | `/portal/approvals` |
+| [06-05](#06-05a-reversal-review) | A reversal shows the original payment, its day and receipt; the payment itself is never edited | Pass (F-07 fixed) | `/portal/approvals` |
 | [06-06](#06-06-all-decided) | The reversal and the corrected BBS structure approved; nothing is waiting | Pass | `/portal/approvals` |
 
 <a id="06-01-money-requests"></a>
 **06-01** The Accountant's requests: two discounts, a refund, a payment reversal and the corrected BBS fee structure
 
 ![The Accountant's requests: two discounts, a refund, a payment reversal and the corrected BBS fee structure](screens/06-01-money-requests.jpg)
+
+<a id="06-01a-discount-review"></a>
+**06-01** A discount shows the student, class, percentage and amount, the reason and the Accountant's note (F-06 fixed)
+
+![A discount shows the student, class, percentage and amount, the reason and the Accountant's note (F-06 fixed)](screens/06-01a-discount-review.jpg)
 
 <a id="06-02-discount-approved"></a>
 **06-02** Sita Chaudhary's discount approved: it is added to her fee account in the same step
@@ -478,10 +497,20 @@ Discounts, a refund, a payment reversal and a corrected fee structure. Approve-a
 
 ![Puja Yadav's refund approved; the Accountant can now record how it was paid](screens/06-04-refund-approved.jpg)
 
-<a id="06-05-refund-already-decided"></a>
-**06-05** The same refund approved again from a second, older tab: refused as already decided; nothing is applied twice
+<a id="06-04a-refund-review"></a>
+**06-04** A refund shows the student's credit and the amount; how it is paid back is left to the Accountant
 
-![The same refund approved again from a second, older tab: refused as already decided; nothing is applied twice](screens/06-05-refund-already-decided.jpg)
+![A refund shows the student's credit and the amount; how it is paid back is left to the Accountant](screens/06-04a-refund-review.jpg)
+
+<a id="06-05-refund-already-decided"></a>
+**06-05** The same refund approved again from a second, older tab: "Already decided", nothing applied twice (F-07 fixed)
+
+![The same refund approved again from a second, older tab: "Already decided", nothing applied twice (F-07 fixed)](screens/06-05-refund-already-decided.jpg)
+
+<a id="06-05a-reversal-review"></a>
+**06-05** A reversal shows the original payment, its day and receipt; the payment itself is never edited
+
+![A reversal shows the original payment, its day and receipt; the payment itself is never edited](screens/06-05a-reversal-review.jpg)
 
 <a id="06-06-all-decided"></a>
 **06-06** The reversal and the corrected BBS structure approved; nothing is waiting
@@ -495,25 +524,25 @@ Everything the Principal reads but does not change.
 | # | Step | Result | Page |
 |---|---|---|---|
 | [07-01](#07-01-attendance-classes) | Attendance: today's register for each class; Grade 12 has not been marked yet | Pass | `/portal/attendance` |
-| [07-02](#07-02-attendance-class) | A class's register for today (two absent) and the year so far; the Principal can look but not mark | Pass | `/portal/attendance/class?id=daedf06dcee94d2a0bc6893e4c4ff8f7` |
-| [07-03](#07-03-attendance-not-marked) | Grade 12: no register marked yet today | Pass | `/portal/attendance/class?id=080a4f2cbc4ce347bd60c68c24daf5d1` |
+| [07-02](#07-02-attendance-class) | A class's register for today (two absent) and the year so far; the Principal can look but not mark | Pass | `/portal/attendance/class?id=a4c753fffe36bd94bd4aa2b8a99f1efb` |
+| [07-03](#07-03-attendance-not-marked) | Grade 12: no register marked yet today | Pass | `/portal/attendance/class?id=4e56d68d12f038b6cc0d9dd13e4c8d35` |
 | [07-04](#07-04-teacher-attendance) | Teacher attendance for today, marked by the Co-ordinator (Suresh Karki on leave); read only for the Principal | Pass | `/portal/attendance/teachers` |
-| [07-05](#07-05a-incomplete-date) | A date with only the day filled in (no month or year) is refused, but the message says the day is not in the verified calendar (finding F-19) | See F-19 | `/portal/attendance/teachers` |
+| [07-05](#07-05a-incomplete-date) | A date with only the day filled in (no month or year) asks for the day, the month and the year (F-19 fixed) | Pass (F-19 fixed) | `/portal/attendance/teachers` |
 | [07-05](#07-05b-teacher-attendance-other-day) | Another day, 15 Ashwin 2083: nothing was marked that day | Pass | `/portal/attendance/teachers` |
 | [07-06](#07-06-unverified-year) | 1 Baisakh 2090, outside the verified calendar (2000 to 2083), is refused | Pass | `/portal/attendance/teachers` |
 | [07-07](#07-07-classwork) | Classwork: today's activity log for each class | Pass | `/portal/classwork` |
-| [07-08](#07-08-classwork-class) | Grade 11's activity log today: what each subject teacher wrote, and the subjects with nothing yet | Pass | `/portal/classwork/class?id=daedf06dcee94d2a0bc6893e4c4ff8f7` |
+| [07-08](#07-08-classwork-class) | Grade 11's activity log today: what each subject teacher wrote, and the subjects with nothing yet | Pass | `/portal/classwork/class?id=a4c753fffe36bd94bd4aa2b8a99f1efb` |
 | [07-09](#07-09-fees-find) | Fees: find a student's fee account by name, SID or phone | Pass | `/portal/fees` |
 | [07-10](#07-10-fees-search) | Searching 'Sita': the matching student | Pass | `/portal/fees` |
-| [07-11](#07-11-fee-account-discount) | Sita Chaudhary's fee account: charges, her cash payment and the approved 10% discount; the balance is worked out, never stored | Pass | `/portal/fees/student?id=30d515cbc43ccd140b245a15df9c29a2` |
-| [07-12](#07-12-fee-account-refund) | Puja Yadav (found by SID): overpaid, with the approved refund | Pass | `/portal/fees/student?id=e838ebbbbddb9b39aee3c880a4b041f2` |
-| [07-13](#07-13-fee-account-reversal) | Nabin Thakur: the wrong payment and its approved reversal, both kept in the ledger | Pass | `/portal/fees/student?id=fee0ef79302feab3630b105ea5a23ac4` |
-| [07-14](#07-14-fee-account-receipts) | Aarav Mandal: a cash payment (sent twice, recorded once) and a verified bank voucher, each with a receipt | Pass | `/portal/fees/student?id=82296920a0c77f9c97e279f5a35898bd` |
-| [07-15](#07-15-receipt) | A receipt, generated from the ledger, never edited | See F-18 | `/portal/fees/receipt?id=97615db160f9e834b512cdb992ee3a62` |
+| [07-11](#07-11-fee-account-discount) | Sita Chaudhary's fee account: charges, her cash payment and the approved 10% discount; the balance is worked out, never stored | Pass | `/portal/fees/student?id=35ed50ee95d333f9201666cb5a151fd0` |
+| [07-12](#07-12-fee-account-refund) | Puja Yadav (found by SID): overpaid, with the approved refund | Pass | `/portal/fees/student?id=eab562ee2a7ef8fc48589b4702a900b0` |
+| [07-13](#07-13-fee-account-reversal) | Nabin Thakur: the wrong payment and its approved reversal, both kept in the ledger | Pass | `/portal/fees/student?id=110907079815f77fe5a3b70e806912ae` |
+| [07-14](#07-14-fee-account-receipts) | Aarav Mandal: a cash payment (sent twice, recorded once) and a verified bank voucher, each with a receipt | Pass | `/portal/fees/student?id=aca21449f0c6b356242de847bcd599d2` |
+| [07-15](#07-15-receipt) | A receipt, generated from the ledger, never edited | Pass (F-18 fixed) | `/portal/fees/receipt?id=0353a5564f03bb84557a33d0d202f0ae` |
 | [07-16](#07-16-fees-search-none) | A search that finds nobody | Pass | `/portal/fees` |
 | [07-17](#07-17-fee-structures) | Fee structures for the year: live (approved) ones | Pass | `/portal/fees/structures` |
-| [07-18](#07-18-fee-structure) | The Grade 11 fee structure: monthly, yearly and one-time items; read only for the Principal | Pass | `/portal/fees/structure?id=8d6a970b53c236146e4ae3f0e6486bea` |
-| [07-19](#07-19-dues) | Dues: what each student owes and how much is overdue, with a CSV download | See F-10 | `/portal/fees/dues` |
+| [07-18](#07-18-fee-structure) | The Grade 11 fee structure: monthly, yearly and one-time items; read only for the Principal | Pass | `/portal/fees/structure?id=d58dc1d7e1788967487ed57cb36928bb` |
+| [07-19](#07-19-dues) | Dues: what each student owes and how much is overdue, with a CSV download | Pass (F-10 fixed) | `/portal/fees/dues` |
 | [07-20](#07-20-results-changes) | Results: changes after publishing (rechecks); none yet | Pass | `/portal/results` |
 | [07-21](#07-21-class-sheets) | Class sheets: choose a class and a published terminal | Pass | `/portal/results/sheets` |
 | [07-22](#07-22-class-sheet) | Grade 11, first terminal: every student's NEB grades and GPA, ranked; ties share a rank | Pass | `/portal/results/sheets` |
@@ -525,8 +554,14 @@ Everything the Principal reads but does not change.
 | [07-28](#07-28-subjects) | The school's subjects (read only) | Pass | `/portal/setup/subjects` |
 | [07-29](#07-29-curriculum) | Curriculum: what each level studies, credit hours and marks (read only) | Pass | `/portal/setup/curriculum` |
 | [07-30](#07-30-teaching) | Teaching: who teaches what, and each Class Teacher | Pass | `/portal/people/teaching` |
-| [07-31](#07-31-student-search) | Find a student: 'Rai' finds Suman Rai | See F-09 | `/portal/admissions/search` |
-| [07-33](#07-33-register-tab-not-allowed) | The Register tab beside Student search, opened by the Principal | See F-08 | `/portal/admissions/register` |
+| [07-31](#07-31-student-search) | Find a student: 'Rai' finds Suman Rai; the name opens the record (F-09 fixed), and there is no Register tab (F-08 fixed) | Pass (F-08, F-09 fixed) | `/portal/admissions/search` |
+| [07-32](#07-32-student-record) | Suman Rai's record: student ID, class, date of birth, contacts and guardian; read only for the Principal | Pass (F-09 fixed) | `/portal/admissions/student?id=fb39ad094b606c2f51e15e5da4e31e4b` |
+| [07-33](#07-33-register-tab-not-allowed) | The registration form's address, opened by the Principal: "You do not have access to this page" (F-08, F-14 fixed) | Pass (F-08 fixed) | `/portal/admissions/register` |
+| [07-34](#07-34-reports-oversight) | Reports now has Oversight: the Audit trail and Sign-ins (F-11 fixed) | Pass (F-11 fixed) | `/portal/reports` |
+| [07-35](#07-35-audit-trail) | The audit trail: every change, newest first, who made it and when in the Nepali calendar; nobody can change an entry | Pass (F-11 fixed) | `/portal/reports/activity` |
+| [07-36](#07-36-audit-trail-fees) | Only the fee entries: charges, payments, discounts, refunds and reversals | Pass (F-11 fixed) | `/portal/reports/activity` |
+| [07-37](#07-37-sign-ins) | Sign-ins: every attempt, failed ones included, with the reason in plain words | Pass (F-11 fixed) | `/portal/reports/sign-ins` |
+| [07-38](#07-38-sign-ins-failed) | Failed attempts only: wrong passwords and wrong authenticator codes | Pass (F-11 fixed) | `/portal/reports/sign-ins` |
 
 <a id="07-01-attendance-classes"></a>
 **07-01** Attendance: today's register for each class; Grade 12 has not been marked yet
@@ -549,9 +584,9 @@ Everything the Principal reads but does not change.
 ![Teacher attendance for today, marked by the Co-ordinator (Suresh Karki on leave); read only for the Principal](screens/07-04-teacher-attendance.jpg)
 
 <a id="07-05a-incomplete-date"></a>
-**07-05** A date with only the day filled in (no month or year) is refused, but the message says the day is not in the verified calendar (finding F-19)
+**07-05** A date with only the day filled in (no month or year) asks for the day, the month and the year (F-19 fixed)
 
-![A date with only the day filled in (no month or year) is refused, but the message says the day is not in the verified calendar (finding F-19)](screens/07-05a-incomplete-date.jpg)
+![A date with only the day filled in (no month or year) asks for the day, the month and the year (F-19 fixed)](screens/07-05a-incomplete-date.jpg)
 
 <a id="07-05b-teacher-attendance-other-day"></a>
 **07-05** Another day, 15 Ashwin 2083: nothing was marked that day
@@ -684,14 +719,44 @@ Everything the Principal reads but does not change.
 ![Teaching: who teaches what, and each Class Teacher](screens/07-30-teaching.jpg)
 
 <a id="07-31-student-search"></a>
-**07-31** Find a student: 'Rai' finds Suman Rai
+**07-31** Find a student: 'Rai' finds Suman Rai; the name opens the record (F-09 fixed), and there is no Register tab (F-08 fixed)
 
-![Find a student: 'Rai' finds Suman Rai](screens/07-31-student-search.jpg)
+![Find a student: 'Rai' finds Suman Rai; the name opens the record (F-09 fixed), and there is no Register tab (F-08 fixed)](screens/07-31-student-search.jpg)
+
+<a id="07-32-student-record"></a>
+**07-32** Suman Rai's record: student ID, class, date of birth, contacts and guardian; read only for the Principal
+
+![Suman Rai's record: student ID, class, date of birth, contacts and guardian; read only for the Principal](screens/07-32-student-record.jpg)
 
 <a id="07-33-register-tab-not-allowed"></a>
-**07-33** The Register tab beside Student search, opened by the Principal
+**07-33** The registration form's address, opened by the Principal: "You do not have access to this page" (F-08, F-14 fixed)
 
-![The Register tab beside Student search, opened by the Principal](screens/07-33-register-tab-not-allowed.jpg)
+![The registration form's address, opened by the Principal: "You do not have access to this page" (F-08, F-14 fixed)](screens/07-33-register-tab-not-allowed.jpg)
+
+<a id="07-34-reports-oversight"></a>
+**07-34** Reports now has Oversight: the Audit trail and Sign-ins (F-11 fixed)
+
+![Reports now has Oversight: the Audit trail and Sign-ins (F-11 fixed)](screens/07-34-reports-oversight.jpg)
+
+<a id="07-35-audit-trail"></a>
+**07-35** The audit trail: every change, newest first, who made it and when in the Nepali calendar; nobody can change an entry
+
+![The audit trail: every change, newest first, who made it and when in the Nepali calendar; nobody can change an entry](screens/07-35-audit-trail.jpg)
+
+<a id="07-36-audit-trail-fees"></a>
+**07-36** Only the fee entries: charges, payments, discounts, refunds and reversals
+
+![Only the fee entries: charges, payments, discounts, refunds and reversals](screens/07-36-audit-trail-fees.jpg)
+
+<a id="07-37-sign-ins"></a>
+**07-37** Sign-ins: every attempt, failed ones included, with the reason in plain words
+
+![Sign-ins: every attempt, failed ones included, with the reason in plain words](screens/07-37-sign-ins.jpg)
+
+<a id="07-38-sign-ins-failed"></a>
+**07-38** Failed attempts only: wrong passwords and wrong authenticator codes
+
+![Failed attempts only: wrong passwords and wrong authenticator codes](screens/07-38-sign-ins-failed.jpg)
 
 ## 8. Website Content
 
@@ -702,7 +767,7 @@ All seven kinds of content, scheduling, hide-after, holidays, validation, filter
 | [08-01](#08-01-website-content) | Website Content: the published notice (approved earlier) and the declined event, back as a draft | Pass | `/portal/content` |
 | [08-02](#08-02-new-content-types) | New content: seven types, each with its own icon | Pass | `/portal/content` |
 | [08-03](#08-03-new-content-empty) | Publish with nothing filled in: the type, title and content are asked for | Pass | `/portal/content` |
-| [08-04](#08-04-news-form) | A News item: bold text and a bulleted list from the toolbar, marked urgent, with the live preview | See F-12 | `/portal/content` |
+| [08-04](#08-04-news-form) | A News item: bold text and a bulleted list from the toolbar, marked urgent, with the live preview | Pass (F-12 fixed) | `/portal/content` |
 | [08-05](#08-05-news-published) | Published at once: it is on the website now | Pass | `/portal/content` |
 | [08-06](#08-06-holiday-end-before-start) | A holiday that ends (2 Bhadra) before it starts (24 Ashwin) is refused | Pass | `/portal/content` |
 | [08-07](#08-07-holiday-form) | Holiday from 24 Ashwin to 2 Kartik 2083; it hides itself after the last day | Pass | `/portal/content` |
@@ -864,16 +929,15 @@ The Principal's own account and its security rules.
 | [09-12](#09-12-code-step) | The new password works; the authenticator code is asked for | Pass | `/sign-in` |
 | [09-13](#09-13-code-wrong) | A wrong code is refused | Pass | `/sign-in` |
 | [09-14](#09-14-recovery-code) | Signing in with one of the saved recovery codes instead | Pass | `/sign-in` |
-| [09-14](#09-14b-throttled-after-five-failures) | Found in the clean run: five failed sign-in steps for one email within 15 minutes (a wrong password, the old password, a wrong code) lock the email, and even a correct recovery code is refused until the lock lifts. This is the lockout rule working as written (CLAUDE.md section 4). | Pass | `/sign-in` |
 | [09-15](#09-15-signed-in-with-recovery) | Signed in with a recovery code; that code is now used up | Pass | `/portal` |
 | [09-16](#09-16-recovery-code-reused) | The same recovery code a second time is refused: each works once | Pass | `/sign-in` |
 | [09-17](#09-17-forgot-password) | Forgot your password: ask for a reset link | Pass | `/reset-password` |
 | [09-18](#09-18-reset-sent) | The same answer whether or not the email has an account, so nobody can probe for accounts | Pass | `/reset-password` |
 | [09-19](#09-19-mailbox-reset-email) | The test mailbox (only where email is not really sent) shows the reset email | Pass | `/portal/mailbox` |
-| [09-20](#09-20-reset-new-password) | The reset link opens Choose a new password | Pass | `/reset-password#token=cVJQi3XypnYcBNj6SWVNcL0TpbdJhR3qINPqVckJCB4` |
-| [09-21](#09-21-reset-weak) | A new password with the school's name in it is refused here too | Pass | `/reset-password#token=cVJQi3XypnYcBNj6SWVNcL0TpbdJhR3qINPqVckJCB4` |
+| [09-20](#09-20-reset-new-password) | The reset link opens Choose a new password | Pass | `/reset-password#token=V_qB57QHSULI90RUCO7JzE-QtNNfzewiCZdVxgaPuh8` |
+| [09-21](#09-21-reset-weak) | A new password with the school's name in it is refused here too | Pass | `/reset-password#token=V_qB57QHSULI90RUCO7JzE-QtNNfzewiCZdVxgaPuh8` |
 | [09-22](#09-22-reset-done) | Password changed; sign in with the new one | Pass | `/reset-password` |
-| [09-23](#09-23-reset-link-reused) | The same reset link opened again: refused, the link expired or was already used | Pass | `/reset-password#token=cVJQi3XypnYcBNj6SWVNcL0TpbdJhR3qINPqVckJCB4` |
+| [09-23](#09-23-reset-link-reused) | The same reset link opened again: refused, the link expired or was already used | Pass | `/reset-password#token=V_qB57QHSULI90RUCO7JzE-QtNNfzewiCZdVxgaPuh8` |
 | [09-24](#09-24-lockout) | Six wrong tries for one email (even an unknown one): Too many attempts, wait a few minutes | Pass | `/sign-in` |
 | [09-25](#09-25-signed-in-new-password) | Signed in with the reset password and the authenticator code | Pass | `/portal` |
 
@@ -947,11 +1011,6 @@ The Principal's own account and its security rules.
 
 ![Signing in with one of the saved recovery codes instead](screens/09-14-recovery-code.jpg)
 
-<a id="09-14b-throttled-after-five-failures"></a>
-**09-14** Found in the clean run: five failed sign-in steps for one email within 15 minutes (a wrong password, the old password, a wrong code) lock the email, and even a correct recovery code is refused until the lock lifts. This is the lockout rule working as written (CLAUDE.md section 4).
-
-![Found in the clean run: five failed sign-in steps for one email within 15 minutes (a wrong password, the old password, a wrong code) lock the email, and even a correct recovery code is refused until the lock lifts. This is the lockout rule working as written (CLAUDE.md section 4).](screens/09-14b-throttled-after-five-failures.png)
-
 <a id="09-15-signed-in-with-recovery"></a>
 **09-15** Signed in with a recovery code; that code is now used up
 
@@ -1013,14 +1072,15 @@ Other roles' pages opened by address, and the server's answer to forbidden actio
 
 | # | Step | Result | Page |
 |---|---|---|---|
-| [10-01](#10-01-admissions-queue) | The Co-ordinator's admissions queue, opened by address | See F-14 | `/portal/admissions` |
-| [10-02](#10-02-register-form) | Register a student (the Accountant's), opened by address | See F-14 | `/portal/admissions/register` |
-| [10-03](#10-03-vouchers) | The Accountant's voucher checks, opened by address | See F-14 | `/portal/fees/vouchers` |
-| [10-04](#10-04-results-review) | The Co-ordinator's marks review, opened by address | See F-14 | `/portal/results/review` |
-| [10-05](#10-05-attendance-mine) | A teacher's own attendance page, opened by address | See F-14 | `/portal/attendance/mine` |
+| [10-01](#10-01-admissions-queue) | The Co-ordinator's admissions queue, opened by address | Pass (F-14 fixed) | `/portal/admissions` |
+| [10-02](#10-02-register-form) | Register a student (the Accountant's), opened by address | Pass (F-14 fixed) | `/portal/admissions/register` |
+| [10-03](#10-03-vouchers) | The Accountant's voucher checks, opened by address | Pass (F-14 fixed) | `/portal/fees/vouchers` |
+| [10-04](#10-04-results-review) | The Co-ordinator's marks review, opened by address | Pass (F-14 fixed) | `/portal/results/review` |
+| [10-05](#10-05-attendance-mine) | A teacher's own attendance page, opened by address | Pass (F-14 fixed) | `/portal/attendance/mine` |
 | [10-06](#10-06-classes-read-only) | Classes: the Principal can look; adding and changing is the Co-ordinator's | Pass | `/portal/setup/classes` |
-| [10-07](#10-07-own-request) | The Principal's own request in the inbox: it cannot be approved by the person who sent it | See F-13 | `/portal/approvals` |
-| [10-08](#10-08-own-request-approve-refused) | Approving one's own request is refused by the server; the message shown is misleading (finding F-13) | See F-13 | `/portal/approvals` |
+| [10-07](#10-07-own-request) | The Principal's own request in the inbox, marked "Your request"; it is not counted as waiting for them | Pass (F-13 fixed) | `/portal/approvals` |
+| [10-08](#10-08-own-request-panel) | Opened: no Approve; it says another Principal or Support must decide it, and offers Take back request (F-13 fixed) | Pass (F-13 fixed) | `/portal/approvals` |
+| [10-08](#10-08a-own-request-taken-back) | Taken back: the request is withdrawn and the draft is the Principal's again | Pass (F-13 fixed) | `/portal/approvals` |
 
 <a id="10-01-admissions-queue"></a>
 **10-01** The Co-ordinator's admissions queue, opened by address
@@ -1053,14 +1113,19 @@ Other roles' pages opened by address, and the server's answer to forbidden actio
 ![Classes: the Principal can look; adding and changing is the Co-ordinator's](screens/10-06-classes-read-only.jpg)
 
 <a id="10-07-own-request"></a>
-**10-07** The Principal's own request in the inbox: it cannot be approved by the person who sent it
+**10-07** The Principal's own request in the inbox, marked "Your request"; it is not counted as waiting for them
 
-![The Principal's own request in the inbox: it cannot be approved by the person who sent it](screens/10-07-own-request.jpg)
+![The Principal's own request in the inbox, marked "Your request"; it is not counted as waiting for them](screens/10-07-own-request.jpg)
 
-<a id="10-08-own-request-approve-refused"></a>
-**10-08** Approving one's own request is refused by the server; the message shown is misleading (finding F-13)
+<a id="10-08-own-request-panel"></a>
+**10-08** Opened: no Approve; it says another Principal or Support must decide it, and offers Take back request (F-13 fixed)
 
-![Approving one's own request is refused by the server; the message shown is misleading (finding F-13)](screens/10-08-own-request-approve-refused.jpg)
+![Opened: no Approve; it says another Principal or Support must decide it, and offers Take back request (F-13 fixed)](screens/10-08-own-request-panel.jpg)
+
+<a id="10-08a-own-request-taken-back"></a>
+**10-08** Taken back: the request is withdrawn and the draft is the Principal's again
+
+![Taken back: the request is withdrawn and the draft is the Principal's again](screens/10-08a-own-request-taken-back.jpg)
 
 ### The server's answers
 
@@ -1080,9 +1145,9 @@ Each request below was sent with the Principal's own signed-in browser cookies, 
 | Propose a discount (the Accountant's) | `POST /api/fees/enrollments/{id}/discounts` | 403 forbidden |
 | Publish a class's results (the Co-ordinator's) | `POST /api/results/classes/{id}/publish` | 403 forbidden |
 | Enter marks (a teacher's) | `PUT /api/results/classes/{id}/subjects/{id}/terminals/{id}` | 403 forbidden |
-| Send own draft for approval | `POST /api/approvals` | 201 (allowed; see F-13) |
-| Approve own request | `POST /api/approvals/{id}/approve` | 403 forbidden |
-| Withdraw own request | `POST /api/approvals/{id}/withdraw` | 403 forbidden |
+| Send own draft for approval | `POST /api/approvals` | 201 (allowed: one's own request may be sent and taken back, never decided) |
+| Approve own request | `POST /api/approvals/{id}/approve` | 403 forbidden (own_request: another Admin must decide it) |
+| Withdraw own request (already taken back on screen) | `POST /api/approvals/{id}/withdraw` | 200 (allowed: one's own request may be sent and taken back, never decided) |
 
 ## 11. Phone and large text
 
@@ -1090,18 +1155,18 @@ The main screens at 375 px, and at 320 px with text at 200% (no sideways scrolli
 
 | # | Step | Result | Page |
 |---|---|---|---|
-| [11-01](#11-01-phone-dashboard) | Phone (375 px): the dashboard | See F-15 | `/portal` |
+| [11-01](#11-01-phone-dashboard) | Phone (375 px): the dashboard | Pass (F-15 fixed) | `/portal` |
 | [11-02](#11-02-phone-more) | Phone: the More tab lists the places that do not fit in the tab bar | Pass | `/portal/more` |
 | [11-03](#11-03-phone-people) | Phone: People & Access | Pass | `/portal/people` |
 | [11-04](#11-04-phone-website) | Phone: Website Content | Pass | `/portal/content` |
 | [11-05](#11-05-phone-approvals) | Phone: Approvals | Pass | `/portal/approvals` |
 | [11-06](#11-06-phone-programs) | Phone: Programs | Pass | `/portal/setup/programmes` |
 | [11-07](#11-07-phone-dues) | Phone: Dues | Pass | `/portal/fees/dues` |
-| [11-08](#11-08-phone-sheets) | Phone: Class sheets | See F-15 | `/portal/results/sheets` |
+| [11-08](#11-08-phone-sheets) | Phone: Class sheets | Pass (F-15 fixed) | `/portal/results/sheets` |
 | [11-09](#11-09-320-dashboard) | 320 px wide, text at 200%: the dashboard | Pass | `/portal` |
 | [11-10](#11-10-320-people) | 320 px wide, text at 200%: People & Access | Pass | `/portal/people` |
-| [11-11](#11-11-320-website) | 320 px wide, text at 200%: Website Content (FINDING: the page scrolls sideways by 10 px) | See F-17 | `/portal/content` |
-| [11-12](#11-12-320-sign-in) | 320 px wide, text at 200%: the sign-in page scrolls sideways by 14 px (finding F-16) | See F-16 | `/sign-in` |
+| [11-11](#11-11-320-website) | 320 px wide, text at 200%: Website Content | Pass (F-17 fixed) | `/portal/content` |
+| [11-12](#11-12-320-sign-in) | 320 px wide, text at 200%: the sign-in page, no sideways scroll (F-16 fixed) | Pass (F-16 fixed) | `/sign-in` |
 
 <a id="11-01-phone-dashboard"></a>
 **11-01** Phone (375 px): the dashboard
@@ -1154,14 +1219,14 @@ The main screens at 375 px, and at 320 px with text at 200% (no sideways scrolli
 ![320 px wide, text at 200%: People & Access](screens/11-10-320-people.jpg)
 
 <a id="11-11-320-website"></a>
-**11-11** 320 px wide, text at 200%: Website Content (FINDING: the page scrolls sideways by 10 px)
+**11-11** 320 px wide, text at 200%: Website Content
 
-![320 px wide, text at 200%: Website Content (FINDING: the page scrolls sideways by 10 px)](screens/11-11-320-website.jpg)
+![320 px wide, text at 200%: Website Content](screens/11-11-320-website.jpg)
 
 <a id="11-12-320-sign-in"></a>
-**11-12** 320 px wide, text at 200%: the sign-in page scrolls sideways by 14 px (finding F-16)
+**11-12** 320 px wide, text at 200%: the sign-in page, no sideways scroll (F-16 fixed)
 
-![320 px wide, text at 200%: the sign-in page scrolls sideways by 14 px (finding F-16)](screens/11-12-320-sign-in.jpg)
+![320 px wide, text at 200%: the sign-in page, no sideways scroll (F-16 fixed)](screens/11-12-320-sign-in.jpg)
 
 ## 12. End of the run
 
@@ -1226,31 +1291,31 @@ People & Access and the dashboard once the school year is under way.
 
 ## Findings
 
-Severity: **High** blocks the Principal's work; **Medium** gives wrong or missing information on a real task; **Low** is confusing but has a way round; **Cosmetic** is appearance only.
+What the first run found, and what changed. Severity: **High** blocked the Principal's work; **Medium** gave wrong or missing information on a real task; **Low** was confusing but had a way round; **Cosmetic** was appearance only. Every one is fixed; the Steps column shows where this run checks it.
 
-| ID | Severity | Where | What happens | Steps |
-|---|---|---|---|---|
-| F-01 | Low | Programs › Add a Section | A duplicate section name is refused ("That already exists."), but the message shows on the page behind the open dialog, dimmed by the backdrop; the dialog itself stays unchanged. | 02-06 |
-| F-02 | High (fixed) | Programs › Add a Programme | Adding any programme failed with "That is not allowed. Check what you entered." The form sent gradingPolicy: null, which the API's strict body refuses. Fixed in apps/web/src/setup/client.ts; regression test in setup-client.test.ts. | 03-02 |
-| F-03 | Low | Approvals › menu badge | After the Principal decides every request, the inbox says "Nothing is waiting for a decision" but the menu badge still shows the old count until the page is reloaded. | 05-07 |
-| F-04 | Low | Overview › Recent activity | An admission entry reads "Application approved; student <32-character internal id> created" instead of naming the student and their SID. | 05-01 |
-| F-05 | Cosmetic | Overview › Institution at a glance | The attendance chart's top axis label is cut: "00%" instead of "100%". | 05-01 |
-| F-06 | Medium | Approvals › Discount | A discount request does not show its reason (Scholarship, Sibling, Staff child, Other). Sita Chaudhary's 10% Sibling discount shows only "Discount of NPR 4,450.00 for Sita Chaudhary", and the Accountant's note ("Her brother Rohit is in Grade 12") is not shown. An "Other" discount shows its note but not the reason. The Principal approves money without seeing why. | 06-01 |
-| F-07 | Low | Approvals › deciding twice | Approving a refund from a second, older tab after it was already approved is refused correctly (nothing is applied twice), but the message says "That changed since it was sent. Send it again to reconsider it." The request was not changed; it was already decided. The web client maps every 409 to "stale" (apps/web/src/approvals/client.ts:59), assuming an already-decided request cannot be reached, which two open tabs disprove. | 06-05 |
-| F-08 | Medium | Find a student › Register tab | The Principal sees a Register tab beside Student search, and it opens the full "Register a student" form. The Principal may not register students (admissions.student.register is the Accountant's), and the server refuses the request (403 forbidden, checked directly), but the form should not be offered. | 07-33 |
-| F-09 | Low | Find a student › result | A search result cannot be opened. The Principal has read access to a student's personal details (students.personal.view, and GET /api/students/{id} answers 200), but the result card is not a link, so the record cannot be seen from any screen. | 07-31 |
-| F-10 | Low | Fees › Dues | Students in a class whose fee structure has not been charged yet (BBS Year 1) show a green "Paid up". Nothing was charged, so "Paid up" overstates it. | 07-19 |
-| F-11 | Medium (gap) | Audit trail and Sign-ins | The Principal has audit.view, but no screen lists the audit trail or the sign-ins (CLAUDE.md section 6: "Sign-ins and failed 2FA go in a separate Sign-ins view"). Only the newest few entries appear under Recent activity on the dashboard. | 05-01 |
-| F-12 | Low | Website › text toolbar | Pressing Bulleted list (or Numbered list) on an empty line does nothing and gives no sign why; a list is made only from lines selected first. The hint under the box says to select words first, but a list button that silently does nothing is easy to miss. | 08-04 |
-| F-13 | Medium | Approvals › own request | The Principal can send their own draft for approval (POST /api/approvals answers 201), and it appears in their own inbox with Approve and Decline. Approving it is refused, which is correct (never your own request), but the message says "You no longer have permission to see this. Sign in again." The Principal also cannot withdraw it (403), so in a school with one Principal the request stays in the inbox, with the badge, until another Admin or Support decides it. | 10-07, 10-08 |
-| F-14 | Low | Other roles' pages opened by address | Pages that belong to other roles answer in four different ways when the Principal opens them by address: Vouchers to check says "You do not have access to this page" (right); the marks review says "This could not be loaded. Check your connection and try again" (a refusal shown as a network problem); My attendance shows an empty teacher calendar; the admissions queue shows the Register form (F-08). The server refuses every action in all of them. | 10-01 to 10-05 |
-| F-15 | Low | Phone tab bar | At 375 px the bottom tab bar does not fit on one row: "More" wraps to a second row on its own, and the Approvals badge sits under its label, so the bar takes two rows of the screen. | 11-01, 11-08 |
-| F-16 | Low | Sign-in page at 320 px | At 320 px wide with text at 200%, the sign-in page scrolls sideways by 14 px (the house rule in D-030 is no sideways scroll). The portal pages checked the same way do not. | 11-12 |
-| F-17 | Low | Website Content at 320 px | At 320 px wide with text at 200%, the "Waiting for approval" status label on a row does not wrap and pushes the page 10 px sideways. | 11-11 |
-| F-18 | Medium | Fees › Receipt | The receipt number starts with the section's internal key: "s7e402b08e9-2083-00007". Since sections are made by the Admin with generated keys (D-095), every receipt a family keeps carries this code. The receipt date is also shown as 2083-06-16 rather than 16 Ashwin 2083 as elsewhere. | 07-15 |
-| F-19 | Low | Dates › half-filled date | A date with only the day filled in is refused with "That day is not in the verified calendar", which suggests a calendar problem rather than asking for the month and year. | 07-05a |
+| ID | Severity | Where | What the first run found | Fixed (D-100, D-102) | Steps |
+|---|---|---|---|---|---|
+| F-01 | Low | Programs › Add a Section | A duplicate section name was refused ("That already exists."), but the message showed on the page behind the open dialog, dimmed by the backdrop. | A failed change is said inside the pop-up it was made from. | 02-06 |
+| F-02 | High | Programs › Add a Programme | Adding any programme failed with "That is not allowed. Check what you entered.": the form sent gradingPolicy: null, which the API's strict body refuses. | Fixed during the first run (D-100): the form sends only the three fields; regression test in setup-client.test.ts. | 03-02 |
+| F-03 | Low | Approvals › menu badge | After every request was decided, the menu badge kept the old count until the page was reloaded. | The count is asked again after every decision, and leaves out the Principal's own requests. | 05-07 |
+| F-04 | Low | Overview › Recent activity | An admission read "Application approved; student <32-character internal id> created". | It reads "Name admitted (SID)", from the student record; the stored line no longer carries the id. | 05-01 |
+| F-05 | Cosmetic | Overview › Institution at a glance | The attendance chart's top axis label was cut: "00%" instead of "100%". | The chart leaves room for the label. | 05-01 |
+| F-06 | Medium | Approvals › Discount | A discount request did not show its reason (Scholarship, Sibling, Staff child, Other) or the Accountant's note: the Principal approved money without seeing why. | The card shows the reason; the review panel shows the student, class, percentage, amount, reason and note. | 06-01, 06-01a |
+| F-07 | Low | Approvals › deciding twice | Approving from a second tab after it was already approved said "That changed since it was sent", though it had not changed. | The server answers already_decided, and the panel says "Already decided. Someone already decided this request. No changes were made by you." | 06-05 |
+| F-08 | Medium | Find a student › Register tab | The Principal was offered a Register tab and the full registration form, which the server refuses. | The Principal is offered no form: Admissions shows Student search, and the form's address says "You do not have access to this page." | 07-31, 07-33 |
+| F-09 | Low | Find a student › result | A search result could not be opened, so a student's record could not be seen from any screen. | The name opens the student's record, read only. | 07-31, 07-32 |
+| F-10 | Low | Fees › Dues | Students with nothing charged yet showed a green "Paid up". | They show "Nothing charged yet". | 07-19 |
+| F-11 | Medium (gap) | Audit trail and Sign-ins | No screen listed the audit trail or the sign-ins (CLAUDE.md section 6). | Two read-only screens under Reports, Oversight, with filters, search and pages; Support is shown as "Support". | 07-34 to 07-38 |
+| F-12 | Low | Website › text toolbar | Bulleted list (or Numbered list) on an empty line did nothing. | On an empty line it starts the list, with the cursor after its mark. | 08-04 |
+| F-13 | Medium | Approvals › own request | The Principal's own request sat in their inbox with Approve, which failed with "You no longer have permission to see this. Sign in again.", and could not be withdrawn (403). | It is marked "Your request", not counted as waiting, offers no Approve, and can be taken back (approvals.view.own now includes the Admin). | 10-07, 10-08 |
+| F-14 | Low | Other roles' pages opened by address | Pages of other roles answered four different ways (a network error, an empty calendar, a form). | Every one says "You do not have access to this page." | 10-01 to 10-05 |
+| F-15 | Low | Phone tab bar | At 375 px "More" wrapped to a second row and the Approvals badge sat under its label. | One row of equal tabs, the count on the icon; with enlarged text, icons only, each still named. | 11-01, 11-08 |
+| F-16 | Low | Sign-in page at 320 px | At 320 px with text at 200% the sign-in page scrolled sideways by 14 px. | No sideways scroll (checked again in this run). | 11-12 |
+| F-17 | Low | Website Content at 320 px | At 320 px with text at 200%, "Waiting for approval" did not wrap and pushed the page 10 px sideways. | The status label wraps. | 11-11 |
+| F-18 | Medium | Fees › Receipt | Receipt numbers started with the section's internal key ("s7e402b08e9-2083-00007"), and the receipt date was "2083-06-16". | Each section has a receipt code chosen by the Principal (P2-2083-00007), fixed once a receipt is issued; dates are in BS words. | 02-03, 07-15 |
+| F-19 | Low | Dates › half-filled date | A date with only the day filled in was refused with "That day is not in the verified calendar". | It asks: "Fill in the day, the month and the year." | 07-05a |
 
-Only F-02 was fixed in this round, because it blocked the test. The others are for the PM to schedule: most are small and local to one screen; F-11 is a missing screen, and F-18 touches how receipt numbers are formed, which belongs to the fees rules.
+F-18 changed how receipt numbers are formed, a fees rule, as the PM chose (a short code per section); F-13 widened `approvals.view.own` to the Admin and Support so they can take back their own request. Both are recorded in D-102 with the tests that cover them.
 
 ## What the Principal can do, and where it was tested
 
@@ -1268,7 +1333,7 @@ From the permission matrix (`apps/api/src/core/permissions/matrix.ts`), every ac
 | `content.draft / content.publish` | Draft and publish website content | 08 |
 | `setup.programmes.manage` | Sections, programmes, levels, grading | 02, 03 |
 | `setup.structure.view / subjects.view / assignments.view` | View years, classes, terminals, subjects, curriculum, teaching | 07-25 to 07-30, 12-05 |
-| `students.search / students.personal.view` | Find a student, view personal details | 07-31 (record view not reachable, F-09) |
+| `students.search / students.personal.view` | Find a student, view personal details | 07-31, 07-32 |
 | `attendance.student.view / attendance.teacher.view` | View attendance | 07-01 to 07-06 |
 | `activity.read` | Read the activity log | 07-07, 07-08 |
 | `fees.structure.approve` | Approve a fee structure | 05-03, 05-06, 06-06 |
@@ -1276,7 +1341,8 @@ From the permission matrix (`apps/api/src/core/permissions/matrix.ts`), every ac
 | `fees.discount.approve / reversal.approve / refund.approve` | Approve money requests | 06 |
 | `results.view / results.top20.view` | Published results, class sheets, Top 20 | 07-20 to 07-23 |
 | `approvals.decide / approvals.request` | Decide requests; send own draft | 05, 06, 10-07, 10-08 |
-| `audit.view` | Activity and sign-ins | 05-01, 12-06 (dashboard only; F-11) |
+| `approvals.view.own` | See and take back one's own request | 10-08, 10-08a |
+| `audit.view` | Audit trail and sign-ins | 05-01, 07-34 to 07-38 |
 | `dashboard.overview.view` | The Principal's dashboard | 01-08, 05-01, 12-06, 12-07 |
 | `dev.mailbox.view` | Test mailbox | 09-19 |
 | `reports.students / fees / results` | Reports and exports | 07-19 (dues CSV), 07-22 (results CSV), 07-24 |

@@ -33,4 +33,13 @@ const { open, shot, finish, secrets, BASE } = require("./lib.cjs");
     console.log(url, "320/200% overflow:", overflow);
   }
   await finish(t);
+  // The sign-in page, signed out, at 320 px with text at 200% (F-16).
+  const u = await open({ width: 320, height: 700, fresh: true });
+  await u.page.goto(BASE + "/sign-in", { waitUntil: "networkidle" });
+  await u.page.addStyleTag({ content: "html { font-size: 200% !important; }" });
+  await u.page.waitForTimeout(1200);
+  const signInOverflow = await u.page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+  await shot(u.page, "11-12-320-sign-in", "320 px wide, text at 200%: the sign-in page" + (signInOverflow > 1 ? ` (FINDING: the page scrolls sideways by ${signInOverflow} px)` : ", no sideways scroll (F-16 fixed)"), { full: false });
+  console.log("/sign-in 320/200% overflow:", signInOverflow);
+  await finish(u, false);
 })();

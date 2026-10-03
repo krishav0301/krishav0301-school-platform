@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { BS_MONTH_NAMES } from "../../api/src/core/dates";
 import { en, t } from "@/i18n/messages";
-import { GROUPS, KINDS, STATES, contactHref, emptyForm, firstInvalid, formFromItem, formatBsDate, formatTime, holidayLine, joinBs, parseEditTarget, parseFlash, parseNewKind, splitBs, validateForm, type FormValues } from "@/content/model";
+import { GROUPS, KINDS, STATES, contactHref, emptyForm, firstInvalid, formFromItem, formatBsDate, formatTime, holidayLine, isWholeBsDate, joinBs, parseEditTarget, parseFlash, parseNewKind, splitBs, validateForm, type FormValues } from "@/content/model";
 
 const valid: FormValues = { kind: "notice", title: "Winter break", body: "Closed on Friday.", contact: "", urgent: false, publishOnBs: "2083-06-10", publishTime: "10:00", hideAfterBs: "", holidayFromBs: "", holidayToBs: "" };
 const errorsOf = (over: Partial<FormValues>) => validateForm({ ...valid, ...over });
@@ -309,5 +309,12 @@ describe("a holiday names its own days (D-094)", () => {
   it("an existing holiday's form carries its days and not its hide-after day, which the server sets", () => {
     const item = { kind: "holiday", title: "Dashain", body: "Closed", contact: null, urgent: false, publishOnBs: "2083-06-14", hideAfterBs: "2083-06-20", holidayFromBs: "2083-06-16", holidayToBs: "2083-06-20" } as never;
     expect(formFromItem(item)).toMatchObject({ hideAfterBs: "", holidayFromBs: "2083-06-16", holidayToBs: "2083-06-20" });
+  });
+});
+
+describe("a whole BS day (admin FUT F-19)", () => {
+  it("needs the day, the month and the year", () => {
+    expect(isWholeBsDate("2083-06-15")).toBe(true);
+    for (const partial of ["--15", "2083--15", "2083-06-", ""]) expect(isWholeBsDate(partial), partial).toBe(false);
   });
 });

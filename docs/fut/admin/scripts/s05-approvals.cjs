@@ -1,9 +1,9 @@
 const { open, shot, finish, BASE } = require("./lib.cjs");
+const { review, approve, decline, finishPanel } = require("./approvals-ui.cjs");
 
 (async () => {
   const s = await open();
   const p = s.page;
-  const card = (text) => p.locator("h2", { hasText: text }).locator('xpath=ancestor::*[.//button[starts-with(normalize-space(), "Approve")]][1]');
   try {
     await p.goto(BASE + "/portal", { waitUntil: "networkidle" });
     await p.waitForTimeout(1500);
@@ -11,35 +11,32 @@ const { open, shot, finish, BASE } = require("./lib.cjs");
 
     await p.goto(BASE + "/portal/approvals", { waitUntil: "networkidle" });
     await p.waitForSelector("text=Sent by Gita Thapa");
-    await shot(p, "05-02-approvals-inbox", "Approvals inbox: three fee structures from the Accountant and two website drafts from the Co-ordinator");
+    await shot(p, "05-02-approvals-inbox", "Approvals inbox (D-102): three fee structures from the Accountant and two website drafts from the Co-ordinator, each with Review");
 
-    if (!process.env.RESUME) {
-    await card("+2 Science Grade 11").getByRole("button", { name: /^Approve/ }).click();
-    await p.waitForTimeout(1500);
-    }
-    await shot(p, "05-03-fee-structure-approved", "Grade 11 fee structure approved: it leaves the inbox and becomes the live structure");
+    await review(p, /^Review Fee structure: \+2 Science · Grade 11/);
+    await shot(p, "05-03-fee-structure-review", "Reviewing the Grade 11 fee structure: every item, the yearly total, who sent it and when", { full: false });
+    await approve(p, { confirmShot: () => shot(p, "05-03a-approve-confirm", "Approve request asks once more, naming the structure and its yearly total", { full: false }) });
+    await shot(p, "05-03b-fee-structure-approved", "Approved: the Grade 11 fee structure is now effective", { full: false });
+    await finishPanel(p);
 
-    // Decline without a reason, then with one.
-    const bbs = card("BBS Year 1");
-    await bbs.getByText("Decline", { exact: true }).click();
-    await p.waitForTimeout(400);
-    await shot(p, "05-04-decline-opened", "Decline opens a box for the reason; the Decline button stays disabled until a reason is written", { full: false });
-    await bbs.locator("textarea").fill("Tuition looks too high compared with last year. Please check with the university fee schedule and send again.");
-    await bbs.getByRole("button", { name: /Decline/ }).last().click();
-    await p.waitForTimeout(1500);
-    await shot(p, "05-05-fee-structure-declined", "BBS Year 1 fee structure declined with a reason; it goes back to the Accountant");
+    await review(p, /^Review Fee structure: BBS/);
+    await decline(p, "Tuition looks too high compared with last year. Please check with the university fee schedule and send again.", {
+      emptyShot: () => shot(p, "05-04-decline-empty", "Decline asks why; an empty reason is refused", { full: false }),
+    });
+    await shot(p, "05-05-fee-structure-declined", "BBS Year 1 fee structure declined with a reason; it goes back to the Accountant", { full: false });
+    await finishPanel(p);
 
-    await card("+2 Science Grade 12").getByRole("button", { name: /^Approve/ }).click();
-    await p.waitForTimeout(1500);
-    await card("Grade 11 first terminal results").getByRole("button", { name: /^Approve/ }).click();
-    await p.waitForTimeout(1500);
-    await shot(p, "05-06-notice-approved", "Grade 12 fees and the Co-ordinator's notice approved; the notice is published on the website at once");
-    const quiz = card("Inter-college quiz");
-    await quiz.getByText("Decline", { exact: true }).click();
-    await quiz.locator("textarea").fill("Please add the date, time and venue before this goes on the website.");
-    await quiz.getByRole("button", { name: /Decline/ }).last().click();
-    await p.waitForTimeout(1500);
-    await shot(p, "05-07-inbox-empty", "Every request decided: the inbox is empty and the menu badge is gone");
+    await review(p, /^Review Fee structure: \+2 Science · Grade 12/);
+    await approve(p);
+    await finishPanel(p);
+    await review(p, /^Review Website content: Notice/);
+    await shot(p, "05-06-notice-review", "Reviewing the Co-ordinator's notice: a preview of what will be published", { full: false });
+    await approve(p);
+    await finishPanel(p);
+    await review(p, /^Review Website content: Event/);
+    await decline(p, "Please add the date, time and venue before this goes on the website.");
+    await finishPanel(p);
+    await shot(p, "05-07-inbox-empty", "Every request decided: nothing is waiting, and the menu count is gone at once (F-03 fixed)");
   } catch (e) {
     console.error(e);
     await p.screenshot({ path: __dirname + "/err.png" });

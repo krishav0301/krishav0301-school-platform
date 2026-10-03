@@ -34,7 +34,7 @@ const { open, shot, finish, secrets, BASE } = require("./lib.cjs");
     await day.fill("15");
     await p.getByRole("button", { name: "Show" }).click();
     await p.waitForTimeout(1200);
-    await shot(p, "07-05a-incomplete-date", "A date with only the day filled in (no month or year) is refused, but the message says the day is not in the verified calendar (finding F-19)");
+    await shot(p, "07-05a-incomplete-date", "A date with only the day filled in (no month or year) asks for the day, the month and the year (F-19 fixed)");
     await month.selectOption({ index: 6 });
     await year.fill("2083");
     await p.getByRole("button", { name: "Show" }).click();
@@ -146,16 +146,16 @@ const { open, shot, finish, secrets, BASE } = require("./lib.cjs");
     await go("/portal/admissions/search", "text=Student search");
     await p.getByLabel("Name, SID or phone").fill("Rai");
     await p.waitForTimeout(1500);
-    await shot(p, "07-31-student-search", "Find a student: 'Rai' finds Suman Rai");
+    await shot(p, "07-31-student-search", "Find a student: 'Rai' finds Suman Rai; the name opens the record (F-09 fixed), and there is no Register tab (F-08 fixed)");
     const link = p.getByRole("link", { name: /Suman Rai/ }).first();
     if (await link.count()) {
       await link.click();
       await p.waitForTimeout(1800);
-      await shot(p, "07-32-student-record", "A student's record: personal details, guardians and enrollment; read only for the Principal");
+      await shot(p, "07-32-student-record", "Suman Rai's record: student ID, class, date of birth, contacts and guardian; read only for the Principal");
     }
     await go("/portal/admissions/register");
     await p.waitForTimeout(1200);
-    await shot(p, "07-33-register-tab-not-allowed", "The Register tab beside Student search, opened by the Principal");
+    await shot(p, "07-33-register-tab-not-allowed", "The registration form's address, opened by the Principal: \"You do not have access to this page\" (F-08, F-14 fixed)");
   });
 
   await finish(s);

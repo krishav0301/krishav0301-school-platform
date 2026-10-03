@@ -1,0 +1,13 @@
+"use client";
+
+import { AdmissionsLayout } from "@/admissions/AdmissionsLayout";
+import { StudentScreen } from "@/admissions/StudentScreen";
+
+/** One student's record, read only, from Student search (admin FUT F-09). */
+export default function StudentRecordPage() {
+  return (
+    <AdmissionsLayout>
+      <StudentScreen />
+    </AdmissionsLayout>
+  );
+}

@@ -20,6 +20,15 @@ export const ACTIVITY_ACTIONS = [
   "approvals.request.declined",
 ] as const;
 
+/**
+ * An admission names the student and their student ID, read from the student record: the
+ * entry is written in the same batch that numbers the student, before the ID is known (admin FUT F-04). Earlier
+ * entries, which carried an internal id, read the same way.
+ */
+export const STUDENT_JOIN = "LEFT JOIN students st ON ae.entity_type = 'student' AND st.public_id = ae.entity_public_id";
+export const READABLE_SUMMARY = `CASE WHEN ae.action = 'admissions.approved' AND st.id IS NOT NULL
+  THEN st.first_name || ' ' || st.last_name || ' admitted (' || st.sid || ')' ELSE ae.summary END`;
+
 export interface ActivityRow {
   id: number;
   at: string;
@@ -37,9 +46,9 @@ export function recentActivityPart(db: D1Database, limit = 10): DashboardPart<Ac
     statements: [
       db
         .prepare(
-          `SELECT ae.id, ae.at, ae.action, ae.entity_type AS entityType, ae.entity_public_id AS entityId, ae.summary, u.full_name AS actorName,
+          `SELECT ae.id, ae.at, ae.action, ae.entity_type AS entityType, ae.entity_public_id AS entityId, ${READABLE_SUMMARY} AS summary, u.full_name AS actorName,
                   EXISTS (SELECT 1 FROM role_assignments ra WHERE ra.user_id = ae.actor_user_id AND ra.role = 'super_admin') AS actorIsSupport
-             FROM audit_events ae LEFT JOIN users u ON u.id = ae.actor_user_id
+             FROM audit_events ae LEFT JOIN users u ON u.id = ae.actor_user_id ${STUDENT_JOIN}
             WHERE ae.action IN (SELECT value FROM json_each(?1))
             ORDER BY ae.id DESC LIMIT ?2`,
         )

@@ -107,8 +107,8 @@ const { open, shot, finish, BASE } = require("./lib.cjs");
     // Section edit: rename and switch off.
     await p.getByRole("button", { name: "Edit Master's", exact: true }).click();
     await shot(p, "03-14-section-edit", "Edit a section: rename, switch off, delete", { el: "dialog[open]" });
-    await dialog().getByRole("textbox").fill("Master's Degrees");
-    await dialog().getByRole("button", { name: "Save name" }).click();
+    await dialog().getByLabel("Section name").fill("Master's Degrees");
+    await dialog().getByRole("button", { name: "Save", exact: true }).click();
     await p.waitForSelector('h2:text-is("Master\'s Degrees")');
     await p.getByRole("button", { name: "Edit Master's Degrees", exact: true }).click();
     await dialog().getByRole("button", { name: "Switch off" }).click();

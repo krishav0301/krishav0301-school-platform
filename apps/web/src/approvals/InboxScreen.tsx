@@ -339,21 +339,25 @@ function ReviewDrawer({ request, onClose }: { request: ApprovalSummary; onClose:
   const [reasonError, setReasonError] = useState<string | null>(null);
   const changed = step !== "review" && step !== "decline";
 
-  const read = useCallback(async () => {
-    setReview({ status: "loading" });
-    const result = await load();
+  // What the server said about the request. The panel starts as loading; Retry sets it back before reading again.
+  const show = useCallback((result: Awaited<ReturnType<typeof load>>) => {
     if (result.ok) {
       setReview({ status: "ready", data: result.data });
       if (result.data.status === "stale") setStale(true);
       else if (result.data.status !== "pending") setStep("already");
     } else if (result.reason === "not_found") setStep("gone");
     else setReview({ status: "failed" });
-  }, [load]);
+  }, []);
+  const read = useCallback(() => load().then(show), [load, show]);
 
   useEffect(() => {
-    ref.current?.showModal();
-    void read();
-  }, [read]);
+    if (ref.current && !ref.current.open) ref.current.showModal();
+    let live = true;
+    void load().then((result) => (live ? show(result) : undefined));
+    return () => {
+      live = false;
+    };
+  }, [load, show]);
 
   // Closing (the X, Escape, Done, Close) goes through the dialog's own close event, below, exactly once.
   const close = () => {
@@ -470,7 +474,13 @@ function ReviewDrawer({ request, onClose }: { request: ApprovalSummary; onClose:
       <Notice tone="bad">
         <span className={styles.failed}>
           {t("approvals.reviewFailed")}
-          <Button variant="secondary" onClick={() => void read()}>
+          <Button
+            variant="secondary"
+            onClick={() => {
+              setReview({ status: "loading" });
+              void read();
+            }}
+          >
             {t("approvals.retry")}
           </Button>
         </span>
@@ -484,7 +494,7 @@ function ReviewDrawer({ request, onClose }: { request: ApprovalSummary; onClose:
             {t("approvals.error.stale")}
           </Notice>
         ) : null}
-        {request.mine && !stale ? <Notice title={t("approvals.mine.title")}>{t("approvals.mine.text")}</Notice> : null}
+        {request.mine && !stale ? <Notice title={t("approvals.status.mine")}>{t("approvals.mine.text")}</Notice> : null}
         {detail ? <DetailBody detail={detail} /> : <p className={styles.subject}>{request.summary}</p>}
         <RequestedBy request={request} />
         {problem ? <Notice tone="bad">{problem}</Notice> : null}

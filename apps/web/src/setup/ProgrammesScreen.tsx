@@ -196,6 +196,8 @@ function SectionForm({ words, initial, submitLabel, onSave, children }: { words:
         onChange={(event) => {
           setName(event.target.value);
           if (!codeTyped) setCode(suggestReceiptCode(event.target.value));
+          // A corrected field drops its old message at once (the forms of D-102 do not wait for the next send).
+          setErrors((old) => ({ ...old, name: undefined, ...(codeTyped ? {} : { code: undefined }) }));
         }}
         error={errors.name}
       />
@@ -213,6 +215,7 @@ function SectionForm({ words, initial, submitLabel, onSave, children }: { words:
           onChange={(event) => {
             setCode(event.target.value.toUpperCase());
             setCodeTyped(true);
+            setErrors((old) => ({ ...old, code: undefined }));
           }}
           error={errors.code}
         />

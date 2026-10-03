@@ -6,7 +6,8 @@ import { useCallback, useState } from "react";
 import { useAddressQuery } from "@/content/address";
 import { toAd } from "@/content/client";
 import { BsDateField } from "@/content/BsDateField";
-import { t } from "@/i18n/messages";
+import { isWholeBsDate } from "@/content/model";
+import { t, type MessageKey } from "@/i18n/messages";
 import { useSession } from "@/session/SessionProvider";
 import setupStyles from "@/setup/setup.module.css";
 import { Gate, useLoad } from "@/setup/useLoad";
@@ -25,7 +26,7 @@ export function ClassAttendanceScreen() {
   const id = search === null ? "" : (new URLSearchParams(search).get("id") ?? "");
   const [date, setDate] = useState<string | undefined>(undefined);
   const [bs, setBs] = useState("");
-  const [badDay, setBadDay] = useState(false);
+  const [dayError, setDayError] = useState<MessageKey | null>(null);
 
   const loadNow = useCallback(async () => {
     if (!id) return { ok: false as const, reason: "failed" as const };
@@ -37,8 +38,10 @@ export function ClassAttendanceScreen() {
   const { view, reload } = useLoad<{ day: AttendanceDay; summary: AttendanceSummary }>(loadNow);
 
   async function show() {
+    // A day with its month or year missing asks for them, rather than blaming the calendar (admin FUT F-19).
+    if (!isWholeBsDate(bs)) return setDayError("attendance.class.incompleteDay");
     const result = await toAd(api, bs.trim());
-    setBadDay(!result.ok);
+    setDayError(result.ok ? null : "attendance.class.badDay");
     if (result.ok) setDate(result.ad);
   }
 
@@ -59,7 +62,7 @@ export function ClassAttendanceScreen() {
                   {t("attendance.class.dayTitle")}
                 </h2>
                 <div className={styles.dayPicker}>
-                  <BsDateField legend={t("attendance.class.otherDay")} hint={t("attendance.class.pickDayHint")} error={badDay ? t("attendance.class.badDay") : undefined} value={bs} onChange={setBs} />
+                  <BsDateField legend={t("attendance.class.otherDay")} hint={t("attendance.class.pickDayHint")} error={dayError ? t(dayError) : undefined} value={bs} onChange={setBs} />
                   <Button className={styles.wrapLabel} variant="secondary" onClick={() => void show()}>
                     {t("attendance.class.show")}
                   </Button>

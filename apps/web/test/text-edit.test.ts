@@ -69,3 +69,11 @@ describe("the formatting buttons (D-098)", () => {
     expect(parseText(edit.text).map((b) => b.type)).toEqual(["paragraph", "bullets"]);
   });
 });
+
+describe("a list or heading started on an empty line (admin FUT F-12)", () => {
+  it("puts the mark there with the cursor after it, ready to type; pressed again it takes it off", () => {
+    expect(setLineStyle({ text: "", start: 0, end: 0 }, "bullets")).toEqual({ text: "- ", start: 2, end: 2 });
+    expect(setLineStyle({ text: "Intro\n", start: 6, end: 6 }, "numbers")).toEqual({ text: "Intro\n1. ", start: 9, end: 9 });
+    expect(setLineStyle({ text: "Intro\n- ", start: 8, end: 8 }, "bullets")).toEqual({ text: "Intro\n", start: 6, end: 6 });
+  });
+});

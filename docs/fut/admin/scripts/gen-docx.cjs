@@ -85,6 +85,7 @@ function widths(header) {
     "#|Step|Result|Page": [0.1, 0.56, 0.12, 0.22],
     "#|Step|Observed on screen|Result": [0.09, 0.42, 0.37, 0.12],
     "ID|Severity|Where|What happens|Steps": [0.07, 0.11, 0.17, 0.5, 0.15],
+    "ID|Severity|Where|What the first run found|Fixed (D-100, D-102)|Steps": [0.06, 0.09, 0.14, 0.31, 0.29, 0.11],
     "Permission|What|Tested in": [0.34, 0.4, 0.26],
     "What|Made by|Detail": [0.17, 0.2, 0.63],
   };
@@ -97,7 +98,7 @@ function widths(header) {
 }
 
 function resultStyle(text) {
-  if (/^Pass$/.test(text)) return { fill: C.passFill, color: C.pass };
+  if (/^Pass/.test(text)) return { fill: C.passFill, color: C.pass };
   if (/^See F-/.test(text)) return { fill: C.warnFill, color: C.warn };
   if (/^High$/.test(text)) return { fill: "FDECEA", color: C.high };
   if (/^Medium/.test(text)) return { fill: C.warnFill, color: C.warn };
