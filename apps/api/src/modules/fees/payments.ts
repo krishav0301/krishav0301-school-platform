@@ -28,12 +28,16 @@ const counterStatement = (db: D1Database, enrollmentPublicId: string) =>
     )
     .bind(enrollmentPublicId);
 
-/** The receipt for a payment just inserted (it runs only if that insert changed a row), numbered from the counter. */
+/**
+ * The receipt for a payment just inserted (it runs only if that insert changed a row), numbered from the counter: the
+ * section's receipt code, the BS year and the sequence, such as P2-2083-00007 (D-102). A section from before codes
+ * numbers with its key until it is given one.
+ */
 const receiptStatement = (db: D1Database, receiptPublicId: string, paymentPublicId: string, at: string) =>
   db
     .prepare(
       `INSERT INTO receipts (public_id, number, section_id, academic_year_id, sequence, payment_entry_id, issued_at)
-       SELECT ?1, s.key || '-' || ay.bs_year || '-' || printf('%05d', rc.next_number), s.id, ay.id, rc.next_number, le.id, ?3
+       SELECT ?1, COALESCE(s.receipt_code, s.key) || '-' || ay.bs_year || '-' || printf('%05d', rc.next_number), s.id, ay.id, rc.next_number, le.id, ?3
          FROM ledger_entries le JOIN enrollments en ON en.id = le.enrollment_id JOIN academic_years ay ON ay.id = en.academic_year_id
          JOIN classes cl ON cl.id = en.class_id JOIN levels lv ON lv.id = cl.level_id JOIN programmes pv ON pv.id = lv.programme_id JOIN sections s ON s.id = pv.section_id
          JOIN receipt_counters rc ON rc.section_id = s.id AND rc.academic_year_id = ay.id

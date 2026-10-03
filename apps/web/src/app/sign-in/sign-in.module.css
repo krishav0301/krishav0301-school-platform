@@ -32,3 +32,9 @@
   flex-direction: column;
   gap: var(--space-4);
 }
+
+/* A four-word link may take two lines at 320 px with text at 200%, rather than push the page sideways (admin FUT F-16). */
+.wrapLink {
+  white-space: normal;
+  text-align: center;
+}

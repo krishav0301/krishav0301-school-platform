@@ -2,7 +2,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 
 import ApprovalsPage from "@/app/portal/approvals/page";
-import { InboxScreen, InboxView } from "@/approvals/InboxScreen";
+import { ApprovalsList, DetailBody, InboxScreen } from "@/approvals/InboxScreen";
 import type { ApprovalSummary, MyApproval } from "@/approvals/model";
 import { RequestsView } from "@/approvals/RequestsPanel";
 import { ContentList } from "@/content/ContentList";
@@ -39,42 +39,123 @@ const request = (over: Partial<ApprovalSummary> = {}): ApprovalSummary => ({
   snapshot: {},
   requestedBy: "Sita Sharma",
   createdAt: "2026-09-22T00:00:00Z",
+  requesterRole: "coordinator",
+  mine: false,
+  createdOnBs: "2083-06-06",
   ...over,
 });
 const myRequest = (over: Partial<MyApproval> = {}): MyApproval => ({ ...request(), status: "pending", decisionReason: null, ...over });
 
 // ---------------------------------------------------------------------------------------------
-describe("the inbox view", () => {
-  it("lists each pending request with its summary, requester and both actions", () => {
-    const html = inContext(<InboxView requests={[request()]} busy={null} onApprove={noop} onDecline={noop} />);
-    expect(html).toContain("Winter break");
-    expect(html).toContain("Website content");
-    expect(html).toContain("Sita Sharma");
-    expect(html).toContain(">Approve<");
-    expect(html).toContain(">Decline<");
+const fee = request({
+  id: "f1",
+  kind: "fee_structure",
+  requestedBy: "Gita Thapa",
+  requesterRole: "accountant",
+  createdOnBs: "2083-06-16",
+  snapshot: {
+    programme: "+2 Science",
+    level: "Grade 11",
+    year: "2083",
+    items: [
+      { name: "Tuition", amountPaisa: 350_000, frequency: "monthly" },
+      { name: "Admission", amountPaisa: 1_500_000, frequency: "one_time" },
+    ],
+    yearlyTotalPaisa: 6_200_000,
+  },
+});
+const discount = request({ id: "d1", kind: "discount", requesterRole: "accountant", snapshot: { student: "Rishav Kumar", amountPaisa: 500_000, percent: null, reason: "sibling" } });
+
+describe("the approvals inbox (D-102)", () => {
+  it("each card says the kind, the subject, a short summary, who sent it and when, the status in words, and offers Review", () => {
+    const html = inContext(<ApprovalsList requests={[fee, request()]} filtered={false} onReview={noop} />);
+    expect(html).toContain(">Fee structure</h2>");
+    expect(html).toContain("+2 Science · Grade 11 · 2083");
+    expect(html).toContain("Tuition 3,500 / month · Admission 15,000 once");
+    expect(html).toContain("Yearly total: NPR 62,000");
+    expect(html).toContain("Sent by Gita Thapa");
+    expect(html).toContain("16 Ashwin 2083");
+    expect(html).toContain(">Waiting<");
+    expect(html).toContain('aria-label="Review Fee structure: +2 Science · Grade 11 · 2083"');
+    // One prominent button per view (D-030): a card offers Review, never a filled Approve.
+    expect(html).not.toContain("Approve");
   });
 
-  it("decline is a disclosure with a reason field and its own submit button", () => {
-    const html = inContext(<InboxView requests={[request()]} busy={null} onApprove={noop} onDecline={noop} />);
-    expect(html).toMatch(/<details[^>]*>[\s\S]*<summary/);
-    expect(html).toContain(">Reason<");
-    expect(html).toContain(">Decline with this reason<");
+  it("a discount card shows the student, the amount and its reason (admin FUT F-06)", () => {
+    const html = inContext(<ApprovalsList requests={[discount]} filtered={false} onReview={noop} />);
+    expect(html).toContain("Rishav Kumar");
+    expect(html).toContain("NPR 5,000 · Reason: Sibling");
   });
 
-  it("says so when nothing is waiting", () => {
-    expect(inContext(<InboxView requests={[]} busy={null} onApprove={noop} onDecline={noop} />)).toContain("Nothing is waiting for a decision.");
+  it("the Principal's own request is marked as theirs, in words (admin FUT F-13)", () => {
+    expect(inContext(<ApprovalsList requests={[request({ mine: true })]} filtered={false} onReview={noop} />)).toContain(">Your request<");
   });
 
-  it("the screen shows the shape of the page while it loads", () => {
+  it("an empty inbox is calm: nothing waiting, all caught up; a filter with nothing says so", () => {
+    const empty = inContext(<ApprovalsList requests={[]} filtered={false} onReview={noop} />);
+    expect(empty).toContain("Nothing is waiting for a decision.");
+    expect(empty).toContain("You&#x27;re all caught up.");
+    expect(inContext(<ApprovalsList requests={[]} filtered onReview={noop} />)).toContain("Nothing of this kind is waiting.");
+  });
+
+  it("while loading, it shows the shape of the cards, not a lone spinner", () => {
     const html = inContext(<InboxScreen />);
     expect(html).toMatch(/role="status"[^>]*aria-busy="true"/);
     expect(html).toContain(">Approvals</h1>");
+    expect(html).toContain("You cannot approve your own request.");
+    expect(html).toContain('aria-pressed="true"'); // All, chosen
+    expect(html).toContain(">Newest first<");
   });
 
   it("the page has the portal around it", () => {
     const html = inContext(<ApprovalsPage />);
     expect(html).toContain(">Approvals</h1>");
     expect(html).toContain("Skip to main content");
+  });
+});
+
+describe("the review panel's details, for each kind (D-102)", () => {
+  it("a fee structure: every item, the yearly total, the programme and year, and what approving does", () => {
+    const html = inContext(<DetailBody detail={{ kind: "fee_structure", programme: "+2 Science", level: "Grade 11", year: "2083", items: [{ name: "Tuition", amountPaisa: 350_000, frequency: "monthly" }, { name: "Laboratory", amountPaisa: 200_000, frequency: "yearly" }], yearlyTotalPaisa: 4_400_000 }} />);
+    expect(html).toContain("<dt>Tuition</dt><dd>NPR 3,500 / month</dd>");
+    expect(html).toContain("<dt>Laboratory</dt><dd>NPR 2,000 / year</dd>");
+    expect(html).toContain("<dt>Yearly total</dt><dd>NPR 44,000</dd>");
+    expect(html).toContain("+2 Science · Grade 11 · Academic year 2083");
+    expect(html).toContain("If approved, this fee structure will take effect for the selected programme and year.");
+  });
+
+  it("a percentage discount: the percentage and its amount, the reason, and the note when Other", () => {
+    const html = inContext(<DetailBody detail={{ kind: "discount", student: "Rishav Kumar", sid: "2083-00012", className: "BBS · Year 1", amountPaisa: 1_200_000, percent: 10, reason: "other", note: "Flood relief" }} />);
+    expect(html).toContain("<dd>Rishav Kumar (2083-00012)</dd>");
+    expect(html).toContain("<dt>Class</dt><dd>BBS · Year 1</dd>");
+    expect(html).toContain("<dt>Discount</dt><dd>10%</dd>");
+    expect(html).toContain("<dt>Equivalent amount</dt><dd>NPR 12,000</dd>");
+    expect(html).toContain("<dt>Reason</dt><dd>Other</dd>");
+    expect(html).toContain("<dt>Note</dt><dd>Flood relief</dd>");
+  });
+
+  it("a reversal: the original payment, its day and receipt, and that the payment itself is never changed", () => {
+    const html = inContext(<DetailBody detail={{ kind: "reversal", student: "Rishav Kumar", sid: "2083-00012", className: null, amountPaisa: 2_500_000, reason: "Payment recorded twice", payment: { amountPaisa: 2_500_000, paidOnBs: "2083-06-12", receiptNumber: "P2-2083-00041", method: "cash" } }} />);
+    expect(html).toContain("<dt>Original payment</dt><dd>NPR 25,000</dd>");
+    expect(html).toContain("<dt>Payment date</dt><dd>12 Ashwin 2083</dd>");
+    expect(html).toContain("<dt>Receipt</dt><dd>P2-2083-00041</dd>");
+    expect(html).toContain("<dt>Reason</dt><dd>Payment recorded twice</dd>");
+    expect(html).toContain("The original payment will not be edited or deleted.");
+  });
+
+  it("a refund: the credit and the amount; how it is paid back is the Accountant's, not a choice here", () => {
+    const html = inContext(<DetailBody detail={{ kind: "refund", student: "Rishav Kumar", sid: "2083-00012", className: null, amountPaisa: 1_800_000, availableCreditPaisa: 1_800_000, note: "Excess payment" }} />);
+    expect(html).toContain("<dt>Available credit</dt><dd>NPR 18,000</dd>");
+    expect(html).toContain("<dt>Refund amount</dt><dd>NPR 18,000</dd>");
+    expect(html).toContain("the Accountant records how the refund was paid");
+    expect(html).not.toMatch(/<select|type="radio"/);
+  });
+
+  it("website content: the title and a preview of what will be published", () => {
+    const html = inContext(<DetailBody detail={{ kind: "website_content", contentKind: "notice", title: "Grade 11 first terminal results are out", bodyPreview: "Students can check their results on the portal.", bodyTruncated: false, publishOnBs: "2083-06-15", holidayFromBs: null, holidayToBs: null }} />);
+    expect(html).toContain("Grade 11 first terminal results are out");
+    expect(html).toContain("Students can check their results on the portal.");
+    expect(html).toContain("<dt>Shows from</dt><dd>15 Ashwin 2083</dd>");
   });
 });
 

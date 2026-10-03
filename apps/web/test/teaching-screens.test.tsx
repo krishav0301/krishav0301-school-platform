@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from "vitest";
 
 import TeachingPage from "@/app/portal/people/teaching/page";
 import { ConfigContext, makeConfigValue, type PublicConfig } from "@/config/ConfigProvider";
+import { TeachersTable, byTeacher } from "@/people/TeachingRead";
 import { TeachingScreen, TeachingView } from "@/people/TeachingScreen";
 import type { Teaching } from "@/people/teaching-model";
 import { SessionContext } from "@/session/SessionProvider";
@@ -98,6 +99,32 @@ describe("the teaching screen and its page", () => {
 
   it("a reader sees the read-only notice", () => {
     const html = inContext(<TeachingScreen />, as("admin", "institution"));
-    expect(html).toContain("only a Vice Principal can change it");
+    expect(html).toContain("Read only. The Vice Principal manages this.");
+  });
+
+  it("the Principal reads teaching by teacher: subjects and classes, and the class each leads (D-104)", () => {
+    const cls = (id: string, label: string) => ({ id, yearId: "y", programmeId: "p", programmeName: "Science", sectionKey: "plus2", levelId: "l", levelName: "Grade 11", label, active: true, canDelete: false });
+    const ram = { id: "t1", fullName: "Ram Sah" };
+    const gita = { id: "t2", fullName: "Gita Rai" };
+    const teaching = (classId: string, classTeacher: typeof ram | null, assignments: { subjectName: string; teacher: typeof ram | null }[]) => ({
+      classId,
+      classLabel: "",
+      levelName: "Grade 11",
+      classTeacher,
+      assignments: assignments.map((a, i) => ({ offeringId: `${classId}-${i}`, ...a })),
+      teachers: [],
+    });
+    const { teachers, unassigned } = byTeacher(
+      [cls("a", "A"), cls("b", "B")],
+      [teaching("a", ram, [{ subjectName: "Physics", teacher: ram }, { subjectName: "English", teacher: gita }]), teaching("b", null, [{ subjectName: "Physics", teacher: ram }, { subjectName: "Nepali", teacher: null }])],
+    );
+    expect(teachers).toEqual([
+      { id: "t2", name: "Gita Rai", teaches: ["English in Science · Grade 11 (A)"], classTeacherOf: [] },
+      { id: "t1", name: "Ram Sah", teaches: ["Physics in Science · Grade 11 (A)", "Physics in Science · Grade 11 (B)"], classTeacherOf: ["Science · Grade 11 (A)"] },
+    ]);
+    expect(unassigned).toBe(1);
+    const html = inContext(<TeachersTable teachers={teachers} />, as("admin", "institution"));
+    expect(html).toContain(">No class<");
+    expect(html).not.toMatch(/<(select|input|button)/);
   });
 });

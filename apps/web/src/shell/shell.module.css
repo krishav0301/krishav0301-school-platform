@@ -181,14 +181,17 @@
   bottom: 0;
   z-index: 10;
   display: flex;
-  flex-wrap: wrap; /* with enlarged text the entries take a second row rather than run off the screen */
+  /* One row, always (admin FUT F-15): five equal tabs. With enlarged text the labels give way to the icons alone
+     (below), rather than the bar wrapping onto a second row or a word breaking in the middle. */
+  flex-wrap: nowrap;
   border-top: 1px solid var(--color-border);
   background: var(--color-surface);
   padding-bottom: env(safe-area-inset-bottom);
 }
 
 .navLink {
-  flex: 1 1 auto;
+  position: relative;
+  flex: 1 1 0;
   /* A flex item's implied minimum is its own content's width, not 0, so without this two labels sharing
      a row could refuse to shrink and push the bar past the viewport at large text sizes (found at 320 px,
      200%, once a fifth entry changed how the four others pair up). min-width: 0 lets a long label wrap
@@ -200,9 +203,9 @@
   justify-content: center;
   gap: 0.15rem;
   min-height: 3.25rem;
-  padding: var(--space-1) var(--space-2);
+  padding: var(--space-1) 0.125rem;
   color: var(--color-text-muted);
-  font-size: var(--text-sm);
+  font-size: var(--text-xs);
   font-weight: var(--weight-medium);
   text-decoration: none;
   text-align: center;
@@ -221,20 +224,45 @@
 
 .navLabel {
   min-width: 0;
-  overflow-wrap: anywhere;
+  max-width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
+/* On a phone the waiting count sits on the tab's icon, so the tab keeps one line of words. */
 .badge {
+  position: absolute;
+  top: 0.125rem;
+  left: calc(50% + 0.375rem);
   display: inline-grid;
   place-items: center;
-  min-width: 1.5rem;
-  height: 1.5rem;
-  padding: 0 var(--space-1);
+  min-width: 1.125rem;
+  height: 1.125rem;
+  padding: 0 0.25rem;
   border-radius: 999px;
   background: var(--color-bad);
   color: var(--color-primary-text);
-  font-size: var(--text-sm);
+  font-size: var(--text-xs);
   font-weight: var(--weight-bold);
+}
+
+/* Enlarged text on a narrow phone (the em width grows with the person's text size): the icons alone, each still
+   named for a screen reader, keep the bar on one row without breaking a word. */
+@media (max-width: 19em) {
+  .navLabel {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  .navIcon {
+    width: 1.5rem;
+    height: 1.5rem;
+  }
 }
 
 .navLink[aria-current="page"] {
@@ -254,11 +282,9 @@
   padding: var(--space-5) var(--page-gutter) var(--space-7);
 }
 
-/* Keep the last of the page clear of the fixed tab bar. Icons make each tab taller, and at 320 px
-   width and 200% text even four one-word labels can wrap to three rows (found reviewing the setup
-   checklist, D-062), so the reserve covers three rows with a little to spare. */
+/* Keep the last of the page clear of the fixed tab bar, which is always one row (admin FUT F-15). */
 .withTabs .main {
-  padding-bottom: calc(13rem + env(safe-area-inset-bottom) + var(--space-6));
+  padding-bottom: calc(4rem + env(safe-area-inset-bottom) + var(--space-6));
 }
 
 .footer {
@@ -367,6 +393,16 @@
 
   .navLabel {
     flex: 1;
+    white-space: normal;
+    overflow: visible;
+  }
+
+  .badge {
+    position: static;
+    min-width: 1.5rem;
+    height: 1.5rem;
+    padding: 0 var(--space-1);
+    font-size: var(--text-sm);
   }
 
   .navLink:hover:not([aria-current="page"]) {

@@ -102,7 +102,7 @@ function CredentialsStep({ notice, onSecondStep }: { notice?: MessageKey; onSeco
         <Button type="submit" fullWidth loading={submitting} loadingLabel={t("signIn.submitting")}>
           {submitting ? t("signIn.submitting") : t("signIn.submit")}
         </Button>
-        <Link href="/reset-password" className={buttonClass({ variant: "quiet", fullWidth: true })}>
+        <Link href="/reset-password" className={`${buttonClass({ variant: "quiet", fullWidth: true })} ${styles.wrapLink}`}>
           {t("signIn.forgot")}
         </Link>
       </form>

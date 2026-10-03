@@ -1,5 +1,5 @@
 import { recordAudit } from "../../core/audit";
-import { nepalMinute } from "../../core/dates";
+import { adToBsText, nepalMinute } from "../../core/dates";
 import { newPublicId } from "../../core/ids";
 import { registerApprovalHandler, type ApprovalHandler } from "../approvals/service";
 import { stateOf } from "./queries";
@@ -387,6 +387,25 @@ export const contentApprovalHandler: ApprovalHandler = {
     const row = await db.prepare("SELECT public_id, kind, title, version FROM content_items WHERE id = ?1").bind(id).first<HandlerRow>();
     if (!row) return null;
     return { snapshot: { title: row.title, kind: row.kind }, summary: `${KIND_LABEL[row.kind]} "${row.title}"`, subjectPublicId: row.public_id };
+  },
+  /** What the Principal reads before deciding (D-102): the item's kind, title and the start of its text, and its dates. */
+  async detail(db, id) {
+    const row = await db
+      .prepare("SELECT kind, title, substr(body, 1, 1501) AS body, publish_on, holiday_from, holiday_to FROM content_items WHERE id = ?1")
+      .bind(id)
+      .first<{ kind: string; title: string; body: string; publish_on: string; holiday_from: string | null; holiday_to: string | null }>();
+    if (!row) return null;
+    const bs = (ad: string | null) => (ad ? adToBsText(ad.slice(0, 10)) : null);
+    return {
+      kind: "website_content" as const,
+      contentKind: row.kind,
+      title: row.title,
+      bodyPreview: row.body.slice(0, 1500),
+      bodyTruncated: row.body.length > 1500,
+      publishOnBs: bs(row.publish_on),
+      holidayFromBs: bs(row.holiday_from),
+      holidayToBs: bs(row.holiday_to),
+    };
   },
   async currentVersion(db, id) {
     const row = await db.prepare("SELECT version FROM content_items WHERE id = ?1").bind(id).first<{ version: number }>();

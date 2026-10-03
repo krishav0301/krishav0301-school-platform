@@ -186,7 +186,7 @@ export const MATRIX = [
   // --- Oversight
   row(G.oversight, "approvals.decide", "Approvals inbox: decide (never your own request)", 3, { ADM: all, SUP: all }),
   row(G.oversight, "approvals.request", "Send a draft for approval", 3, { COO: inst, ADM: all, SUP: all }),
-  row(G.oversight, "approvals.view.own", "View your own approval requests", 3, { COO: own }),
+  row(G.oversight, "approvals.view.own", "View your own approval requests, and take one back while it waits", 3, { COO: own, ADM: own, SUP: own }),
   row(G.oversight, "audit.view", "View activity audit trail and sign-ins", 1, { ADM: all, SUP: all }),
   row(G.oversight, "dashboard.overview.view", "The Principal's dashboard: the whole school at a glance (counts, trends, what needs attention, recent activity)", 7, { ADM: all, SUP: all }),
   row(G.oversight, "audit.edit", "Edit or delete an audit entry", 1, {}),

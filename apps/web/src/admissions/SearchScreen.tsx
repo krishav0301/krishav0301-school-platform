@@ -1,13 +1,13 @@
 "use client";
 
+import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { t } from "@/i18n/messages";
 import { useSession } from "@/session/SessionProvider";
-import setupStyles from "@/setup/setup.module.css";
-import { Badge, Field, Notice } from "@/ui";
+import { EmptyLine, OpenLink, Panel, ReadFailure, ReadHeader, ReadTable, StatusWord, readStyles } from "@/read/ReadView";
+import { Field } from "@/ui";
 
-import styles from "./admissions.module.css";
 import { searchStudents } from "./client";
 import type { StudentSummary } from "./model";
 
@@ -44,32 +44,52 @@ export function SearchScreen() {
   }, [query, run]);
 
   return (
-    <>
-      <h1 className={setupStyles.title}>{t("admissions.search.title")}</h1>
-      <Field label={t("admissions.search.label")} hint={t("admissions.search.hint")} value={query} onChange={(event) => setQuery(event.target.value)} />
-      {failure ? <Notice tone="bad">{failure}</Notice> : null}
+    <div className={readStyles.page}>
+      <ReadHeader title={t("admissions.search.title")} subtitle={t("admissions.search.subtitle")} />
+      <div className={readStyles.search}>
+        <Field label={t("admissions.search.label")} hint={t("admissions.search.hint")} type="search" value={query} onChange={(event) => setQuery(event.target.value)} />
+      </div>
+      {failure ? <ReadFailure status="failed" onRetry={() => void run(query)} /> : null}
       {results !== null ? (
         results.length === 0 ? (
-          <p className={setupStyles.empty}>{t("admissions.search.empty")}</p>
+          <EmptyLine>{t("admissions.search.empty")}</EmptyLine>
         ) : (
-          <ul className={setupStyles.list}>
-            {results.map((s) => (
-              <li key={s.id} className={setupStyles.item}>
-                <div className={styles.queueItem}>
-                  <h2 className={setupStyles.itemTitle}>
-                    {s.firstName} {s.lastName}
-                  </h2>
-                  <div className={styles.queueMeta}>
-                    <Badge>{s.sid}</Badge>
-                    {s.className ? <span>{s.className}</span> : null}
-                    {s.status !== "active" ? <Badge tone="bad">{t(s.status === "left" ? "admissions.student.left" : "admissions.student.graduated")}</Badge> : null}
-                  </div>
-                </div>
-              </li>
-            ))}
-          </ul>
+          <Panel>
+            <StudentsTable students={results} />
+          </Panel>
         )
       ) : null}
-    </>
+    </div>
+  );
+}
+
+/** The students found: the name opens the record (admin FUT F-09); Left or Graduated said in words. Pure. */
+export function StudentsTable({ students }: { students: readonly StudentSummary[] }) {
+  return (
+    <ReadTable
+      caption={t("admissions.search.results")}
+      rows={students}
+      rowKey={(s) => s.id}
+      columns={[
+        {
+          key: "name",
+          label: t("fees.col.student"),
+          primary: true,
+          cell: (s) => (
+            <Link href={`/portal/admissions/student?id=${s.id}`}>
+              {s.firstName} {s.lastName}
+            </Link>
+          ),
+        },
+        { key: "sid", label: t("attendance.col.sid"), cell: (s) => s.sid },
+        { key: "class", label: t("attendance.col.class"), cell: (s) => s.className ?? "—" },
+        {
+          key: "status",
+          label: t("attendance.class.status"),
+          cell: (s) => (s.status === "active" ? <StatusWord tone="ok">{t("admissions.student.active")}</StatusWord> : <StatusWord>{t(s.status === "left" ? "admissions.student.left" : "admissions.student.graduated")}</StatusWord>),
+        },
+        { key: "open", label: t("admissions.search.record"), align: "end", plain: true, cell: (s) => <OpenLink href={`/portal/admissions/student?id=${s.id}`} label={t("admissions.search.open", { name: `${s.firstName} ${s.lastName}` })} /> },
+      ]}
+    />
   );
 }

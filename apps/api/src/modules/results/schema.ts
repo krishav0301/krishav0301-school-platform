@@ -248,6 +248,9 @@ export const RecheckListSchema = z
         studentName: z.string(),
         sid: z.string(),
         decidedAt: z.string().nullable(),
+        /** The days in BS, worked out on the server (the only place that converts), for the Principal's read (D-104). */
+        decidedOnBs: z.string().nullable(),
+        requestedOnBs: z.string().nullable(),
         decidedBy: z.string().nullable(),
         marks: z.array(z.object({ componentId: z.string(), name: z.string(), maxHundredths: z.number().int(), valueHundredths: z.number().int().nullable(), absent: z.boolean() })),
       }),

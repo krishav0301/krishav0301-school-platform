@@ -107,9 +107,9 @@ describe("decideRequest", () => {
     expect(await decideRequest(db, auditKey, admin.publicId, requestId, { approve: false, reason: "  " })).toMatchObject({ ok: false, reason: "invalid" });
   });
 
-  it("the requester may not decide their own request, and the content is untouched", async () => {
+  it("the requester may not decide their own request, and is told it is their own (admin FUT F-13); the content is untouched", async () => {
     const { contentId, requestId } = await pending();
-    expect(await decideRequest(db, auditKey, coordinator.publicId, requestId, { approve: true })).toEqual({ ok: false, reason: "not_allowed" });
+    expect(await decideRequest(db, auditKey, coordinator.publicId, requestId, { approve: true })).toEqual({ ok: false, reason: "own_request" });
     expect(await statusOf(contentId)).toBe("waiting");
   });
 
@@ -121,11 +121,11 @@ describe("decideRequest", () => {
     }
   });
 
-  it("a second decide on an already-resolved request changes nothing", async () => {
+  it("a second decide on an already-resolved request changes nothing, and says it was already decided (admin FUT F-07)", async () => {
     const { requestId } = await pending();
     expect(await decideRequest(db, auditKey, admin.publicId, requestId, { approve: true })).toEqual({ ok: true });
-    expect(await decideRequest(db, auditKey, admin2.publicId, requestId, { approve: true })).toEqual({ ok: false, reason: "conflict" });
-    expect(await decideRequest(db, auditKey, admin2.publicId, requestId, { approve: false, reason: "too late" })).toEqual({ ok: false, reason: "conflict" });
+    expect(await decideRequest(db, auditKey, admin2.publicId, requestId, { approve: true })).toEqual({ ok: false, reason: "already_decided" });
+    expect(await decideRequest(db, auditKey, admin2.publicId, requestId, { approve: false, reason: "too late" })).toEqual({ ok: false, reason: "already_decided" });
   });
 
   it("a changed subject goes stale, and the content is untouched", async () => {
@@ -140,7 +140,7 @@ describe("decideRequest", () => {
     const { contentId, requestId } = await pending();
     await updateContent(db, auditKey, admin.publicId, contentId, { title: "Edited" });
     await decideRequest(db, auditKey, admin.publicId, requestId, { approve: true }); // marks it stale
-    expect(await decideRequest(db, auditKey, admin2.publicId, requestId, { approve: true })).toEqual({ ok: false, reason: "conflict" });
+    expect(await decideRequest(db, auditKey, admin2.publicId, requestId, { approve: true })).toEqual({ ok: false, reason: "stale" });
   });
 
   it("the Super Admin may also decide", async () => {

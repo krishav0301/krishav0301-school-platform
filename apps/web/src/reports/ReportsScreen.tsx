@@ -6,13 +6,19 @@ import {
   CalendarDays,
   CalendarRange,
   ChevronRight,
+  FilePen,
   FileSpreadsheet,
+  History,
+  KeyRound,
   ListChecks,
+  NotebookPen,
   Presentation,
+  ReceiptText,
   School,
   Search,
   Trophy,
   UserCheck,
+  UserSearch,
   Wallet,
   type LucideIcon,
 } from "lucide-react";
@@ -20,10 +26,9 @@ import Link from "next/link";
 
 import { useConfig } from "@/config/ConfigProvider";
 import { t, type MessageKey } from "@/i18n/messages";
-import setupStyles from "@/setup/setup.module.css";
+import { Panel, ReadHeader, readStyles } from "@/read/ReadView";
 import styles from "@/settings/settings.module.css";
 import { termWords } from "@/setup/model";
-import { Card } from "@/ui";
 
 /** One place to look. Every entry is a page that already exists; the API decides what the person may see there (D-025). */
 interface Entry {
@@ -51,50 +56,61 @@ export const REPORT_GROUPS: { title: MessageKey; entries: Entry[] }[] = [
       { href: "/portal/admissions/search", icon: Search, title: "reports.students", detail: "reports.studentsDetail" },
       { href: "/portal/attendance", icon: CalendarDays, title: "reports.attendance", detail: "reports.attendanceDetail" },
       { href: "/portal/attendance/teachers", icon: UserCheck, title: "reports.teacherAttendance", detail: "reports.teacherAttendanceDetail" },
+      { href: "/portal/classwork", icon: NotebookPen, title: "reports.classwork", detail: "reports.classworkDetail" },
     ],
   },
   {
     title: "reports.group.money",
-    entries: [{ href: "/portal/fees/dues", icon: Wallet, title: "reports.dues", detail: "reports.duesDetail" }],
+    entries: [
+      { href: "/portal/fees", icon: UserSearch, title: "reports.feeAccounts", detail: "reports.feeAccountsDetail" },
+      { href: "/portal/fees/structures", icon: ReceiptText, title: "reports.structures", detail: "reports.structuresDetail" },
+      { href: "/portal/fees/dues", icon: Wallet, title: "reports.dues", detail: "reports.duesDetail" },
+    ],
   },
   {
     title: "reports.group.results",
     entries: [
+      { href: "/portal/results", icon: FilePen, title: "reports.changes", detail: "reports.changesDetail" },
       { href: "/portal/results/sheets", icon: FileSpreadsheet, title: "reports.sheets", detail: "reports.sheetsDetail" },
       { href: "/portal/results/top20", icon: Trophy, title: "reports.top20", detail: "reports.top20Detail" },
     ],
   },
+  {
+    title: "reports.group.oversight",
+    entries: [
+      { href: "/portal/reports/activity", icon: History, title: "reports.activity", detail: "reports.activityDetail" },
+      { href: "/portal/reports/sign-ins", icon: KeyRound, title: "reports.signIns", detail: "reports.signInsDetail" },
+    ],
+  },
 ];
 
-/** Reports (D-091): everything the Principal reads but does not change, grouped, one tap from here. */
+/** Reports (D-091, redesigned in D-104): everything the Principal reads but does not change, grouped, one tap from here. No figures: a calm directory. */
 export function ReportsScreen() {
   const { term } = useConfig();
   const words = termWords(term);
   return (
-    <div className={styles.page}>
-      <h1 className={setupStyles.title}>{t("reports.title")}</h1>
-      <p className={setupStyles.muted}>{t("reports.intro")}</p>
-      {REPORT_GROUPS.map((group) => (
-        <Card key={group.title} aria-labelledby={group.title} className={styles.card}>
-          <h2 id={group.title} className={styles.heading}>
-            {t(group.title)}
-          </h2>
-          <ul className={styles.links}>
-            {group.entries.map((entry) => (
-              <li key={entry.href}>
-                <Link href={entry.href} className={styles.link}>
-                  <entry.icon aria-hidden className={styles.linkIcon} strokeWidth={1.75} />
-                  <span className={styles.linkText}>
-                    <span className={styles.linkTitle}>{t(entry.title, words)}</span>
-                    <span className={styles.linkDetail}>{t(entry.detail, words)}</span>
-                  </span>
-                  <ChevronRight aria-hidden className={styles.icon} />
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </Card>
-      ))}
+    <div className={readStyles.page}>
+      <ReadHeader title={t("reports.title")} subtitle={t("reports.intro")} />
+      <div className={readStyles.groups}>
+        {REPORT_GROUPS.map((group) => (
+          <Panel key={group.title} title={t(group.title)} labelledBy={group.title}>
+            <ul className={styles.links}>
+              {group.entries.map((entry) => (
+                <li key={entry.href}>
+                  <Link href={entry.href} className={styles.link}>
+                    <entry.icon aria-hidden className={styles.linkIcon} strokeWidth={1.75} />
+                    <span className={styles.linkText}>
+                      <span className={styles.linkTitle}>{t(entry.title, words)}</span>
+                      <span className={styles.linkDetail}>{t(entry.detail, words)}</span>
+                    </span>
+                    <ChevronRight aria-hidden className={styles.icon} />
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </Panel>
+        ))}
+      </div>
     </div>
   );
 }

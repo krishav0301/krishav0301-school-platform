@@ -21,3 +21,9 @@ export function parseNpr(text: string): number | null {
   const paisa = Number(match[1]) * 100 + Number((match[2] ?? "").padEnd(2, "0"));
   return paisa > 0 ? paisa : null;
 }
+
+/** NPR for reading (D-104): the paisa only when there are some, so "12,50,000" and "4,450.50". */
+export function formatNprShort(paisa: number): string {
+  const full = formatNpr(paisa);
+  return full.endsWith(".00") ? full.slice(0, -3) : full;
+}

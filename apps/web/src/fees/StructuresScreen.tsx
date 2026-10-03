@@ -1,26 +1,27 @@
 "use client";
 
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useState } from "react";
 
 import { loadOpenLevels } from "@/admissions/client";
 import type { OpenLevel } from "@/admissions/model";
+import { useConfig } from "@/config/ConfigProvider";
 import { t } from "@/i18n/messages";
+import { EmptyLine, OpenLink, Panel, ReadFailure, ReadHeader, ReadOnlyNote, ReadTable, StatusWord, TableSkeleton, readStyles } from "@/read/ReadView";
 import { useSession } from "@/session/SessionProvider";
-import setupStyles from "@/setup/setup.module.css";
-import { Gate, useLoad } from "@/setup/useLoad";
-import { Badge, Button, Notice } from "@/ui";
+import { useLoad } from "@/setup/useLoad";
+import { Button, Notice } from "@/ui";
 
 import { createStructure, gateFailure, loadStructures } from "./client";
 import styles from "./fees.module.css";
-import { STATUS_LABEL, type FeeStructureList } from "./model";
-import { formatNpr } from "./money";
+import { STATUS_LABEL, type FeeStructure, type FeeStructureList } from "./model";
+import { nprShort } from "./ReadFees";
 import { sentMessage } from "./OwnFees";
 
 /** Fee structures this year (D-075): one per level; each level without one can be drafted from here (the Accountant). */
 export function StructuresScreen() {
   const { api, me } = useSession();
+  const { term } = useConfig();
   const accountant = me?.roles.some((r) => r.role === "accountant") ?? false;
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
@@ -41,50 +42,67 @@ export function StructuresScreen() {
   }
 
   return (
-    <>
-      <div>
-        <h1 className={setupStyles.title}>{t("fees.structures.title")}</h1>
-        <p className={setupStyles.muted}>{t("fees.structures.intro")}</p>
-      </div>
+    <div className={readStyles.page}>
+      <ReadHeader title={t("fees.structures.title")} subtitle={t("fees.structures.intro")} />
       {error ? <Notice tone="bad">{error}</Notice> : null}
-      <Gate view={view} onRetry={() => void reload()}>
-        {({ structures, levels }) => {
-          const drafted = new Set(structures.structures.map((s) => s.levelId));
-          const missing = levels.filter((l) => !drafted.has(l.id));
-          return (
-            <ul className={setupStyles.list}>
-              {structures.structures.map((s) => (
-                <li key={s.id} className={setupStyles.item}>
-                  <h2 className={setupStyles.itemTitle}>
-                    <Link href={`/portal/fees/structure?id=${s.id}`}>
-                      {s.programmeName} · {s.levelName}
-                    </Link>
-                  </h2>
-                  <div className={setupStyles.badges}>
-                    <Badge tone={s.status === "live" ? "ok" : "neutral"}>{t(STATUS_LABEL[s.status])}</Badge>
-                    <span>{t("fees.structures.yearly", { amount: formatNpr(s.yearlyTotalPaisa) })}</span>
-                  </div>
-                </li>
-              ))}
-              {accountant
-                ? missing.map((l) => (
-                    <li key={l.id} className={setupStyles.item}>
-                      <h2 className={setupStyles.itemTitle}>
-                        {l.programmeName} · {l.name}
-                      </h2>
-                      <div className={styles.actions}>
-                        <Badge>{t("fees.structures.none")}</Badge>
-                        <Button className={styles.wrapLabel} variant="secondary" onClick={() => void draft(l.id)}>
-                          {t("fees.structures.draft")}
-                        </Button>
-                      </div>
-                    </li>
-                  ))
-                : null}
-            </ul>
-          );
-        }}
-      </Gate>
-    </>
+      {view.status === "loading" ? <TableSkeleton rows={4} /> : null}
+      {view.status === "failed" || view.status === "forbidden" ? <ReadFailure status={view.status} onRetry={() => void reload()} /> : null}
+      {view.status === "ready"
+        ? (() => {
+            const { structures, levels } = view.data;
+            const drafted = new Set(structures.structures.map((x) => x.levelId));
+            const missing = levels.filter((l) => !drafted.has(l.id));
+            return (
+              <>
+                {structures.structures.length === 0 ? (
+                  <EmptyLine>{t("fees.structures.empty")}</EmptyLine>
+                ) : (
+                  <Panel>
+                    <StructuresTable structures={structures.structures} />
+                  </Panel>
+                )}
+                {accountant && missing.length > 0 ? (
+                  <Panel title={t("fees.structures.missing")} labelledBy="structures-missing">
+                    <ul className={styles.list}>
+                      {missing.map((l) => (
+                        <li key={l.id} className={styles.row}>
+                          <span>
+                            {l.programmeName} · {l.name}
+                          </span>
+                          <Button className={styles.wrapLabel} variant="secondary" onClick={() => void draft(l.id)}>
+                            {t("fees.structures.draft")}
+                          </Button>
+                        </li>
+                      ))}
+                    </ul>
+                  </Panel>
+                ) : null}
+                {accountant ? null : <ReadOnlyNote>{t("fees.structures.readOnly", { accountant: term("role.accountant") })}</ReadOnlyNote>}
+              </>
+            );
+          })()
+        : null}
+    </div>
+  );
+}
+
+/** A structure's status in words: Live, Draft, Waiting for approval. */
+export const StructureStatus = ({ status }: { status: FeeStructure["status"] }) => <StatusWord tone={status === "live" ? "ok" : status === "waiting" ? "warn" : undefined}>{t(STATUS_LABEL[status])}</StatusWord>;
+
+/** Every structure this year: programme and level, year, yearly total, status in words, each opening its items. Pure. */
+export function StructuresTable({ structures }: { structures: FeeStructureList["structures"] }) {
+  return (
+    <ReadTable
+      caption={t("fees.structures.title")}
+      rows={structures}
+      rowKey={(x) => x.id}
+      columns={[
+        { key: "level", label: t("fees.col.level"), primary: true, cell: (x) => `${x.programmeName} · ${x.levelName}` },
+        { key: "year", label: t("fees.col.year"), cell: (x) => x.yearLabel },
+        { key: "total", label: t("fees.col.yearly"), align: "end", cell: (x) => nprShort(x.yearlyTotalPaisa) },
+        { key: "status", label: t("attendance.class.status"), cell: (x) => <StructureStatus status={x.status} /> },
+        { key: "open", label: t("fees.col.items"), align: "end", plain: true, cell: (x) => <OpenLink href={`/portal/fees/structure?id=${x.id}`} label={t("fees.structures.open", { name: `${x.programmeName} · ${x.levelName}` })} /> },
+      ]}
+    />
   );
 }

@@ -1,7 +1,12 @@
 "use client";
 
+import { Download } from "lucide-react";
 import Link from "next/link";
 import { useCallback, useMemo, useState } from "react";
+
+import { useConfig } from "@/config/ConfigProvider";
+import { formatBsDate } from "@/content/model";
+import { EmptyLine, Panel, ReadFailure, ReadHeader, ReadOnlyNote, StatusWord, TableSkeleton, readStyles } from "@/read/ReadView";
 
 import { useAddressQuery } from "@/content/address";
 import { t } from "@/i18n/messages";
@@ -9,7 +14,7 @@ import { useSession } from "@/session/SessionProvider";
 import { loadClasses, loadTerminals, loadYears } from "@/setup/client";
 import setupStyles from "@/setup/setup.module.css";
 import { Gate, useLoad } from "@/setup/useLoad";
-import { Badge, Button, Checkbox, Field, Notice, Select, Table, buttonClass } from "@/ui";
+import { Button, Checkbox, Field, Notice, Select, buttonClass } from "@/ui";
 
 import { decideRecheck, gateFailure, loadClassSheet, loadElectives, loadRechecks, setPicks } from "./client";
 import { sentText } from "./MarkSheetScreen";
@@ -60,7 +65,7 @@ function useQuery(): URLSearchParams {
   return useMemo(() => new URLSearchParams(search ?? ""), [search]);
 }
 
-/** The whole-class sheet (source 6.3): pick a class and terminal; a published one shows students by subjects, with rank, and exports. */
+/** The whole-class sheet (source 6.3, redesigned in D-104): pick a class and a terminal; a published one shows students by subjects, ranked. */
 export function ClassSheetsScreen() {
   const { api } = useSession();
   const query = useQuery();
@@ -77,44 +82,87 @@ export function ClassSheetsScreen() {
   const setTerminalId = (value: string) => setPicked((p) => ({ ...p, terminalId: value }));
 
   return (
-    <>
-      <h1 className={setupStyles.title}>{t("results.sheets.title")}</h1>
-      <Gate view={view} onRetry={() => void reload()}>
-        {(choices) =>
-          choices.classes.length === 0 || choices.terminals.length === 0 ? (
-            <p className={setupStyles.empty}>{t("results.sheets.none")}</p>
-          ) : (
-            <>
+    <div className={readStyles.page}>
+      <ReadHeader title={t("results.sheets.title")} subtitle={t("results.sheets.subtitle")} />
+      {view.status === "loading" ? <TableSkeleton rows={6} /> : null}
+      {view.status === "failed" || view.status === "forbidden" ? <ReadFailure status={view.status} onRetry={() => void reload()} /> : null}
+      {view.status === "ready" ? (
+        view.data.classes.length === 0 || view.data.terminals.length === 0 ? (
+          <EmptyLine>{t("results.sheets.none")}</EmptyLine>
+        ) : (
+          <>
+            <div className={`${readStyles.search} ${readStyles.searchWide}`}>
               <Select
                 label={t("results.sheets.class")}
                 value={classId}
                 onChange={(event) => setClassId(event.target.value)}
-                options={[
-                  { value: "", label: t("results.choose") },
-                  ...choices.classes.map((c) => ({
-                    value: c.id,
-                    label: c.name,
-                  })),
-                ]}
+                options={[{ value: "", label: t("results.choose") }, ...view.data.classes.map((c) => ({ value: c.id, label: c.name }))]}
               />
               <Select
                 label={t("results.terminal")}
                 value={terminalId}
                 onChange={(event) => setTerminalId(event.target.value)}
-                options={[
-                  { value: "", label: t("results.choose") },
-                  ...choices.terminals.map((x) => ({
-                    value: x.id,
-                    label: x.name,
-                  })),
-                ]}
+                options={[{ value: "", label: t("results.choose") }, ...view.data.terminals.map((x) => ({ value: x.id, label: x.name }))]}
               />
-              {classId && terminalId ? <ClassSheetView classId={classId} terminalId={terminalId} /> : null}
-            </>
-          )
-        }
-      </Gate>
-    </>
+            </div>
+            {classId && terminalId ? <ClassSheetView classId={classId} terminalId={terminalId} /> : <EmptyLine>{t("results.sheets.pick")}</EmptyLine>}
+          </>
+        )
+      ) : null}
+    </div>
+  );
+}
+
+/** The sheet itself: rank, the student (kept in view while the subjects scroll), each subject, GPA or percentage, the result. Pure. */
+export function SheetTable({ sheet }: { sheet: ClassSheet }) {
+  return (
+    <div className={readStyles.scroll} data-scroll tabIndex={0} role="region" aria-label={t("results.sheets.caption", { name: className(sheet), terminal: sheet.terminal.name })}>
+      <table className={readStyles.sheet}>
+        <caption className="sr-only">{t("results.sheets.caption", { name: className(sheet), terminal: sheet.terminal.name })}</caption>
+        <thead>
+          <tr>
+            <th scope="col" data-align="end">
+              {t("results.sheets.rank")}
+            </th>
+            <th scope="col" data-sticky>
+              {t("results.grid.student")}
+            </th>
+            {sheet.subjects.map((x) => (
+              <th key={x.offeringId} scope="col" data-align="center">
+                {x.name}
+              </th>
+            ))}
+            <th scope="col" data-align="end">
+              {t(sheet.policy === "neb_gpa" ? "results.card.gpaLabel" : "results.card.percentLabel")}
+            </th>
+            <th scope="col">{t("results.card.result")}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {sheet.students.map((x) => (
+            <tr key={x.enrollmentId}>
+              <td data-align="end">{x.rank ?? "–"}</td>
+              <th scope="row" data-sticky>
+                <Link href={`/portal/results/card?id=${x.cardId}`}>{x.name}</Link>
+                <span className={readStyles.cellMeta}>{x.sid}</span>
+              </th>
+              {x.subjects.map((v, i) => (
+                <td key={sheet.subjects[i]!.offeringId} data-align="center">
+                  {v === null ? "–" : sheet.policy === "neb_gpa" ? v.grade : `${hundredthsText(v.percentHundredths)}%`}
+                </td>
+              ))}
+              <td data-align="end">{scoreText(x) ?? "–"}</td>
+              <td>
+                <span className={readStyles.cellWords}>
+                  {x.outcome}
+                  {x.version > 1 ? <StatusWord>{t("results.sheets.corrected")}</StatusWord> : null}
+                </span>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
   );
 }
 
@@ -127,69 +175,24 @@ function ClassSheetView({ classId, terminalId }: { classId: string; terminalId: 
     return result.ok ? result : gateFailure(result.reason);
   }, [api, classId, terminalId]);
   const { view, reload } = useLoad<ClassSheet>(loadNow);
-  if (view.status === "failed" && missing) return <p className={setupStyles.empty}>{t("results.sheets.notPublished")}</p>;
+  if (view.status === "loading") return <TableSkeleton rows={6} />;
+  if (view.status === "failed" && missing) return <EmptyLine>{t("results.sheets.notPublished")}</EmptyLine>;
+  if (view.status !== "ready") return <ReadFailure status={view.status} onRetry={() => void reload()} />;
+  const sheet = view.data;
   return (
-    <Gate view={view} onRetry={() => void reload()}>
-      {(sheet) => (
-        <>
-          <Table
-            caption={t("results.sheets.caption", {
-              name: className(sheet),
-              terminal: sheet.terminal.name,
-            })}
-            showCaption
-          >
-            <thead>
-              <tr>
-                <th scope="col">{t("results.sheets.rank")}</th>
-                <th scope="col">{t("results.grid.student")}</th>
-                {sheet.subjects.map((s) => (
-                  <th key={s.offeringId} scope="col" className={styles.number}>
-                    {s.name}
-                  </th>
-                ))}
-                <th scope="col" className={styles.number}>
-                  {t(sheet.policy === "neb_gpa" ? "results.card.gpaLabel" : "results.card.percentLabel")}
-                </th>
-                <th scope="col">{t("results.card.result")}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {sheet.students.map((s) => (
-                <tr key={s.enrollmentId}>
-                  <td className={styles.number}>{s.rank ?? "–"}</td>
-                  <th scope="row">
-                    <Link href={`/portal/results/card?id=${s.cardId}`}>{s.name}</Link>
-                    <br />
-                    <span className={styles.meta}>{s.sid}</span>
-                  </th>
-                  {s.subjects.map((x, i) => (
-                    <td key={sheet.subjects[i]!.offeringId} className={styles.number}>
-                      {x === null ? "–" : sheet.policy === "neb_gpa" ? x.grade : `${hundredthsText(x.percentHundredths)}%`}
-                    </td>
-                  ))}
-                  <td className={styles.number}>{scoreText(s) ?? "–"}</td>
-                  <td>
-                    {s.outcome}
-                    {s.version > 1 ? (
-                      <>
-                        {" "}
-                        <Badge>{t("results.sheets.corrected")}</Badge>
-                      </>
-                    ) : null}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </Table>
-          <div className={styles.actions}>
-            <a className={`${buttonClass({ variant: "secondary" })} ${styles.wrapLabel}`} href={`/api/results/classes/${classId}/terminals/${terminalId}/sheet.csv`} download>
-              {t("results.sheets.export")}
-            </a>
-          </div>
-        </>
-      )}
-    </Gate>
+    <Panel
+      title={t("results.sheets.caption", { name: className(sheet), terminal: sheet.terminal.name })}
+      labelledBy="sheet-heading"
+      actions={
+        <a className={`${buttonClass({ variant: "secondary" })} ${styles.wrapLabel}`} href={`/api/results/classes/${classId}/terminals/${terminalId}/sheet.csv`} download>
+          <Download aria-hidden width={18} height={18} />
+          {t("results.sheets.export")}
+        </a>
+      }
+    >
+      <SheetTable sheet={sheet} />
+      <p className={readStyles.subtitle}>{t("results.sheets.ties")}</p>
+    </Panel>
   );
 }
 
@@ -199,6 +202,7 @@ function ClassSheetView({ classId, terminalId }: { classId: string; terminalId: 
  */
 export function RechecksScreen() {
   const { api, me } = useSession();
+  const { term } = useConfig();
   const decides = me?.roles.some((r) => r.role === "coordinator" || r.role === "super_admin") ?? false;
   const loadNow = useCallback(async () => {
     const result = await loadRechecks(api);
@@ -206,42 +210,59 @@ export function RechecksScreen() {
   }, [api]);
   const { view, reload } = useLoad<RecheckList>(loadNow);
   return (
-    <>
-      <h1 className={setupStyles.title}>{t(decides ? "results.rechecks.title" : "results.rechecks.changesTitle")}</h1>
-      <Gate view={view} onRetry={() => void reload()}>
-        {(list) =>
-          list.rechecks.length === 0 ? (
-            <p className={setupStyles.empty}>{t("results.rechecks.none")}</p>
-          ) : (
-            <ul className={setupStyles.list}>
-              {list.rechecks.map((r) => (
-                <li key={r.id} className={setupStyles.item}>
-                  <h2 className={setupStyles.itemTitle}>
-                    {r.studentName} · {r.subjectName}
-                  </h2>
-                  <p className={styles.meta}>
-                    {r.sid} · {className(r)} · {r.terminalName}
-                  </p>
-                  <div className={setupStyles.badges}>
-                    <Badge tone={r.status === "changed" ? "ok" : undefined}>{t(RECHECK_LABEL[r.status])}</Badge>
-                  </div>
-                  <p>{t("results.rechecks.asked", { reason: r.reason })}</p>
-                  {r.status !== "open" ? (
-                    <p className={styles.meta}>
-                      {t("results.rechecks.decided", {
-                        who: r.decidedBy ?? "",
-                        reason: r.decisionReason ?? "",
-                      })}
-                    </p>
-                  ) : null}
-                  {r.status === "open" && decides ? <Decide recheck={r} onDone={() => void reload()} /> : null}
-                </li>
-              ))}
-            </ul>
-          )
-        }
-      </Gate>
-    </>
+    <div className={readStyles.page}>
+      <ReadHeader title={t(decides ? "results.rechecks.title" : "results.rechecks.changesTitle")} subtitle={t(decides ? "results.rechecks.subtitle" : "results.rechecks.changesSubtitle")} />
+      {view.status === "loading" ? <TableSkeleton rows={4} /> : null}
+      {view.status === "failed" || view.status === "forbidden" ? <ReadFailure status={view.status} onRetry={() => void reload()} /> : null}
+      {view.status === "ready" ? (
+        view.data.rechecks.length === 0 ? (
+          <EmptyLine>{t(decides ? "results.rechecks.none" : "results.rechecks.noChanges")}</EmptyLine>
+        ) : (
+          <Panel>
+            <RecheckList rechecks={view.data.rechecks} decide={decides ? (r) => <Decide recheck={r} onDone={() => void reload()} /> : undefined} />
+          </Panel>
+        )
+      ) : null}
+      {decides ? null : <ReadOnlyNote>{t("results.rechecks.readOnly", { coordinator: term("role.coordinator") })}</ReadOnlyNote>}
+    </div>
+  );
+}
+
+/** A mark as read: "45 of 75" (the hundredths only when there are some), or Absent. */
+const plain = (hundredths: number) => hundredthsText(hundredths).replace(/\.00$/, "");
+const markRead = (m: RecheckList["rechecks"][number]["marks"][number]) => (m.absent ? t("results.rechecks.absent") : m.valueHundredths === null ? "–" : t("results.rechecks.markOf", { value: plain(m.valueHundredths), max: plain(m.maxHundredths) }));
+
+/** Each recheck: who and which subject, the status in words, why it was asked, the marks now, and who decided, when and why. Pure. */
+export function RecheckList({ rechecks, decide }: { rechecks: RecheckList["rechecks"]; decide?: (recheck: RecheckList["rechecks"][number]) => React.ReactNode }) {
+  return (
+    <ul className={readStyles.rows}>
+      {rechecks.map((r) => (
+        <li key={r.id} className={readStyles.rowItem}>
+          <div className={readStyles.rowHead}>
+            <h3 className={readStyles.rowTitle}>
+              {r.studentName} · {r.subjectName}
+            </h3>
+            <StatusWord tone={r.status === "changed" ? "ok" : r.status === "open" ? "warn" : undefined}>{t(RECHECK_LABEL[r.status])}</StatusWord>
+          </div>
+          <p className={readStyles.rowMeta}>
+            {r.sid} · {className(r)} · {r.terminalName}
+            {r.requestedOnBs ? ` · ${t("results.rechecks.askedOn", { date: formatBsDate(r.requestedOnBs) })}` : ""}
+          </p>
+          <p>{t("results.rechecks.asked", { reason: r.reason })}</p>
+          <p className={readStyles.rowMeta}>{t("results.rechecks.marksNow", { marks: r.marks.map((m) => `${m.name} ${markRead(m)}`).join(" · ") })}</p>
+          {r.status !== "open" ? (
+            <p className={readStyles.rowMeta}>
+              {t("results.rechecks.decidedOn", {
+                who: r.decidedBy ?? t("audit.bySystem"),
+                date: r.decidedOnBs ? formatBsDate(r.decidedOnBs) : "",
+                reason: r.decisionReason ?? "",
+              })}
+            </p>
+          ) : null}
+          {r.status === "open" && decide ? decide(r) : null}
+        </li>
+      ))}
+    </ul>
   );
 }
 

@@ -3,8 +3,8 @@ import type { Context } from "hono";
 
 import { defineRoute } from "../../core/routes";
 import type { App, AppEnv } from "../../core/types";
-import { listMine, listPending } from "./queries";
-import { ApprovalListSchema, DeclineInputSchema, MyApprovalListSchema, RequestInputSchema } from "./schema";
+import { listMine, listPending, reviewRequest } from "./queries";
+import { ApprovalListSchema, ApprovalReviewSchema, DeclineInputSchema, MyApprovalListSchema, RequestInputSchema } from "./schema";
 import { decideRequest, requestApproval, withdrawRequest } from "./service";
 import type { Failure } from "./write";
 
@@ -16,9 +16,9 @@ const CreatedSchema = z.object({ id: z.string() }).openapi("ApprovalsCreated");
 const IdParam = z.object({ id: z.string().regex(/^[0-9a-f]{32}$/) });
 
 const failures = {
-  403: { description: "Not allowed", content: json(ErrorSchema) },
+  403: { description: "Not allowed (forbidden), or your own request, which another Admin must decide (own_request)", content: json(ErrorSchema) },
   404: { description: "No such request or subject", content: json(ErrorSchema) },
-  409: { description: "It conflicts with what is already there (already resolved, or a repeat)", content: json(ErrorSchema) },
+  409: { description: "Already decided by someone else (already_decided), changed since it was sent (stale), or a repeat (conflict)", content: json(ErrorSchema) },
   422: { description: "The request breaks a rule; nothing changed", content: json(InvalidSchema) },
 } as const;
 
@@ -30,6 +30,8 @@ function fail(c: Context<AppEnv>, failure: Failure): never {
       return c.json({ error: "invalid" as const, message: failure.message }, 422) as never;
     case "not_allowed":
       return c.json({ error: "forbidden" }, 403) as never;
+    case "own_request":
+      return c.json({ error: "own_request" }, 403) as never;
     case "not_found":
       return c.json({ error: "not_found" }, 404) as never;
     case "stale":
@@ -88,13 +90,13 @@ export function registerApprovals(app: App): void {
       path: "/api/approvals",
       operationId: "list_pending_approvals",
       tags: ["approvals"],
-      description: "The Admin's inbox: every pending request, oldest first.",
+      description: "The Admin's inbox: every pending request, oldest first. `mine` marks the reader's own, which they may not decide.",
       access: DECIDE_ACTION,
       responses: { 200: { description: "The pending requests", content: json(ApprovalListSchema) } },
     },
     async (c) => {
       c.header("Cache-Control", "no-store");
-      return c.json(await listPending(c.env.DB), 200);
+      return c.json(await listPending(c.env.DB, c.get("auth")!.userPublicId), 200);
     },
   );
 
@@ -112,6 +114,25 @@ export function registerApprovals(app: App): void {
     async (c) => {
       c.header("Cache-Control", "no-store");
       return c.json(await listMine(c.env.DB, c.get("auth")!.userPublicId), 200);
+    },
+  );
+
+  defineRoute(
+    app,
+    {
+      method: "get",
+      path: "/api/approvals/{id}",
+      operationId: "review_approval",
+      tags: ["approvals"],
+      description: "One request for the review panel: who sent it, its status (a pending one whose subject changed since is stale), and what it would change, read from the subject now.",
+      access: DECIDE_ACTION,
+      request: { params: IdParam },
+      responses: { 200: { description: "The request", content: json(ApprovalReviewSchema) }, 404: failures[404] },
+    },
+    async (c) => {
+      c.header("Cache-Control", "no-store");
+      const review = await reviewRequest(c.env.DB, c.get("auth")!.userPublicId, c.req.valid("param").id);
+      return review ? c.json(review, 200) : c.json({ error: "not_found" }, 404);
     },
   );
 

@@ -510,7 +510,9 @@
   color: var(--tone, var(--color-text));
   font-size: var(--text-sm);
   font-weight: var(--weight-medium);
-  white-space: nowrap;
+  /* Two words may wrap onto two lines rather than push the page sideways at 320 px with text at 200% (admin FUT F-17). */
+  max-width: 100%;
+  white-space: normal;
 }
 
 .statusNote {

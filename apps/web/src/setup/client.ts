@@ -35,7 +35,7 @@ function reasonOf(response: Response, error: unknown): FailReason {
   if (status === 404) return "not_found";
   if (status === 409) {
     const code = (error as { error?: string } | undefined)?.error;
-    return code === "year_closed" || code === "another_active" || code === "in_use" ? code : "conflict";
+    return code === "year_closed" || code === "another_active" || code === "in_use" || code === "code_taken" || code === "code_locked" ? code : "conflict";
   }
   if (status === 400 || status === 422) return "rejected";
   return "failed";
@@ -78,14 +78,15 @@ export async function createYear(api: ApiClient, values: YearFormValues): Promis
 export const activateYear = async (api: ApiClient, id: string): Promise<WriteResult> =>
   done(await send(() => api.POST("/api/academics/years/{id}/activate", { params: { path: { id } } })));
 
-/** Adds a section (D-095). Its key comes back as the id. */
-export const createSection = async (api: ApiClient, name: string): Promise<CreateResult> => {
-  const sent = await send(() => api.POST("/api/academics/sections", { body: { name } }));
+/** Adds a section (D-095) with its receipt code (D-102). Its key comes back as the id. */
+export const createSection = async (api: ApiClient, name: string, receiptCode?: string): Promise<CreateResult> => {
+  const sent = await send(() => api.POST("/api/academics/sections", { body: receiptCode ? { name, receiptCode } : { name } }));
   return sent.ok ? { ok: true, id: (sent.data as { key: string }).key } : sent;
 };
 
-export const renameSection = async (api: ApiClient, key: string, name: string): Promise<WriteResult> =>
-  done(await send(() => api.PATCH("/api/academics/sections/{key}", { params: { path: { key } }, body: { name } })));
+/** Renames a section, or gives it a receipt code while it may still change (D-102). */
+export const updateSection = async (api: ApiClient, key: string, changes: { name?: string; receiptCode?: string }): Promise<WriteResult> =>
+  done(await send(() => api.PATCH("/api/academics/sections/{key}", { params: { path: { key } }, body: changes })));
 
 /** Switches a section off or on (D-097). */
 export const setSectionActive = async (api: ApiClient, key: string, active: boolean): Promise<WriteResult> =>
@@ -101,8 +102,9 @@ export const deleteClass = async (api: ApiClient, id: string): Promise<WriteResu
 export const deleteLevel = async (api: ApiClient, id: string): Promise<WriteResult> =>
   done(await send(() => api.DELETE("/api/academics/levels/{id}", { params: { path: { id } } })));
 
-export const createProgramme = async (api: ApiClient, body: { name: string; sectionKey: string; affiliation: string }): Promise<CreateResult> =>
-  created(await send(() => api.POST("/api/academics/programmes", { body })));
+/** Sends only the three fields the API takes: it refuses any other (a strict body), such as the form's grading choice. */
+export const createProgramme = async (api: ApiClient, { name, sectionKey, affiliation }: { name: string; sectionKey: string; affiliation: string }): Promise<CreateResult> =>
+  created(await send(() => api.POST("/api/academics/programmes", { body: { name, sectionKey, affiliation } })));
 
 /** Changes a programme's name, affiliation or grading policy (D-096's Edit). */
 export const updateProgramme = async (api: ApiClient, id: string, body: { name?: string; affiliation?: string; gradingPolicy?: "neb_gpa" | "percentage_division" | null }): Promise<WriteResult> =>

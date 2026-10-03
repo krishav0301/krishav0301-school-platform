@@ -1096,6 +1096,15 @@
           "active": {
             "type": "boolean"
           },
+          "receiptCode": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "receiptCodeLocked": {
+            "type": "boolean"
+          },
           "canDelete": {
             "type": "boolean"
           }
@@ -1104,6 +1113,8 @@
           "key",
           "name",
           "active",
+          "receiptCode",
+          "receiptCodeLocked",
           "canDelete"
         ]
       },
@@ -1347,6 +1358,10 @@
             "type": "string",
             "minLength": 1,
             "maxLength": 60
+          },
+          "receiptCode": {
+            "type": "string",
+            "pattern": "^[A-Z0-9]{2,6}$"
           }
         },
         "required": [
@@ -1364,6 +1379,10 @@
           },
           "active": {
             "type": "boolean"
+          },
+          "receiptCode": {
+            "type": "string",
+            "pattern": "^[A-Z0-9]{2,6}$"
           }
         },
         "additionalProperties": false
@@ -3129,6 +3148,28 @@
           },
           "createdAt": {
             "type": "string"
+          },
+          "requesterRole": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "enum": [
+              "coordinator",
+              "accountant",
+              "admin",
+              "super_admin",
+              null
+            ]
+          },
+          "mine": {
+            "type": "boolean"
+          },
+          "createdOnBs": {
+            "type": [
+              "string",
+              "null"
+            ]
           }
         },
         "required": [
@@ -3137,7 +3178,10 @@
           "subjectId",
           "summary",
           "requestedBy",
-          "createdAt"
+          "createdAt",
+          "requesterRole",
+          "mine",
+          "createdOnBs"
         ]
       },
       "MyApprovalList": {
@@ -3183,6 +3227,337 @@
               "status",
               "decisionReason"
             ]
+          }
+        ]
+      },
+      "ApprovalReview": {
+        "type": "object",
+        "properties": {
+          "request": {
+            "$ref": "#/components/schemas/ApprovalSummary"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "pending",
+              "stale",
+              "approved",
+              "declined",
+              "withdrawn"
+            ]
+          },
+          "decisionReason": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "detail": {
+            "$ref": "#/components/schemas/ApprovalDetail"
+          }
+        },
+        "required": [
+          "request",
+          "status",
+          "decisionReason",
+          "detail"
+        ]
+      },
+      "ApprovalDetail": {
+        "oneOf": [
+          {
+            "type": "object",
+            "properties": {
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "website_content"
+                ]
+              },
+              "contentKind": {
+                "type": "string"
+              },
+              "title": {
+                "type": "string"
+              },
+              "bodyPreview": {
+                "type": "string"
+              },
+              "bodyTruncated": {
+                "type": "boolean"
+              },
+              "publishOnBs": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "holidayFromBs": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "holidayToBs": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            },
+            "required": [
+              "kind",
+              "contentKind",
+              "title",
+              "bodyPreview",
+              "bodyTruncated",
+              "publishOnBs",
+              "holidayFromBs",
+              "holidayToBs"
+            ]
+          },
+          {
+            "type": "object",
+            "properties": {
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "fee_structure"
+                ]
+              },
+              "programme": {
+                "type": "string"
+              },
+              "level": {
+                "type": "string"
+              },
+              "year": {
+                "type": "string"
+              },
+              "items": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "name": {
+                      "type": "string"
+                    },
+                    "amountPaisa": {
+                      "type": "integer"
+                    },
+                    "frequency": {
+                      "type": "string",
+                      "enum": [
+                        "one_time",
+                        "monthly",
+                        "yearly",
+                        "whole_course"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "name",
+                    "amountPaisa",
+                    "frequency"
+                  ]
+                }
+              },
+              "yearlyTotalPaisa": {
+                "type": "integer"
+              }
+            },
+            "required": [
+              "kind",
+              "programme",
+              "level",
+              "year",
+              "items",
+              "yearlyTotalPaisa"
+            ]
+          },
+          {
+            "type": "object",
+            "properties": {
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "discount"
+                ]
+              },
+              "student": {
+                "type": "string"
+              },
+              "sid": {
+                "type": "string"
+              },
+              "className": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "amountPaisa": {
+                "type": "integer"
+              },
+              "percent": {
+                "type": [
+                  "integer",
+                  "null"
+                ]
+              },
+              "reason": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "enum": [
+                  "scholarship",
+                  "sibling",
+                  "staff_child",
+                  "other",
+                  null
+                ]
+              },
+              "note": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            },
+            "required": [
+              "kind",
+              "student",
+              "sid",
+              "className",
+              "amountPaisa",
+              "percent",
+              "reason",
+              "note"
+            ]
+          },
+          {
+            "type": "object",
+            "properties": {
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "reversal"
+                ]
+              },
+              "student": {
+                "type": "string"
+              },
+              "sid": {
+                "type": "string"
+              },
+              "className": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "amountPaisa": {
+                "type": "integer"
+              },
+              "reason": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "payment": {
+                "type": [
+                  "object",
+                  "null"
+                ],
+                "properties": {
+                  "amountPaisa": {
+                    "type": "integer"
+                  },
+                  "paidOnBs": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "receiptNumber": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "method": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  }
+                },
+                "required": [
+                  "amountPaisa",
+                  "paidOnBs",
+                  "receiptNumber",
+                  "method"
+                ]
+              }
+            },
+            "required": [
+              "kind",
+              "student",
+              "sid",
+              "className",
+              "amountPaisa",
+              "reason",
+              "payment"
+            ]
+          },
+          {
+            "type": "object",
+            "properties": {
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "refund"
+                ]
+              },
+              "student": {
+                "type": "string"
+              },
+              "sid": {
+                "type": "string"
+              },
+              "className": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "amountPaisa": {
+                "type": "integer"
+              },
+              "availableCreditPaisa": {
+                "type": "integer"
+              },
+              "note": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            },
+            "required": [
+              "kind",
+              "student",
+              "sid",
+              "className",
+              "amountPaisa",
+              "availableCreditPaisa",
+              "note"
+            ]
+          },
+          {
+            "type": "null"
           }
         ]
       },
@@ -3876,6 +4251,12 @@
                 "absentToday": {
                   "type": "integer"
                 },
+                "classTeacher": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
                 "mine": {
                   "type": "boolean"
                 }
@@ -3889,6 +4270,7 @@
                 "students",
                 "markedToday",
                 "absentToday",
+                "classTeacher",
                 "mine"
               ]
             }
@@ -6258,6 +6640,9 @@
                 "enrollmentId": {
                   "type": "string"
                 },
+                "studentId": {
+                  "type": "string"
+                },
                 "studentName": {
                   "type": "string"
                 },
@@ -6294,6 +6679,7 @@
               },
               "required": [
                 "enrollmentId",
+                "studentId",
                 "studentName",
                 "sid",
                 "classId",
@@ -7600,6 +7986,18 @@
                     "null"
                   ]
                 },
+                "decidedOnBs": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "requestedOnBs": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
                 "decidedBy": {
                   "type": [
                     "string",
@@ -7656,6 +8054,8 @@
                 "studentName",
                 "sid",
                 "decidedAt",
+                "decidedOnBs",
+                "requestedOnBs",
                 "decidedBy",
                 "marks"
               ]
@@ -8215,6 +8615,159 @@
           "attention",
           "website",
           "activity"
+        ]
+      },
+      "AuditTrail": {
+        "type": "object",
+        "properties": {
+          "rows": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "integer"
+                },
+                "onBs": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "time": {
+                  "type": "string"
+                },
+                "at": {
+                  "type": "string"
+                },
+                "action": {
+                  "type": "string"
+                },
+                "entityType": {
+                  "type": "string"
+                },
+                "summary": {
+                  "type": "string"
+                },
+                "reason": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "actor": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                }
+              },
+              "required": [
+                "id",
+                "onBs",
+                "time",
+                "at",
+                "action",
+                "entityType",
+                "summary",
+                "reason",
+                "actor"
+              ]
+            }
+          },
+          "total": {
+            "type": "integer"
+          },
+          "page": {
+            "type": "integer"
+          },
+          "pageSize": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "rows",
+          "total",
+          "page",
+          "pageSize"
+        ]
+      },
+      "SignInLog": {
+        "type": "object",
+        "properties": {
+          "rows": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "integer"
+                },
+                "onBs": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "time": {
+                  "type": "string"
+                },
+                "at": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "email": {
+                  "type": "string"
+                },
+                "success": {
+                  "type": "boolean"
+                },
+                "reason": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "ip": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                }
+              },
+              "required": [
+                "id",
+                "onBs",
+                "time",
+                "at",
+                "name",
+                "email",
+                "success",
+                "reason",
+                "ip"
+              ]
+            }
+          },
+          "total": {
+            "type": "integer"
+          },
+          "page": {
+            "type": "integer"
+          },
+          "pageSize": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "rows",
+          "total",
+          "page",
+          "pageSize"
         ]
       },
       "DateConversionFailure": {
@@ -12765,7 +13318,7 @@
             }
           },
           "403": {
-            "description": "Not allowed",
+            "description": "Not allowed (forbidden), or your own request, which another Admin must decide (own_request)",
             "content": {
               "application/json": {
                 "schema": {
@@ -12785,7 +13338,7 @@
             }
           },
           "409": {
-            "description": "It conflicts with what is already there (already resolved, or a repeat)",
+            "description": "Already decided by someone else (already_decided), changed since it was sent (stale), or a repeat (conflict)",
             "content": {
               "application/json": {
                 "schema": {
@@ -12811,7 +13364,7 @@
         "tags": [
           "approvals"
         ],
-        "description": "The Admin's inbox: every pending request, oldest first.",
+        "description": "The Admin's inbox: every pending request, oldest first. `mine` marks the reader's own, which they may not decide.",
         "responses": {
           "200": {
             "description": "The pending requests",
@@ -12856,7 +13409,7 @@
             }
           },
           "403": {
-            "description": "Not allowed",
+            "description": "Not allowed (forbidden), or your own request, which another Admin must decide (own_request)",
             "content": {
               "application/json": {
                 "schema": {
@@ -12876,7 +13429,7 @@
             }
           },
           "409": {
-            "description": "It conflicts with what is already there (already resolved, or a repeat)",
+            "description": "Already decided by someone else (already_decided), changed since it was sent (stale), or a repeat (conflict)",
             "content": {
               "application/json": {
                 "schema": {
@@ -12919,6 +13472,48 @@
         }
       }
     },
+    "/api/approvals/{id}": {
+      "get": {
+        "operationId": "review_approval",
+        "tags": [
+          "approvals"
+        ],
+        "description": "One request for the review panel: who sent it, its status (a pending one whose subject changed since is stale), and what it would change, read from the subject now.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{32}$"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApprovalReview"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such request or subject",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApprovalsError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/approvals/{id}/approve": {
       "post": {
         "operationId": "approve_approval",
@@ -12949,7 +13544,7 @@
             }
           },
           "403": {
-            "description": "Not allowed",
+            "description": "Not allowed (forbidden), or your own request, which another Admin must decide (own_request)",
             "content": {
               "application/json": {
                 "schema": {
@@ -12969,7 +13564,7 @@
             }
           },
           "409": {
-            "description": "It conflicts with what is already there (already resolved, or a repeat)",
+            "description": "Already decided by someone else (already_decided), changed since it was sent (stale), or a repeat (conflict)",
             "content": {
               "application/json": {
                 "schema": {
@@ -13031,7 +13626,7 @@
             }
           },
           "403": {
-            "description": "Not allowed",
+            "description": "Not allowed (forbidden), or your own request, which another Admin must decide (own_request)",
             "content": {
               "application/json": {
                 "schema": {
@@ -13051,7 +13646,7 @@
             }
           },
           "409": {
-            "description": "It conflicts with what is already there (already resolved, or a repeat)",
+            "description": "Already decided by someone else (already_decided), changed since it was sent (stale), or a repeat (conflict)",
             "content": {
               "application/json": {
                 "schema": {
@@ -17986,6 +18581,120 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/DashboardOverview"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/audit/events": {
+      "get": {
+        "operationId": "audit_trail",
+        "tags": [
+          "audit"
+        ],
+        "description": "The audit trail, newest first, 25 to a page, optionally of one area and matching a search. Support's own actions show as \"Support\".",
+        "parameters": [
+          {
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 10000
+            },
+            "required": false,
+            "name": "page",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "enum": [
+                "people",
+                "structure",
+                "admissions",
+                "daily",
+                "fees",
+                "results",
+                "approvals",
+                "website"
+              ]
+            },
+            "required": false,
+            "name": "area",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "maxLength": 100
+            },
+            "required": false,
+            "name": "q",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "One page of the audit trail",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuditTrail"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/audit/sign-ins": {
+      "get": {
+        "operationId": "sign_in_log",
+        "tags": [
+          "audit"
+        ],
+        "description": "Sign-in attempts, newest first, 25 to a page, optionally only the failed ones (failed passwords and failed second steps) or matching a search.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 10000
+            },
+            "required": false,
+            "name": "page",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "enum": [
+                "0",
+                "1"
+              ]
+            },
+            "required": false,
+            "name": "failed",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "maxLength": 100
+            },
+            "required": false,
+            "name": "q",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "One page of sign-in attempts",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SignInLog"
                 }
               }
             }

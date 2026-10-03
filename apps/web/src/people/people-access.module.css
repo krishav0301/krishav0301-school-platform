@@ -1095,3 +1095,24 @@
 .dialogActions > * {
   padding-inline: min(var(--space-5), 4vw);
 }
+
+/* Enlarged text on a narrow phone (D-030; found at 320 px with text at 200%): the initials circle steps aside and each
+   person reads in one column, so names, roles and scope keep whole words; a long heading word is hyphenated. */
+@media (max-width: 24em) {
+  .personCard {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .personCard > .avatar {
+    display: none;
+  }
+
+  .personCard > .chips,
+  .personCard > .personStatus {
+    grid-column: auto;
+  }
+
+  .panelTitle {
+    hyphens: auto;
+  }
+}

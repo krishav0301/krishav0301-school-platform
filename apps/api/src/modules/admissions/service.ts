@@ -350,7 +350,7 @@ export async function approveApplication(
   const outcome = await write(
     db,
     auditKey,
-    { action: "admissions.approved", entityType: "student", entityPublicId: studentPublicId, actorPublicId: actor, summary: `Application approved; student ${studentPublicId} created`, after: { classId: input.classId } },
+    { action: "admissions.approved", entityType: "student", entityPublicId: studentPublicId, actorPublicId: actor, summary: "Application approved; student admitted", after: { classId: input.classId } },
     [
       db
         .prepare(`UPDATE sid_counter SET next_sequence = next_sequence + 1 WHERE id = 1 AND ${appGuard} AND ${classGuard} AND ${coordinatorForSection(1, applicationSection(2))}`)

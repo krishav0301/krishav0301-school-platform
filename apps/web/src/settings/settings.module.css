@@ -98,3 +98,14 @@
   color: var(--color-text-muted);
   font-size: var(--text-sm);
 }
+
+/* Enlarged text on a narrow phone: the icon steps aside so a link's words keep a full line. */
+@media (max-width: 24em) {
+  .linkIcon {
+    display: none;
+  }
+
+  .link {
+    gap: var(--space-2);
+  }
+}

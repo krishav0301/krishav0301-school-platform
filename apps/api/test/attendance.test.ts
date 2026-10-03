@@ -158,6 +158,12 @@ describe("who may look", () => {
     expect(await list(otherTeacher)).toEqual([]);
   });
 
+  it("each class names its Class Teacher, for the overview (D-103)", async () => {
+    const rows = ((await (await call("/api/attendance/classes", { cookie: coordinator.cookie })).json()) as { classes: { id: string; classTeacher: string | null }[] }).classes;
+    const name = (await db.prepare("SELECT u.full_name AS n FROM users u WHERE u.public_id = ?1").bind(plus2.classTeacher.publicId).first<{ n: string }>())!.n;
+    expect(rows.find((r) => r.id === plus2.classId)!.classTeacher).toBe(name);
+  });
+
   it("a date outside the verified calendar, or not a date, is refused rather than guessed", async () => {
     expect((await roster(plus2, coordinator.cookie, "2099-01-01")).status).toBe(422);
     expect((await roster(plus2, coordinator.cookie, "yesterday")).status).toBe(400);

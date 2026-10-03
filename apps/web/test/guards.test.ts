@@ -221,9 +221,12 @@ describe("large text and narrow screens", () => {
     expect(css("content/website.module.css")).toMatch(/\.page :is\(button, a\),\s*\.dialog :is\(button, a\)\s*\{[^}]*white-space:\s*normal/);
   });
 
-  it("the phone tab bar wraps onto a second row with enlarged text, so no menu entry is pushed off the screen, and the sidebar does not", () => {
+  it("the phone tab bar stays one row of equal tabs; with enlarged text the labels give way to the icons, never a broken word (admin FUT F-15)", () => {
     const shell = css("shell/shell.module.css");
-    expect(shell).toMatch(/\.nav\s*\{[^}]*flex-wrap:\s*wrap/);
+    expect(shell).toMatch(/\.nav\s*\{[^}]*flex-wrap:\s*nowrap/);
+    expect(shell).toMatch(/\.navLink\s*\{[^}]*flex:\s*1 1 0/);
+    expect(shell).not.toMatch(/\.navLabel\s*\{[^}]*overflow-wrap:\s*anywhere/);
+    expect(shell).toMatch(/@media \(max-width: 19em\)\s*\{\s*\.navLabel\s*\{[^}]*clip-path/);
     expect(shell).toMatch(/\.nav\s*\{[^}]*flex-direction:\s*column;\s*flex-wrap:\s*nowrap/);
   });
 

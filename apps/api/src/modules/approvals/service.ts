@@ -6,6 +6,7 @@ import { firstMessage, write, type Created, type Done } from "./write";
 
 /** What other kinds' modules use to plug into the engine (the layer check allows only an `index` or a `service`). */
 export { registerApprovalHandler, type ApprovalHandler };
+export type { ApprovalDetail } from "./schema";
 
 /**
  * The approvals engine (D-061): a Co-ordinator sends a draft for approval, any Admin approves or
@@ -110,8 +111,10 @@ export async function decideRequest(db: D1Database, auditKey: string, actor: str
 
   const request = await lookRequest(db, requestPublicId);
   if (!request) return { ok: false, reason: "not_found" };
-  if (request.status !== "pending") return { ok: false, reason: "conflict" }; // already resolved
-  if (request.requested_by === actor) return { ok: false, reason: "not_allowed" }; // never your own
+  // Already resolved: a stale one says so, anything else was decided (or taken back) by someone else (admin FUT F-07).
+  if (request.status === "stale") return { ok: false, reason: "stale" };
+  if (request.status !== "pending") return { ok: false, reason: "already_decided" };
+  if (request.requested_by === actor) return { ok: false, reason: "own_request" }; // never your own (admin FUT F-13)
 
   // Checked BEFORE any statement runs, for the same reason as `requestApproval`: the handler's own
   // `onApproved`/`onResolved` statement has no notion of who may decide, so a disallowed actor must
@@ -180,6 +183,6 @@ export async function decideRequest(db: D1Database, auditKey: string, actor: str
   }
   // A busy ledger is never reported as "someone else decided it" (D-085).
   if (outcome === null) throw new Error("The ledger is too busy: could not apply the approval after several attempts.");
-  return outcome === "done" ? { ok: true } : { ok: false, reason: "conflict" }; // a lost race: someone else decided it a moment ago
+  return outcome === "done" ? { ok: true } : { ok: false, reason: "already_decided" }; // a lost race: someone else decided it a moment ago
 }
 export { approvalsDashboardPart } from "./queries";

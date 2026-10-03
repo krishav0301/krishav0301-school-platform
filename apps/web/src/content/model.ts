@@ -227,6 +227,9 @@ export function splitBs(text: string): BsParts {
  * Part of a day gives text that is not a whole day, so `validateForm` says a piece is missing. The month
  * and day are padded to two digits; a wrong year or day is kept as typed so it is reported, not fixed.
  */
+/** A whole BS day, "YYYY-MM-DD", with nothing left out (admin FUT F-19). Whether it exists is the server's to say. */
+export const isWholeBsDate = (text: string): boolean => /^\d{4}-\d{2}-\d{2}$/.test(text.trim());
+
 export function joinBs({ year, month, day }: BsParts): string {
   const [y, m, d] = [year.trim(), month.trim(), day.trim()];
   if (!y && !m && !d) return "";

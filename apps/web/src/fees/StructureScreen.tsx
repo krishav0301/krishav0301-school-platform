@@ -1,24 +1,28 @@
 "use client";
 
-import Link from "next/link";
 import { useCallback, useState } from "react";
 
+import { useConfig } from "@/config/ConfigProvider";
 import { useAddressQuery } from "@/content/address";
 import { t } from "@/i18n/messages";
 import { useSession } from "@/session/SessionProvider";
+import { EmptyLine, Panel, ReadFailure, ReadHeader, ReadOnlyNote, ReadTable, TableSkeleton, readStyles } from "@/read/ReadView";
 import setupStyles from "@/setup/setup.module.css";
-import { Gate, useLoad } from "@/setup/useLoad";
-import { Badge, Button, Field, Notice, Select } from "@/ui";
+import { useLoad } from "@/setup/useLoad";
+import { Button, Field, Notice, Select } from "@/ui";
 
 import { addFeeItem, gateFailure, generateCharges, loadStructure, removeFeeItem, sendStructure, type Sent } from "./client";
 import styles from "./fees.module.css";
-import { FREQUENCY_LABEL, STATUS_LABEL, type FeeStructure, type Frequency } from "./model";
-import { formatNpr, parseNpr } from "./money";
+import { FREQUENCY_LABEL, type FeeStructure, type Frequency } from "./model";
+import { formatNprShort, parseNpr } from "./money";
+import { nprShort } from "./ReadFees";
+import { StructureStatus } from "./StructuresScreen";
 import { sentMessage } from "./OwnFees";
 
 /** One fee structure (`?id=`): its items; a draft's lines added and removed, sent for approval; a live one's charges made per class. */
 export function StructureScreen() {
   const { api, me } = useSession();
+  const { term } = useConfig();
   const accountant = me?.roles.some((r) => r.role === "accountant") ?? false;
   const search = useAddressQuery();
   const id = search === null ? "" : (new URLSearchParams(search).get("id") ?? "");
@@ -36,63 +40,28 @@ export function StructureScreen() {
     void reload();
   }
 
+  if (view.status === "loading") return <TableSkeleton rows={5} />;
+  if (view.status !== "ready") return <ReadFailure status={view.status} onRetry={() => void reload()} />;
+  const s = view.data;
+  const name = `${s.programmeName} · ${s.levelName}`;
+  const draft = accountant && s.status === "draft";
   return (
-    <>
-      <p>
-        <Link href="/portal/fees/structures">{t("fees.structure.back")}</Link>
-      </p>
-      <Gate view={view} onRetry={() => void reload()}>
-        {(s) => (
-          <>
-            <div>
-              <h1 className={setupStyles.title}>
-                {s.programmeName} · {s.levelName}
-              </h1>
-              <div className={setupStyles.badges}>
-                <Badge tone={s.status === "live" ? "ok" : "neutral"}>{t(STATUS_LABEL[s.status])}</Badge>
-                <span>{s.yearLabel}</span>
-                <span>{t("fees.structures.yearly", { amount: formatNpr(s.yearlyTotalPaisa) })}</span>
-              </div>
-            </div>
-            {message ? <Notice tone={message.tone}>{message.text}</Notice> : null}
-            {s.status === "live" ? <Notice>{t("fees.structure.fixed")}</Notice> : null}
-            {s.status === "waiting" ? <Notice>{t("fees.structure.waiting")}</Notice> : null}
-            <section aria-labelledby="items-heading" className={styles.card}>
-              <h2 id="items-heading" className={setupStyles.subhead}>
-                {t("fees.structure.items")}
-              </h2>
-              {s.items.length === 0 ? (
-                <p className={setupStyles.empty}>{t("fees.structure.noItems")}</p>
-              ) : (
-                <ul className={styles.list}>
-                  {s.items.map((item) => (
-                    <li key={item.id} className={styles.row}>
-                      <span>
-                        {item.name}
-                        <br />
-                        <span className={styles.meta}>{t(FREQUENCY_LABEL[item.frequency])}</span>
-                      </span>
-                      <span className={styles.amount}>
-                        {t("fees.npr", { amount: formatNpr(item.amountPaisa) })}
-                        {accountant && s.status === "draft" ? (
-                          <Button className={styles.wrapLabel} variant="quiet" onClick={() => void act(() => removeFeeItem(api, item.id), () => t("fees.structure.remove"))}>
-                            {t("fees.structure.remove")}
-                          </Button>
-                        ) : null}
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-              )}
-              {accountant && s.status === "draft" ? <AddItem structureId={s.id} onDone={(sent) => act(async () => sent, () => t("fees.structure.add"))} /> : null}
-              {accountant && s.status === "draft" && s.items.length > 0 ? (
-                <div className={styles.actions}>
-                  <Button className={styles.wrapLabel} onClick={() => void act(() => sendStructure(api, s.id), () => t("fees.structure.sent"))}>
-                    {t("fees.structure.send")}
-                  </Button>
-                </div>
-              ) : null}
-            </section>
+    <div className={readStyles.page}>
+      <ReadHeader title={name} subtitle={t("fees.structure.subtitle", { year: s.yearLabel, total: formatNprShort(s.yearlyTotalPaisa) })} crumbs={[{ label: t("fees.structures.title"), href: "/portal/fees/structures" }, { label: name }]} actions={<StructureStatus status={s.status} />} />
+      {message ? <Notice tone={message.tone}>{message.text}</Notice> : null}
+      {accountant && s.status === "live" ? <Notice>{t("fees.structure.fixed")}</Notice> : null}
+      {accountant && s.status === "waiting" ? <Notice>{t("fees.structure.waiting")}</Notice> : null}
+      <Panel title={t("fees.structure.items")} labelledBy="items-heading">
+        <ItemsTable structure={s} onRemove={draft ? (itemId) => void act(() => removeFeeItem(api, itemId), () => t("fees.structure.remove")) : undefined} />
+        {draft ? <AddItem structureId={s.id} onDone={(sent) => act(async () => sent, () => t("fees.structure.add"))} /> : null}
+        {draft && s.items.length > 0 ? (
+          <div className={styles.actions}>
+            <Button className={styles.wrapLabel} onClick={() => void act(() => sendStructure(api, s.id), () => t("fees.structure.sent"))}>
+              {t("fees.structure.send")}
+            </Button>
+          </div>
+        ) : null}
+      </Panel>
             {accountant && s.status === "live" ? (
               <section aria-labelledby="charges-heading" className={styles.card}>
                 <h2 id="charges-heading" className={setupStyles.subhead}>
@@ -115,9 +84,45 @@ export function StructureScreen() {
                 </ul>
               </section>
             ) : null}
-          </>
-        )}
-      </Gate>
+      {accountant ? null : <ReadOnlyNote>{t("fees.structures.readOnly", { accountant: term("role.accountant") })}</ReadOnlyNote>}
+    </div>
+  );
+}
+
+/** The items, as on the Approvals review panel: item, how often it is billed, amount; then the yearly total. Pure. */
+export function ItemsTable({ structure, onRemove }: { structure: FeeStructure; onRemove?: (itemId: string) => void }) {
+  if (structure.items.length === 0) return <EmptyLine>{t("fees.structure.noItems")}</EmptyLine>;
+  return (
+    <>
+      <ReadTable
+        caption={t("fees.structure.items")}
+        rows={structure.items}
+        rowKey={(item) => item.id}
+        columns={[
+          { key: "name", label: t("fees.structure.itemName"), primary: true, cell: (item) => item.name },
+          { key: "frequency", label: t("fees.structure.frequency"), cell: (item) => t(FREQUENCY_LABEL[item.frequency]) },
+          { key: "amount", label: t("fees.col.amount"), align: "end", cell: (item) => nprShort(item.amountPaisa) },
+          ...(onRemove
+            ? [
+                {
+                  key: "remove",
+                  label: t("fees.structure.remove"),
+                  align: "end" as const,
+                  plain: true,
+                  cell: (item: FeeStructure["items"][number]) => (
+                    <Button className={styles.wrapLabel} variant="quiet" onClick={() => onRemove(item.id)}>
+                      {t("fees.structure.remove")}
+                    </Button>
+                  ),
+                },
+              ]
+            : []),
+        ]}
+      />
+      <p className={styles.total}>
+        <span>{t("fees.structure.yearlyTotal")}</span>
+        <span className={styles.amount}>{nprShort(structure.yearlyTotalPaisa)}</span>
+      </p>
     </>
   );
 }

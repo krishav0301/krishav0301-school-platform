@@ -1,6 +1,6 @@
 import { recordAudit, type AuditEventInput } from "../../core/audit";
 
-export type Failure = { ok: false; reason: "not_allowed" | "not_found" | "conflict" | "stale" } | { ok: false; reason: "invalid"; message: string };
+export type Failure = { ok: false; reason: "not_allowed" | "not_found" | "conflict" | "stale" | "already_decided" | "own_request" } | { ok: false; reason: "invalid"; message: string };
 export type Done = { ok: true } | Failure;
 export type Created = { ok: true; publicId: string } | Failure;
 

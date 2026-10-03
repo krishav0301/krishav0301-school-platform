@@ -1,0 +1,575 @@
+/* The Principal's read-only pages (D-103, after the PM's topic 7 reference): header, figures, tables that become
+   stacked rows on a phone, status words, and the read-only note. Theme tokens only. */
+
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+  min-width: 0;
+}
+
+/* --- Header --- */
+.header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-3) var(--space-5);
+}
+
+.headerText {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  flex: 1 1 18rem;
+  min-width: 0;
+}
+
+.crumbs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-2);
+  margin: 0 0 var(--space-1);
+  padding: 0;
+  list-style: none;
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+}
+
+.crumbs li + li::before {
+  content: "›";
+  margin-inline-end: var(--space-2);
+}
+
+.crumbs a {
+  color: var(--color-primary);
+}
+
+.title {
+  margin: 0;
+  font-family: var(--font-heading);
+  /* Capped by screen width too, so a short title never breaks mid-word at 320 px with text at 200%. */
+  font-size: min(var(--text-3xl), 10vw);
+  line-height: var(--leading-tight);
+  overflow-wrap: break-word;
+}
+
+.subtitle {
+  margin: 0;
+  color: var(--color-text-muted);
+}
+
+.aside {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: var(--space-2);
+  min-width: 0;
+  max-width: 100%;
+}
+
+.date {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+  text-align: end;
+  overflow-wrap: break-word;
+}
+
+/* --- Figures --- */
+.tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(12rem, 100%), 1fr));
+  gap: var(--space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.tile {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-width: 0;
+  padding: var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-card);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-card);
+}
+
+.tileIcon {
+  --tone: var(--color-accent);
+  --tone-soft: var(--color-accent-soft);
+  display: inline-grid;
+  flex: none;
+  place-items: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  border-radius: var(--radius-control);
+  background: var(--tone-soft);
+  color: var(--tone);
+}
+
+.tileIcon[data-tone="ok"] {
+  --tone: var(--color-ok);
+  --tone-soft: var(--color-ok-soft);
+}
+
+.tileIcon[data-tone="bad"] {
+  --tone: var(--color-bad);
+  --tone-soft: var(--color-bad-soft);
+}
+
+.tileIcon[data-tone="warn"] {
+  --tone: var(--color-warn);
+  --tone-soft: var(--color-warn-soft);
+}
+
+.tileIcon svg {
+  width: 1.25rem;
+  height: 1.25rem;
+}
+
+.tileText {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.tileValue {
+  font-size: var(--text-xl);
+  font-weight: var(--weight-bold);
+  line-height: var(--leading-tight);
+  overflow-wrap: break-word;
+}
+
+/* Whole words only (D-030): a word moves to the next line rather than breaking in the middle. */
+.tileLabel {
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+  overflow-wrap: normal;
+  word-break: normal;
+  hyphens: manual;
+}
+
+/* Enlarged text on a narrow phone: the figure and its words take the whole tile; the icon only repeats the label. */
+@media (max-width: 24em) {
+  .tileIcon {
+    display: none;
+  }
+}
+
+/* --- A card holding a table or a list --- */
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  min-width: 0;
+  padding: var(--space-4) min(var(--space-5), 4vw);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-card);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-card);
+}
+
+.panelHead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2) var(--space-4);
+}
+
+.panelTitle {
+  margin: 0;
+  font-size: var(--text-lg);
+}
+
+/* --- Tables: a real table on a wide screen; each row a stacked card on a phone, every value with its label. --- */
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--text-sm);
+}
+
+.table caption {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.table th {
+  padding: var(--space-2) var(--space-3);
+  border-bottom: 1px solid var(--color-border);
+  color: var(--color-text-muted);
+  font-weight: var(--weight-medium);
+  text-align: start;
+  white-space: nowrap;
+}
+
+.table td {
+  padding: var(--space-3);
+  border-bottom: 1px solid var(--color-border);
+  vertical-align: middle;
+  overflow-wrap: break-word;
+}
+
+.table tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.table [data-align="end"] {
+  text-align: end;
+}
+
+.table [data-align="center"] {
+  text-align: center;
+}
+
+.number {
+  color: var(--color-text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.rowLink {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  min-height: 44px;
+  color: var(--color-primary);
+  font-weight: var(--weight-medium);
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.rowLink:hover {
+  text-decoration: underline;
+}
+
+.rowLink svg {
+  width: 1rem;
+  height: 1rem;
+}
+
+@media (max-width: 40rem) {
+  /* Under the title, the day and Change date line up with it rather than hanging to the right. */
+  .aside {
+    align-items: flex-start;
+  }
+
+  .date {
+    text-align: start;
+  }
+
+  /* A block, so its cells cannot widen the page while it is hidden for sight (screen readers still hear it). */
+  .table thead {
+    display: block;
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+  }
+
+  .table,
+  .table tbody,
+  .table tr,
+  .table td {
+    display: block;
+    width: 100%;
+  }
+
+  .table tr {
+    padding: var(--space-3) 0;
+    border-bottom: 1px solid var(--color-border);
+  }
+
+  .table tbody tr:last-child {
+    border-bottom: 0;
+  }
+
+  .table td {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: var(--space-1) var(--space-3);
+    padding: var(--space-1) 0;
+    border-bottom: 0;
+    text-align: end;
+  }
+
+  .table td::before {
+    content: attr(data-label);
+    color: var(--color-text-muted);
+    text-align: start;
+  }
+
+  .table td[data-primary] {
+    font-size: var(--text-base);
+    font-weight: var(--weight-medium);
+    text-align: start;
+  }
+
+  .table td[data-primary]::before,
+  .table td[data-plain]::before {
+    content: none;
+  }
+
+  .table [data-hide-phone] {
+    display: none;
+  }
+}
+
+/* --- Status words, in the theme's status colours; never the brand colour (D-030). --- */
+.status {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.125rem var(--space-2);
+  border-radius: calc(var(--radius-control) - 4px);
+  background: color-mix(in srgb, var(--color-text) 7%, var(--color-surface));
+  color: var(--color-text);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+  max-width: 100%;
+}
+
+.status[data-tone="ok"] {
+  background: var(--color-ok-soft);
+  color: var(--color-ok);
+}
+
+.status[data-tone="bad"] {
+  background: var(--color-bad-soft);
+  color: var(--color-bad);
+}
+
+.status[data-tone="warn"] {
+  background: var(--color-warn-soft);
+  color: var(--color-warn);
+}
+
+/* --- Segmented views inside a page (Today's register / Year so far) --- */
+.segments {
+  display: inline-flex;
+  align-self: flex-start;
+  max-width: 100%;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+  padding: 0.1875rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-control);
+  background: var(--color-surface);
+}
+
+.segment {
+  min-height: 2.5rem;
+  padding: 0 var(--space-4);
+  border: 0;
+  border-radius: calc(var(--radius-control) - 3px);
+  background: transparent;
+  color: var(--color-text);
+  font: inherit;
+  font-size: var(--text-sm);
+  cursor: pointer;
+}
+
+.segment[aria-pressed="true"] {
+  background: color-mix(in srgb, var(--color-primary) 10%, var(--color-surface));
+  color: var(--color-primary);
+  font-weight: var(--weight-bold);
+}
+
+.segment:focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: 2px;
+}
+
+/* --- The read-only note, quiet --- */
+.readOnly {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+}
+
+.readOnly svg {
+  flex: none;
+  width: 1rem;
+  height: 1rem;
+  margin-top: 0.15rem;
+}
+
+.empty {
+  margin: 0;
+  padding: var(--space-5) 0;
+  color: var(--color-text-muted);
+  text-align: center;
+}
+
+.failed {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.datePick {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+/* A search or filter row above a list: the field keeps a readable width on a wide screen and fills a phone. */
+.search {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--space-3);
+  max-width: 32rem;
+}
+
+.search > * {
+  flex: 1 1 14rem;
+  min-width: 0;
+}
+
+/* Two pickers side by side on a wide screen, stacked on a phone. */
+.searchWide {
+  max-width: 44rem;
+}
+
+/* A wide sheet (a class's results) scrolls inside its own card, never the page; the student column stays in view. */
+.scroll {
+  max-width: 100%;
+  overflow-x: auto;
+  border-radius: var(--radius-control);
+}
+
+.scroll:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.sheet {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--text-sm);
+  font-variant-numeric: tabular-nums;
+}
+
+.sheet th,
+.sheet td {
+  padding: var(--space-3);
+  border-bottom: 1px solid var(--color-border);
+  text-align: start;
+  white-space: nowrap;
+}
+
+.sheet thead th {
+  color: var(--color-text-muted);
+  font-weight: var(--weight-medium);
+}
+
+.sheet [data-align="end"] {
+  text-align: end;
+}
+
+.sheet [data-align="center"] {
+  text-align: center;
+}
+
+.sheet [data-sticky] {
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  background: var(--color-surface);
+  box-shadow: 1px 0 0 var(--color-border);
+}
+
+.sheet tbody th {
+  font-weight: var(--weight-medium);
+}
+
+.sheet tbody tr:last-child th,
+.sheet tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.cellMeta {
+  display: block;
+  color: var(--color-text-muted);
+  font-weight: var(--weight-regular);
+}
+
+.cellWords {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+/* A list of things to read one by one (rechecks): each a block between hairlines, its status beside its name. */
+.rows {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.rowItem {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-4) 0;
+  border-top: 1px solid var(--color-border);
+}
+
+.rowItem:first-child {
+  padding-top: 0;
+  border-top: 0;
+}
+
+.rowItem:last-child {
+  padding-bottom: 0;
+}
+
+.rowItem p {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.rowHead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-2) var(--space-3);
+}
+
+.rowTitle {
+  margin: 0;
+  font-size: var(--text-base);
+  font-weight: var(--weight-medium);
+  overflow-wrap: anywhere;
+}
+
+.rowMeta {
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+}
+
+/* Groups of links (Reports): two columns when there is room, one on a phone. */
+.groups {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(24rem, 100%), 1fr));
+  align-items: start;
+  gap: var(--space-5);
+}

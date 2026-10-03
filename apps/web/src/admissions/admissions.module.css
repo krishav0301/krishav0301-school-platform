@@ -29,6 +29,7 @@
 
 .detailGrid {
   display: grid;
+  margin: 0;
   grid-template-columns: repeat(auto-fit, minmax(min(14rem, 100%), 1fr));
   gap: var(--space-3) var(--space-5);
 }
@@ -39,6 +40,7 @@
 }
 
 .detailValue {
+  margin: var(--space-1) 0 0;
   overflow-wrap: anywhere;
 }
 

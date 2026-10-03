@@ -132,7 +132,7 @@ The Co-ordinator has **no** fees access at all.
 |---|---|---|---|---|---|---|---|
 | Approvals inbox: decide (never your own request) (`approvals.decide`) | — | — | — | — | ✓ | ✓ | 3 |
 | Send a draft for approval (`approvals.request`) | — | — | inst | — | ✓ | ✓ | 3 |
-| View your own approval requests (`approvals.view.own`) | — | — | own | — | — | — | 3 |
+| View your own approval requests, and take one back while it waits (`approvals.view.own`) | — | — | own | — | own | own | 3 |
 | View activity audit trail and sign-ins (`audit.view`) | — | — | — | — | ✓ | ✓ | 1 |
 | The Principal's dashboard: the whole school at a glance (counts, trends, what needs attention, recent activity) (`dashboard.overview.view`) | — | — | — | — | ✓ | ✓ | 7 |
 | Edit or delete an audit entry (`audit.edit`) | — | — | — | — | — | — | 1 |

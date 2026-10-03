@@ -92,6 +92,23 @@ describe("cash at the counter", () => {
     expect(other.receipt.number).toMatch(/^bachelors-\d{4}-00001$/);
   });
 
+  it("a section given a receipt code numbers with it from then on, the sequence unbroken; the code is then fixed (D-102, admin FUT F-18)", async () => {
+    const seq = (n: string) => Number(n.split("-").at(-1));
+    const before = (await (await cash(plus2, 1, 1_000)).json()) as Paid;
+    expect(before.receipt.number).toMatch(/^plus2-\d{4}-\d{5}$/); // made before codes: numbered with its key
+    const patch = (body: unknown) => call("/api/academics/sections/plus2", { method: "PATCH", body, cookie: admin.cookie });
+    expect((await patch({ receiptCode: "p2" })).status).toBe(200);
+    const after = (await (await cash(plus2, 1, 1_000)).json()) as Paid;
+    expect(after.receipt.number).toMatch(/^P2-\d{4}-\d{5}$/);
+    expect(seq(after.receipt.number)).toBe(seq(before.receipt.number) + 1);
+    // Receipts already issued keep their number.
+    expect((await db.prepare("SELECT number FROM receipts WHERE public_id = ?1").bind(before.receipt.id).first<{ number: string }>())!.number).toBe(before.receipt.number);
+    const refused = await patch({ receiptCode: "PX" });
+    expect(refused.status).toBe(409);
+    expect(await refused.json()).toEqual({ error: "code_locked" });
+    expect((await patch({ name: "Plus Two" })).status).toBe(200); // the name may still change
+  });
+
   it("only the Accountant takes cash: the Co-ordinator, the Admin and the student are refused", async () => {
     for (const who of [coordinator, admin, plus2.pupils[0]!.person]) expect((await cash(plus2, 0, 100, key(), who)).status).toBe(403);
   });
@@ -148,7 +165,7 @@ describe("vouchers", () => {
     expect(queue.vouchers.map((v) => v.id)).toContain(id);
     const verified = await post(`/api/fees/vouchers/${id}/verify`, {}, accountant);
     expect(verified.status).toBe(201);
-    expect(((await verified.json()) as Paid).receipt.number).toMatch(/^plus2-/);
+    expect(((await verified.json()) as Paid).receipt.number).toMatch(/^(plus2|P2)-/) // P2 once the receipt-code test above has run;
     expect((await post(`/api/fees/vouchers/${id}/verify`, {}, accountant)).status).toBe(409);
   });
 

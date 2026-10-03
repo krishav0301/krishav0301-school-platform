@@ -40,6 +40,8 @@ export const AttendanceClassListSchema = z
         students: z.number().int(),
         markedToday: z.boolean(),
         absentToday: z.number().int(),
+        /** The class's Class Teacher, who marks its register; null when none is named yet (D-103). */
+        classTeacher: z.string().nullable(),
         /** The person asking is this class's Class Teacher: the one who marks it. */
         mine: z.boolean(),
       }),
