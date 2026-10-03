@@ -996,9 +996,12 @@ The matrix lives in code (61 actions, 8 groups, from the reviewed `permission-ma
   - It also checked two pages the Principal shares: Programmes and Website Content. Their icon tiles and nested padding left words a sliver of the width. Below 24em the tiles step aside, the padding tightens and the programme names step down one size.
   - Result: 27 pages and three side panels (staff, curriculum subject, application review) with no sideways scroll and no word broken. The recheck panel uses the same shared panel and was not checked at that size.
 - **Kept:** one prominent button per view; status in words in the theme's status colours; the brand colour only for actions; theme tokens and the message catalog only. Every new component has a markup test.
+- **Page weight.** The public pages' shared scripts and styles budget goes from 215 KB to 220 KB (as in D-102): the message catalog every page carries grew with these screens' words, and the sign-in page reached 216.4 KB. The lasting fix is in the open items below.
 - **Not changed:** no ledger, grading, publish or approval rule. One new write route: the F-06 correction, permission-checked and audited, with data-level tests (another section, every other role).
 
 ## Open items carried forward
+
+- **Public pages carry the whole portal word list (D-102, D-106).** `apps/web/src/i18n/messages.ts` is about 108 KB and every page, the public ones included, loads all of it; it has twice pushed the sign-in page over its page-weight budget. Splitting it into a public catalog and a portal catalog (loaded only inside the portal) would take roughly half the weight off every public page. That changes the "words live in `messages.ts`" rule in CLAUDE.md, so it needs the PM's agreement first.
 
 - **No CAPTCHA on the public apply form (D-063).** Relies on rate limiting and an off-screen honeypot, which meets section 7's "rate limiting, CAPTCHA or similar" but is not a CAPTCHA. Add one only if real abuse appears.
 - **Admission documents stay a single certificate upload (D-020, D-063).** No file upload is built at all yet; R2 is still not enabled. The build-plan's "public multi-document application" is open until the PM says R2 is needed.
