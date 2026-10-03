@@ -1,6 +1,6 @@
 # Admin (Principal) functional user test (FUT)
 
-Royal Softech College on the school platform. Every operation the Admin (the Principal) can do, run through the real screens, with a screenshot of each step. The first run (2 October 2026, 16 Ashwin 2083) found 19 findings; all of them were fixed (D-100, D-102), and this is the run again on a fresh local school on 2026-10-03 (17 Ashwin 2083) against the fixed code (commit `196d8fc` with this document).
+Royal Softech College on the school platform. Every operation the Admin (the Principal) can do, run through the real screens, with a screenshot of each step. The first run (2 October 2026, 16 Ashwin 2083) found 19 findings; all of them were fixed (D-100, D-102), and this is the run again on a fresh local school on 2026-10-03 (17 Ashwin 2083) against the fixed code (commit `05a49be` with this document).
 
 ## Summary
 
