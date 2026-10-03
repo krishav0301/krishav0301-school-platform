@@ -55,7 +55,12 @@ function TerminalForm({ yearId, onAdded, showTitle = true }: { yearId: string; o
     <form onSubmit={submit} noValidate className={styles.form}>
       {showTitle ? <h2 className={styles.formTitle}>{t("setup.terminals.add", words)}</h2> : null}
       {problem ? <Notice tone="bad">{t(problem)}</Notice> : null}
-      <Field label={t("setup.terminals.name")} value={name} maxLength={60} autoComplete="off" onChange={(event) => {
+      <Field
+        label={t("setup.terminals.name")}
+        value={name}
+        maxLength={60}
+        autoComplete="off"
+        onChange={(event) => {
           setName(event.target.value);
           setError(null);
         }}

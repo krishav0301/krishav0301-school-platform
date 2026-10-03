@@ -1,19 +1,19 @@
 "use client";
 
-import { Download } from "lucide-react";
+import { CircleCheck, Download, Hourglass, PenLine, UsersRound } from "lucide-react";
 import Link from "next/link";
 import { useCallback, useMemo, useState } from "react";
 
 import { useConfig } from "@/config/ConfigProvider";
 import { formatBsDate } from "@/content/model";
-import { EmptyLine, Panel, ReadFailure, ReadHeader, ReadOnlyNote, StatusWord, TableSkeleton, readStyles } from "@/read/ReadView";
+import { EmptyLine, FigureTiles, Panel, ReadFailure, ReadHeader, ReadOnlyNote, StatusWord, TableSkeleton, readStyles, type Figure } from "@/read/ReadView";
+import { Facts, PanelSection, SidePanel } from "@/read/SidePanel";
 
 import { useAddressQuery } from "@/content/address";
 import { t } from "@/i18n/messages";
 import { useSession } from "@/session/SessionProvider";
 import { loadClasses, loadTerminals, loadYears } from "@/setup/client";
-import setupStyles from "@/setup/setup.module.css";
-import { Gate, useLoad } from "@/setup/useLoad";
+import { useLoad } from "@/setup/useLoad";
 import { Button, Checkbox, Field, Notice, Select, buttonClass } from "@/ui";
 
 import { decideRecheck, gateFailure, loadClassSheet, loadElectives, loadRechecks, setPicks } from "./client";
@@ -196,9 +196,19 @@ function ClassSheetView({ classId, terminalId }: { classId: string; terminalId: 
   );
 }
 
+/** Three figures for the person who decides: rechecks waiting, marks changed, and kept as they were. Pure. */
+export function recheckFigures(rechecks: RecheckList["rechecks"]): Figure[] {
+  return [
+    { key: "open", icon: Hourglass, tone: "warn", value: String(rechecks.filter((r) => r.status === "open").length), label: t("results.rechecks.figure.open") },
+    { key: "changed", icon: PenLine, tone: "ok", value: String(rechecks.filter((r) => r.status === "changed").length), label: t("results.rechecks.figure.changed") },
+    { key: "unchanged", icon: CircleCheck, tone: "accent", value: String(rechecks.filter((r) => r.status !== "open" && r.status !== "changed").length), label: t("results.rechecks.figure.unchanged") },
+  ];
+}
+
 /**
- * Rechecks (source 6.9). The Co-ordinator decides each open one: no change, or corrected marks, both with a reason. The
- * Admin sees the same list, read-only: every post-publish change with who made it and why (section 9's default).
+ * Rechecks (source 6.9). The Co-ordinator decides each open one in a side panel (D-106): no change, or corrected marks,
+ * both with a reason. The Admin sees the same list, read-only: every post-publish change with who made it and why
+ * (section 9's default).
  */
 export function RechecksScreen() {
   const { api, me } = useSession();
@@ -209,21 +219,51 @@ export function RechecksScreen() {
     return result.ok ? result : gateFailure(result.reason);
   }, [api]);
   const { view, reload } = useLoad<RecheckList>(loadNow);
+  const [open, setOpen] = useState<RecheckList["rechecks"][number] | null>(null);
+  const [done, setDone] = useState<string | null>(null);
   return (
     <div className={readStyles.page}>
       <ReadHeader title={t(decides ? "results.rechecks.title" : "results.rechecks.changesTitle")} subtitle={t(decides ? "results.rechecks.subtitle" : "results.rechecks.changesSubtitle")} />
-      {view.status === "loading" ? <TableSkeleton rows={4} /> : null}
+      {view.status === "loading" ? <TableSkeleton rows={4} tiles={decides ? 3 : 0} /> : null}
       {view.status === "failed" || view.status === "forbidden" ? <ReadFailure status={view.status} onRetry={() => void reload()} /> : null}
+      {done ? <Notice tone="ok">{done}</Notice> : null}
       {view.status === "ready" ? (
         view.data.rechecks.length === 0 ? (
           <EmptyLine>{t(decides ? "results.rechecks.none" : "results.rechecks.noChanges")}</EmptyLine>
         ) : (
-          <Panel>
-            <RecheckList rechecks={view.data.rechecks} decide={decides ? (r) => <Decide recheck={r} onDone={() => void reload()} /> : undefined} />
-          </Panel>
+          <>
+            {decides ? <FigureTiles figures={recheckFigures(view.data.rechecks)} label={t("results.rechecks.figures")} /> : null}
+            <Panel>
+              <RecheckList
+                rechecks={view.data.rechecks}
+                decide={
+                  decides
+                    ? (r) => (
+                        <div>
+                          <Button variant="secondary" aria-label={t("results.rechecks.decideItem", { name: r.studentName, subject: r.subjectName })} onClick={() => setOpen(r)}>
+                            {t("results.rechecks.decide")}
+                          </Button>
+                        </div>
+                      )
+                    : undefined
+                }
+              />
+            </Panel>
+          </>
         )
       ) : null}
       {decides ? null : <ReadOnlyNote>{t("results.rechecks.readOnly", { coordinator: term("role.coordinator") })}</ReadOnlyNote>}
+      {open ? (
+        <DecidePanel
+          recheck={open}
+          onClose={() => setOpen(null)}
+          onDone={(text) => {
+            setOpen(null);
+            setDone(text);
+            void reload();
+          }}
+        />
+      ) : null}
     </div>
   );
 }
@@ -266,7 +306,8 @@ export function RecheckList({ rechecks, decide }: { rechecks: RecheckList["reche
   );
 }
 
-function Decide({ recheck, onDone }: { recheck: RecheckList["rechecks"][number]; onDone: () => void }) {
+/** One open recheck, decided in a side panel: the facts, the marks (changed or not), a reason, and one button. */
+export function DecidePanel({ recheck, onClose, onDone }: { recheck: RecheckList["rechecks"][number]; onClose: () => void; onDone: (text: string) => void }) {
   const { api } = useSession();
   const [marks, setMarks] = useState<Record<string, string>>(() => Object.fromEntries(recheck.marks.map((m) => [m.componentId, markText(m)])));
   const [reason, setReason] = useState("");
@@ -286,76 +327,85 @@ function Decide({ recheck, onDone }: { recheck: RecheckList["rechecks"][number];
     setBusy(true);
     const sent = await decideRecheck(api, recheck.id, changed ? { outcome: "changed", reason: reason.trim(), marks: corrected } : { outcome: "unchanged", reason: reason.trim() });
     setBusy(false);
-    if (sent.ok) onDone();
+    if (sent.ok) onDone(t(changed ? "results.rechecks.doneChanged" : "results.rechecks.doneSame", { name: recheck.studentName, subject: recheck.subjectName }));
     else setMessage(sentText(sent));
   }
 
   return (
-    <div className={styles.card}>
-      {recheck.marks.map((m) => (
-        <Field
-          key={m.componentId}
-          label={t("results.rechecks.mark", {
-            name: m.name,
-            max: hundredthsText(m.maxHundredths),
-          })}
-          inputMode="decimal"
-          autoComplete="off"
-          value={marks[m.componentId] ?? ""}
-          onChange={(event) => setMarks((x) => ({ ...x, [m.componentId]: event.target.value }))}
-        />
-      ))}
-      <Field
-        label={t("results.rechecks.reason")}
-        hint={t(changed ? "results.rechecks.reasonChanged" : "results.rechecks.reasonSame")}
-        value={reason}
-        maxLength={500}
-        onChange={(event) => setReason(event.target.value)}
-      />
-      <div className={styles.actions}>
-        <Button className={styles.wrapLabel} variant="secondary" disabled={reason.trim().length < 3 || busy} loading={busy} loadingLabel={t("results.saving")} onClick={() => void decide()}>
+    <SidePanel
+      title={`${recheck.studentName} · ${recheck.subjectName}`}
+      subtitle={`${recheck.sid} · ${className(recheck)} · ${recheck.terminalName}`}
+      status={<StatusWord tone="warn">{t(RECHECK_LABEL[recheck.status])}</StatusWord>}
+      busy={busy}
+      onClose={onClose}
+      foot={
+        <Button fullWidth disabled={reason.trim().length < 3 || busy} loading={busy} loadingLabel={t("results.saving")} onClick={() => void decide()}>
           {t(changed ? "results.rechecks.saveChanged" : "results.rechecks.saveSame")}
         </Button>
-      </div>
+      }
+    >
       {message ? <Notice tone="bad">{message}</Notice> : null}
-    </div>
+      <Facts
+        rows={[
+          { name: t("results.rechecks.askedLabel"), value: recheck.reason },
+          ...(recheck.requestedOnBs ? [{ name: t("results.rechecks.askedOnLabel"), value: formatBsDate(recheck.requestedOnBs) }] : []),
+          { name: t("results.rechecks.marksNowLabel"), value: recheck.marks.map((m) => `${m.name} ${markRead(m)}`).join(" · ") },
+        ]}
+      />
+      <PanelSection title={t("results.rechecks.marksTitle")}>
+        <p className={readStyles.rowMeta}>{t("results.rechecks.marksHint")}</p>
+        {recheck.marks.map((m) => (
+          <Field
+            key={m.componentId}
+            label={t("results.rechecks.mark", { name: m.name, max: hundredthsText(m.maxHundredths) })}
+            inputMode="decimal"
+            autoComplete="off"
+            value={marks[m.componentId] ?? ""}
+            onChange={(event) => {
+              setMarks((x) => ({ ...x, [m.componentId]: event.target.value }));
+              setMessage(null);
+            }}
+          />
+        ))}
+      </PanelSection>
+      <Field label={t("results.rechecks.reason")} hint={t(changed ? "results.rechecks.reasonChanged" : "results.rechecks.reasonSame")} value={reason} maxLength={500} onChange={(event) => setReason(event.target.value)} />
+    </SidePanel>
   );
 }
 
-/** Elective picks (D-056): for a class, each student's subject from each elective group. */
+/** Three figures for one class's electives: its students, those with every pick made, and those still to choose. Pure. */
+export function electiveFigures(data: ClassElectives): Figure[] {
+  const complete = data.students.filter((s) => data.groups.every((g) => g.subjects.filter((x) => s.picks.includes(x.offeringId)).length === g.pickCount)).length;
+  return [
+    { key: "students", icon: UsersRound, tone: "accent", value: String(data.students.length), label: t("results.electives.figure.students") },
+    { key: "complete", icon: CircleCheck, tone: "ok", value: String(complete), label: t("results.electives.figure.complete") },
+    { key: "left", icon: Hourglass, tone: data.students.length - complete > 0 ? "warn" : "ok", value: String(data.students.length - complete), label: t("results.electives.figure.left") },
+  ];
+}
+
+/** Elective picks (D-056), redesigned in D-106: for a class (the first open straight away), each student's subject from each elective group. */
 export function ElectivesScreen() {
   const { api } = useSession();
   const loadNow = useCallback(() => loadChoices(api), [api]);
   const { view, reload } = useLoad<Choices>(loadNow);
-  const [classId, setClassId] = useState("");
+  const [picked, setClassId] = useState("");
+  const classes = view.status === "ready" ? view.data.classes : [];
+  const classId = picked || (classes[0]?.id ?? "");
   return (
-    <>
-      <h1 className={setupStyles.title}>{t("results.electives.title")}</h1>
-      <p className={setupStyles.muted}>{t("results.electives.intro")}</p>
-      <Gate view={view} onRetry={() => void reload()}>
-        {(choices) =>
-          choices.classes.length === 0 ? (
-            <p className={setupStyles.empty}>{t("results.sheets.none")}</p>
-          ) : (
-            <>
-              <Select
-                label={t("results.sheets.class")}
-                value={classId}
-                onChange={(event) => setClassId(event.target.value)}
-                options={[
-                  { value: "", label: t("results.choose") },
-                  ...choices.classes.map((c) => ({
-                    value: c.id,
-                    label: c.name,
-                  })),
-                ]}
-              />
-              {classId ? <ClassElectivesView classId={classId} /> : null}
-            </>
-          )
-        }
-      </Gate>
-    </>
+    <div className={readStyles.page}>
+      <ReadHeader title={t("results.electives.title")} subtitle={t("results.electives.intro")} />
+      {view.status === "loading" ? <TableSkeleton rows={6} tiles={3} /> : null}
+      {view.status === "failed" || view.status === "forbidden" ? <ReadFailure status={view.status} onRetry={() => void reload()} /> : null}
+      {view.status === "ready" && classes.length === 0 ? <EmptyLine>{t("results.sheets.none")}</EmptyLine> : null}
+      {classes.length > 0 ? (
+        <>
+          <div className={readStyles.search}>
+            <Select label={t("results.sheets.class")} value={classId} onChange={(event) => setClassId(event.target.value)} options={classes.map((c) => ({ value: c.id, label: c.name }))} />
+          </div>
+          <ClassElectivesView key={classId} classId={classId} />
+        </>
+      ) : null}
+    </div>
   );
 }
 
@@ -366,28 +416,36 @@ function ClassElectivesView({ classId }: { classId: string }) {
     return result.ok ? result : gateFailure(result.reason);
   }, [api, classId]);
   const { view, reload } = useLoad<ClassElectives>(loadNow);
+  if (view.status === "loading") return <TableSkeleton rows={6} tiles={3} />;
+  if (view.status !== "ready") return <ReadFailure status={view.status} onRetry={() => void reload()} />;
+  return <ElectivesView data={view.data} onSaved={() => void reload()} />;
+}
+
+/** One class's students, each with a picker for each elective group, and the group's state in words. Pure. */
+export function ElectivesView({ data, onSaved }: { data: ClassElectives; onSaved: () => void }) {
+  if (data.groups.length === 0) return <EmptyLine>{t("results.electives.noGroups")}</EmptyLine>;
+  if (data.students.length === 0) return <EmptyLine>{t("results.grid.noStudents")}</EmptyLine>;
   return (
-    <Gate view={view} onRetry={() => void reload()}>
-      {(data) =>
-        data.groups.length === 0 ? (
-          <p className={setupStyles.empty}>{t("results.electives.noGroups")}</p>
-        ) : data.students.length === 0 ? (
-          <p className={setupStyles.empty}>{t("results.grid.noStudents")}</p>
-        ) : (
-          <ul className={setupStyles.list}>
-            {data.students.map((s) => (
-              <li key={s.enrollmentId} className={setupStyles.item}>
-                <h2 className={setupStyles.itemTitle}>{s.name}</h2>
-                <p className={styles.meta}>{s.sid}</p>
+    <>
+      <FigureTiles figures={electiveFigures(data)} label={t("results.electives.figures")} />
+      <Panel title={className(data)} labelledBy="electives-class">
+        <ul className={readStyles.rows}>
+          {data.students.map((s) => (
+            <li key={s.enrollmentId} className={`${readStyles.rowItem} ${styles.pickRow}`}>
+              <div>
+                <h3 className={readStyles.rowTitle}>{s.name}</h3>
+                <p className={readStyles.rowMeta}>{s.sid}</p>
+              </div>
+              <div className={styles.picks}>
                 {data.groups.map((g) => (
-                  <PickRow key={g.id} student={s} group={g} onSaved={() => void reload()} />
+                  <PickRow key={g.id} student={s} group={g} onSaved={onSaved} />
                 ))}
-              </li>
-            ))}
-          </ul>
-        )
-      }
-    </Gate>
+              </div>
+            </li>
+          ))}
+        </ul>
+      </Panel>
+    </>
   );
 }
 

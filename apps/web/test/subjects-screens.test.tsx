@@ -4,7 +4,7 @@ import { describe, expect, it, vi } from "vitest";
 import CurriculumPage from "@/app/portal/setup/curriculum/page";
 import SubjectsPage from "@/app/portal/setup/subjects/page";
 import { ConfigContext, makeConfigValue, type PublicConfig } from "@/config/ConfigProvider";
-import { ComponentForm, CurriculumView, GroupForm, OfferingForm } from "@/setup/CurriculumScreen";
+import { ComponentForm, CurriculumView, GroupForm, OfferingForm, SubjectPanel } from "@/setup/CurriculumScreen";
 import { SetupTabs } from "@/setup/SetupLayout";
 import { SubjectForm, SubjectsScreen, SubjectsView } from "@/setup/SubjectsScreen";
 import type { Curriculum, Offering, Subject } from "@/setup/model";
@@ -124,41 +124,61 @@ describe("the curriculum screen", () => {
   const view = (canManage: boolean, data: Curriculum = curriculum) =>
     inContext(<CurriculumView curriculum={data} canManage={canManage} busy={null} onToggleGroup={noop} onToggleOffering={noop} onSetGroup={noop} onToggleComponent={noop} />);
 
-  it("shows the level's groups, subjects, credit hours as decimals, marks as decimals, and what is switched off, in words", () => {
+  it("a reader sees the Principal's table: subjects, credit hours and marks as decimals, and electives in words", () => {
     const html = view(false);
-    expect(html).toContain(">Science option</h3>");
-    expect(html).toContain("Pick 1");
-    expect(html).toContain("Pick 2");
-    expect(html).toContain(">Biology</h3>");
-    expect(html).toContain("Credit hours 3.75");
-    expect(html).toContain("Theory: 75");
-    expect(html).toContain("Practical: 25.5");
-    expect(count(html, />Switched off</g)).toBeGreaterThanOrEqual(3); // the old group, English, and the Practical component
-    expect(html).toContain("Science option"); // the group of Biology
-  });
-
-  it("a reader who cannot change things sees no forms, no switches and no group pickers", () => {
-    const html = view(false);
+    expect(html).toContain('data-primary="true">Biology</td>');
+    expect(html).toContain(">3.75<");
+    expect(html).toContain("Theory 75");
+    expect(html).toContain("Choose 1 of: Biology");
+    expect(html).not.toContain("English"); // switched off: not taught, so not shown to a reader
     expect(count(html, /<form/g)).toBe(0);
     expect(count(html, /<button/g)).toBe(0);
     expect(count(html, /<select/g)).toBe(0);
   });
 
-  it("someone who can change things gets a switch on each group, subject and component, and a group picker on each subject", () => {
+  it("for the Co-ordinator: every subject in a table with its marks, elective and status in words, each with Edit", () => {
     const html = view(true);
+    expect(html).toContain('data-primary="true">Biology (BIO)</td>');
+    expect(html).toContain(">3.75<");
+    expect(html).toContain("Theory: 75"); // the switched-off Practical is left out of the summary
+    expect(html).not.toContain("Practical: 25.5");
+    expect(html).toContain(">Science option<"); // Biology's elective group
+    expect(html).toContain(">Compulsory<");
+    expect(html).toContain(">In use<");
+    expect(count(html, />Switched off</g)).toBeGreaterThanOrEqual(2); // English, and the old group
+    expect(html).toContain('aria-label="Edit Biology"');
+    expect(html).toContain('aria-label="Edit English"');
+  });
+
+  it("the elective groups, each with what it offers in words and its switch, and Add as a second, quieter button", () => {
+    const html = view(true);
+    expect(html).toContain(">Science option</h3>");
+    expect(html).toContain("Choose 1 of: Biology");
+    expect(html).toContain("Pick 2"); // the old group has no subjects
     expect(html).toContain('aria-label="Switch off Science option"');
     expect(html).toContain('aria-label="Switch on Old option"');
-    expect(html).toContain('aria-label="Switch off Biology"');
-    expect(html).toContain('aria-label="Switch on English"');
-    expect(html).toContain('aria-label="Switch off Theory"');
-    expect(html).toContain('aria-label="Switch on Practical"');
+    const trigger = html.slice(html.lastIndexOf("<button", html.indexOf("Add an elective group</button>")), html.indexOf("Add an elective group</button>"));
+    expect(trigger).toContain("secondary");
+  });
+
+  it("a subject's panel: its facts, its elective group, its marks with a switch each, a form to add one, and Switch off", () => {
+    const html = inContext(<SubjectPanel curriculum={curriculum} offering={biology} busy={null} onClose={noop} onToggleOffering={noop} onSetGroup={noop} onToggleComponent={noop} onChanged={noop} />);
+    expect(html).toContain(">Biology</h2>");
+    expect(html).toContain("+2 Science · Grade 11");
+    expect(html).toContain(">BIO<");
     expect(html).toContain("Elective group for Biology");
     expect(html).toContain("None: everyone takes it");
-    expect(count(html, /<form/g)).toBeGreaterThanOrEqual(2); // a component form on each subject
+    expect(html).not.toContain(">Old option<"); // a switched-off group cannot be chosen
+    expect(html).toContain("Theory: 75");
+    expect(html).toContain("Practical: 25.5 (practical)");
+    expect(html).toContain('aria-label="Switch off Theory"');
+    expect(html).toContain('aria-label="Switch on Practical"');
+    expect(html).toContain('aria-label="Switch off Biology"');
+    expect(count(html, /<form/g)).toBe(1);
   });
 
   it("says so when a level has no groups and no subjects", () => {
-    const html = view(false, { ...curriculum, groups: [], offerings: [] });
+    const html = view(true, { ...curriculum, groups: [], offerings: [] });
     expect(html).toContain("No elective groups.");
     expect(html).toContain("No subjects on this Level yet.");
   });

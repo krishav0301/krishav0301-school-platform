@@ -94,7 +94,12 @@ export function SubjectForm({ onAdded, showTitle = true }: { onAdded: () => void
     <form onSubmit={submit} noValidate className={styles.form}>
       {showTitle ? <h2 className={styles.formTitle}>{t("setup.subjects.add")}</h2> : null}
       {problem ? <Notice tone="bad">{t(problem)}</Notice> : null}
-      <Field label={t("setup.subjects.name")} value={name} maxLength={120} autoComplete="off" onChange={(event) => {
+      <Field
+        label={t("setup.subjects.name")}
+        value={name}
+        maxLength={120}
+        autoComplete="off"
+        onChange={(event) => {
           setName(event.target.value);
           setError(null);
         }}
