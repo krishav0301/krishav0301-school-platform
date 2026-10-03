@@ -942,7 +942,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** @description The Admin's inbox: every pending request, oldest first. */
+        /** @description The Admin's inbox: every pending request, oldest first. `mine` marks the reader's own, which they may not decide. */
         get: operations["list_pending_approvals"];
         put?: never;
         /** @description Sends a subject for approval: it moves to its own "waiting" state and a pending request is made, in one batch. */
@@ -979,6 +979,23 @@ export interface paths {
         };
         /** @description The signed-in person's own requests, any status, newest first, with the reason when declined. */
         get: operations["list_my_approvals"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/approvals/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description One request for the review panel: who sent it, its status (a pending one whose subject changed since is stale), and what it would change, read from the subject now. */
+        get: operations["review_approval"];
         put?: never;
         post?: never;
         delete?: never;
@@ -3244,6 +3261,10 @@ export interface components {
             snapshot?: unknown;
             requestedBy: string;
             createdAt: string;
+            /** @enum {string|null} */
+            requesterRole: "coordinator" | "accountant" | "admin" | "super_admin" | null;
+            mine: boolean;
+            createdOnBs: string | null;
         };
         MyApprovalList: {
             requests: components["schemas"]["MyApproval"][];
@@ -3253,6 +3274,71 @@ export interface components {
             status: "pending" | "approved" | "declined" | "stale" | "withdrawn";
             decisionReason: string | null;
         };
+        ApprovalReview: {
+            request: components["schemas"]["ApprovalSummary"];
+            /** @enum {string} */
+            status: "pending" | "stale" | "approved" | "declined" | "withdrawn";
+            decisionReason: string | null;
+            detail: components["schemas"]["ApprovalDetail"];
+        };
+        ApprovalDetail: {
+            /** @enum {string} */
+            kind: "website_content";
+            contentKind: string;
+            title: string;
+            bodyPreview: string;
+            bodyTruncated: boolean;
+            publishOnBs: string | null;
+            holidayFromBs: string | null;
+            holidayToBs: string | null;
+        } | {
+            /** @enum {string} */
+            kind: "fee_structure";
+            programme: string;
+            level: string;
+            year: string;
+            items: {
+                name: string;
+                amountPaisa: number;
+                /** @enum {string} */
+                frequency: "one_time" | "monthly" | "yearly" | "whole_course";
+            }[];
+            yearlyTotalPaisa: number;
+        } | {
+            /** @enum {string} */
+            kind: "discount";
+            student: string;
+            sid: string;
+            className: string | null;
+            amountPaisa: number;
+            percent: number | null;
+            /** @enum {string|null} */
+            reason: "scholarship" | "sibling" | "staff_child" | "other" | null;
+            note: string | null;
+        } | {
+            /** @enum {string} */
+            kind: "reversal";
+            student: string;
+            sid: string;
+            className: string | null;
+            amountPaisa: number;
+            reason: string | null;
+            payment: {
+                amountPaisa: number;
+                paidOnBs: string | null;
+                receiptNumber: string | null;
+                method: string | null;
+            } | null;
+        } | {
+            /** @enum {string} */
+            kind: "refund";
+            student: string;
+            sid: string;
+            className: string | null;
+            amountPaisa: number;
+            availableCreditPaisa: number;
+            note: string | null;
+        } | null;
         DeclineInput: {
             reason: string;
         };
@@ -7643,7 +7729,7 @@ export interface operations {
                     "application/json": components["schemas"]["ApprovalsCreated"];
                 };
             };
-            /** @description Not allowed */
+            /** @description Not allowed (forbidden), or your own request, which another Admin must decide (own_request) */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -7661,7 +7747,7 @@ export interface operations {
                     "application/json": components["schemas"]["ApprovalsError"];
                 };
             };
-            /** @description It conflicts with what is already there (already resolved, or a repeat) */
+            /** @description Already decided by someone else (already_decided), changed since it was sent (stale), or a repeat (conflict) */
             409: {
                 headers: {
                     [name: string]: unknown;
@@ -7701,7 +7787,7 @@ export interface operations {
                     "application/json": components["schemas"]["ApprovalsOk"];
                 };
             };
-            /** @description Not allowed */
+            /** @description Not allowed (forbidden), or your own request, which another Admin must decide (own_request) */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -7719,7 +7805,7 @@ export interface operations {
                     "application/json": components["schemas"]["ApprovalsError"];
                 };
             };
-            /** @description It conflicts with what is already there (already resolved, or a repeat) */
+            /** @description Already decided by someone else (already_decided), changed since it was sent (stale), or a repeat (conflict) */
             409: {
                 headers: {
                     [name: string]: unknown;
@@ -7759,6 +7845,37 @@ export interface operations {
             };
         };
     };
+    review_approval: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The request */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApprovalReview"];
+                };
+            };
+            /** @description No such request or subject */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApprovalsError"];
+                };
+            };
+        };
+    };
     approve_approval: {
         parameters: {
             query?: never;
@@ -7779,7 +7896,7 @@ export interface operations {
                     "application/json": components["schemas"]["ApprovalsOk"];
                 };
             };
-            /** @description Not allowed */
+            /** @description Not allowed (forbidden), or your own request, which another Admin must decide (own_request) */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -7797,7 +7914,7 @@ export interface operations {
                     "application/json": components["schemas"]["ApprovalsError"];
                 };
             };
-            /** @description It conflicts with what is already there (already resolved, or a repeat) */
+            /** @description Already decided by someone else (already_decided), changed since it was sent (stale), or a repeat (conflict) */
             409: {
                 headers: {
                     [name: string]: unknown;
@@ -7841,7 +7958,7 @@ export interface operations {
                     "application/json": components["schemas"]["ApprovalsOk"];
                 };
             };
-            /** @description Not allowed */
+            /** @description Not allowed (forbidden), or your own request, which another Admin must decide (own_request) */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -7859,7 +7976,7 @@ export interface operations {
                     "application/json": components["schemas"]["ApprovalsError"];
                 };
             };
-            /** @description It conflicts with what is already there (already resolved, or a repeat) */
+            /** @description Already decided by someone else (already_decided), changed since it was sent (stale), or a repeat (conflict) */
             409: {
                 headers: {
                     [name: string]: unknown;

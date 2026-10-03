@@ -6,6 +6,8 @@
  * any kind's subject through the same request/decide/withdraw flow.
  */
 
+import type { ApprovalDetail } from "./schema";
+
 /** What an approval's own statements may need: the audit key (the ledger's chain uses it) and who decided. */
 export interface ApprovalContext {
   auditKey: string;
@@ -26,6 +28,8 @@ export interface ApprovalHandler {
   resolveId(db: D1Database, subjectPublicId: string): Promise<number | null>;
   /** A snapshot of the subject as it stands now, for the inbox to show, and a one-line summary. Null when gone. */
   describe(db: D1Database, subjectId: number): Promise<{ snapshot: unknown; summary: string; subjectPublicId: string } | null>;
+  /** What the review panel shows (D-102), read from the subject now. Omitted: the panel shows the snapshot's summary only. */
+  detail?(db: D1Database, subjectId: number): Promise<ApprovalDetail | null>;
   /** The subject's own version fingerprint right now. Null when gone. */
   currentVersion(db: D1Database, subjectId: number): Promise<number | null>;
   /** Runs FIRST in the "send for approval" batch, conditioned on the subject's own "may be sent" state. */

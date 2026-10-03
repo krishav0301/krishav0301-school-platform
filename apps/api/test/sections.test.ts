@@ -128,7 +128,8 @@ describe("a section's receipt code (D-102, admin FUT F-18)", () => {
   it("is suggested from the name when none is given: initials, digits kept whole, or the first four letters", () => {
     expect(suggestReceiptCode("Master's Degrees")).toBe("MD");
     expect(suggestReceiptCode("Bachelor's")).toBe("BACH");
-    expect(suggestReceiptCode("+2 (Grade 11-12)")).toBe("2G1112");
+    expect(suggestReceiptCode("+2 (Grade 11-12)")).toBe("P2");
+    expect(suggestReceiptCode("Grade 11 to 12")).toBe("G11T12");
     expect(suggestReceiptCode("High School Section Number Twelve Plus")).toHaveLength(6);
     expect(suggestReceiptCode("A")).toBe("ASEC");
   });

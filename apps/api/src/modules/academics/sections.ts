@@ -17,11 +17,11 @@ import { firstMessage, write, type Done, type Failure } from "./write";
 
 /**
  * A receipt code made from a section's name: the initials of its words (a run of digits kept whole), or the first four
- * letters of a one-word name. "Master's Degrees" gives MD, "Bachelor's" BACH, "+2 (Grade 11-12)" 2G1112. Only a
+ * letters of a one-word name. "Master's Degrees" gives MD, "Bachelor's" BACH, "+2 (Grade 11-12)" P2 (a bracketed part is left out; "+" reads as P). Only a
  * suggestion: the Principal may type another.
  */
 export function suggestReceiptCode(name: string): string {
-  const words = name.replace(/['’]/g, "").toUpperCase().match(/[A-Z]+|[0-9]+/g) ?? [];
+  const words = name.replace(/\([^)]*\)/g, " ").replace(/\+/g, " P").replace(/['’]/g, "").toUpperCase().match(/[A-Z]+|[0-9]+/g) ?? [];
   const initials = words.map((w) => (/^[0-9]/.test(w) ? w : w[0])).join("");
   const code = initials.length >= 2 ? initials : words.join("").slice(0, 4);
   return (code.length >= 2 ? code : `${code}SEC`).slice(0, 6);

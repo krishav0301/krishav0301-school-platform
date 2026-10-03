@@ -133,7 +133,7 @@ export function subjectChoices(subjects: readonly Subject[], offerings: readonly
  * gives MD, "Bachelor's" BACH. Only a suggestion: the Principal may type another.
  */
 export function suggestReceiptCode(name: string): string {
-  const words = name.replace(/['’]/g, "").toUpperCase().match(/[A-Z]+|[0-9]+/g) ?? [];
+  const words = name.replace(/\([^)]*\)/g, " ").replace(/\+/g, " P").replace(/['’]/g, "").toUpperCase().match(/[A-Z]+|[0-9]+/g) ?? [];
   const initials = words.map((w) => (/^[0-9]/.test(w) ? w : w[0])).join("");
   const code = initials.length >= 2 ? initials : words.join("").slice(0, 4);
   return name.trim() === "" ? "" : (code.length >= 2 ? code : `${code}SEC`).slice(0, 6);

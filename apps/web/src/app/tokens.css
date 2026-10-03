@@ -13,6 +13,7 @@
   --space-7: 3rem;
   --space-8: 4rem;
 
+  --text-xs: 0.75rem; /* the phone tab bar's labels only */
   --text-sm: 0.875rem;
   --text-base: 1rem;
   --text-lg: 1.125rem;

@@ -1,5 +1,5 @@
 import { recordAudit } from "../../core/audit";
-import { nepalDate } from "../../core/dates";
+import { adToBsText, nepalDate } from "../../core/dates";
 import { newPublicId } from "../../core/ids";
 import { requestApproval, type ApprovalHandler } from "../approvals/service";
 import { allocate, type LedgerKind } from "./allocation";
@@ -234,6 +234,54 @@ function adjustmentHandler(kind: Kind): ApprovalHandler {
         summary: `${KIND_WORD[kind]} of NPR ${formatNpr(a.amount_paisa)} for ${a.student_name} (${a.sid})${a.note ? `: ${a.note}` : ""}`,
         subjectPublicId: a.public_id,
       };
+    },
+    /**
+     * What the Principal reads before deciding (D-102): the student and their class; a discount's reason and note
+     * (admin FUT F-06); a reversal's original payment, its day and receipt; a refund's credit as it stands now. One
+     * round trip.
+     */
+    async detail(db, id) {
+      const row = await db
+        .prepare(
+          `SELECT fa.kind, fa.amount_paisa, fa.percent, fa.reason_code, fa.note, st.first_name || ' ' || st.last_name AS student, st.sid,
+                  pv.name || ' · ' || lv.name || CASE WHEN cl.label IS NULL OR cl.label = '' THEN '' ELSE ' ' || cl.label END AS class_name,
+                  pe.amount_paisa AS paid_paisa, pe.created_at AS paid_at, pe.source_type AS paid_method, rc.number AS receipt_number,
+                  (SELECT COALESCE(SUM(le.amount_paisa), 0) FROM ledger_entries le WHERE le.enrollment_id = fa.enrollment_id) AS balance
+             FROM fee_adjustments fa JOIN enrollments en ON en.id = fa.enrollment_id JOIN students st ON st.id = en.student_id
+             LEFT JOIN classes cl ON cl.id = en.class_id LEFT JOIN levels lv ON lv.id = cl.level_id LEFT JOIN programmes pv ON pv.id = lv.programme_id
+             LEFT JOIN ledger_entries pe ON pe.id = fa.payment_entry_id LEFT JOIN receipts rc ON rc.payment_entry_id = pe.id
+            WHERE fa.id = ?1`,
+        )
+        .bind(id)
+        .first<{
+          kind: Kind;
+          amount_paisa: number;
+          percent: number | null;
+          reason_code: "scholarship" | "sibling" | "staff_child" | "other" | null;
+          note: string | null;
+          student: string;
+          sid: string;
+          class_name: string | null;
+          paid_paisa: number | null;
+          paid_at: string | null;
+          paid_method: string | null;
+          receipt_number: string | null;
+          balance: number;
+        }>();
+      if (!row) return null;
+      const who = { student: row.student, sid: row.sid, className: row.class_name, amountPaisa: row.amount_paisa };
+      if (kind === "discount") return { kind: "discount" as const, ...who, percent: row.percent, reason: row.reason_code, note: row.note };
+      if (kind === "reversal")
+        return {
+          kind: "reversal" as const,
+          ...who,
+          reason: row.note,
+          payment:
+            row.paid_paisa === null
+              ? null
+              : { amountPaisa: -row.paid_paisa, paidOnBs: row.paid_at ? adToBsText(nepalDate(new Date(row.paid_at))) : null, receiptNumber: row.receipt_number, method: row.paid_method },
+        };
+      return { kind: "refund" as const, ...who, availableCreditPaisa: Math.max(0, -row.balance), note: row.note };
     },
     // Stale when what the request refers to changes between asking and deciding (CLAUDE.md section 6): a discount, the
     // student's charges (a percentage was taken of them); a reversal, its payment (already reversed); a refund, the

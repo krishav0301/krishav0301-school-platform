@@ -1,0 +1,622 @@
+/* The Principal's approvals inbox (D-102), after the PM's reference: a calm list of cards and a review panel at the
+   side. Theme tokens only. The brand colour is kept for what can be acted on; status is said in words. */
+
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+  min-width: 0;
+}
+
+.header {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.title {
+  margin: 0;
+  font-family: var(--font-heading);
+  /* Capped by screen width too, so a one-word title never breaks mid-word at 320 px with text at 200%. */
+  font-size: min(var(--text-3xl), 11vw);
+  line-height: var(--leading-tight);
+}
+
+.intro {
+  margin: 0;
+  max-width: 46rem;
+  color: var(--color-text-muted);
+}
+
+.waiting {
+  margin: 0;
+  font-weight: var(--weight-medium);
+}
+
+/* --- Filters: one row that scrolls on its own on a phone; the page itself never scrolls sideways. --- */
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  min-width: 0;
+}
+
+.filters {
+  display: flex;
+  gap: var(--space-2);
+  min-width: 0;
+  max-width: 100%;
+  margin: 0;
+  padding: 2px;
+  overflow-x: auto;
+  scrollbar-width: thin;
+  list-style: none;
+}
+
+.filter {
+  flex: none;
+  min-height: 44px;
+  padding: 0 var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-control);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font: inherit;
+  font-size: var(--text-sm);
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.filter:hover {
+  border-color: var(--color-text-muted);
+}
+
+/* Chosen is shown by its edge, its tint and heavier words, not by colour alone. */
+.filter[aria-pressed="true"] {
+  border-color: var(--color-primary);
+  background: color-mix(in srgb, var(--color-primary) 8%, var(--color-surface));
+  color: var(--color-primary);
+  font-weight: var(--weight-bold);
+}
+
+.filter:focus-visible,
+.reviewButton:focus-visible,
+.iconButton:focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: 2px;
+}
+
+.sort {
+  flex: 0 1 12rem;
+  min-width: min(10rem, 100%);
+}
+
+/* --- The list --- */
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.card {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) minmax(0, 13rem) auto;
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-4) var(--space-5);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-card);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-card);
+}
+
+.tile {
+  --tone: var(--color-accent);
+  --tone-soft: var(--color-accent-soft);
+  display: inline-grid;
+  place-items: center;
+  width: 3rem;
+  height: 3rem;
+  border-radius: var(--radius-control);
+  background: var(--tone-soft);
+  color: var(--tone);
+}
+
+.tile[data-tone="ok"] {
+  --tone: var(--color-ok);
+  --tone-soft: var(--color-ok-soft);
+}
+
+.tile[data-tone="bad"] {
+  --tone: var(--color-bad);
+  --tone-soft: var(--color-bad-soft);
+}
+
+.tile[data-tone="warn"] {
+  --tone: var(--color-warn);
+  --tone-soft: var(--color-warn-soft);
+}
+
+.tile svg {
+  width: 1.375rem;
+  height: 1.375rem;
+}
+
+.main {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-width: 0;
+}
+
+.kind {
+  margin: 0;
+  font-size: var(--text-lg);
+  font-weight: var(--weight-bold);
+  line-height: var(--leading-tight);
+}
+
+.subject {
+  margin: 0;
+  overflow-wrap: break-word;
+}
+
+.line {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+  overflow-wrap: break-word;
+}
+
+.strong {
+  margin: 0;
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+}
+
+.side {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-1);
+  min-width: 0;
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+}
+
+.side p {
+  margin: 0;
+}
+
+/* Status in words, in the theme's status colours; never the brand colour (D-030). */
+.status {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.125rem var(--space-2);
+  border-radius: calc(var(--radius-control) - 4px);
+  background: var(--color-warn-soft);
+  color: var(--color-warn);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+  white-space: nowrap;
+}
+
+.status[data-status="stale"],
+.status[data-status="declined"] {
+  background: var(--color-bad-soft);
+  color: var(--color-bad);
+}
+
+.status[data-status="approved"] {
+  background: var(--color-ok-soft);
+  color: var(--color-ok);
+}
+
+.status[data-status="mine"],
+.status[data-status="withdrawn"] {
+  background: color-mix(in srgb, var(--color-text) 7%, var(--color-surface));
+  color: var(--color-text);
+}
+
+.statuses {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+}
+
+.reviewButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-1);
+  min-height: 44px;
+  min-width: 44px;
+  padding: 0 var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-control);
+  background: var(--color-surface);
+  color: var(--color-primary);
+  font: inherit;
+  font-weight: var(--weight-medium);
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.reviewButton:hover {
+  border-color: var(--color-primary);
+}
+
+.reviewButton svg,
+.iconButton svg {
+  width: 1.125rem;
+  height: 1.125rem;
+}
+
+/* --- Empty, loading and failure --- */
+.empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-8) var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-card);
+  background: var(--color-surface);
+  text-align: center;
+}
+
+.empty svg {
+  width: 2.5rem;
+  height: 2.5rem;
+  color: var(--color-text-muted);
+}
+
+.emptyTitle {
+  margin: 0;
+  font-size: var(--text-xl);
+  font-weight: var(--weight-bold);
+}
+
+.failed {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+/* --- The review panel: at the side on a wide screen, the whole screen on a phone. --- */
+.drawer {
+  position: fixed;
+  inset: 0 0 0 auto;
+  width: min(32rem, 100vw);
+  max-width: 100vw;
+  height: 100dvh;
+  max-height: 100dvh;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-inline-start: 1px solid var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-text);
+  box-shadow: var(--shadow-card);
+  overflow: hidden;
+}
+
+.drawer[open] {
+  display: flex;
+  flex-direction: column;
+  animation: slideIn var(--motion-fast) var(--motion-ease);
+}
+
+.drawer::backdrop {
+  background: color-mix(in srgb, var(--color-text) 28%, transparent);
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateX(1.5rem);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .drawer[open],
+  .confirm[open] {
+    animation: none;
+  }
+}
+
+.drawerHead {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  padding: var(--space-4) var(--space-5);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.drawerTitle {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  flex: 1;
+  min-width: 0;
+}
+
+.drawerTitle h2 {
+  margin: 0;
+  font-size: var(--text-xl);
+  line-height: var(--leading-tight);
+}
+
+.titleLine {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.iconButton {
+  display: inline-grid;
+  flex: none;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border: 0;
+  border-radius: var(--radius-control);
+  background: transparent;
+  color: var(--color-text);
+  cursor: pointer;
+}
+
+.iconButton:hover {
+  background: color-mix(in srgb, var(--color-text) 6%, var(--color-surface));
+}
+
+.drawerBody {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+  flex: 1;
+  min-height: 0;
+  padding: var(--space-5);
+  overflow-y: auto;
+}
+
+.drawerFoot {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-4) var(--space-5) var(--space-5);
+  border-top: 1px solid var(--color-border);
+}
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.sectionTitle {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+}
+
+/* A short list of facts, name and value on one line where they fit, stacked where they do not. */
+.facts {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-control);
+}
+
+.fact {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: var(--space-1) var(--space-4);
+  padding: var(--space-3) var(--space-4);
+}
+
+.fact + .fact {
+  border-top: 1px solid var(--color-border);
+}
+
+.fact dt {
+  color: var(--color-text-muted);
+}
+
+.fact dd {
+  margin: 0;
+  text-align: end;
+  overflow-wrap: break-word;
+}
+
+/* Words that may run long (a reason, a note) sit under their name, read from the start. */
+.wide {
+  flex-direction: column;
+}
+
+.wide dd {
+  text-align: start;
+}
+
+.total {
+  background: color-mix(in srgb, var(--color-text) 4%, var(--color-surface));
+  font-weight: var(--weight-bold);
+}
+
+.total dt {
+  color: var(--color-text);
+}
+
+.preview {
+  padding: var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-control);
+  background: var(--color-background);
+  overflow-wrap: break-word;
+}
+
+.people {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-4) var(--space-6);
+}
+
+.person {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-width: 0;
+}
+
+.avatar {
+  display: inline-grid;
+  flex: none;
+  place-items: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  border-radius: 999px;
+  background: var(--color-accent-soft);
+  color: var(--color-accent);
+  font-weight: var(--weight-bold);
+}
+
+.person p {
+  margin: 0;
+}
+
+.outcome {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-3);
+  flex: 1;
+  padding: var(--space-6) var(--space-4);
+  text-align: center;
+}
+
+.outcome svg {
+  width: 3rem;
+  height: 3rem;
+}
+
+.outcome[data-tone="ok"] svg {
+  color: var(--color-ok);
+}
+
+.outcome[data-tone="bad"] svg {
+  color: var(--color-bad);
+}
+
+.outcome h2 {
+  margin: 0;
+  font-size: var(--text-2xl);
+}
+
+.outcome p {
+  margin: 0;
+  max-width: 24rem;
+  color: var(--color-text-muted);
+}
+
+/* Decline is a real choice, not the main one: an outlined button in the theme's warning red, never filled. */
+.decline {
+  border-color: var(--color-bad);
+  color: var(--color-bad);
+}
+
+/* --- The confirmation, centred over everything. --- */
+.confirm {
+  width: min(28rem, calc(100vw - 2 * var(--space-4)));
+  max-height: calc(100dvh - 2 * var(--space-4));
+  padding: 0;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-card);
+  background: var(--color-surface);
+  color: var(--color-text);
+  box-shadow: var(--shadow-card);
+}
+
+.confirm[open] {
+  animation: fadeIn var(--motion-fast) var(--motion-ease);
+}
+
+.confirm::backdrop {
+  background: color-mix(in srgb, var(--color-text) 35%, transparent);
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+}
+
+.confirmBody {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  padding: var(--space-5);
+}
+
+.confirmBody h2 {
+  margin: 0;
+  font-size: var(--text-xl);
+}
+
+.confirmBody p {
+  margin: 0;
+}
+
+@media (max-width: 52rem) {
+  .card {
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: start;
+    padding: var(--space-4);
+  }
+
+  .side {
+    grid-column: 2;
+  }
+
+  .reviewButton {
+    grid-column: 2;
+    justify-self: start;
+  }
+}
+
+@media (max-width: 30rem) {
+  .card {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .tile {
+    width: 2.5rem;
+    height: 2.5rem;
+  }
+
+  .side,
+  .reviewButton {
+    grid-column: 1;
+  }
+
+  .drawer {
+    width: 100vw;
+    border-inline-start: 0;
+  }
+
+  .drawerHead,
+  .drawerBody,
+  .drawerFoot {
+    padding-inline: var(--space-4);
+  }
+}

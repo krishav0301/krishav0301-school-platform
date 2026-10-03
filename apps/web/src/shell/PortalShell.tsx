@@ -6,6 +6,7 @@ import {
   CircleCheck,
   ClipboardList,
   CreditCard,
+  Ellipsis,
   FileText,
   Globe,
   House,
@@ -23,6 +24,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
 
 import { ConfigGate } from "@/config/ConfigGate";
+import { APPROVALS_CHANGED } from "@/approvals/client";
 import { useConfig } from "@/config/ConfigProvider";
 import { t } from "@/i18n/messages";
 import { useSession } from "@/session/SessionProvider";
@@ -55,21 +57,28 @@ export const initials = (name: string): string => {
   return `${words[0]![0]}${words.at(-1)![0]}`.toUpperCase();
 };
 
-/** How many approval requests wait, for those who decide them; null until known, or for anyone else. */
+/**
+ * How many approval requests wait for this person's decision (their own are not theirs to decide); null until known,
+ * or for anyone else. Asked again whenever a decision is made on any screen (admin FUT F-03).
+ */
 function usePendingApprovals(enabled: boolean): number | null {
   const { api } = useSession();
   const [count, setCount] = useState<number | null>(null);
   useEffect(() => {
     if (!enabled) return;
     let live = true;
-    api
-      .GET("/api/approvals")
-      .then(({ data }) => {
-        if (live && data) setCount(data.requests.length);
-      })
-      .catch(() => {});
+    const ask = () =>
+      api
+        .GET("/api/approvals")
+        .then(({ data }) => {
+          if (live && data) setCount(data.requests.filter((r) => !r.mine).length);
+        })
+        .catch(() => {});
+    void ask();
+    window.addEventListener(APPROVALS_CHANGED, ask);
     return () => {
       live = false;
+      window.removeEventListener(APPROVALS_CHANGED, ask);
     };
   }, [api, enabled]);
   return enabled ? count : null;
@@ -175,6 +184,7 @@ export function PortalShell({ children, items = NAV_ITEMS }: { children: ReactNo
               })}
               {more.length > 0 ? (
                 <Link href={MORE_HREF} className={`${styles.navLink} ${styles.moreLink}`} aria-current={inMore ? "page" : undefined}>
+                  <Ellipsis aria-hidden className={styles.navIcon} strokeWidth={1.75} />
                   <span className={styles.navLabel}>{t("nav.more")}</span>
                 </Link>
               ) : null}

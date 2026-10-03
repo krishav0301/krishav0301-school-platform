@@ -132,6 +132,13 @@ export const feeStructureApprovalHandler: ApprovalHandler = {
       subjectPublicId: row.public_id,
     };
   },
+  /** Every fee item and the yearly total, as the structure stands now (D-102). */
+  async detail(db, id) {
+    const described = await this.describe(db, id);
+    if (!described) return null;
+    const s = described.snapshot as { year: string; programme: string; level: string; items: { name: string; amountPaisa: number; frequency: Frequency }[]; yearlyTotalPaisa: number };
+    return { kind: "fee_structure" as const, programme: s.programme, level: s.level, year: s.year, items: s.items, yearlyTotalPaisa: s.yearlyTotalPaisa };
+  },
   async currentVersion(db, id) {
     return (await db.prepare("SELECT version FROM fee_structures WHERE id = ?1").bind(id).first<{ version: number }>())?.version ?? null;
   },
