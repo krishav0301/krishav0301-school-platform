@@ -2,6 +2,7 @@
 
 import { useCallback, useState } from "react";
 
+import { useConfig } from "@/config/ConfigProvider";
 import { t } from "@/i18n/messages";
 import { ChangeDate, dayLine, EmptyLine, Panel, ReadFailure, ReadHeader, ReadOnlyNote, ReadTable, StatusWord, TableSkeleton, readStyles } from "@/read/ReadView";
 import { useSession } from "@/session/SessionProvider";
@@ -50,6 +51,7 @@ export function TeacherTable({ day }: { day: TeacherDay }) {
  */
 export function TeacherDayScreen() {
   const { api, me } = useSession();
+  const { term } = useConfig();
   const canMark = me?.roles.some((r) => r.role === "coordinator" || r.role === "super_admin") ?? false;
   const [date, setDate] = useState<string | undefined>(undefined);
 
@@ -64,7 +66,7 @@ export function TeacherDayScreen() {
     <div className={readStyles.page}>
       <ReadHeader
         title={t("attendance.teachers.title")}
-        subtitle={t("attendance.teachers.subtitle")}
+        subtitle={t("attendance.teachers.subtitle", { coordinator: term("role.coordinator") })}
         dayBs={day ? dayLine(day.dateBs, day.isToday, day.date) : null}
         actions={<ChangeDate onDate={setDate} />}
       />
@@ -80,7 +82,7 @@ export function TeacherDayScreen() {
             <Panel>
               <TeacherTable day={day} />
             </Panel>
-            <ReadOnlyNote>{t("attendance.teachers.readOnlyNote")}</ReadOnlyNote>
+            <ReadOnlyNote>{t("attendance.teachers.readOnlyNote", { coordinator: term("role.coordinator") })}</ReadOnlyNote>
           </>
         )
       ) : null}

@@ -6640,6 +6640,9 @@
                 "enrollmentId": {
                   "type": "string"
                 },
+                "studentId": {
+                  "type": "string"
+                },
                 "studentName": {
                   "type": "string"
                 },
@@ -6676,6 +6679,7 @@
               },
               "required": [
                 "enrollmentId",
+                "studentId",
                 "studentName",
                 "sid",
                 "classId",

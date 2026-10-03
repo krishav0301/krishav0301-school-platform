@@ -189,6 +189,8 @@ export const DuesListSchema = z
     students: z.array(
       z.object({
         enrollmentId: z.string(),
+        /** The student's own id, so the dues list opens their fee account (D-104). */
+        studentId: z.string(),
         studentName: z.string(),
         sid: z.string(),
         classId: z.string(),

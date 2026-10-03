@@ -119,3 +119,193 @@ a.wrapLabel {
     display: none;
   }
 }
+
+/* The history as a calm timeline (D-104): a dot on a hairline per entry, what it was on the left, the amount on the right. */
+.timeline {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.event {
+  position: relative;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: var(--space-1) var(--space-4);
+  padding: 0 0 var(--space-5) var(--space-5);
+}
+
+.event::before {
+  content: "";
+  position: absolute;
+  top: 0.45rem;
+  left: 0;
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 50%;
+  background: var(--color-text-muted);
+}
+
+.event::after {
+  content: "";
+  position: absolute;
+  top: 1.25rem;
+  bottom: 0.25rem;
+  left: calc(0.25rem - 0.5px);
+  width: 1px;
+  background: var(--color-border);
+}
+
+.event:last-child {
+  padding-bottom: 0;
+}
+
+.event:last-child::after {
+  display: none;
+}
+
+.event[data-kind="payment"]::before,
+.event[data-kind="discount"]::before {
+  background: var(--color-ok);
+}
+
+.event[data-kind="reversal"]::before,
+.event[data-kind="refund"]::before {
+  background: var(--color-bad);
+}
+
+.eventText {
+  display: flex;
+  flex: 1 1 14rem;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-width: 0;
+}
+
+.eventText p {
+  margin: 0;
+}
+
+.eventTitle {
+  font-weight: var(--weight-medium);
+  overflow-wrap: anywhere;
+}
+
+.eventLinks {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2) var(--space-3);
+}
+
+.eventAmount {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: var(--space-2);
+}
+
+/* The receipt as paper (D-104): one bordered sheet of a readable width, the amount the largest thing on it. */
+.paper {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+  width: 100%;
+  max-width: 36rem;
+  padding: min(var(--space-6), 6vw);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-card);
+  background: var(--color-surface);
+}
+
+.paper p {
+  margin: 0;
+}
+
+.paperHead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-2) var(--space-4);
+  padding-bottom: var(--space-4);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.paperSchool {
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+}
+
+.paperTitle {
+  margin: var(--space-1) 0 0;
+  font-family: var(--font-heading);
+  font-size: var(--text-2xl);
+}
+
+.paperWarning {
+  color: var(--color-bad);
+  font-weight: var(--weight-medium);
+}
+
+.paperFacts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(12rem, 100%), 1fr));
+  gap: var(--space-4);
+  margin: 0;
+}
+
+.paperFacts dt {
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+}
+
+.paperFacts dd {
+  margin: var(--space-1) 0 0;
+  overflow-wrap: anywhere;
+}
+
+.paperAmount {
+  padding: var(--space-4) 0;
+  border-block: 1px solid var(--color-border);
+}
+
+.paperAmount p:first-child {
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+}
+
+.paperAmountValue {
+  font-size: var(--text-3xl);
+  font-weight: var(--weight-bold);
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+
+.paperNote {
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+}
+
+@media print {
+  .paper {
+    max-width: none;
+    border: 0;
+    padding: 0;
+  }
+}
+
+/* The yearly total under a structure's items: one quiet line, the amount on the right. */
+.total {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: var(--space-2);
+  margin: var(--space-3) 0 0;
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--color-border);
+  font-weight: var(--weight-medium);
+}

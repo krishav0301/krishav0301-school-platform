@@ -2,7 +2,8 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 
 import { ActivityEditor } from "@/classwork/ActivityEditor";
-import { ActivityScreen, DayList } from "@/classwork/ActivityScreen";
+import { ActivityScreen, ClassworkTable, classworkFigures, DayList } from "@/classwork/ActivityScreen";
+import { SubjectEntries } from "@/classwork/ClassActivityScreen";
 import { ClassworkTabs } from "@/classwork/ClassworkTabs";
 import { StudentAssignment } from "@/classwork/HomeworkScreen";
 import { ProtectedNotes } from "@/classwork/NotesScreen";
@@ -71,6 +72,57 @@ describe("the activity log", () => {
     for (const session of [as("teacher", "assigned"), as("student", "own"), as("coordinator")]) {
       expect(inContext(<ActivityScreen />, session)).toMatch(/role="status"[^>]*aria-busy="true"/);
     }
+  });
+});
+
+describe("the Principal reads classwork (D-104, after the PM's topic 7 reference)", () => {
+  const naming = (label: string) => ({ programmeName: "+2 Science", levelName: "Grade 11", label });
+  const list = {
+    date: "2026-10-03",
+    dateBs: "2083-06-17",
+    classes: [
+      { classId: "a", ...naming("A"), expected: 7, written: 7 },
+      { classId: "b", ...naming("B"), expected: 7, written: 5 },
+      { classId: "c", ...naming("C"), expected: 0, written: 0 },
+    ],
+  };
+  const missing = { date: "2026-10-03", dateBs: "2083-06-17", classes: [{ classId: "b", ...naming("B"), missing: [{ subjectName: "Physics", teacherName: "Ram" }] }] };
+
+  it("figures: subjects written of those expected, classes complete, subjects with nothing yet", () => {
+    expect(classworkFigures(list).map((f) => [f.label, f.value])).toEqual([
+      ["Subjects written today", "12 of 14"],
+      ["Classes with every subject written", "1 of 3"],
+      ["Subjects with nothing yet", "2"],
+    ]);
+  });
+
+  it("every class says in words how far its log is, the incomplete first, each opening its log", () => {
+    const html = inContext(<ClassworkTable list={list} missing={missing} />, as("admin"));
+    expect(html.indexOf("Grade 11 · B")).toBeLessThan(html.indexOf("Grade 11 · A"));
+    expect(html).toContain("5 of 7 subjects written");
+    expect(html).toContain(">2 not written yet<");
+    expect(html).toContain(">All written<");
+    expect(html).toContain("Physics (Ram)");
+    expect(html).toContain('href="/portal/classwork/class?id=b"');
+    expect(html).not.toMatch(/<(input|textarea|select)/);
+  });
+
+  it("a class's day shows each subject's words, or 'Not written yet', with no box to write in", () => {
+    const day = {
+      classId: "b",
+      ...naming("B"),
+      date: "2026-10-03",
+      dateBs: "2083-06-17",
+      entries: [
+        { offeringId: "o1", subjectName: "Physics", teacherName: "Ram", body: null, updatedAt: null },
+        { offeringId: "o2", subjectName: "English", teacherName: null, body: "A poem.", updatedAt: "2026-10-03T05:00:00.000Z" },
+      ],
+    };
+    const html = inContext(<SubjectEntries day={day} />, as("admin"));
+    expect(html).toContain(">Not written yet<");
+    expect(html).toContain("A poem.");
+    expect(html).toContain("No teacher assigned");
+    expect(html).not.toMatch(/<(input|textarea|select|button)/);
   });
 });
 

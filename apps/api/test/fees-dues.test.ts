@@ -57,6 +57,11 @@ describe("the dues list", () => {
     expect(list.totals.duePaisa).toBe(225_000_000);
   });
 
+  it("names each student's own id, so a row opens their fee account (D-104)", async () => {
+    const list = (await (await call(`/api/fees/dues?classId=${fixture.classId}`, { cookie: admin.cookie })).json()) as { students: { enrollmentId: string; studentId: string }[] };
+    for (const pupil of fixture.pupils) expect(list.students.find((s) => s.enrollmentId === pupil.enrollmentId)?.studentId).toBe(pupil.studentId);
+  });
+
   it("exports as CSV with Nepali grouping, quoting, and no spreadsheet formulas", async () => {
     await db.prepare("UPDATE students SET last_name = '=HYPERLINK(1)' WHERE public_id = ?1").bind(fixture.pupils[0]!.studentId).run();
     const response = await call(`/api/fees/dues.csv?classId=${fixture.classId}`, { cookie: admin.cookie });

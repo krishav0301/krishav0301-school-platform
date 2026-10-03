@@ -1,20 +1,22 @@
 "use client";
 
-import Link from "next/link";
 import { useCallback, useState } from "react";
 
+import { useConfig } from "@/config/ConfigProvider";
 import { useAddressQuery } from "@/content/address";
 import { t } from "@/i18n/messages";
 import { useSession } from "@/session/SessionProvider";
 import setupStyles from "@/setup/setup.module.css";
-import { Gate, useLoad } from "@/setup/useLoad";
-import { Badge, Button, Field, Notice, Select } from "@/ui";
+import { Panel, ReadFailure, ReadHeader, ReadOnlyNote, StatusWord, TableSkeleton, readStyles } from "@/read/ReadView";
+import { useLoad } from "@/setup/useLoad";
+import { Button, Field, Notice, Select } from "@/ui";
 
 import { AccountView } from "./AccountView";
 import { gateFailure, loadAdjustments, loadStudentAccount, proposeDiscount, recordCash, recordRefund, requestRefund, requestReversal, type Sent } from "./client";
 import styles from "./fees.module.css";
 import { ADJUSTMENT_KIND, ADJUSTMENT_STATUS, REASON_LABEL, newIdempotencyKey, type Account, type AdjustmentList } from "./model";
 import { formatNpr, parseNpr } from "./money";
+import { nprShort } from "./ReadFees";
 import { sentMessage } from "./OwnFees";
 
 type Message = { tone: "ok" | "bad"; text: string } | null;
@@ -22,6 +24,7 @@ type Message = { tone: "ok" | "bad"; text: string } | null;
 /** One student's fees for staff (`?id=` the student): the account, and for the Accountant, the counter's actions. */
 export function StaffAccountScreen() {
   const { api, me } = useSession();
+  const { term } = useConfig();
   const accountant = me?.roles.some((r) => r.role === "accountant") ?? false;
   const search = useAddressQuery();
   const id = search === null ? "" : (new URLSearchParams(search).get("id") ?? "");
@@ -36,29 +39,23 @@ export function StaffAccountScreen() {
   const { view, reload } = useLoad<{ account: Account; adjustments: AdjustmentList }>(loadNow);
   const refresh = () => void reload();
 
+  if (view.status === "loading") return <TableSkeleton rows={6} tiles={4} />;
+  if (view.status !== "ready") return <ReadFailure status={view.status} onRetry={refresh} />;
+  const { account, adjustments } = view.data;
   return (
-    <>
-      <p>
-        <Link href="/portal/fees">{t("fees.account.back")}</Link>
-      </p>
-      <Gate view={view} onRetry={refresh}>
-        {({ account, adjustments }) => (
-          <>
-            <div>
-              <h1 className={setupStyles.title}>{account.studentName}</h1>
-              <p className={styles.meta}>
-                {account.sid} · {account.className} · {account.yearLabel}
-              </p>
-            </div>
-            {accountant ? <CashForm account={account} onDone={refresh} /> : null}
-            <AccountView account={account} entryAction={accountant ? (entry) => (entry.kind === "payment" && !entry.reversed ? <ReverseButton paymentId={entry.id} onDone={refresh} /> : null) : undefined} />
-            <Adjustments adjustments={adjustments} accountant={accountant} onDone={refresh} />
-            {accountant ? <DiscountForm account={account} onDone={refresh} /> : null}
-            {accountant && account.creditPaisa > 0 ? <RefundForm account={account} onDone={refresh} /> : null}
-          </>
-        )}
-      </Gate>
-    </>
+    <div className={readStyles.page}>
+      <ReadHeader
+        title={account.studentName}
+        subtitle={[account.sid, account.className, account.yearLabel].join(" · ")}
+        crumbs={[{ label: t("fees.title"), href: "/portal/fees" }, { label: account.studentName }]}
+      />
+      {accountant ? <CashForm account={account} onDone={refresh} /> : null}
+      <AccountView account={account} entryAction={accountant ? (entry) => (entry.kind === "payment" && !entry.reversed ? <ReverseButton paymentId={entry.id} onDone={refresh} /> : null) : undefined} />
+      <Adjustments adjustments={adjustments} accountant={accountant} onDone={refresh} />
+      {accountant ? <DiscountForm account={account} onDone={refresh} /> : null}
+      {accountant && account.creditPaisa > 0 ? <RefundForm account={account} onDone={refresh} /> : null}
+      {accountant ? null : <ReadOnlyNote>{t("fees.account.readOnly", { accountant: term("role.accountant") })}</ReadOnlyNote>}
+    </div>
   );
 }
 
@@ -224,26 +221,24 @@ function RefundForm({ account, onDone }: { account: Account; onDone: () => void 
 function Adjustments({ adjustments, accountant, onDone }: { adjustments: AdjustmentList; accountant: boolean; onDone: () => void }) {
   if (adjustments.adjustments.length === 0) return null;
   return (
-    <section aria-labelledby="adjustments-heading" className={styles.card}>
-      <h2 id="adjustments-heading" className={setupStyles.subhead}>
-        {t("fees.adjustments.title")}
-      </h2>
+    <Panel title={t("fees.adjustments.title")} labelledBy="adjustments-heading">
       <ul className={styles.list}>
         {adjustments.adjustments.map((a) => (
           <li key={a.id} className={styles.row}>
-            <span>
-              {t(ADJUSTMENT_KIND[a.kind])} · {t("fees.npr", { amount: formatNpr(a.amountPaisa) })}
-              <br />
+            <span className={styles.eventText}>
+              <span className={styles.eventTitle}>
+                {t(ADJUSTMENT_KIND[a.kind])} · {nprShort(a.amountPaisa)}
+              </span>
               <span className={styles.meta}>{[a.reason ? t(REASON_LABEL[a.reason as keyof typeof REASON_LABEL]) : null, a.note].filter(Boolean).join(" · ")}</span>
             </span>
-            <span>
-              <Badge tone={a.status === "closed" ? "bad" : a.status === "pending" ? "neutral" : "ok"}>{t(ADJUSTMENT_STATUS[a.status])}</Badge>
+            <span className={styles.amount}>
+              <StatusWord tone={a.status === "closed" ? "bad" : a.status === "pending" ? "warn" : "ok"}>{t(ADJUSTMENT_STATUS[a.status])}</StatusWord>
               {accountant && a.kind === "refund" && a.status === "approved" ? <RecordRefund adjustmentId={a.id} onDone={onDone} /> : null}
             </span>
           </li>
         ))}
       </ul>
-    </section>
+    </Panel>
   );
 }
 

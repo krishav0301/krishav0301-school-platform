@@ -1,30 +1,45 @@
 "use client";
 
-import Link from "next/link";
 import { useCallback, useState } from "react";
 
 import { useAddressQuery } from "@/content/address";
-import { toAd } from "@/content/client";
-import { BsDateField } from "@/content/BsDateField";
-import { isWholeBsDate } from "@/content/model";
-import { t, type MessageKey } from "@/i18n/messages";
+import { t } from "@/i18n/messages";
+import { ChangeDate, dayLine, EmptyLine, Panel, ReadFailure, ReadHeader, ReadOnlyNote, StatusWord, TableSkeleton, readStyles } from "@/read/ReadView";
 import { useSession } from "@/session/SessionProvider";
-import setupStyles from "@/setup/setup.module.css";
-import { Gate, useLoad } from "@/setup/useLoad";
-import { Button } from "@/ui";
+import { useLoad } from "@/setup/useLoad";
 
 import styles from "./classwork.module.css";
 import { gateFailure, loadClassDay } from "./client";
 import { className, type ClassActivityDay } from "./model";
 
-/** One class's activity log for a day (`?id=`), today or a day picked in BS: every subject, written or not. */
+/** Each subject of the day: who teaches it and what they wrote, in their words, or "Nothing written yet". Pure. */
+export function SubjectEntries({ day }: { day: ClassActivityDay }) {
+  if (day.entries.length === 0) return <EmptyLine>{t("classwork.noSubjects")}</EmptyLine>;
+  return (
+    <ul className={styles.entries}>
+      {day.entries.map((entry) => (
+        <li key={entry.offeringId} className={styles.entry}>
+          <div className={styles.entryHead}>
+            <h3 className={styles.entryTitle}>{entry.subjectName}</h3>
+            {entry.body === null ? <StatusWord tone="warn">{t("classwork.activity.notWritten")}</StatusWord> : null}
+          </div>
+          <p className={styles.meta}>{entry.teacherName ?? t("classwork.noTeacher")}</p>
+          {entry.body === null ? null : <p className={styles.body}>{entry.body}</p>}
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+/**
+ * One class's activity log for a day (`?id=`), redesigned in D-104: today, or a day picked through Change date; every
+ * subject, written or not. Nobody writes here: each teacher writes on their own Classwork page.
+ */
 export function ClassActivityScreen() {
   const { api } = useSession();
   const search = useAddressQuery();
   const id = search === null ? "" : (new URLSearchParams(search).get("id") ?? "");
   const [date, setDate] = useState<string | undefined>(undefined);
-  const [bs, setBs] = useState("");
-  const [dayError, setDayError] = useState<MessageKey | null>(null);
 
   const loadNow = useCallback(async () => {
     if (!id) return gateFailure("failed");
@@ -33,44 +48,25 @@ export function ClassActivityScreen() {
   }, [api, id, date]);
   const { view, reload } = useLoad<ClassActivityDay>(loadNow);
 
-  async function show() {
-    // A day with its month or year missing asks for them, rather than blaming the calendar (admin FUT F-19).
-    if (!isWholeBsDate(bs)) return setDayError("attendance.class.incompleteDay");
-    const result = await toAd(api, bs.trim());
-    setDayError(result.ok ? null : "classwork.badDay");
-    if (result.ok) setDate(result.ad);
-  }
+  if (view.status === "loading") return <TableSkeleton rows={6} />;
+  if (view.status !== "ready") return <ReadFailure status={view.status} onRetry={() => void reload()} />;
+  const day = view.data;
+  const name = className(day);
+  const written = day.entries.filter((e) => e.body !== null).length;
 
   return (
-    <>
-      <p>
-        <Link href="/portal/classwork">{t("classwork.back")}</Link>
-      </p>
-      <Gate view={view} onRetry={() => void reload()}>
-        {(day) => (
-          <>
-            <h1 className={setupStyles.title}>{className(day)}</h1>
-            <div className={styles.dayPicker}>
-              <BsDateField legend={t("attendance.class.otherDay")} hint={t("classwork.pickDayHint")} error={dayError ? t(dayError) : undefined} value={bs} onChange={setBs} />
-              <Button className={styles.wrapLabel} variant="secondary" onClick={() => void show()}>
-                {t("classwork.show")}
-              </Button>
-            </div>
-            <h2 className={setupStyles.subhead}>{day.dateBs ?? day.date}</h2>
-            <ul className={styles.list}>
-              {day.entries.map((entry) => (
-                <li key={entry.offeringId} className={styles.card}>
-                  <div>
-                    <h3>{entry.subjectName}</h3>
-                    <p className={styles.meta}>{entry.teacherName ?? t("classwork.noTeacher")}</p>
-                  </div>
-                  {entry.body === null ? <p className={setupStyles.empty}>{t("classwork.activity.notWritten")}</p> : <p className={styles.body}>{entry.body}</p>}
-                </li>
-              ))}
-            </ul>
-          </>
-        )}
-      </Gate>
-    </>
+    <div className={readStyles.page}>
+      <ReadHeader
+        title={name}
+        subtitle={t("classwork.class.subtitle", { written, expected: day.entries.length })}
+        crumbs={[{ label: t("classwork.title"), href: "/portal/classwork" }, { label: name }]}
+        dayBs={dayLine(day.dateBs, date === undefined, day.date)}
+        actions={<ChangeDate onDate={setDate} badDay="classwork.badDay" />}
+      />
+      <Panel>
+        <SubjectEntries day={day} />
+      </Panel>
+      <ReadOnlyNote>{t("classwork.class.readOnlyNote")}</ReadOnlyNote>
+    </div>
   );
 }

@@ -7,10 +7,12 @@ import { searchStudents } from "@/admissions/client";
 import type { StudentSummary } from "@/admissions/model";
 import { t } from "@/i18n/messages";
 import { useSession } from "@/session/SessionProvider";
-import setupStyles from "@/setup/setup.module.css";
-import { Badge, Field, Notice } from "@/ui";
+import { EmptyLine, OpenLink, Panel, ReadFailure, ReadHeader, ReadTable, readStyles } from "@/read/ReadView";
+import { Field } from "@/ui";
 
+import { loadDues } from "./client";
 import { OwnFees } from "./OwnFees";
+import { BalanceWord } from "./ReadFees";
 
 /** Fees (D-078): a student sees their own account; staff find a student to open theirs. */
 export function FeesHome() {
@@ -19,12 +21,64 @@ export function FeesHome() {
   return student ? <OwnFees /> : <StudentFinder />;
 }
 
+type Balance = { chargedPaisa: number; paidPaisa: number; duePaisa: number; overduePaisa: number; balancePaisa: number };
+
+/** The students found, each with this year's balance in words when the dues list has them, each opening the account. Pure. */
+export function FoundStudents({ students, balances }: { students: readonly StudentSummary[]; balances: ReadonlyMap<string, Balance> | null }) {
+  return (
+    <ReadTable
+      caption={t("fees.search.results")}
+      rows={students}
+      rowKey={(s) => s.id}
+      columns={[
+        {
+          key: "name",
+          label: t("fees.col.student"),
+          primary: true,
+          cell: (s) => (
+            <Link href={`/portal/fees/student?id=${s.id}`}>
+              {s.firstName} {s.lastName}
+            </Link>
+          ),
+        },
+        { key: "sid", label: t("attendance.col.sid"), cell: (s) => s.sid },
+        { key: "class", label: t("attendance.col.class"), cell: (s) => s.className ?? "—" },
+        ...(balances
+          ? [
+              {
+                key: "balance",
+                label: t("fees.col.balance"),
+                cell: (s: StudentSummary) => {
+                  const row = balances.get(s.sid);
+                  return row ? <BalanceWord row={row} /> : "—";
+                },
+              },
+            ]
+          : []),
+        { key: "open", label: t("fees.col.account"), align: "end" as const, plain: true, cell: (s) => <OpenLink href={`/portal/fees/student?id=${s.id}`} label={t("fees.openAccount", { name: `${s.firstName} ${s.lastName}` })} /> },
+      ]}
+    />
+  );
+}
+
 function StudentFinder() {
   const { api } = useSession();
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<StudentSummary[] | null>(null);
   const [failed, setFailed] = useState(false);
+  const [balances, setBalances] = useState<Map<string, Balance> | null>(null);
   const latest = useRef(0);
+
+  // This year's balances come from the dues list once; without them the search still works (D-104).
+  useEffect(() => {
+    let live = true;
+    void loadDues(api).then((dues) => {
+      if (live && dues.ok) setBalances(new Map(dues.data.students.map((s) => [s.sid, s])));
+    });
+    return () => {
+      live = false;
+    };
+  }, [api]);
 
   const run = useCallback(
     async (q: string) => {
@@ -43,29 +97,19 @@ function StudentFinder() {
   }, [query, run]);
 
   return (
-    <>
-      <h1 className={setupStyles.title}>{t("fees.search.title")}</h1>
-      <Field label={t("fees.search.label")} value={query} onChange={(event) => setQuery(event.target.value)} />
-      {failed ? <Notice tone="bad">{t("fees.failed")}</Notice> : null}
+    <div className={readStyles.page}>
+      <ReadHeader title={t("fees.title")} subtitle={t("fees.search.subtitle")} />
+      <div className={readStyles.search}>
+        <Field label={t("fees.search.label")} type="search" value={query} onChange={(event) => setQuery(event.target.value)} />
+      </div>
+      {failed ? <ReadFailure status="failed" onRetry={() => void run(query)} /> : null}
       {results === null ? null : results.length === 0 ? (
-        <p className={setupStyles.empty}>{t("fees.search.empty")}</p>
+        <EmptyLine>{t("fees.search.empty")}</EmptyLine>
       ) : (
-        <ul className={setupStyles.list}>
-          {results.map((s) => (
-            <li key={s.id} className={setupStyles.item}>
-              <h2 className={setupStyles.itemTitle}>
-                <Link href={`/portal/fees/student?id=${s.id}`}>
-                  {s.firstName} {s.lastName}
-                </Link>
-              </h2>
-              <div className={setupStyles.badges}>
-                <Badge>{s.sid}</Badge>
-                {s.className ? <span>{s.className}</span> : null}
-              </div>
-            </li>
-          ))}
-        </ul>
+        <Panel>
+          <FoundStudents students={results} balances={balances} />
+        </Panel>
       )}
-    </>
+    </div>
   );
 }
