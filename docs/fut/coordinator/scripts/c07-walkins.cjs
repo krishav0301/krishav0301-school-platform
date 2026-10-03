@@ -51,11 +51,12 @@ const MORE = [
   const admitted = async (name) => {
     const text = await p.locator("main").innerText();
     const pw = /[A-Z0-9]{4}(?:-[A-Z0-9]{4}){3}/.exec(text)?.[0];
-    // The screen does not show the student ID (finding F-04), so it is read back through search.
-    const found = (await (await p.request.get(`${BASE}/api/students?q=${encodeURIComponent(name.split(" ")[1])}`)).json()).students.filter((x) => `${x.firstName} ${x.lastName}` === name);
+    // The new student ID is on the screen now (F-04 fixed); the record's id is read back through search.
+    const sid = /\b\d{4}-\d{5}\b/.exec(text)?.[0];
+    const found = (await (await p.request.get(`${BASE}/api/students?q=${encodeURIComponent(sid ?? name.split(" ")[1])}`)).json()).students.filter((x) => `${x.firstName} ${x.lastName}` === name);
     const newest = found.sort((a, b) => b.sid.localeCompare(a.sid))[0];
-    if (!students[name]) students[name] = { sid: newest?.sid, studentId: newest?.id, temporaryPassword: pw };
-    return { sid: newest?.sid, pw };
+    if (!students[name]) students[name] = { sid: sid ?? newest?.sid, studentId: newest?.id, temporaryPassword: pw };
+    return { sid: sid ?? newest?.sid, pw };
   };
 
   await step("walkin", async () => {
@@ -70,16 +71,17 @@ const MORE = [
     await p.getByRole("button", { name: "Admit" }).click();
     await p.waitForTimeout(2000);
     const a = await admitted("Aarav Mandal");
-    await shot(p, "07-04-walkin-admitted", "Admitted at once: the temporary password is shown once (the new student ID is not shown, finding F-04)");
+    await shot(p, "07-04-walkin-admitted", `Admitted at once: the new student ID, ${a.sid}, and the temporary password, shown once (F-04 fixed)`);
 
     await p.goto(BASE + "/portal/admissions/register", { waitUntil: "networkidle" });
     await form({ first: "Aarav", last: "Mandal", day: 12, month: 2, year: 2066, phone: "9812100001", email: "aarav.m2@student.example", guardian: "Ramesh Mandal", gphone: "9700100001", level: "+2 Science · Grade 11", cls: "+2 Science · Grade 11 (A)" });
     await p.getByRole("button", { name: "Admit" }).click();
     await p.waitForTimeout(2000);
-    await shot(p, "07-05-walkin-duplicate", "The same name, date of birth and phone again: admitted a second time with no warning (finding F-03)");
+    await shot(p, "07-05-walkin-duplicate", "The same name, date of birth and phone again: she is shown the student already admitted, and nobody is admitted twice unless she says so (F-03 fixed)");
+    // She checks and leaves it: the existing record is the right one.
 
     await p.goto(BASE + "/portal/admissions/register", { waitUntil: "networkidle" });
-    await form({ first: "Bibek", last: "Shrestha", day: 5, month: 4, year: 2063, phone: "9812100013", email: "bibek.shrestha@student.example", guardian: "Hari Shrestha", gphone: "9700100013", level: "BBS · Year 1", cls: "BBS · Year 1" });
+    await form({ first: "Bibek", last: "Shrestha", day: 5, month: 4, year: 2063, phone: "9812100050", email: "bibek.shrestha@student.example", guardian: "Hari Shrestha", gphone: "9700100013", level: "BBS · Year 1", cls: "BBS · Year 1" });
     await p.getByRole("button", { name: "Admit" }).click();
     await p.waitForTimeout(2000);
     await admitted("Bibek Shrestha");

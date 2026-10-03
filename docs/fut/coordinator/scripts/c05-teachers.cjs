@@ -81,29 +81,30 @@ const TEACHERS = [
   await step("staff-actions", async () => {
     await p.goto(BASE + "/portal/people", { waitUntil: "networkidle" });
     await p.waitForTimeout(800);
-    const names = await p.evaluate(() => [...document.querySelectorAll("main button")].map((b) => b.getAttribute("aria-label") || b.innerText.trim()).filter(Boolean));
-    console.log("staff buttons:", [...new Set(names)].join(" | "));
-    await p.getByRole("button", { name: /Switch off.*Kamala Rai|Switch off/ }).filter({ hasText: /./ }).first();
-    const off = p.getByRole("button", { name: "Switch off Kamala Rai" });
-    if (await off.count()) {
-      await off.click();
-      await p.waitForTimeout(1200);
-      await shot(p, "05-08-teacher-switched-off", "Kamala Rai switched off: kept, marked Switched off, signed out and unable to sign in", { full: false });
-      await p.getByRole("button", { name: "Switch on Kamala Rai" }).click();
-      await p.waitForTimeout(1200);
-      await shot(p, "05-09-teacher-switched-on", "Kamala Rai switched on again", { full: false });
-    }
-    const pw = p.getByRole("button", { name: "New temporary password for Suresh Karki" });
-    if (await pw.count()) {
-      await pw.click();
-      await p.waitForTimeout(800);
-      const confirm = p.getByRole("button", { name: /^Yes|Confirm|Give a new/ });
-      if (await confirm.count()) await confirm.first().click();
-      const box = await notePassword("Suresh Karki");
-      await shot(p, "05-10-teacher-new-password", "A new temporary password for Suresh Karki, shown once (the old one stops working)", { full: false });
-      await p.getByRole("button", { name: "I have noted it" }).first().click();
-      saveSecrets({ teacherPasswords: passwords });
-    }
+    await p.getByLabel("Search by name or email").fill("kamala");
+    await p.waitForTimeout(400);
+    await shot(p, "05-07b-staff-search", "Search narrows the list as she types: Kamala Rai", { full: false });
+    await p.getByLabel("Search by name or email").fill("");
+    // Switching off and a new password are in each person's panel, opened with Manage (D-106).
+    await p.getByRole("button", { name: "Manage Kamala Rai" }).click();
+    await d().getByRole("heading", { name: "Kamala Rai" }).waitFor();
+    await shot(p, "05-07c-manage-panel", "Manage Kamala Rai: her details, a new temporary password, and Switch off", { full: false });
+    await d().getByRole("button", { name: "Switch off", exact: true }).click();
+    await p.waitForTimeout(1200);
+    await shot(p, "05-08-teacher-switched-off", "Kamala Rai switched off: kept, marked Switched off, signed out and unable to sign in", { full: false });
+    await d().getByRole("button", { name: "Switch on", exact: true }).click();
+    await p.waitForTimeout(1200);
+    await shot(p, "05-09-teacher-switched-on", "Kamala Rai switched on again", { full: false });
+    await d().getByRole("button", { name: "Close", exact: true }).click();
+    await p.waitForTimeout(800);
+    await p.getByRole("button", { name: "Manage Suresh Karki" }).click();
+    await d().getByRole("button", { name: "New temporary password", exact: true }).click();
+    await p.waitForTimeout(800);
+    await notePassword("Suresh Karki");
+    await shot(p, "05-10-teacher-new-password", "A new temporary password for Suresh Karki, shown once (the old one stops working)", { full: false });
+    await d().getByRole("button", { name: "I have noted it" }).click();
+    await d().getByRole("button", { name: "Close", exact: true }).click();
+    saveSecrets({ teacherPasswords: passwords });
   });
 
   await finish(s);

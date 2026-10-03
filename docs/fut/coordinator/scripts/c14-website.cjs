@@ -38,18 +38,14 @@ const { open, shot, finish, BASE } = require("./lib.cjs");
     });
     await step("publish-tried", async () => {
       await draft("Notice", "Parents' meeting for Grade 11", "All Grade 11 guardians are invited to meet the class teachers on Sunday at 10:00 in the main hall.");
-      await shot(p, "14-02-new-notice", "A new notice drafted by the Co-ordinator; the form also shows Publish", { el: "dialog[open]" });
-      await d().getByRole("button", { name: "Publish" }).click();
+      await shot(p, "14-02-new-notice", "A new notice drafted by the Co-ordinator: Save draft, or Send for approval in one step; there is no Publish for her (F-08 fixed)", { el: "dialog[open]" });
+      await d().getByRole("button", { name: "Save draft" }).click();
       await p.waitForTimeout(1800);
-      await shot(p, "14-03-publish-tried", "What Publish does for a Co-ordinator");
-      if (await d().count()) {
-        await d().getByRole("button", { name: "Save draft" }).click();
-        await p.waitForTimeout(1500);
-      }
+      await shot(p, "14-03-publish-tried", "Saved as a draft: in the list, not yet sent to the Principal");
     });
     await step("send", async () => {
       await go();
-      await shot(p, "14-04-draft-row", "The draft in the list, with Edit and Send for approval (the link runs past the table's edge, finding F-09)", { full: false });
+      await shot(p, "14-04-draft-row", "The draft in the list, with Edit and Send for approval inside the table (F-09 checked)", { full: false });
       await p.getByRole("row", { name: /Parents' meeting/ }).getByRole("button", { name: /Send for approval/ }).or(p.getByRole("button", { name: /Send for approval/ }).first()).first().click();
       await p.waitForTimeout(1500);
       await shot(p, "14-05-sent-for-approval", "Sent: the notice waits for the Principal and is listed under Your requests");
@@ -60,11 +56,10 @@ const { open, shot, finish, BASE } = require("./lib.cjs");
         ["Event", "Science exhibition", "Grade 11 and 12 science projects on show in the main hall."],
         ["Information", "Library hours during exams", "The library opens at 7:00 and closes at 19:00 during the terminal examinations."],
       ]) {
+        // Straight from the form: saved and sent in one step (F-08 fixed).
         await draft(kind, title, body);
-        await d().getByRole("button", { name: "Save draft" }).click();
-        await p.waitForTimeout(1500);
-        await p.locator("tr, li, [role=row]").filter({ hasText: title }).getByRole("button", { name: /Send for approval/ }).first().click();
-        await p.waitForTimeout(1500);
+        await d().getByRole("button", { name: "Send for approval" }).click();
+        await p.waitForTimeout(2000);
       }
       await shot(p, "14-06-three-requests", "Three requests waiting for the Principal");
     });

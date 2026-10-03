@@ -28,14 +28,15 @@ const { open, shot, finish, secrets, BASE } = require("./lib.cjs");
     await shot(p, "10-03-attendance-not-marked", "Grade 12 A: no register yet today");
   });
 
+  // Each teacher has Present, Absent and On leave side by side (D-106).
+  const mark = (name, word) => p.getByRole("group", { name: `Attendance of ${name}` }).getByRole("button", { name: word, exact: true }).click();
+
   await step("teachers", async () => {
     await go("/portal/attendance/teachers");
     await shot(p, "10-04-teacher-attendance-today", "Teacher attendance today: everyone starts as Present; the Co-ordinator records exceptions");
-    const opts = await p.getByLabel("Suresh Karki").locator("option").allInnerTexts();
-    console.log("statuses:", opts.join(" | "));
-    await p.getByLabel("Suresh Karki").selectOption({ label: opts.find((o) => /leave/i.test(o)) });
-    await p.getByLabel("Rajan Sah").selectOption({ label: opts.find((o) => /absent/i.test(o)) });
-    await shot(p, "10-05-teacher-attendance-marked", "Suresh Karki on leave and Rajan Sah absent; the rest Present", { full: false });
+    await mark("Suresh Karki", "On leave");
+    await mark("Rajan Sah", "Absent");
+    await shot(p, "10-05-teacher-attendance-marked", "Suresh Karki on leave and Rajan Sah absent, each one tap; the figures follow as she marks", { full: false });
     await p.getByRole("button", { name: "Save day" }).click();
     await p.waitForTimeout(1500);
     await shot(p, "10-06-teacher-attendance-saved", "Saved for today");
@@ -43,6 +44,8 @@ const { open, shot, finish, secrets, BASE } = require("./lib.cjs");
 
   await step("past-day", async () => {
     await go("/portal/attendance/teachers");
+    const change = p.getByRole("button", { name: "Change date" });
+    if (await change.isVisible()) await change.click();
     await p.getByRole("textbox", { name: "Day", exact: true }).fill("16");
     await p.getByRole("combobox", { name: "Month" }).selectOption({ index: 6 });
     await p.getByRole("textbox", { name: "Year", exact: true }).fill("2083");
@@ -51,8 +54,7 @@ const { open, shot, finish, secrets, BASE } = require("./lib.cjs");
     await shot(p, "10-07-teacher-attendance-past-day", "A past day, 16 Ashwin: it can still be filled in, but a reason is needed");
     const ctl = await p.evaluate(() => [...document.querySelectorAll("main input, main select, main textarea, main button")].filter((e) => e.offsetParent).map((e) => (e.labels && e.labels[0] && e.labels[0].innerText) || e.getAttribute("aria-label") || e.innerText).join(" | "));
     console.log("past-day controls:", ctl);
-    const opts = await p.getByLabel("Kamala Rai").locator("option").allInnerTexts();
-    await p.getByLabel("Kamala Rai").selectOption({ label: opts.find((o) => /absent/i.test(o)) });
+    await mark("Kamala Rai", "Absent");
     await p.getByRole("button", { name: "Save day" }).click();
     await p.waitForTimeout(1200);
     await shot(p, "10-08-past-day-no-reason", "Saving a past day without a reason is refused", { full: false });

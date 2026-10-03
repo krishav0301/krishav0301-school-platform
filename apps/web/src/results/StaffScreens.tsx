@@ -522,7 +522,13 @@ function PickRow({ student, group, onSaved }: { student: ClassElectives["student
           </Button>
         </fieldset>
       )}
-      {message ? <Notice tone={message.tone}>{message.text}</Notice> : null}
+      {message?.tone === "ok" ? (
+        <p className={readStyles.rowMeta} role="status">
+          {message.text}
+        </p>
+      ) : message ? (
+        <Notice tone="bad">{message.text}</Notice>
+      ) : null}
     </div>
   );
 }

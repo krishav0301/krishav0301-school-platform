@@ -33,12 +33,12 @@ const PLAN = [
   await step("assign", async () => {
     await p.goto(BASE + "/portal/people/teaching", { waitUntil: "networkidle" });
     await p.waitForTimeout(800);
-    await shot(p, "06-01-teaching-choose-class", "Teaching: choose a class of the current year");
+    await shot(p, "06-01-teaching-first-class", "Teaching: the current year and its first class open straight away");
     await pickClass(PLAN[0][0]);
     await shot(p, "06-02-teaching-empty-class", "Grade 11 A: a Class Teacher and one teacher per subject, none chosen yet");
     for (const [cls, ct, subjects] of PLAN) {
       await pickClass(cls);
-      await set("Class Teacher", ct);
+      await set("Class Teacher of this class", ct);
       for (const [subject, teacher] of Object.entries(subjects)) await set(`Teacher for ${subject}`, teacher);
       if (cls === PLAN[0][0]) await shot(p, "06-03-teaching-grade11a", "Grade 11 A: Bikash Chaudhary is Class Teacher; each subject has its teacher, saved as it is chosen");
     }
@@ -48,7 +48,7 @@ const PLAN = [
   await step("rules", async () => {
     await p.goto(BASE + "/portal/people/teaching", { waitUntil: "networkidle" });
     await pickClass("+2 Science · Grade 11 (B)");
-    await set("Class Teacher", "Bikash Chaudhary");
+    await set("Class Teacher of this class", "Bikash Chaudhary");
     await p.waitForTimeout(600);
     await shot(p, "06-05-class-teacher-twice", "Bikash Chaudhary as Class Teacher of a second class in the same year is refused: one class each", { full: false });
     await p.goto(BASE + "/portal/people/teaching", { waitUntil: "networkidle" });

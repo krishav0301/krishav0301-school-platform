@@ -351,15 +351,13 @@ export function SubjectPanel({
           { name: t("setup.read.credit"), value: offering.creditHundredths === null ? "—" : formatHundredths(offering.creditHundredths) },
         ]}
       />
-      <PanelSection title={t("setup.curriculum.group")}>
-        <Select
-          label={t("setup.curriculum.groupOf", { name: offering.subject.name })}
-          value={offering.group?.id ?? ""}
-          disabled={busy !== null}
-          onChange={(event) => onSetGroup(offering, event.target.value || null)}
-          options={groupOptions(curriculum.groups, offering.group?.id ?? null)}
-        />
-      </PanelSection>
+      <Select
+        label={t("setup.curriculum.groupOf", { name: offering.subject.name })}
+        value={offering.group?.id ?? ""}
+        disabled={busy !== null}
+        onChange={(event) => onSetGroup(offering, event.target.value || null)}
+        options={groupOptions(curriculum.groups, offering.group?.id ?? null)}
+      />
       <PanelSection title={t("setup.curriculum.marks")}>
         {offering.components.length === 0 ? (
           <p className={readStyles.rowMeta}>{t("setup.curriculum.marksEmpty")}</p>

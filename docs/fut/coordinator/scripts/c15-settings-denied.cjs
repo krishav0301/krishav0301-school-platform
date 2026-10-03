@@ -36,7 +36,7 @@ const NEW = "Juniper-Valley-Dawn-47";
     ["/portal/fees", "15-04-fees-page", "Fees (the Accountant's), opened by address: the Co-ordinator has no Fees view"],
     ["/portal/approvals", "15-05-approvals-page", "The Principal's Approvals inbox, opened by address"],
     ["/portal/setup/programmes", "15-06-programmes-read-only", "Programmes: the Co-ordinator can look; sections and programmes are the Principal's"],
-    ["/portal/reports", "15-07-reports-page", "The Principal's Reports, opened by address"],
+    ["/portal/reports", "15-07-reports-page", "Reports, now in her menu (F-10 fixed): school setup, students and results; money and oversight stay the Principal's"],
     ["/portal/attendance/mine", "15-08-attendance-mine", "A teacher's own attendance page, opened by address"],
   ];
   for (const [url, id, title] of pages)

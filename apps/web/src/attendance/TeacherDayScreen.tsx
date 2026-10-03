@@ -1,6 +1,6 @@
 "use client";
 
-import { Plane, UserCheck, UserX } from "lucide-react";
+import { CalendarOff, UserCheck, UserX } from "lucide-react";
 import { useCallback, useState } from "react";
 
 import { useConfig } from "@/config/ConfigProvider";
@@ -97,7 +97,7 @@ export function teacherFigures(total: number, exceptions: readonly { status: "ab
   return [
     { key: "present", icon: UserCheck, tone: "ok", value: String(total - absent - leave), label: t("attendance.teachers.figure.present") },
     { key: "absent", icon: UserX, tone: "bad", value: String(absent), label: t("attendance.teachers.figure.absent") },
-    { key: "leave", icon: Plane, tone: "warn", value: String(leave), label: t("attendance.teachers.figure.leave") },
+    { key: "leave", icon: CalendarOff, tone: "warn", value: String(leave), label: t("attendance.teachers.figure.leave") },
   ];
 }
 

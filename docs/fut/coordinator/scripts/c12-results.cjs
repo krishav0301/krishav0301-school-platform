@@ -17,7 +17,7 @@ const { open, shot, finish, BASE } = require("./lib.cjs");
   const board = async () => {
     await p.goto(BASE + "/portal/results", { waitUntil: "networkidle" });
     await p.waitForTimeout(900);
-    await p.getByLabel("Terminal").selectOption({ label: "First terminal" });
+    await p.getByLabel("Terminal", { exact: true }).selectOption({ label: "First terminal" });
     await p.waitForTimeout(1500);
   };
   // The innermost block holding both the class's heading and a Publish button: the class's own card.
@@ -27,7 +27,7 @@ const { open, shot, finish, BASE } = require("./lib.cjs");
     await step("board", async () => {
       await p.goto(BASE + "/portal/results", { waitUntil: "networkidle" });
       await p.waitForTimeout(900);
-      await shot(p, "12-01-review-opens-on-final", "Review results opens on the last terminal, Final, where nothing has started (finding F-07)", { full: false });
+      await shot(p, "12-01-review-opens-on-final", "Review results opens on the terminal in progress, the first terminal, where the marks are waiting (F-07 fixed)", { full: false });
       await board();
       await shot(p, "12-02-review-first-terminal", "First terminal: Grade 11 A has six subjects under review and Nepali still a draft; BBS Year 1 is all under review; Publish waits for every subject");
       await shot(p, "12-03-publish-blocked", "Publish for Grade 11 A stays off and says what it is waiting for (Nepali is a draft, nothing is verified yet)", { el: 'xpath=//h2[contains(., "Grade 11 · A")]/ancestor::*[.//button[normalize-space()="Publish results"]][1]' });
@@ -88,7 +88,7 @@ const { open, shot, finish, BASE } = require("./lib.cjs");
       await p.waitForTimeout(800);
       await p.getByLabel("Class").selectOption({ label: "+2 Science · Grade 11 · A" });
       await p.waitForTimeout(800);
-      await p.getByLabel("Terminal").selectOption({ label: "First terminal" });
+      await p.getByLabel("Terminal", { exact: true }).selectOption({ label: "First terminal" });
       await p.waitForTimeout(1800);
       await shot(p, "12-11-class-sheet", "Grade 11 A class sheet: NEB letter grades per subject, GPA, result and rank; a student who failed a subject gets NG and no rank");
       const link = p.getByRole("link", { name: "Kritika Jha" }).first();
@@ -101,7 +101,7 @@ const { open, shot, finish, BASE } = require("./lib.cjs");
     await step("top20", async () => {
       await p.goto(BASE + "/portal/results/top20", { waitUntil: "networkidle" });
       await p.waitForTimeout(800);
-      await p.getByLabel("Terminal").selectOption({ label: "First terminal" });
+      await p.getByLabel("Terminal", { exact: true }).selectOption({ label: "First terminal" });
       await p.waitForTimeout(1800);
       await shot(p, "12-13-top20", "Top 20 for the first terminal, ranked per section, from published results only");
     });

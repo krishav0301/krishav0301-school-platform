@@ -961,6 +961,38 @@ The matrix lives in code (61 actions, 8 groups, from the reviewed `permission-ma
 - **Allowed breaks:** an email address, a receipt number or a word with a hyphen may break across lines; nothing else does.
 - **Checked:** 30 portal pages at 320 px with the browser's text at 200%: no sideways scroll and no word broken inside it, apart from the allowed cases above.
 
+**D-106 The Co-ordinator FUT findings fixed, and the Co-ordinator's screens redesigned in the admin language.** 2026-10-03, at the PM's request ("fix all errors in co-ordinator; redesign the entire UI as done in admin level; reuse the admin components").
+- **Findings (Co-ordinator FUT, `docs/fut/coordinator/`):**
+  - F-01: a dialog, a field or a form no longer keeps an old error. Each opening of an Add pop-up is a fresh form, and a field's message goes as soon as that field changes. After "Ask for changes" or "Reject" goes through, the review closes into what happened.
+  - F-02: a year whose last day is not after its first is refused on the form, in words.
+  - F-03: a walk-in who matches an existing student or application (same phone, or the same name and date of birth) is not admitted. The server answers 409 with the matches, and nothing is written. The screen names them; "Admit anyway" sends `confirmDuplicate` for real twins or siblings sharing a phone.
+  - F-04: an admitted walk-in shows the new student ID beside the temporary password.
+  - F-05: the queue and review show the section's name, never its key.
+  - F-06: a Co-ordinator can correct a student's personal details, with a reason, through `PATCH /api/students/{id}` (action `students.personal.correct`, already in the matrix: Co-ordinator `inst`, Support). It is limited to the person's sections (another section answers 404) and audited as `students.personal.corrected` with before, after and reason. The student ID is never editable.
+  - F-07: the review board opens on the latest terminal with any marks, and "missing" counts students, not mark rows.
+  - F-08: a Co-ordinator's website form saves and sends for approval in one step, "Send for approval", because she cannot publish.
+  - F-10: Reports is in her menu, with only the groups she may read.
+  - F-11: the walk-in level list follows her sections.
+  - F-09 and F-12 were checked in the browser sweep.
+- **Redesign, built from the Principal's read patterns (D-103, D-104) and one new shared piece:**
+  - **`read/SidePanel`:** a modal drawer at the side of a wide screen and over the whole of a phone. It is used for deciding an application, managing a staff member, a curriculum subject, and a recheck.
+  - **Home:** a greeting shown at once, then four figures (applications waiting, registers marked, subjects to verify, setup steps done) and today's work as rows with status in words. The setup checklist puts what is left first and becomes one line when everything is done. "What you can do" follows. It replaces the three stacked cards.
+  - **Admissions:**
+    - the queue has figures and cards, and each card opens a review panel where Approve is the one prominent action;
+    - the walk-in form sits in one card.
+  - **Staff:** figures, a search, an Everyone / Active / Switched off filter, a card per person, and Manage opening a panel with Switch off or on and New temporary password.
+  - **Teaching:** year and class side by side, with the first class open straight away. Figures, the Class Teacher in its own card, and each subject with its picker.
+  - **Setup:** years, terms, subjects and classes are the Principal's read tables with one more column, "Change", for the Co-ordinator's controls.
+  - **Curriculum:** the first level opens. Subjects are in a table, and Edit opens the subject's panel (elective group, mark components, Switch off). Elective groups are in their own card, and "Add a subject to this Level" sits in the header.
+  - **Teacher attendance:** live figures, and Present / Absent / On leave as one tap each, instead of a column of dropdowns.
+  - **Results:**
+    - the review board has figures and each class in its own card, with a table, status in words and Publish, plus one "Verify selected" bar (it stays in view only where the menu is a sidebar, because the phone's tab bar owns the bottom edge);
+    - a review sheet has the shared header with a breadcrumb and a decision card;
+    - rechecks have figures, and each is decided in a panel;
+    - electives have figures and the first class open.
+- **Kept:** one prominent button per view; status in words in the theme's status colours; the brand colour only for actions; theme tokens and the message catalog only. Every new component has a markup test.
+- **Not changed:** no ledger, grading, publish or approval rule. One new write route: the F-06 correction, permission-checked and audited, with data-level tests (another section, every other role).
+
 ## Open items carried forward
 
 - **No CAPTCHA on the public apply form (D-063).** Relies on rate limiting and an off-screen honeypot, which meets section 7's "rate limiting, CAPTCHA or similar" but is not a CAPTCHA. Add one only if real abuse appears.

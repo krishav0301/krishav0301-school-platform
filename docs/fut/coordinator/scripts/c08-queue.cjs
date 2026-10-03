@@ -13,8 +13,13 @@ const { open, shot, finish, BASE } = require("./lib.cjs");
       await p.screenshot({ path: `${__dirname}/err-${name}.png`, fullPage: true });
     }
   };
-  const card = (name) => p.locator("h2", { hasText: name }).locator("xpath=ancestor::*[.//button][1]");
-  const controls = async (c) => console.log((await c.evaluate((e) => [...e.querySelectorAll("button, select, input, textarea, label")].filter((x) => x.offsetParent).map((x) => `${x.tagName}:${(x.getAttribute("aria-label") || (x.labels && x.labels[0] && x.labels[0].innerText) || x.innerText || "").replace(/\s+/g, " ").trim().slice(0, 50)}`))).join(" | "));
+  // Each application is a card; Review opens it in a side panel, where the decision is made (D-106).
+  const panel = () => p.locator("dialog[open]");
+  const review = async (name) => {
+    await p.getByRole("button", { name: `Review the application of ${name}` }).click();
+    await panel().getByRole("heading", { name }).waitFor();
+    await p.waitForTimeout(500);
+  };
   const go = async () => {
     await p.goto(BASE + "/portal/admissions", { waitUntil: "networkidle" });
     await p.waitForTimeout(900);
@@ -22,65 +27,70 @@ const { open, shot, finish, BASE } = require("./lib.cjs");
 
   await step("queue", async () => {
     await go();
-    await shot(p, "08-01-queue", "The admissions queue: three public applications confirmed by email, one flagged as a possible duplicate, and one registered by the Accountant");
-    await card("Pooja Sharma").getByRole("button", { name: "Review" }).click();
-    await p.waitForTimeout(600);
-    await shot(p, "08-02-review", "Reviewing Pooja Sharma: her details, and Ask for changes, Reject or Approve", { full: false });
-    await card("Pooja Sharma").getByRole("button", { name: "Approve" }).click();
+    await shot(p, "08-01-queue", "The admissions queue: what is waiting, asked for changes and possibly a duplicate, then one card per application with the section's name (F-05 fixed)");
+    await review("Pooja Sharma");
+    await shot(p, "08-02-review", "Reviewing Pooja Sharma in a side panel: her details, then Approve, Ask for changes or Reject", { full: false });
+    await panel().getByRole("button", { name: "Approve", exact: true }).click();
+    await panel().getByRole("button", { name: "Approve and admit" }).click();
     await p.waitForTimeout(700);
-    await shot(p, "08-03-approve-no-class", "Approve asks for the class to place her in; Confirm approve stays disabled until one is chosen", { full: false });
-    await card("Pooja Sharma").getByLabel("Class").selectOption({ label: "+2 Science · Grade 11 (B)" });
-    await shot(p, "08-04-approve-class", "Approve into +2 Science Grade 11 B", { full: false });
-    await card("Pooja Sharma").getByRole("button", { name: "Confirm approve" }).click();
+    await shot(p, "08-03-approve-no-class", "Approve and admit with no class chosen: the class is asked for", { full: false });
+    await panel().getByLabel("Class", { exact: true }).selectOption({ label: "+2 Science · Grade 11 (B)" });
+    await shot(p, "08-04-approve-class", "Approve into +2 Science Grade 11 B: the message goes as soon as a class is chosen", { full: false });
+    await panel().getByRole("button", { name: "Approve and admit" }).click();
     await p.waitForTimeout(1800);
-    await shot(p, "08-05-approved", "Approved: Pooja Sharma becomes a student with the next student ID, and leaves the queue", { full: false });
+    await shot(p, "08-05-approved", "Approved: Pooja Sharma is a student, with her student ID and a temporary password shown once", { full: false });
+    await panel().getByRole("button", { name: "I have noted it" }).click();
+    await p.waitForTimeout(900);
   });
 
   await step("changes", async () => {
     await go();
-    await card("Rajesh Yadav").getByRole("button", { name: "Review" }).click();
-    await card("Rajesh Yadav").getByRole("button", { name: "Ask for changes" }).click();
-    await p.waitForTimeout(500);
-    await card("Rajesh Yadav").getByRole("button", { name: "Send" }).click();
+    await review("Rajesh Yadav");
+    await panel().getByRole("button", { name: "Ask for changes" }).click();
+    await panel().getByRole("button", { name: "Send back to change" }).click();
     await p.waitForTimeout(800);
     await shot(p, "08-06-changes-no-reason", "Ask for changes with no reason: a reason is asked for", { full: false });
-    await card("Rajesh Yadav").getByLabel("Reason").fill("Please upload your +2 transcript and give a guardian phone we can reach during the day.");
-    await card("Rajesh Yadav").getByRole("button", { name: "Send" }).click();
+    await panel().getByLabel("What should they change?").fill("Please upload your +2 transcript and give a guardian phone we can reach during the day.");
+    await panel().getByRole("button", { name: "Send back to change" }).click();
     await p.waitForTimeout(1800);
-    await shot(p, "08-07a-changes-form-stays", "After Send the form stays open with the old \"Give a reason.\" message, although the request went through (finding F-01)", { full: false });
-    await go();
+    await shot(p, "08-07a-changes-sent-panel", "Sent: the panel closes into what happened, with no old message left behind (F-01 fixed)", { full: false });
+    await panel().getByRole("button", { name: "Done" }).click();
+    await p.waitForTimeout(900);
     await shot(p, "08-07-changes-sent", "Changes asked of Rajesh Yadav: the application waits for him to fix it (the fix-it path, not a rejection)", { full: false });
   });
 
   await step("reject", async () => {
     await go();
-    await card("Sunil Thapa").getByRole("button", { name: "Review" }).click();
-    await card("Sunil Thapa").getByRole("button", { name: "Reject" }).click();
-    await card("Sunil Thapa").getByLabel("Reason").fill("Grade 11 Science seats are full for 2083.");
+    await review("Sunil Thapa");
+    await panel().getByRole("button", { name: "Reject", exact: true }).click();
+    await panel().getByLabel("Why is it rejected? Rejection is final.").fill("Grade 11 Science seats are full for 2083.");
     await shot(p, "08-08-reject-reason", "Rejecting Sunil Thapa, with the reason he will be told", { full: false });
-    await card("Sunil Thapa").getByRole("button", { name: "Confirm reject" }).click();
+    await panel().getByRole("button", { name: "Reject application" }).click();
     await p.waitForTimeout(1800);
     await shot(p, "08-09-rejected", "Rejected: final, the application leaves the queue for good", { full: false });
+    await panel().getByRole("button", { name: "Done" }).click();
   });
 
   await step("duplicate", async () => {
     await go();
-    await card("Sita Choudhary").getByRole("button", { name: "Review" }).click();
-    await p.waitForTimeout(600);
-    await shot(p, "08-10-duplicate-review", "Sita Choudhary, flagged as a possible duplicate: the same phone and date of birth as Sita Chaudhary (2083-00004), already a student", { full: false });
-    await card("Sita Choudhary").getByRole("button", { name: "Reject" }).click();
-    await card("Sita Choudhary").getByLabel("Reason").fill("Already admitted as Sita Chaudhary, 2083-00004.");
-    await card("Sita Choudhary").getByRole("button", { name: "Confirm reject" }).click();
+    await review("Sita Choudhary");
+    await shot(p, "08-10-duplicate-review", "Sita Choudhary, flagged as a possible duplicate: the same phone and date of birth as Sita Chaudhary, already a student", { full: false });
+    await panel().getByRole("button", { name: "Reject", exact: true }).click();
+    await panel().getByLabel("Why is it rejected? Rejection is final.").fill("Already admitted as Sita Chaudhary.");
+    await panel().getByRole("button", { name: "Reject application" }).click();
     await p.waitForTimeout(1800);
+    await panel().getByRole("button", { name: "Done" }).click();
   });
 
   await step("accountant", async () => {
     await go();
-    await card("Ritu Gupta").getByRole("button", { name: "Review" }).click();
-    await card("Ritu Gupta").getByRole("button", { name: "Approve" }).click();
-    await card("Ritu Gupta").getByLabel("Class").selectOption({ label: "+2 Science · Grade 12 (A)" });
-    await card("Ritu Gupta").getByRole("button", { name: "Confirm approve" }).click();
+    await review("Ritu Gupta");
+    await panel().getByRole("button", { name: "Approve", exact: true }).click();
+    await panel().getByLabel("Class", { exact: true }).selectOption({ label: "+2 Science · Grade 12 (A)" });
+    await panel().getByRole("button", { name: "Approve and admit" }).click();
     await p.waitForTimeout(1800);
+    await panel().getByRole("button", { name: "I have noted it" }).click();
+    await p.waitForTimeout(900);
     await shot(p, "08-11-queue-after", "The Accountant's registration (Ritu Gupta) approved into Grade 12 A; the queue is down to what is still waiting");
   });
 

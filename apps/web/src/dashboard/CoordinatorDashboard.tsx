@@ -44,7 +44,7 @@ const done = (c: Checklist) => CHECKLIST.filter((item) => c[item.key]).length;
 /** Four figures: applications waiting, registers marked, marks to verify, setup done. Only what the lines below say. */
 export function dayFigures(d: SchoolDay): Figure[] {
   const figures: Figure[] = [{ key: "waiting", icon: ClipboardList, tone: d.waiting > 0 ? "warn" : "ok", value: String(d.waiting), label: t("coord.figure.waiting") }];
-  if (d.registers) figures.push({ key: "registers", icon: CalendarCheck, tone: d.registers.marked < d.registers.total ? "warn" : "ok", value: t("coord.ofTotal", { done: d.registers.marked, total: d.registers.total }), label: t("coord.figure.registers") });
+  if (d.registers && d.registers.total > 0) figures.push({ key: "registers", icon: CalendarCheck, tone: d.registers.marked < d.registers.total ? "warn" : "ok", value: t("coord.ofTotal", { done: d.registers.marked, total: d.registers.total }), label: t("coord.figure.registers") });
   if (d.toVerify !== null) figures.push({ key: "verify", icon: ClipboardCheck, tone: d.toVerify > 0 ? "warn" : "ok", value: String(d.toVerify), label: t("coord.figure.verify") });
   figures.push({ key: "setup", icon: ListChecks, tone: done(d.checklist) < CHECKLIST.length ? "accent" : "ok", value: t("coord.ofTotal", { done: done(d.checklist), total: CHECKLIST.length }), label: t("coord.figure.setup") });
   return figures;
