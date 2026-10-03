@@ -55,8 +55,8 @@ describe("the subjects screen", () => {
 
   it("lists each subject with its code, and marks an archived one in words", () => {
     const html = inContext(<SubjectsView subjects={subjects} canArchive busy={null} onToggle={noop} />);
-    for (const name of ["Biology", "Physics", "English"]) expect(html).toContain(`>${name}</h2>`);
-    expect(html).toContain("Code BIO");
+    for (const name of ["Biology", "Physics", "English"]) expect(html).toContain(`data-primary="true">${name}</td>`);
+    expect(html).toContain('data-label="Code">BIO<');
     expect(html).toContain(">Archived<");
     expect(count(html, />Archived</g)).toBe(1);
   });

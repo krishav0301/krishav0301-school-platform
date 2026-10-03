@@ -3,8 +3,8 @@
 import Link from "next/link";
 import { useCallback } from "react";
 
-import { loadClasses, loadTeacherDay } from "@/attendance/client";
-import { loadActivityClasses, loadMyToday, loadOwnActivity, loadStudentAssignments, loadTeacherAssignments } from "@/classwork/client";
+import { loadClasses } from "@/attendance/client";
+import { loadMyToday, loadOwnActivity, loadStudentAssignments, loadTeacherAssignments } from "@/classwork/client";
 import { useConfig } from "@/config/ConfigProvider";
 import { t } from "@/i18n/messages";
 import { useSession } from "@/session/SessionProvider";
@@ -101,48 +101,6 @@ export function StudentTodayCard() {
     <Card aria-labelledby="student-today-heading">
       <h2 id="student-today-heading" className={setupStyles.subhead}>
         {t("dashboard.classwork")}
-      </h2>
-      <Gate view={view} onRetry={() => void reload()}>
-        {(lines) => <TodayList lines={lines} />}
-      </Gate>
-    </Card>
-  );
-}
-
-/** The Co-ordinator's school day: registers marked, the teachers' day saved, activity logs complete. */
-export function SchoolDayCard() {
-  const { api } = useSession();
-  const { config } = useConfig();
-  const attendanceOn = config?.modules.attendance === true;
-  const teachersOn = config?.modules.teacher_attendance === true;
-  const loadNow = useCallback(async () => {
-    const [classes, teachers, activity] = await Promise.all([attendanceOn ? loadClasses(api) : null, teachersOn ? loadTeacherDay(api) : null, loadActivityClasses(api)]);
-    if ((classes && !classes.ok) || (teachers && !teachers.ok) || !activity.ok) return failed;
-    const lines: Line[] = [];
-    if (classes?.ok && classes.data.classes.length > 0) {
-      const marked = classes.data.classes.filter((c) => c.markedToday).length;
-      lines.push({ key: "registers", text: t("dashboard.school.registers", { marked, total: classes.data.classes.length }), href: "/portal/attendance", action: t("dashboard.open") });
-    }
-    if (teachers?.ok && teachers.data.teachers.length > 0) {
-      lines.push({
-        key: "teachers",
-        text: teachers.data.marked ? t("dashboard.school.teachersDone") : t("dashboard.school.teachersTodo"),
-        href: "/portal/attendance/teachers",
-        action: teachers.data.marked ? t("dashboard.open") : t("dashboard.school.markTeachers"),
-      });
-    }
-    const staffed = activity.data.classes.filter((c) => c.expected > 0);
-    if (staffed.length > 0) {
-      const complete = staffed.filter((c) => c.written >= c.expected).length;
-      lines.push({ key: "activity", text: t("dashboard.school.activity", { complete, total: staffed.length }), href: "/portal/classwork", action: t("dashboard.open") });
-    }
-    return { ok: true as const, data: lines };
-  }, [api, attendanceOn, teachersOn]);
-  const { view, reload } = useLoad<Line[]>(loadNow);
-  return (
-    <Card aria-labelledby="school-day-heading">
-      <h2 id="school-day-heading" className={setupStyles.subhead}>
-        {t("dashboard.schoolDay")}
       </h2>
       <Gate view={view} onRetry={() => void reload()}>
         {(lines) => <TodayList lines={lines} />}

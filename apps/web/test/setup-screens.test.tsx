@@ -62,7 +62,7 @@ describe("the years screen", () => {
 
   it("lists each year with its Nepali days and where it stands", () => {
     const html = inContext(<YearsView years={years} canManage busy={null} onActivate={noop} />);
-    for (const label of ["2084", "2083", "2082"]) expect(html).toContain(`>${label}</h2>`);
+    for (const label of ["2084", "2083", "2082"]) expect(html).toContain(`data-primary="true">${label}</td>`);
     expect(html).toContain("1 Baisakh 2083");
     expect(html).toContain(">Current year<");
     expect(html).toContain(">Closed<");
@@ -261,8 +261,8 @@ describe("the classes screen", () => {
 
   it("lists each class by programme, level and label, and marks one that is switched off", () => {
     const html = inContext(<ClassesView classes={classes} canManage busy={null} onToggle={noop} />);
-    expect(html).toContain(">BBS · Year 1 (Morning)</h2>");
-    expect(html).toContain(">BBS · Year 1</h2>");
+    expect(html).toContain("data-primary=\"true\">BBS · Year 1 (Morning)</td>");
+    expect(html).toContain("data-primary=\"true\">BBS · Year 1</td>");
     expect(html).toContain(">Switched off<");
     expect(html).toContain('aria-label="Switch off BBS · Year 1 (Morning)"');
     expect(inContext(<ClassesView classes={classes} canManage={false} busy={null} onToggle={noop} />)).not.toContain("Switch off BBS");
@@ -299,8 +299,8 @@ describe("the terminals screen", () => {
   it("lists terminals in order, with their number", () => {
     const html = inContext(<TerminalsView terminals={terminals} />);
     expect(html.indexOf("First terminal")).toBeLessThan(html.indexOf("Second terminal"));
-    expect(html).toContain("Number 1");
-    expect(html).toContain("Number 2");
+    expect(html).toContain(">1</span>");
+    expect(html).toContain(">2</span>");
   });
 
   it("uses the school's word for the empty state", () => {

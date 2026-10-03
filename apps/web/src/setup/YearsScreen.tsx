@@ -3,16 +3,16 @@
 import { useCallback, useState, type FormEvent } from "react";
 
 import { BsDateField } from "@/content/BsDateField";
-import { formatBsDate, isWholeBsDate } from "@/content/model";
+import { isWholeBsDate } from "@/content/model";
 import { useConfig } from "@/config/ConfigProvider";
 import { t, type MessageKey } from "@/i18n/messages";
 import { useSession } from "@/session/SessionProvider";
-import { AddDialog, Badge, Button, Field, Notice, TitleRow } from "@/ui";
+import { AddDialog, Button, Field, Notice } from "@/ui";
 
-import { ReadOnlyNote } from "@/read/ReadView";
+import { ReadHeader, ReadOnlyNote } from "@/read/ReadView";
 
 import { activateYear, createYear, loadYears } from "./client";
-import { REASON_MESSAGE, YEAR_STATUS_LABEL, canManageInstitution, emptyYearForm, type Year, type YearFormErrors, type YearFormValues } from "./model";
+import { REASON_MESSAGE, canManageInstitution, emptyYearForm, type Year, type YearFormErrors, type YearFormValues } from "./model";
 import { ReadSetupHeader, YearsTable } from "./ReadSetup";
 import { Gate, useLoad } from "./useLoad";
 import styles from "./setup.module.css";
@@ -25,37 +25,38 @@ const bsOrder = (bs: string): number => {
   return (y ?? 0) * 10000 + (m ?? 0) * 100 + (d ?? 0);
 };
 
-/** The list of years. A draft can be made the current year, but only when no year is current (closing a year is a later phase). */
+/**
+ * The years, in the table the Principal reads (D-104), with the Co-ordinator's one control: a draft can be made the
+ * current year, but only when no year is current (closing a year is a later phase). Redesigned in D-106.
+ */
 export function YearsView({ years, canManage, busy, onActivate }: { years: readonly Year[]; canManage: boolean; busy: string | null; onActivate: (year: Year) => void }) {
-  if (years.length === 0) return <p className={styles.empty}>{t(canManage ? "setup.years.empty" : "setup.years.emptyReadOnly")}</p>;
   const noneCurrent = !years.some((y) => y.status === "active");
-
+  const offer = canManage && noneCurrent && years.some((y) => y.status === "draft");
   return (
-    <ul className={styles.list}>
-      {years.map((year) => (
-        <li key={year.id} className={styles.item}>
-          <h2 className={styles.itemTitle}>{year.label}</h2>
-          <div className={styles.badges}>
-            <Badge tone={year.status === "active" ? "ok" : "neutral"}>{t(YEAR_STATUS_LABEL[year.status])}</Badge>
-          </div>
-          <p className={styles.muted}>{t("setup.years.dates", { from: formatBsDate(year.startDateBs), until: formatBsDate(year.endDateBs) })}</p>
-          {canManage && noneCurrent && year.status === "draft" ? (
-            <div className={styles.actions}>
-              <Button
-                variant="secondary"
-                loading={busy === year.id}
-                loadingLabel={t("setup.working")}
-                disabled={busy !== null && busy !== year.id}
-                aria-label={t("setup.years.activateItem", { label: year.label })}
-                onClick={() => onActivate(year)}
-              >
-                {t("setup.years.activate")}
-              </Button>
-            </div>
-          ) : null}
-        </li>
-      ))}
-    </ul>
+    <YearsTable
+      years={years}
+      empty={canManage ? "setup.years.empty" : "setup.years.emptyReadOnly"}
+      action={
+        offer
+          ? {
+              label: t("setup.read.actions"),
+              cell: (year) =>
+                year.status === "draft" ? (
+                  <Button
+                    variant="secondary"
+                    loading={busy === year.id}
+                    loadingLabel={t("setup.working")}
+                    disabled={busy !== null && busy !== year.id}
+                    aria-label={t("setup.years.activateItem", { label: year.label })}
+                    onClick={() => onActivate(year)}
+                  >
+                    {t("setup.years.activate")}
+                  </Button>
+                ) : null,
+            }
+          : undefined
+      }
+    />
   );
 }
 
@@ -157,9 +158,10 @@ export function YearsScreen() {
   return (
     <>
       {canManage ? (
-        <TitleRow>
-          <h1 className={styles.title}>{t("setup.years.title")}</h1>
-          {canManage ? (
+        <ReadHeader
+          title={t("setup.years.title")}
+          subtitle={t("setup.read.yearsSubtitle")}
+          actions={
             <AddDialog label={t("setup.years.add")} title={t("setup.years.add")}>
               {(close) => (
                 <YearForm
@@ -172,8 +174,8 @@ export function YearsScreen() {
                 />
               )}
             </AddDialog>
-          ) : null}
-        </TitleRow>
+          }
+        />
       ) : (
         <ReadSetupHeader title={t("setup.years.title")} subtitle={t("setup.read.yearsSubtitle")} />
       )}
