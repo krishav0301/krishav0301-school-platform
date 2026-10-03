@@ -13,6 +13,7 @@ import {
   ApplicationQueueSchema,
   ApplySchema,
   ApproveSchema,
+  CorrectStudentSchema,
   OpenLevelListSchema,
   PublicIdSchema,
   RejectSchema,
@@ -22,11 +23,15 @@ import {
   VerifyEmailSchema,
   WalkInSchema,
 } from "./schema";
-import { applyForAdmission, approveApplication, registerStudent, registerWalkIn, reject, requestChanges, verifyApplicationEmail, type WriteFailure } from "./service";
+import { applyForAdmission, approveApplication, correctStudent, registerStudent, registerWalkIn, reject, requestChanges, verifyApplicationEmail, type WriteFailure } from "./service";
 
 const json = <T extends z.ZodType>(schema: T) => ({ "application/json": { schema } });
 const ErrorSchema = z.object({ error: z.string() }).openapi("AdmissionsError");
 const InvalidSchema = z.object({ error: z.literal("invalid"), message: z.string() }).openapi("AdmissionsInvalid");
+/** A walk-in that may be a student already admitted (Co-ordinator FUT F-03): who, so the Co-ordinator can decide. */
+const PossibleDuplicateSchema = z
+  .object({ error: z.string(), matches: z.array(z.object({ name: z.string(), sid: z.string() })).optional() })
+  .openapi("AdmissionsConflict");
 const OkSchema = z.object({ ok: z.literal(true) }).openapi("AdmissionsOk");
 const CreatedSchema = z.object({ id: z.string() }).openapi("AdmissionsCreated");
 const IdParam = z.object({ id: PublicIdSchema });
@@ -58,6 +63,7 @@ const REGISTER_ACTION = { action: "admissions.student.register" } as const;
 const REVIEW_ACTION = { action: "admissions.review" } as const;
 const SEARCH_ACTION = { action: "students.search" } as const;
 const VIEW_ACTION = { action: "students.personal.view" } as const;
+const CORRECT_ACTION = { action: "students.personal.correct" } as const;
 
 export function registerAdmissions(app: App): void {
   // --- The public application ------------------------------------------------------------------
@@ -127,11 +133,16 @@ export function registerAdmissions(app: App): void {
       tags: ["admissions"],
       description: "The Co-ordinator registers a walk-in and places them straight into a class. Auto-approved: the answer carries the one-time temporary password, shown here and nowhere else, for the Co-ordinator to hand the student in front of them.",
       access: WALKIN_ACTION,
-      request: { body: { required: true, content: json(WalkInSchema.extend({ classId: PublicIdSchema })) } },
-      responses: { 201: { description: "Admitted, with the temporary password (never cached)", content: json(AdmittedSchema) }, ...failures },
+      request: { body: { required: true, content: json(WalkInSchema.extend({ classId: PublicIdSchema, confirmDuplicate: z.boolean().optional() })) } },
+      responses: {
+        201: { description: "Admitted, with the temporary password (never cached)", content: json(AdmittedSchema) },
+        ...failures,
+        409: { description: "Already resolved, or this may be a student who is already admitted (send again with confirmDuplicate)", content: json(PossibleDuplicateSchema) },
+      },
     },
     async (c) => {
       const result = await registerWalkIn(c.env.DB, c.env.AUDIT_HMAC_KEY, c.env.DATA_KEY, c.get("auth")!.userPublicId, c.req.valid("json"));
+      if (!result.ok && result.reason === "possible_duplicate") return c.json({ error: "possible_duplicate", matches: result.matches }, 409);
       if (!result.ok) return fail(c, result);
       await deliver(c);
       c.header("Cache-Control", "no-store");
@@ -311,6 +322,32 @@ export function registerAdmissions(app: App): void {
       if (grant.own) return c.json({ error: "not_found" }, 404); // a student reaches only /me, never another id
       const found = await getStudent(c.env.DB, allowedSections(grant), c.req.valid("param").id);
       return found ? c.json(found, 200) : c.json({ error: "not_found" }, 404);
+    },
+  );
+
+  defineRoute(
+    app,
+    {
+      method: "patch",
+      path: "/api/students/{id}",
+      operationId: "correct_student",
+      tags: ["students"],
+      description:
+        "Correct a student's personal details, with a reason (Co-ordinator FUT F-06). Only what changes is sent. The SID is never editable, and the email (the student's sign-in) is not changed here. Re-checked inside the write for the student's section.",
+      access: CORRECT_ACTION,
+      request: { params: IdParam, body: { required: true, content: json(CorrectStudentSchema) } },
+      responses: { 200: { description: "Corrected; the record as it now is", content: json(StudentDetailSchema) }, ...failures },
+    },
+    async (c) => {
+      const grant = c.get("grant")!;
+      const id = c.req.valid("param").id;
+      // Outside the person's sections reads as missing, the same as viewing (no hint that the student exists).
+      if (!(await getStudent(c.env.DB, allowedSections(grant), id))) return fail(c, { ok: false, reason: "not_found" });
+      const result = await correctStudent(c.env.DB, c.env.AUDIT_HMAC_KEY, c.get("auth")!.userPublicId, id, c.req.valid("json"));
+      if (!result.ok) return fail(c, result);
+      const found = await getStudent(c.env.DB, allowedSections(grant), id);
+      c.header("Cache-Control", "no-store");
+      return c.json(found!, 200);
     },
   );
 }

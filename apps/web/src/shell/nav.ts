@@ -54,8 +54,9 @@ export const NAV_ITEMS: readonly NavItem[] = [
   { id: "fees", labelKey: "nav.fees", href: "/portal/fees", roles: ["accountant", "admin", "super_admin", "student"], module: "fees", icon: "fees" },
   // Phase 7: results. The teacher enters marks, the Co-ordinator verifies and publishes, a student sees their own, the Admin reads (D-082).
   { id: "results", labelKey: "nav.results", href: "/portal/results", roles: ["teacher", "student", "coordinator", "admin", "super_admin"], module: "results", icon: "results" },
-  // D-091: everything the Principal reads but does not change, in one place.
-  { id: "reports", labelKey: "nav.reports", href: "/portal/reports", roles: ["admin", "super_admin"], rarely: true, icon: "reports" },
+  // D-091: everything the Principal reads but does not change, in one place. The Co-ordinator holds the student and
+  // results reports too (reports.students, reports.results), so she has the entry; the hub lists only her pages (Co-ordinator FUT F-10).
+  { id: "reports", labelKey: "nav.reports", href: "/portal/reports", roles: ["admin", "coordinator", "super_admin"], rarely: true, icon: "reports" },
   // D-091: your own profile, password and sign out; for everyone.
   { id: "settings", labelKey: "nav.settings", href: "/portal/settings", rarely: true, icon: "settings" },
 ];

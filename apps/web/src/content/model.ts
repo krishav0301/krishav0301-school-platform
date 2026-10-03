@@ -254,8 +254,8 @@ export function parseEditTarget(search: string): EditTarget {
   return /^[0-9a-f]{32}$/.test(id) ? { mode: "edit", id } : { mode: "invalid" };
 }
 
-export type FlashKind = "created" | "updated" | "published" | "scheduled" | "saved_unpublished";
-const FLASH_KINDS: readonly FlashKind[] = ["created", "updated", "published", "scheduled", "saved_unpublished"];
+export type FlashKind = "created" | "updated" | "published" | "scheduled" | "saved_unpublished" | "sent" | "saved_unsent";
+const FLASH_KINDS: readonly FlashKind[] = ["created", "updated", "published", "scheduled", "saved_unpublished", "sent", "saved_unsent"];
 
 /** What the list is told a form just did (`?done=created`). Anything else is ignored. */
 export function parseFlash(search: string): FlashKind | null {

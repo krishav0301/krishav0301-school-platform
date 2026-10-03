@@ -27,6 +27,7 @@ import Link from "next/link";
 import { useConfig } from "@/config/ConfigProvider";
 import { t, type MessageKey } from "@/i18n/messages";
 import { Panel, ReadHeader, readStyles } from "@/read/ReadView";
+import { useSession } from "@/session/SessionProvider";
 import styles from "@/settings/settings.module.css";
 import { termWords } from "@/setup/model";
 
@@ -38,9 +39,14 @@ interface Entry {
   detail: MessageKey;
 }
 
-export const REPORT_GROUPS: { title: MessageKey; entries: Entry[] }[] = [
+/** Who a group is for: the Co-ordinator has no fees view and no oversight pages, so those groups are the Principal's. */
+const EVERYONE = ["admin", "coordinator", "super_admin"] as const;
+const PRINCIPAL = ["admin", "super_admin"] as const;
+
+export const REPORT_GROUPS: { title: MessageKey; roles: readonly string[]; entries: Entry[] }[] = [
   {
     title: "reports.group.setup",
+    roles: EVERYONE,
     entries: [
       { href: "/portal/setup", icon: CalendarRange, title: "reports.years", detail: "reports.yearsDetail" },
       { href: "/portal/setup/classes", icon: School, title: "reports.classes", detail: "reports.classesDetail" },
@@ -52,6 +58,7 @@ export const REPORT_GROUPS: { title: MessageKey; entries: Entry[] }[] = [
   },
   {
     title: "reports.group.students",
+    roles: EVERYONE,
     entries: [
       { href: "/portal/admissions/search", icon: Search, title: "reports.students", detail: "reports.studentsDetail" },
       { href: "/portal/attendance", icon: CalendarDays, title: "reports.attendance", detail: "reports.attendanceDetail" },
@@ -61,6 +68,7 @@ export const REPORT_GROUPS: { title: MessageKey; entries: Entry[] }[] = [
   },
   {
     title: "reports.group.money",
+    roles: PRINCIPAL,
     entries: [
       { href: "/portal/fees", icon: UserSearch, title: "reports.feeAccounts", detail: "reports.feeAccountsDetail" },
       { href: "/portal/fees/structures", icon: ReceiptText, title: "reports.structures", detail: "reports.structuresDetail" },
@@ -69,14 +77,16 @@ export const REPORT_GROUPS: { title: MessageKey; entries: Entry[] }[] = [
   },
   {
     title: "reports.group.results",
+    roles: EVERYONE,
     entries: [
-      { href: "/portal/results", icon: FilePen, title: "reports.changes", detail: "reports.changesDetail" },
+      { href: "/portal/results/rechecks", icon: FilePen, title: "reports.changes", detail: "reports.changesDetail" },
       { href: "/portal/results/sheets", icon: FileSpreadsheet, title: "reports.sheets", detail: "reports.sheetsDetail" },
       { href: "/portal/results/top20", icon: Trophy, title: "reports.top20", detail: "reports.top20Detail" },
     ],
   },
   {
     title: "reports.group.oversight",
+    roles: PRINCIPAL,
     entries: [
       { href: "/portal/reports/activity", icon: History, title: "reports.activity", detail: "reports.activityDetail" },
       { href: "/portal/reports/sign-ins", icon: KeyRound, title: "reports.signIns", detail: "reports.signInsDetail" },
@@ -87,12 +97,15 @@ export const REPORT_GROUPS: { title: MessageKey; entries: Entry[] }[] = [
 /** Reports (D-091, redesigned in D-104): everything the Principal reads but does not change, grouped, one tap from here. No figures: a calm directory. */
 export function ReportsScreen() {
   const { term } = useConfig();
+  const { me } = useSession();
+  const roles = me?.roles.map((r) => r.role) ?? [];
   const words = termWords(term);
+  const groups = REPORT_GROUPS.filter((group) => group.roles.some((r) => roles.includes(r)));
   return (
     <div className={readStyles.page}>
       <ReadHeader title={t("reports.title")} subtitle={t("reports.intro")} />
       <div className={readStyles.groups}>
-        {REPORT_GROUPS.map((group) => (
+        {groups.map((group) => (
           <Panel key={group.title} title={t(group.title)} labelledBy={group.title}>
             <ul className={styles.links}>
               {group.entries.map((entry) => (

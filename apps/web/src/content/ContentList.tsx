@@ -50,7 +50,12 @@ const FLASH_FROM_FORM: Record<FlashKind, { tone: "ok" | "bad"; message: MessageK
   published: { tone: "ok", message: "content.done.formPublished" },
   scheduled: { tone: "ok", message: "content.done.formScheduled" },
   saved_unpublished: { tone: "bad", message: "content.done.savedNotPublished" },
+  sent: { tone: "ok", message: "content.done.formSent" },
+  saved_unsent: { tone: "bad", message: "content.done.savedNotSent" },
 };
+
+/** The form's outcome as the list says it; a Co-ordinator's new draft is sent for approval, never published (F-08). */
+const flashOf = (kind: FlashKind, canPublish: boolean) => (kind === "created" && !canPublish ? { tone: "ok" as const, message: "content.done.createdDraft" as MessageKey } : FLASH_FROM_FORM[kind]);
 
 /**
  * The Principal's publishing control centre for the public website (D-098), after the PM's reference design:
@@ -112,7 +117,7 @@ export function ContentList() {
   // From the address: what a form that just saved did (`?done=`), or a new item to open (`?new=post`, the dashboard).
   const done = search === null || addressSeen ? null : parseFlash(search);
   const askedNew = search === null || addressSeen ? null : parseNewKind(search);
-  const fromForm = done ? FLASH_FROM_FORM[done] : null;
+  const fromForm = done ? flashOf(done, canPublish) : null;
   const shownFlash: Flash | null = flash ?? (fromForm ? { tone: fromForm.tone, text: t(fromForm.message) } : null);
   const shownDialog: DialogTarget | null = dialog ?? (askedNew ? { mode: "new", kind: askedNew } : null);
 
@@ -191,7 +196,7 @@ export function ContentList() {
   function saved(outcome: FlashKind) {
     setDialog(null);
     setAddressSeen(true);
-    const known = FLASH_FROM_FORM[outcome];
+    const known = flashOf(outcome, canPublish);
     setFlash({ tone: known.tone, text: t(known.message) });
     reload();
   }

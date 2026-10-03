@@ -42,6 +42,22 @@ const editor = (over: Partial<Parameters<typeof ContentEditor>[0]> = {}, values:
   inContext(<ContentEditor id={null} initial={{ ...emptyForm("2083-06-05"), ...values }} live={false} onSaved={() => {}} onGone={() => {}} {...over} />);
 
 // ---------------------------------------------------------------------------------------------
+describe("the Co-ordinator's form (Co-ordinator FUT F-08)", () => {
+  it("offers Send for approval, never Publish", () => {
+    const coordinator = fakeSession({ status: "signedIn", me: { name: "Sita", roles: [{ role: "coordinator", scope: "institution" }] } });
+    const html = renderToStaticMarkup(
+      <ConfigContext.Provider value={makeConfigValue("ready", config)}>
+        <SessionContext.Provider value={coordinator}>
+          <ContentEditor id={null} initial={emptyForm("2083-06-05")} live={false} onSaved={() => {}} onGone={() => {}} />
+        </SessionContext.Provider>
+      </ConfigContext.Provider>,
+    );
+    expect(html).toContain(">Send for approval<");
+    expect(html).not.toContain(">Publish<");
+    expect(editor()).toContain(">Publish<"); // the Principal still publishes
+  });
+});
+
 describe("the new form controls", () => {
   it("TextArea: a visible label tied to the box, hint and error read out with it, invalid only with an error", () => {
     const plain = renderToStaticMarkup(<TextArea label="Text" hint="Plain text." />);

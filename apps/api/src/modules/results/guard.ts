@@ -66,13 +66,17 @@ export const readyToPublish = (terminal: string): string =>
    AND NOT EXISTS (${missingMarks(terminal)})
    AND EXISTS (${neededSubjects})`;
 
-/** How many marks of subject `o` in class `cl` are still missing for the terminal (a scalar subquery). */
+/**
+ * How many students of subject `o` in class `cl` still lack a mark for the terminal (a scalar subquery): a student counts
+ * once however many of the subject's components are missing (Co-ordinator FUT F-07: theory and practical counted twice).
+ */
 export const missingCount = (terminal: string): string =>
-  `(SELECT COUNT(*) FROM enrollments en JOIN mark_components mc ON mc.offering_id = o.id AND mc.is_active = 1
+  `(SELECT COUNT(*) FROM enrollments en
      WHERE en.class_id = cl.id AND en.status = 'active' AND ${takes("en", "o")}
-       AND NOT EXISTS (SELECT 1 FROM marks m JOIN mark_sheets ms ON ms.id = m.sheet_id
-                        WHERE ms.class_id = cl.id AND ms.offering_id = o.id AND ms.terminal_id = ${terminal}
-                          AND m.enrollment_id = en.id AND m.component_id = mc.id AND (m.value_hundredths IS NOT NULL OR m.absent = 1)))`;
+       AND EXISTS (SELECT 1 FROM mark_components mc WHERE mc.offering_id = o.id AND mc.is_active = 1
+                     AND NOT EXISTS (SELECT 1 FROM marks m JOIN mark_sheets ms ON ms.id = m.sheet_id
+                                      WHERE ms.class_id = cl.id AND ms.offering_id = o.id AND ms.terminal_id = ${terminal}
+                                        AND m.enrollment_id = en.id AND m.component_id = mc.id AND (m.value_hundredths IS NOT NULL OR m.absent = 1))))`;
 
 /** The active teacher of subject `o` in class `cl`, or null (a scalar subquery). */
 export const teacherName = `(SELECT tu.full_name FROM teacher_assignments ta JOIN users tu ON tu.id = ta.teacher_user_id WHERE ta.class_id = cl.id AND ta.offering_id = o.id AND ta.is_active = 1)`;

@@ -110,7 +110,10 @@ export function ClassForm({ yearId, programmes, onAdded, showTitle = true }: { y
       <Select
         label={t("setup.classes.level", words)}
         value={levelId}
-        onChange={(event) => setLevelId(event.target.value)}
+        onChange={(event) => {
+          setLevelId(event.target.value);
+          setError(null);
+        }}
         options={[{ value: "", label: t("setup.programmes.choose") }, ...levelChoices(programmes)]}
         error={error ? t(error, words) : undefined}
       />

@@ -49,6 +49,8 @@ export function AddDialog({
   const ref = useRef<HTMLDialogElement>(null);
   const titleId = useId();
   const [open, setOpen] = useState(false);
+  // Each opening starts a fresh form: what was typed or wrong last time does not come back (Co-ordinator FUT F-01).
+  const [opened, setOpened] = useState(0);
   // Asked for by the address, it shows until the person closes it once.
   const [dismissed, setDismissed] = useState(false);
   const shown = open || (openNow && !dismissed);
@@ -71,7 +73,10 @@ export function AddDialog({
         className={styles.trigger}
         variant={variant}
         aria-label={ariaLabel}
-        onClick={() => setOpen(true)}
+        onClick={() => {
+          setOpened((n) => n + 1);
+          setOpen(true);
+        }}
       >
         {icon ?? (plus ? <Plus aria-hidden className={styles.icon} /> : null)}
         {hideLabel ? <span className="sr-only">{label}</span> : label}
@@ -95,7 +100,9 @@ export function AddDialog({
             <X aria-hidden className={styles.icon} />
           </button>
         </div>
-        <div className={styles.body}>{children(close)}</div>
+        <div key={opened} className={styles.body}>
+          {children(close)}
+        </div>
       </dialog>
     </>
   );

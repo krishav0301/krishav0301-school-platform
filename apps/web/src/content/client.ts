@@ -1,3 +1,4 @@
+import { sendForApproval } from "@/approvals/client";
 import type { ApiClient } from "@/api/client";
 
 import type { components } from "@/api/schema";
@@ -200,6 +201,21 @@ export type SubmitResult =
  * the website. If the save works but the publishing does not, the item IS saved, so the answer is "saved
  * as a draft" and the person leaves the form: staying would let a second click make a second copy.
  */
+/**
+ * The Co-ordinator's way forward (D-061, Co-ordinator FUT F-08): save, then send the draft to the Principal for
+ * approval. If the save works but the sending does not, the draft is kept and the list says so.
+ */
+export async function submitForApproval(api: ApiClient, id: string | null, values: FormValues): Promise<SubmitResult> {
+  const saved = await saveItem(api, id, values);
+  if (!saved.ok) {
+    if (saved.reason === "fields") return { fields: saved.errors };
+    if (saved.reason === "not_found") return { gone: true };
+    return { problem: saved.reason };
+  }
+  const sent = await sendForApproval(api, saved.id);
+  return { done: sent.ok ? "sent" : "saved_unsent" };
+}
+
 export async function submitForm(api: ApiClient, id: string | null, values: FormValues, publish: boolean): Promise<SubmitResult> {
   const saved = await saveItem(api, id, values);
   if (!saved.ok) {

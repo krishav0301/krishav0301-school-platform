@@ -3,7 +3,7 @@
 import { useCallback, useState, type FormEvent } from "react";
 
 import { BsDateField } from "@/content/BsDateField";
-import { formatBsDate } from "@/content/model";
+import { formatBsDate, isWholeBsDate } from "@/content/model";
 import { useConfig } from "@/config/ConfigProvider";
 import { t, type MessageKey } from "@/i18n/messages";
 import { useSession } from "@/session/SessionProvider";
@@ -18,6 +18,12 @@ import { Gate, useLoad } from "./useLoad";
 import styles from "./setup.module.css";
 
 type Flash = { tone: "ok" | "bad"; text: string };
+
+/** A whole BS day ("2083-1-5" or "2083-01-05") as a number that sorts by date. */
+const bsOrder = (bs: string): number => {
+  const [y, m, d] = bs.trim().split("-").map(Number);
+  return (y ?? 0) * 10000 + (m ?? 0) * 100 + (d ?? 0);
+};
 
 /** The list of years. A draft can be made the current year, but only when no year is current (closing a year is a later phase). */
 export function YearsView({ years, canManage, busy, onActivate }: { years: readonly Year[]; canManage: boolean; busy: string | null; onActivate: (year: Year) => void }) {
@@ -64,8 +70,13 @@ function YearForm({ onAdded, showTitle = true }: { onAdded: () => void; showTitl
   async function submit(event: FormEvent) {
     event.preventDefault();
     if (saving) return;
-    setSaving(true);
     setProblem(null);
+    // Said plainly before asking the server, which would only answer "not allowed" (Co-ordinator FUT F-02).
+    if (isWholeBsDate(values.startBs) && isWholeBsDate(values.endBs) && bsOrder(values.endBs) <= bsOrder(values.startBs)) {
+      setErrors({ endBs: "setup.error.endBeforeStart" });
+      return;
+    }
+    setSaving(true);
     const result = await createYear(api, values);
     setSaving(false);
     if (result.ok) {
@@ -91,11 +102,30 @@ function YearForm({ onAdded, showTitle = true }: { onAdded: () => void; showTitl
         maxLength={4}
         autoComplete="off"
         value={values.bsYear}
-        onChange={(event) => setValues((v) => ({ ...v, bsYear: event.target.value }))}
+        onChange={(event) => {
+          setValues((v) => ({ ...v, bsYear: event.target.value }));
+          setErrors((e) => ({ ...e, bsYear: undefined }));
+        }}
         error={say(errors.bsYear)}
       />
-      <BsDateField legend={t("setup.years.start")} value={values.startBs} onChange={(startBs) => setValues((v) => ({ ...v, startBs }))} error={say(errors.startBs)} />
-      <BsDateField legend={t("setup.years.end")} value={values.endBs} onChange={(endBs) => setValues((v) => ({ ...v, endBs }))} error={say(errors.endBs)} />
+      <BsDateField
+        legend={t("setup.years.start")}
+        value={values.startBs}
+        onChange={(startBs) => {
+          setValues((v) => ({ ...v, startBs }));
+          setErrors((e) => ({ ...e, startBs: undefined, endBs: undefined }));
+        }}
+        error={say(errors.startBs)}
+      />
+      <BsDateField
+        legend={t("setup.years.end")}
+        value={values.endBs}
+        onChange={(endBs) => {
+          setValues((v) => ({ ...v, endBs }));
+          setErrors((e) => ({ ...e, endBs: undefined }));
+        }}
+        error={say(errors.endBs)}
+      />
       <Button type="submit" loading={saving} loadingLabel={t("setup.working")}>
         {t("setup.years.add")}
       </Button>

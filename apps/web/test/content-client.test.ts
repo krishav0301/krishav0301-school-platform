@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { createApiClient } from "@/api/client";
-import { archiveItem, loadContent, loadItem, loadPublic, saveItem, setPublished, submitForm } from "@/content/client";
+import { archiveItem, loadContent, loadItem, loadPublic, saveItem, setPublished, submitForApproval, submitForm } from "@/content/client";
 import type { FormValues } from "@/content/model";
 
 interface Seen {
@@ -180,6 +180,23 @@ describe("saveItem: an existing item", () => {
     expect(await attempt(json(404, { error: "not_found" }))).toEqual({ ok: false, reason: "not_found" });
     expect(await attempt(json(422, { error: "invalid", message: "m" }))).toEqual({ ok: false, reason: "rejected" });
     expect(await attempt(json(403, {}))).toEqual({ ok: false, reason: "forbidden" });
+  });
+});
+
+describe("submitForApproval: the Co-ordinator saves, then sends the draft to an Admin (Co-ordinator FUT F-08)", () => {
+  const route = (send: Response) =>
+    fake((s) => {
+      if (s.method === "GET") return convert(s);
+      if (s.path === "/api/approvals") return send;
+      return s.method === "POST" ? json(201, { id: "new1" }) : json(200, { ok: true });
+    });
+  it("saves first, then sends the item it saved; never publishes", async () => {
+    const r = route(json(201, { id: "req1" }));
+    expect(await submitForApproval(r.api, null, values)).toEqual({ done: "sent" });
+    expect(r.seen.filter((x) => x.method !== "GET").map((x) => `${x.method} ${x.path}`)).toEqual(["POST /api/content", "POST /api/approvals"]);
+  });
+  it("saved but not sent: the draft is kept and the list says so", async () => {
+    expect(await submitForApproval(route(json(500, {})).api, "abc123", values)).toEqual({ done: "saved_unsent" });
   });
 });
 

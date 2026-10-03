@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback } from "react";
+import { useCallback, useState } from "react";
 
 import { useConfig } from "@/config/ConfigProvider";
 import { useAddressQuery } from "@/content/address";
@@ -13,13 +13,14 @@ import { Notice } from "@/ui";
 
 import styles from "./admissions.module.css";
 import { loadStudent } from "./client";
+import { CorrectDetails } from "./CorrectDetails";
 import type { StudentDetail } from "./model";
 
 /**
  * One student's personal record, read only, opened from Student search (admin FUT F-09). The server decides who may
  * see it and how far (`students.personal.view`, within the person's sections); nothing here can change it.
  */
-export function StudentDetails({ student, feesLink = false }: { student: StudentDetail; feesLink?: boolean }) {
+export function StudentDetails({ student, feesLink = false, actions }: { student: StudentDetail; feesLink?: boolean; actions?: React.ReactNode }) {
   const name = [student.firstName, student.middleName, student.lastName].filter(Boolean).join(" ");
   const rows: [string, string][] = [
     [t("admissions.record.sid"), student.sid],
@@ -38,11 +39,14 @@ export function StudentDetails({ student, feesLink = false }: { student: Student
         subtitle={[student.sid, student.className].filter(Boolean).join(" · ")}
         crumbs={[{ label: t("admissions.search.title"), href: "/portal/admissions/search" }, { label: name }]}
         actions={
-          student.status === "active" ? (
-            <StatusWord tone="ok">{t("admissions.student.active")}</StatusWord>
-          ) : (
-            <StatusWord>{t(student.status === "left" ? "admissions.student.left" : "admissions.student.graduated")}</StatusWord>
-          )
+          <>
+            {student.status === "active" ? (
+              <StatusWord tone="ok">{t("admissions.student.active")}</StatusWord>
+            ) : (
+              <StatusWord>{t(student.status === "left" ? "admissions.student.left" : "admissions.student.graduated")}</StatusWord>
+            )}
+            {actions}
+          </>
         }
       />
       <Panel title={t("admissions.record.facts")} labelledBy="student-facts" actions={feesLink ? <OpenLink href={`/portal/fees/student?id=${student.id}`} label={t("admissions.record.feesOf", { name })} text={t("admissions.record.fees")} /> : undefined}>
@@ -66,7 +70,11 @@ export function StudentScreen() {
   const id = search === null ? null : new URLSearchParams(search).get("id");
   const load = useCallback(() => loadStudent(api, id ?? ""), [api, id]);
   const { view, reload } = useLoad(load);
+  const [corrected, setCorrected] = useState<StudentDetail | null>(null);
+  const [saved, setSaved] = useState(false);
   const roles = me?.roles.map((r) => r.role) ?? [];
+  // The Co-ordinator (and Support) may correct details (students.personal.correct); the server checks the section again.
+  const canCorrect = roles.some((r) => r === "coordinator" || r === "super_admin");
   // Only roles the matrix lets read fees get the quiet link to the account (D-104); the server checks again there.
   const feesLink = roles.some((r) => r === "admin" || r === "accountant" || r === "super_admin");
   const reader = !roles.some((r) => r === "coordinator" || r === "super_admin");
@@ -75,7 +83,22 @@ export function StudentScreen() {
   if (view.status !== "ready") return <ReadFailure status={view.status} onRetry={() => void reload()} />;
   return (
     <div className={readStyles.page}>
-      <StudentDetails student={view.data} feesLink={feesLink} />
+      {saved ? <Notice tone="ok">{t("admissions.correct.done")}</Notice> : null}
+      <StudentDetails
+        student={corrected ?? view.data}
+        feesLink={feesLink}
+        actions={
+          canCorrect ? (
+            <CorrectDetails
+              student={corrected ?? view.data}
+              onCorrected={(next) => {
+                setCorrected(next);
+                setSaved(true);
+              }}
+            />
+          ) : null
+        }
+      />
       {reader ? <ReadOnlyNote>{t("admissions.record.readOnly", { coordinator: term("role.coordinator") })}</ReadOnlyNote> : null}
     </div>
   );

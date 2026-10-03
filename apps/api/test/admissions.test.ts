@@ -263,12 +263,35 @@ describe("walk-ins and staff registration", () => {
     expect((await signIn.json()) as { passwordChange?: string }).toMatchObject({ passwordChange: "required" });
   });
 
+  it("the same person walked in again is not admitted twice silently: the answer names them, and Admit anyway admits (F-03)", async () => {
+    const body = { ...applicant(), classId };
+    const first = (await (await walkIn(body, coordinator)).json()) as { sid: string };
+    const before = await count("SELECT COUNT(*) AS n FROM students");
+    const again = await walkIn({ ...body, email: `again.${body.email}` }, coordinator);
+    expect(again.status).toBe(409);
+    const answer = (await again.json()) as { error: string; matches: { name: string; sid: string }[] };
+    expect(answer.error).toBe("possible_duplicate");
+    expect(answer.matches.map((m) => m.sid)).toContain(first.sid);
+    expect(await count("SELECT COUNT(*) AS n FROM students")).toBe(before); // nothing was written
+    // Advisory, never a block (D-006): a deliberate second send admits them.
+    const anyway = await walkIn({ ...body, email: `anyway.${body.email}`, confirmDuplicate: true }, coordinator);
+    expect(anyway.status).toBe(201);
+  });
+
   it("an Accountant's registration goes to the queue, not auto-approved", async () => {
     const response = await register(applicant(), accountant);
     expect(response.status).toBe(201);
     const { id } = (await response.json()) as { id: string };
     const inQueue = (await (await queue(coordinator)).json()) as { applications: { id: string; status: string }[] };
     expect(inQueue.applications.find((a) => a.id === id)).toMatchObject({ status: "pending_review" });
+  });
+
+  it("each application names its section in words, not by its key (F-05)", async () => {
+    const { id } = (await (await register(applicant(), accountant)).json()) as { id: string };
+    const inQueue = (await (await queue(coordinator)).json()) as { applications: { id: string; sectionKey: string; sectionName: string }[] };
+    const row = inQueue.applications.find((a) => a.id === id)!;
+    const section = await db.prepare("SELECT name FROM sections WHERE key = ?1").bind(row.sectionKey).first<{ name: string }>();
+    expect(row.sectionName).toBe(section!.name);
   });
 
   it("a walk-in placed in a class of the wrong level is refused, and nothing is created", async () => {
@@ -335,4 +358,38 @@ describe("who may use the admissions and student routes", () => {
 
 it("the audit chain is still unbroken", async () => {
   expect(await verifyAuditChain(db, auditKey)).toMatchObject({ ok: true });
+});
+
+describe("correcting a student's personal details (Co-ordinator FUT F-06)", () => {
+  const patch = (id: string, body: Record<string, unknown>, who: Person) => call(`/api/students/${id}`, { method: "PATCH", body, cookie: who.cookie });
+  let studentId: string, sid: string;
+  beforeAll(async () => {
+    const admitted = (await (await walkIn({ ...applicant(), classId }, coordinator)).json()) as { id: string; sid: string };
+    sid = admitted.sid;
+    studentId = (await db.prepare("SELECT public_id FROM students WHERE sid = ?1").bind(sid).first<{ public_id: string }>())!.public_id;
+  });
+
+  it("the Co-ordinator corrects what changed, with a reason; the SID never changes and the audit trail keeps before, after and why", async () => {
+    const response = await patch(studentId, { lastName: "Corrected", guardianPhone: "9800099999", reason: "Spelling on the certificate" }, coordinator);
+    expect(response.status).toBe(200);
+    expect((await response.json()) as { lastName: string; sid: string; guardianPhone: string }).toMatchObject({ lastName: "Corrected", sid, guardianPhone: "9800099999" });
+    const entry = await db.prepare("SELECT reason, before_json, after_json FROM audit_events WHERE action = 'students.personal.corrected' AND entity_public_id = ?1").bind(studentId).first<{ reason: string; before_json: string; after_json: string }>();
+    expect(entry?.reason).toBe("Spelling on the certificate");
+    expect(JSON.parse(entry!.after_json)).toMatchObject({ lastName: "Corrected" });
+  });
+
+  it("asks for a reason and for at least one change, and cannot touch the SID", async () => {
+    // Refused by the request's own validation (400), before anything is read or written.
+    expect((await patch(studentId, { lastName: "X" }, coordinator)).status).toBe(400);
+    expect((await patch(studentId, { reason: "Nothing" }, coordinator)).status).toBe(400);
+    expect((await patch(studentId, { sid: "2083-99999", reason: "Try" }, coordinator)).status).toBe(400);
+  });
+
+  it("only the Co-ordinator of the student's section may correct; everyone else is refused and nothing changes", async () => {
+    for (const who of [admin, accountant, teacher, student]) expect((await patch(studentId, { firstName: "Nope", reason: "Not mine" }, who)).status).toBe(403);
+    expect((await patch(studentId, { firstName: "Nope", reason: "Other section" }, bachelorsCoordinator)).status).toBe(404);
+    expect((await patch(studentId, { firstName: "Plus", reason: "Own section" }, plus2Coordinator)).status).toBe(200);
+    const row = await db.prepare("SELECT first_name FROM students WHERE public_id = ?1").bind(studentId).first<{ first_name: string }>();
+    expect(row?.first_name).toBe("Plus");
+  });
 });
