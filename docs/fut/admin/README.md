@@ -1,10 +1,10 @@
 # Admin (Principal) functional user test (FUT)
 
-Royal Softech College on the school platform. Every operation the Admin (the Principal) can do, run through the real screens, with a screenshot of each step. The first run (2 October 2026, 16 Ashwin 2083) found 19 findings; all of them were fixed (D-100, D-102), and this is the run again on a fresh local school on 2026-10-03 (17 Ashwin 2083) against the fixed code (commit `b9ec2af` with this document).
+Royal Softech College on the school platform. Every operation the Admin (the Principal) can do, run through the real screens, with a screenshot of each step. The first run (2 October 2026, 16 Ashwin 2083) found 19 findings; all of them were fixed (D-100, D-102), and this is the run again on a fresh local school on 2026-10-03 (17 Ashwin 2083) against the fixed code (commit `196d8fc` with this document).
 
 ## Summary
 
-- **191 steps** with a screenshot each, in 12 areas, plus **15 server checks** of things the Principal must not do.
+- **192 steps** with a screenshot each, in 12 areas, plus **15 server checks** of things the Principal must not do.
 - **Every step behaved as expected.** 33 of them show where a finding of the first run is now fixed; they are marked in the Result column.
 - **All 19 findings of the first run are fixed** (1 high, 5 medium, 12 low, 1 cosmetic): see [Findings](#findings) for what each was and what changed. The largest: receipt numbers now start with a receipt code the Principal chooses for each section (F-18), the Audit trail and Sign-ins have their own screens (F-11), and Approvals was redesigned, with a review panel that shows everything a decision needs (F-03, F-06, F-07, F-13).
 - **Every forbidden action was refused by the server** (403), including approving one's own request. Permission is never left to the screens alone.
@@ -523,11 +523,12 @@ Everything the Principal reads but does not change.
 
 | # | Step | Result | Page |
 |---|---|---|---|
-| [07-01](#07-01-attendance-classes) | Attendance: today's register for each class; Grade 12 has not been marked yet | Pass | `/portal/attendance` |
-| [07-02](#07-02-attendance-class) | A class's register for today (two absent) and the year so far; the Principal can look but not mark | Pass | `/portal/attendance/class?id=a4c753fffe36bd94bd4aa2b8a99f1efb` |
+| [07-01](#07-01-attendance-classes) | Attendance: the day at a glance (present, absent, classes not marked, teachers on leave), then each class with its Class Teacher; Grade 12 is not marked yet, so it comes first | Pass | `/portal/attendance` |
+| [07-02](#07-02-attendance-class) | A class's register for today (two absent), in words; the Principal can look but not mark | Pass | `/portal/attendance/class?id=a4c753fffe36bd94bd4aa2b8a99f1efb` |
+| [07-02](#07-02b-attendance-year) | The same class, this year so far: days present, the percentage and who is below 75% | Pass | `/portal/attendance/class?id=a4c753fffe36bd94bd4aa2b8a99f1efb` |
 | [07-03](#07-03-attendance-not-marked) | Grade 12: no register marked yet today | Pass | `/portal/attendance/class?id=4e56d68d12f038b6cc0d9dd13e4c8d35` |
 | [07-04](#07-04-teacher-attendance) | Teacher attendance for today, marked by the Co-ordinator (Suresh Karki on leave); read only for the Principal | Pass | `/portal/attendance/teachers` |
-| [07-05](#07-05a-incomplete-date) | A date with only the day filled in (no month or year) asks for the day, the month and the year (F-19 fixed) | Pass (F-19 fixed) | `/portal/attendance/teachers` |
+| [07-05](#07-05a-incomplete-date) | Change date with only the day filled in (no month or year) asks for the day, the month and the year (F-19 fixed) | Pass (F-19 fixed) | `/portal/attendance/teachers` |
 | [07-05](#07-05b-teacher-attendance-other-day) | Another day, 15 Ashwin 2083: nothing was marked that day | Pass | `/portal/attendance/teachers` |
 | [07-06](#07-06-unverified-year) | 1 Baisakh 2090, outside the verified calendar (2000 to 2083), is refused | Pass | `/portal/attendance/teachers` |
 | [07-07](#07-07-classwork) | Classwork: today's activity log for each class | Pass | `/portal/classwork` |
@@ -564,14 +565,19 @@ Everything the Principal reads but does not change.
 | [07-38](#07-38-sign-ins-failed) | Failed attempts only: wrong passwords and wrong authenticator codes | Pass (F-11 fixed) | `/portal/reports/sign-ins` |
 
 <a id="07-01-attendance-classes"></a>
-**07-01** Attendance: today's register for each class; Grade 12 has not been marked yet
+**07-01** Attendance: the day at a glance (present, absent, classes not marked, teachers on leave), then each class with its Class Teacher; Grade 12 is not marked yet, so it comes first
 
-![Attendance: today's register for each class; Grade 12 has not been marked yet](screens/07-01-attendance-classes.jpg)
+![Attendance: the day at a glance (present, absent, classes not marked, teachers on leave), then each class with its Class Teacher; Grade 12 is not marked yet, so it comes first](screens/07-01-attendance-classes.jpg)
 
 <a id="07-02-attendance-class"></a>
-**07-02** A class's register for today (two absent) and the year so far; the Principal can look but not mark
+**07-02** A class's register for today (two absent), in words; the Principal can look but not mark
 
-![A class's register for today (two absent) and the year so far; the Principal can look but not mark](screens/07-02-attendance-class.jpg)
+![A class's register for today (two absent), in words; the Principal can look but not mark](screens/07-02-attendance-class.jpg)
+
+<a id="07-02b-attendance-year"></a>
+**07-02** The same class, this year so far: days present, the percentage and who is below 75%
+
+![The same class, this year so far: days present, the percentage and who is below 75%](screens/07-02b-attendance-year.jpg)
 
 <a id="07-03-attendance-not-marked"></a>
 **07-03** Grade 12: no register marked yet today
@@ -584,9 +590,9 @@ Everything the Principal reads but does not change.
 ![Teacher attendance for today, marked by the Co-ordinator (Suresh Karki on leave); read only for the Principal](screens/07-04-teacher-attendance.jpg)
 
 <a id="07-05a-incomplete-date"></a>
-**07-05** A date with only the day filled in (no month or year) asks for the day, the month and the year (F-19 fixed)
+**07-05** Change date with only the day filled in (no month or year) asks for the day, the month and the year (F-19 fixed)
 
-![A date with only the day filled in (no month or year) asks for the day, the month and the year (F-19 fixed)](screens/07-05a-incomplete-date.jpg)
+![Change date with only the day filled in (no month or year) asks for the day, the month and the year (F-19 fixed)](screens/07-05a-incomplete-date.jpg)
 
 <a id="07-05b-teacher-attendance-other-day"></a>
 **07-05** Another day, 15 Ashwin 2083: nothing was marked that day

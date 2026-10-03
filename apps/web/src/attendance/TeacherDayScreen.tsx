@@ -2,13 +2,11 @@
 
 import { useCallback, useState } from "react";
 
-import { toAd } from "@/content/client";
-import { BsDateField } from "@/content/BsDateField";
-import { isWholeBsDate } from "@/content/model";
-import { t, type MessageKey } from "@/i18n/messages";
+import { t } from "@/i18n/messages";
+import { ChangeDate, dayLine, EmptyLine, Panel, ReadFailure, ReadHeader, ReadOnlyNote, ReadTable, StatusWord, TableSkeleton, readStyles } from "@/read/ReadView";
 import { useSession } from "@/session/SessionProvider";
 import setupStyles from "@/setup/setup.module.css";
-import { Gate, useLoad } from "@/setup/useLoad";
+import { useLoad } from "@/setup/useLoad";
 import { Button, Field, Notice, Select } from "@/ui";
 
 import styles from "./attendance.module.css";
@@ -17,44 +15,76 @@ import { TEACHER_STATUS_LABEL, exceptionsOf, initialStatuses, type TeacherDay, t
 
 const STATUS_OPTIONS = (["present", "absent", "leave"] as const).map((value) => ({ value, label: t(TEACHER_STATUS_LABEL[value]) }));
 
+/** A day's teachers, read only: status in words and, for a corrected past day, its reason. Pure, so tests draw it. */
+export function TeacherTable({ day }: { day: TeacherDay }) {
+  if (day.teachers.length === 0) return <EmptyLine>{t("attendance.teachers.empty")}</EmptyLine>;
+  if (!day.marked) return <EmptyLine>{t(day.isToday ? "attendance.teachers.notMarkedToday" : "attendance.teachers.notMarkedDay")}</EmptyLine>;
+  return (
+    <ReadTable
+      caption={t("attendance.teachers.title")}
+      rows={day.teachers}
+      rowKey={(x) => x.id}
+      columns={[
+        { key: "n", label: "#", hidePhone: true, cell: (_x, i) => <span className={readStyles.number}>{i + 1}</span> },
+        { key: "name", label: t("attendance.col.teacher"), primary: true, cell: (x) => x.name },
+        {
+          key: "status",
+          label: t("attendance.class.status"),
+          cell: (x) =>
+            x.status === null ? (
+              <StatusWord>{t("attendance.status.notMarked")}</StatusWord>
+            ) : (
+              <StatusWord tone={x.status === "present" ? "ok" : x.status === "absent" ? "bad" : "warn"}>{t(TEACHER_STATUS_LABEL[x.status])}</StatusWord>
+            ),
+        },
+        { key: "reason", label: t("attendance.col.reason"), cell: (x) => x.reason ?? "—" },
+      ]}
+    />
+  );
+}
+
 /**
- * Teacher attendance (D-070): the Co-ordinator's daily list, everyone Present to start, Absent or On leave as the
- * exceptions, one Save. A past day can be opened and corrected with a reason. The Admin sees the same list, read-only.
+ * Teacher attendance (D-070; redesigned in D-103 after the PM's reference): the Co-ordinator's daily list, everyone
+ * Present to start, Absent or On leave as the exceptions, one Save. A past day is opened with Change date and corrected
+ * with a reason. The Principal reads the same day as a table, with no controls.
  */
 export function TeacherDayScreen() {
   const { api, me } = useSession();
   const canMark = me?.roles.some((r) => r.role === "coordinator" || r.role === "super_admin") ?? false;
   const [date, setDate] = useState<string | undefined>(undefined);
-  const [bs, setBs] = useState("");
-  const [dayError, setDayError] = useState<MessageKey | null>(null);
 
   const loadNow = useCallback(async () => {
     const result = await loadTeacherDay(api, date);
     return result.ok ? result : gateFailure(result.reason);
   }, [api, date]);
   const { view, reload } = useLoad<TeacherDay>(loadNow);
-
-  async function show() {
-    // A day with its month or year missing asks for them, rather than blaming the calendar (admin FUT F-19).
-    if (!isWholeBsDate(bs)) return setDayError("attendance.class.incompleteDay");
-    const result = await toAd(api, bs.trim());
-    setDayError(result.ok ? null : "attendance.class.badDay");
-    if (result.ok) setDate(result.ad);
-  }
+  const day = view.status === "ready" ? view.data : null;
 
   return (
-    <>
-      <h1 className={setupStyles.title}>{t("attendance.teachers.title")}</h1>
-      <div className={styles.dayPicker}>
-        <BsDateField legend={t("attendance.class.otherDay")} hint={t("attendance.teachers.pickHint")} error={dayError ? t(dayError) : undefined} value={bs} onChange={setBs} />
-        <Button className={styles.wrapLabel} variant="secondary" onClick={() => void show()}>
-          {t("attendance.class.show")}
-        </Button>
-      </div>
-      <Gate view={view} onRetry={() => void reload()}>
-        {(day) => <TeacherList key={day.date} day={day} canMark={canMark} onSaved={() => void reload()} />}
-      </Gate>
-    </>
+    <div className={readStyles.page}>
+      <ReadHeader
+        title={t("attendance.teachers.title")}
+        subtitle={t("attendance.teachers.subtitle")}
+        dayBs={day ? dayLine(day.dateBs, day.isToday, day.date) : null}
+        actions={<ChangeDate onDate={setDate} />}
+      />
+      {view.status === "loading" ? <TableSkeleton rows={8} /> : null}
+      {view.status === "failed" || view.status === "forbidden" ? <ReadFailure status={view.status} onRetry={() => void reload()} /> : null}
+      {day ? (
+        canMark ? (
+          <Panel>
+            <TeacherList key={day.date} day={day} canMark onSaved={() => void reload()} />
+          </Panel>
+        ) : (
+          <>
+            <Panel>
+              <TeacherTable day={day} />
+            </Panel>
+            <ReadOnlyNote>{t("attendance.teachers.readOnlyNote")}</ReadOnlyNote>
+          </>
+        )
+      ) : null}
+    </div>
   );
 }
 

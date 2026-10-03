@@ -1,12 +1,13 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 
-import { AttendanceScreen } from "@/attendance/AttendanceScreen";
+import { AttendanceScreen, ClassesTable, attendanceFigures } from "@/attendance/AttendanceScreen";
+import { DayTable, YearTable } from "@/attendance/ClassAttendanceScreen";
 import { OwnAttendanceCard } from "@/attendance/OwnAttendanceCard";
 import { Register } from "@/attendance/Register";
 import { AttendanceTabs } from "@/attendance/AttendanceTabs";
 import { OwnMonthScreen } from "@/attendance/OwnMonthScreen";
-import { TeacherDayScreen } from "@/attendance/TeacherDayScreen";
+import { TeacherDayScreen, TeacherTable } from "@/attendance/TeacherDayScreen";
 import { className, counts, exceptionsOf, initialAbsent, initialStatuses, shiftMonth, studentMeta, type AttendanceDay, type TeacherDay } from "@/attendance/model";
 import { ConfigContext, makeConfigValue, type PublicConfig } from "@/config/ConfigProvider";
 import { SessionContext } from "@/session/SessionProvider";
@@ -182,5 +183,75 @@ describe("teacher attendance", () => {
   it("the teacher and own-month screens show the shape of the page while they load", () => {
     expect(inContext(<TeacherDayScreen />, as("coordinator"))).toMatch(/role="status"[^>]*aria-busy="true"/);
     expect(inContext(<OwnMonthScreen />)).toMatch(/role="status"[^>]*aria-busy="true"/);
+  });
+});
+
+// ---------------------------------------------------------------------------------------------
+describe("the Principal reads attendance (D-103, after the PM's topic 7 reference)", () => {
+  const cls = (id: string, markedToday: boolean, absentToday: number, classTeacher: string | null, students = 20) => ({
+    id,
+    programmeName: "+2 Science",
+    levelName: "Grade 11",
+    label: id.toUpperCase(),
+    sectionKey: "plus2",
+    students,
+    markedToday,
+    absentToday,
+    classTeacher,
+    mine: false,
+  });
+  const list = { today: "2026-10-03", todayBs: "2083-06-17", classes: [cls("a", true, 2, "Bikash Chaudhary"), cls("b", false, 0, null), cls("c", true, 0, "Puja Singh", 10)] };
+
+  it("figures: present today of the classes marked, absent, classes not marked yet, teachers on leave", () => {
+    const teachers = { date: "2026-10-03", dateBs: "2083-06-17", isToday: true, marked: true, teachers: [{ id: "t1", name: "Gita", sectionKey: null, status: "leave" as const, reason: null }] };
+    const figures = attendanceFigures(list, teachers);
+    expect(figures.map((f) => [f.label, f.value])).toEqual([
+      ["Present today", "93%"],
+      ["Absent today", "2"],
+      ["Classes not marked yet", "1"],
+      ["Teachers on leave", "1"],
+    ]);
+    expect(attendanceFigures(list, null)).toHaveLength(3);
+  });
+
+  it("every class with its Class Teacher and today's state in words, the unmarked first, each opening its register", () => {
+    const html = inContext(<ClassesTable classes={list.classes} />, as("admin"));
+    expect(html.indexOf("Grade 11 · B")).toBeLessThan(html.indexOf("Grade 11 · A"));
+    expect(html).toContain("Bikash Chaudhary");
+    expect(html).toContain("Not named yet");
+    expect(html).toContain(">Not marked yet<");
+    expect(html).toContain(">Marked<");
+    expect(html).toContain("2 absent");
+    expect(html).toContain('href="/portal/attendance/class?id=b"');
+    expect(html).toContain('data-label="Class Teacher"'); // each value keeps its name when stacked on a phone
+  });
+
+  it("a day's register says Present and Absent in words, with no controls", () => {
+    const marked = day({ marked: true, canMark: false });
+    marked.students = [
+      { ...marked.students[0]!, status: "present" },
+      { ...marked.students[1]!, status: "absent" },
+    ];
+    const html = inContext(<DayTable day={marked} />, as("admin"));
+    expect(html).toContain(">Absent<");
+    expect(html).toContain(">Present<");
+    expect(html).not.toMatch(/<input|<button/);
+    expect(inContext(<DayTable day={day({ marked: false, canMark: false, isToday: true })} />, as("admin"))).toContain("Not marked yet today.");
+  });
+
+  it("the year so far flags below the threshold in words", () => {
+    const summary = { class: day().class, threshold: 75, students: [{ enrollmentId: "e1", sid: "2083-00001", name: "Asha", rollNo: null, present: 6, absent: 4, percent: 60, below: true }] };
+    const html = inContext(<YearTable summary={summary} />, as("admin"));
+    expect(html).toContain("Below 75%");
+    expect(html).toContain("6 of 10");
+    expect(html).toContain("60%");
+  });
+
+  it("teacher attendance: status in words and the reason for a corrected day", () => {
+    const tday = { date: "2026-10-03", dateBs: "2083-06-17", isToday: true, marked: true, teachers: [{ id: "t1", name: "Gita Thapa", sectionKey: null, status: "leave" as const, reason: "Personal leave" }] };
+    const html = inContext(<TeacherTable day={tday} />, as("admin"));
+    expect(html).toContain(">On leave<");
+    expect(html).toContain("Personal leave");
+    expect(html).not.toMatch(/<select|<button/);
   });
 });

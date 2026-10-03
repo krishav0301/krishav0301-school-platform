@@ -4251,6 +4251,12 @@
                 "absentToday": {
                   "type": "integer"
                 },
+                "classTeacher": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
                 "mine": {
                   "type": "boolean"
                 }
@@ -4264,6 +4270,7 @@
                 "students",
                 "markedToday",
                 "absentToday",
+                "classTeacher",
                 "mine"
               ]
             }

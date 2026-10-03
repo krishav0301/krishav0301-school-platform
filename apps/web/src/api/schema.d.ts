@@ -3492,6 +3492,7 @@ export interface components {
                 students: number;
                 markedToday: boolean;
                 absentToday: number;
+                classTeacher: string | null;
                 mine: boolean;
             }[];
         };

@@ -1,32 +1,75 @@
 "use client";
 
-import Link from "next/link";
 import { useCallback, useState } from "react";
 
 import { useAddressQuery } from "@/content/address";
-import { toAd } from "@/content/client";
-import { BsDateField } from "@/content/BsDateField";
-import { isWholeBsDate } from "@/content/model";
-import { t, type MessageKey } from "@/i18n/messages";
+import { t } from "@/i18n/messages";
+import { ChangeDate, dayLine, EmptyLine, Panel, ReadFailure, ReadHeader, ReadOnlyNote, ReadTable, Segments, StatusWord, TableSkeleton, readStyles } from "@/read/ReadView";
 import { useSession } from "@/session/SessionProvider";
-import setupStyles from "@/setup/setup.module.css";
-import { Gate, useLoad } from "@/setup/useLoad";
-import { Badge, Button, Notice } from "@/ui";
+import { useLoad } from "@/setup/useLoad";
+import { Notice } from "@/ui";
 
-import styles from "./attendance.module.css";
 import { gateFailure, loadDay, loadSummary } from "./client";
-import { className, studentMeta, type AttendanceDay, type AttendanceSummary } from "./model";
+import { className, type AttendanceDay, type AttendanceSummary } from "./model";
 import { Register } from "./Register";
 
+/** One day's register, read only: who was present and who absent, in words. Pure, so tests draw it. */
+export function DayTable({ day }: { day: AttendanceDay }) {
+  if (!day.marked) return <EmptyLine>{t(day.isToday ? "attendance.class.notMarkedToday" : "attendance.class.notMarked")}</EmptyLine>;
+  return (
+    <ReadTable
+      caption={t("attendance.class.dayTitle")}
+      rows={day.students}
+      rowKey={(s) => s.enrollmentId}
+      columns={[
+        { key: "n", label: "#", hidePhone: true, cell: (_s, i) => <span className={readStyles.number}>{i + 1}</span> },
+        { key: "name", label: t("attendance.col.name"), primary: true, cell: (s) => s.name },
+        { key: "sid", label: t("attendance.col.sid"), cell: (s) => s.sid },
+        {
+          key: "status",
+          label: t("attendance.class.status"),
+          cell: (s) =>
+            s.status === "absent" ? <StatusWord tone="bad">{t("attendance.class.absent")}</StatusWord> : s.status === "present" ? <StatusWord tone="ok">{t("attendance.class.present")}</StatusWord> : <StatusWord>{t("attendance.status.notMarked")}</StatusWord>,
+        },
+      ]}
+    />
+  );
+}
 
-/** One class (`?id=`): a day's register (today, or a day picked in BS) and each student's year so far. */
+/** Each student's year so far: days present of the days marked, the percentage, and "Below 75%" in words. Pure. */
+export function YearTable({ summary }: { summary: AttendanceSummary }) {
+  const flagged = summary.students.filter((s) => s.below).length;
+  return (
+    <>
+      <p className={readStyles.subtitle}>{t("attendance.summary.intro", { threshold: summary.threshold })}</p>
+      {flagged > 0 ? <Notice>{t("attendance.summary.flagged", { count: flagged, threshold: summary.threshold })}</Notice> : null}
+      <ReadTable
+        caption={t("attendance.summary.title")}
+        rows={summary.students}
+        rowKey={(s) => s.enrollmentId}
+        columns={[
+          { key: "n", label: "#", hidePhone: true, cell: (_s, i) => <span className={readStyles.number}>{i + 1}</span> },
+          { key: "name", label: t("attendance.col.name"), primary: true, cell: (s) => s.name },
+          { key: "sid", label: t("attendance.col.sid"), cell: (s) => s.sid },
+          { key: "days", label: t("attendance.col.days"), cell: (s) => (s.percent === null ? t("attendance.summary.noDays") : t("attendance.summary.daysOf", { present: s.present, marked: s.present + s.absent })) },
+          { key: "percent", label: t("attendance.col.percent"), align: "end", cell: (s) => (s.percent === null ? "—" : `${s.percent}%`) },
+          { key: "flag", label: t("attendance.class.status"), cell: (s) => (s.below ? <StatusWord tone="bad">{t("attendance.summary.below", { threshold: summary.threshold })}</StatusWord> : s.percent === null ? "—" : <StatusWord tone="ok">{t("attendance.status.onTrack")}</StatusWord>) },
+        ]}
+      />
+    </>
+  );
+}
+
+/**
+ * One class (`?id=`), redesigned in D-103 after the PM's reference. Its Class Teacher marks today here (unchanged).
+ * Everyone else reads: today's register, or another day through Change date, and each student's year so far.
+ */
 export function ClassAttendanceScreen() {
   const { api } = useSession();
   const search = useAddressQuery();
   const id = search === null ? "" : (new URLSearchParams(search).get("id") ?? "");
   const [date, setDate] = useState<string | undefined>(undefined);
-  const [bs, setBs] = useState("");
-  const [dayError, setDayError] = useState<MessageKey | null>(null);
+  const [mode, setMode] = useState<"day" | "year">("day");
 
   const loadNow = useCallback(async () => {
     if (!id) return { ok: false as const, reason: "failed" as const };
@@ -37,100 +80,42 @@ export function ClassAttendanceScreen() {
   }, [api, id, date]);
   const { view, reload } = useLoad<{ day: AttendanceDay; summary: AttendanceSummary }>(loadNow);
 
-  async function show() {
-    // A day with its month or year missing asks for them, rather than blaming the calendar (admin FUT F-19).
-    if (!isWholeBsDate(bs)) return setDayError("attendance.class.incompleteDay");
-    const result = await toAd(api, bs.trim());
-    setDayError(result.ok ? null : "attendance.class.badDay");
-    if (result.ok) setDate(result.ad);
-  }
+  if (view.status === "loading") return <TableSkeleton rows={8} />;
+  if (view.status !== "ready") return <ReadFailure status={view.status} onRetry={() => void reload()} />;
+  const { day, summary } = view.data;
+  const name = className(day.class);
 
   return (
-    <div className={setupStyles.page}>
-      <p>
-        <Link href="/portal/attendance">{t("attendance.class.back")}</Link>
-      </p>
-      <Gate view={view} onRetry={() => void reload()}>
-        {({ day, summary }) => (
-          <>
-            <h1 className={setupStyles.title}>{className(day.class)}</h1>
-            {day.canMark ? (
-              <Register day={day} onSaved={() => void reload()} />
-            ) : (
-              <section className={styles.register} aria-labelledby="day-heading">
-                <h2 id="day-heading" className={setupStyles.subhead}>
-                  {t("attendance.class.dayTitle")}
-                </h2>
-                <div className={styles.dayPicker}>
-                  <BsDateField legend={t("attendance.class.otherDay")} hint={t("attendance.class.pickDayHint")} error={dayError ? t(dayError) : undefined} value={bs} onChange={setBs} />
-                  <Button className={styles.wrapLabel} variant="secondary" onClick={() => void show()}>
-                    {t("attendance.class.show")}
-                  </Button>
-                </div>
-                <p className={setupStyles.muted}>{day.dateBs ?? day.date}</p>
-                {day.marked ? (
-                  <ul className={styles.roster}>
-                    {day.students.map((s) => (
-                      <li key={s.enrollmentId} className={`${styles.rosterRow} ${styles.readRow}`}>
-                        <span>
-                          {s.name}
-                          <br />
-                          <span className={setupStyles.muted}>{studentMeta(s)}</span>
-                        </span>
-                        <span>{s.status === "absent" ? <Badge tone="bad">{t("attendance.class.absent")}</Badge> : s.status === "present" ? t("attendance.class.present") : t("attendance.class.none")}</span>
-                      </li>
-                    ))}
-                  </ul>
-                ) : (
-                  <p className={setupStyles.empty}>{t("attendance.class.notMarked")}</p>
-                )}
-              </section>
-            )}
-            <SummaryTable summary={summary} />
-          </>
-        )}
-      </Gate>
+    <div className={readStyles.page}>
+      <ReadHeader
+        title={name}
+        subtitle={day.canMark ? undefined : t("attendance.class.readOnly")}
+        crumbs={[{ label: t("attendance.title"), href: "/portal/attendance" }, { label: name }]}
+        dayBs={dayLine(day.dateBs, day.isToday, day.date)}
+        actions={day.canMark ? undefined : <ChangeDate onDate={setDate} />}
+      />
+      {day.canMark ? (
+        <>
+          <Register day={day} onSaved={() => void reload()} />
+          <Panel title={t("attendance.summary.title")} labelledBy="year-heading">
+            <YearTable summary={summary} />
+          </Panel>
+        </>
+      ) : (
+        <>
+          <Segments
+            label={t("attendance.class.views")}
+            value={mode}
+            onChange={setMode}
+            options={[
+              { key: "day", label: day.isToday ? t("attendance.class.todayView") : t("attendance.class.dayView") },
+              { key: "year", label: t("attendance.summary.title") },
+            ]}
+          />
+          <Panel>{mode === "day" ? <DayTable day={day} /> : <YearTable summary={summary} />}</Panel>
+          <ReadOnlyNote>{t("attendance.class.readOnlyNote")}</ReadOnlyNote>
+        </>
+      )}
     </div>
-  );
-}
-
-function SummaryTable({ summary }: { summary: AttendanceSummary }) {
-  const flagged = summary.students.filter((s) => s.below).length;
-  return (
-    <section aria-labelledby="summary-heading" className={setupStyles.page}>
-      <div>
-        <h2 id="summary-heading" className={setupStyles.subhead}>
-          {t("attendance.summary.title")}
-        </h2>
-        <p className={setupStyles.muted}>{t("attendance.summary.intro", { threshold: summary.threshold })}</p>
-      </div>
-      {flagged > 0 ? <Notice>{t("attendance.summary.flagged", { count: flagged, threshold: summary.threshold })}</Notice> : null}
-      <ul className={`${styles.register} ${styles.roster}`}>
-        {summary.students.map((s) => (
-          <li key={s.enrollmentId} className={`${styles.rosterRow} ${styles.readRow}`}>
-            <span>
-              {s.name}
-              <br />
-              <span className={setupStyles.muted}>{studentMeta(s)}</span>
-            </span>
-            <span className={styles.numeric}>
-              {s.percent === null ? t("attendance.summary.noDays") : `${s.percent}%`}
-              {s.percent === null ? null : (
-                <>
-                  <br />
-                  <span className={setupStyles.muted}>{t("attendance.summary.daysOf", { present: s.present, marked: s.present + s.absent })}</span>
-                </>
-              )}
-              {s.below ? (
-                <>
-                  <br />
-                  <Badge tone="bad">{t("attendance.summary.below", { threshold: summary.threshold })}</Badge>
-                </>
-              ) : null}
-            </span>
-          </li>
-        ))}
-      </ul>
-    </section>
   );
 }

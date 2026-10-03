@@ -45,7 +45,8 @@ export async function listClasses(db: D1Database, reach: Reach, today: string): 
         `SELECT ${CLASS_COLUMNS},
                 (SELECT COUNT(*) FROM enrollments en WHERE en.class_id = cl.id AND en.status = 'active') AS students,
                 (SELECT COUNT(*) FROM student_attendance sa JOIN enrollments en ON en.id = sa.enrollment_id WHERE en.class_id = cl.id AND sa.on_date = ?5) AS marked,
-                (SELECT COUNT(*) FROM student_attendance sa JOIN enrollments en ON en.id = sa.enrollment_id WHERE en.class_id = cl.id AND sa.on_date = ?5 AND sa.status = 'absent') AS absent
+                (SELECT COUNT(*) FROM student_attendance sa JOIN enrollments en ON en.id = sa.enrollment_id WHERE en.class_id = cl.id AND sa.on_date = ?5 AND sa.status = 'absent') AS absent,
+                (SELECT ct.full_name FROM users ct WHERE ct.id = cl.class_teacher_user_id) AS class_teacher_name
            FROM classes cl ${CLASS_JOINS} JOIN academic_years ay ON ay.id = cl.academic_year_id
           WHERE ay.status = 'active' AND cl.is_active = 1 AND ${classInReach(1)}
           ORDER BY s.ordering, pv.ordering, lv.ordinal, cl.label`,
@@ -53,7 +54,7 @@ export async function listClasses(db: D1Database, reach: Reach, today: string): 
       .bind(...bindReach(reach), today),
   ]);
   if (!isOn(on!)) return { ok: false, reason: "off" };
-  const rows = list!.results as unknown as (ClassRow & { students: number; marked: number; absent: number })[];
+  const rows = list!.results as unknown as (ClassRow & { students: number; marked: number; absent: number; class_teacher_name: string | null })[];
   return {
     ok: true,
     data: {
@@ -64,6 +65,7 @@ export async function listClasses(db: D1Database, reach: Reach, today: string): 
         students: r.students,
         markedToday: r.marked > 0,
         absentToday: r.absent,
+        classTeacher: r.class_teacher_name,
         mine: r.me_id !== null && r.class_teacher_user_id === r.me_id,
       })),
     },
