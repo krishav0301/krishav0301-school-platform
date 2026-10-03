@@ -173,6 +173,16 @@ describe("review", () => {
     expect(cls.subjects.find((s) => s.offeringId === english.offeringId)).toMatchObject({ status: "not_started", missing: 3 });
   });
 
+  it("opens on the terminal in progress, not the last one, and counts each student missing a mark once (Co-ordinator FUT F-07)", async () => {
+    const later = await terminal(true); // a later terminal where nothing has started
+    const board = (await (await call("/api/results/review", { cookie: coordinator.cookie })).json()) as { terminalId: string };
+    expect(board.terminalId).toBe(term);
+    const fresh = (await (await call(`/api/results/review?terminalId=${later}`, { cookie: coordinator.cookie })).json()) as { classes: { classId: string; subjects: { offeringId: string; missing: number }[] }[] };
+    const physicsRow = fresh.classes.find((c) => c.classId === fixture.classId)!.subjects.find((x) => x.offeringId === physics.offeringId)!;
+    expect(physics.components.length).toBeGreaterThan(1); // theory and practical: the old count doubled the students
+    expect(physicsRow.missing).toBe(fixture.pupils.length);
+  });
+
   it("sends a sheet back with a note (required); the teacher sees the note and can change it again", async () => {
     const sheetId = await sheetIdOf(fixture, physics, term);
     expect((await post(`/api/results/review/sheets/${sheetId}/send-back`, { note: "" }, coordinator)).status).toBe(400);

@@ -1,187 +1,259 @@
 "use client";
 
+import { ArrowLeft, CircleAlert, ClipboardList, PenLine } from "lucide-react";
 import { useCallback, useState } from "react";
 
+import { formatBsDate } from "@/content/model";
+import { relativeTime } from "@/dashboard/admin-model";
 import { t } from "@/i18n/messages";
 import { TemporaryPasswordNotice } from "@/people/StaffScreen";
+import { EmptyLine, FigureTiles, Panel, ReadFailure, ReadHeader, StatusWord, TableSkeleton, readStyles, type Figure } from "@/read/ReadView";
+import { Facts, PanelSection, SidePanel } from "@/read/SidePanel";
 import { useSession } from "@/session/SessionProvider";
-import setupStyles from "@/setup/setup.module.css";
-import { Gate, useLoad } from "@/setup/useLoad";
-import { Badge, Button, Notice, TextArea } from "@/ui";
+import { useLoad } from "@/setup/useLoad";
+import { Button, Notice, TextArea } from "@/ui";
 
 import styles from "./admissions.module.css";
 import { ClassPicker } from "./ClassPicker";
 import { approveApplication, loadApplication, loadQueue, rejectApplication, requestChanges } from "./client";
 import { STATUS_LABEL, type ApplicationDetail, type ApplicationSummary } from "./model";
 
-/** The Co-ordinator's queue: applications waiting on a decision, oldest first (D-063). */
-export function QueueScreen() {
-  const { api } = useSession();
-  const loadNow = useCallback(() => loadQueue(api), [api]);
-  const { view, reload } = useLoad(loadNow);
-  const [openId, setOpenId] = useState<string | null>(null);
+/** Where the application is for, in words: the section's name (never its key, Co-ordinator FUT F-05), programme, level. */
+export const appliedFor = (a: Pick<ApplicationSummary, "sectionName" | "programmeName" | "levelName">) => `${a.sectionName} · ${a.programmeName} · ${a.levelName}`;
 
-  return (
-    <>
-      <h1 className={setupStyles.title}>{t("admissions.queue.title")}</h1>
-      <p className={setupStyles.muted}>{t("admissions.queue.intro")}</p>
-      <Gate view={view} onRetry={() => void reload()}>
-        {(applications) =>
-          applications.length === 0 ? (
-            <p className={setupStyles.empty}>{t("admissions.queue.empty")}</p>
-          ) : (
-            <ul className={setupStyles.list}>
-              {applications.map((a) => (
-                <QueueRow key={a.id} application={a} open={openId === a.id} onToggle={() => setOpenId((current) => (current === a.id ? null : a.id))} onDecided={() => void reload()} />
-              ))}
-            </ul>
-          )
-        }
-      </Gate>
-    </>
-  );
+/** What a possible duplicate matched, in words. */
+const DUPLICATE_WORDS: Record<string, "admissions.duplicate.phone" | "admissions.duplicate.nameDob"> = { phone: "admissions.duplicate.phone", name_dob: "admissions.duplicate.nameDob" };
+
+/** The figures above the queue: waiting, asked for changes, and possible duplicates. Only what the list already says. */
+export function queueFigures(applications: readonly ApplicationSummary[]): Figure[] {
+  return [
+    { key: "waiting", icon: ClipboardList, tone: "accent", value: String(applications.filter((a) => a.status === "pending_review").length), label: t("admissions.figure.waiting") },
+    { key: "changes", icon: PenLine, tone: "warn", value: String(applications.filter((a) => a.status === "needs_changes").length), label: t("admissions.figure.changes") },
+    { key: "duplicates", icon: CircleAlert, tone: "bad", value: String(applications.filter((a) => a.duplicateFlags.length > 0).length), label: t("admissions.figure.duplicates") },
+  ];
 }
 
-export function QueueRow({ application, open, onToggle, onDecided }: { application: ApplicationSummary; open: boolean; onToggle: () => void; onDecided: () => void }) {
+/** One application in the queue: who, for where, how long it has waited, its state in words, and Review. Pure. */
+export function QueueCard({ application, now, onReview }: { application: ApplicationSummary; now: Date; onReview: () => void }) {
   return (
-    <li className={setupStyles.item}>
-      <div className={styles.queueItem}>
-        <h2 className={setupStyles.itemTitle}>
+    <li className={readStyles.rowItem}>
+      <div className={readStyles.rowHead}>
+        <h3 className={readStyles.rowTitle}>
           {application.firstName} {application.lastName}
-        </h2>
-        <div className={styles.queueMeta}>
-          <Badge tone={application.status === "needs_changes" ? "bad" : "neutral"}>{t(STATUS_LABEL[application.status])}</Badge>
-          <span>{application.sectionKey} · {application.programmeName} · {application.levelName}</span>
-          {application.duplicateFlags.length > 0 ? <Badge tone="bad">{t("admissions.queue.possibleDuplicate")}</Badge> : null}
-        </div>
-        <Button variant="secondary" onClick={onToggle} aria-expanded={open}>
-          {open ? t("admissions.queue.hide") : t("admissions.queue.review")}
+        </h3>
+        <span className={styles.statusLine}>
+          {application.duplicateFlags.length > 0 ? <StatusWord tone="bad">{t("admissions.queue.possibleDuplicate")}</StatusWord> : null}
+          <StatusWord tone={application.status === "needs_changes" ? "warn" : undefined}>{t(STATUS_LABEL[application.status])}</StatusWord>
+        </span>
+      </div>
+      <p className={readStyles.rowMeta}>
+        {appliedFor(application)} · {t(application.walkIn ? "admissions.queue.walkInAgo" : "admissions.queue.appliedAgo", { when: relativeTime(application.createdAt, now) })}
+      </p>
+      <div>
+        <Button variant="secondary" onClick={onReview} aria-label={t("admissions.queue.reviewOf", { name: `${application.firstName} ${application.lastName}` })}>
+          {t("admissions.queue.review")}
         </Button>
-        {open ? <ReviewPanel id={application.id} onDecided={onDecided} /> : null}
       </div>
     </li>
   );
 }
 
-function ReviewPanel({ id, onDecided }: { id: string; onDecided: () => void }) {
+/** The Co-ordinator's queue (D-063), redesigned in D-106 after the Approvals inbox: figures, cards, and a review panel. */
+export function QueueScreen() {
   const { api } = useSession();
-  const loadNow = useCallback(async () => {
-    const result = await loadApplication(api, id);
-    return result.ok ? result : { ok: false as const, reason: result.reason === "not_found" ? ("failed" as const) : result.reason };
-  }, [api, id]);
+  const loadNow = useCallback(() => loadQueue(api), [api]);
   const { view, reload } = useLoad(loadNow);
+  const [open, setOpen] = useState<ApplicationSummary | null>(null);
+  const [now] = useState(() => new Date());
 
   return (
-    <Gate view={view} onRetry={() => void reload()}>
-      {(detail) => <ReviewForm detail={detail} onDecided={onDecided} />}
-    </Gate>
-  );
-}
-
-function ReviewForm({ detail, onDecided }: { detail: ApplicationDetail; onDecided: () => void }) {
-  const { api } = useSession();
-  const [mode, setMode] = useState<"none" | "changes" | "reject" | "approve">("none");
-  const [reason, setReason] = useState("");
-  const [classId, setClassId] = useState("");
-  const [pending, setPending] = useState(false);
-  const [failure, setFailure] = useState<string | null>(null);
-  const [secret, setSecret] = useState<string | null>(null);
-
-  async function submitChanges() {
-    if (!reason.trim()) return setFailure(t("admissions.error.reasonRequired"));
-    setPending(true);
-    const result = await requestChanges(api, detail.id, ["general"], reason.trim());
-    setPending(false);
-    if (result.ok) return onDecided();
-    setFailure(t("admissions.error.failed"));
-  }
-  async function submitReject() {
-    if (!reason.trim()) return setFailure(t("admissions.error.reasonRequired"));
-    setPending(true);
-    const result = await rejectApplication(api, detail.id, reason.trim());
-    setPending(false);
-    if (result.ok) return onDecided();
-    setFailure(t("admissions.error.failed"));
-  }
-  async function submitApprove() {
-    if (!classId.trim()) return setFailure(t("admissions.error.classRequired"));
-    setPending(true);
-    const result = await approveApplication(api, detail.id, classId.trim(), null);
-    setPending(false);
-    if (result.ok) return setSecret(result.temporaryPassword);
-    setFailure(result.reason === "invalid" ? result.message : t("admissions.error.failed"));
-  }
-
-  if (secret) {
-    return <TemporaryPasswordNotice name={`${detail.firstName} ${detail.lastName}`} password={secret} onDone={onDecided} />;
-  }
-
-  return (
-    <div className={setupStyles.form}>
-      {failure ? <Notice tone="bad">{failure}</Notice> : null}
-      <div className={styles.detailGrid}>
-        <div>
-          <p className={styles.detailLabel}>{t("admissions.field.dob")}</p>
-          <p className={styles.detailValue}>{detail.dobBs ?? detail.dob}</p>
-        </div>
-        <div>
-          <p className={styles.detailLabel}>{t("admissions.field.phone")}</p>
-          <p className={styles.detailValue}>{detail.phone}</p>
-        </div>
-        <div>
-          <p className={styles.detailLabel}>{t("admissions.field.email")}</p>
-          <p className={styles.detailValue}>{detail.email}</p>
-        </div>
-        <div>
-          <p className={styles.detailLabel}>{t("admissions.field.guardianName")}</p>
-          <p className={styles.detailValue}>
-            {detail.guardianName} ({detail.guardianPhone})
-          </p>
-        </div>
-        {detail.previousSchool ? (
-          <div>
-            <p className={styles.detailLabel}>{t("admissions.field.previousSchool")}</p>
-            <p className={styles.detailValue}>{detail.previousSchool}</p>
-          </div>
-        ) : null}
-        {detail.referredBy ? (
-          <div>
-            <p className={styles.detailLabel}>{t("admissions.field.referredBy")}</p>
-            <p className={styles.detailValue}>{detail.referredBy}</p>
-          </div>
-        ) : null}
-      </div>
-
-      <div className={styles.decideActions}>
-        <Button variant="secondary" disabled={pending} onClick={() => setMode(mode === "changes" ? "none" : "changes")}>
-          {t("admissions.decide.requestChanges")}
-        </Button>
-        <Button variant="secondary" disabled={pending} onClick={() => setMode(mode === "reject" ? "none" : "reject")}>
-          {t("admissions.decide.reject")}
-        </Button>
-        <Button disabled={pending} onClick={() => setMode(mode === "approve" ? "none" : "approve")}>
-          {t("admissions.decide.approve")}
-        </Button>
-      </div>
-
-      {mode === "changes" || mode === "reject" ? (
-        <>
-          <TextArea label={t("admissions.decide.reasonLabel")} value={reason} onChange={(e) => setReason(e.target.value)} rows={3} />
-          <Button loading={pending} onClick={() => void (mode === "changes" ? submitChanges() : submitReject())}>
-            {t(mode === "changes" ? "admissions.decide.sendChanges" : "admissions.decide.confirmReject")}
-          </Button>
-        </>
+    <div className={readStyles.page}>
+      <ReadHeader title={t("admissions.queue.title")} subtitle={t("admissions.queue.intro")} />
+      {view.status === "loading" ? <TableSkeleton rows={5} tiles={3} /> : null}
+      {view.status === "failed" || view.status === "forbidden" ? <ReadFailure status={view.status} onRetry={() => void reload()} /> : null}
+      {view.status === "ready" ? (
+        view.data.length === 0 ? (
+          <EmptyLine>{t("admissions.queue.empty")}</EmptyLine>
+        ) : (
+          <>
+            <FigureTiles figures={queueFigures(view.data)} label={t("admissions.figures")} />
+            <Panel>
+              <ul className={readStyles.rows}>
+                {view.data.map((a) => (
+                  <QueueCard key={a.id} application={a} now={now} onReview={() => setOpen(a)} />
+                ))}
+              </ul>
+            </Panel>
+          </>
+        )
       ) : null}
-      {mode === "approve" ? (
-        <>
-          <p className={setupStyles.muted}>{t("admissions.decide.classHint")}</p>
-          <ClassPicker levelId={detail.levelId} value={classId} onChange={setClassId} />
-          <Button loading={pending} disabled={!classId} onClick={() => void submitApprove()}>
-            {t("admissions.decide.confirmApprove")}
-          </Button>
-        </>
+      {open ? (
+        <ReviewPanel
+          application={open}
+          onClose={(changed) => {
+            setOpen(null);
+            if (changed) void reload();
+          }}
+        />
       ) : null}
     </div>
   );
 }
 
+type Step = "review" | "approve" | "changes" | "reject" | "admitted" | "changed" | "rejected";
+
+/** One application, opened from its card: the facts, then one decision. Approve is the one prominent action. */
+function ReviewPanel({ application, onClose }: { application: ApplicationSummary; onClose: (changed: boolean) => void }) {
+  const { api } = useSession();
+  const loadNow = useCallback(async () => {
+    const result = await loadApplication(api, application.id);
+    return result.ok ? result : { ok: false as const, reason: result.reason === "not_found" ? ("failed" as const) : result.reason };
+  }, [api, application.id]);
+  const { view, reload } = useLoad(loadNow);
+  const [step, setStep] = useState<Step>("review");
+  const [reason, setReason] = useState("");
+  const [classId, setClassId] = useState("");
+  const [fieldError, setFieldError] = useState<string | null>(null);
+  const [failure, setFailure] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [admitted, setAdmitted] = useState<{ sid: string; password: string } | null>(null);
+  const name = `${application.firstName} ${application.lastName}`;
+  const done = step === "admitted" || step === "changed" || step === "rejected";
+
+  const goTo = (next: Step) => {
+    setStep(next);
+    setFieldError(null);
+    setFailure(null);
+  };
+
+  async function decide() {
+    setFailure(null);
+    if (step === "approve" && !classId) return setFieldError(t("admissions.error.classRequired"));
+    if ((step === "changes" || step === "reject") && !reason.trim()) return setFieldError(t("admissions.error.reasonRequired"));
+    setBusy(true);
+    if (step === "approve") {
+      const result = await approveApplication(api, application.id, classId, null);
+      setBusy(false);
+      if (result.ok) {
+        setAdmitted({ sid: result.sid, password: result.temporaryPassword });
+        return setStep("admitted");
+      }
+      return setFailure(result.reason === "invalid" ? result.message : t(result.reason === "conflict" ? "admissions.error.alreadyDecided" : "admissions.error.failed"));
+    }
+    const result = step === "changes" ? await requestChanges(api, application.id, ["general"], reason.trim()) : await rejectApplication(api, application.id, reason.trim());
+    setBusy(false);
+    // The request went through: the form closes into its outcome (Co-ordinator FUT F-01: it used to stay open).
+    if (result.ok) return setStep(step === "changes" ? "changed" : "rejected");
+    setFailure(t(result.reason === "conflict" ? "admissions.error.alreadyDecided" : "admissions.error.failed"));
+  }
+
+  const detail: ApplicationDetail | null = view.status === "ready" ? view.data : null;
+  const back =
+    step === "approve" || step === "changes" || step === "reject" ? (
+      <button type="button" className={styles.iconButton} aria-label={t("admissions.decide.back")} disabled={busy} onClick={() => goTo("review")}>
+        <ArrowLeft aria-hidden />
+      </button>
+    ) : undefined;
+
+  let body;
+  let foot = null;
+  if (step === "admitted" && admitted) {
+    body = (
+      <>
+        <Notice tone="ok">{t("admissions.decide.admitted", { name, sid: admitted.sid })}</Notice>
+        <Facts rows={[{ name: t("admissions.record.sid"), value: <strong>{admitted.sid}</strong> }]} />
+        <TemporaryPasswordNotice name={name} password={admitted.password} onDone={() => onClose(true)} />
+      </>
+    );
+  } else if (step === "changed" || step === "rejected") {
+    body = <Notice tone="ok">{t(step === "changed" ? "admissions.decide.changesSent" : "admissions.decide.rejected", { name })}</Notice>;
+    foot = <Button onClick={() => onClose(true)}>{t("admissions.decide.done")}</Button>;
+  } else if (view.status === "loading") {
+    body = <TableSkeleton rows={6} />;
+  } else if (!detail) {
+    body = <ReadFailure status="failed" onRetry={() => void reload()} />;
+  } else {
+    body = (
+      <>
+        {failure ? <Notice tone="bad">{failure}</Notice> : null}
+        {detail.duplicateFlags.length > 0 ? (
+          <Notice tone="bad">
+            {t("admissions.duplicate.intro")} {detail.duplicateFlags.map((f) => (DUPLICATE_WORDS[f] ? t(DUPLICATE_WORDS[f]) : f)).join(" ")}
+          </Notice>
+        ) : null}
+        <PanelSection title={t("admissions.decide.facts")}>
+          <Facts
+            rows={[
+              { name: t("admissions.field.level"), value: appliedFor(detail) },
+              { name: t("admissions.field.dob"), value: detail.dobBs ? formatBsDate(detail.dobBs) : detail.dob },
+              { name: t("admissions.field.phone"), value: detail.phone },
+              { name: t("admissions.field.email"), value: detail.email },
+              { name: t("admissions.field.guardianName"), value: `${detail.guardianName} (${detail.guardianPhone})` },
+              ...(detail.previousSchool ? [{ name: t("admissions.field.previousSchool"), value: detail.previousSchool }] : []),
+              ...(detail.referredBy ? [{ name: t("admissions.field.referredBy"), value: detail.referredBy }] : []),
+            ]}
+          />
+        </PanelSection>
+        {step === "approve" ? (
+          <PanelSection title={t("admissions.decide.placeIn")}>
+            <ClassPicker
+              levelId={detail.levelId}
+              value={classId}
+              onChange={(id) => {
+                setClassId(id);
+                setFieldError(null);
+              }}
+            />
+            {fieldError ? <p className={styles.fieldError}>{fieldError}</p> : null}
+          </PanelSection>
+        ) : null}
+        {step === "changes" || step === "reject" ? (
+          <TextArea
+            label={t(step === "changes" ? "admissions.decide.changesLabel" : "admissions.decide.rejectLabel")}
+            value={reason}
+            rows={4}
+            error={fieldError ?? undefined}
+            onChange={(e) => {
+              setReason(e.target.value);
+              setFieldError(null);
+            }}
+          />
+        ) : null}
+      </>
+    );
+    foot =
+      step === "review" ? (
+        <>
+          <Button fullWidth onClick={() => goTo("approve")}>
+            {t("admissions.decide.approve")}
+          </Button>
+          <div className={styles.footRow}>
+            <Button variant="secondary" onClick={() => goTo("changes")}>
+              {t("admissions.decide.requestChanges")}
+            </Button>
+            <Button variant="quiet" onClick={() => goTo("reject")}>
+              {t("admissions.decide.reject")}
+            </Button>
+          </div>
+        </>
+      ) : (
+        <Button fullWidth loading={busy} loadingLabel={t("setup.working")} onClick={() => void decide()}>
+          {t(step === "approve" ? "admissions.decide.confirmApprove" : step === "changes" ? "admissions.decide.sendChanges" : "admissions.decide.confirmReject")}
+        </Button>
+      );
+  }
+
+  return (
+    <SidePanel
+      title={name}
+      subtitle={appliedFor(application)}
+      status={done ? undefined : <StatusWord tone={application.status === "needs_changes" ? "warn" : undefined}>{t(STATUS_LABEL[application.status])}</StatusWord>}
+      lead={back}
+      busy={busy}
+      onClose={() => onClose(done)}
+      foot={foot}
+    >
+      {body}
+    </SidePanel>
+  );
+}

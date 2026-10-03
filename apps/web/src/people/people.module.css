@@ -29,3 +29,45 @@ button.wrapLabel {
   text-align: center;
   white-space: normal;
 }
+
+/* Search and the Everyone / Active / Switched off choice above the list; they stack on a phone. */
+.listTools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.listTools > :first-child {
+  flex: 1 1 min(18rem, 100%);
+  min-width: 0;
+}
+
+/* The panel's actions: side by side where they fit, each its own line on a narrow phone. */
+.manageFoot {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+/* Teaching (D-106): a subject and its teacher picker on one line where there is room, stacked on a phone. */
+.teachRow {
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--space-2) var(--space-4);
+}
+
+.teachRow > :first-child {
+  flex: 1 1 min(12rem, 100%);
+  min-width: 0;
+  align-self: center;
+}
+
+.teachPick {
+  flex: 1 1 min(16rem, 100%);
+  min-width: 0;
+  max-width: 22rem;
+}

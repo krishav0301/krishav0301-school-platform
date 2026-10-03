@@ -2,7 +2,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 
 import { ConfigContext, makeConfigValue, type PublicConfig } from "@/config/ConfigProvider";
-import { SchoolDayCard, StudentTodayCard, TeacherTodayCard, TodayList } from "@/dashboard/TodayCards";
+import { StudentTodayCard, TeacherTodayCard, TodayList } from "@/dashboard/TodayCards";
 import { SessionContext } from "@/session/SessionProvider";
 import { fakeSession } from "./session";
 import royal from "../../../packs/royal-softech/pack.json";
@@ -29,7 +29,6 @@ describe("the dashboard's today cards", () => {
   it("each shows the shape of its lines while it loads", () => {
     expect(inContext(<TeacherTodayCard />)).toMatch(/role="status"[^>]*aria-busy="true"/);
     expect(inContext(<StudentTodayCard />, as("student", "own"))).toMatch(/role="status"[^>]*aria-busy="true"/);
-    expect(inContext(<SchoolDayCard />, as("coordinator", "institution"))).toMatch(/role="status"[^>]*aria-busy="true"/);
   });
 
   it("a line is a fact and the link to act on it; with nothing to do, it says so", () => {

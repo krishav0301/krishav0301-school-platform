@@ -53,7 +53,7 @@ const PASSWORD = "Copper-River-Evening-35";
     await go("/portal/admissions/register");
     const opts = await p.getByLabel("Applying for").locator("option").allInnerTexts();
     console.log("walk-in levels:", opts.join(" | "));
-    await shot(p, "16-07-hari-walkin", `Walk-in: Applying for offers ${opts.length - 1} levels`, { full: false });
+    await shot(p, "16-07-hari-walkin", `Walk-in: Applying for offers only his section's ${opts.length - 1} levels (F-11 fixed)`, { full: false });
   });
   await step("server", async () => {
     const cookies = (await s.context.cookies()).filter((c) => c.name.startsWith("__Host-")).map((c) => `${c.name}=${c.value}`).join("; ");

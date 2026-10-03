@@ -35,6 +35,7 @@ interface QueueRow {
   level_name: string;
   programme_name: string;
   section_key: string;
+  section_name: string;
   duplicate_flags: string | null;
   created_at: string;
 }
@@ -49,6 +50,7 @@ const toSummary = (r: QueueRow) => ({
   levelName: r.level_name,
   programmeName: r.programme_name,
   sectionKey: r.section_key,
+  sectionName: r.section_name,
   duplicateFlags: r.duplicate_flags ? (JSON.parse(r.duplicate_flags) as string[]) : [],
   createdAt: r.created_at,
 });
@@ -58,7 +60,7 @@ export async function listQueue(db: D1Database, sections: "all" | readonly strin
   const { results } = await db
     .prepare(
       `SELECT ap.public_id, ap.first_name, ap.last_name, ap.status, ap.walk_in, lv.public_id AS level_id, lv.name AS level_name, pv.name AS programme_name,
-              s.key AS section_key, ap.duplicate_flags, ap.created_at
+              s.key AS section_key, s.name AS section_name, ap.duplicate_flags, ap.created_at
          FROM applications ap JOIN levels lv ON lv.id = ap.level_id JOIN programmes pv ON pv.id = lv.programme_id JOIN sections s ON s.id = pv.section_id
         WHERE ap.status IN ('pending_review', 'needs_changes') AND (?1 IS NULL OR s.key IN (SELECT value FROM json_each(?1)))
         ORDER BY ap.created_at`,
@@ -87,7 +89,7 @@ export async function getApplication(db: D1Database, sections: "all" | readonly 
     .prepare(
       `SELECT ap.public_id, ap.first_name, ap.middle_name, ap.last_name, ap.status, ap.walk_in, ap.dob_ad, ap.phone, ap.email,
               ap.guardian_name, ap.guardian_phone, ap.previous_school, ap.referred_by, ap.changes_requested, ap.decision_reason,
-              lv.public_id AS level_id, lv.name AS level_name, pv.name AS programme_name, s.key AS section_key, ap.duplicate_flags, ap.created_at
+              lv.public_id AS level_id, lv.name AS level_name, pv.name AS programme_name, s.key AS section_key, s.name AS section_name, ap.duplicate_flags, ap.created_at
          FROM applications ap JOIN levels lv ON lv.id = ap.level_id JOIN programmes pv ON pv.id = lv.programme_id JOIN sections s ON s.id = pv.section_id
         WHERE ap.public_id = ?1 AND (?2 IS NULL OR s.key IN (SELECT value FROM json_each(?2)))`,
     )

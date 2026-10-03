@@ -22,6 +22,7 @@ import {
 import Link from "next/link";
 
 import { useConfig } from "@/config/ConfigProvider";
+import { Panel } from "@/read/ReadView";
 import { t, type MessageKey } from "@/i18n/messages";
 import styles from "@/settings/settings.module.css";
 import { Card } from "@/ui";
@@ -81,31 +82,48 @@ export const ROLE_BRIEFS: Record<"coordinator" | "accountant" | "teacher" | "stu
   },
 };
 
-export function RoleBrief({ role }: { role: keyof typeof ROLE_BRIEFS }) {
-  const { config, term } = useConfig();
-  const brief = ROLE_BRIEFS[role];
+function BriefLinks({ role }: { role: keyof typeof ROLE_BRIEFS }) {
+  const { config } = useConfig();
   // Same rule as the menu: a module this school uses; an unlisted one counts as on only when the config says so.
-  const lines = brief.lines.filter((line) => !line.module || config?.modules[line.module] !== false);
+  const lines = ROLE_BRIEFS[role].lines.filter((line) => !line.module || config?.modules[line.module] !== false);
+  return (
+    <ul className={styles.links}>
+      {lines.map((line) => (
+        <li key={line.href + line.title}>
+          <Link href={line.href} className={styles.link}>
+            <line.icon aria-hidden className={styles.linkIcon} strokeWidth={1.75} />
+            <span className={styles.linkText}>
+              <span className={styles.linkTitle}>{t(line.title)}</span>
+            </span>
+            <ChevronRight aria-hidden className={styles.icon} />
+          </Link>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+export function RoleBrief({ role }: { role: keyof typeof ROLE_BRIEFS }) {
+  const { term } = useConfig();
   const id = `brief-${role}`;
   return (
     <Card aria-labelledby={id} className={styles.card}>
       <h2 id={id} className={styles.heading}>
         {t("brief.title", { role: term(`role.${role}`) })}
       </h2>
-      <p className={styles.linkDetail}>{t(brief.intro)}</p>
-      <ul className={styles.links}>
-        {lines.map((line) => (
-          <li key={line.href + line.title}>
-            <Link href={line.href} className={styles.link}>
-              <line.icon aria-hidden className={styles.linkIcon} strokeWidth={1.75} />
-              <span className={styles.linkText}>
-                <span className={styles.linkTitle}>{t(line.title)}</span>
-              </span>
-              <ChevronRight aria-hidden className={styles.icon} />
-            </Link>
-          </li>
-        ))}
-      </ul>
+      <p className={styles.linkDetail}>{t(ROLE_BRIEFS[role].intro)}</p>
+      <BriefLinks role={role} />
     </Card>
+  );
+}
+
+/** The same brief as a card among the read patterns (the Co-ordinator's home, D-106). */
+export function RoleBriefLinks({ role }: { role: keyof typeof ROLE_BRIEFS }) {
+  const { term } = useConfig();
+  return (
+    <Panel title={t("brief.title", { role: term(`role.${role}`) })} labelledBy={`brief-${role}`}>
+      <p className={styles.linkDetail}>{t(ROLE_BRIEFS[role].intro)}</p>
+      <BriefLinks role={role} />
+    </Panel>
   );
 }

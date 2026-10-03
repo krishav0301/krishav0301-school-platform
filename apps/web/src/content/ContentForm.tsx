@@ -12,7 +12,7 @@ import { Button, Card, Checkbox, Field, Notice, Skeleton, buttonClass } from "@/
 
 import { useAddressQuery } from "./address";
 import { BsDateField } from "./BsDateField";
-import { loadContent, loadItem, submitForm } from "./client";
+import { loadContent, loadItem, submitForApproval, submitForm } from "./client";
 import { ContentPreview } from "./ContentPreview";
 import { KindTile } from "./KindIcon";
 import { TextEditor } from "./TextEditor";
@@ -137,7 +137,9 @@ export function ContentEditor({
   onGone: () => void;
   onCancel?: () => void;
 }) {
-  const { api } = useSession();
+  const { api, me } = useSession();
+  // Only the Principal (and Support) publish; a Co-ordinator sends a draft for approval instead (D-061, Co-ordinator FUT F-08).
+  const canPublish = (me?.roles ?? []).some((r) => r.role === "admin" || r.role === "super_admin");
   const [values, setValues] = useState<FormValues>(initial);
   const [errors, setErrors] = useState<FormErrors>({});
   const [failure, setFailure] = useState<MessageKey | null>(null);
@@ -180,7 +182,7 @@ export function ContentEditor({
     if (Object.keys(problems).length > 0) return showProblems(problems);
 
     setPending(publish ? "publish" : "draft");
-    const result = await submitForm(api, id, values, publish);
+    const result = publish && !canPublish ? await submitForApproval(api, id, values) : await submitForm(api, id, values, publish);
 
     if ("done" in result) return onSaved(result.done);
     setPending(null);
@@ -351,8 +353,8 @@ export function ContentEditor({
               <Button type="submit" variant="secondary" loading={pending === "draft"} disabled={pending === "publish"} loadingLabel={t("contentForm.saving")}>
                 {pending === "draft" ? t("contentForm.saving") : t("contentForm.save")}
               </Button>
-              <Button loading={pending === "publish"} disabled={pending === "draft"} loadingLabel={t("contentForm.publishing")} onClick={() => void run(true)}>
-                {pending === "publish" ? t("contentForm.publishing") : t("contentForm.publish")}
+              <Button loading={pending === "publish"} disabled={pending === "draft"} loadingLabel={t(canPublish ? "contentForm.publishing" : "contentForm.sending")} onClick={() => void run(true)}>
+                {pending === "publish" ? t(canPublish ? "contentForm.publishing" : "contentForm.sending") : t(canPublish ? "contentForm.publish" : "contentForm.sendForApproval")}
               </Button>
             </>
           )}

@@ -4,7 +4,7 @@ import { describe, expect, it, vi } from "vitest";
 import PeoplePage from "@/app/portal/people/page";
 import { ConfigContext, makeConfigValue, type PublicConfig } from "@/config/ConfigProvider";
 import type { StaffMember } from "@/people/model";
-import { StaffForm, StaffScreen, StaffView, TemporaryPasswordNotice } from "@/people/StaffScreen";
+import { StaffForm, StaffScreen, StaffView, TemporaryPasswordNotice, accountState, filterStaff, staffFigures } from "@/people/StaffScreen";
 import { NewPasswordStep } from "@/session/NewPasswordStep";
 import { SessionContext } from "@/session/SessionProvider";
 import { fakeSession } from "./session";
@@ -55,39 +55,47 @@ describe("the staff list", () => {
     member({ id: "m2", fullName: "Ram Karki", email: "ram@school.example", roles: [{ role: "teacher", scope: "assigned", section: null }], homeSection: "plus2", mustChangePassword: true, lastSignInAt: null }),
     member({ id: "m3", fullName: "Hari Rai", email: "hari@school.example", roles: [{ role: "accountant", scope: "section", section: "bachelors" }], active: false }),
   ];
-  const view = (roles = adminRoles) => inContext(<StaffView staff={staff} roles={roles} sections={sections} busy={null} onToggle={noop} onIssue={noop} />);
+  const view = (roles = adminRoles) => inContext(<StaffView staff={staff} roles={roles} sections={sections} onManage={noop} />);
 
-  it("shows each person with their role in the school's own word, their section, and where they stand", () => {
+  it("shows each person with their role in the school's own word, their section, and where they stand in words", () => {
     const html = view();
-    for (const name of ["Sita Sharma", "Ram Karki", "Hari Rai"]) expect(html).toContain(`>${name}</h2>`);
+    for (const name of ["Sita Sharma", "Ram Karki", "Hari Rai"]) expect(html).toContain(`>${name}</h3>`);
     expect(html).toContain("sita@school.example");
-    expect(html).toContain(">Vice Principal<");
-    expect(html).toContain(">Teacher<");
-    expect(html).toContain(">Accountant<");
-    expect(html).toContain(">Whole school<"); // the Vice Principal
-    expect(html).toContain(">+2<"); // the teacher's home section
-    expect(html).toContain(">Bachelor&#x27;s<"); // the accountant's section
+    expect(html).toContain(">Vice Principal · Whole school<");
+    expect(html).toContain(">Teacher · +2<"); // the teacher's home section
+    expect(html).toContain(">Accountant · Bachelor&#x27;s<"); // the accountant's section
+    expect(html).toContain(">Active<");
     expect(html).toContain(">Has not signed in yet<");
     expect(html).toContain(">Switched off<");
   });
 
-  it("gives switch and new-password controls only for people the viewer may manage, and none for a switched-off person's password", () => {
+  it("offers Manage, named for the person, only for people the viewer may manage", () => {
     const admin = view(adminRoles);
-    expect(admin).toContain('aria-label="Switch off Sita Sharma"');
-    expect(admin).toContain('aria-label="New temporary password for Sita Sharma"');
-    expect(admin).toContain('aria-label="Switch on Hari Rai"');
-    expect(admin).not.toContain("New temporary password for Hari Rai"); // switched off: nothing to give
-    expect(admin).not.toContain("Switch off Ram Karki"); // the Admin does not manage teachers
-    expect(admin).not.toContain("New temporary password for Ram Karki");
+    expect(admin).toContain('aria-label="Manage Sita Sharma"');
+    expect(admin).toContain('aria-label="Manage Hari Rai"');
+    expect(admin).not.toContain("Manage Ram Karki"); // the Admin does not manage teachers
 
     const coordinator = view(cooRoles);
-    expect(coordinator).toContain('aria-label="Switch off Ram Karki"');
-    expect(coordinator).toContain('aria-label="New temporary password for Ram Karki"');
-    expect(coordinator).not.toContain("Switch off Sita Sharma");
+    expect(coordinator).toContain('aria-label="Manage Ram Karki"');
+    expect(coordinator).not.toContain("Manage Sita Sharma");
   });
 
   it("says so when there is no one yet", () => {
-    expect(inContext(<StaffView staff={[]} roles={adminRoles} sections={sections} busy={null} onToggle={noop} onIssue={noop} />)).toContain("No one yet. Add the first person.");
+    expect(inContext(<StaffView staff={[]} roles={adminRoles} sections={sections} onManage={noop} />)).toContain("No one yet. Add the first person.");
+  });
+
+  it("four figures from the list itself, and a search by name or email with a filter", () => {
+    expect(staffFigures(staff).map((f) => [f.key, f.value])).toEqual([
+      ["all", "3"],
+      ["active", "2"],
+      ["new", "1"],
+      ["off", "1"],
+    ]);
+    expect(filterStaff(staff, "ram", "all").map((m) => m.id)).toEqual(["m2"]);
+    expect(filterStaff(staff, "HARI@", "all").map((m) => m.id)).toEqual(["m3"]);
+    expect(filterStaff(staff, "", "active").map((m) => m.id)).toEqual(["m1", "m2"]);
+    expect(filterStaff(staff, "", "off").map((m) => m.id)).toEqual(["m3"]);
+    expect(accountState(staff[0]!).key).toBe("people.active");
   });
 });
 

@@ -1,8 +1,10 @@
 "use client";
 
+import type { ReactNode } from "react";
+
 import { formatBsDate } from "@/content/model";
 import { t } from "@/i18n/messages";
-import { EmptyLine, Panel, ReadHeader, ReadTable, StatusWord, readStyles } from "@/read/ReadView";
+import { EmptyLine, Panel, ReadHeader, ReadTable, StatusWord, readStyles, type Column } from "@/read/ReadView";
 
 import { YEAR_STATUS_LABEL, classTitle, formatHundredths, type Curriculum, type SchoolClass, type Subject, type Terminal, type Year } from "./model";
 
@@ -13,29 +15,44 @@ import { YEAR_STATUS_LABEL, classTitle, formatHundredths, type Curriculum, type 
 /** The school's own words in the middle of a sentence: "the terminals of the year", not "the Terminals". */
 export const midSentence = (words: Record<string, string>): Record<string, string> => Object.fromEntries(Object.entries(words).map(([k, v]) => [k, v.toLowerCase()]));
 
+/**
+ * The Co-ordinator's controls on a row (D-106): the same tables the Principal reads, with one more column. On a phone
+ * the control sits at the end of its stacked row with no label before it.
+ */
+export interface RowAction<R> {
+  label: string;
+  cell: (row: R) => ReactNode;
+}
+
+const withAction = <R,>(columns: Column<R>[], action?: RowAction<R>): Column<R>[] =>
+  action ? [...columns, { key: "action", label: action.label, align: "end", plain: true, cell: (row: R) => action.cell(row) }] : columns;
+
 export function ReadSetupHeader({ title, subtitle }: { title: string; subtitle: string }) {
   return <ReadHeader title={title} subtitle={subtitle} crumbs={[{ label: t("reports.title"), href: "/portal/reports" }, { label: title }]} />;
 }
 
-export function YearsTable({ years }: { years: readonly Year[] }) {
-  if (years.length === 0) return <EmptyLine>{t("setup.years.emptyReadOnly")}</EmptyLine>;
+export function YearsTable({ years, action, empty = "setup.years.emptyReadOnly" }: { years: readonly Year[]; action?: RowAction<Year>; empty?: "setup.years.emptyReadOnly" | "setup.years.empty" }) {
+  if (years.length === 0) return <EmptyLine>{t(empty)}</EmptyLine>;
   return (
     <Panel>
       <ReadTable
         caption={t("setup.years.title")}
         rows={years}
         rowKey={(y) => y.id}
-        columns={[
-          { key: "year", label: t("setup.read.year"), primary: true, cell: (y) => y.label },
-          { key: "dates", label: t("setup.read.dates"), cell: (y) => t("setup.years.dates", { from: formatBsDate(y.startDateBs), until: formatBsDate(y.endDateBs) }) },
-          { key: "status", label: t("attendance.class.status"), cell: (y) => <StatusWord tone={y.status === "active" ? "ok" : undefined}>{t(YEAR_STATUS_LABEL[y.status])}</StatusWord> },
-        ]}
+        columns={withAction(
+          [
+            { key: "year", label: t("setup.read.year"), primary: true, cell: (y) => y.label },
+            { key: "dates", label: t("setup.read.dates"), cell: (y) => t("setup.years.dates", { from: formatBsDate(y.startDateBs), until: formatBsDate(y.endDateBs) }) },
+            { key: "status", label: t("attendance.class.status"), cell: (y) => <StatusWord tone={y.status === "active" ? "ok" : undefined}>{t(YEAR_STATUS_LABEL[y.status])}</StatusWord> },
+          ],
+          action,
+        )}
       />
     </Panel>
   );
 }
 
-export function ClassesTable({ classes }: { classes: readonly SchoolClass[] }) {
+export function ClassesTable({ classes, action }: { classes: readonly SchoolClass[]; action?: RowAction<SchoolClass> }) {
   if (classes.length === 0) return <EmptyLine>{t("setup.classes.empty")}</EmptyLine>;
   return (
     <Panel>
@@ -43,12 +60,15 @@ export function ClassesTable({ classes }: { classes: readonly SchoolClass[] }) {
         caption={t("setup.classes.title")}
         rows={classes}
         rowKey={(c) => c.id}
-        columns={[
-          { key: "class", label: t("attendance.col.class"), primary: true, cell: (c) => classTitle(c) },
-          { key: "programme", label: t("setup.read.programme"), cell: (c) => c.programmeName },
-          { key: "level", label: t("setup.read.level"), cell: (c) => c.levelName },
-          { key: "status", label: t("attendance.class.status"), cell: (c) => (c.active ? <StatusWord tone="ok">{t("setup.read.inUse")}</StatusWord> : <StatusWord>{t("setup.classes.off")}</StatusWord>) },
-        ]}
+        columns={withAction(
+          [
+            { key: "class", label: t("attendance.col.class"), primary: true, cell: (c) => classTitle(c) },
+            { key: "programme", label: t("setup.read.programme"), cell: (c) => c.programmeName },
+            { key: "level", label: t("setup.read.level"), cell: (c) => c.levelName },
+            { key: "status", label: t("attendance.class.status"), cell: (c) => (c.active ? <StatusWord tone="ok">{t("setup.read.inUse")}</StatusWord> : <StatusWord>{t("setup.classes.off")}</StatusWord>) },
+          ],
+          action,
+        )}
       />
     </Panel>
   );
@@ -71,19 +91,22 @@ export function TerminalsTable({ terminals, words }: { terminals: readonly Termi
   );
 }
 
-export function SubjectsTable({ subjects }: { subjects: readonly Subject[] }) {
-  if (subjects.length === 0) return <EmptyLine>{t("setup.subjects.emptyReadOnly")}</EmptyLine>;
+export function SubjectsTable({ subjects, action, empty = "setup.subjects.emptyReadOnly" }: { subjects: readonly Subject[]; action?: RowAction<Subject>; empty?: "setup.subjects.emptyReadOnly" | "setup.subjects.empty" }) {
+  if (subjects.length === 0) return <EmptyLine>{t(empty)}</EmptyLine>;
   return (
     <Panel>
       <ReadTable
         caption={t("setup.subjects.title")}
         rows={subjects}
         rowKey={(x) => x.id}
-        columns={[
-          { key: "name", label: t("setup.read.subject"), primary: true, cell: (x) => x.name },
-          { key: "code", label: t("setup.read.code"), cell: (x) => x.code ?? "—" },
-          { key: "status", label: t("attendance.class.status"), cell: (x) => (x.archived ? <StatusWord>{t("setup.subjects.archived")}</StatusWord> : <StatusWord tone="ok">{t("setup.read.inUse")}</StatusWord>) },
-        ]}
+        columns={withAction(
+          [
+            { key: "name", label: t("setup.read.subject"), primary: true, cell: (x) => x.name },
+            { key: "code", label: t("setup.read.code"), cell: (x) => x.code ?? "—" },
+            { key: "status", label: t("attendance.class.status"), cell: (x) => (x.archived ? <StatusWord>{t("setup.subjects.archived")}</StatusWord> : <StatusWord tone="ok">{t("setup.read.inUse")}</StatusWord>) },
+          ],
+          action,
+        )}
       />
     </Panel>
   );

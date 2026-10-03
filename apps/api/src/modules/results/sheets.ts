@@ -257,8 +257,19 @@ export async function sheetPlace(db: D1Database, sheetId: string): Promise<{ cla
 
 /** The Co-ordinator's board for one terminal: every class in reach, each needed subject's state, and whether it can publish. */
 export async function reviewBoard(db: D1Database, reach: Reach, terminalId: string | undefined): Promise<ReviewBoard> {
-  const terminals = (await db.prepare(TERMINALS).all<{ id: string; name: string }>()).results;
-  const chosen = terminalId && terminals.some((t) => t.id === terminalId) ? terminalId : (terminals[terminals.length - 1]?.id ?? null);
+  // With none asked for, the board opens on the terminal in progress: the latest one any marks were started for, else
+  // the first (Co-ordinator FUT F-07; it used to open on the last terminal, where nothing has started).
+  const [listed, started] = await db.batch([
+    db.prepare(TERMINALS),
+    db.prepare(
+      `SELECT t.public_id AS id FROM terminals t JOIN academic_years ay ON ay.id = t.academic_year_id
+        WHERE ay.status = 'active' AND EXISTS (SELECT 1 FROM mark_sheets ms WHERE ms.terminal_id = t.id)
+        ORDER BY t.ordinal DESC LIMIT 1`,
+    ),
+  ]);
+  const terminals = listed!.results as { id: string; name: string }[];
+  const inProgress = (started!.results[0] as { id: string } | undefined)?.id;
+  const chosen = terminalId && terminals.some((t) => t.id === terminalId) ? terminalId : (inProgress ?? terminals[0]?.id ?? null);
   if (!chosen) return { terminals, terminalId: null, classes: [] };
   const { results } = await db
     .prepare(

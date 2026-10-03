@@ -5,9 +5,9 @@ import { useCallback, useState, type FormEvent } from "react";
 import { useConfig } from "@/config/ConfigProvider";
 import { t, type MessageKey } from "@/i18n/messages";
 import { useSession } from "@/session/SessionProvider";
-import { AddDialog, Badge, Button, Field, Notice, TitleRow } from "@/ui";
+import { AddDialog, Button, Field, Notice } from "@/ui";
 
-import { ReadOnlyNote } from "@/read/ReadView";
+import { ReadHeader, ReadOnlyNote } from "@/read/ReadView";
 
 import { createSubject, loadSubjects, setSubjectArchived } from "./client";
 import { REASON_MESSAGE, canManageInstitution, canManageStructure, type Subject } from "./model";
@@ -17,7 +17,10 @@ import styles from "./setup.module.css";
 
 type Flash = { tone: "ok" | "bad"; text: string };
 
-/** The school's subjects. Archiving hides a subject from the level pickers and keeps everything that used it. */
+/**
+ * The school's subjects, in the table the Principal reads, with Archive or Restore for a whole-school Co-ordinator
+ * (D-106). Archiving hides a subject from the level pickers and keeps everything that used it.
+ */
 export function SubjectsView({
   subjects,
   canArchive,
@@ -31,36 +34,30 @@ export function SubjectsView({
   onToggle: (subject: Subject) => void;
   canAdd?: boolean;
 }) {
-  if (subjects.length === 0) return <p className={styles.empty}>{t(canAdd ? "setup.subjects.empty" : "setup.subjects.emptyReadOnly")}</p>;
-
   return (
-    <ul className={styles.list}>
-      {subjects.map((subject) => (
-        <li key={subject.id} className={styles.item}>
-          <h2 className={styles.itemTitle}>{subject.name}</h2>
-          {subject.code || subject.archived ? (
-            <div className={styles.badges}>
-              {subject.code ? <Badge>{t("setup.subjects.codeIs", { code: subject.code })}</Badge> : null}
-              {subject.archived ? <Badge>{t("setup.subjects.archived")}</Badge> : null}
-            </div>
-          ) : null}
-          {canArchive ? (
-            <div className={styles.actions}>
-              <Button
-                variant="quiet"
-                loading={busy === subject.id}
-                loadingLabel={t("setup.working")}
-                disabled={busy !== null && busy !== subject.id}
-                aria-label={t(subject.archived ? "setup.subjects.restoreItem" : "setup.subjects.archiveItem", { name: subject.name })}
-                onClick={() => onToggle(subject)}
-              >
-                {t(subject.archived ? "setup.subjects.restore" : "setup.subjects.archive")}
-              </Button>
-            </div>
-          ) : null}
-        </li>
-      ))}
-    </ul>
+    <SubjectsTable
+      subjects={subjects}
+      empty={canAdd ? "setup.subjects.empty" : "setup.subjects.emptyReadOnly"}
+      action={
+        canArchive
+          ? {
+              label: t("setup.read.actions"),
+              cell: (subject) => (
+                <Button
+                  variant="quiet"
+                  loading={busy === subject.id}
+                  loadingLabel={t("setup.working")}
+                  disabled={busy !== null && busy !== subject.id}
+                  aria-label={t(subject.archived ? "setup.subjects.restoreItem" : "setup.subjects.archiveItem", { name: subject.name })}
+                  onClick={() => onToggle(subject)}
+                >
+                  {t(subject.archived ? "setup.subjects.restore" : "setup.subjects.archive")}
+                </Button>
+              ),
+            }
+          : undefined
+      }
+    />
   );
 }
 
@@ -97,7 +94,17 @@ export function SubjectForm({ onAdded, showTitle = true }: { onAdded: () => void
     <form onSubmit={submit} noValidate className={styles.form}>
       {showTitle ? <h2 className={styles.formTitle}>{t("setup.subjects.add")}</h2> : null}
       {problem ? <Notice tone="bad">{t(problem)}</Notice> : null}
-      <Field label={t("setup.subjects.name")} value={name} maxLength={120} autoComplete="off" onChange={(event) => setName(event.target.value)} error={error ? t(error) : undefined} />
+      <Field
+        label={t("setup.subjects.name")}
+        value={name}
+        maxLength={120}
+        autoComplete="off"
+        onChange={(event) => {
+          setName(event.target.value);
+          setError(null);
+        }}
+        error={error ? t(error) : undefined}
+      />
       <Field label={t("setup.subjects.code")} hint={t("setup.subjects.codeHint")} value={code} maxLength={20} autoComplete="off" onChange={(event) => setCode(event.target.value)} />
       <Button type="submit" loading={saving} loadingLabel={t("setup.working")}>
         {t("setup.subjects.add")}
@@ -131,10 +138,10 @@ export function SubjectsScreen() {
   return (
     <>
       {canAdd ? (
-        <>
-        <TitleRow>
-          <h1 className={styles.title}>{t("setup.subjects.title")}</h1>
-          {canAdd ? (
+        <ReadHeader
+          title={t("setup.subjects.title")}
+          subtitle={t("setup.subjects.intro")}
+          actions={
             <AddDialog label={t("setup.subjects.add")} title={t("setup.subjects.add")}>
               {(close) => (
                 <SubjectForm
@@ -147,10 +154,8 @@ export function SubjectsScreen() {
                 />
               )}
             </AddDialog>
-          ) : null}
-        </TitleRow>
-        <p className={styles.muted}>{t("setup.subjects.intro")}</p>
-        </>
+          }
+        />
       ) : (
         <ReadSetupHeader title={t("setup.subjects.title")} subtitle={t("setup.read.subjectsSubtitle")} />
       )}
@@ -158,7 +163,7 @@ export function SubjectsScreen() {
       <Gate view={view} onRetry={() => void reload()}>
         {({ subjects }) => (canAdd ? <SubjectsView subjects={subjects} canArchive={canArchive} canAdd={canAdd} busy={busy} onToggle={(s) => void toggle(s)} /> : <SubjectsTable subjects={subjects} />)}
       </Gate>
-      {canAdd && !canArchive ? <Notice>{t("setup.subjects.onlyWholeSchool", { coordinator })}</Notice> : null}
+      {canAdd && !canArchive ? <ReadOnlyNote>{t("setup.subjects.onlyWholeSchool", { coordinator })}</ReadOnlyNote> : null}
       {canAdd ? null : <ReadOnlyNote>{t("setup.read.readOnly", { coordinator })}</ReadOnlyNote>}
     </>
   );

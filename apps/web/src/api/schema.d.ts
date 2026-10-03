@@ -1256,7 +1256,8 @@ export interface paths {
         delete?: never;
         options?: never;
         head?: never;
-        patch?: never;
+        /** @description Correct a student's personal details, with a reason (Co-ordinator FUT F-06). Only what changes is sent. The SID is never editable, and the email (the student's sign-in) is not changed here. Re-checked inside the write for the student's section. */
+        patch: operations["correct_student"];
         trace?: never;
     };
     "/api/attendance/classes": {
@@ -3391,6 +3392,13 @@ export interface components {
             sid: string;
             temporaryPassword: string;
         };
+        AdmissionsConflict: {
+            error: string;
+            matches?: {
+                name: string;
+                sid: string;
+            }[];
+        };
         WalkInInput: {
             firstName: string;
             middleName?: string;
@@ -3418,6 +3426,7 @@ export interface components {
             levelName: string;
             programmeName: string;
             sectionKey: string;
+            sectionName: string;
             duplicateFlags: string[];
             createdAt: string;
         };
@@ -3479,6 +3488,17 @@ export interface components {
             status: "active" | "left" | "graduated";
             className: string | null;
             createdAt: string;
+        };
+        CorrectStudent: {
+            firstName?: string;
+            middleName?: string | null;
+            lastName?: string;
+            dob?: string;
+            phone?: string | null;
+            guardianName?: string;
+            guardianPhone?: string;
+            previousSchool?: string | null;
+            reason: string;
         };
         AttendanceClassList: {
             today: string;
@@ -8115,6 +8135,7 @@ export interface operations {
             content: {
                 "application/json": components["schemas"]["WalkInInput"] & {
                     classId: string;
+                    confirmDuplicate?: boolean;
                 };
             };
         };
@@ -8146,13 +8167,13 @@ export interface operations {
                     "application/json": components["schemas"]["AdmissionsError"];
                 };
             };
-            /** @description It conflicts with what is already there */
+            /** @description Already resolved, or this may be a student who is already admitted (send again with confirmDuplicate) */
             409: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["AdmissionsError"];
+                    "application/json": components["schemas"]["AdmissionsConflict"];
                 };
             };
             /** @description The change breaks a rule; nothing changed */
@@ -8547,6 +8568,68 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AdmissionsError"];
+                };
+            };
+        };
+    };
+    correct_student: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CorrectStudent"];
+            };
+        };
+        responses: {
+            /** @description Corrected; the record as it now is */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StudentDetail"];
+                };
+            };
+            /** @description Not allowed */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdmissionsError"];
+                };
+            };
+            /** @description No such item */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdmissionsError"];
+                };
+            };
+            /** @description It conflicts with what is already there */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdmissionsError"];
+                };
+            };
+            /** @description The change breaks a rule; nothing changed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdmissionsInvalid"];
                 };
             };
         };

@@ -3,12 +3,12 @@
 import { StudentRecordCard } from "@/admissions/StudentRecordCard";
 import { OwnAttendanceCard } from "@/attendance/OwnAttendanceCard";
 import { AdminDashboard } from "@/dashboard/AdminDashboard";
+import { CoordinatorDashboard } from "@/dashboard/CoordinatorDashboard";
 import { ROLE_BRIEFS, RoleBrief } from "@/dashboard/RoleBrief";
-import { SchoolDayCard, StudentTodayCard, TeacherTodayCard } from "@/dashboard/TodayCards";
+import { StudentTodayCard, TeacherTodayCard } from "@/dashboard/TodayCards";
 import { useConfig } from "@/config/ConfigProvider";
 import { t } from "@/i18n/messages";
 import { useSession, type RoleClaim } from "@/session/SessionProvider";
-import { ChecklistCard } from "@/setup/ChecklistCard";
 import { PortalShell } from "@/shell/PortalShell";
 import { Badge, Card } from "@/ui";
 
@@ -20,6 +20,15 @@ function Dashboard() {
   if (!me) return null;
   // The Principal (Admin) and Support see the whole school at a glance (D-088).
   if (me.roles.some((r) => r.role === "admin" || r.role === "super_admin")) return <AdminDashboard />;
+  // The Co-ordinator's home is their school day (D-106); a Co-ordinator who also teaches sees their own day below it.
+  if (me.roles.some((r) => r.role === "coordinator")) {
+    return (
+      <>
+        <CoordinatorDashboard />
+        {me.roles.some((r) => r.role === "teacher") ? <TeacherTodayCard /> : null}
+      </>
+    );
+  }
 
   // The school's own word for the role ("Vice Principal" for Co-ordinator), or "Support" for the build team.
   const roleName = (role: string) => (role === "super_admin" ? t("portal.support") : term(`role.${role}`));
@@ -52,8 +61,6 @@ function Dashboard() {
           <RoleBrief key={role} role={role} />
         ))}
       {me.roles.some((r) => r.role === "teacher") ? <TeacherTodayCard /> : null}
-      {me.roles.some((r) => r.role === "coordinator") ? <SchoolDayCard /> : null}
-      {me.roles.some((r) => r.role === "coordinator") ? <ChecklistCard /> : null}
       {me.roles.some((r) => r.role === "student") ? <StudentRecordCard /> : null}
       {me.roles.some((r) => r.role === "student") && config?.modules.attendance ? <OwnAttendanceCard /> : null}
       {me.roles.some((r) => r.role === "student") ? <StudentTodayCard /> : null}

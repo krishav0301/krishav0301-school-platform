@@ -84,16 +84,6 @@
   list-style: none;
 }
 
-/* A read-only row: the name and its mark side by side, wrapping on a narrow screen. */
-.readRow {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: space-between;
-  gap: var(--space-2);
-  min-height: var(--control-height);
-  align-items: center;
-}
-
 /* A long button label wraps between words and the button grows, so at 320 px with text at 200% it cannot widen the page (D-030).
    `button.` makes this win over the button's own `nowrap`, whatever order the stylesheets load in. */
 button.wrapLabel {
@@ -101,4 +91,14 @@ button.wrapLabel {
   padding-block: var(--space-2);
   text-align: center;
   white-space: normal;
+}
+
+/* A teacher and their Present / Absent / On leave choice on one line where it fits, the choice under the name on a
+   phone (D-106). */
+.teacherRow {
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2) var(--space-4);
 }

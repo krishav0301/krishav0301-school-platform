@@ -3,53 +3,60 @@
 import { useCallback, useState, type FormEvent } from "react";
 
 import { BsDateField } from "@/content/BsDateField";
-import { formatBsDate } from "@/content/model";
+import { isWholeBsDate } from "@/content/model";
 import { useConfig } from "@/config/ConfigProvider";
 import { t, type MessageKey } from "@/i18n/messages";
 import { useSession } from "@/session/SessionProvider";
-import { AddDialog, Badge, Button, Field, Notice, TitleRow } from "@/ui";
+import { AddDialog, Button, Field, Notice } from "@/ui";
 
-import { ReadOnlyNote } from "@/read/ReadView";
+import { ReadHeader, ReadOnlyNote } from "@/read/ReadView";
 
 import { activateYear, createYear, loadYears } from "./client";
-import { REASON_MESSAGE, YEAR_STATUS_LABEL, canManageInstitution, emptyYearForm, type Year, type YearFormErrors, type YearFormValues } from "./model";
+import { REASON_MESSAGE, canManageInstitution, emptyYearForm, type Year, type YearFormErrors, type YearFormValues } from "./model";
 import { ReadSetupHeader, YearsTable } from "./ReadSetup";
 import { Gate, useLoad } from "./useLoad";
 import styles from "./setup.module.css";
 
 type Flash = { tone: "ok" | "bad"; text: string };
 
-/** The list of years. A draft can be made the current year, but only when no year is current (closing a year is a later phase). */
-export function YearsView({ years, canManage, busy, onActivate }: { years: readonly Year[]; canManage: boolean; busy: string | null; onActivate: (year: Year) => void }) {
-  if (years.length === 0) return <p className={styles.empty}>{t(canManage ? "setup.years.empty" : "setup.years.emptyReadOnly")}</p>;
-  const noneCurrent = !years.some((y) => y.status === "active");
+/** A whole BS day ("2083-1-5" or "2083-01-05") as a number that sorts by date. */
+const bsOrder = (bs: string): number => {
+  const [y, m, d] = bs.trim().split("-").map(Number);
+  return (y ?? 0) * 10000 + (m ?? 0) * 100 + (d ?? 0);
+};
 
+/**
+ * The years, in the table the Principal reads (D-104), with the Co-ordinator's one control: a draft can be made the
+ * current year, but only when no year is current (closing a year is a later phase). Redesigned in D-106.
+ */
+export function YearsView({ years, canManage, busy, onActivate }: { years: readonly Year[]; canManage: boolean; busy: string | null; onActivate: (year: Year) => void }) {
+  const noneCurrent = !years.some((y) => y.status === "active");
+  const offer = canManage && noneCurrent && years.some((y) => y.status === "draft");
   return (
-    <ul className={styles.list}>
-      {years.map((year) => (
-        <li key={year.id} className={styles.item}>
-          <h2 className={styles.itemTitle}>{year.label}</h2>
-          <div className={styles.badges}>
-            <Badge tone={year.status === "active" ? "ok" : "neutral"}>{t(YEAR_STATUS_LABEL[year.status])}</Badge>
-          </div>
-          <p className={styles.muted}>{t("setup.years.dates", { from: formatBsDate(year.startDateBs), until: formatBsDate(year.endDateBs) })}</p>
-          {canManage && noneCurrent && year.status === "draft" ? (
-            <div className={styles.actions}>
-              <Button
-                variant="secondary"
-                loading={busy === year.id}
-                loadingLabel={t("setup.working")}
-                disabled={busy !== null && busy !== year.id}
-                aria-label={t("setup.years.activateItem", { label: year.label })}
-                onClick={() => onActivate(year)}
-              >
-                {t("setup.years.activate")}
-              </Button>
-            </div>
-          ) : null}
-        </li>
-      ))}
-    </ul>
+    <YearsTable
+      years={years}
+      empty={canManage ? "setup.years.empty" : "setup.years.emptyReadOnly"}
+      action={
+        offer
+          ? {
+              label: t("setup.read.actions"),
+              cell: (year) =>
+                year.status === "draft" ? (
+                  <Button
+                    variant="secondary"
+                    loading={busy === year.id}
+                    loadingLabel={t("setup.working")}
+                    disabled={busy !== null && busy !== year.id}
+                    aria-label={t("setup.years.activateItem", { label: year.label })}
+                    onClick={() => onActivate(year)}
+                  >
+                    {t("setup.years.activate")}
+                  </Button>
+                ) : null,
+            }
+          : undefined
+      }
+    />
   );
 }
 
@@ -64,8 +71,13 @@ function YearForm({ onAdded, showTitle = true }: { onAdded: () => void; showTitl
   async function submit(event: FormEvent) {
     event.preventDefault();
     if (saving) return;
-    setSaving(true);
     setProblem(null);
+    // Said plainly before asking the server, which would only answer "not allowed" (Co-ordinator FUT F-02).
+    if (isWholeBsDate(values.startBs) && isWholeBsDate(values.endBs) && bsOrder(values.endBs) <= bsOrder(values.startBs)) {
+      setErrors({ endBs: "setup.error.endBeforeStart" });
+      return;
+    }
+    setSaving(true);
     const result = await createYear(api, values);
     setSaving(false);
     if (result.ok) {
@@ -91,11 +103,30 @@ function YearForm({ onAdded, showTitle = true }: { onAdded: () => void; showTitl
         maxLength={4}
         autoComplete="off"
         value={values.bsYear}
-        onChange={(event) => setValues((v) => ({ ...v, bsYear: event.target.value }))}
+        onChange={(event) => {
+          setValues((v) => ({ ...v, bsYear: event.target.value }));
+          setErrors((e) => ({ ...e, bsYear: undefined }));
+        }}
         error={say(errors.bsYear)}
       />
-      <BsDateField legend={t("setup.years.start")} value={values.startBs} onChange={(startBs) => setValues((v) => ({ ...v, startBs }))} error={say(errors.startBs)} />
-      <BsDateField legend={t("setup.years.end")} value={values.endBs} onChange={(endBs) => setValues((v) => ({ ...v, endBs }))} error={say(errors.endBs)} />
+      <BsDateField
+        legend={t("setup.years.start")}
+        value={values.startBs}
+        onChange={(startBs) => {
+          setValues((v) => ({ ...v, startBs }));
+          setErrors((e) => ({ ...e, startBs: undefined, endBs: undefined }));
+        }}
+        error={say(errors.startBs)}
+      />
+      <BsDateField
+        legend={t("setup.years.end")}
+        value={values.endBs}
+        onChange={(endBs) => {
+          setValues((v) => ({ ...v, endBs }));
+          setErrors((e) => ({ ...e, endBs: undefined }));
+        }}
+        error={say(errors.endBs)}
+      />
       <Button type="submit" loading={saving} loadingLabel={t("setup.working")}>
         {t("setup.years.add")}
       </Button>
@@ -127,9 +158,10 @@ export function YearsScreen() {
   return (
     <>
       {canManage ? (
-        <TitleRow>
-          <h1 className={styles.title}>{t("setup.years.title")}</h1>
-          {canManage ? (
+        <ReadHeader
+          title={t("setup.years.title")}
+          subtitle={t("setup.read.yearsSubtitle")}
+          actions={
             <AddDialog label={t("setup.years.add")} title={t("setup.years.add")}>
               {(close) => (
                 <YearForm
@@ -142,8 +174,8 @@ export function YearsScreen() {
                 />
               )}
             </AddDialog>
-          ) : null}
-        </TitleRow>
+          }
+        />
       ) : (
         <ReadSetupHeader title={t("setup.years.title")} subtitle={t("setup.read.yearsSubtitle")} />
       )}

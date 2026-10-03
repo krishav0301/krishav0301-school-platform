@@ -5,9 +5,9 @@ import { useCallback, useState, type FormEvent } from "react";
 import { useConfig } from "@/config/ConfigProvider";
 import { t, type MessageKey } from "@/i18n/messages";
 import { useSession } from "@/session/SessionProvider";
-import { AddDialog, Badge, Button, Field, Notice, Select, TitleRow } from "@/ui";
+import { AddDialog, Button, Field, Notice, Select } from "@/ui";
 
-import { ReadOnlyNote } from "@/read/ReadView";
+import { ReadHeader, ReadOnlyNote, readStyles } from "@/read/ReadView";
 
 import { createClass, deleteClass, loadClasses, loadProgrammes, loadYears, setClassActive, type Loaded } from "./client";
 import { REASON_MESSAGE, canManageStructure, classTitle, defaultYearId, levelChoices, termWords, type Programme, type SchoolClass, type Year } from "./model";
@@ -23,7 +23,10 @@ export function YearPicker({ years, value, onChange }: { years: readonly Year[];
   return <Select label={t("setup.yearPicker")} value={value ?? ""} onChange={(event) => onChange(event.target.value)} options={years.map((y) => ({ value: y.id, label: y.label }))} />;
 }
 
-/** The classes of the chosen year. Switching one off keeps its history. */
+/**
+ * The classes of the chosen year, in the table the Principal reads, with Switch off or on, and Delete for a class
+ * nothing is attached to (D-097). Switching one off keeps its history. Redesigned in D-106.
+ */
 export function ClassesView({
   classes,
   canManage,
@@ -38,38 +41,35 @@ export function ClassesView({
   /** Only offered for a class nothing is attached to (D-097): with students it is switched off instead. */
   onDelete?: (c: SchoolClass) => Promise<boolean>;
 }) {
-  if (classes.length === 0) return <p className={styles.empty}>{t("setup.classes.empty")}</p>;
   return (
-    <ul className={styles.list}>
-      {classes.map((c) => {
-        const title = classTitle(c);
-        return (
-          <li key={c.id} className={styles.item}>
-            <h2 className={styles.itemTitle}>{title}</h2>
-            {c.active ? null : (
-              <div className={styles.badges}>
-                <Badge>{t("setup.classes.off")}</Badge>
-              </div>
-            )}
-            {canManage ? (
-              <div className={styles.actions}>
-                <Button
-                  variant="quiet"
-                  loading={busy === c.id}
-                  loadingLabel={t("setup.working")}
-                  disabled={busy !== null && busy !== c.id}
-                  aria-label={t(c.active ? "setup.classes.switchOffItem" : "setup.classes.switchOnItem", { name: title })}
-                  onClick={() => onToggle(c)}
-                >
-                  {t(c.active ? "setup.programmes.switchOff" : "setup.programmes.switchOn")}
-                </Button>
-              </div>
-            ) : null}
-            {canManage && onDelete && c.canDelete ? <DeleteControl name={title} canDelete onDelete={() => onDelete(c)} /> : null}
-          </li>
-        );
-      })}
-    </ul>
+    <ClassesTable
+      classes={classes}
+      action={
+        canManage
+          ? {
+              label: t("setup.read.actions"),
+              cell: (c) => {
+                const title = classTitle(c);
+                return (
+                  <span className={styles.rowActions}>
+                    <Button
+                      variant="quiet"
+                      loading={busy === c.id}
+                      loadingLabel={t("setup.working")}
+                      disabled={busy !== null && busy !== c.id}
+                      aria-label={t(c.active ? "setup.classes.switchOffItem" : "setup.classes.switchOnItem", { name: title })}
+                      onClick={() => onToggle(c)}
+                    >
+                      {t(c.active ? "setup.programmes.switchOff" : "setup.programmes.switchOn")}
+                    </Button>
+                    {onDelete && c.canDelete ? <DeleteControl name={title} canDelete onDelete={() => onDelete(c)} /> : null}
+                  </span>
+                );
+              },
+            }
+          : undefined
+      }
+    />
   );
 }
 
@@ -110,7 +110,10 @@ export function ClassForm({ yearId, programmes, onAdded, showTitle = true }: { y
       <Select
         label={t("setup.classes.level", words)}
         value={levelId}
-        onChange={(event) => setLevelId(event.target.value)}
+        onChange={(event) => {
+          setLevelId(event.target.value);
+          setError(null);
+        }}
         options={[{ value: "", label: t("setup.programmes.choose") }, ...levelChoices(programmes)]}
         error={error ? t(error, words) : undefined}
       />
@@ -161,10 +164,12 @@ export function ClassesScreen() {
   return (
     <>
       {canManage ? (
-        <TitleRow>
-          <h1 className={styles.title}>{t("setup.classes.title")}</h1>
-          {canManage && yearId && programmes.view.status === "ready" ? (
-            <AddDialog label={t("setup.classes.add")} title={t("setup.classes.add")}>
+        <ReadHeader
+          title={t("setup.classes.title")}
+          subtitle={t("setup.read.classesSubtitle")}
+          actions={
+            yearId && programmes.view.status === "ready" ? (
+              <AddDialog label={t("setup.classes.add")} title={t("setup.classes.add")}>
               {(close) => (
                 <ClassForm
                   key={yearId}
@@ -178,9 +183,10 @@ export function ClassesScreen() {
                   }}
                 />
               )}
-            </AddDialog>
-          ) : null}
-        </TitleRow>
+              </AddDialog>
+            ) : undefined
+          }
+        />
       ) : (
         <ReadSetupHeader title={t("setup.classes.title")} subtitle={t("setup.read.classesSubtitle")} />
       )}
@@ -191,7 +197,7 @@ export function ClassesScreen() {
             <p className={styles.empty}>{t("setup.classes.noYear")}</p>
           ) : (
             <>
-              <div className={styles.filters}>
+              <div className={readStyles.search}>
                 <YearPicker years={list} value={yearId} onChange={setPicked} />
               </div>
               <Gate view={classes.view} onRetry={() => void classes.reload()}>

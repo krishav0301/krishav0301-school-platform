@@ -29,7 +29,7 @@ const BIOLOGY = ["Kritika Jha", "Puja Yadav", "Sita Chaudhary", "Pooja Sharma", 
   await step("electives", async () => {
     await p.goto(BASE + "/portal/results/electives", { waitUntil: "networkidle" });
     await p.waitForTimeout(800);
-    await shot(p, "11-03-electives-choose", "Electives: choose a class");
+    await shot(p, "11-03-electives-choose", "Electives: the first class opens straight away, with how many students still have to choose");
     for (const cls of ["+2 Science · Grade 11 · A", "+2 Science · Grade 11 · B"]) {
       await p.getByLabel("Class", { exact: true }).selectOption({ label: cls });
       await p.waitForTimeout(1200);

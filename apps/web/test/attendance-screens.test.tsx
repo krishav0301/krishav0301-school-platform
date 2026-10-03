@@ -7,7 +7,7 @@ import { OwnAttendanceCard } from "@/attendance/OwnAttendanceCard";
 import { Register } from "@/attendance/Register";
 import { AttendanceTabs } from "@/attendance/AttendanceTabs";
 import { OwnMonthScreen } from "@/attendance/OwnMonthScreen";
-import { TeacherDayScreen, TeacherTable } from "@/attendance/TeacherDayScreen";
+import { TeacherDayScreen, TeacherList, TeacherTable, teacherFigures } from "@/attendance/TeacherDayScreen";
 import { className, counts, exceptionsOf, initialAbsent, initialStatuses, shiftMonth, studentMeta, type AttendanceDay, type TeacherDay } from "@/attendance/model";
 import { ConfigContext, makeConfigValue, type PublicConfig } from "@/config/ConfigProvider";
 import { SessionContext } from "@/session/SessionProvider";
@@ -253,5 +253,33 @@ describe("the Principal reads attendance (D-103, after the PM's topic 7 referenc
     expect(html).toContain(">On leave<");
     expect(html).toContain("Personal leave");
     expect(html).not.toMatch(/<select|<button/);
+  });
+});
+
+describe("the Co-ordinator's teacher list (D-106)", () => {
+  const day = {
+    date: "2026-10-03",
+    dateBs: "2083-06-17",
+    isToday: false,
+    marked: false,
+    teachers: [
+      { id: "t1", name: "Gita Thapa", sectionKey: "plus2", status: "leave" as const, reason: null },
+      { id: "t2", name: "Ram Karki", sectionKey: null, status: null, reason: null },
+    ],
+  };
+
+  it("each teacher has Present, Absent and On leave side by side, the day's choice pressed; a past day asks for a reason", () => {
+    const html = inContext(<TeacherList day={day} onSaved={() => {}} />, as("coordinator"));
+    expect(html).toContain('aria-label="Attendance of Gita Thapa"');
+    expect(html).toContain('aria-label="Attendance of Ram Karki"');
+    expect(html).toMatch(/aria-pressed="true"[^>]*>On leave</);
+    expect(html).toMatch(/aria-pressed="true"[^>]*>Present</); // Ram starts as present
+    expect(html).toContain(">Not saved yet<");
+    expect(html).toContain("Reason for changing a past day");
+    expect(html).not.toContain("<select");
+  });
+
+  it("the figures count the choices on screen", () => {
+    expect(teacherFigures(5, [{ status: "absent" }, { status: "leave" }, { status: "leave" }]).map((f) => f.value)).toEqual(["2", "1", "2"]);
   });
 });

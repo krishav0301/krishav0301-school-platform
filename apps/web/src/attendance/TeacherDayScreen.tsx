@@ -1,20 +1,20 @@
 "use client";
 
+import { CalendarOff, UserCheck, UserX } from "lucide-react";
 import { useCallback, useState } from "react";
 
 import { useConfig } from "@/config/ConfigProvider";
 import { t } from "@/i18n/messages";
-import { ChangeDate, dayLine, EmptyLine, Panel, ReadFailure, ReadHeader, ReadOnlyNote, ReadTable, StatusWord, TableSkeleton, readStyles } from "@/read/ReadView";
+import { ChangeDate, dayLine, EmptyLine, FigureTiles, Panel, ReadFailure, ReadHeader, ReadOnlyNote, ReadTable, Segments, StatusWord, TableSkeleton, readStyles, type Figure } from "@/read/ReadView";
 import { useSession } from "@/session/SessionProvider";
-import setupStyles from "@/setup/setup.module.css";
 import { useLoad } from "@/setup/useLoad";
-import { Button, Field, Notice, Select } from "@/ui";
+import { Button, Field, Notice } from "@/ui";
 
 import styles from "./attendance.module.css";
 import { gateFailure, loadTeacherDay, saveTeacherDay } from "./client";
-import { TEACHER_STATUS_LABEL, exceptionsOf, initialStatuses, type TeacherDay, type TeacherStatus } from "./model";
+import { TEACHER_STATUS_LABEL, exceptionsOf, initialStatuses, type TeacherDay } from "./model";
 
-const STATUS_OPTIONS = (["present", "absent", "leave"] as const).map((value) => ({ value, label: t(TEACHER_STATUS_LABEL[value]) }));
+const STATUS_SEGMENTS = (["present", "absent", "leave"] as const).map((key) => ({ key, label: t(TEACHER_STATUS_LABEL[key]) }));
 
 /** A day's teachers, read only: status in words and, for a corrected past day, its reason. Pure, so tests draw it. */
 export function TeacherTable({ day }: { day: TeacherDay }) {
@@ -74,9 +74,7 @@ export function TeacherDayScreen() {
       {view.status === "failed" || view.status === "forbidden" ? <ReadFailure status={view.status} onRetry={() => void reload()} /> : null}
       {day ? (
         canMark ? (
-          <Panel>
-            <TeacherList key={day.date} day={day} canMark onSaved={() => void reload()} />
-          </Panel>
+          <TeacherList key={day.date} day={day} onSaved={() => void reload()} />
         ) : (
           <>
             <Panel>
@@ -92,14 +90,31 @@ export function TeacherDayScreen() {
 
 type Saved = { kind: "saved" } | { kind: "closed" } | { kind: "failed" } | { kind: "invalid"; message: string } | null;
 
-function TeacherList({ day, canMark, onSaved }: { day: TeacherDay; canMark: boolean; onSaved: () => void }) {
+/** The day's figures as the list stands: present, absent and on leave, counted from the choices on screen. Pure. */
+export function teacherFigures(total: number, exceptions: readonly { status: "absent" | "leave" }[]): Figure[] {
+  const absent = exceptions.filter((e) => e.status === "absent").length;
+  const leave = exceptions.filter((e) => e.status === "leave").length;
+  return [
+    { key: "present", icon: UserCheck, tone: "ok", value: String(total - absent - leave), label: t("attendance.teachers.figure.present") },
+    { key: "absent", icon: UserX, tone: "bad", value: String(absent), label: t("attendance.teachers.figure.absent") },
+    { key: "leave", icon: CalendarOff, tone: "warn", value: String(leave), label: t("attendance.teachers.figure.leave") },
+  ];
+}
+
+/**
+ * The Co-ordinator's list (redesigned in D-106): figures that follow the choices, then each teacher with Present,
+ * Absent and On leave side by side, a reason for a past day, and one Save.
+ */
+export function TeacherList({ day, onSaved }: { day: TeacherDay; onSaved: () => void }) {
   const { api } = useSession();
+  const { config } = useConfig();
   const [statuses, setStatuses] = useState(() => initialStatuses(day));
   const [reason, setReason] = useState("");
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState<Saved>(null);
   const exceptions = exceptionsOf(statuses);
   const needsReason = !day.isToday;
+  const sectionName = (key: string | null) => config?.sections.find((s) => s.key === key)?.name ?? null;
 
   async function save() {
     if (needsReason && reason.trim().length < 3) return setSaved({ kind: "invalid", message: t("attendance.teachers.reasonNeeded") });
@@ -112,64 +127,67 @@ function TeacherList({ day, canMark, onSaved }: { day: TeacherDay; canMark: bool
     } else setSaved(result.reason === "invalid" ? { kind: "invalid", message: result.message } : { kind: result.reason });
   }
 
+  if (day.teachers.length === 0) {
+    return (
+      <Panel>
+        <EmptyLine>{t("attendance.teachers.empty")}</EmptyLine>
+      </Panel>
+    );
+  }
+
   return (
-    <section className={styles.register} aria-labelledby="teacher-day-heading">
-      <div>
-        <h2 id="teacher-day-heading" className={setupStyles.subhead}>
-          {day.isToday ? t("attendance.today", { date: day.dateBs ?? day.date }) : (day.dateBs ?? day.date)}
-        </h2>
-        <p className={setupStyles.muted}>{day.marked ? t("attendance.teachers.saved") : t("attendance.teachers.notSaved")}</p>
-      </div>
-      {day.teachers.length === 0 ? (
-        <p className={setupStyles.empty}>{t("attendance.teachers.empty")}</p>
-      ) : canMark ? (
-        <>
-          <p>{t("attendance.teachers.intro")}</p>
-          <ul className={styles.roster}>
-            {day.teachers.map((teacher) => (
-              <li key={teacher.id} className={styles.rosterRow}>
-                <Select
-                  label={teacher.name}
-                  options={STATUS_OPTIONS}
-                  value={statuses[teacher.id]}
-                  onChange={(event) => {
-                    setStatuses((current) => ({ ...current, [teacher.id]: event.target.value as TeacherStatus }));
-                    setSaved(null);
-                  }}
-                />
-              </li>
-            ))}
-          </ul>
-          {needsReason ? (
-            <Field label={t("attendance.teachers.reason")} hint={t("attendance.teachers.reasonHint")} value={reason} maxLength={300} onChange={(event) => setReason(event.target.value)} />
-          ) : null}
-          <div className={styles.saveBar}>
-            <p className={styles.tally} aria-live="polite">
-              {t("attendance.teachers.counts", {
-                present: day.teachers.length - exceptions.length,
-                absent: exceptions.filter((e) => e.status === "absent").length,
-                leave: exceptions.filter((e) => e.status === "leave").length,
-              })}
-            </p>
-            <Button className={styles.wrapLabel} onClick={() => void save()} loading={saving} loadingLabel={t("attendance.register.saving")}>
-              {t("attendance.teachers.save")}
-            </Button>
-          </div>
-          {saved?.kind === "saved" ? <Notice tone="ok">{t("attendance.teachers.done")}</Notice> : null}
-          {saved?.kind === "failed" ? <Notice tone="bad">{t("attendance.register.failed")}</Notice> : null}
-          {saved?.kind === "closed" ? <Notice tone="bad">{t("attendance.register.closed")}</Notice> : null}
-          {saved?.kind === "invalid" ? <Notice tone="bad">{saved.message}</Notice> : null}
-        </>
-      ) : (
-        <ul className={styles.roster}>
+    <>
+      <FigureTiles figures={teacherFigures(day.teachers.length, exceptions)} label={t("attendance.teachers.figures")} />
+      <Panel title={t("attendance.teachers.listTitle")} labelledBy="teacher-day-heading" actions={<StatusWord tone={day.marked ? "ok" : "warn"}>{t(day.marked ? "attendance.teachers.savedWord" : "attendance.teachers.notSavedWord")}</StatusWord>}>
+        <p className={readStyles.rowMeta}>{t("attendance.teachers.intro")}</p>
+        <ul className={readStyles.rows}>
           {day.teachers.map((teacher) => (
-            <li key={teacher.id} className={`${styles.rosterRow} ${styles.readRow}`}>
-              <span>{teacher.name}</span>
-              <span>{teacher.status ? t(TEACHER_STATUS_LABEL[teacher.status]) : t("attendance.class.none")}</span>
+            <li key={teacher.id} className={`${readStyles.rowItem} ${styles.teacherRow}`}>
+              <div>
+                <h3 className={readStyles.rowTitle}>{teacher.name}</h3>
+                {sectionName(teacher.sectionKey) ? <p className={readStyles.rowMeta}>{sectionName(teacher.sectionKey)}</p> : null}
+              </div>
+              <Segments
+                label={t("attendance.teachers.statusOf", { name: teacher.name })}
+                value={statuses[teacher.id] ?? "present"}
+                options={STATUS_SEGMENTS}
+                onChange={(value) => {
+                  setStatuses((current) => ({ ...current, [teacher.id]: value }));
+                  setSaved(null);
+                }}
+              />
             </li>
           ))}
         </ul>
-      )}
-    </section>
+        {needsReason ? (
+          <Field
+            label={t("attendance.teachers.reason")}
+            hint={t("attendance.teachers.reasonHint")}
+            value={reason}
+            maxLength={300}
+            onChange={(event) => {
+              setReason(event.target.value);
+              if (saved?.kind === "invalid") setSaved(null);
+            }}
+          />
+        ) : null}
+        <div className={styles.saveBar}>
+          <p className={styles.tally} aria-live="polite">
+            {t("attendance.teachers.counts", {
+              present: day.teachers.length - exceptions.length,
+              absent: exceptions.filter((e) => e.status === "absent").length,
+              leave: exceptions.filter((e) => e.status === "leave").length,
+            })}
+          </p>
+          <Button className={styles.wrapLabel} onClick={() => void save()} loading={saving} loadingLabel={t("attendance.register.saving")}>
+            {t("attendance.teachers.save")}
+          </Button>
+        </div>
+        {saved?.kind === "saved" ? <Notice tone="ok">{t("attendance.teachers.done")}</Notice> : null}
+        {saved?.kind === "failed" ? <Notice tone="bad">{t("attendance.register.failed")}</Notice> : null}
+        {saved?.kind === "closed" ? <Notice tone="bad">{t("attendance.register.closed")}</Notice> : null}
+        {saved?.kind === "invalid" ? <Notice tone="bad">{saved.message}</Notice> : null}
+      </Panel>
+    </>
   );
 }

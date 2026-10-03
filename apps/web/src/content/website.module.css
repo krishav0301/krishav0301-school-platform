@@ -477,7 +477,7 @@
   margin: 0;
   font-family: var(--font-heading);
   font-weight: var(--weight-bold);
-  overflow-wrap: anywhere;
+  overflow-wrap: break-word;
 }
 
 .holidayLine {
@@ -494,7 +494,7 @@
   font-size: var(--text-sm);
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 1;
-  overflow-wrap: anywhere;
+  overflow-wrap: break-word;
 }
 
 .chips {
@@ -553,12 +553,14 @@
   font-weight: var(--weight-bold);
 }
 
-.actionsCell {
-  white-space: nowrap;
-}
-
-.actionsCell > * + * {
-  margin-left: var(--space-2);
+/* A row's actions side by side, the second under the first when the table is narrow, so a long one such as
+   "Send for approval" never runs past the table's edge (Co-ordinator FUT F-09). */
+.actionsRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--space-2);
 }
 
 .rowButton {
@@ -692,15 +694,8 @@
     font-size: var(--text-sm);
   }
 
-  .actionsCell {
-    display: flex !important;
-    flex-wrap: wrap;
-    gap: var(--space-2);
-    white-space: normal;
-  }
-
-  .actionsCell > * + * {
-    margin-left: 0;
+  .actionsRow {
+    justify-content: flex-start;
   }
 }
 
@@ -1035,4 +1030,17 @@
 .page :is(button, a),
 .dialog :is(button, a) {
   white-space: normal;
+}
+
+/* Enlarged text on a narrow phone (D-105, D-106): the summary's and the rows' icon tiles only repeat the words beside
+   them, so they step aside and the words get the width; a word breaks only if it cannot fit a line on its own. */
+@media (max-width: 24em) {
+  .summaryTile,
+  .kindTile {
+    display: none;
+  }
+
+  .summaryCard {
+    padding: var(--space-3);
+  }
 }

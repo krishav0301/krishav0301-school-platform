@@ -17,6 +17,7 @@ import { generateTemporaryPassword } from "../../core/temporary-password";
 import { newRefreshToken, sha256Hex } from "../../core/tokens";
 import { queueEmail } from "../../core/notifications";
 import { accountantAnywhere, applicationSection, coordinatorForSection } from "./guard";
+import { CorrectStudentSchema, type CorrectStudent } from "./schema";
 import {
   ApplySchema,
   RejectSchema,
@@ -57,6 +58,19 @@ async function findDuplicateFlags(db: D1Database, phone: string, firstName: stri
   if (byPhone!.results.length > 0) flags.push("phone");
   if (byNameDob!.results.length > 0) flags.push("name_dob");
   return flags;
+}
+
+/** The students a new walk-in may already be (same phone, or same name and date of birth), named for the Co-ordinator. */
+async function findDuplicateStudents(db: D1Database, phone: string, firstName: string, lastName: string, dob: string): Promise<{ name: string; sid: string }[]> {
+  const { results } = await db
+    .prepare(
+      `SELECT first_name || ' ' || last_name AS name, sid FROM students
+        WHERE phone = ?1 OR (first_name = ?2 COLLATE NOCASE AND last_name = ?3 COLLATE NOCASE AND dob_ad = ?4)
+        ORDER BY sid LIMIT 5`,
+    )
+    .bind(phone, firstName, lastName, dob)
+    .all<{ name: string; sid: string }>();
+  return results;
 }
 
 // --- The public application --------------------------------------------------------------------------
@@ -159,7 +173,12 @@ export async function expireStaleApplications(db: D1Database, now: Date = new Da
 export type RegisterResult = { ok: true; publicId: string } | WriteFailure | Invalid | { ok: false; reason: "already_resolved" };
 /** A walk-in is auto-approved in the same request, so it carries what `approveApplication` returns: the SID and the
  * one-time temporary password the Co-ordinator must hand the student standing in front of them. */
-export type WalkInResult = { ok: true; publicId: string; sid: string; temporaryPassword: string } | WriteFailure | Invalid | { ok: false; reason: "already_resolved" };
+export type WalkInResult =
+  | { ok: true; publicId: string; sid: string; temporaryPassword: string }
+  | WriteFailure
+  | Invalid
+  | { ok: false; reason: "already_resolved" }
+  | { ok: false; reason: "possible_duplicate"; matches: { name: string; sid: string }[] };
 
 /** The Co-ordinator's walk-in: auto-approved (D-021 domain rule), placed straight into a class. */
 export async function registerWalkIn(
@@ -167,10 +186,20 @@ export async function registerWalkIn(
   auditKey: string,
   dataKey: string,
   actor: string,
-  input: WalkInInput & { classId: string },
+  input: WalkInInput & { classId: string; confirmDuplicate?: boolean },
   now: Date = new Date(),
 ): Promise<WalkInResult> {
-  const { classId, ...applicantOnly } = input; // ApplicantDetailsSchema is strict: classId is approve's, not the applicant's
+  // ApplicantDetailsSchema is strict: classId is approve's, and confirmDuplicate this function's, not the applicant's.
+  const { classId, confirmDuplicate, ...applicantOnly } = input;
+  // The duplicate check stays advisory (D-006), but a walk-in is admitted at once, so the Co-ordinator sees who it may
+  // already be and admits only on a second, deliberate "Admit anyway" (Co-ordinator FUT F-03).
+  if (!confirmDuplicate) {
+    const parsed = WalkInSchema.safeParse(applicantOnly);
+    if (parsed.success) {
+      const matches = await findDuplicateStudents(db, parsed.data.phone, parsed.data.firstName, parsed.data.lastName, parsed.data.dob);
+      if (matches.length > 0) return { ok: false, reason: "possible_duplicate", matches };
+    }
+  }
   const registered = await registerApplication(db, auditKey, actor, "walkin", applicantOnly, now);
   if (!registered.ok) return registered;
   const approved = await approveApplication(db, auditKey, dataKey, actor, registered.publicId, { classId }, now);
@@ -414,5 +443,75 @@ async function classifyApproveFailure(db: D1Database, actor: string, application
   if (check.allowed !== 1) return { ok: false, reason: "not_allowed" };
   if (!check.app_pending) return { ok: false, reason: "already_resolved" };
   if (!check.class_ok) return { ok: false, reason: "invalid", message: "Pick a class of the application's own level, that is still active." };
+  return { ok: false, reason: "not_allowed" };
+}
+
+
+// --- Correcting a student's personal details (Co-ordinator FUT F-06) ------------------------------------------
+
+const STUDENT_COLUMNS: Record<Exclude<keyof CorrectStudent, "reason">, string> = {
+  firstName: "first_name",
+  middleName: "middle_name",
+  lastName: "last_name",
+  dob: "dob_ad",
+  phone: "phone",
+  guardianName: "guardian_name",
+  guardianPhone: "guardian_phone",
+  previousSchool: "previous_school",
+};
+
+/** The section of the class a student is in this year; none when not enrolled (then only a whole-school Co-ordinator reaches them). */
+const studentSection = (n: number): string =>
+  `(SELECT pv.section_id FROM students st JOIN enrollments en ON en.student_id = st.id
+      JOIN academic_years ay ON ay.id = en.academic_year_id AND ay.status = 'active'
+      JOIN classes cl ON cl.id = en.class_id JOIN levels lv ON lv.id = cl.level_id JOIN programmes pv ON pv.id = lv.programme_id
+     WHERE st.public_id = ?${n})`;
+
+export type CorrectResult = { ok: true } | WriteFailure | Invalid;
+
+/**
+ * One student's personal details corrected, with the reason, in one batch with its audit entry. The Co-ordinator is
+ * re-checked inside the write for the student's section (D-021); the SID and the yearly enrollment never change here.
+ */
+export async function correctStudent(db: D1Database, auditKey: string, actor: string, studentPublicId: string, input: CorrectStudent): Promise<CorrectResult> {
+  const parsed = CorrectStudentSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, reason: "invalid", message: firstMessage(parsed.error) };
+  const { reason, ...changes } = parsed.data;
+  const fields = (Object.keys(changes) as (keyof typeof STUDENT_COLUMNS)[]).filter((k) => changes[k] !== undefined);
+  const before = await db
+    .prepare(`SELECT first_name, middle_name, last_name, dob_ad, phone, guardian_name, guardian_phone, previous_school FROM students WHERE public_id = ?1`)
+    .bind(studentPublicId)
+    .first<Record<string, string | null>>();
+  if (!before) return { ok: false, reason: "not_found" };
+  // Only fixed column names from the map above are written into the SQL; every value is bound.
+  const sets = fields.map((k, i) => `${STUDENT_COLUMNS[k]} = ?${i + 3}`).join(", ");
+  const values = fields.map((k) => {
+    const v = changes[k];
+    return typeof v === "string" && v.trim() === "" ? null : (v ?? null);
+  });
+  const outcome = await write(
+    db,
+    auditKey,
+    {
+      action: "students.personal.corrected",
+      entityType: "student",
+      entityPublicId: studentPublicId,
+      actorPublicId: actor,
+      summary: `Personal details corrected: ${fields.join(", ")}`,
+      reason,
+      before: Object.fromEntries(fields.map((k) => [k, before[STUDENT_COLUMNS[k]] ?? null])),
+      after: Object.fromEntries(fields.map((k, i) => [k, values[i] ?? null])),
+    },
+    [
+      db
+        .prepare(
+          `UPDATE students SET ${sets}
+            WHERE public_id = ?1 AND ${coordinatorForSection(2, `COALESCE(${studentSection(1)}, -1)`)}`,
+        )
+        .bind(studentPublicId, actor, ...values),
+    ],
+  );
+  if (outcome === "done") return { ok: true };
+  if (outcome === "check_failed") return { ok: false, reason: "invalid", message: "That detail is not valid." };
   return { ok: false, reason: "not_allowed" };
 }

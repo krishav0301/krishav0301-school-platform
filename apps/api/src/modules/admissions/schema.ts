@@ -73,6 +73,8 @@ export const ApplicationSummarySchema = z
     levelName: z.string(),
     programmeName: z.string(),
     sectionKey: z.string(),
+    /** The section's own name, for people to read; the key is for code (Co-ordinator FUT F-05). */
+    sectionName: z.string(),
     duplicateFlags: z.array(z.string()),
     createdAt: z.string(),
   })
@@ -133,6 +135,27 @@ export const StudentDetailSchema = z
   })
   .openapi("StudentDetail");
 export type StudentDetail = z.infer<typeof StudentDetailSchema>;
+
+/**
+ * Correcting a student's personal details (students.personal.correct; Co-ordinator FUT F-06). Only what changed is sent,
+ * with the reason, which the audit trail keeps. The SID is never editable; the email is the student's sign-in, so it is
+ * not changed here.
+ */
+export const CorrectStudentSchema = z
+  .strictObject({
+    firstName: Name.optional(),
+    middleName: Name.nullable().optional(),
+    lastName: Name.optional(),
+    dob: CalendarDaySchema.optional(),
+    phone: Phone.nullable().optional(),
+    guardianName: z.string().trim().min(1, "Give the guardian's name").max(120, "Keep it to 120 characters").optional(),
+    guardianPhone: Phone.optional(),
+    previousSchool: z.string().trim().max(120).nullable().optional(),
+    reason: z.string().trim().min(3, "Say why the details are being corrected").max(300, "Keep the reason to 300 characters"),
+  })
+  .refine((b) => Object.keys(b).some((k) => k !== "reason"), "Change at least one detail")
+  .openapi("CorrectStudent");
+export type CorrectStudent = z.infer<typeof CorrectStudentSchema>;
 
 /** Returned once, on the request that creates the login, and nowhere else (D-059's rule for a temporary password: never emailed, never logged). */
 export const AdmittedSchema = z.object({ id: z.string(), sid: z.string(), temporaryPassword: z.string() }).openapi("Admitted");

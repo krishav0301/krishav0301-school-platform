@@ -9,15 +9,32 @@ const OUT = path.join(REPO, "docs/fut/coordinator");
 const manifest = JSON.parse(fs.readFileSync(`${SP}/manifest.json`, "utf8"));
 const denied = JSON.parse(fs.readFileSync(`${SP}/denied.json`, "utf8"));
 const scope = JSON.parse(fs.readFileSync(`${SP}/scope.json`, "utf8"));
-const findings = fs
-  .readFileSync(`${SP}/findings.md`, "utf8")
+// New findings of this run, one per line: "F-13 | Severity | Where | What | Steps" (none is an empty or missing file).
+const findings = (fs.existsSync(`${SP}/findings.md`) ? fs.readFileSync(`${SP}/findings.md`, "utf8") : "")
   .trim()
   .split("\n")
   .map((l) => {
     const [id, severity, where, what, shots] = l.split(" | ");
     return { id, severity, where, what, shots };
   })
+  .filter((f) => f.id)
   .sort((a, b) => a.id.localeCompare(b.id));
+
+// The first run (commit ff18085) found twelve things; D-106 fixed them, and this run checks each again.
+const FIRST_RUN = [
+  ["F-01", "Low", "A field's error stayed after the field was corrected; a dialog reopened with its old error; Ask for changes stayed open after it went through.", "Each opening of a pop-up is a fresh form, a field's message goes as soon as it changes, and the review closes into what happened.", "04-02, 07-02, 08-04, 08-07a"],
+  ["F-02", "Low", "A year ending before it began was refused with a general message.", "The form says the last day must come after the first.", "02-03"],
+  ["F-03", "Medium", "The same person registered twice as a walk-in got two student IDs, with no warning.", "The server stops it and names the existing student; Admit anyway is for real twins.", "07-05, 09-03"],
+  ["F-04", "Low", "After Admit, only the temporary password was shown, not the new student ID.", "The student ID is shown with the password.", "07-04"],
+  ["F-05", "Medium", "The queue printed each section's internal key.", "The section's name is shown.", "08-01"],
+  ["F-06", "Medium (gap)", "A search result could not be opened, and no screen or route corrected a student's details.", "A result opens the record, and Correct details saves changes with a reason in the audit trail (`PATCH /api/students/{id}`).", "09-07 to 09-09"],
+  ["F-07", "Low", "The review board opened on the last terminal, and missing marks were counted per component.", "It opens on the terminal in progress, and counts students.", "12-01, 12-02"],
+  ["F-08", "Medium", "The Co-ordinator's form offered Publish, which she may never do, and it led nowhere.", "The form offers Save draft and Send for approval in one step.", "14-02, 14-06"],
+  ["F-09", "Cosmetic", "The row's Send for approval link ran past the table's edge at 1440 px.", "The row's actions wrap, the second under the first, inside the table.", "14-04"],
+  ["F-10", "Low", "Reports worked by address but had no menu entry.", "Reports is in her menu, showing only the groups she may read.", "15-07"],
+  ["F-11", "Low", "A Bachelor's-only Co-ordinator's walk-in form listed +2 levels.", "Only his section's levels are listed.", "16-07"],
+  ["F-12", "Low", "At 375 px the phone's tab bar wrapped onto a second row.", "Checked: one row (fixed with the Principal's F-15).", "17-01"],
+];
 const commit = execFileSync("git", ["-C", REPO, "rev-parse", "--short", "HEAD"]).toString().trim();
 
 const findingFor = {};
@@ -56,13 +73,14 @@ const esc = (t) => String(t).replace(/\|/g, "\\|");
 
 w("# Co-ordinator functional user test (FUT)");
 w();
-w(`Royal Softech College on the school platform. Every operation a Co-ordinator can do, end to end through the real screens, with a screenshot of each step. Run on 3 October 2026 (17 Ashwin 2083) against commit \`${commit}\` on a fresh local school. The Principal's FUT is in [\`../admin/\`](../admin/README.md).`);
+w(`Royal Softech College on the school platform. Every operation a Co-ordinator can do, end to end through the real screens, with a screenshot of each step. **Second run**, on 3 October 2026 (17 Ashwin 2083) against commit \`${commit}\` on a fresh local school, after the first run's findings were fixed and the Co-ordinator's screens were redesigned in the Principal's design language (D-106). The Principal's FUT is in [\`../admin/\`](../admin/README.md).`);
 w();
 w("## Summary");
 w();
 w(`- **${manifest.length} steps** with a screenshot each, in ${SECTIONS.length} areas, plus **${denied.length + scope.length} server checks** (things she must not do, and what a one-section Co-ordinator can reach).`);
-w(`- **${passCount} steps behaved as expected**; ${manifest.length - passCount} steps carry one of the findings below.`);
-w(`- **${findings.length} findings**: ${["Medium", "Low", "Cosmetic"].map((sev) => `${findings.filter((f) => f.severity.startsWith(sev)).length} ${sev.toLowerCase()}`).join(", ")}. None blocks the Co-ordinator's work. The most important: a walk-in admitted twice gets two student IDs (F-03), the queue prints sections' internal keys (F-05), no screen opens or corrects a student's record (F-06), and Publish on her website form leads nowhere (F-08).`);
+w(`- **${passCount} steps behaved as expected**${manifest.length - passCount ? `; ${manifest.length - passCount} steps carry one of this run's new findings` : ""}.`);
+w(`- **All ${FIRST_RUN.length} findings of the first run are fixed**, and each is checked again here at the step named in [Findings](#findings).`);
+w(`- **${findings.length ? `${findings.length} new findings` : "No new findings"}** in this run.`);
 w("- **Every forbidden action was refused by the server**, and the Bachelor's-only Co-ordinator could reach nothing of +2. Permission is never left to the screens alone.");
 w();
 w("## How the test was run");
@@ -83,7 +101,7 @@ w("| Subjects | Co-ordinator (02) | English, Nepali, Physics, Chemistry, Mathema
 w("| Curriculum | Co-ordinator (03) | +2 Science Grade 11: five subjects for all and a Science option (Biology or Computer Science, pick 1), theory and practical marks; Grade 12: five subjects; BBS Year 1: three subjects |");
 w("| Classes | Co-ordinator (04) | +2 Science Grade 11 A and B, Grade 12 A, BBS Year 1 (a +2 Management class made and deleted) |");
 w("| Teachers | Co-ordinator (05, 06) | Bikash Chaudhary, Anita Mandal, Suresh Karki, Kamala Rai (+2); Puja Singh, Rajan Sah (Bachelor's); Class Teachers Bikash (11 A), Kamala (11 B), Anita (12 A), Puja (BBS 1) |");
-w("| Students | Co-ordinator (07, 08) | 15 walk-ins (one person admitted twice, F-03: 2083-00001 and 00002) and two approved from the queue (Pooja Sharma, Ritu Gupta): 2083-00001 to 2083-00017 |");
+w("| Students | Co-ordinator (07, 08) | 14 walk-ins (a second registration of Aarav Mandal was stopped as a duplicate) and two approved from the queue (Pooja Sharma, Ritu Gupta): 2083-00001 to 2083-00016 |");
 w("| Applications | Public, Accountant (P1) | Pooja Sharma (approved), Rajesh Yadav (changes asked), Sunil Thapa (rejected), Sita Choudhary (possible duplicate, rejected), Ritu Gupta from the Accountant (approved) |");
 w("| Results | Teachers (P3), Co-ordinator (12) | Grade 11 A and BBS Year 1 first terminal published; two rechecks |");
 w();
@@ -133,11 +151,22 @@ for (const [prefix, title, intro, pre] of SECTIONS) {
 
 w("## Findings");
 w();
-w("Severity: **Medium** gives wrong or missing information on a real task, or leaves out something the role should be able to do; **Low** is confusing but has a way round; **Cosmetic** is appearance only. Nothing was fixed in this round: none blocked the test.");
+w("### The first run's findings, fixed (D-106)");
 w();
-w("| ID | Severity | Where | What happens | Steps |");
+w("Severity as the first run gave it: **Medium** gave wrong or missing information on a real task, or left out something the role should be able to do; **Low** was confusing but had a way round; **Cosmetic** was appearance only.");
+w();
+w("| ID | Severity | What the first run found | Now | Checked at |");
 w("|---|---|---|---|---|");
-for (const f of findings) w(`| ${f.id} | ${f.severity} | ${f.where} | ${esc(f.what)} | ${f.shots} |`);
+for (const [id, sev, was, now, at] of FIRST_RUN) w(`| ${id} | ${sev} | ${esc(was)} | ${esc(now)} | ${at} |`);
+w();
+w("### New in this run");
+w();
+if (findings.length === 0) w("None.");
+else {
+  w("| ID | Severity | Where | What happens | Steps |");
+  w("|---|---|---|---|---|");
+  for (const f of findings) w(`| ${f.id} | ${f.severity} | ${f.where} | ${esc(f.what)} | ${f.shots} |`);
+}
 w();
 w("## What the Co-ordinator can do, and where it was tested");
 w();
@@ -158,15 +187,15 @@ for (const [id, what, where] of [
   ["setup.assignments.manage / view", "Teacher for each subject, Class Teachers", "06"],
   ["admissions.walkin.register", "Register a walk-in", "07"],
   ["admissions.review", "Approve, ask for changes, reject", "08"],
-  ["students.search / students.personal.view", "Find a student; view the record", "09 (the record cannot be opened, F-06)"],
-  ["students.personal.correct", "Correct a student's details", "Not possible: no screen or route (F-06)"],
+  ["students.search / students.personal.view", "Find a student; view the record", "09"],
+  ["students.personal.correct", "Correct a student's details", "09-07 to 09-09"],
   ["students.status.set / students.rollover", "Left or Graduated; year rollover", "Not covered: Phase 8, not built"],
   ["attendance.student.view / attendance.teacher.mark / view", "Read registers; mark teachers, today and a past day", "10"],
   ["activity.read", "Read the activity log", "11-01, 11-02"],
   ["results.electives.set", "Each student's elective", "11-03 to 11-05"],
   ["marks.verify / results.publish / results.view / results.top20.view", "Verify, send back, publish, class sheet, Top 20", "12"],
   ["results.recheck.edit", "Decide rechecks", "13"],
-  ["reports.students / reports.results", "Reports", "15-07 (no menu entry, F-10)"],
+  ["reports.students / reports.results", "Reports", "15-07"],
 ]) w(`| \`${id}\` | ${what} | ${where} |`);
 w();
 w("## Not covered");
@@ -177,4 +206,4 @@ w("- **Real email and SMS:** only the development mailbox exists.");
 w("- **The teachers', students' and Accountant's own screens:** they appear here only as preconditions; each role needs its own FUT.");
 w();
 fs.writeFileSync(`${OUT}/README.md`, lines.join("\n"));
-console.log("written", lines.length, "lines;", manifest.length, "steps;", findings.length, "findings");
+console.log("written", lines.length, "lines;", manifest.length, "steps;", findings.length, "new findings");

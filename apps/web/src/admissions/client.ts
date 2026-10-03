@@ -1,6 +1,10 @@
 import type { ApiClient } from "@/api/client";
 
+import type { components } from "@/api/schema";
+
 import type { ApplicantForm, ApplicationDetail, ApplicationSummary, OpenLevel, StudentDetail, StudentSummary } from "./model";
+
+export type CorrectStudentBody = components["schemas"]["CorrectStudent"];
 
 export type Loaded<T> = { ok: true; data: T } | { ok: false; reason: "forbidden" | "failed" };
 
@@ -71,12 +75,18 @@ export async function verifyEmail(api: ApiClient, token: string): Promise<Verify
 export type RegisterOutcome = { ok: true; id: string } | { ok: false; reason: "forbidden" | "not_found" | "failed" } | { ok: false; reason: "invalid"; message: string };
 /** A walk-in is admitted in the same request, so the answer also carries the SID and the one-time temporary
  * password: shown here and nowhere else (never emailed), for the Co-ordinator to hand the student in front of them. */
-export type WalkInOutcome = { ok: true; id: string; sid: string; temporaryPassword: string } | { ok: false; reason: "forbidden" | "not_found" | "failed" } | { ok: false; reason: "invalid"; message: string };
+export type WalkInOutcome =
+  | { ok: true; id: string; sid: string; temporaryPassword: string }
+  | { ok: false; reason: "forbidden" | "not_found" | "failed" }
+  | { ok: false; reason: "invalid"; message: string }
+  | { ok: false; reason: "duplicate"; matches: { name: string; sid: string }[] };
 
-export async function registerWalkIn(api: ApiClient, values: ApplicantForm, dob: string, classId: string): Promise<WalkInOutcome> {
+export async function registerWalkIn(api: ApiClient, values: ApplicantForm, dob: string, classId: string, confirmDuplicate = false): Promise<WalkInOutcome> {
   try {
-    const { data, response, error } = await api.POST("/api/admissions/walk-ins", { body: { ...applicantBody(values, dob), classId } });
+    const { data, response, error } = await api.POST("/api/admissions/walk-ins", { body: { ...applicantBody(values, dob), classId, ...(confirmDuplicate ? { confirmDuplicate: true } : {}) } });
     if (data) return { ok: true, id: data.id, sid: data.sid, temporaryPassword: data.temporaryPassword };
+    // May already be a student (Co-ordinator FUT F-03): who, so the Co-ordinator can decide before admitting again.
+    if (response.status === 409 && error && "matches" in error && error.matches) return { ok: false, reason: "duplicate", matches: error.matches };
     if (response.status === 422 && error && "message" in error) return { ok: false, reason: "invalid", message: error.message };
     return { ok: false, reason: response.status === 403 ? "forbidden" : response.status === 404 ? "not_found" : "failed" };
   } catch {
@@ -180,6 +190,21 @@ export async function loadOwnStudent(api: ApiClient): Promise<LoadOwnStudentResu
     const { data, response } = await api.GET("/api/students/me");
     if (data) return { ok: true, data };
     return { ok: false, reason: response.status === 404 ? "not_found" : "failed" };
+  } catch {
+    return { ok: false, reason: "failed" };
+  }
+}
+
+export type CorrectOutcome = { ok: true; student: StudentDetail } | { ok: false; reason: "forbidden" | "not_found" | "failed" } | { ok: false; reason: "invalid"; message: string };
+
+/** Corrects a student's personal details with a reason (Co-ordinator FUT F-06). Only the changed fields are sent. */
+export async function correctStudent(api: ApiClient, id: string, changes: CorrectStudentBody): Promise<CorrectOutcome> {
+  try {
+    const { data, response, error } = await api.PATCH("/api/students/{id}", { params: { path: { id } }, body: changes });
+    if (data) return { ok: true, student: data };
+    if (response.status === 422 && error && "message" in error) return { ok: false, reason: "invalid", message: (error as { message: string }).message };
+    if (response.status === 400) return { ok: false, reason: "invalid", message: "" };
+    return { ok: false, reason: response.status === 403 ? "forbidden" : response.status === 404 ? "not_found" : "failed" };
   } catch {
     return { ok: false, reason: "failed" };
   }

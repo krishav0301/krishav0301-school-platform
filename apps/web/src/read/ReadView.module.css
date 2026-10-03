@@ -247,6 +247,11 @@
   white-space: nowrap;
 }
 
+/* A link with its own words ("Open the class sheet") may wrap between them on a narrow screen; "Open" never needs to. */
+.rowLink[data-words] {
+  white-space: normal;
+}
+
 .rowLink:hover {
   text-decoration: underline;
 }

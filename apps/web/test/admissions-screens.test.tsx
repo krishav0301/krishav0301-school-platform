@@ -4,7 +4,9 @@ import { describe, expect, it, vi } from "vitest";
 import { AdmissionsTabs } from "@/admissions/AdmissionsLayout";
 import { ApplicantFields } from "@/admissions/ApplicantFields";
 import { ApplyScreen } from "@/admissions/ApplyScreen";
-import { QueueRow } from "@/admissions/QueueScreen";
+import { QueueCard, queueFigures } from "@/admissions/QueueScreen";
+import { levelsFor } from "@/admissions/RegisterScreen";
+import { changesOf } from "@/admissions/CorrectDetails";
 import { RegisterScreen } from "@/admissions/RegisterScreen";
 import { SearchScreen } from "@/admissions/SearchScreen";
 import { StudentRecordCard } from "@/admissions/StudentRecordCard";
@@ -89,7 +91,7 @@ describe("the public apply screen and its own record", () => {
 });
 
 // ---------------------------------------------------------------------------------------------
-describe("QueueRow", () => {
+describe("the queue (D-106; Co-ordinator FUT F-05)", () => {
   const application = (over: Partial<ApplicationSummary> = {}): ApplicationSummary => ({
     id: "a1",
     firstName: "Sita",
@@ -99,28 +101,54 @@ describe("QueueRow", () => {
     levelId: "l1",
     levelName: "Grade 11",
     programmeName: "Science",
-    sectionKey: "plus2",
+    sectionKey: "s1a8b79d074",
+    sectionName: "+2",
     duplicateFlags: [],
     createdAt: "2026-01-01T00:00:00.000Z",
     ...over,
   });
+  const now = new Date("2026-01-04T00:00:00.000Z");
 
-  it("shows the applicant's name, status and section", () => {
-    const html = inContext(<QueueRow application={application()} open={false} onToggle={noop} onDecided={noop} />);
-    expect(html).toContain(">Sita Sharma</h2>");
+  it("names the applicant, the section by its name (never its key), the level, how long ago, and the state in words", () => {
+    const html = inContext(<QueueCard application={application()} now={now} onReview={noop} />);
+    expect(html).toContain(">Sita Sharma</h3>");
+    expect(html).toContain("+2 · Science · Grade 11");
+    expect(html).not.toContain("s1a8b79d074");
+    expect(html).toContain("applied 3 days ago");
     expect(html).toContain("Pending review");
-    expect(html).toContain("Review");
+    expect(html).toContain(">Review<");
   });
 
-  it("flags a possible duplicate", () => {
-    const html = inContext(<QueueRow application={application({ duplicateFlags: ["phone"] })} open={false} onToggle={noop} onDecided={noop} />);
-    expect(html).toContain("Possible duplicate");
+  it("flags a possible duplicate, and marks Asked for changes in words", () => {
+    expect(inContext(<QueueCard application={application({ duplicateFlags: ["phone"] })} now={now} onReview={noop} />)).toContain(">Possible duplicate<");
+    expect(inContext(<QueueCard application={application({ status: "needs_changes" })} now={now} onReview={noop} />)).toContain("Needs your attention");
   });
 
-  it("marks needs_changes distinctly from pending_review", () => {
-    const html = inContext(<QueueRow application={application({ status: "needs_changes" })} open={false} onToggle={noop} onDecided={noop} />);
-    expect(html).toContain("Needs your attention");
-    expect(html).toContain('class="badge bad"');
+  it("counts waiting, asked for changes and possible duplicates", () => {
+    const figures = queueFigures([application(), application({ id: "a2", status: "needs_changes" }), application({ id: "a3", duplicateFlags: ["name_dob"] })]);
+    expect(figures.map((f) => [f.label, f.value])).toEqual([
+      ["Waiting for review", "2"],
+      ["Asked for changes", "1"],
+      ["Possible duplicates", "1"],
+    ]);
+  });
+});
+
+describe("the walk-in form (Co-ordinator FUT F-11)", () => {
+  const level = (id: string, sectionKey: string) => ({ id, name: "Year 1", programmeName: "P", sectionKey, sectionName: sectionKey });
+  const levels = [level("l1", "plus2"), level("l2", "bachelors")];
+  it("a Co-ordinator of one section is offered only that section's levels; a whole-school one all of them", () => {
+    expect(levelsFor(levels, [{ role: "coordinator", scope: "section", section: "bachelors" }]).map((l) => l.id)).toEqual(["l2"]);
+    expect(levelsFor(levels, [{ role: "coordinator", scope: "institution" }]).map((l) => l.id)).toEqual(["l1", "l2"]);
+  });
+});
+
+describe("correcting details (Co-ordinator FUT F-06)", () => {
+  const base = { firstName: "Ram", middleName: "", lastName: "Sah", dobBs: "2065-01-19", phone: "", guardianName: "Hari", guardianPhone: "9800000000", previousSchool: "" };
+  it("sends only what changed; an emptied optional detail is sent as removed", () => {
+    expect(changesOf(base, { ...base, lastName: "Shah ", phone: "9811111111" })).toEqual({ lastName: "Shah", phone: "9811111111" });
+    expect(changesOf({ ...base, previousSchool: "Old" }, base)).toEqual({ previousSchool: null });
+    expect(changesOf(base, base)).toEqual({});
   });
 });
 

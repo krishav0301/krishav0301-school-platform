@@ -148,3 +148,67 @@ a.wrapLabel {
   margin-bottom: var(--space-2);
   font-weight: var(--weight-medium);
 }
+
+/* Under a class's subjects (D-106): why it cannot be published yet, or that it can, beside Publish. */
+.publishRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.publishRow > p {
+  flex: 1 1 min(16rem, 100%);
+  margin: 0;
+}
+
+/* Verify selected, after the classes. Where the menu is a sidebar it stays in reach at the bottom of the screen while
+   the classes scroll past (D-106); on a phone the tab bar owns the bottom edge, so it sits at the end of the list. */
+.verifyBar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-3) min(var(--space-5), 4vw);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-card);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-card);
+}
+
+.verifyBar > p {
+  margin: 0;
+}
+
+@media (min-width: 56rem) {
+  .verifyBar {
+    position: sticky;
+    bottom: var(--space-3);
+    z-index: 1;
+  }
+}
+
+/* Electives (D-106): a student and their pickers side by side where there is room, the pickers under the name on a phone. */
+.pickRow {
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-2) var(--space-4);
+}
+
+.pickRow > :first-child {
+  flex: 1 1 min(12rem, 100%);
+  min-width: 0;
+}
+
+.picks {
+  display: flex;
+  flex: 1 1 min(18rem, 100%);
+  flex-direction: column;
+  min-width: 0;
+  gap: var(--space-3);
+  max-width: 26rem;
+}

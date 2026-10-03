@@ -162,7 +162,7 @@ export function StatusWord({ tone = "neutral", children }: { tone?: "neutral" | 
 /** "Open →", a quiet link to the row's own page. The name read out says what it opens; `text` changes the visible word. */
 export function OpenLink({ href, label, text }: { href: string; label: string; text?: string }) {
   return (
-    <Link href={href} className={styles.rowLink} aria-label={label}>
+    <Link href={href} className={styles.rowLink} aria-label={label} data-words={text ? "" : undefined}>
       {text ?? t("read.open")}
       <ChevronRight aria-hidden />
     </Link>

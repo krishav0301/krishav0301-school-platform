@@ -5,9 +5,9 @@ import { useCallback, useState, type FormEvent } from "react";
 import { useConfig } from "@/config/ConfigProvider";
 import { t, type MessageKey } from "@/i18n/messages";
 import { useSession } from "@/session/SessionProvider";
-import { AddDialog, Button, Field, Notice, TitleRow } from "@/ui";
+import { AddDialog, Button, Field, Notice } from "@/ui";
 
-import { ReadOnlyNote } from "@/read/ReadView";
+import { ReadHeader, ReadOnlyNote, readStyles } from "@/read/ReadView";
 
 import { YearPicker } from "./ClassesScreen";
 import { createTerminal, loadTerminals, loadYears, type Loaded } from "./client";
@@ -16,21 +16,10 @@ import { ReadSetupHeader, TerminalsTable, midSentence } from "./ReadSetup";
 import { Gate, useLoad } from "./useLoad";
 import styles from "./setup.module.css";
 
-/** The terminals of the chosen year, in order. The school's own word for a terminal is used throughout. */
+/** The terminals of the chosen year, in order, in the table the Principal reads (D-106). The school's own word throughout. */
 export function TerminalsView({ terminals }: { terminals: readonly Terminal[] }) {
   const { term } = useConfig();
-  const words = termWords(term);
-  if (terminals.length === 0) return <p className={styles.empty}>{t("setup.terminals.empty", words)}</p>;
-  return (
-    <ul className={styles.list}>
-      {terminals.map((terminal) => (
-        <li key={terminal.id} className={styles.item}>
-          <h2 className={styles.itemTitle}>{terminal.name}</h2>
-          <p className={styles.muted}>{t("setup.terminals.number", { n: terminal.ordinal })}</p>
-        </li>
-      ))}
-    </ul>
-  );
+  return <TerminalsTable terminals={terminals} words={termWords(term)} />;
 }
 
 function TerminalForm({ yearId, onAdded, showTitle = true }: { yearId: string; onAdded: () => void; showTitle?: boolean }) {
@@ -66,7 +55,17 @@ function TerminalForm({ yearId, onAdded, showTitle = true }: { yearId: string; o
     <form onSubmit={submit} noValidate className={styles.form}>
       {showTitle ? <h2 className={styles.formTitle}>{t("setup.terminals.add", words)}</h2> : null}
       {problem ? <Notice tone="bad">{t(problem)}</Notice> : null}
-      <Field label={t("setup.terminals.name")} value={name} maxLength={60} autoComplete="off" onChange={(event) => setName(event.target.value)} error={error ? t(error) : undefined} />
+      <Field
+        label={t("setup.terminals.name")}
+        value={name}
+        maxLength={60}
+        autoComplete="off"
+        onChange={(event) => {
+          setName(event.target.value);
+          setError(null);
+        }}
+        error={error ? t(error) : undefined}
+      />
       <Button type="submit" loading={saving} loadingLabel={t("setup.working")}>
         {t("setup.terminals.add", words)}
       </Button>
@@ -94,10 +93,12 @@ export function TerminalsScreen() {
   return (
     <>
       {canManage ? (
-        <TitleRow>
-          <h1 className={styles.title}>{t("setup.terminals.title", words)}</h1>
-          {canManage && yearId ? (
-            <AddDialog label={t("setup.terminals.add", words)} title={t("setup.terminals.add", words)}>
+        <ReadHeader
+          title={t("setup.terminals.title", words)}
+          subtitle={t("setup.read.terminalsSubtitle", midSentence(words))}
+          actions={
+            yearId ? (
+              <AddDialog label={t("setup.terminals.add", words)} title={t("setup.terminals.add", words)}>
               {(close) => (
                 <TerminalForm
                   key={yearId}
@@ -110,9 +111,10 @@ export function TerminalsScreen() {
                   }}
                 />
               )}
-            </AddDialog>
-          ) : null}
-        </TitleRow>
+              </AddDialog>
+            ) : undefined
+          }
+        />
       ) : (
         <ReadSetupHeader title={t("setup.terminals.title", words)} subtitle={t("setup.read.terminalsSubtitle", midSentence(words))} />
       )}
@@ -123,7 +125,7 @@ export function TerminalsScreen() {
             <p className={styles.empty}>{t("setup.classes.noYear")}</p>
           ) : (
             <>
-              <div className={styles.filters}>
+              <div className={readStyles.search}>
                 <YearPicker
                   years={list}
                   value={yearId}
