@@ -726,7 +726,8 @@
 
 .activitySummary {
   color: var(--color-text-muted);
-  overflow-wrap: anywhere;
+  overflow-wrap: break-word;
+  hyphens: auto;
 }
 
 .failed {
@@ -738,5 +739,27 @@
   .action:hover,
   .attentionRow:hover {
     transform: none;
+  }
+}
+
+/* Enlarged text on a narrow phone (D-030; found at 320 px with text at 200%): the icon tiles only repeat their
+   labels, so they step aside and the cards breathe less, leaving the words a full line instead of a sliver. */
+@media (max-width: 24em) {
+  .tile {
+    display: none;
+  }
+
+  .card {
+    padding: var(--space-4);
+  }
+
+  .attentionRow {
+    gap: var(--space-2);
+    padding: var(--space-2);
+  }
+
+  /* The whole card or row is the link; the arrow only repeats that. */
+  .chevron {
+    display: none;
   }
 }

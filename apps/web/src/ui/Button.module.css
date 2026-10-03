@@ -11,10 +11,21 @@
   font-weight: var(--weight-medium);
   text-decoration: none;
   white-space: nowrap;
+  max-width: 100%;
   cursor: pointer;
   transition:
     transform var(--motion-fast) var(--motion-ease),
     opacity var(--motion-fast) var(--motion-ease);
+}
+
+/* Enlarged text on a narrow phone: a long label wraps between words and the button grows taller, rather than
+   pushing the page sideways (D-030; found at 320 px with text at 200%). */
+@media (max-width: 24em) {
+  .button {
+    padding-block: var(--space-2);
+    text-align: center;
+    white-space: normal;
+  }
 }
 
 .button:hover:not(:disabled) {

@@ -951,6 +951,16 @@ The matrix lives in code (61 actions, 8 groups, from the reviewed `permission-ma
 - **Not built:** the old mark beside the new one on a recheck (needs the mark history in the API); a "By teacher" grouping of attendance (D-103); any export beyond the existing CSVs. The `apple-design` and `ui-ux-pro-max` skills are not installed here; the review was against the reference and D-030.
 - **Checked in a browser** on the admin FUT school at 1440 px, 360 px and 320 px with text at 200%: no sideways scroll on any page, one heading per page, and no control for the Principal beyond pickers, search, Change date, Print, Download CSV and the pager. The admin FUT's topic 7, oversight and phone steps were re-run with no failure (192 steps).
 
+**D-105 Enlarged text on a phone: what looked like a shell bug, and the real layout faults it hid.** 2026-10-03, at the PM's request ("fix the shell bug"). No rule changed; layout only.
+- **The "blank stretch" was not in the app.** Full-page screenshots taken with the browser's text size at 200% drew the text at normal size while the page kept its 200% height, so pages seemed to end in a long empty area with the tab bar halfway down (a fixed bar is drawn once in a full-page capture). Viewport captures, and enlarging the text with the page's own CSS, both show the page ending right after its content. The shell (sidebar, tab bar, header) is unchanged.
+- **The real faults, found by measuring every portal page at 320 px with the browser's text at 200%** (overflow against the true 320 px, and every word checked for a break inside it):
+  - The shared Button never wrapped its label, so "Change date", "Next" and "Change password" pushed pages sideways. Buttons now wrap between words below 24em of width and never exceed their container.
+  - The phone table's hidden header row still had a width; it is now a block, so its cells cannot widen the page. Status words may wrap.
+  - Overview's cards, Reports' links and People's staff rows gave their words a sliver beside rem-sized icons, arrows and padding ("S t u d e n t s" one letter per line). Below 24em the decorative icon tiles, the repeated arrows and the initials circle step aside and the padding tightens; the whole card or row is still the link. Figure tiles keep whole words. Long heading words hyphenate.
+  - The audit pager's buttons wrap.
+- **Allowed breaks:** an email address, a receipt number or a word with a hyphen may break across lines; nothing else does.
+- **Checked:** 30 portal pages at 320 px with the browser's text at 200%: no sideways scroll and no word broken inside it, apart from the allowed cases above.
+
 ## Open items carried forward
 
 - **No CAPTCHA on the public apply form (D-063).** Relies on rate limiting and an off-screen honeypot, which meets section 7's "rate limiting, CAPTCHA or similar" but is not a CAPTCHA. Add one only if real abuse appears.

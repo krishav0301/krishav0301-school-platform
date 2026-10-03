@@ -133,6 +133,7 @@
 
 .tileText {
   display: flex;
+  flex: 1 1 auto;
   flex-direction: column;
   min-width: 0;
 }
@@ -141,12 +142,23 @@
   font-size: var(--text-xl);
   font-weight: var(--weight-bold);
   line-height: var(--leading-tight);
-  overflow-wrap: anywhere;
+  overflow-wrap: break-word;
 }
 
+/* Whole words only (D-030): a word moves to the next line rather than breaking in the middle. */
 .tileLabel {
   color: var(--color-text-muted);
   font-size: var(--text-sm);
+  overflow-wrap: normal;
+  word-break: normal;
+  hyphens: manual;
+}
+
+/* Enlarged text on a narrow phone: the figure and its words take the whole tile; the icon only repeats the label. */
+@media (max-width: 24em) {
+  .tileIcon {
+    display: none;
+  }
 }
 
 /* --- A card holding a table or a list --- */
@@ -254,7 +266,9 @@
     text-align: start;
   }
 
+  /* A block, so its cells cannot widen the page while it is hidden for sight (screen readers still hear it). */
   .table thead {
+    display: block;
     position: absolute;
     width: 1px;
     height: 1px;
@@ -321,7 +335,7 @@
   color: var(--color-text);
   font-size: var(--text-sm);
   font-weight: var(--weight-medium);
-  white-space: nowrap;
+  max-width: 100%;
 }
 
 .status[data-tone="ok"] {
