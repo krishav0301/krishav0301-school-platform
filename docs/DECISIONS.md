@@ -1142,10 +1142,24 @@ The matrix lives in code (61 actions, 8 groups, from the reviewed `permission-ma
   - or the PM sends the twelve 2084 month lengths from the published calendar.
   - Then compare them with the check, choose the converter, extend the golden test and the verified range.
 
+**D-112 BS 2084 opened provisionally, on the calendar printed by nepcalendar.com.** 2026-10-04, the PM: "Use the calendar given for now. If anything changes we will re-implement it." Supersedes D-111's "not verified" for day-to-day use.
+- **The data.**
+  - 2084 runs 31 31 32 31 31 30 30 30 29 30 30 30 days, from Wednesday 14 April 2027 to Wednesday 12 April 2028. It was read from the PM's screenshot of nepcalendar.com, and the weekdays carry over correctly from month to month.
+  - It matches the pinned converter (`@inicrea/bikram-sambat-core` 0.1.3) day for day, so no conversion data changes. D-022 holds and we write no calendar tables.
+- **The change.**
+  - `VERIFIED_BS_YEARS` now runs from 2000 to 2084, and the golden calendar has a 2084 entry (31,046 days, each converted both ways).
+  - A new test pins every 2084 month's printed length and first weekday, so a converter change that disagrees with the printed calendar fails CI.
+  - BS 2085 is now the first refused year.
+- **Provisional.**
+  - The page does not say it is the official almanac, and the astronomy check in D-111 predicts 8 of these 13 month starts a day later.
+  - When the official 2084 almanac is published (by about Falgun 2083), compare it with this calendar.
+  - If it differs, the dates already stored in 2084 (term ends, fee due days, holidays) must be reviewed. Then follow D-111: change the converter with PM approval, update the golden entry and the pinned test.
+- **What it unblocks.** Terms, fees and every other date may now run to Chaitra 30, 2084 (12 April 2028).
+
 ## Open items carried forward
 
 - **Deploy D-108 and D-110 to staging (PM, from the laptop).** Migrations 0029 and 0030 and the Worker. 0030 rebuilds `academic_years` (see D-110); take a D1 Time Travel bookmark before applying it.
-- **Verify BS 2084 (maintenance task, due by about Falgun 2083; D-110, D-111).** The PM, 2026-10-04: schools subscribe for one year, then maintenance follows. A first year that starts now runs into BS 2084 (Baisakh 1 is 14 April 2027), so this falls inside the first year, as soon as the official almanac is published; the same check recurs each year (2085 next). No term may run past Chaitra 2083 until it is verified. Our pinned converter likely has 2084 wrong (D-111), so verifying it will probably need converter data that matches the official calendar (PM approval, changes D-022).
+- **Re-check BS 2084 against the official almanac (maintenance task, by about Falgun 2083; D-111, D-112).** 2084 is open provisionally on nepcalendar.com's calendar. If the official one differs, review dates already stored in 2084 and change the converter (PM approval, D-022). The same check recurs each year: BS 2085 before about Falgun 2084.
 - **A credit at promotion (`OPEN:`, D-110).** A credit stays with the closed term's enrollment and cannot be refunded there.
 
 - **Public pages carry the whole portal word list (D-102, D-106).** `apps/web/src/i18n/messages.ts` is about 108 KB and every page, the public ones included, loads all of it; it has twice pushed the sign-in page over its page-weight budget. Splitting it into a public catalog and a portal catalog (loaded only inside the portal) would take roughly half the weight off every public page. That changes the "words live in `messages.ts`" rule in CLAUDE.md, so it needs the PM's agreement first.

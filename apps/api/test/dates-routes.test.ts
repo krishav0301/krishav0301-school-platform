@@ -36,7 +36,7 @@ describe("GET /api/dates/to-ad", () => {
   });
 
   it("refuses years whose calendar has not been verified, both sides, with 422 unverified_year", async () => {
-    for (const bs of ["2084-01-01", "1999-12-30", "3000-01-01"]) {
+    for (const bs of ["2085-01-01", "1999-12-30", "3000-01-01"]) {
       const response = await call(`/api/dates/to-ad?bs=${bs}`);
       expect(response.status, bs).toBe(422);
       expect(await response.json(), bs).toEqual({ error: "unverified_year" });

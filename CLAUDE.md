@@ -143,7 +143,7 @@ A role assignment carries a **scope**: the whole institution, or one section (+2
 - Store **AD** dates. Show and accept **BS** everywhere. One date module owns all conversion.
 - Timestamps in UTC, shown in Nepal time (UTC+5:45). Day boundaries use Nepal midnight.
 - The week is Sunday to Friday. Saturday is the weekly holiday.
-- Never generate BS conversion data from memory. Convert inside the date module only, and only for **verified BS years** (a list, currently 2000 to 2083). Beyond that the libraries disagree, so refuse the conversion and block entering dates in unverified years (D-014, `docs/spikes/bs-dates.md`). The converter is `@inicrea/bikram-sambat-core`, **pinned to exactly 0.1.3** (D-022). A golden test (`apps/api/test/fixtures/bs-golden.json`) reproduces every day of BS 2000 to 2083 and fails if an upgrade changes an answer. Use only `apps/api/src/core/dates`. BS 2062 Baisakh 31 to Jestha 31 is a disputed stretch: `conversionConfidence()` flags it, and a date of birth there is confirmed against the certificate. Never import the library elsewhere.
+- Never generate BS conversion data from memory. Convert inside the date module only, and only for **verified BS years** (a list, currently 2000 to 2084; 2084 is provisional, D-112, and must be re-checked against the official almanac). Beyond that the libraries disagree, so refuse the conversion and block entering dates in unverified years (D-014, `docs/spikes/bs-dates.md`). The converter is `@inicrea/bikram-sambat-core`, **pinned to exactly 0.1.3** (D-022). A golden test (`apps/api/test/fixtures/bs-golden.json`) reproduces every day of BS 2000 to 2084 and fails if an upgrade changes an answer. Use only `apps/api/src/core/dates`. BS 2062 Baisakh 31 to Jestha 31 is a disputed stretch: `conversionConfidence()` flags it, and a date of birth there is confirmed against the certificate. Never import the library elsewhere.
 
 ## 7. Security, reliability and quality
 
@@ -204,7 +204,8 @@ The PM's standard is that this product looks and feels like Apple made it: calm,
 | Programme and stream names | Working list in `docs/client-profile.md`, unconfirmed |
 | Admission documents | One certificate upload until PM approves multiple typed documents |
 | File uploads and R2 | Not enabled (D-020). Build the storage interface only; no uploads until PM says R2 is needed |
-| Disputed BS 2062 stretch | Flagged, not hidden. BS 2083 is verified against Hamro Patro. Verify BS 2084 before extending the range; the pinned converter likely has 2084 wrong (D-111, `docs/spikes/bs-2084.md`) |
+| Disputed BS 2062 stretch | Flagged, not hidden. BS 2083 is verified against Hamro Patro |
+| BS 2084 | Open provisionally on nepcalendar.com's calendar (D-112). Re-check against the official almanac by about Falgun 2083; astronomy suggests it may differ (D-111) |
 
 ## 10. Out of scope
 

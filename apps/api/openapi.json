@@ -19650,7 +19650,7 @@
         "tags": [
           "dates"
         ],
-        "description": "Converts a Bikram Sambat day (YYYY-MM-DD, month as a number) to AD. Refuses a day that does not exist and any year outside BS 2000 to 2083.",
+        "description": "Converts a Bikram Sambat day (YYYY-MM-DD, month as a number) to AD. Refuses a day that does not exist and any year outside BS 2000 to 2084.",
         "parameters": [
           {
             "schema": {
@@ -19709,7 +19709,7 @@
         "tags": [
           "dates"
         ],
-        "description": "Converts an AD day (YYYY-MM-DD) to Bikram Sambat. Refuses a day that does not exist and any day outside BS 2000 to 2083.",
+        "description": "Converts an AD day (YYYY-MM-DD) to Bikram Sambat. Refuses a day that does not exist and any day outside BS 2000 to 2084.",
         "parameters": [
           {
             "schema": {

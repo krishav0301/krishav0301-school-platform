@@ -26,7 +26,7 @@ async function ok<T = Record<string, unknown>>(r: Response, status = 200): Promi
 }
 
 /**
- * Fixed days inside the verified calendar (BS 2000 to 2083, D-014): the odd semester Shrawan to Poush 2082, so the next
+ * Fixed days inside the verified calendar (BS 2000 to 2084, D-014, D-112): the odd semester Shrawan to Poush 2082, so the next
  * one (Magh 2082 to Asar 2083) is verified too. A term past its days is still open until the Principal closes it.
  */
 const termStart = bsToAd({ year: 2082, month: 4, day: 1 });
