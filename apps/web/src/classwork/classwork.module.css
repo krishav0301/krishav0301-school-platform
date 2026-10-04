@@ -136,3 +136,35 @@ button.wrapLabel {
   font-size: var(--text-lg);
   font-weight: var(--weight-medium);
 }
+
+/* A row's own quiet action (Write, Change, Open) sits at its end, under the words on a phone (D-107). */
+.rowActions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: var(--space-2);
+}
+
+/* A form inside a pop-up: its fields one under another, the one button last (D-107). */
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.form > p {
+  margin: 0;
+}
+
+.noteTitle {
+  margin: 0;
+  font-size: var(--text-lg);
+  font-weight: var(--weight-medium);
+  overflow-wrap: break-word;
+}
+
+/* A quiet button at the end of a row keeps only a little space at its sides, so it lines up with the status word above. */
+button.rowButton {
+  min-width: 2.75rem;
+  padding-inline: var(--space-2);
+}

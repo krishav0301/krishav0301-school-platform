@@ -7,9 +7,8 @@ import { useAddressQuery } from "@/content/address";
 import { t } from "@/i18n/messages";
 import { useSession } from "@/session/SessionProvider";
 import { EmptyLine, Panel, ReadFailure, ReadHeader, ReadOnlyNote, ReadTable, TableSkeleton, readStyles } from "@/read/ReadView";
-import setupStyles from "@/setup/setup.module.css";
 import { useLoad } from "@/setup/useLoad";
-import { Button, Field, Notice, Select } from "@/ui";
+import { AddDialog, Button, Field, Notice, Select } from "@/ui";
 
 import { addFeeItem, gateFailure, generateCharges, loadStructure, removeFeeItem, sendStructure, type Sent } from "./client";
 import styles from "./fees.module.css";
@@ -47,43 +46,68 @@ export function StructureScreen() {
   const draft = accountant && s.status === "draft";
   return (
     <div className={readStyles.page}>
-      <ReadHeader title={name} subtitle={t("fees.structure.subtitle", { year: s.yearLabel, total: formatNprShort(s.yearlyTotalPaisa) })} crumbs={[{ label: t("fees.structures.title"), href: "/portal/fees/structures" }, { label: name }]} actions={<StructureStatus status={s.status} />} />
-      {message ? <Notice tone={message.tone}>{message.text}</Notice> : null}
-      {accountant && s.status === "live" ? <Notice>{t("fees.structure.fixed")}</Notice> : null}
-      {accountant && s.status === "waiting" ? <Notice>{t("fees.structure.waiting")}</Notice> : null}
-      <Panel title={t("fees.structure.items")} labelledBy="items-heading">
-        <ItemsTable structure={s} onRemove={draft ? (itemId) => void act(() => removeFeeItem(api, itemId), () => t("fees.structure.remove")) : undefined} />
-        {draft ? <AddItem structureId={s.id} onDone={(sent) => act(async () => sent, () => t("fees.structure.add"))} /> : null}
-        {draft && s.items.length > 0 ? (
-          <div className={styles.actions}>
-            <Button className={styles.wrapLabel} onClick={() => void act(() => sendStructure(api, s.id), () => t("fees.structure.sent"))}>
-              {t("fees.structure.send")}
-            </Button>
-          </div>
-        ) : null}
-      </Panel>
-            {accountant && s.status === "live" ? (
-              <section aria-labelledby="charges-heading" className={styles.card}>
-                <h2 id="charges-heading" className={setupStyles.subhead}>
-                  {t("fees.structure.charges")}
-                </h2>
-                <p className={setupStyles.muted}>{t("fees.structure.chargesIntro")}</p>
-                <ul className={styles.list}>
-                  {s.classes.map((c) => (
-                    <li key={c.id} className={styles.row}>
-                      <span>{t("fees.structure.classStudents", { label: c.label || t("fees.structure.noLabel"), count: c.students })}</span>
-                      <Button
-                        className={styles.wrapLabel}
-                        variant="secondary"
-                        onClick={() => void act(() => generateCharges(api, s.id, c.id), (sent) => t("fees.structure.made", { count: (sent.data as { created: number }).created }))}
-                      >
-                        {t("fees.structure.make")}
-                      </Button>
-                    </li>
-                  ))}
-                </ul>
-              </section>
+      <ReadHeader
+        title={name}
+        subtitle={t("fees.structure.subtitle", { year: s.yearLabel, total: formatNprShort(s.yearlyTotalPaisa) })}
+        crumbs={[{ label: t("fees.structures.title"), href: "/portal/fees/structures" }, { label: name }]}
+        actions={
+          <div className={styles.headerActions}>
+            <StructureStatus status={s.status} />
+            {draft ? (
+              <AddDialog label={t("fees.structure.add")} title={t("fees.structure.add")} variant={s.items.length > 0 ? "secondary" : "primary"}>
+                {(close) => (
+                  <AddItem
+                    structureId={s.id}
+                    onAdded={(itemName) => {
+                      close();
+                      setMessage({ tone: "ok", text: t("fees.structure.added", { name: itemName }) });
+                      void reload();
+                    }}
+                  />
+                )}
+              </AddDialog>
             ) : null}
+            {draft && s.items.length > 0 ? (
+              <Button className={styles.wrapLabel} onClick={() => void act(() => sendStructure(api, s.id), () => t("fees.structure.sent"))}>
+                {t("fees.structure.send")}
+              </Button>
+            ) : null}
+          </div>
+        }
+      />
+      {message ? <Notice tone={message.tone}>{message.text}</Notice> : null}
+      {accountant && s.status === "live" ? <ReadOnlyNote>{t("fees.structure.fixed")}</ReadOnlyNote> : null}
+      {accountant && s.status === "waiting" ? <ReadOnlyNote>{t("fees.structure.waiting")}</ReadOnlyNote> : null}
+      <Panel title={t("fees.structure.items")} labelledBy="items-heading">
+        <ItemsTable structure={s} onRemove={draft ? (itemId) => void act(() => removeFeeItem(api, itemId), () => t("fees.structure.removed")) : undefined} />
+      </Panel>
+      {accountant && s.status === "live" ? (
+        <Panel title={t("fees.structure.charges")} labelledBy="charges-heading">
+          <p className={readStyles.rowMeta}>{t("fees.structure.chargesIntro")}</p>
+          {s.classes.length === 0 ? (
+            <EmptyLine>{t("fees.structure.noClasses")}</EmptyLine>
+          ) : (
+            <ul className={readStyles.rows}>
+              {s.classes.map((c) => (
+                <li key={c.id} className={readStyles.rowItem}>
+                  <div className={readStyles.rowHead}>
+                    <h3 className={readStyles.rowTitle}>{c.label ? `${name} · ${c.label}` : name}</h3>
+                    <Button
+                      className={`${styles.wrapLabel} ${styles.rowButton}`}
+                      variant="quiet"
+                      aria-label={t("fees.structure.makeFor", { name: c.label ? `${name} · ${c.label}` : name })}
+                      onClick={() => void act(() => generateCharges(api, s.id, c.id), (sent) => t("fees.structure.made", { count: (sent.data as { created: number }).created }))}
+                    >
+                      {t("fees.structure.make")}
+                    </Button>
+                  </div>
+                  <p className={readStyles.rowMeta}>{t("fees.structure.students", { count: c.students })}</p>
+                </li>
+              ))}
+            </ul>
+          )}
+        </Panel>
+      ) : null}
       {accountant ? null : <ReadOnlyNote>{t("fees.structures.readOnly", { accountant: term("role.accountant") })}</ReadOnlyNote>}
     </div>
   );
@@ -110,7 +134,7 @@ export function ItemsTable({ structure, onRemove }: { structure: FeeStructure; o
                   align: "end" as const,
                   plain: true,
                   cell: (item: FeeStructure["items"][number]) => (
-                    <Button className={styles.wrapLabel} variant="quiet" onClick={() => onRemove(item.id)}>
+                    <Button className={styles.wrapLabel} variant="quiet" onClick={() => onRemove(item.id)} aria-label={t("fees.structure.removeNamed", { name: item.name })}>
                       {t("fees.structure.remove")}
                     </Button>
                   ),
@@ -127,38 +151,38 @@ export function ItemsTable({ structure, onRemove }: { structure: FeeStructure; o
   );
 }
 
-function AddItem({ structureId, onDone }: { structureId: string; onDone: (sent: Sent) => Promise<void> }) {
+/** One line added to a draft, in a pop-up: name, amount, how often it is billed. */
+function AddItem({ structureId, onAdded }: { structureId: string; onAdded: (name: string) => void }) {
   const { api } = useSession();
   const [name, setName] = useState("");
   const [amount, setAmount] = useState("");
   const [frequency, setFrequency] = useState<Frequency>("monthly");
   const [error, setError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
   async function add() {
     const paisa = parseNpr(amount);
     if (paisa === null) return setError(t("fees.badAmount"));
     setError(null);
+    setBusy(true);
     const sent = await addFeeItem(api, structureId, { name: name.trim(), amountPaisa: paisa, frequency });
-    if (sent.ok) {
-      setName("");
-      setAmount("");
-    }
-    await onDone(sent);
+    setBusy(false);
+    if (sent.ok) onAdded(name.trim());
+    else setError(sentMessage(sent));
   }
   return (
-    <div className={styles.card}>
+    <div className={styles.form}>
       <Field label={t("fees.structure.itemName")} value={name} maxLength={80} onChange={(event) => setName(event.target.value)} />
-      <Field label={t("fees.amount")} hint={t("fees.amountHint")} inputMode="decimal" value={amount} onChange={(event) => setAmount(event.target.value)} error={error ?? undefined} />
+      <Field label={t("fees.amount")} hint={t("fees.amountHint")} inputMode="decimal" value={amount} onChange={(event) => setAmount(event.target.value)} />
       <Select
         label={t("fees.structure.frequency")}
         options={(Object.keys(FREQUENCY_LABEL) as Frequency[]).map((f) => ({ value: f, label: t(FREQUENCY_LABEL[f]) }))}
         value={frequency}
         onChange={(event) => setFrequency(event.target.value as Frequency)}
       />
-      <div className={styles.actions}>
-        <Button className={styles.wrapLabel} variant="secondary" onClick={() => void add()} disabled={!name.trim() || !amount.trim()}>
-          {t("fees.structure.add")}
-        </Button>
-      </div>
+      {error ? <Notice tone="bad">{error}</Notice> : null}
+      <Button className={styles.wrapLabel} fullWidth onClick={() => void add()} loading={busy} loadingLabel={t("fees.saving")} disabled={!name.trim() || !amount.trim() || busy}>
+        {t("fees.structure.add")}
+      </Button>
     </div>
   );
 }

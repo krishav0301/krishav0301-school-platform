@@ -25,7 +25,6 @@ import { useConfig } from "@/config/ConfigProvider";
 import { Panel } from "@/read/ReadView";
 import { t, type MessageKey } from "@/i18n/messages";
 import styles from "@/settings/settings.module.css";
-import { Card } from "@/ui";
 
 /**
  * "What you can do" on each role's home page (the PM, 2026-10-01: every person should see and understand their role).
@@ -103,21 +102,7 @@ function BriefLinks({ role }: { role: keyof typeof ROLE_BRIEFS }) {
   );
 }
 
-export function RoleBrief({ role }: { role: keyof typeof ROLE_BRIEFS }) {
-  const { term } = useConfig();
-  const id = `brief-${role}`;
-  return (
-    <Card aria-labelledby={id} className={styles.card}>
-      <h2 id={id} className={styles.heading}>
-        {t("brief.title", { role: term(`role.${role}`) })}
-      </h2>
-      <p className={styles.linkDetail}>{t(ROLE_BRIEFS[role].intro)}</p>
-      <BriefLinks role={role} />
-    </Card>
-  );
-}
-
-/** The same brief as a card among the read patterns (the Co-ordinator's home, D-106). */
+/** What a role can do, as a card among the read patterns on its home (D-106, D-107). */
 export function RoleBriefLinks({ role }: { role: keyof typeof ROLE_BRIEFS }) {
   const { term } = useConfig();
   return (

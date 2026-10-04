@@ -102,3 +102,15 @@ button.wrapLabel {
   justify-content: space-between;
   gap: var(--space-2) var(--space-4);
 }
+
+/* Previous and Next month side by side, wrapping under each other only when they cannot fit (D-107). */
+.monthNav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.monthNav > button {
+  max-width: 100%;
+  white-space: normal;
+}

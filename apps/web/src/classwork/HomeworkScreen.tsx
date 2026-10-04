@@ -1,31 +1,29 @@
 "use client";
 
-import Link from "next/link";
+import { CircleCheck, ClipboardCheck, NotebookPen, Undo2 } from "lucide-react";
 import { useCallback, useState } from "react";
 
 import { toAd } from "@/content/client";
 import { BsDateField } from "@/content/BsDateField";
+import { formatBsDate } from "@/content/model";
 import { t } from "@/i18n/messages";
+import { EmptyLine, FigureTiles, OpenLink, Panel, ReadFailure, ReadHeader, ReadOnlyNote, StatusWord, TableSkeleton, readStyles, type Figure } from "@/read/ReadView";
+import { SidePanel } from "@/read/SidePanel";
 import { useSession } from "@/session/SessionProvider";
-import setupStyles from "@/setup/setup.module.css";
-import { Gate, useLoad } from "@/setup/useLoad";
-import { Badge, Button, Field, Notice, Select, TextArea } from "@/ui";
+import { useLoad } from "@/setup/useLoad";
+import { AddDialog, Button, Field, Notice, Select, TextArea } from "@/ui";
 
 import styles from "./classwork.module.css";
 import { gateFailure, loadMyToday, loadStudentAssignments, loadTeacherAssignments, requestResubmission, setAssignment, submitWork, type Sent } from "./client";
 import { SUBMISSION_STATUS, className, dueInstant, nepalTime, subjectChoice, subjectKey, type StudentAssignments, type Subject, type TeacherAssignments } from "./model";
 
-/** Homework (D-072): a teacher sets work and sees what came in; a student submits, reads the review, asks to resubmit. */
+/** Homework (D-072; redesigned in D-107): a teacher sets work and follows it up; a student hands in, reads the review, asks to resubmit. */
 export function HomeworkScreen() {
   const { me } = useSession();
   const roles = me?.roles.map((r) => r.role) ?? [];
-  return (
-    <>
-      <h1 className={setupStyles.title}>{t("classwork.work.title")}</h1>
-      {roles.includes("teacher") ? <TeacherWork /> : null}
-      {roles.includes("student") ? <StudentWork /> : null}
-    </>
-  );
+  if (roles.includes("teacher")) return <TeacherWork />;
+  if (roles.includes("student")) return <StudentWork />;
+  return null;
 }
 
 export function sentMessage(sent: Sent): string | null {
@@ -38,7 +36,58 @@ export function sentMessage(sent: Sent): string | null {
 
 /** "Due 2083-06-15, 10:00": the deadline's BS day and its Nepal time. */
 export function Deadline({ dueAt, dueDateBs }: { dueAt: string; dueDateBs: string | null }) {
-  return <>{t("classwork.work.due", { time: nepalTime(dueAt), date: dueDateBs ?? dueAt.slice(0, 10) })}</>;
+  return <>{t("classwork.work.due", { time: nepalTime(dueAt), date: dueDateBs ? formatBsDate(dueDateBs) : dueAt.slice(0, 10) })}</>;
+}
+
+type Set = TeacherAssignments["assignments"][number];
+
+/** What the teacher's homework needs from them: open work, answers to review, requests to resubmit. Pure. */
+export function setWorkFigures(work: TeacherAssignments): Figure[] {
+  const live = work.assignments.filter((a) => !a.withdrawn);
+  const review = live.reduce((n, a) => n + a.toReview, 0);
+  const requests = live.reduce((n, a) => n + a.requests, 0);
+  return [
+    { key: "open", icon: NotebookPen, tone: "accent", value: String(live.length), label: t("classwork.work.figure.set") },
+    { key: "review", icon: ClipboardCheck, tone: review > 0 ? "warn" : "ok", value: String(review), label: t("classwork.work.figure.review") },
+    { key: "requests", icon: Undo2, tone: requests > 0 ? "warn" : "ok", value: String(requests), label: t("classwork.work.figure.requests") },
+  ];
+}
+
+/** Where one piece of set work stands, in words. */
+function setState(a: Set): { tone: "ok" | "warn" | undefined; text: string } {
+  if (a.withdrawn) return { tone: undefined, text: t("classwork.withdrawn") };
+  if (a.toReview > 0) return { tone: "warn", text: t("classwork.work.toReview", { count: a.toReview }) };
+  if (a.requests > 0) return { tone: "warn", text: t("classwork.work.requests", { count: a.requests }) };
+  return { tone: "ok", text: t("classwork.work.upToDate") };
+}
+
+/** The homework a teacher has set, what needs them first, each opening its answers. Pure. */
+export function SetWorkList({ assignments }: { assignments: readonly Set[] }) {
+  if (assignments.length === 0) return <EmptyLine>{t("classwork.work.noneSet")}</EmptyLine>;
+  const needs = (a: Set) => !a.withdrawn && a.toReview + a.requests > 0;
+  const ordered = [...assignments.filter(needs), ...assignments.filter((a) => !needs(a) && !a.withdrawn), ...assignments.filter((a) => a.withdrawn)];
+  return (
+    <ul className={readStyles.rows}>
+      {ordered.map((a) => {
+        const state = setState(a);
+        return (
+          <li key={a.id} className={readStyles.rowItem}>
+            <div className={readStyles.rowHead}>
+              <h3 className={readStyles.rowTitle}>{a.title}</h3>
+              <StatusWord tone={state.tone}>{state.text}</StatusWord>
+            </div>
+            <p className={readStyles.rowMeta}>
+              {a.subjectName} · {className(a)} · <Deadline dueAt={a.dueAt} dueDateBs={a.dueDateBs} />
+            </p>
+            <div className={readStyles.rowHead}>
+              <p className={readStyles.rowMeta}>{t("classwork.work.counts", { submitted: a.submitted, students: a.students })}</p>
+              <OpenLink href={`/portal/classwork/homework/assignment?id=${a.id}`} label={t("classwork.work.openNamed", { title: a.title })} />
+            </div>
+          </li>
+        );
+      })}
+    </ul>
+  );
 }
 
 function TeacherWork() {
@@ -50,44 +99,47 @@ function TeacherWork() {
     return { ok: true as const, data: { subjects: subjects.data.subjects, work: work.data } };
   }, [api]);
   const { view, reload } = useLoad<{ subjects: Subject[]; work: TeacherAssignments }>(loadNow);
+  const [done, setDone] = useState<string | null>(null);
+  const data = view.status === "ready" ? view.data : null;
   return (
-    <Gate view={view} onRetry={() => void reload()}>
-      {({ subjects, work }) => (
+    <div className={readStyles.page}>
+      <ReadHeader
+        title={t("classwork.work.title")}
+        subtitle={t("classwork.work.teacherSubtitle")}
+        actions={
+          data && data.subjects.length > 0 ? (
+            <AddDialog label={t("classwork.work.newTitle")} title={t("classwork.work.newTitle")}>
+              {(close) => (
+                <SetWorkForm
+                  subjects={data.subjects}
+                  onSet={(title) => {
+                    close();
+                    setDone(t("classwork.work.setNamed", { title }));
+                    void reload();
+                  }}
+                />
+              )}
+            </AddDialog>
+          ) : null
+        }
+      />
+      {view.status === "loading" ? <TableSkeleton rows={4} tiles={3} /> : null}
+      {view.status === "failed" || view.status === "forbidden" ? <ReadFailure status={view.status} onRetry={() => void reload()} /> : null}
+      {done ? <Notice tone="ok">{done}</Notice> : null}
+      {data ? (
         <>
-          {subjects.length === 0 ? <p className={setupStyles.empty}>{t("classwork.activity.noSubjects")}</p> : <SetWorkForm subjects={subjects} onSet={() => void reload()} />}
-          <section aria-labelledby="set-work" className={setupStyles.page}>
-            <h2 id="set-work" className={setupStyles.subhead}>
-              {t("classwork.work.set")}
-            </h2>
-            {work.assignments.length === 0 ? (
-              <p className={setupStyles.empty}>{t("classwork.work.noneSet")}</p>
-            ) : (
-              <ul className={setupStyles.list}>
-                {work.assignments.map((a) => (
-                  <li key={a.id} className={setupStyles.item}>
-                    <h3 className={setupStyles.itemTitle}>
-                      <Link href={`/portal/classwork/homework/assignment?id=${a.id}`}>{a.title}</Link>
-                    </h3>
-                    <p className={styles.meta}>
-                      {a.subjectName} · {className(a)} · <Deadline dueAt={a.dueAt} dueDateBs={a.dueDateBs} />
-                    </p>
-                    <div className={setupStyles.badges}>
-                      {a.withdrawn ? <Badge>{t("classwork.withdrawn")}</Badge> : <Badge>{t("classwork.work.counts", { submitted: a.submitted, students: a.students })}</Badge>}
-                      {a.toReview > 0 ? <Badge>{t("classwork.work.toReview", { count: a.toReview })}</Badge> : null}
-                      {a.requests > 0 ? <Badge>{t("classwork.work.requests", { count: a.requests })}</Badge> : null}
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </section>
+          {data.subjects.length === 0 ? <ReadOnlyNote>{t("classwork.activity.noSubjects")}</ReadOnlyNote> : null}
+          {data.work.assignments.length > 0 ? <FigureTiles figures={setWorkFigures(data.work)} label={t("classwork.work.figures")} /> : null}
+          <Panel title={t("classwork.work.set")} labelledBy="set-work">
+            <SetWorkList assignments={data.work.assignments} />
+          </Panel>
         </>
-      )}
-    </Gate>
+      ) : null}
+    </div>
   );
 }
 
-function SetWorkForm({ subjects, onSet }: { subjects: Subject[]; onSet: () => void }) {
+function SetWorkForm({ subjects, onSet }: { subjects: Subject[]; onSet: (title: string) => void }) {
   const { api } = useSession();
   const [target, setTarget] = useState(subjectKey(subjects[0]!));
   const [title, setTitle] = useState("");
@@ -97,14 +149,14 @@ function SetWorkForm({ subjects, onSet }: { subjects: Subject[]; onSet: () => vo
   const [dueTime, setDueTime] = useState("10:00");
   const [maxMarks, setMaxMarks] = useState("");
   const [busy, setBusy] = useState(false);
-  const [message, setMessage] = useState<{ tone: "ok" | "bad"; text: string } | null>(null);
+  const [message, setMessage] = useState<string | null>(null);
 
   async function submit() {
     setBusy(true);
     const day = await toAd(api, dueBs.trim());
     if (!day.ok) {
       setBusy(false);
-      return setMessage({ tone: "bad", text: t("classwork.work.badDay") });
+      return setMessage(t("classwork.work.badDay"));
     }
     const subject = subjects.find((s) => subjectKey(s) === target)!;
     const marks = Number.parseInt(maxMarks, 10);
@@ -118,21 +170,12 @@ function SetWorkForm({ subjects, onSet }: { subjects: Subject[]; onSet: () => vo
       ...(Number.isFinite(marks) && marks > 0 ? { maxMarks: marks } : {}),
     });
     setBusy(false);
-    if (sent.ok) {
-      setTitle("");
-      setInstructions("");
-      setLink("");
-      setMaxMarks("");
-      setMessage({ tone: "ok", text: t("classwork.work.setDone") });
-      onSet();
-    } else setMessage({ tone: "bad", text: sentMessage(sent)! });
+    if (sent.ok) onSet(title.trim());
+    else setMessage(sentMessage(sent));
   }
 
   return (
-    <section aria-labelledby="new-work" className={styles.card}>
-      <h2 id="new-work" className={setupStyles.subhead}>
-        {t("classwork.work.newTitle")}
-      </h2>
+    <div className={styles.form}>
       <Select label={t("classwork.subject")} options={subjects.map(subjectChoice)} value={target} onChange={(event) => setTarget(event.target.value)} />
       <Field label={t("classwork.work.titleLabel")} value={title} maxLength={120} onChange={(event) => setTitle(event.target.value)} />
       <TextArea label={t("classwork.work.instructions")} rows={5} maxLength={5000} value={instructions} onChange={(event) => setInstructions(event.target.value)} />
@@ -140,13 +183,61 @@ function SetWorkForm({ subjects, onSet }: { subjects: Subject[]; onSet: () => vo
       <Field label={t("classwork.work.dueTime")} hint={t("classwork.work.dueTimeHint")} type="time" value={dueTime} onChange={(event) => setDueTime(event.target.value)} />
       <Field label={t("classwork.work.maxMarks")} hint={t("classwork.work.maxMarksHint")} inputMode="numeric" value={maxMarks} maxLength={4} onChange={(event) => setMaxMarks(event.target.value)} />
       <Field label={t("classwork.link")} hint={t("classwork.linkHint")} type="url" inputMode="url" value={link} maxLength={500} onChange={(event) => setLink(event.target.value)} />
-      <div className={styles.actions}>
-        <Button className={styles.wrapLabel} onClick={() => void submit()} loading={busy} loadingLabel={t("classwork.saving")} disabled={!title.trim() || !instructions.trim() || !dueBs.trim()}>
-          {t("classwork.work.setButton")}
-        </Button>
-      </div>
-      {message ? <Notice tone={message.tone}>{message.text}</Notice> : null}
-    </section>
+      {message ? <Notice tone="bad">{message}</Notice> : null}
+      <Button className={styles.wrapLabel} fullWidth onClick={() => void submit()} loading={busy} loadingLabel={t("classwork.saving")} disabled={!title.trim() || !instructions.trim() || !dueBs.trim()}>
+        {t("classwork.work.setButton")}
+      </Button>
+    </div>
+  );
+}
+
+type Given = StudentAssignments["assignments"][number];
+const toHandIn = (a: Given) => a.submission === null || a.submission.status === "resubmit_allowed";
+
+/** Where a student's homework stands, in words. Pure. */
+export function givenState(a: Given): { tone: "ok" | "warn" | "bad" | undefined; text: string } {
+  if (a.submission === null) return { tone: "warn", text: t("classwork.work.notSubmitted") };
+  return { tone: a.submission.status === "reviewed" ? "ok" : a.submission.status === "resubmit_allowed" ? "warn" : undefined, text: t(SUBMISSION_STATUS[a.submission.status]) };
+}
+
+export function givenFigures(data: StudentAssignments): Figure[] {
+  const open = data.assignments.filter(toHandIn).length;
+  const reviewed = data.assignments.filter((a) => a.submission?.status === "reviewed").length;
+  return [
+    { key: "open", icon: NotebookPen, tone: open > 0 ? "warn" : "ok", value: String(open), label: t("home.student.figure.homework") },
+    { key: "in", icon: CircleCheck, tone: "ok", value: String(data.assignments.length - open), label: t("classwork.work.figure.handedIn") },
+    { key: "reviewed", icon: ClipboardCheck, tone: "accent", value: String(reviewed), label: t("classwork.work.figure.reviewed") },
+  ];
+}
+
+/** The student's homework, what is still to hand in first, each opening in a side panel. Pure. */
+export function GivenList({ assignments, onOpen }: { assignments: readonly Given[]; onOpen?: (a: Given) => void }) {
+  if (assignments.length === 0) return <EmptyLine>{t("classwork.work.noneYet")}</EmptyLine>;
+  const ordered = [...assignments.filter(toHandIn), ...assignments.filter((a) => !toHandIn(a))];
+  return (
+    <ul className={readStyles.rows}>
+      {ordered.map((a) => {
+        const state = givenState(a);
+        return (
+          <li key={a.id} className={readStyles.rowItem}>
+            <div className={readStyles.rowHead}>
+              <h3 className={readStyles.rowTitle}>{a.title}</h3>
+              <StatusWord tone={state.tone}>{state.text}</StatusWord>
+            </div>
+            <div className={readStyles.rowHead}>
+              <p className={readStyles.rowMeta}>
+                {a.subjectName} · {a.teacherName} · <Deadline dueAt={a.dueAt} dueDateBs={a.dueDateBs} />
+              </p>
+              {onOpen ? (
+                <Button variant="quiet" className={`${styles.wrapLabel} ${styles.rowButton}`} onClick={() => onOpen(a)} aria-label={t(toHandIn(a) ? "classwork.work.handInNamed" : "classwork.work.openNamed", { title: a.title })}>
+                  {t(toHandIn(a) ? "home.student.handIn" : "dashboard.open")}
+                </Button>
+              ) : null}
+            </div>
+          </li>
+        );
+      })}
+    </ul>
   );
 }
 
@@ -157,24 +248,33 @@ function StudentWork() {
     return result.ok ? result : gateFailure(result.reason);
   }, [api]);
   const { view, reload } = useLoad<StudentAssignments>(loadNow);
+  const [openId, setOpenId] = useState<string | null>(null);
+  const data = view.status === "ready" ? view.data : null;
+  const open = data?.assignments.find((a) => a.id === openId) ?? null;
   return (
-    <Gate view={view} onRetry={() => void reload()}>
-      {(data) =>
-        data.assignments.length === 0 ? (
-          <p className={setupStyles.empty}>{t("classwork.work.noneYet")}</p>
-        ) : (
-          <ul className={styles.list}>
-            {data.assignments.map((a) => (
-              <StudentAssignment key={a.id} assignment={a} onChanged={() => void reload()} />
-            ))}
-          </ul>
-        )
-      }
-    </Gate>
+    <div className={readStyles.page}>
+      <ReadHeader title={t("classwork.work.title")} subtitle={t("classwork.work.studentSubtitle")} />
+      {view.status === "loading" ? <TableSkeleton rows={4} tiles={3} /> : null}
+      {view.status === "failed" || view.status === "forbidden" ? <ReadFailure status={view.status} onRetry={() => void reload()} /> : null}
+      {data ? (
+        <>
+          {data.assignments.length > 0 ? <FigureTiles figures={givenFigures(data)} label={t("classwork.work.figures")} /> : null}
+          <Panel title={t("classwork.work.yours")} labelledBy="your-work">
+            <GivenList assignments={data.assignments} onOpen={(a) => setOpenId(a.id)} />
+          </Panel>
+        </>
+      ) : null}
+      {open ? (
+        <SidePanel title={open.title} subtitle={`${open.subjectName} · ${open.teacherName}`} status={<StatusWord tone={givenState(open).tone}>{givenState(open).text}</StatusWord>} onClose={() => setOpenId(null)}>
+          <StudentAssignment assignment={open} onChanged={() => void reload()} showState={false} />
+        </SidePanel>
+      ) : null}
+    </div>
   );
 }
 
-export function StudentAssignment({ assignment, onChanged }: { assignment: StudentAssignments["assignments"][number]; onChanged: () => void }) {
+/** One piece of homework for its student. In the side panel its header already says the state, so `showState` is off there. */
+export function StudentAssignment({ assignment, onChanged, showState = true }: { assignment: StudentAssignments["assignments"][number]; onChanged: () => void; showState?: boolean }) {
   const { api } = useSession();
   const [answer, setAnswer] = useState("");
   const [reason, setReason] = useState("");
@@ -196,13 +296,10 @@ export function StudentAssignment({ assignment, onChanged }: { assignment: Stude
   }
 
   return (
-    <li className={styles.card}>
-      <div>
-        <h2 className={setupStyles.subhead}>{assignment.title}</h2>
-        <p className={styles.meta}>
-          {assignment.subjectName} · {assignment.teacherName} · <Deadline dueAt={assignment.dueAt} dueDateBs={assignment.dueDateBs} />
-        </p>
-      </div>
+    <div className={styles.form}>
+      <p className={styles.meta}>
+        <Deadline dueAt={assignment.dueAt} dueDateBs={assignment.dueDateBs} />
+      </p>
       <p className={styles.body}>{assignment.instructions}</p>
       {assignment.link ? (
         <p>
@@ -212,14 +309,16 @@ export function StudentAssignment({ assignment, onChanged }: { assignment: Stude
         </p>
       ) : null}
       {submission ? (
-        <div className={setupStyles.badges}>
-          <Badge tone={submission.status === "reviewed" ? "ok" : "neutral"}>{t(SUBMISSION_STATUS[submission.status])}</Badge>
-          {submission.isLate ? <Badge tone="bad">{t("classwork.work.late")}</Badge> : null}
-          {submission.marks !== null && assignment.maxMarks !== null ? <Badge>{t("classwork.work.marks", { marks: submission.marks, max: assignment.maxMarks })}</Badge> : null}
-        </div>
-      ) : (
-        <Badge>{t("classwork.work.notSubmitted")}</Badge>
-      )}
+        <p className={readStyles.cellWords}>
+          {showState ? <StatusWord tone={submission.status === "reviewed" ? "ok" : undefined}>{t(SUBMISSION_STATUS[submission.status])}</StatusWord> : null}
+          {submission.isLate ? <StatusWord tone="bad">{t("classwork.work.late")}</StatusWord> : null}
+          {submission.marks !== null && assignment.maxMarks !== null ? <StatusWord>{t("classwork.work.marks", { marks: submission.marks, max: assignment.maxMarks })}</StatusWord> : null}
+        </p>
+      ) : showState ? (
+        <p>
+          <StatusWord tone="warn">{t("classwork.work.notSubmitted")}</StatusWord>
+        </p>
+      ) : null}
       {submission?.feedback ? (
         <div>
           <p className={styles.meta}>{t("classwork.work.feedback")}</p>
@@ -235,11 +334,9 @@ export function StudentAssignment({ assignment, onChanged }: { assignment: Stude
       {canSubmit ? (
         <>
           <TextArea label={t("classwork.work.answer")} rows={6} maxLength={10000} value={answer} onChange={(event) => setAnswer(event.target.value)} />
-          <div className={styles.actions}>
-            <Button className={styles.wrapLabel} variant="secondary" onClick={() => void run(() => submitWork(api, assignment.id, answer.trim()))} loading={busy} loadingLabel={t("classwork.saving")} disabled={!answer.trim()}>
-              {t("classwork.work.submit")}
-            </Button>
-          </div>
+          <Button className={styles.wrapLabel} fullWidth onClick={() => void run(() => submitWork(api, assignment.id, answer.trim()))} loading={busy} loadingLabel={t("classwork.saving")} disabled={!answer.trim()}>
+            {t("classwork.work.submit")}
+          </Button>
         </>
       ) : null}
       {canAsk && !asking ? (
@@ -260,6 +357,6 @@ export function StudentAssignment({ assignment, onChanged }: { assignment: Stude
         </>
       ) : null}
       {error ? <Notice tone="bad">{error}</Notice> : null}
-    </li>
+    </div>
   );
 }

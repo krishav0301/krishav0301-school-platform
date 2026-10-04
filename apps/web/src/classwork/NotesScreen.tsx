@@ -3,10 +3,10 @@
 import { useCallback, useState } from "react";
 
 import { t } from "@/i18n/messages";
+import { EmptyLine, Panel, ReadFailure, ReadHeader, ReadOnlyNote, StatusWord, TableSkeleton, readStyles } from "@/read/ReadView";
 import { useSession } from "@/session/SessionProvider";
-import setupStyles from "@/setup/setup.module.css";
-import { Gate, useLoad } from "@/setup/useLoad";
-import { Badge, Button, Field, Notice, Select, TextArea } from "@/ui";
+import { useLoad } from "@/setup/useLoad";
+import { AddDialog, Button, Field, Notice, Select, TextArea } from "@/ui";
 
 import styles from "./classwork.module.css";
 import { gateFailure, loadMyToday, loadStudentNotes, loadTeacherNotes, shareNote, withdrawNote, type Sent } from "./client";
@@ -14,17 +14,13 @@ import { className, subjectChoice, subjectKey, type StudentNotes, type Subject, 
 
 const KIND_LABEL = { note: "classwork.notes.kind.note", question_paper: "classwork.notes.kind.questionPaper" } as const;
 
-/** Notes and question papers (D-072): a teacher shares and withdraws; a student reads their class's, watermarked. */
+/** Notes and question papers (D-072; redesigned in D-107): a teacher shares and withdraws; a student reads their class's, watermarked. */
 export function NotesScreen() {
   const { me } = useSession();
   const roles = me?.roles.map((r) => r.role) ?? [];
-  return (
-    <>
-      <h1 className={setupStyles.title}>{t("classwork.notes.title")}</h1>
-      {roles.includes("teacher") ? <TeacherNotesView /> : null}
-      {roles.includes("student") ? <StudentNotesView /> : null}
-    </>
-  );
+  if (roles.includes("teacher")) return <TeacherNotesView />;
+  if (roles.includes("student")) return <StudentNotesView />;
+  return null;
 }
 
 function sentMessage(sent: Sent): string | null {
@@ -44,33 +40,55 @@ function TeacherNotesView() {
     return { ok: true as const, data: { subjects: subjects.data.subjects, notes: notes.data } };
   }, [api]);
   const { view, reload } = useLoad<{ subjects: Subject[]; notes: TeacherNotes }>(loadNow);
+  const [done, setDone] = useState<string | null>(null);
+  const data = view.status === "ready" ? view.data : null;
 
   return (
-    <Gate view={view} onRetry={() => void reload()}>
-      {({ subjects, notes }) => (
+    <div className={readStyles.page}>
+      <ReadHeader
+        title={t("classwork.notes.title")}
+        subtitle={t("classwork.notes.teacherSubtitle")}
+        actions={
+          data && data.subjects.length > 0 ? (
+            <AddDialog label={t("classwork.notes.share")} title={t("classwork.notes.shareTitle")}>
+              {(close) => (
+                <ShareForm
+                  subjects={data.subjects}
+                  onShared={(title) => {
+                    close();
+                    setDone(t("classwork.notes.sharedNamed", { title }));
+                    void reload();
+                  }}
+                />
+              )}
+            </AddDialog>
+          ) : null
+        }
+      />
+      {view.status === "loading" ? <TableSkeleton rows={4} /> : null}
+      {view.status === "failed" || view.status === "forbidden" ? <ReadFailure status={view.status} onRetry={() => void reload()} /> : null}
+      {done ? <Notice tone="ok">{done}</Notice> : null}
+      {data ? (
         <>
-          {subjects.length === 0 ? <p className={setupStyles.empty}>{t("classwork.activity.noSubjects")}</p> : <ShareForm subjects={subjects} onShared={() => void reload()} />}
-          <section aria-labelledby="shared-notes" className={setupStyles.page}>
-            <h2 id="shared-notes" className={setupStyles.subhead}>
-              {t("classwork.notes.shared")}
-            </h2>
-            {notes.notes.length === 0 ? (
-              <p className={setupStyles.empty}>{t("classwork.notes.noneShared")}</p>
+          {data.subjects.length === 0 ? <ReadOnlyNote>{t("classwork.activity.noSubjects")}</ReadOnlyNote> : null}
+          <Panel title={t("classwork.notes.shared")} labelledBy="shared-notes">
+            {data.notes.notes.length === 0 ? (
+              <EmptyLine>{t("classwork.notes.noneShared")}</EmptyLine>
             ) : (
-              <ul className={styles.list}>
-                {notes.notes.map((note) => (
+              <ul className={readStyles.rows}>
+                {data.notes.notes.map((note) => (
                   <SharedNote key={note.id} note={note} onChanged={() => void reload()} />
                 ))}
               </ul>
             )}
-          </section>
+          </Panel>
         </>
-      )}
-    </Gate>
+      ) : null}
+    </div>
   );
 }
 
-function ShareForm({ subjects, onShared }: { subjects: Subject[]; onShared: () => void }) {
+function ShareForm({ subjects, onShared }: { subjects: Subject[]; onShared: (title: string) => void }) {
   const { api } = useSession();
   const [target, setTarget] = useState(subjectKey(subjects[0]!));
   const [kind, setKind] = useState<"note" | "question_paper">("note");
@@ -78,7 +96,7 @@ function ShareForm({ subjects, onShared }: { subjects: Subject[]; onShared: () =
   const [body, setBody] = useState("");
   const [link, setLink] = useState("");
   const [busy, setBusy] = useState(false);
-  const [message, setMessage] = useState<{ tone: "ok" | "bad"; text: string } | null>(null);
+  const [message, setMessage] = useState<string | null>(null);
 
   async function share() {
     const subject = subjects.find((s) => subjectKey(s) === target)!;
@@ -92,21 +110,13 @@ function ShareForm({ subjects, onShared }: { subjects: Subject[]; onShared: () =
       ...(link.trim() ? { link: link.trim() } : {}),
     });
     setBusy(false);
-    if (sent.ok) {
-      setTitle("");
-      setBody("");
-      setLink("");
-      setMessage({ tone: "ok", text: t("classwork.notes.sharedDone") });
-      onShared();
-    } else setMessage({ tone: "bad", text: sentMessage(sent)! });
+    if (sent.ok) onShared(title.trim());
+    else setMessage(sentMessage(sent));
   }
 
   return (
-    <section aria-labelledby="share-note" className={styles.card}>
-      <h2 id="share-note" className={setupStyles.subhead}>
-        {t("classwork.notes.shareTitle")}
-      </h2>
-      <p className={setupStyles.muted}>{t("classwork.notes.shareIntro")}</p>
+    <div className={styles.form}>
+      <p className={styles.meta}>{t("classwork.notes.shareIntro")}</p>
       <Select label={t("classwork.subject")} options={subjects.map(subjectChoice)} value={target} onChange={(event) => setTarget(event.target.value)} />
       <Select
         label={t("classwork.notes.kind")}
@@ -120,13 +130,11 @@ function ShareForm({ subjects, onShared }: { subjects: Subject[]; onShared: () =
       <Field label={t("classwork.notes.titleLabel")} value={title} maxLength={120} onChange={(event) => setTitle(event.target.value)} />
       <TextArea label={t("classwork.notes.body")} hint={t("classwork.notes.bodyHint")} rows={6} maxLength={5000} value={body} onChange={(event) => setBody(event.target.value)} />
       <Field label={t("classwork.link")} hint={t("classwork.linkHint")} type="url" inputMode="url" value={link} maxLength={500} onChange={(event) => setLink(event.target.value)} />
-      <div className={styles.actions}>
-        <Button className={styles.wrapLabel} onClick={() => void share()} loading={busy} loadingLabel={t("classwork.saving")} disabled={!title.trim() || (!body.trim() && !link.trim())}>
-          {t("classwork.notes.share")}
-        </Button>
-      </div>
-      {message ? <Notice tone={message.tone}>{message.text}</Notice> : null}
-    </section>
+      {message ? <Notice tone="bad">{message}</Notice> : null}
+      <Button className={styles.wrapLabel} fullWidth onClick={() => void share()} loading={busy} loadingLabel={t("classwork.saving")} disabled={!title.trim() || (!body.trim() && !link.trim())}>
+        {t("classwork.notes.share")}
+      </Button>
+    </div>
   );
 }
 
@@ -142,24 +150,19 @@ function SharedNote({ note, onChanged }: { note: TeacherNotes["notes"][number]; 
     else setError(sentMessage(sent));
   }
   return (
-    <li className={styles.card}>
-      <div>
-        <h3>{note.title}</h3>
-        <p className={styles.meta}>
-          {note.subjectName} · {className(note)}
-        </p>
+    <li className={readStyles.rowItem}>
+      <div className={readStyles.rowHead}>
+        <h3 className={readStyles.rowTitle}>{note.title}</h3>
+        <StatusWord tone={note.withdrawn ? undefined : "ok"}>{t(note.withdrawn ? "classwork.withdrawn" : "classwork.notes.sharedWord")}</StatusWord>
       </div>
-      <div className={setupStyles.badges}>
-        <Badge>{t(KIND_LABEL[note.kind])}</Badge>
-        {note.withdrawn ? <Badge>{t("classwork.withdrawn")}</Badge> : null}
-      </div>
-      {note.withdrawn ? null : (
-        <div className={styles.actions}>
-          <Button className={styles.wrapLabel} variant="quiet" onClick={() => void withdraw()} loading={busy} loadingLabel={t("classwork.saving")}>
+      <div className={readStyles.rowHead}>
+        <p className={readStyles.rowMeta}>{[t(KIND_LABEL[note.kind]), note.subjectName, className(note)].join(" · ")}</p>
+        {note.withdrawn ? null : (
+          <Button className={`${styles.wrapLabel} ${styles.rowButton}`} variant="quiet" onClick={() => void withdraw()} loading={busy} loadingLabel={t("classwork.saving")} aria-label={t("classwork.notes.withdrawNamed", { title: note.title })}>
             {t("classwork.withdraw")}
           </Button>
-        </div>
-      )}
+        )}
+      </div>
       {error ? <Notice tone="bad">{error}</Notice> : null}
     </li>
   );
@@ -173,9 +176,12 @@ function StudentNotesView() {
   }, [api]);
   const { view, reload } = useLoad<StudentNotes>(loadNow);
   return (
-    <Gate view={view} onRetry={() => void reload()}>
-      {(data) => <ProtectedNotes data={data} />}
-    </Gate>
+    <div className={readStyles.page}>
+      <ReadHeader title={t("classwork.notes.title")} subtitle={t("classwork.notes.studentSubtitle")} />
+      {view.status === "loading" ? <TableSkeleton rows={4} /> : null}
+      {view.status === "failed" || view.status === "forbidden" ? <ReadFailure status={view.status} onRetry={() => void reload()} /> : null}
+      {view.status === "ready" ? <ProtectedNotes data={view.data} /> : null}
+    </div>
   );
 }
 
@@ -184,10 +190,16 @@ function StudentNotesView() {
  * the browser's copy menu and printing discouraged. A deterrent, never a guarantee: the words say so.
  */
 export function ProtectedNotes({ data }: { data: StudentNotes }) {
-  if (data.notes.length === 0) return <p className={setupStyles.empty}>{t("classwork.notes.noneYet")}</p>;
+  if (data.notes.length === 0) {
+    return (
+      <Panel>
+        <EmptyLine>{t("classwork.notes.noneYet")}</EmptyLine>
+      </Panel>
+    );
+  }
   return (
     <>
-      <p className={setupStyles.muted}>{t("classwork.notes.protection")}</p>
+      <ReadOnlyNote>{t("classwork.notes.protection")}</ReadOnlyNote>
       <ul className={`${styles.list} ${styles.protected}`} onContextMenu={(event) => event.preventDefault()} onCopy={(event) => event.preventDefault()}>
         {data.notes.map((note) => (
           <li key={note.id} className={`${styles.card} ${styles.watermarked}`}>
@@ -195,13 +207,8 @@ export function ProtectedNotes({ data }: { data: StudentNotes }) {
               {Array.from({ length: 6 }, () => data.watermark).join("   ")}
             </span>
             <div>
-              <h2 className={setupStyles.subhead}>{note.title}</h2>
-              <p className={styles.meta}>
-                {note.subjectName} · {note.teacherName}
-              </p>
-            </div>
-            <div className={setupStyles.badges}>
-              <Badge>{t(KIND_LABEL[note.kind])}</Badge>
+              <h2 className={styles.noteTitle}>{note.title}</h2>
+              <p className={styles.meta}>{[t(KIND_LABEL[note.kind]), note.subjectName, note.teacherName].join(" · ")}</p>
             </div>
             {note.body ? <p className={styles.body}>{note.body}</p> : null}
             {note.link ? (

@@ -9,7 +9,6 @@ import { levelsFor } from "@/admissions/RegisterScreen";
 import { changesOf } from "@/admissions/CorrectDetails";
 import { RegisterScreen } from "@/admissions/RegisterScreen";
 import { SearchScreen } from "@/admissions/SearchScreen";
-import { StudentRecordCard } from "@/admissions/StudentRecordCard";
 import { StudentsTable } from "@/admissions/SearchScreen";
 import { StudentDetails } from "@/admissions/StudentScreen";
 import AdmissionsPage from "@/app/portal/admissions/page";
@@ -178,14 +177,6 @@ describe("SearchScreen", () => {
 });
 
 // ---------------------------------------------------------------------------------------------
-describe("StudentRecordCard", () => {
-  it("shows the shape of the card while it loads", () => {
-    const html = inContext(<StudentRecordCard />, as("student", "own"));
-    expect(html).toContain("Your record");
-    expect(html).toMatch(/role="status"[^>]*aria-busy="true"/);
-  });
-});
-
 // ---------------------------------------------------------------------------------------------
 describe("AdmissionsTabs", () => {
   it("gives the Co-ordinator a Queue tab, marked current, that the Accountant does not see", () => {

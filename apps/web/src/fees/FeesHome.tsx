@@ -1,5 +1,6 @@
 "use client";
 
+import { CircleAlert, ReceiptText, Scale, Wallet } from "lucide-react";
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 
@@ -7,18 +8,30 @@ import { searchStudents } from "@/admissions/client";
 import type { StudentSummary } from "@/admissions/model";
 import { t } from "@/i18n/messages";
 import { useSession } from "@/session/SessionProvider";
-import { EmptyLine, OpenLink, Panel, ReadFailure, ReadHeader, ReadTable, readStyles } from "@/read/ReadView";
+import { EmptyLine, FigureTiles, OpenLink, Panel, ReadFailure, ReadHeader, ReadTable, readStyles, type Figure } from "@/read/ReadView";
 import { Field } from "@/ui";
 
 import { loadDues } from "./client";
 import { OwnFees } from "./OwnFees";
-import { BalanceWord } from "./ReadFees";
+import { BalanceWord, nprShort } from "./ReadFees";
 
 /** Fees (D-078): a student sees their own account; staff find a student to open theirs. */
 export function FeesHome() {
   const { me } = useSession();
   const student = me?.roles.some((r) => r.role === "student") ?? false;
   return student ? <OwnFees /> : <StudentFinder />;
+}
+
+type Totals = { chargedPaisa: number; discountPaisa: number; paidPaisa: number; duePaisa: number; overduePaisa: number };
+
+/** This year's fees across the students the person can see: charged, collected, due now, overdue. Pure. */
+export function totalsFigures(totals: Totals): Figure[] {
+  return [
+    { key: "charged", icon: ReceiptText, tone: "accent", value: nprShort(totals.chargedPaisa), label: t("dashboard.glance.charged") },
+    { key: "paid", icon: Wallet, tone: "ok", value: nprShort(totals.paidPaisa), label: t("dashboard.glance.collected") },
+    { key: "due", icon: Scale, tone: "warn", value: nprShort(totals.duePaisa), label: t("dashboard.glance.due") },
+    { key: "overdue", icon: CircleAlert, tone: totals.overduePaisa > 0 ? "bad" : "ok", value: nprShort(totals.overduePaisa), label: t("dashboard.glance.overdue") },
+  ];
 }
 
 type Balance = { chargedPaisa: number; paidPaisa: number; duePaisa: number; overduePaisa: number; balancePaisa: number };
@@ -67,13 +80,17 @@ function StudentFinder() {
   const [results, setResults] = useState<StudentSummary[] | null>(null);
   const [failed, setFailed] = useState(false);
   const [balances, setBalances] = useState<Map<string, Balance> | null>(null);
+  const [totals, setTotals] = useState<Totals | null>(null);
   const latest = useRef(0);
 
   // This year's balances come from the dues list once; without them the search still works (D-104).
   useEffect(() => {
     let live = true;
     void loadDues(api).then((dues) => {
-      if (live && dues.ok) setBalances(new Map(dues.data.students.map((s) => [s.sid, s])));
+      if (live && dues.ok) {
+        setBalances(new Map(dues.data.students.map((s) => [s.sid, s])));
+        setTotals(dues.data.totals);
+      }
     });
     return () => {
       live = false;
@@ -99,11 +116,16 @@ function StudentFinder() {
   return (
     <div className={readStyles.page}>
       <ReadHeader title={t("fees.title")} subtitle={t("fees.search.subtitle")} />
+      {totals ? <FigureTiles figures={totalsFigures(totals)} label={t("fees.totals.figures")} /> : null}
       <div className={readStyles.search}>
         <Field label={t("fees.search.label")} type="search" value={query} onChange={(event) => setQuery(event.target.value)} />
       </div>
       {failed ? <ReadFailure status="failed" onRetry={() => void run(query)} /> : null}
-      {results === null ? null : results.length === 0 ? (
+      {results === null ? (
+        <Panel>
+          <EmptyLine>{t("fees.search.prompt")}</EmptyLine>
+        </Panel>
+      ) : results.length === 0 ? (
         <EmptyLine>{t("fees.search.empty")}</EmptyLine>
       ) : (
         <Panel>

@@ -1,15 +1,17 @@
 "use client";
 
 import { CircleAlert, CircleCheck, NotebookPen } from "lucide-react";
-import { useCallback } from "react";
+import { useCallback, useState } from "react";
+
+import { formatBsDate } from "@/content/model";
 
 import { t } from "@/i18n/messages";
 import { dayLine, EmptyLine, FigureTiles, OpenLink, Panel, ReadFailure, ReadHeader, ReadOnlyNote, ReadTable, StatusWord, TableSkeleton, readStyles, type Figure } from "@/read/ReadView";
 import { useSession } from "@/session/SessionProvider";
-import setupStyles from "@/setup/setup.module.css";
-import { Gate, useLoad } from "@/setup/useLoad";
+import { useLoad } from "@/setup/useLoad";
+import { Button, Notice } from "@/ui";
 
-import { ActivityEditor } from "./ActivityEditor";
+import { ActivityPanel } from "./ActivityEditor";
 import styles from "./classwork.module.css";
 import { gateFailure, loadActivityClasses, loadMissing, loadMyToday, loadOwnActivity } from "./client";
 import { className, type ActivityClassList, type MissingActivity, type MyActivityToday, type OwnActivity } from "./model";
@@ -26,51 +28,100 @@ export function ActivityScreen() {
   // Whoever reads every class gets the day at a glance first, under the page's one heading (D-104).
   if (overseer)
     return (
-      <>
+      <div className={readStyles.page}>
         <ClassesToday />
-        {roles.includes("teacher") ? <TeacherToday /> : null}
-      </>
+        {roles.includes("teacher") ? <TeacherToday nested /> : null}
+      </div>
     );
+  if (roles.includes("teacher")) return <TeacherToday />;
+  if (roles.includes("student")) return <StudentDays />;
+  return null;
+}
+
+type Subject = MyActivityToday["subjects"][number];
+const subjectKey = (s: Subject) => `${s.classId}-${s.offeringId}`;
+
+/** A teacher's day: subjects written of those taught today, and those still to write. Pure. */
+export function teacherLogFigures(today: MyActivityToday): Figure[] {
+  const written = today.subjects.filter((s) => s.body !== null).length;
+  return [
+    { key: "written", icon: NotebookPen, tone: "ok", value: t("classwork.figure.writtenValue", { written, expected: today.subjects.length }), label: t("classwork.figure.yourWritten") },
+    { key: "missing", icon: CircleAlert, tone: written < today.subjects.length ? "warn" : "ok", value: String(today.subjects.length - written), label: t("classwork.figure.yourMissing") },
+  ];
+}
+
+/** Each subject the teacher teaches, what was written today or that nothing is yet, and Write or Change. Pure. */
+export function TeacherSubjects({ subjects, onOpen }: { subjects: readonly Subject[]; onOpen?: (subject: Subject) => void }) {
+  if (subjects.length === 0) return <EmptyLine>{t("classwork.activity.noSubjects")}</EmptyLine>;
+  // Not written first: that is what the teacher came for.
+  const ordered = [...subjects.filter((s) => s.body === null), ...subjects.filter((s) => s.body !== null)];
   return (
-    <>
-      <h1 className={setupStyles.title}>{t("classwork.activity.title")}</h1>
-      {roles.includes("teacher") ? <TeacherToday /> : null}
-      {roles.includes("student") ? <StudentDays /> : null}
-    </>
+    <ul className={readStyles.rows}>
+      {ordered.map((s) => (
+        <li key={subjectKey(s)} className={readStyles.rowItem}>
+          <div className={readStyles.rowHead}>
+            <h3 className={readStyles.rowTitle}>{s.subjectName}</h3>
+            <StatusWord tone={s.body === null ? "warn" : "ok"}>{t(s.body === null ? "classwork.activity.notWritten" : "classwork.activity.writtenWord")}</StatusWord>
+          </div>
+          <div className={readStyles.rowHead}>
+            <p className={readStyles.rowMeta}>{className(s)}</p>
+            {onOpen ? (
+              <Button variant="quiet" className={`${styles.wrapLabel} ${styles.rowButton}`} onClick={() => onOpen(s)} aria-label={t(s.body === null ? "classwork.activity.writeFor" : "classwork.activity.changeFor", { subject: s.subjectName, name: className(s) })}>
+                {t(s.body === null ? "dashboard.activity.write" : "classwork.activity.change")}
+              </Button>
+            ) : null}
+          </div>
+          {s.body !== null ? <p className={styles.body}>{s.body}</p> : null}
+        </li>
+      ))}
+    </ul>
   );
 }
 
-function TeacherToday() {
+function TeacherToday({ nested = false }: { nested?: boolean }) {
   const { api } = useSession();
   const loadNow = useCallback(async () => {
     const result = await loadMyToday(api);
     return result.ok ? result : gateFailure(result.reason);
   }, [api]);
   const { view, reload } = useLoad<MyActivityToday>(loadNow);
+  const [open, setOpen] = useState<Subject | null>(null);
+  const [saved, setSaved] = useState<string | null>(null);
+  const [bodies, setBodies] = useState<Record<string, string>>({});
+  const today = view.status === "ready" ? { ...view.data, subjects: view.data.subjects.map((s) => ({ ...s, body: bodies[subjectKey(s)] ?? s.body })) } : null;
+  const content = (
+    <>
+      {view.status === "loading" ? <TableSkeleton rows={4} tiles={nested ? 0 : 2} /> : null}
+      {view.status === "failed" || view.status === "forbidden" ? <ReadFailure status={view.status} onRetry={() => void reload()} /> : null}
+      {today ? (
+        <>
+          {nested || today.subjects.length === 0 ? null : <FigureTiles figures={teacherLogFigures(today)} label={t("classwork.figures")} />}
+          {saved ? <Notice tone="ok">{saved}</Notice> : null}
+          <Panel title={t(nested ? "classwork.activity.yourSubjects" : "classwork.activity.subjectsToday")} labelledBy="teacher-today">
+            <p className={readStyles.rowMeta}>{t("classwork.activity.teacherIntro")}</p>
+            <TeacherSubjects subjects={today.subjects} onOpen={(s) => { setSaved(null); setOpen(s); }} />
+          </Panel>
+          {open ? (
+            <ActivityPanel
+              subject={open}
+              onClose={() => setOpen(null)}
+              onSaved={(body) => {
+                setBodies((current) => ({ ...current, [subjectKey(open)]: body }));
+                setSaved(t("classwork.activity.savedFor", { subject: open.subjectName }));
+                setOpen(null);
+              }}
+            />
+          ) : null}
+        </>
+      ) : null}
+    </>
+  );
+  if (nested) return content;
   return (
-    <section aria-labelledby="teacher-today" className={setupStyles.page}>
-      <Gate view={view} onRetry={() => void reload()}>
-        {(today) => (
-          <>
-            <div>
-              <h2 id="teacher-today" className={setupStyles.subhead}>
-                {t("classwork.activity.today", { date: today.dateBs ?? today.date })}
-              </h2>
-              <p className={setupStyles.muted}>{t("classwork.activity.teacherIntro")}</p>
-            </div>
-            {today.subjects.length === 0 ? (
-              <p className={setupStyles.empty}>{t("classwork.activity.noSubjects")}</p>
-            ) : (
-              <ul className={styles.list}>
-                {today.subjects.map((subject) => (
-                  <ActivityEditor key={`${subject.classId}-${subject.offeringId}`} subject={subject} />
-                ))}
-              </ul>
-            )}
-          </>
-        )}
-      </Gate>
-    </section>
+    <div className={readStyles.page}>
+      <ReadHeader title={t("classwork.activity.title")} subtitle={t("classwork.activity.teacherSubtitle")} dayBs={today ? dayLine(today.dateBs, true, today.date) : null} />
+      {content}
+    </div>
   );
 }
 
@@ -82,33 +133,43 @@ function StudentDays() {
   }, [api]);
   const { view, reload } = useLoad<OwnActivity>(loadNow);
   return (
-    <Gate view={view} onRetry={() => void reload()}>
-      {(own) => (own.days.length === 0 ? <p className={setupStyles.empty}>{t("classwork.activity.nothingYet")}</p> : <DayList days={own.days} />)}
-    </Gate>
+    <div className={readStyles.page}>
+      <ReadHeader title={t("classwork.activity.title")} subtitle={t("classwork.activity.studentSubtitle")} />
+      {view.status === "loading" ? <TableSkeleton rows={4} /> : null}
+      {view.status === "failed" || view.status === "forbidden" ? <ReadFailure status={view.status} onRetry={() => void reload()} /> : null}
+      {view.status === "ready" ? (
+        view.data.days.length === 0 ? (
+          <Panel>
+            <EmptyLine>{t("classwork.activity.nothingYet")}</EmptyLine>
+          </Panel>
+        ) : (
+          <DayList days={view.data.days} />
+        )
+      ) : null}
+    </div>
   );
 }
 
-/** Days, newest first, each with its subjects' entries. Shared by the student's view. */
+/** Days, newest first, each a panel with its subjects' entries. Shared by the student's view. */
 export function DayList({ days }: { days: OwnActivity["days"] }) {
   return (
-    <ul className={styles.list}>
+    <>
       {days.map((day) => (
-        <li key={day.date}>
-          <section aria-labelledby={`day-${day.date}`} className={styles.card}>
-            <h2 id={`day-${day.date}`} className={setupStyles.subhead}>
-              {day.dateBs ?? day.date}
-            </h2>
+        <Panel key={day.date} title={day.dateBs ? formatBsDate(day.dateBs) : day.date} labelledBy={`day-${day.date}`}>
+          <ul className={readStyles.rows}>
             {day.entries.map((entry) => (
-              <div key={entry.subjectName}>
-                <h3>{entry.subjectName}</h3>
-                <p className={styles.meta}>{entry.teacherName}</p>
+              <li key={entry.subjectName} className={readStyles.rowItem}>
+                <div className={readStyles.rowHead}>
+                  <h3 className={readStyles.rowTitle}>{entry.subjectName}</h3>
+                  <span className={readStyles.rowMeta}>{entry.teacherName}</span>
+                </div>
                 <p className={styles.body}>{entry.body}</p>
-              </div>
+              </li>
             ))}
-          </section>
-        </li>
+          </ul>
+        </Panel>
       ))}
-    </ul>
+    </>
   );
 }
 

@@ -3,10 +3,10 @@ import { describe, expect, it, vi } from "vitest";
 
 import { AttendanceScreen, ClassesTable, attendanceFigures } from "@/attendance/AttendanceScreen";
 import { DayTable, YearTable } from "@/attendance/ClassAttendanceScreen";
-import { OwnAttendanceCard } from "@/attendance/OwnAttendanceCard";
-import { Register } from "@/attendance/Register";
+import { OwnAttendanceView, StudentAttendanceScreen, ownFigures } from "@/attendance/StudentAttendanceScreen";
+import { Register, registerFigures } from "@/attendance/Register";
 import { AttendanceTabs } from "@/attendance/AttendanceTabs";
-import { OwnMonthScreen } from "@/attendance/OwnMonthScreen";
+import { OwnMonthScreen, OwnMonthView, monthName } from "@/attendance/OwnMonthScreen";
 import { TeacherDayScreen, TeacherList, TeacherTable, teacherFigures } from "@/attendance/TeacherDayScreen";
 import { className, counts, exceptionsOf, initialAbsent, initialStatuses, shiftMonth, studentMeta, type AttendanceDay, type TeacherDay } from "@/attendance/model";
 import { ConfigContext, makeConfigValue, type PublicConfig } from "@/config/ConfigProvider";
@@ -72,27 +72,27 @@ describe("the attendance model", () => {
   });
 });
 
-describe("the register", () => {
-  it("lists every student under one 'Absent today' group, unticked, a live count, and one Save", () => {
+describe("the register (D-107: Present and Absent side by side, like the Co-ordinator's teacher list)", () => {
+  it("names the class, starts everyone present, follows the choices in figures and words, and has one Save", () => {
     const html = inContext(<Register day={day()} />);
-    expect(html).toContain("Today&#x27;s register");
-    expect(html).toContain("Science · Grade 11 · Morning");
-    expect(html).toContain("Today, 2083-06-12");
-    expect(html).toMatch(/<fieldset[^>]*><legend[^>]*>Absent today<\/legend>/);
+    expect(html).toContain("Today&#x27;s register · Science · Grade 11 · Morning");
     expect(html).toContain("Sita Sharma");
     expect(html).toContain("Roll 1 · 2083-00001");
-    expect(html).not.toContain("checked");
+    expect(html).toContain('aria-label="Present or absent: Sita Sharma"');
+    expect(html.match(/aria-pressed="true"[^>]*>Present</g)).toHaveLength(2);
+    expect(html).not.toMatch(/aria-pressed="true"[^>]*>Absent</);
     expect(html).toContain("2 present, 0 absent");
-    expect(html.match(/<button/g)).toHaveLength(1);
-    expect(html).toContain("Save register");
+    expect(html).toContain("Not saved");
+    expect(html.match(/>Save register</g)).toHaveLength(1);
+    expect(registerFigures({ present: 2, absent: 0 }).map((f) => f.value)).toEqual(["2", "0"]);
   });
 
-  it("says when today was already saved, with the saved absences ticked", () => {
+  it("a day already saved starts from the saved absences and says Saved", () => {
     const saved = day({ marked: true, students: day().students.map((s, i) => ({ ...s, status: i === 1 ? "absent" : "present" })) });
     const html = inContext(<Register day={saved} />);
-    expect(html).toContain("Already saved today");
     expect(html).toContain("1 present, 1 absent");
-    expect(html.match(/checked=""/g)).toHaveLength(1);
+    expect(html.match(/aria-pressed="true"[^>]*>Absent</g)).toHaveLength(1);
+    expect(html).toMatch(/data-tone="ok"[^>]*>Saved</);
   });
 
   it("an empty class has nothing to save", () => {
@@ -102,10 +102,30 @@ describe("the register", () => {
   });
 });
 
+describe("a student's own attendance and a teacher's own month (D-107)", () => {
+  const own = { yearLabel: "2083", threshold: 75, present: 30, absent: 12, percent: 71, below: true, absentDays: [{ date: "2026-09-27", dateBs: "2083-06-11" }, { date: "2026-09-28", dateBs: "2083-06-12" }] };
+
+  it("the student's year: the figures, a word below the threshold, the days absent newest first", () => {
+    expect(ownFigures(own).map((f) => f.value)).toEqual(["71%", "30", "12"]);
+    const html = inContext(<OwnAttendanceView own={own} />, as("student", "own"));
+    expect(html).toContain("Below 75%. Please talk to your Class Teacher.");
+    expect(html.indexOf("12 Ashwin 2083")).toBeLessThan(html.indexOf("11 Ashwin 2083"));
+    expect(inContext(<OwnAttendanceView own={{ ...own, percent: null, present: 0, absent: 0, below: false, absentDays: [] }} />, as("student", "own"))).toContain("No days have been marked yet this year.");
+  });
+
+  it("the teacher's month: its BS name, the figures, every day with its status in words", () => {
+    expect(monthName("2083-06")).toBe("Ashwin 2083");
+    const html = inContext(<OwnMonthView month={{ month: "2083-06", present: 1, absent: 1, leave: 0, days: [{ date: "2026-09-27", dateBs: "2083-06-11", weekday: 0, status: "present" }, { date: "2026-09-28", dateBs: "2083-06-12", weekday: 1, status: "absent" }] }} />);
+    expect(html).toContain("Ashwin 2083");
+    expect(html).toContain("11 Ashwin 2083");
+    expect(html).toMatch(/data-tone="bad"[^>]*>Absent</);
+  });
+});
+
 describe("loading", () => {
   it("the attendance screen and the student's card show the shape of the page while they load, not a lone spinner", () => {
     expect(inContext(<AttendanceScreen />)).toMatch(/role="status"[^>]*aria-busy="true"/);
-    expect(inContext(<OwnAttendanceCard />, as("student", "own"))).toMatch(/role="status"[^>]*aria-busy="true"/);
+    expect(inContext(<StudentAttendanceScreen />, as("student", "own"))).toMatch(/role="status"[^>]*aria-busy="true"/);
   });
 });
 

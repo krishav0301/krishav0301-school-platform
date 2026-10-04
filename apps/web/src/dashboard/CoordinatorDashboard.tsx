@@ -1,7 +1,7 @@
 "use client";
 
 import { CalendarCheck, ClipboardCheck, ClipboardList, ListChecks } from "lucide-react";
-import { useCallback, useState } from "react";
+import { useCallback, useState, type ReactNode } from "react";
 
 import { loadQueue } from "@/admissions/client";
 import { loadClasses, loadTeacherDay } from "@/attendance/client";
@@ -16,6 +16,9 @@ import { useLoad } from "@/setup/useLoad";
 
 import { bsLong, greetingKey } from "./admin-model";
 import { RoleBriefLinks } from "./RoleBrief";
+import { DayList, type DayRow } from "./RoleDashboards";
+
+export type { DayRow };
 
 /** The seven setup facts, in their fixed order, each with the page where it is fixed (D-062). */
 export const CHECKLIST: { key: keyof Checklist; label: MessageKey; href: string }[] = [
@@ -48,15 +51,6 @@ export function dayFigures(d: SchoolDay): Figure[] {
   if (d.toVerify !== null) figures.push({ key: "verify", icon: ClipboardCheck, tone: d.toVerify > 0 ? "warn" : "ok", value: String(d.toVerify), label: t("coord.figure.verify") });
   figures.push({ key: "setup", icon: ListChecks, tone: done(d.checklist) < CHECKLIST.length ? "accent" : "ok", value: t("coord.ofTotal", { done: done(d.checklist), total: CHECKLIST.length }), label: t("coord.figure.setup") });
   return figures;
-}
-
-export interface DayRow {
-  key: string;
-  title: string;
-  meta: string;
-  todo: boolean;
-  href: string;
-  action: string;
 }
 
 /** Today's work, one row each: what it is, where it stands in words, and the page to act on it. Pure. */
@@ -100,25 +94,6 @@ export function dayRows(d: SchoolDay): DayRow[] {
   return rows;
 }
 
-function DayList({ rows }: { rows: readonly DayRow[] }) {
-  return (
-    <ul className={readStyles.rows}>
-      {rows.map((row) => (
-        <li key={row.key} className={readStyles.rowItem}>
-          <div className={readStyles.rowHead}>
-            <h3 className={readStyles.rowTitle}>{row.title}</h3>
-            <StatusWord tone={row.todo ? "warn" : "ok"}>{t(row.todo ? "coord.status.todo" : "coord.status.done")}</StatusWord>
-          </div>
-          <div className={readStyles.rowHead}>
-            <p className={readStyles.rowMeta}>{row.meta}</p>
-            <OpenLink href={row.href} label={`${row.action}: ${row.title}`} text={row.action} />
-          </div>
-        </li>
-      ))}
-    </ul>
-  );
-}
-
 /** The setup checklist: the steps still to do first; once all are done, one calm line instead of seven ticks. Pure. */
 export function SetupList({ checklist }: { checklist: Checklist }) {
   if (done(checklist) === CHECKLIST.length) {
@@ -148,7 +123,7 @@ export function SetupList({ checklist }: { checklist: Checklist }) {
 }
 
 /** The figures and lists under the greeting. */
-export function CoordinatorDayView({ day }: { day: SchoolDay }) {
+export function CoordinatorDayView({ day, extra }: { day: SchoolDay; extra?: ReactNode }) {
   return (
     <>
       <FigureTiles figures={dayFigures(day)} label={t("coord.figures")} />
@@ -158,13 +133,14 @@ export function CoordinatorDayView({ day }: { day: SchoolDay }) {
       <Panel title={t("portal.checklist.title")} labelledBy="coord-setup" actions={<span className={readStyles.rowMeta}>{t("coord.setup.progress", { done: done(day.checklist), total: CHECKLIST.length })}</span>}>
         <SetupList checklist={day.checklist} />
       </Panel>
+      {extra}
       <RoleBriefLinks role="coordinator" />
     </>
   );
 }
 
 /** The Co-ordinator's home (D-106), after the Principal's dashboard: today's work and what is left to set up. */
-export function CoordinatorDashboard() {
+export function CoordinatorDashboard({ extra }: { extra?: ReactNode } = {}) {
   const { api, me } = useSession();
   const { config, term } = useConfig();
   const attendanceOn = config?.modules.attendance === true;
@@ -208,7 +184,7 @@ export function CoordinatorDashboard() {
       <ReadHeader title={t(greetingKey(now), { name: me.name })} subtitle={`${term("role.coordinator")} · ${scope}`} dayBs={view.status === "ready" && view.data.todayBs ? bsLong(view.data.todayBs) : null} />
       {view.status === "loading" ? <TableSkeleton rows={6} tiles={4} /> : null}
       {view.status === "failed" || view.status === "forbidden" ? <ReadFailure status={view.status} onRetry={() => void reload()} /> : null}
-      {view.status === "ready" ? <CoordinatorDayView day={view.data} /> : null}
+      {view.status === "ready" ? <CoordinatorDayView day={view.data} extra={extra} /> : null}
     </div>
   );
 }
