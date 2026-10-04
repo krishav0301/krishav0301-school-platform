@@ -1,7 +1,6 @@
 import type { ApiClient } from "@/api/client";
-import { toAd } from "@/content/client";
 
-import { validateYearForm, type FailReason, type YearFormErrors, type YearFormValues } from "./model";
+import type { FailReason } from "./model";
 
 /**
  * Everything the setup screens ask of the server, with the answers turned into plain results the screens can
@@ -35,7 +34,7 @@ function reasonOf(response: Response, error: unknown): FailReason {
   if (status === 404) return "not_found";
   if (status === 409) {
     const code = (error as { error?: string } | undefined)?.error;
-    return code === "year_closed" || code === "another_active" || code === "in_use" || code === "code_taken" || code === "code_locked" ? code : "conflict";
+    return code === "year_closed" || code === "in_use" || code === "code_taken" || code === "code_locked" ? code : "conflict";
   }
   if (status === 400 || status === 422) return "rejected";
   return "failed";
@@ -54,29 +53,6 @@ async function send(run: () => Promise<{ data?: unknown; error?: unknown; respon
 
 const done = (sent: Sent): WriteResult => (sent.ok ? { ok: true } : sent);
 const created = (sent: Sent): CreateResult => (sent.ok ? { ok: true, id: (sent.data as { id: string }).id } : sent);
-
-export type YearResult = CreateResult | { ok: false; reason: "fields"; errors: YearFormErrors };
-
-/**
- * Adds a year. The form is checked first, then the two Nepali days are converted by the server (only the date
- * module converts, D-014), and only then is anything written. A problem with a day comes back against its own field.
- */
-export async function createYear(api: ApiClient, values: YearFormValues): Promise<YearResult> {
-  const problems = validateYearForm(values);
-  if (Object.keys(problems).length > 0) return { ok: false, reason: "fields", errors: problems };
-
-  const [start, end] = await Promise.all([toAd(api, values.startBs.trim()), toAd(api, values.endBs.trim())]);
-  const errors: YearFormErrors = {};
-  if (!start.ok && start.error !== "failed") errors.startBs = start.error === "dateUnverified" ? "setup.error.dateUnverified" : "setup.error.dateInvalid";
-  if (!end.ok && end.error !== "failed") errors.endBs = end.error === "dateUnverified" ? "setup.error.dateUnverified" : "setup.error.dateInvalid";
-  if (Object.keys(errors).length > 0) return { ok: false, reason: "fields", errors };
-  if (!start.ok || !end.ok) return { ok: false, reason: "failed" };
-
-  return created(await send(() => api.POST("/api/academics/years", { body: { bsYear: Number(values.bsYear.trim()), startDate: start.ad, endDate: end.ad } })));
-}
-
-export const activateYear = async (api: ApiClient, id: string): Promise<WriteResult> =>
-  done(await send(() => api.POST("/api/academics/years/{id}/activate", { params: { path: { id } } })));
 
 /** Adds a section (D-095) with its receipt code (D-102). Its key comes back as the id. */
 export const createSection = async (api: ApiClient, name: string, receiptCode?: string): Promise<CreateResult> => {
@@ -118,6 +94,10 @@ export const setProgrammeActive = async (api: ApiClient, id: string, active: boo
 
 export const addLevel = async (api: ApiClient, programmeId: string, name: string): Promise<CreateResult> =>
   created(await send(() => api.POST("/api/academics/programmes/{id}/levels", { params: { path: { id: programmeId } }, body: { name } })));
+
+/** A level's usual length in months, or none (D-110): it fills in the next term's last day. */
+export const setLevelLength = async (api: ApiClient, id: string, usualMonths: number | null): Promise<WriteResult> =>
+  done(await send(() => api.PATCH("/api/academics/levels/{id}", { params: { path: { id } }, body: { usualMonths } })));
 
 export const setLevelActive = async (api: ApiClient, id: string, active: boolean): Promise<WriteResult> =>
   done(await send(() => api.PATCH("/api/academics/levels/{id}", { params: { path: { id } }, body: { active } })));

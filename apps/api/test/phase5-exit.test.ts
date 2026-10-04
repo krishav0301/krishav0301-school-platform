@@ -87,10 +87,10 @@ describe.each([
 
     // This BS year, so today's date belongs to it.
     const b = todayBs().year;
-    const year = await post("/api/academics/years", { bsYear: b, startDate: bsToAd({ year: b, month: 1, day: 1 }), endDate: bsToAd({ year: b, month: 12, day: daysInMonth(b, 12) }) }, cookies.coordinator);
+    const year = await post("/api/academics/years", { bsYear: b, startDate: bsToAd({ year: b, month: 1, day: 1 }), endDate: bsToAd({ year: b, month: 12, day: daysInMonth(b, 12) }), levelIds: [state.levelId!] }, cookies.admin);
     expect(year.status).toBe(201);
     const yearId = await idOf(year);
-    expect((await post(`/api/academics/years/${yearId}/activate`, undefined, cookies.coordinator)).status).toBe(200);
+    expect((await post(`/api/academics/years/${yearId}/activate`, undefined, cookies.admin)).status).toBe(200);
     const cls = await post("/api/academics/classes", { yearId, levelId: state.levelId, label: "" }, cookies.coordinator);
     expect(cls.status).toBe(201);
     state.classId = await idOf(cls);

@@ -9,7 +9,7 @@ export const TERM_DEFAULTS = {
   "role.coordinator": "Co-ordinator",
   "role.accountant": "Accountant",
   "role.admin": "Admin",
-  "term.terminal": "Terminal",
+  "term.terminal": "Exam",
   "term.programme": "Programme",
   "term.level": "Level",
   "term.section": "Section",

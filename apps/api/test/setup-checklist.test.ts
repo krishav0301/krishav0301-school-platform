@@ -34,14 +34,15 @@ async function addYear(status: "draft" | "active" | "closed"): Promise<number> {
   if (status === "active") await db.prepare("UPDATE academic_years SET status = 'closed', closed_at = ?1 WHERE status = 'active'").bind(at).run();
   const result = await db
     .prepare(
-      `INSERT INTO academic_years (public_id, bs_year, label, start_date, end_date, status, created_at, closed_at)
-       VALUES (?1, ?2, ?3, '2026-04-14', '2027-04-13', ?4, ?5, ?6)`,
+      `INSERT INTO academic_years (public_id, bs_year, code, label, start_date, end_date, status, created_at, closed_at)
+       VALUES (?1, ?2, 'T' || CAST(?2 AS INTEGER), ?3, '2026-04-14', '2027-04-13', ?4, ?5, ?6)`,
     )
     .bind(uniq("y"), ++yearCounter, uniq("label"), status, at, status === "closed" ? at : null)
     .run();
   return result.meta.last_row_id;
 }
 async function addClass(yearId: number, programmeId: number, levelId: number, active = true, label = ""): Promise<number> {
+  await db.prepare("INSERT OR IGNORE INTO term_levels (academic_year_id, level_id) VALUES (?1, ?2)").bind(yearId, levelId).run();
   const result = await db
     .prepare("INSERT INTO classes (public_id, academic_year_id, programme_id, level_id, label, is_active) VALUES (?1, ?2, ?3, ?4, ?5, ?6)")
     .bind(uniq("c"), yearId, programmeId, levelId, label, active ? 1 : 0)

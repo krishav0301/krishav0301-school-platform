@@ -900,6 +900,9 @@
           "label": {
             "type": "string"
           },
+          "code": {
+            "type": "string"
+          },
           "startDate": {
             "type": "string"
           },
@@ -925,17 +928,64 @@
               "active",
               "closed"
             ]
+          },
+          "levels": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TermLevel"
+            }
+          },
+          "classes": {
+            "type": "integer"
+          },
+          "students": {
+            "type": "integer"
           }
         },
         "required": [
           "id",
           "bsYear",
           "label",
+          "code",
           "startDate",
           "endDate",
           "startDateBs",
           "endDateBs",
-          "status"
+          "status",
+          "levels",
+          "classes",
+          "students"
+        ]
+      },
+      "TermLevel": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "ordinal": {
+            "type": "integer"
+          },
+          "programmeId": {
+            "type": "string"
+          },
+          "programmeName": {
+            "type": "string"
+          },
+          "sectionKey": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "ordinal",
+          "programmeId",
+          "programmeName",
+          "sectionKey"
         ]
       },
       "ProgrammeList": {
@@ -1068,6 +1118,12 @@
           "active": {
             "type": "boolean"
           },
+          "usualMonths": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
           "students": {
             "type": "integer"
           },
@@ -1080,6 +1136,7 @@
           "ordinal",
           "name",
           "active",
+          "usualMonths",
           "students",
           "canDelete"
         ]
@@ -1300,7 +1357,10 @@
           "label": {
             "type": "string",
             "minLength": 1,
-            "maxLength": 40
+            "maxLength": 60
+          },
+          "code": {
+            "type": "string"
           },
           "startDate": {
             "type": "string",
@@ -1309,10 +1369,17 @@
           "endDate": {
             "type": "string",
             "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+          },
+          "levelIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{32}$"
+            },
+            "maxItems": 200
           }
         },
         "required": [
-          "bsYear",
           "startDate",
           "endDate"
         ],
@@ -1338,7 +1405,10 @@
           "label": {
             "type": "string",
             "minLength": 1,
-            "maxLength": 40
+            "maxLength": 60
+          },
+          "code": {
+            "type": "string"
           },
           "startDate": {
             "type": "string",
@@ -1347,9 +1417,131 @@
           "endDate": {
             "type": "string",
             "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+          },
+          "levelIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{32}$"
+            },
+            "maxItems": 200
           }
         },
         "additionalProperties": false
+      },
+      "TermCloseCheck": {
+        "type": "object",
+        "properties": {
+          "ready": {
+            "type": "boolean"
+          },
+          "exams": {
+            "type": "integer"
+          },
+          "classes": {
+            "type": "integer"
+          },
+          "missing": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "classId": {
+                  "type": "string"
+                },
+                "className": {
+                  "type": "string"
+                },
+                "examId": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "examName": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                }
+              },
+              "required": [
+                "classId",
+                "className",
+                "examId",
+                "examName"
+              ]
+            }
+          }
+        },
+        "required": [
+          "ready",
+          "exams",
+          "classes",
+          "missing"
+        ]
+      },
+      "NextTerm": {
+        "type": "object",
+        "properties": {
+          "label": {
+            "type": "string"
+          },
+          "code": {
+            "type": "string"
+          },
+          "startDate": {
+            "type": "string"
+          },
+          "endDate": {
+            "type": "string"
+          },
+          "startDateBs": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "endDateBs": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "levels": {
+            "type": "array",
+            "items": {
+              "allOf": [
+                {
+                  "$ref": "#/components/schemas/TermLevel"
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "takenBy": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "takenBy"
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        "required": [
+          "label",
+          "code",
+          "startDate",
+          "endDate",
+          "startDateBs",
+          "endDateBs",
+          "levels"
+        ]
       },
       "CreateSection": {
         "type": "object",
@@ -1449,6 +1641,11 @@
             "type": "string",
             "minLength": 1,
             "maxLength": 60
+          },
+          "usualMonths": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 60
           }
         },
         "required": [
@@ -1466,6 +1663,14 @@
           },
           "active": {
             "type": "boolean"
+          },
+          "usualMonths": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": 1,
+            "maximum": 60
           }
         },
         "additionalProperties": false
@@ -4355,6 +4560,252 @@
         },
         "required": [
           "reason"
+        ],
+        "additionalProperties": false
+      },
+      "PromotionBoard": {
+        "type": "object",
+        "properties": {
+          "terms": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "label": {
+                  "type": "string"
+                },
+                "pending": {
+                  "type": "boolean"
+                }
+              },
+              "required": [
+                "id",
+                "label",
+                "pending"
+              ]
+            }
+          },
+          "termId": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "classes": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "classId": {
+                  "type": "string"
+                },
+                "className": {
+                  "type": "string"
+                },
+                "levelId": {
+                  "type": "string"
+                },
+                "nextLevelId": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "nextLevelName": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "students": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "enrollmentId": {
+                        "type": "string"
+                      },
+                      "studentId": {
+                        "type": "string"
+                      },
+                      "sid": {
+                        "type": "string"
+                      },
+                      "name": {
+                        "type": "string"
+                      },
+                      "rollNo": {
+                        "type": [
+                          "integer",
+                          "null"
+                        ]
+                      },
+                      "balancePaisa": {
+                        "type": "integer"
+                      },
+                      "outcome": {
+                        "type": "string",
+                        "enum": [
+                          "pending",
+                          "promoted",
+                          "repeated",
+                          "left",
+                          "graduated"
+                        ]
+                      },
+                      "movedTo": {
+                        "type": [
+                          "string",
+                          "null"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "enrollmentId",
+                      "studentId",
+                      "sid",
+                      "name",
+                      "rollNo",
+                      "balancePaisa",
+                      "outcome",
+                      "movedTo"
+                    ]
+                  }
+                }
+              },
+              "required": [
+                "classId",
+                "className",
+                "levelId",
+                "nextLevelId",
+                "nextLevelName",
+                "students"
+              ]
+            }
+          },
+          "targets": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "classId": {
+                  "type": "string"
+                },
+                "className": {
+                  "type": "string"
+                },
+                "levelId": {
+                  "type": "string"
+                },
+                "termLabel": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "classId",
+                "className",
+                "levelId",
+                "termLabel"
+              ]
+            }
+          }
+        },
+        "required": [
+          "terms",
+          "termId",
+          "classes",
+          "targets"
+        ]
+      },
+      "MoveResults": {
+        "type": "object",
+        "properties": {
+          "results": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MoveResult"
+            }
+          }
+        },
+        "required": [
+          "results"
+        ]
+      },
+      "MoveResult": {
+        "type": "object",
+        "properties": {
+          "enrollmentId": {
+            "type": "string"
+          },
+          "ok": {
+            "type": "boolean"
+          },
+          "reason": {
+            "type": "string",
+            "enum": [
+              "not_found",
+              "invalid",
+              "already_moved",
+              "has_dues",
+              "conflict"
+            ]
+          },
+          "message": {
+            "type": "string"
+          },
+          "newEnrollmentId": {
+            "type": "string"
+          },
+          "carriedDues": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "enrollmentId",
+          "ok"
+        ]
+      },
+      "Moves": {
+        "type": "object",
+        "properties": {
+          "moves": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "enrollmentId": {
+                  "type": "string",
+                  "pattern": "^[0-9a-f]{32}$"
+                },
+                "action": {
+                  "type": "string",
+                  "enum": [
+                    "promote",
+                    "repeat",
+                    "leave",
+                    "graduate"
+                  ]
+                },
+                "classId": {
+                  "type": "string",
+                  "pattern": "^[0-9a-f]{32}$"
+                }
+              },
+              "required": [
+                "enrollmentId",
+                "action"
+              ],
+              "additionalProperties": false
+            },
+            "minItems": 1,
+            "maxItems": 300
+          }
+        },
+        "required": [
+          "moves"
         ],
         "additionalProperties": false
       },
@@ -10506,7 +10957,7 @@
         "tags": [
           "academics"
         ],
-        "description": "Adds a year as a draft. Days are AD; the BS year must be one whose calendar is verified.",
+        "description": "Adds an academic term as a draft (D-110: a row of years is a term of any length): a name, a receipt code, AD days inside the verified BS calendar, and the levels it runs. A level already in another open term is 422.",
         "requestBody": {
           "required": true,
           "content": {
@@ -10890,7 +11341,7 @@
         "tags": [
           "academics"
         ],
-        "description": "Changes a draft year's label or days. Send only what changes.",
+        "description": "Changes a term. Name, receipt code and days only while it is a draft (409 `not_draft`); the levels, as the whole new set, while it is open. A level with classes in the term cannot be taken out (422). The receipt code is fixed once a receipt carries it (409 `code_locked`).",
         "parameters": [
           {
             "schema": {
@@ -10972,7 +11423,7 @@
         "tags": [
           "academics"
         ],
-        "description": "Makes a draft year the active one. Refused (409) while another year is active.",
+        "description": "Opens a draft term. Several terms can be open at once.",
         "parameters": [
           {
             "schema": {
@@ -10986,7 +11437,7 @@
         ],
         "responses": {
           "200": {
-            "description": "Now active",
+            "description": "Now open",
             "content": {
               "application/json": {
                 "schema": {
@@ -11031,6 +11482,173 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/AcademicsInvalid"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/academics/years/{id}/close-check": {
+      "get": {
+        "operationId": "get_term_close_check",
+        "tags": [
+          "academics"
+        ],
+        "description": "What still stops the term from closing: each class with students whose results are not published for an exam (an exam of null: the term has no exams).",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{32}$"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The check",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TermCloseCheck"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such term",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AcademicsError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/academics/years/{id}/close": {
+      "post": {
+        "operationId": "close_academic_year",
+        "tags": [
+          "academics"
+        ],
+        "description": "Closes an open term once every class with students has its results published for every exam of the term (D-109). After that the term refuses every write. Not ready: 409 `not_ready` with the check.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{32}$"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Closed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AcademicsOk"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed (for example, switched off since signing in, or another section's data)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AcademicsError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such item",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AcademicsError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Not ready (with the check), already closed, or not open",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "check": {
+                      "$ref": "#/components/schemas/TermCloseCheck"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ]
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "The change breaks a rule; nothing changed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AcademicsInvalid"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/academics/years/{id}/next": {
+      "get": {
+        "operationId": "propose_next_term",
+        "tags": [
+          "academics"
+        ],
+        "description": "The next term, filled in for the Principal to confirm: the next level of each batch in this term, starting the day after it ends and running for the levels' usual length. Nothing is created.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{32}$"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The proposal",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NextTerm"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such term",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AcademicsError"
                 }
               }
             }
@@ -14643,6 +15261,67 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/AdmissionsInvalid"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/promotions": {
+      "get": {
+        "operationId": "get_promotion_board",
+        "tags": [
+          "admissions"
+        ],
+        "description": "A closed term's classes in the person's sections, with each student, what they owe, and where they have gone; and the open terms' classes they can move into. With no term asked for, the most recently closed term that still has students to move.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{32}$"
+            },
+            "required": false,
+            "name": "term",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The board",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PromotionBoard"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "operationId": "move_students",
+        "tags": [
+          "admissions"
+        ],
+        "description": "Moves students of a closed term: promote (a class of the next level in an open term), repeat (the same level), leave, or graduate (last level). Leaving and graduating need nothing owed. What is owed is carried into the new term. Each student is answered on its own; a repeat finds the move already made.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Moves"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Each student's answer",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MoveResults"
                 }
               }
             }

@@ -24,6 +24,7 @@ export function SetupTabs({ pathname }: { pathname: string }) {
     { href: "/portal/setup/terminals", label: t("setup.tab.terminals", words) },
     { href: "/portal/setup/subjects", label: t("setup.tab.subjects") },
     { href: "/portal/setup/curriculum", label: t("setup.tab.curriculum") },
+    { href: "/portal/setup/promotion", label: t("setup.tab.promotion") },
   ];
 
   return (

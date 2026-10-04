@@ -83,8 +83,8 @@ describe.each([
     const programmes = (await (await call("/api/academics/programmes", { cookie: cookies.coordinator })).json()) as { programmes: { levels: { id: string }[] }[] };
     state.levelId = programmes.programmes[0]!.levels[0]!.id;
     const b = todayBs().year;
-    const yearId = await idOf(await post("/api/academics/years", { bsYear: b, startDate: bsToAd({ year: b, month: 1, day: 1 }), endDate: bsToAd({ year: b, month: 12, day: daysInMonth(b, 12) }) }, cookies.coordinator));
-    expect((await post(`/api/academics/years/${yearId}/activate`, undefined, cookies.coordinator)).status).toBe(200);
+    const yearId = await idOf(await post("/api/academics/years", { bsYear: b, startDate: bsToAd({ year: b, month: 1, day: 1 }), endDate: bsToAd({ year: b, month: 12, day: daysInMonth(b, 12) }), levelIds: [state.levelId!] }, cookies.admin));
+    expect((await post(`/api/academics/years/${yearId}/activate`, undefined, cookies.admin)).status).toBe(200);
     state.classId = await idOf(await post("/api/academics/classes", { yearId, levelId: state.levelId, label: "" }, cookies.coordinator));
     for (const first of ["Sita", "Hari"]) {
       const email = `${first.toLowerCase()}-p6exit-${crypto.randomUUID().slice(0, 6)}@example.com`;

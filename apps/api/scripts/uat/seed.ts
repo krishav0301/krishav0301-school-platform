@@ -16,7 +16,7 @@ import { bsToAd, daysInMonth, todayBs } from "../../src/core/dates";
  */
 
 export type Actor = "admin" | "coordinator" | "accountant";
-export type Call = (method: "GET" | "POST" | "PUT", path: string, actor: Actor, body?: unknown) => Promise<Response>;
+export type Call = (method: "GET" | "POST" | "PUT" | "PATCH", path: string, actor: Actor, body?: unknown) => Promise<Response>;
 
 export interface NewAccount {
   role: "teacher" | "student";
@@ -79,6 +79,7 @@ export async function seedUat(call: Call, options: { tag: string; emailDomain?: 
   const email = (who: string) => `uat-${who}-${options.tag}@${domain}`;
   const get = <T>(path: string, actor: Actor) => expectOk<T>(call("GET", path, actor), `GET ${path}`);
   const post = <T>(path: string, actor: Actor, body?: unknown) => expectOk<T>(call("POST", path, actor, body), `POST ${path}`);
+  const patch = <T>(path: string, actor: Actor, body?: unknown) => expectOk<T>(call("PATCH", path, actor, body), `PATCH ${path}`);
 
   // The +2 programme: the one graded the NEB way, else the first with two levels.
   const { programmes } = await get<{ programmes: { id: string; name: string; section: { key: string }; gradingPolicy: string | null; levels: { id: string; name: string; active: boolean }[] }[] }>(
@@ -89,17 +90,20 @@ export async function seedUat(call: Call, options: { tag: string; emailDomain?: 
   if (!programme) throw new SeedError("No programme with two levels yet. A school starts with none (D-087): the Admin makes the programmes on the Programmes screen first.");
   const levels = programme.levels.filter((l) => l.active).slice(0, 2);
 
-  // The year: the active one; else this BS year, activated if it is a draft already (as on staging) or made first.
-  type Year = { id: string; bsYear: number; label: string; status: string };
-  const { years } = await get<{ years: Year[] }>("/api/academics/years", "coordinator");
-  let year = years.find((y) => y.status === "active");
+  // The term (D-110): the open term that already runs these levels (a level is in only one open term); else this BS
+  // year's, made by the Principal with them. Its levels are added if missing, and it is opened if still a draft.
+  type Year = { id: string; bsYear: number; label: string; status: string; levels: { id: string }[] };
+  const levelIds = levels.map((l) => l.id);
+  const { years } = await get<{ years: Year[] }>("/api/academics/years", "admin");
+  const b = todayBs().year;
+  let year = years.find((y) => y.status !== "closed" && y.levels.some((l) => levelIds.includes(l.id))) ?? years.find((y) => y.status === "draft" && y.bsYear === b); // as staging had: a draft of this BS year
   if (!year) {
-    const b = todayBs().year;
-    const draft = years.find((y) => y.bsYear === b && y.status === "draft");
-    const id = draft?.id ?? (await post<{ id: string }>("/api/academics/years", "coordinator", { bsYear: b, startDate: bsToAd({ year: b, month: 1, day: 1 }), endDate: bsToAd({ year: b, month: 12, day: daysInMonth(b, 12) }) })).id;
-    await post(`/api/academics/years/${id}/activate`, "coordinator");
-    year = (await get<{ years: Year[] }>("/api/academics/years", "coordinator")).years.find((y) => y.id === id)!;
+    const id = (await post<{ id: string }>("/api/academics/years", "admin", { startDate: bsToAd({ year: b, month: 1, day: 1 }), endDate: bsToAd({ year: b, month: 12, day: daysInMonth(b, 12) }), levelIds })).id;
+    year = (await get<{ years: Year[] }>("/api/academics/years", "admin")).years.find((y) => y.id === id)!;
   }
+  const missing = levelIds.filter((id) => !year!.levels.some((l) => l.id === id));
+  if (missing.length > 0) await patch(`/api/academics/years/${year.id}`, "admin", { levelIds: [...year.levels.map((l) => l.id), ...missing] });
+  if (year.status === "draft") await post(`/api/academics/years/${year.id}/activate`, "admin");
 
   // Refuse to add a second set on top of a year that already has classes: this is a starter set, not a top-up.
   const { classes: existing } = await get<{ classes: { yearId: string }[] }>("/api/academics/classes", "coordinator");

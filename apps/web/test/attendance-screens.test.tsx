@@ -110,7 +110,7 @@ describe("a student's own attendance and a teacher's own month (D-107)", () => {
     const html = inContext(<OwnAttendanceView own={own} />, as("student", "own"));
     expect(html).toContain("Below 75%. Please talk to your Class Teacher.");
     expect(html.indexOf("12 Ashwin 2083")).toBeLessThan(html.indexOf("11 Ashwin 2083"));
-    expect(inContext(<OwnAttendanceView own={{ ...own, percent: null, present: 0, absent: 0, below: false, absentDays: [] }} />, as("student", "own"))).toContain("No days have been marked yet this year.");
+    expect(inContext(<OwnAttendanceView own={{ ...own, percent: null, present: 0, absent: 0, below: false, absentDays: [] }} />, as("student", "own"))).toContain("No days have been marked yet this term.");
   });
 
   it("the teacher's month: its BS name, the figures, every day with its status in words", () => {

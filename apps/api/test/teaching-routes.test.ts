@@ -23,7 +23,7 @@ const at = "2026-09-22T00:00:00.000Z";
 async function newYear(): Promise<string> {
   const publicId = newPublicId();
   await db
-    .prepare(`INSERT INTO academic_years (public_id, bs_year, label, start_date, end_date, status, created_at) VALUES (?1, ?2, ?3, '2026-04-14', '2027-04-13', 'draft', ?4)`)
+    .prepare(`INSERT INTO academic_years (public_id, bs_year, code, label, start_date, end_date, status, created_at) VALUES (?1, ?2, 'T' || CAST(?2 AS INTEGER), ?3, '2026-04-14', '2027-04-13', 'draft', ?4)`)
     .bind(publicId, ++yc, `Year ${yc}`, at)
     .run();
   return publicId;
@@ -31,6 +31,7 @@ async function newYear(): Promise<string> {
 
 async function newClass(yearId: string, levelId: string): Promise<string> {
   const publicId = newPublicId();
+  await db.prepare("INSERT OR IGNORE INTO term_levels (academic_year_id, level_id) SELECT y.id, l.id FROM academic_years y, levels l WHERE y.public_id = ?1 AND l.public_id = ?2").bind(yearId, levelId).run();
   await db
     .prepare(`INSERT INTO classes (public_id, academic_year_id, programme_id, level_id, label) SELECT ?1, y.id, l.programme_id, l.id, '' FROM academic_years y, levels l WHERE y.public_id = ?2 AND l.public_id = ?3`)
     .bind(publicId, yearId, levelId)

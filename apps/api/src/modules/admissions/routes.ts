@@ -14,7 +14,10 @@ import {
   ApplySchema,
   ApproveSchema,
   CorrectStudentSchema,
+  MoveResultsSchema,
+  MovesSchema,
   OpenLevelListSchema,
+  PromotionBoardSchema,
   PublicIdSchema,
   RejectSchema,
   RequestChangesSchema,
@@ -23,6 +26,7 @@ import {
   VerifyEmailSchema,
   WalkInSchema,
 } from "./schema";
+import { moveStudents, promotionBoard } from "./promotion";
 import { applyForAdmission, approveApplication, correctStudent, registerStudent, registerWalkIn, reject, requestChanges, verifyApplicationEmail, type WriteFailure } from "./service";
 
 const json = <T extends z.ZodType>(schema: T) => ({ "application/json": { schema } });
@@ -348,6 +352,46 @@ export function registerAdmissions(app: App): void {
       const found = await getStudent(c.env.DB, allowedSections(grant), id);
       c.header("Cache-Control", "no-store");
       return c.json(found!, 200);
+    },
+  );
+
+  // --- Moving students into the next term (D-109, D-110) ----------------------------------------
+  const PROMOTE = { action: "students.promote" } as const;
+  defineRoute(
+    app,
+    {
+      method: "get",
+      path: "/api/promotions",
+      operationId: "get_promotion_board",
+      tags: ["admissions"],
+      description:
+        "A closed term's classes in the person's sections, with each student, what they owe, and where they have gone; and the open terms' classes they can move into. With no term asked for, the most recently closed term that still has students to move.",
+      access: PROMOTE,
+      request: { query: z.object({ term: PublicIdSchema.optional() }) },
+      responses: { 200: { description: "The board", content: json(PromotionBoardSchema) } },
+    },
+    async (c) => {
+      c.header("Cache-Control", "no-store");
+      return c.json(await promotionBoard(c.env.DB, allowedSections(c.get("grant")!), c.req.valid("query").term ?? null), 200);
+    },
+  );
+
+  defineRoute(
+    app,
+    {
+      method: "post",
+      path: "/api/promotions",
+      operationId: "move_students",
+      tags: ["admissions"],
+      description:
+        "Moves students of a closed term: promote (a class of the next level in an open term), repeat (the same level), leave, or graduate (last level). Leaving and graduating need nothing owed. What is owed is carried into the new term. Each student is answered on its own; a repeat finds the move already made.",
+      access: PROMOTE,
+      request: { body: { required: true, content: json(MovesSchema) } },
+      responses: { 200: { description: "Each student's answer", content: json(MoveResultsSchema) } },
+    },
+    async (c) => {
+      const results = await moveStudents(c.env.DB, c.env.AUDIT_HMAC_KEY, c.get("auth")!.userPublicId, c.req.valid("json").moves);
+      return c.json({ results }, 200);
     },
   );
 }

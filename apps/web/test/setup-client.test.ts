@@ -2,18 +2,17 @@ import { describe, expect, it } from "vitest";
 
 import { createApiClient } from "@/api/client";
 import {
-  activateYear,
   addLevel,
   createClass,
   createProgramme,
   createTerminal,
-  createYear,
   loadClasses,
   loadProgrammes,
   loadTerminals,
   loadYears,
   setClassActive,
   setLevelActive,
+  setLevelLength,
   setProgrammeActive,
 } from "@/setup/client";
 
@@ -63,45 +62,6 @@ describe("loading", () => {
   });
 });
 
-describe("createYear", () => {
-  const values = { bsYear: "2083", startBs: "2083-01-01", endBs: "2083-12-30" };
-  const script = (seen: Seen) => {
-    if (seen.path.startsWith("/api/dates/to-ad")) return reply(200, { ad: seen.path.includes("2083-01-01") ? "2026-04-14" : "2027-04-13" });
-    return reply(201, { id });
-  };
-
-  it("converts both Nepali days on the server, then sends the AD days and the BS year", async () => {
-    const { api, seen } = fake(script);
-    expect(await createYear(api, values)).toEqual({ ok: true, id });
-    const post = seen.find((s) => s.method === "POST")!;
-    expect(post).toMatchObject({ path: "/api/academics/years", body: { bsYear: 2083, startDate: "2026-04-14", endDate: "2027-04-13" } });
-  });
-
-  it("checks the form first and sends nothing when it is empty", async () => {
-    const { api, seen } = fake(script);
-    const result = await createYear(api, { bsYear: "", startBs: "", endBs: "" });
-    expect(result).toMatchObject({ ok: false, reason: "fields", errors: { bsYear: "setup.error.bsYear", startBs: "setup.error.startRequired", endBs: "setup.error.endRequired" } });
-    expect(seen).toEqual([]);
-  });
-
-  it("a day that does not exist, or whose year is not verified, comes back against its own field, and nothing is created", async () => {
-    const invalid = fake((s) => (s.path.includes("2083-01-01") ? reply(422, { error: "invalid_date" }) : script(s)));
-    expect(await createYear(invalid.api, values)).toMatchObject({ ok: false, reason: "fields", errors: { startBs: "setup.error.dateInvalid" } });
-    expect(invalid.seen.some((s) => s.method === "POST")).toBe(false);
-
-    const unverified = fake((s) => (s.path.includes("2083-12-30") ? reply(422, { error: "unverified_year" }) : script(s)));
-    expect(await createYear(unverified.api, values)).toMatchObject({ ok: false, reason: "fields", errors: { endBs: "setup.error.dateUnverified" } });
-  });
-
-  it("maps the server's answers: 422 rejected, 409 conflict, 403 forbidden, a dropped connection failed", async () => {
-    const withPost = (status: number, body: unknown) => fake((s) => (s.method === "POST" ? reply(status, body) : script(s))).api;
-    expect(await createYear(withPost(422, { error: "invalid", message: "x" }), values)).toEqual({ ok: false, reason: "rejected" });
-    expect(await createYear(withPost(409, { error: "conflict" }), values)).toEqual({ ok: false, reason: "conflict" });
-    expect(await createYear(withPost(403, { error: "forbidden" }), values)).toEqual({ ok: false, reason: "forbidden" });
-    expect(await createYear(fake((s) => (s.method === "POST" ? "offline" : script(s))).api, values)).toEqual({ ok: false, reason: "failed" });
-  });
-});
-
 describe("the other writes", () => {
   it("send what the API expects", async () => {
     const { api, seen } = fake(() => reply(201, { id }));
@@ -125,25 +85,24 @@ describe("the other writes", () => {
     expect(seen[0]!.body).toEqual({ name: "+2 Science", sectionKey: "plus2", affiliation: "NEB" });
   });
 
-  it("switch things off and on, and make a year current", async () => {
+  it("switch things off and on, and set a level's usual length (D-110)", async () => {
     const { api, seen } = fake(() => reply(200, { ok: true }));
     expect(await setProgrammeActive(api, id, false)).toEqual({ ok: true });
     await setLevelActive(api, id, true);
     await setClassActive(api, id, false);
-    await activateYear(api, id);
+    await setLevelLength(api, id, 6);
     expect(seen.map((s) => [s.method, s.path, s.body])).toEqual([
       ["PATCH", `/api/academics/programmes/${id}`, { active: false }],
       ["PATCH", `/api/academics/levels/${id}`, { active: true }],
       ["PATCH", `/api/academics/classes/${id}`, { active: false }],
-      ["POST", `/api/academics/years/${id}/activate`, undefined],
+      ["PATCH", `/api/academics/levels/${id}`, { usualMonths: 6 }],
     ]);
   });
 
-  it("409 keeps its word: a closed year and another active year are told apart from a repeat", async () => {
+  it("409 keeps its word: a closed term is told apart from a repeat", async () => {
     const closed = fake(() => reply(409, { error: "year_closed" })).api;
     expect(await createClass(closed, { yearId: id, levelId: id, label: "" })).toEqual({ ok: false, reason: "year_closed" });
     expect(await createTerminal(closed, { yearId: id, name: "x" })).toEqual({ ok: false, reason: "year_closed" });
-    expect(await activateYear(fake(() => reply(409, { error: "another_active" })).api, id)).toEqual({ ok: false, reason: "another_active" });
     expect(await createClass(fake(() => reply(409, { error: "conflict" })).api, { yearId: id, levelId: id, label: "" })).toEqual({ ok: false, reason: "conflict" });
   });
 
@@ -153,6 +112,6 @@ describe("the other writes", () => {
     expect(await setClassActive(gone, id, true)).toEqual({ ok: false, reason: "not_found" });
     const offline = fake(() => "offline").api;
     expect(await createProgramme(offline, { name: "x", sectionKey: "plus2", affiliation: "y" })).toEqual({ ok: false, reason: "failed" });
-    expect(await activateYear(offline, id)).toEqual({ ok: false, reason: "failed" });
+    expect(await setLevelLength(offline, id, null)).toEqual({ ok: false, reason: "failed" });
   });
 });

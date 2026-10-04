@@ -30,14 +30,15 @@ const counterStatement = (db: D1Database, enrollmentPublicId: string) =>
 
 /**
  * The receipt for a payment just inserted (it runs only if that insert changed a row), numbered from the counter: the
- * section's receipt code, the BS year and the sequence, such as P2-2083-00007 (D-102). A section from before codes
+ * section's receipt code, the term's code and the sequence, such as P2-2083-00007 (D-102, D-110: one sequence per section
+ * per term; a term's code defaults to its BS year, so a yearly school's numbers look as before). A section from before codes
  * numbers with its key until it is given one.
  */
 const receiptStatement = (db: D1Database, receiptPublicId: string, paymentPublicId: string, at: string) =>
   db
     .prepare(
       `INSERT INTO receipts (public_id, number, section_id, academic_year_id, sequence, payment_entry_id, issued_at)
-       SELECT ?1, COALESCE(s.receipt_code, s.key) || '-' || ay.bs_year || '-' || printf('%05d', rc.next_number), s.id, ay.id, rc.next_number, le.id, ?3
+       SELECT ?1, COALESCE(s.receipt_code, s.key) || '-' || ay.code || '-' || printf('%05d', rc.next_number), s.id, ay.id, rc.next_number, le.id, ?3
          FROM ledger_entries le JOIN enrollments en ON en.id = le.enrollment_id JOIN academic_years ay ON ay.id = en.academic_year_id
          JOIN classes cl ON cl.id = en.class_id JOIN levels lv ON lv.id = cl.level_id JOIN programmes pv ON pv.id = lv.programme_id JOIN sections s ON s.id = pv.section_id
          JOIN receipt_counters rc ON rc.section_id = s.id AND rc.academic_year_id = ay.id
@@ -125,9 +126,9 @@ export async function recordCash(db: D1Database, key: string, actor: string, inp
 
 // --- Vouchers ------------------------------------------------------------------------------------------
 
-/** The student's own enrollment this active year, found from the sign-in. `?1` the student's user public id. */
+/** The student's own enrollment in an open (active) term, the newest if ever more than one, found from the sign-in. `?1` the student's user public id. */
 const OWN_ENROLLMENT = `(SELECT en.public_id FROM enrollments en JOIN students st ON st.id = en.student_id JOIN academic_years ay ON ay.id = en.academic_year_id
-                          WHERE st.user_id = (SELECT id FROM users WHERE public_id = ?1) AND ay.status = 'active')`;
+                          WHERE st.user_id = (SELECT id FROM users WHERE public_id = ?1) AND ay.status = 'active' ORDER BY ay.start_date DESC LIMIT 1)`;
 
 export async function ownEnrollment(db: D1Database, userPublicId: string): Promise<string | null> {
   return (await db.prepare(`SELECT ${OWN_ENROLLMENT} AS id`).bind(userPublicId).first<{ id: string | null }>())?.id ?? null;

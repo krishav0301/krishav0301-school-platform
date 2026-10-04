@@ -72,7 +72,7 @@ describe("the approvals inbox (D-102)", () => {
     expect(html).toContain(">Fee structure</h2>");
     expect(html).toContain("+2 Science · Grade 11 · 2083");
     expect(html).toContain("Tuition 3,500 / month · Admission 15,000 once");
-    expect(html).toContain("Yearly total: NPR 62,000");
+    expect(html).toContain("Term total: NPR 62,000");
     expect(html).toContain("Sent by Gita Thapa");
     expect(html).toContain("16 Ashwin 2083");
     expect(html).toContain(">Waiting<");
@@ -118,10 +118,10 @@ describe("the review panel's details, for each kind (D-102)", () => {
   it("a fee structure: every item, the yearly total, the programme and year, and what approving does", () => {
     const html = inContext(<DetailBody detail={{ kind: "fee_structure", programme: "+2 Science", level: "Grade 11", year: "2083", items: [{ name: "Tuition", amountPaisa: 350_000, frequency: "monthly" }, { name: "Laboratory", amountPaisa: 200_000, frequency: "yearly" }], yearlyTotalPaisa: 4_400_000 }} />);
     expect(html).toContain("<dt>Tuition</dt><dd>NPR 3,500 / month</dd>");
-    expect(html).toContain("<dt>Laboratory</dt><dd>NPR 2,000 / year</dd>");
-    expect(html).toContain("<dt>Yearly total</dt><dd>NPR 44,000</dd>");
-    expect(html).toContain("+2 Science · Grade 11 · Academic year 2083");
-    expect(html).toContain("If approved, this fee structure will take effect for the selected programme and year.");
+    expect(html).toContain("<dt>Laboratory</dt><dd>NPR 2,000 / term</dd>");
+    expect(html).toContain("<dt>Term total</dt><dd>NPR 44,000</dd>");
+    expect(html).toContain("+2 Science · Grade 11 · 2083");
+    expect(html).toContain("If approved, this fee structure will take effect for the selected programme and term.");
   });
 
   it("a percentage discount: the percentage and its amount, the reason, and the note when Other", () => {

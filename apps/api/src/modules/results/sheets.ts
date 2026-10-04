@@ -13,8 +13,14 @@ export type Write = { ok: true } | { ok: false; reason: "not_found" | "year_clos
 
 const yearClosed = (error: unknown) => /academic year is closed/i.test(error instanceof Error ? error.message : String(error));
 
-/** The active year's terminals, oldest first. */
-const TERMINALS = `SELECT t.public_id AS id, t.name FROM terminals t JOIN academic_years ay ON ay.id = t.academic_year_id WHERE ay.status = 'active' ORDER BY t.ordinal`;
+/**
+ * The open terms' exams (terminals), term by term and oldest first. With more than one term open, each is named with its
+ * term, so "Final" of one term is never mistaken for another's (D-110).
+ */
+export const TERMINALS = `SELECT t.public_id AS id,
+                                 CASE WHEN (SELECT COUNT(*) FROM academic_years x WHERE x.status = 'active') > 1 THEN ay.label || ' · ' || t.name ELSE t.name END AS name
+                            FROM terminals t JOIN academic_years ay ON ay.id = t.academic_year_id
+                           WHERE ay.status = 'active' ORDER BY ay.start_date, ay.id, t.ordinal`;
 
 /** The teacher's subjects this year, each with its sheet's state per terminal. */
 export async function mySheets(db: D1Database, me: string): Promise<MyMarkSheets> {

@@ -1,24 +1,6 @@
 "use client";
 
-import {
-  BookOpen,
-  ChartColumn,
-  CircleCheck,
-  ClipboardList,
-  CreditCard,
-  Ellipsis,
-  FileText,
-  Globe,
-  House,
-  CalendarDays,
-  LogOut,
-  Settings,
-  Settings2,
-  ChartPie,
-  Users,
-  ChevronDown,
-  type LucideIcon,
-} from "lucide-react";
+import { BookOpen, CalendarDays, CalendarRange, ChartColumn, ChartPie, ChevronDown, CircleCheck, ClipboardList, CreditCard, Ellipsis, FileText, Globe, House, LogOut, Settings, Settings2, Users, type LucideIcon } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
@@ -37,6 +19,7 @@ const ICONS: Record<NavIcon, LucideIcon> = {
   overview: House,
   website: Globe,
   programs: BookOpen,
+  terms: CalendarRange,
   setup: Settings2,
   people: Users,
   approvals: CircleCheck,

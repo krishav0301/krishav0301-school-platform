@@ -9,7 +9,7 @@ export type Created = { ok: true; publicId: string } | Failure;
 export const firstMessage = (error: { issues: { message: string }[] }): string => error.issues[0]?.message ?? "That is not valid";
 
 /** What happened to one write. `not_applied`: the conditional SQL matched nothing (not allowed, missing, or a lost race). */
-export type Outcome = "done" | "not_applied" | "duplicate" | "year_closed" | "check_failed";
+export type Outcome = "done" | "not_applied" | "duplicate" | "year_closed" | "check_failed" | "level_in_other_term" | "level_not_in_term" | "level_has_classes";
 
 /**
  * One change, possibly of several statements, and its audit entry, in one batch. The entry is written only if
@@ -23,6 +23,10 @@ export async function write(db: D1Database, auditKey: string, event: AuditEventI
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     if (/academic year is closed/i.test(message)) return "year_closed";
+    // The term rules (D-110), named so the screen can say which.
+    if (/already in another open term/i.test(message)) return "level_in_other_term";
+    if (/level is not in the term/i.test(message)) return "level_not_in_term";
+    if (/term has classes at that level/i.test(message)) return "level_has_classes";
     if (/UNIQUE constraint failed/i.test(message)) return "duplicate";
     if (/CHECK constraint failed/i.test(message)) return "check_failed";
     if (/FOREIGN KEY constraint failed/i.test(message)) return "check_failed";

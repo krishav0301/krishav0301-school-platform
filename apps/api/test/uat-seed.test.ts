@@ -58,7 +58,7 @@ describe.each([
     // Royal's school already has this year as a draft, never activated (as staging had): it is used, not made twice.
     if (json === royalJson) {
       const b = todayBs().year;
-      const made = await call("POST", "/api/academics/years", "coordinator", { bsYear: b, startDate: bsToAd({ year: b, month: 1, day: 1 }), endDate: bsToAd({ year: b, month: 12, day: daysInMonth(b, 12) }) });
+      const made = await call("POST", "/api/academics/years", "admin", { bsYear: b, startDate: bsToAd({ year: b, month: 1, day: 1 }), endDate: bsToAd({ year: b, month: 12, day: daysInMonth(b, 12) }) });
       expect(made.status).toBe(201);
     }
 

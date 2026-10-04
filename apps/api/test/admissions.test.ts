@@ -22,18 +22,20 @@ beforeAll(async () => {
 
   // A live year, a plus2 programme and level, and one active class: what an application needs.
   const bs = 2060;
+  // The Principal makes and opens the term (D-110); its levels are added once the level exists, below.
   const year = await call("/api/academics/years", {
     method: "POST",
-    cookie: coordinator.cookie,
+    cookie: (await programmesAdmin()).cookie,
     body: { bsYear: bs, startDate: bsToAd({ year: bs, month: 1, day: 1 }), endDate: bsToAd({ year: bs, month: 12, day: daysInMonth(bs, 12) }) },
   });
   const yearId = ((await year.json()) as { id: string }).id;
-  expect((await call(`/api/academics/years/${yearId}/activate`, { method: "POST", cookie: coordinator.cookie })).status).toBe(200);
+  expect((await call(`/api/academics/years/${yearId}/activate`, { method: "POST", cookie: (await programmesAdmin()).cookie })).status).toBe(200);
 
   const programme = await call("/api/academics/programmes", { method: "POST", cookie: (await programmesAdmin()).cookie, body: { name: "Science", sectionKey: "plus2", affiliation: "NEB" } });
   const programmeId = ((await programme.json()) as { id: string }).id;
   const level = await call(`/api/academics/programmes/${programmeId}/levels`, { method: "POST", cookie: (await programmesAdmin()).cookie, body: { name: "Grade 11" } });
   levelId = ((await level.json()) as { id: string }).id;
+  expect((await call(`/api/academics/years/${yearId}`, { method: "PATCH", cookie: (await programmesAdmin()).cookie, body: { levelIds: [levelId] } })).status).toBe(200);
   const cls = await call("/api/academics/classes", { method: "POST", cookie: coordinator.cookie, body: { yearId, levelId, label: "Morning" } });
   classId = ((await cls.json()) as { id: string }).id;
 });

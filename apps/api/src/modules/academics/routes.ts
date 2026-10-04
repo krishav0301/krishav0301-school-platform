@@ -9,6 +9,7 @@ import {
   AcademicYearListSchema,
   AssignmentInputSchema,
   ClassChangesSchema,
+  CloseCheckSchema,
   ClassTeacherInputSchema,
   CreateClassSchema,
   CreateLevelSchema,
@@ -17,6 +18,7 @@ import {
   CreateTerminalSchema,
   CreateYearSchema,
   LevelChangesSchema,
+  NextTermSchema,
   ProgrammeChangesSchema,
   ProgrammeListSchema,
   PublicIdSchema,
@@ -33,6 +35,9 @@ import {
 import {
   activateYear,
   addLevel,
+  closeCheck,
+  closeYear,
+  proposeNextTerm,
   createClass,
   createProgramme,
   createSection,
@@ -91,6 +96,8 @@ export const VIEW = { action: "setup.structure.view" } as const;
 export const MANAGE = { action: "setup.structure.manage" } as const;
 /** Programmes and their levels: the Admin alone (D-087). */
 export const MANAGE_PROGRAMMES = { action: "setup.programmes.manage" } as const;
+/** Academic terms: the Principal alone makes, opens and closes one and chooses its levels (D-109, D-110). */
+export const MANAGE_TERMS = { action: "setup.terms.manage" } as const;
 
 export function registerAcademics(app: App): void {
   // --- Reads ---------------------------------------------------------------------------------------
@@ -189,8 +196,9 @@ export function registerAcademics(app: App): void {
       path: "/api/academics/years",
       operationId: "create_academic_year",
       tags: ["academics"],
-      description: "Adds a year as a draft. Days are AD; the BS year must be one whose calendar is verified.",
-      access: MANAGE,
+      description:
+        "Adds an academic term as a draft (D-110: a row of years is a term of any length): a name, a receipt code, AD days inside the verified BS calendar, and the levels it runs. A level already in another open term is 422.",
+      access: MANAGE_TERMS,
       request: { body: { required: true, content: json(CreateYearSchema) } },
       responses: { 201: { description: "Added", content: json(CreatedSchema) }, ...failures },
     },
@@ -207,8 +215,9 @@ export function registerAcademics(app: App): void {
       path: "/api/academics/years/{id}",
       operationId: "update_academic_year",
       tags: ["academics"],
-      description: "Changes a draft year's label or days. Send only what changes.",
-      access: MANAGE,
+      description:
+        "Changes a term. Name, receipt code and days only while it is a draft (409 `not_draft`); the levels, as the whole new set, while it is open. A level with classes in the term cannot be taken out (422). The receipt code is fixed once a receipt carries it (409 `code_locked`).",
+      access: MANAGE_TERMS,
       request: { params: IdParam, body: { required: true, content: json(YearChangesSchema) } },
       responses: { 200: { description: "Saved", content: json(OkSchema) }, ...failures },
     },
@@ -225,14 +234,78 @@ export function registerAcademics(app: App): void {
       path: "/api/academics/years/{id}/activate",
       operationId: "activate_academic_year",
       tags: ["academics"],
-      description: "Makes a draft year the active one. Refused (409) while another year is active.",
-      access: MANAGE,
+      description: "Opens a draft term. Several terms can be open at once.",
+      access: MANAGE_TERMS,
       request: { params: IdParam },
-      responses: { 200: { description: "Now active", content: json(OkSchema) }, ...failures },
+      responses: { 200: { description: "Now open", content: json(OkSchema) }, ...failures },
     },
     async (c) => {
       const result = await activateYear(c.env.DB, c.env.AUDIT_HMAC_KEY, c.get("auth")!.userPublicId, c.req.valid("param").id);
       return result.ok ? c.json({ ok: true as const }, 200) : fail(c, result);
+    },
+  );
+
+  defineRoute(
+    app,
+    {
+      method: "get",
+      path: "/api/academics/years/{id}/close-check",
+      operationId: "get_term_close_check",
+      tags: ["academics"],
+      description: "What still stops the term from closing: each class with students whose results are not published for an exam (an exam of null: the term has no exams).",
+      access: MANAGE_TERMS,
+      request: { params: IdParam },
+      responses: { 200: { description: "The check", content: json(CloseCheckSchema) }, 404: { description: "No such term", content: json(ErrorSchema) } },
+    },
+    async (c) => {
+      c.header("Cache-Control", "no-store");
+      const check = await closeCheck(c.env.DB, c.req.valid("param").id);
+      return check ? c.json(check, 200) : c.json({ error: "not_found" }, 404);
+    },
+  );
+
+  defineRoute(
+    app,
+    {
+      method: "post",
+      path: "/api/academics/years/{id}/close",
+      operationId: "close_academic_year",
+      tags: ["academics"],
+      description:
+        "Closes an open term once every class with students has its results published for every exam of the term (D-109). After that the term refuses every write. Not ready: 409 `not_ready` with the check.",
+      access: MANAGE_TERMS,
+      request: { params: IdParam },
+      responses: {
+        200: { description: "Closed", content: json(OkSchema) },
+        ...failures,
+        409: { description: "Not ready (with the check), already closed, or not open", content: json(z.object({ error: z.string(), check: CloseCheckSchema.optional() })) },
+      },
+    },
+    async (c) => {
+      const result = await closeYear(c.env.DB, c.env.AUDIT_HMAC_KEY, c.get("auth")!.userPublicId, c.req.valid("param").id);
+      if (result.ok) return c.json({ ok: true as const }, 200);
+      if (result.reason === "not_ready") return c.json({ error: "not_ready", check: result.check }, 409);
+      return fail(c, result);
+    },
+  );
+
+  defineRoute(
+    app,
+    {
+      method: "get",
+      path: "/api/academics/years/{id}/next",
+      operationId: "propose_next_term",
+      tags: ["academics"],
+      description:
+        "The next term, filled in for the Principal to confirm: the next level of each batch in this term, starting the day after it ends and running for the levels' usual length. Nothing is created.",
+      access: MANAGE_TERMS,
+      request: { params: IdParam },
+      responses: { 200: { description: "The proposal", content: json(NextTermSchema) }, 404: { description: "No such term", content: json(ErrorSchema) } },
+    },
+    async (c) => {
+      c.header("Cache-Control", "no-store");
+      const next = await proposeNextTerm(c.env.DB, c.req.valid("param").id);
+      return next ? c.json(next, 200) : c.json({ error: "not_found" }, 404);
     },
   );
 

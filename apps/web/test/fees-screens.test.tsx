@@ -165,7 +165,7 @@ describe("the Principal reads fees (D-104, after the PM's topic 7 reference)", (
   it("a structure's items read as the Approvals panel: item, billed, amount, and the yearly total; no Remove for the Principal", () => {
     const structure = { id: "f1", levelId: "l1", status: "live" as const, yearLabel: "2083", programmeName: "Science", levelName: "Grade 11", sectionKey: "plus2", yearlyTotalPaisa: 6_200_000, items: [{ id: "i1", name: "Tuition", amountPaisa: 350_000, frequency: "monthly" as const }], classes: [] };
     const html = inContext(<ItemsTable structure={structure} />, as("admin"));
-    for (const text of ["Tuition", "Monthly", "NPR 3,500", "Yearly total", "NPR 62,000"]) expect(html).toContain(text);
+    for (const text of ["Tuition", "Monthly", "NPR 3,500", "Term total", "NPR 62,000"]) expect(html).toContain(text);
     expect(html).not.toMatch(/<button/);
     expect(inContext(<StructuresTable structures={[structure]} />, as("admin"))).toContain(">Live<");
   });

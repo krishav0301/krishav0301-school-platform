@@ -20,7 +20,7 @@ export async function activeYear(): Promise<string> {
   await seedSections();
   yearPublicId = newPublicId();
   await db
-    .prepare(`INSERT INTO academic_years (public_id, bs_year, label, start_date, end_date, status, created_at) VALUES (?1, 2083, '2083', '2026-04-14', '2027-04-13', 'active', ?2)`)
+    .prepare(`INSERT INTO academic_years (public_id, bs_year, code, label, start_date, end_date, status, created_at) VALUES (?1, 2083, '2083', '2083', '2026-04-14', '2027-04-13', 'active', ?2)`)
     .bind(yearPublicId, at)
     .run();
   return yearPublicId;
@@ -63,6 +63,8 @@ export async function classWith(sectionKey: "plus2" | "bachelors", size = 3, opt
   await db.prepare(`INSERT INTO levels (public_id, programme_id, ordinal, name) SELECT ?1, id, 1, ?2 FROM programmes WHERE public_id = ?3`).bind(levelId, `Level ${t}`, programmeId).run();
 
   const classTeacher = options.classTeacher ?? (await teacherIn(sectionKey));
+  // A class is only for a level its term runs (D-110).
+  await db.prepare("INSERT OR IGNORE INTO term_levels (academic_year_id, level_id) SELECT y.id, l.id FROM academic_years y, levels l WHERE y.public_id = ?1 AND l.public_id = ?2").bind(yearId, levelId).run();
   const classId = newPublicId();
   await db
     .prepare(

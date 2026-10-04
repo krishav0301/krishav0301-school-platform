@@ -27,7 +27,7 @@ Constraint: permissions stay expressed as role + action + scope, and a role assi
 Django (modular monolith, PostgreSQL, JSON API with OpenAPI schema) + Next.js (TypeScript) front end with a generated typed client. Two managed deployables behind one domain.
 Supersedes `CLAUDE.md` section 4 ("no separate front-end app and no separate API layer in V1"). Everything else in `CLAUDE.md` section 4 stands: no Redis, no microservices, Postgres-backed job queue, private object storage with signed links, one deployment per school.
 
-**D-006 Levels and terms.** Working default. Open with the client.
+**D-006 Levels and terms.** Working default. Open with the client. **Superseded by D-109 (academic terms of any length).**
 A programme has an ordered list of levels. +2 programmes: Grade 11, Grade 12. Bachelor's: Year 1 to Year 4. Each level is one academic year, assessed by terminals (yearly, with terminals).
 Not modelled: semesters. PM said "4 year" and "1 year each"; whether any bachelor's runs semester-wise inside those four years has not been confirmed. The level and term structure is data, so semesters can be added without a rewrite.
 
@@ -1050,9 +1050,86 @@ The matrix lives in code (61 actions, 8 groups, from the reviewed `permission-ma
 - **Tests:** `test/review-fixes.test.ts` covers the concurrent discounts, the leftover reversal draft, the concurrent voucher, more than one chunk of charges, the true totals, and the year's teaching with its scope. `test/admissions.test.ts` covers the refused walk-in leaving nothing, and the taken email for a walk-in and an approval.
 - **Merged, not deployed.** Merged to `main` as PR #32 (`142153a`) after a CI replay in a fresh clone (GitHub Actions has no runners). The PM deploys it to staging from their laptop: apply migration `0029_review_indexes.sql` with `wrangler d1 migrations apply <db> --remote --config wrangler.local.jsonc`, build `apps/web`, `wrangler deploy --config wrangler.local.jsonc`, then check `/api/health`. A cloud session cannot deploy: it has no Cloudflare login, and the account and database ids live only in the PM's `wrangler.local.jsonc`.
 
+**D-109 Academic terms of any length, set by the Principal; Phase 8 rewritten around them.** 2026-10-04, PM decision in conversation ("we are building school SAP: one school can have semesters, another years"; "what if there are 4 semesters in 1 year, as in an MBA"; "go with your recommendations"). **Replaces D-006's "yearly with terminals" default and the "semester vs year" open point. Decided, not built:** the code still has "academic years" until Phase 8 is built.
+- **The academic term is the unit of time.** It is any period the Principal sets: a name, from and to dates, and the levels that run in it. Nothing assumes its length: 3 months (an MBA quarter), 6 months (a semester), 12 months (+2, Grade 9). It no longer has to match a BS year.
+- **Programme and levels: the ladder, set once.** The Admin defines a programme's ordered levels: Year 1 to 4, Semester 1 to 8, Quarter 1 to 8, Grade 9. Each level also has a **usual length** in months, entered once, used only to fill in the next term's dates.
+- **Who does what:**
+  - **Principal (Admin):** creates, opens and closes terms. This moves from the Co-ordinator (today's `setup.structure.manage`) to the Admin. That is a permission-matrix change, made when this is built.
+  - **Co-ordinator:** inside an open term, creates classes, adds subjects to levels, assigns teachers and places students, as today.
+- **Several terms can be open at once.** A term names the levels it covers; the Principal picks them by section and programme, with shortcuts such as all levels or odd only. **A level can be in only one open term at a time.** For example, "CSE Odd, Shrawan–Poush" holds CSE Semesters 1, 3, 5 and 7, while "+2 2083" holds Grades 11 and 12. A mid-year intake is another term holding Semester 1, if no other open term has it. Which semesters are active is never configured: it follows from which batches exist.
+- **The next term is filled in for the Principal.** It proposes the next level of each batch (1, 3, 5, 7 become 2, 4, 6, 8), dates starting the day after the last term ended, and the usual length. The Principal confirms or edits; nothing is created automatically, because real start dates slip.
+- **What hangs off the term (what hangs off the year today):** classes, enrollments (one per student per term), exams, fee structures, and the lock. A closed term refuses every write, and corrections go into the current term pointing back. Unchanged: the student record and SID (the admission year is still the BS year of approval), subjects defined once and offered per level, teachers per class, the ledger and its chain, the audit log.
+- **Closing a term (Principal):** refused until every class in the term has its results published for every exam in the term. Then the term is locked.
+- **Promotion (Co-ordinator):**
+  - The system proposes Promote for every student, into a class of the next level in the open term that holds it. The Co-ordinator changes any student to Repeat or Leaving.
+  - At the last level, Graduated is offered instead, and only with zero dues (CLAUDE.md section 6).
+  - Unpaid dues are carried into the new term as `carried_dues`.
+- **Receipt numbering:** a gapless sequence per section per term (was per section per year).
+- **Names on screen:** "Academic term" for the period, "Exam" for what is now called a terminal. Code names may follow when Phase 8 is built.
+- **Tests when built:** both patterns run every flow in CI. A semester programme is added to the test fixtures beside the yearly ones, and the second-school pack stays yearly.
+- **Not decided here:** CGPA across terms (a new grading output; not in scope until asked), and how a term's fees are billed beyond today's frequencies, which will use the term's dates instead of the year's.
+
+**D-110 Academic terms built: the Principal's terms, closing, the next term, and moving students on (Phase 8, first part).** 2026-10-04, at the PM's request ("make sure you build this; make all necessary changes at all logins; follow the UI design of the Principal pages"). Builds D-109. **Touches permissions, fees, results and the audit log.**
+- **Names.** The table stays `academic_years` and every column `academic_year_id`; a row is now an academic term. The API keeps its `/api/academics/years` routes. The screens say "Academic term". The school's word for an exam now defaults to "Exam" (was "Terminal"); a pack can still rename it.
+- **Migration 0030.**
+  - `academic_years` is rebuilt, because D1 cannot drop a UNIQUE constraint. The rows are copied aside, the table dropped and recreated under the same name, and the rows put back with foreign keys deferred. Nothing is renamed, so other tables' triggers keep working. Re-inserting the parent rows settles the deferred foreign-key check (a rename does not; tested in SQLite 3.45 and on a seeded local D1).
+  - Several terms can be open at once: the one-active index is gone.
+  - `bs_year` (the BS year the term starts in) is no longer unique.
+  - A unique receipt `code` is added. Existing years get their BS year, so their receipt numbers do not change.
+  - New `term_levels`. Triggers enforce that a level is in only one open term, that a closed term's levels never change, and that a level with classes in the term cannot be taken out.
+  - A class may only be made for a level its term runs.
+  - `levels.usual_months` is added.
+  - `enrollments.previous_enrollment_id` is added, unique.
+  - Teacher attendance is locked for a day only when every term covering that day is closed.
+- **Permissions (matrix rows).**
+  - New `setup.terms.manage` (Admin, Super Admin): make, change, open and close terms.
+  - New `students.promote` (Co-ordinator institution, Super Admin).
+  - `setup.structure.manage` now covers classes and exams only.
+  - The independent permission test lists both new rows.
+- **The Principal.**
+  - Terms are made with a name, an optional receipt code, days in the verified calendar, and their levels.
+  - Details change only while a term is a draft; levels while it is open.
+  - Closing is refused until every switched-on class with active students has its results published for every exam of the term. A term with such classes and no exams is not ready either. The close statement re-checks this inside its own batch.
+  - The next term is proposed, never created: the next level of each batch with students, starting the day after, for the longest usual length (or this term's length).
+  - Screen: **Academic terms**, in the Principal page design (D-103), at `/portal/terms` in the Principal's menu. Figures, a table, "New term" with a level picker (a level in another open term is shown, not offered; "All" and "Odd only" shortcuts), and a side panel to open, edit or change levels, close (with the check said class by class and exam by exam) and fill in the next term. Each level's usual length is set from its options on the Programs screen.
+- **The Co-ordinator.**
+  - Setup's first tab reads the terms, with a note that the Principal changes them.
+  - The class form offers only the chosen term's levels.
+  - New tab **Move students** (`/portal/setup/promotion`): the most recently closed term with students waiting, its classes in the person's sections, each student with what they owe and a proposed move. Promote into the first class of the next level, or Graduated at the last level. Repeat and Leaving are a choice away; one button moves a class.
+- **Moving students (API).**
+  - A move needs the old term closed; nothing is written to it.
+  - Promote and repeat make a new enrollment in an open term's class of the next or the same level, naming the old one. A second move of the same student finds it already made.
+  - Leaving and Graduated set the student's status, only with nothing owed; Graduated only at the last level.
+  - What the old enrollment owes is carried into the new one as one `carried_dues` ledger entry. It is idempotent: a ledger source can be used once. A repeat move finishes a carry that failed after the move.
+  - `OPEN:` a credit (the school owes the student) is not carried. A refund cannot be written to a closed term, so how a credit moves on needs a decision.
+- **Everywhere else.**
+  - Fees: a fee structure belongs to the open term that runs its level, and can be prepared while the term is a draft. Monthly items are billed for each BS month the term spans, from the month the student joined; the first due day is the term's first day if it falls mid-month. "Yearly" now reads "Once a term", and totals are per term.
+  - Receipts are numbered per section per term, with the term's code (`P2-2083-00007` for a term whose code is its BS year).
+  - Admissions: approval and walk-ins enrol into the chosen class's term; the SID's year is that term's BS year.
+  - Student lists use each student's latest enrollment.
+  - The exam pickers name each exam with its term when more than one term is open.
+  - Wording across every login says "term" where it meant the academic year, and "exam" where it said "terminal".
+- **BS 2084 limits the next term.** A term's days must be inside the verified calendar (BS 2000 to 2083). Today (Ashwin 2083) a six-month term that starts now ends in Falgun 2083, and the term after it would run into BS 2084, which is refused until BS 2084 is verified. The open item to verify BS 2084 is now urgent for any semester school.
+- **Tests.**
+  - `academics-years.test.ts`, rewritten for terms (24): who may manage terms, codes, any length, one open term per level, several open terms, close and its check, the next-term proposal.
+  - `terms-lifecycle.test.ts` (10): a semester school beside a yearly one through the real routes (billing over a term, a receipt with the term's code, close, next term, promote with carried dues once, leave, graduate refused below the last level, section scope, both chains whole).
+  - Schema tests for the new triggers.
+  - Every earlier test was moved to the term rules. The Co-ordinator no longer makes terms; each fixture puts its level in its term.
+  - Web: terms client, model and screens; the promotion screen's choices and figures; the Setup pages.
+  - A browser check of every new screen and pop-up at 1440 px and at 320 px with text at 200% found a select pushing the Move students page sideways and "Manage" breaking mid-word; both were fixed.
+- **Design review.** The `apple-design` and `ui-ux-pro-max` skills are not installed in this environment, so the screens follow the house rules (D-030) and the Principal patterns (D-103) without a skill-led review:
+  - one prominent button per view;
+  - status said in words, in status colours;
+  - 44 px controls;
+  - no sideways scroll at 320 px with text at 200%;
+  - the shape of the page shown while it loads.
+- **Not done (Phase 8, rest).** A waive-dues flow, the +2 to Bachelor's handover, and reactivation. Also not done: CGPA across terms; billing choices beyond monthly and once a term; a credit at promotion (`OPEN:` above). The Co-ordinator FUT harness (`docs/fut/coordinator/scripts`) still makes years as the Co-ordinator and needs updating before it is run again.
+
 ## Open items carried forward
 
-- **Deploy D-108 to staging (PM, from the laptop).** Migration 0029 and the Worker; see D-108. The open points below still stand: the code review closed none of them.
+- **Deploy D-108 and D-110 to staging (PM, from the laptop).** Migrations 0029 and 0030 and the Worker. 0030 rebuilds `academic_years` (see D-110); take a D1 Time Travel bookmark before applying it.
+- **Verify BS 2084 (urgent for semester schools, D-110).** No term may run past Chaitra 2083 until it is verified.
+- **A credit at promotion (`OPEN:`, D-110).** A credit stays with the closed term's enrollment and cannot be refunded there.
 
 - **Public pages carry the whole portal word list (D-102, D-106).** `apps/web/src/i18n/messages.ts` is about 108 KB and every page, the public ones included, loads all of it; it has twice pushed the sign-in page over its page-weight budget. Splitting it into a public catalog and a portal catalog (loaded only inside the portal) would take roughly half the weight off every public page. That changes the "words live in `messages.ts`" rule in CLAUDE.md, so it needs the PM's agreement first.
 

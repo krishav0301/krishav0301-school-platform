@@ -73,7 +73,8 @@ export function ClassesView({
   );
 }
 
-export function ClassForm({ yearId, programmes, onAdded, showTitle = true }: { yearId: string; programmes: readonly Programme[]; onAdded: () => void; showTitle?: boolean }) {
+/** `levelIds`: the levels the term runs (D-110); a class is only for one of them. */
+export function ClassForm({ yearId, programmes, levelIds, onAdded, showTitle = true }: { yearId: string; programmes: readonly Programme[]; levelIds?: readonly string[]; onAdded: () => void; showTitle?: boolean }) {
   const { api } = useSession();
   const { term } = useConfig();
   const words = termWords(term);
@@ -107,6 +108,7 @@ export function ClassForm({ yearId, programmes, onAdded, showTitle = true }: { y
     <form onSubmit={submit} noValidate className={styles.form}>
       {showTitle ? <h2 className={styles.formTitle}>{t("setup.classes.add")}</h2> : null}
       {problem ? <Notice tone="bad">{t(problem)}</Notice> : null}
+      {levelIds && levelIds.length === 0 ? <Notice>{t("setup.classes.noTermLevels")}</Notice> : null}
       <Select
         label={t("setup.classes.level", words)}
         value={levelId}
@@ -114,7 +116,7 @@ export function ClassForm({ yearId, programmes, onAdded, showTitle = true }: { y
           setLevelId(event.target.value);
           setError(null);
         }}
-        options={[{ value: "", label: t("setup.programmes.choose") }, ...levelChoices(programmes)]}
+        options={[{ value: "", label: t("setup.programmes.choose") }, ...levelChoices(programmes, levelIds)]}
         error={error ? t(error, words) : undefined}
       />
       <Field label={t("setup.classes.label")} hint={t("setup.classes.labelHint")} value={label} maxLength={40} autoComplete="off" onChange={(event) => setLabel(event.target.value)} />
@@ -174,6 +176,7 @@ export function ClassesScreen() {
                 <ClassForm
                   key={yearId}
                   yearId={yearId}
+                  levelIds={years.view.status === "ready" ? (years.view.data.years.find((y) => y.id === yearId)?.levels.map((l) => l.id) ?? []) : []}
                   programmes={programmes.view.status === "ready" ? programmes.view.data.programmes : []}
                   showTitle={false}
                   onAdded={() => {

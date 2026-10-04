@@ -1,3 +1,4 @@
+import { TERMINALS } from "./sheets";
 import { rowsOf, type DashboardPart } from "../../core/dashboard";
 import { adToBsText } from "../../core/dates";
 import { rankResults, rankScore } from "./grading";
@@ -118,7 +119,7 @@ export async function top20(db: D1Database, viewer: { student: string } | { reac
           ? `SELECT DISTINCT t.public_id AS id, t.name, t.ordinal FROM students st JOIN enrollments en ON en.student_id = st.id JOIN academic_years ay ON ay.id = en.academic_year_id AND ay.status = 'active'
                JOIN result_publications rp ON rp.class_id = en.class_id JOIN terminals t ON t.id = rp.terminal_id
               WHERE st.user_id = (SELECT id FROM users WHERE public_id = ?1) ORDER BY t.ordinal`
-          : `SELECT t.public_id AS id, t.name FROM terminals t JOIN academic_years ay ON ay.id = t.academic_year_id WHERE ay.status = 'active' ORDER BY t.ordinal`,
+          : TERMINALS,
       )
       .bind(...(isStudent ? [viewer.student] : []))
       .all<{ id: string; name: string }>()
