@@ -999,6 +999,35 @@ The matrix lives in code (61 actions, 8 groups, from the reviewed `permission-ma
 - **Page weight.** The public pages' shared scripts and styles budget goes from 215 KB to 220 KB (as in D-102): the message catalog every page carries grew with these screens' words, and the sign-in page reached 216.4 KB. The lasting fix is in the open items below.
 - **Not changed:** no ledger, grading, publish or approval rule. One new write route: the F-06 correction, permission-checked and audited, with data-level tests (another section, every other role).
 
+**D-107 The Teacher's, Student's and Accountant's screens redesigned on the same read patterns.** 2026-10-04, at the PM's request ("do the same UI changes in all other logins, i.e. teacher, student and accountant; make all the UI in the same fashion").
+- **Homes (`dashboard/RoleDashboards.tsx`), after the Co-ordinator's (D-106):** a greeting shown at once, up to four figures, today's work as rows with the state in words and the page to act on it, then "What you can do". Every figure and row comes from an API the role already uses on its own screen.
+  - **Teacher:** their class's register (Class Teachers only), the activity log written today, homework waiting for review, and mark sheets still in draft.
+  - **Student:** attendance this year, homework to hand in (with the next due day), fees due now, and the latest published result; their record as facts.
+  - **Accountant:** deposits to check, students overdue, what is due now, and fee structures waiting for approval.
+  - A row that only informs (the latest activity log, a published result, fees due but not yet overdue) has no state word. Someone with two roles gets the first home and, under it, what the other role can do. A Co-ordinator who also teaches sees "Your teaching today" under her school day. The old Roles card and the stacked Today cards are gone.
+- **Teacher:**
+  - **Register:** figures that follow the choices, and Present / Absent side by side for each student, like the Co-ordinator's teacher list, instead of a column of "Absent today" ticks. The save is unchanged: the same request, and saving again the same day replaces the day.
+  - **Activity log:** each subject is a row with its state in words (not written first). Write or Change opens a side panel with the text box.
+  - **Notes:** "Share" in the header opens a pop-up; shared notes are rows with Withdraw.
+  - **Homework:** "Set homework" in the header opens a pop-up; figures; the work set is listed with what needs the teacher first. An assignment has figures, its instructions, and every student's answer as a row; Review opens a side panel with the answer and the review (or the resubmission decision).
+  - **Marks:** one terminal at a time (Segments), figures, and a table with status in words and "Enter marks" or "Open"; the mark sheet has the shared header, breadcrumb and status word.
+  - **Own attendance:** figures and every day of the BS month with its status in words; Previous and Next month in the header.
+- **Student:**
+  - **Attendance:** `/portal/attendance/mine` now serves students. Their "See your attendance" line led to "You do not have access to this page" (found in this pass). The page shows the year's figures, a word when below the threshold, and the days absent.
+  - **Activity log, notes, homework:** the shared header and panels. Notes keep the watermark and the soft protection (source 6.1), said once as a quiet note. Homework is a list with what is still to hand in first, and each piece opens in a side panel to hand in, read the feedback or ask to resubmit.
+  - **Fees:** the account as before, with "Tell us about a bank deposit" in the header opening a pop-up.
+  - **Results:** one terminal at a time, figures (GPA or percentage, the result in words, subjects passed), the subjects as a table with Passed or Not graded in words, a link to the marks card, and rechecks in their own card with "Ask for a recheck" opening a pop-up.
+- **Accountant:**
+  - **Find a student:** this year's totals as figures above the search.
+  - **A student's account:** "Record payment" is the one prominent button and opens a pop-up; "Propose a discount" and, when there is credit, "Refund credit" are quieter pop-ups in the header; Reverse on a payment opens a side panel with the reason. Discounts, reversals and refunds asked for are rows with their state in words, and an approved refund is recorded from its row.
+  - **Vouchers:** figures, each deposit a row, and Check opens a side panel with the facts, Verify (makes the receipt) and Reject (with a reason).
+  - **Fee structures:** figures (live, waiting, drafts, levels with none); levels without a structure are rows with Draft. A structure has its status, Add item and Send for approval in the header, and its charges per class as rows with Make charges.
+  - **Dues:** Send reminders sits in the header beside Download, and shows only when someone is overdue.
+- **Settings (every role):** the shared header and panels; Change password is secondary so Save profile stays the one prominent button.
+- **Shared pop-up at 320 px with text at 200%:** a long word in a pop-up's title ("Set homework") pushed the pop-up wider than the screen. Below 24em the close button now has its own line and the title takes the full width, one size smaller. This applies to every Add pop-up.
+- **Checked:** every Teacher, Student and Accountant page (29) and eleven pop-ups and side panels at 320 px with text at 200%: no sideways scroll, no word broken. The Co-ordinator FUT was run again on a fresh local school as a regression check of the shared pieces.
+- **Not changed:** no API, permission, ledger, grading, publish or approval rule. Every action calls the same client function with the same body as before; recording cash still holds one idempotency key per payment being entered, and a new key only after it lands.
+
 ## Open items carried forward
 
 - **Public pages carry the whole portal word list (D-102, D-106).** `apps/web/src/i18n/messages.ts` is about 108 KB and every page, the public ones included, loads all of it; it has twice pushed the sign-in page over its page-weight budget. Splitting it into a public catalog and a portal catalog (loaded only inside the portal) would take roughly half the weight off every public page. That changes the "words live in `messages.ts`" rule in CLAUDE.md, so it needs the PM's agreement first.

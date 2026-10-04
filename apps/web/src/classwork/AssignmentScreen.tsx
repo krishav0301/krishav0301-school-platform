@@ -58,7 +58,7 @@ export function AnswerList({ students, onOpen }: { students: readonly Student[];
             <div className={readStyles.rowHead}>
               <p className={readStyles.rowMeta}>{s.sid}</p>
               {s.submission !== null && onOpen ? (
-                <Button variant="quiet" className={styles.wrapLabel} onClick={() => onOpen(s)} aria-label={t("classwork.work.openAnswer", { name: s.name })}>
+                <Button variant="quiet" className={`${styles.wrapLabel} ${styles.rowButton}`} onClick={() => onOpen(s)} aria-label={t("classwork.work.openAnswer", { name: s.name })}>
                   {t(s.submission.status === "submitted" ? "dashboard.homework.review" : "dashboard.open")}
                 </Button>
               ) : null}

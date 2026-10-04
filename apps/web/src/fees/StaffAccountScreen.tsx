@@ -80,7 +80,7 @@ export function StaffAccountScreen() {
           accountant
             ? (entry) =>
                 entry.kind === "payment" && !entry.reversed ? (
-                  <Button className={styles.wrapLabel} variant="quiet" onClick={() => setReversing(entry)} aria-label={t("fees.reversal.askFor", { amount: nprShort(Math.abs(entry.amountPaisa)) })}>
+                  <Button className={`${styles.wrapLabel} ${styles.rowButton}`} variant="quiet" onClick={() => setReversing(entry)} aria-label={t("fees.reversal.askFor", { amount: nprShort(Math.abs(entry.amountPaisa)) })}>
                     {t("fees.reversal.ask")}
                   </Button>
                 ) : null

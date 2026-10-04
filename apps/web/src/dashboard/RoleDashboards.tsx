@@ -32,7 +32,8 @@ export interface DayRow {
   key: string;
   title: string;
   meta: string;
-  todo: boolean;
+  /** To do, Done, or null for a row that only informs (no state to say). */
+  todo: boolean | null;
   href: string;
   action: string;
 }
@@ -51,7 +52,7 @@ export function DayList({ rows }: { rows: readonly DayRow[] }) {
         <li key={row.key} className={readStyles.rowItem}>
           <div className={readStyles.rowHead}>
             <h3 className={readStyles.rowTitle}>{row.title}</h3>
-            <StatusWord tone={row.todo ? "warn" : "ok"}>{t(row.todo ? "coord.status.todo" : "coord.status.done")}</StatusWord>
+            {row.todo === null ? null : <StatusWord tone={row.todo ? "warn" : "ok"}>{t(row.todo ? "coord.status.todo" : "coord.status.done")}</StatusWord>}
           </div>
           <div className={readStyles.rowHead}>
             <p className={readStyles.rowMeta}>{row.meta}</p>
@@ -224,18 +225,18 @@ export function studyRows(d: StudyDay): DayRow[] {
   if (d.attendance && d.attendance.percent !== null) {
     rows.push({ key: "attendance", title: t("attendance.own.title"), meta: d.attendance.below ? t("attendance.own.below", { threshold: d.attendance.threshold }) : t("attendance.own.days", { present: d.attendance.present, absent: d.attendance.absent }), todo: d.attendance.below, href: "/portal/attendance/mine", action: t("dashboard.open") });
   }
-  if (d.latestLog) rows.push({ key: "log", title: t("home.student.log"), meta: t("dashboard.student.activity", { date: d.latestLog }), todo: false, href: "/portal/classwork", action: t("dashboard.read") });
+  if (d.latestLog) rows.push({ key: "log", title: t("home.student.log"), meta: t("dashboard.student.activity", { date: d.latestLog }), todo: null, href: "/portal/classwork", action: t("dashboard.read") });
   if (d.fees && d.fees.chargedPaisa > 0) {
     rows.push({
       key: "fees",
       title: t("home.student.fees"),
       meta: d.fees.overduePaisa > 0 ? t("home.student.feesOverdue", { amount: nprShort(d.fees.overduePaisa) }) : d.fees.duePaisa > 0 ? t("home.student.feesDue", { amount: nprShort(d.fees.duePaisa) }) : t("home.student.feesClear"),
-      todo: d.fees.overduePaisa > 0,
+      todo: d.fees.overduePaisa > 0 ? true : d.fees.duePaisa > 0 ? null : false,
       href: "/portal/fees",
       action: t("dashboard.open"),
     });
   }
-  if (d.result) rows.push({ key: "result", title: t("home.student.result"), meta: t("home.student.resultMeta", { terminal: d.result.terminal }), todo: false, href: "/portal/results", action: t("dashboard.open") });
+  if (d.result) rows.push({ key: "result", title: t("home.student.result"), meta: t("home.student.resultMeta", { terminal: d.result.terminal }), todo: null, href: "/portal/results", action: t("dashboard.open") });
   return rows;
 }
 

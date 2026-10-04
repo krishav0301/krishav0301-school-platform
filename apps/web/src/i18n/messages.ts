@@ -1361,7 +1361,7 @@ export const en = {
   "read.loadFailed": "Couldn't load this.",
   "read.retry": "Retry",
   "read.close": "Close",
-  "attendance.register.intro": "Everyone starts as present. Tick anyone who is absent, then save. You can change it until midnight.",
+  "attendance.register.intro": "Everyone starts as present. Choose Absent for anyone who is not here, then save. You can change it until midnight.",
   "attendance.register.counts": "{present} present, {absent} absent",
   "attendance.register.save": "Save register",
   "attendance.register.saving": "Saving…",

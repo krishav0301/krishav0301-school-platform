@@ -224,16 +224,16 @@ export function GivenList({ assignments, onOpen }: { assignments: readonly Given
               <h3 className={readStyles.rowTitle}>{a.title}</h3>
               <StatusWord tone={state.tone}>{state.text}</StatusWord>
             </div>
-            <p className={readStyles.rowMeta}>
-              {a.subjectName} · {a.teacherName} · <Deadline dueAt={a.dueAt} dueDateBs={a.dueDateBs} />
-            </p>
-            {onOpen ? (
-              <div className={styles.rowActions}>
-                <Button variant="quiet" className={styles.wrapLabel} onClick={() => onOpen(a)} aria-label={t(toHandIn(a) ? "classwork.work.handInNamed" : "classwork.work.openNamed", { title: a.title })}>
+            <div className={readStyles.rowHead}>
+              <p className={readStyles.rowMeta}>
+                {a.subjectName} · {a.teacherName} · <Deadline dueAt={a.dueAt} dueDateBs={a.dueDateBs} />
+              </p>
+              {onOpen ? (
+                <Button variant="quiet" className={`${styles.wrapLabel} ${styles.rowButton}`} onClick={() => onOpen(a)} aria-label={t(toHandIn(a) ? "classwork.work.handInNamed" : "classwork.work.openNamed", { title: a.title })}>
                   {t(toHandIn(a) ? "home.student.handIn" : "dashboard.open")}
                 </Button>
-              </div>
-            ) : null}
+              ) : null}
+            </div>
           </li>
         );
       })}
@@ -266,14 +266,15 @@ function StudentWork() {
       ) : null}
       {open ? (
         <SidePanel title={open.title} subtitle={`${open.subjectName} · ${open.teacherName}`} status={<StatusWord tone={givenState(open).tone}>{givenState(open).text}</StatusWord>} onClose={() => setOpenId(null)}>
-          <StudentAssignment assignment={open} onChanged={() => void reload()} />
+          <StudentAssignment assignment={open} onChanged={() => void reload()} showState={false} />
         </SidePanel>
       ) : null}
     </div>
   );
 }
 
-export function StudentAssignment({ assignment, onChanged }: { assignment: StudentAssignments["assignments"][number]; onChanged: () => void }) {
+/** One piece of homework for its student. In the side panel its header already says the state, so `showState` is off there. */
+export function StudentAssignment({ assignment, onChanged, showState = true }: { assignment: StudentAssignments["assignments"][number]; onChanged: () => void; showState?: boolean }) {
   const { api } = useSession();
   const [answer, setAnswer] = useState("");
   const [reason, setReason] = useState("");
@@ -309,15 +310,15 @@ export function StudentAssignment({ assignment, onChanged }: { assignment: Stude
       ) : null}
       {submission ? (
         <p className={readStyles.cellWords}>
-          <StatusWord tone={submission.status === "reviewed" ? "ok" : undefined}>{t(SUBMISSION_STATUS[submission.status])}</StatusWord>
+          {showState ? <StatusWord tone={submission.status === "reviewed" ? "ok" : undefined}>{t(SUBMISSION_STATUS[submission.status])}</StatusWord> : null}
           {submission.isLate ? <StatusWord tone="bad">{t("classwork.work.late")}</StatusWord> : null}
           {submission.marks !== null && assignment.maxMarks !== null ? <StatusWord>{t("classwork.work.marks", { marks: submission.marks, max: assignment.maxMarks })}</StatusWord> : null}
         </p>
-      ) : (
+      ) : showState ? (
         <p>
           <StatusWord tone="warn">{t("classwork.work.notSubmitted")}</StatusWord>
         </p>
-      )}
+      ) : null}
       {submission?.feedback ? (
         <div>
           <p className={styles.meta}>{t("classwork.work.feedback")}</p>

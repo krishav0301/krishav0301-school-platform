@@ -93,7 +93,7 @@ export function StructureScreen() {
                   <div className={readStyles.rowHead}>
                     <h3 className={readStyles.rowTitle}>{c.label ? `${name} · ${c.label}` : name}</h3>
                     <Button
-                      className={styles.wrapLabel}
+                      className={`${styles.wrapLabel} ${styles.rowButton}`}
                       variant="quiet"
                       aria-label={t("fees.structure.makeFor", { name: c.label ? `${name} · ${c.label}` : name })}
                       onClick={() => void act(() => generateCharges(api, s.id, c.id), (sent) => t("fees.structure.made", { count: (sent.data as { created: number }).created }))}

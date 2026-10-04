@@ -155,14 +155,14 @@ function SharedNote({ note, onChanged }: { note: TeacherNotes["notes"][number]; 
         <h3 className={readStyles.rowTitle}>{note.title}</h3>
         <StatusWord tone={note.withdrawn ? undefined : "ok"}>{t(note.withdrawn ? "classwork.withdrawn" : "classwork.notes.sharedWord")}</StatusWord>
       </div>
-      <p className={readStyles.rowMeta}>{[t(KIND_LABEL[note.kind]), note.subjectName, className(note)].join(" · ")}</p>
-      {note.withdrawn ? null : (
-        <div className={styles.rowActions}>
-          <Button className={styles.wrapLabel} variant="quiet" onClick={() => void withdraw()} loading={busy} loadingLabel={t("classwork.saving")} aria-label={t("classwork.notes.withdrawNamed", { title: note.title })}>
+      <div className={readStyles.rowHead}>
+        <p className={readStyles.rowMeta}>{[t(KIND_LABEL[note.kind]), note.subjectName, className(note)].join(" · ")}</p>
+        {note.withdrawn ? null : (
+          <Button className={`${styles.wrapLabel} ${styles.rowButton}`} variant="quiet" onClick={() => void withdraw()} loading={busy} loadingLabel={t("classwork.saving")} aria-label={t("classwork.notes.withdrawNamed", { title: note.title })}>
             {t("classwork.withdraw")}
           </Button>
-        </div>
-      )}
+        )}
+      </div>
       {error ? <Notice tone="bad">{error}</Notice> : null}
     </li>
   );

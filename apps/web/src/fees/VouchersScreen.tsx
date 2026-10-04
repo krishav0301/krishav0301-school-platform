@@ -38,14 +38,14 @@ export function VoucherRows({ vouchers, onOpen }: { vouchers: readonly Voucher[]
             <h3 className={readStyles.rowTitle}>{v.studentName}</h3>
             <span className={styles.amount}>{nprShort(v.amountPaisa)}</span>
           </div>
-          <p className={readStyles.rowMeta}>{[v.sid, v.bank, v.reference, paidDay(v)].join(" · ")}</p>
-          {onOpen ? (
-            <div className={styles.rowActions}>
-              <Button variant="quiet" className={styles.wrapLabel} onClick={() => onOpen(v)} aria-label={t("fees.vouchers.checkNamed", { name: v.studentName })}>
+          <div className={readStyles.rowHead}>
+            <p className={readStyles.rowMeta}>{[v.sid, v.bank, v.reference, paidDay(v)].join(" · ")}</p>
+            {onOpen ? (
+              <Button variant="quiet" className={`${styles.wrapLabel} ${styles.rowButton}`} onClick={() => onOpen(v)} aria-label={t("fees.vouchers.checkNamed", { name: v.studentName })}>
                 {t("home.accountant.check")}
               </Button>
-            </div>
-          ) : null}
+            ) : null}
+          </div>
         </li>
       ))}
     </ul>

@@ -72,7 +72,7 @@ export function StructuresScreen() {
                             <h3 className={readStyles.rowTitle}>
                               {l.programmeName} · {l.name}
                             </h3>
-                            <Button className={styles.wrapLabel} variant="quiet" onClick={() => void draft(l.id)} aria-label={t("fees.structures.draftFor", { name: `${l.programmeName} · ${l.name}` })}>
+                            <Button className={`${styles.wrapLabel} ${styles.rowButton}`} variant="quiet" onClick={() => void draft(l.id)} aria-label={t("fees.structures.draftFor", { name: `${l.programmeName} · ${l.name}` })}>
                               {t("fees.structures.draft")}
                             </Button>
                           </div>

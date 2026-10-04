@@ -105,3 +105,23 @@
   background: none;
   box-shadow: none;
 }
+
+/* A narrow phone with large text (D-107): the close button keeps its own line at the top and the title takes the whole
+   width under it, a size smaller, so a long word in the title ("homework") fits without breaking or widening the pop-up. */
+@media (max-width: 24em) {
+  .head {
+    flex-direction: row-reverse;
+    flex-wrap: wrap;
+    gap: 0;
+    padding-inline-start: var(--space-3);
+  }
+
+  .title {
+    flex: 1 1 100%;
+    font-size: var(--text-lg);
+  }
+
+  .body {
+    padding: var(--space-3);
+  }
+}

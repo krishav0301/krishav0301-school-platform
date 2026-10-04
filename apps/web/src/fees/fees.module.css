@@ -340,3 +340,9 @@ a.wrapLabel {
   justify-content: flex-end;
   gap: var(--space-2);
 }
+
+/* A quiet button at the end of a row keeps only a little space at its sides, so it lines up with the words above. */
+button.rowButton {
+  min-width: 2.75rem;
+  padding-inline: var(--space-2);
+}

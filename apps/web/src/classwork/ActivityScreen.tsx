@@ -63,15 +63,15 @@ export function TeacherSubjects({ subjects, onOpen }: { subjects: readonly Subje
             <h3 className={readStyles.rowTitle}>{s.subjectName}</h3>
             <StatusWord tone={s.body === null ? "warn" : "ok"}>{t(s.body === null ? "classwork.activity.notWritten" : "classwork.activity.writtenWord")}</StatusWord>
           </div>
-          <p className={readStyles.rowMeta}>{className(s)}</p>
-          {s.body !== null ? <p className={styles.body}>{s.body}</p> : null}
-          {onOpen ? (
-            <div className={styles.rowActions}>
-              <Button variant="quiet" className={styles.wrapLabel} onClick={() => onOpen(s)} aria-label={t(s.body === null ? "classwork.activity.writeFor" : "classwork.activity.changeFor", { subject: s.subjectName, name: className(s) })}>
+          <div className={readStyles.rowHead}>
+            <p className={readStyles.rowMeta}>{className(s)}</p>
+            {onOpen ? (
+              <Button variant="quiet" className={`${styles.wrapLabel} ${styles.rowButton}`} onClick={() => onOpen(s)} aria-label={t(s.body === null ? "classwork.activity.writeFor" : "classwork.activity.changeFor", { subject: s.subjectName, name: className(s) })}>
                 {t(s.body === null ? "dashboard.activity.write" : "classwork.activity.change")}
               </Button>
-            </div>
-          ) : null}
+            ) : null}
+          </div>
+          {s.body !== null ? <p className={styles.body}>{s.body}</p> : null}
         </li>
       ))}
     </ul>

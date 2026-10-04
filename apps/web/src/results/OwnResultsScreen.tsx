@@ -25,7 +25,7 @@ export function resultFigures(r: Result): Figure[] {
   const neb = b.policy === "neb_gpa";
   const passed = b.subjects.filter((s) => s.passed).length;
   return [
-    { key: "score", icon: Award, tone: "accent", value: scoreText(b) ?? b.outcome, label: t(neb ? "results.card.gpaLabel" : "results.card.percentLabel") },
+    { key: "score", icon: Award, tone: "accent", value: scoreText(b) ?? "—", label: t(neb ? "results.card.gpaLabel" : "results.card.percentLabel") },
     { key: "result", icon: b.passed ? CircleCheck : CircleAlert, tone: b.passed ? "ok" : "bad", value: neb ? t(b.passed ? "results.card.gpa" : "results.own.ng") : b.outcome, label: t("results.card.result") },
     { key: "subjects", icon: BookOpen, tone: passed < b.subjects.length ? "warn" : "ok", value: t("coord.ofTotal", { done: passed, total: b.subjects.length }), label: t("results.own.figure.passed") },
   ];
