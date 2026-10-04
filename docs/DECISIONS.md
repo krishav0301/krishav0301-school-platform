@@ -1156,9 +1156,35 @@ The matrix lives in code (61 actions, 8 groups, from the reviewed `permission-ma
   - If it differs, the dates already stored in 2084 (term ends, fee due days, holidays) must be reviewed. Then follow D-111: change the converter with PM approval, update the golden entry and the pinned test.
 - **What it unblocks.** Terms, fees and every other date may now run to Chaitra 30, 2084 (12 April 2028).
 
+**D-113 Ready for the staging deploy and main user testing (2026-10-05).** 2026-10-04, at the PM's request ("make this all ready so in the morning I can pull it and deploy"). `main` at the merge of PR #36.
+- **Rehearsal of the upgrade.**
+  - A local copy matching staging was built: the code before D-108, migrations to 0028, the Royal Softech pack, sections, a +2 programme, the UAT starter set and a cash payment (receipt P2-2083-00001).
+  - It was then upgraded the way the PM will: `main`, `provision` (migrations 0029 and 0030 applied, about 7 s locally), new Worker.
+  - Afterwards:
+    - the year became an open term, code 2083, with both levels, 2 classes and 12 students;
+    - the next receipt was P2-2083-00002;
+    - a repeated payment with the same key was not charged twice;
+    - the fee account balanced (30,500 charged, 7,500 paid);
+    - the close check listed the missing results class by class;
+    - the next-term proposal gave Grade 12 for BS 2084;
+    - Move students was empty, as it should be with no closed term;
+    - fee structures read;
+    - the audit chain (105 entries) and the ledger chain (110) both verified.
+- **Deploy steps.** `README.md` has a new "Updating an existing deployment" section:
+  - pull and build;
+  - note a D1 Time Travel bookmark;
+  - list the new migrations, run `provision`;
+  - `wrangler deploy`;
+  - how to roll back.
+- **Testers' guide.** `docs/uat-guide.md` now covers:
+  - the term, Exam wording, Academic terms for the Admin and Move students for the Co-ordinator;
+  - that closing a term is final;
+  - what is not built, and the provisional 2084 calendar.
+- **Not done.** The Co-ordinator FUT harness (`docs/fut/coordinator/scripts`) still makes years as the Co-ordinator (D-110). It is not needed for UAT.
+
 ## Open items carried forward
 
-- **Deploy D-108 and D-110 to staging (PM, from the laptop).** Migrations 0029 and 0030 and the Worker. 0030 rebuilds `academic_years` (see D-110); take a D1 Time Travel bookmark before applying it.
+- **Deploy D-108, D-110 and D-112 to staging (PM, from the laptop, 2026-10-05).** Migrations 0029 and 0030 and the Worker; steps in `README.md`, "Updating an existing deployment". 0030 rebuilds `academic_years`, so note a D1 Time Travel bookmark first. Rehearsed in D-113.
 - **Re-check BS 2084 against the official almanac (maintenance task, by about Falgun 2083; D-111, D-112).** 2084 is open provisionally on nepcalendar.com's calendar. If the official one differs, review dates already stored in 2084 and change the converter (PM approval, D-022). The same check recurs each year: BS 2085 before about Falgun 2084.
 - **A credit at promotion (`OPEN:`, D-110).** A credit stays with the closed term's enrollment and cannot be refunded there.
 

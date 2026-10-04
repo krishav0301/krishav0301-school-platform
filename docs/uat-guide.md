@@ -28,17 +28,17 @@ This site does not send real email. What it would have sent (an applicant's "con
 
 ## What is set up already (the starter set)
 
-The active year, three terminals, and class A of Grade 11 and Grade 12 with five subjects each (theory and practical parts), three teachers assigned (one is each class's Class Teacher), six students in each class, and a fee structure per grade, approved and charged. The subjects, marks split and fee amounts are stand-ins, not the college's own.
+One open academic term (2083, running Grade 11 and Grade 12), three exams, and class A of Grade 11 and Grade 12 with five subjects each (theory and practical parts), three teachers assigned (one is each class's Class Teacher), six students in each class, and a fee structure per grade, approved and charged. The subjects, marks split and fee amounts are stand-ins, not the college's own.
 
 ## What to try, by role
 
-**Co-ordinator:** add a teacher; register a walk-in student; review an online application (apply from the public Admission page, confirm through the test mailbox); mark teachers' attendance; verify marks sheets and publish a terminal's results; decide a recheck.
+**Co-ordinator:** add a teacher; register a walk-in student; review an online application (apply from the public Admission page, confirm through the test mailbox); mark teachers' attendance; verify marks sheets and publish an exam's results; decide a recheck; after the Admin closes a term, move its students on (Setup, Move students: promote, repeat, leaving or graduated).
 
 **Teacher:** mark today's attendance for your class; write the activity log; add a note and homework; review a submission; enter marks and send them for review.
 
 **Accountant:** take a cash payment and print the receipt; check a student's fee account and the dues list; verify a bank voucher; propose a discount or a reversal; request a refund.
 
-**Admin:** approve or decline fee requests and website changes; edit and publish a notice on the public site; add a Co-ordinator or Accountant; read the test mailbox.
+**Admin:** approve or decline fee requests and website changes; edit and publish a notice on the public site; add a Co-ordinator or Accountant; read the test mailbox; on **Academic terms**, make a new term (a semester or a year, with its levels), open it, try closing the current term (it says class by class which results are missing) and fill in the next term.
 
 **Student:** see your attendance, homework (and submit it), fees and receipts, results and marks card; report a bank voucher; ask for a recheck.
 
@@ -50,7 +50,9 @@ The active year, three terminals, and class A of Grade 11 and Grade 12 with five
 - **No file uploads** (certificates, homework files, voucher scans) until file storage is turned on.
 - **Online payment is a demo:** no real money moves, and no gateway page opens.
 - **No SMS.** Email only goes to the test mailbox.
-- **The end of the year** (promotion, carried dues, leaving) is not built yet (Phase 8).
+- **Closing a term is final.** Close the starter term only when everyone has finished testing in it: nothing can be written to a closed term. To try closing early, make and use a separate small term.
+- **Not built yet:** waiving dues, the +2 to Bachelor's handover, reactivating a student who left, and a CGPA across terms. A credit (the school owes the student) is not carried to the next term.
+- **The calendar runs to Chaitra 30, 2084.** BS 2084 is provisional until the official almanac is checked (D-112); 2085 dates are refused.
 - The look and the words on the public site are placeholders until the college gives its own.
 
 ## Reporting a problem
