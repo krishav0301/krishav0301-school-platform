@@ -1048,8 +1048,11 @@ The matrix lives in code (61 actions, 8 groups, from the reviewed `permission-ma
   - Deep pages cost their offset.
   - `sessions` and `application_submission_events` grow without pruning. How long to keep them is a retention decision for the PM.
 - **Tests:** `test/review-fixes.test.ts` covers the concurrent discounts, the leftover reversal draft, the concurrent voucher, more than one chunk of charges, the true totals, and the year's teaching with its scope. `test/admissions.test.ts` covers the refused walk-in leaving nothing, and the taken email for a walk-in and an approval.
+- **Merged, not deployed.** Merged to `main` as PR #32 (`142153a`) after a CI replay in a fresh clone (GitHub Actions has no runners). The PM deploys it to staging from their laptop: apply migration `0029_review_indexes.sql` with `wrangler d1 migrations apply <db> --remote --config wrangler.local.jsonc`, build `apps/web`, `wrangler deploy --config wrangler.local.jsonc`, then check `/api/health`. A cloud session cannot deploy: it has no Cloudflare login, and the account and database ids live only in the PM's `wrangler.local.jsonc`.
 
 ## Open items carried forward
+
+- **Deploy D-108 to staging (PM, from the laptop).** Migration 0029 and the Worker; see D-108. The open points below still stand: the code review closed none of them.
 
 - **Public pages carry the whole portal word list (D-102, D-106).** `apps/web/src/i18n/messages.ts` is about 108 KB and every page, the public ones included, loads all of it; it has twice pushed the sign-in page over its page-weight budget. Splitting it into a public catalog and a portal catalog (loaded only inside the portal) would take roughly half the weight off every public page. That changes the "words live in `messages.ts`" rule in CLAUDE.md, so it needs the PM's agreement first.
 
