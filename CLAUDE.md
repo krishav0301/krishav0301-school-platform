@@ -7,7 +7,7 @@ Read at the start of every session:
 
 If this file and `DECISIONS.md` disagree, stop and ask.
 
-**Current phase: Phases 5, 6 and 7 are complete; Phase 8 (year lifecycle) needs PM approval.** Phase 5 (daily school life: attendance, activity log, notes and homework, dashboards; D-069 to D-073), Phase 6 (fees and ledger; D-074 to D-078; the client's fee answers are `OPEN:` defaults) and Phase 7 (results; D-079 to D-083) were built 2026-09-28, each with an exit test for both schools, and an end-to-end school-year test found and fixed six bugs (D-084). They reached `main` in PR #16 and staging on 2026-09-30 (D-085). **The NEB scale is not verified against the official directive (D-079, D-085): no real +2 result may be published until it is.** No uploads until R2 (D-020). The Principal's read-only pages (admin FUT topic 7) were redesigned on shared patterns in `apps/web/src/read/` (D-103, D-104), the Co-ordinator's screens on the same patterns after the Co-ordinator FUT, with its findings fixed (D-106), and the Teacher's, Student's and Accountant's screens likewise (D-107). A whole-platform code review added indexes, flattened memory in the chain checks and closed race and half-write edges in fees, approvals and admissions (D-108); merged to `main` in PR #32 on 2026-10-04. **Not yet on staging:** the PM deploys it from their laptop (migration `0029_review_indexes.sql`, then `wrangler deploy`); this cloud session has no Cloudflare credentials. Earlier: Phase 4 (admissions and student record, D-063 to D-066) and the Release A checklist's buildable parts (D-067; still needing the PM: upload hardening, a real error-tracking/uptime service, a daily export to a second location, legal review of the privacy notice); Phase 3 (academic setup, people and approvals, D-057 to D-062); Phase 2 (public website, D-038 to D-055); Phase 1 (platform foundation, D-037); Phase 0 (the backend is a Cloudflare Worker, D-019 to D-021, `docs/architecture.md`). See `docs/build-plan.md`. Update this line when a phase closes.
+**Current phase: Phases 5, 6 and 7 are complete; Phase 8 (academic terms and their lifecycle, redesigned in D-109) needs PM approval to start building.** Phase 5 (daily school life: attendance, activity log, notes and homework, dashboards; D-069 to D-073), Phase 6 (fees and ledger; D-074 to D-078; the client's fee answers are `OPEN:` defaults) and Phase 7 (results; D-079 to D-083) were built 2026-09-28, each with an exit test for both schools, and an end-to-end school-year test found and fixed six bugs (D-084). They reached `main` in PR #16 and staging on 2026-09-30 (D-085). **The NEB scale is not verified against the official directive (D-079, D-085): no real +2 result may be published until it is.** No uploads until R2 (D-020). The Principal's read-only pages (admin FUT topic 7) were redesigned on shared patterns in `apps/web/src/read/` (D-103, D-104), the Co-ordinator's screens on the same patterns after the Co-ordinator FUT, with its findings fixed (D-106), and the Teacher's, Student's and Accountant's screens likewise (D-107). A whole-platform code review added indexes, flattened memory in the chain checks and closed race and half-write edges in fees, approvals and admissions (D-108); merged to `main` in PR #32 on 2026-10-04. **Not yet on staging:** the PM deploys it from their laptop (migration `0029_review_indexes.sql`, then `wrangler deploy`); this cloud session has no Cloudflare credentials. Earlier: Phase 4 (admissions and student record, D-063 to D-066) and the Release A checklist's buildable parts (D-067; still needing the PM: upload hardening, a real error-tracking/uptime service, a daily export to a second location, legal review of the privacy notice); Phase 3 (academic setup, people and approvals, D-057 to D-062); Phase 2 (public website, D-038 to D-055); Phase 1 (platform foundation, D-037); Phase 0 (the backend is a Cloudflare Worker, D-019 to D-021, `docs/architecture.md`). See `docs/build-plan.md`. Update this line when a phase closes.
 
 ## 1. What we are building
 
@@ -97,7 +97,7 @@ A role assignment carries a **scope**: the whole institution, or one section (+2
 ## 6. Domain rules
 
 **Structure**
-- A **Programme** (for example BBS, +2 Science) has an affiliation (NEB, PU, TU) and an ordered list of **levels**. +2: Grade 11, Grade 12. Bachelor's: Year 1 to Year 4. A **Class** is academic year + programme + level + optional section label (for example Morning or Evening). Each level is one academic year, assessed by terminals (D-006).
+- A **Programme** (for example BBS, +2 Science) has an affiliation (NEB, PU, TU) and an ordered list of **levels**. +2: Grade 11, Grade 12. Bachelor's: Year 1 to Year 4. A **Class** is academic year + programme + level + optional section label (for example Morning or Evening). Each level is one academic year, assessed by terminals (D-006). **Decided, not yet built (D-109):** the academic year becomes an **academic term** of any length (a semester, a quarter, a year) that the Principal creates with its dates and the levels it runs; several terms can be open at once, and a level is in only one open term. Classes, enrollments (one per student per term), exams, fee structures, receipt numbering (per section per term) and the closed-term lock then hang off the term. Until Phase 8 builds it, the rules below say "year".
 
 **Student and years**
 - The **Student** is permanent (SID, personal details, guardians, documents). The yearly **Enrollment** (student, academic year, class) holds attendance, marks, fees, submissions and receipts. Never attach year data directly to Student.
@@ -117,7 +117,7 @@ A role assignment carries a **scope**: the whole institution, or one section (+2
 - A payment is never edited or deleted. Mistakes are reversed. Reversals and refunds are new entries pointing to the original.
 - Payments apply to the oldest due first. Partial payments allowed. Late fees are out of scope.
 - The gateway reference is unique, so repeated callbacks cannot double-credit.
-- Receipts come from a gapless sequence per section and year (a counter row incremented in the same batch as the payment, so a failed payment rolls the number back), are generated from the ledger, and are never edited.
+- Receipts come from a gapless sequence per section and year (per section and term once D-109 is built) (a counter row incremented in the same batch as the payment, so a failed payment rolls the number back), are generated from the ledger, and are never edited.
 - The Accountant owns fees. The Co-ordinator has **no Fees view**. The Accountant's student profile shows only Personal and Fees.
 
 **Approvals (Admin)**
@@ -190,12 +190,12 @@ The PM's standard is that this product looks and feels like Apple made it: calm,
 | Payment gateway, merchant account | Not built. Interface and demo adapter only |
 | +2 to Bachelor's move: dues | Must be zero |
 | Optional subjects (+2 Science options, BSc specialisations) | Approved 2026-09-21 (D-056): minimal elective groups on a programme level; built in Phase 3 slice 2 |
-| Semester vs year for bachelor's | Yearly with terminals (D-006) |
+| Semester vs year | Settled (D-109): academic terms of any length, set by the Principal. Not built yet; the code still has academic years |
 | NEB rank tie-break | Tied students share a rank |
 | Recheck notification threshold | Notify Admin on every post-publish change, with a required reason |
 | Top 20 visible to other students | Shown, name and rank only |
 | View-only trustee role | Not built. All Admins approve |
-| Academic year start month, holidays | Config placeholders |
+| Holidays | Config placeholders |
 | Discount reasons | Scholarship, Sibling, Staff child, Other |
 | Refund rules | Every refund needs Admin approval |
 | Attendance alert threshold | 75% placeholder |

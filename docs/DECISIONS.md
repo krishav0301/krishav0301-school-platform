@@ -27,7 +27,7 @@ Constraint: permissions stay expressed as role + action + scope, and a role assi
 Django (modular monolith, PostgreSQL, JSON API with OpenAPI schema) + Next.js (TypeScript) front end with a generated typed client. Two managed deployables behind one domain.
 Supersedes `CLAUDE.md` section 4 ("no separate front-end app and no separate API layer in V1"). Everything else in `CLAUDE.md` section 4 stands: no Redis, no microservices, Postgres-backed job queue, private object storage with signed links, one deployment per school.
 
-**D-006 Levels and terms.** Working default. Open with the client.
+**D-006 Levels and terms.** Working default. Open with the client. **Superseded by D-109 (academic terms of any length).**
 A programme has an ordered list of levels. +2 programmes: Grade 11, Grade 12. Bachelor's: Year 1 to Year 4. Each level is one academic year, assessed by terminals (yearly, with terminals).
 Not modelled: semesters. PM said "4 year" and "1 year each"; whether any bachelor's runs semester-wise inside those four years has not been confirmed. The level and term structure is data, so semesters can be added without a rewrite.
 
@@ -1049,6 +1049,25 @@ The matrix lives in code (61 actions, 8 groups, from the reviewed `permission-ma
   - `sessions` and `application_submission_events` grow without pruning. How long to keep them is a retention decision for the PM.
 - **Tests:** `test/review-fixes.test.ts` covers the concurrent discounts, the leftover reversal draft, the concurrent voucher, more than one chunk of charges, the true totals, and the year's teaching with its scope. `test/admissions.test.ts` covers the refused walk-in leaving nothing, and the taken email for a walk-in and an approval.
 - **Merged, not deployed.** Merged to `main` as PR #32 (`142153a`) after a CI replay in a fresh clone (GitHub Actions has no runners). The PM deploys it to staging from their laptop: apply migration `0029_review_indexes.sql` with `wrangler d1 migrations apply <db> --remote --config wrangler.local.jsonc`, build `apps/web`, `wrangler deploy --config wrangler.local.jsonc`, then check `/api/health`. A cloud session cannot deploy: it has no Cloudflare login, and the account and database ids live only in the PM's `wrangler.local.jsonc`.
+
+**D-109 Academic terms of any length, set by the Principal; Phase 8 rewritten around them.** 2026-10-04, PM decision in conversation ("we are building school SAP: one school can have semesters, another years"; "what if there are 4 semesters in 1 year, as in an MBA"; "go with your recommendations"). **Replaces D-006's "yearly with terminals" default and the "semester vs year" open point. Decided, not built:** the code still has "academic years" until Phase 8 is built.
+- **The academic term is the unit of time.** It is any period the Principal sets: a name, from and to dates, and the levels that run in it. Nothing assumes its length: 3 months (an MBA quarter), 6 months (a semester), 12 months (+2, Grade 9). It no longer has to match a BS year.
+- **Programme and levels: the ladder, set once.** The Admin defines a programme's ordered levels: Year 1 to 4, Semester 1 to 8, Quarter 1 to 8, Grade 9. Each level also has a **usual length** in months, entered once, used only to fill in the next term's dates.
+- **Who does what:**
+  - **Principal (Admin):** creates, opens and closes terms. This moves from the Co-ordinator (today's `setup.structure.manage`) to the Admin. That is a permission-matrix change, made when this is built.
+  - **Co-ordinator:** inside an open term, creates classes, adds subjects to levels, assigns teachers and places students, as today.
+- **Several terms can be open at once.** A term names the levels it covers; the Principal picks them by section and programme, with shortcuts such as all levels or odd only. **A level can be in only one open term at a time.** For example, "CSE Odd, Shrawan–Poush" holds CSE Semesters 1, 3, 5 and 7, while "+2 2083" holds Grades 11 and 12. A mid-year intake is another term holding Semester 1, if no other open term has it. Which semesters are active is never configured: it follows from which batches exist.
+- **The next term is filled in for the Principal.** It proposes the next level of each batch (1, 3, 5, 7 become 2, 4, 6, 8), dates starting the day after the last term ended, and the usual length. The Principal confirms or edits; nothing is created automatically, because real start dates slip.
+- **What hangs off the term (what hangs off the year today):** classes, enrollments (one per student per term), exams, fee structures, and the lock. A closed term refuses every write, and corrections go into the current term pointing back. Unchanged: the student record and SID (the admission year is still the BS year of approval), subjects defined once and offered per level, teachers per class, the ledger and its chain, the audit log.
+- **Closing a term (Principal):** refused until every class in the term has its results published for every exam in the term. Then the term is locked.
+- **Promotion (Co-ordinator):**
+  - The system proposes Promote for every student, into a class of the next level in the open term that holds it. The Co-ordinator changes any student to Repeat or Leaving.
+  - At the last level, Graduated is offered instead, and only with zero dues (CLAUDE.md section 6).
+  - Unpaid dues are carried into the new term as `carried_dues`.
+- **Receipt numbering:** a gapless sequence per section per term (was per section per year).
+- **Names on screen:** "Academic term" for the period, "Exam" for what is now called a terminal. Code names may follow when Phase 8 is built.
+- **Tests when built:** both patterns run every flow in CI. A semester programme is added to the test fixtures beside the yearly ones, and the second-school pack stays yearly.
+- **Not decided here:** CGPA across terms (a new grading output; not in scope until asked), and how a term's fees are billed beyond today's frequencies, which will use the term's dates instead of the year's.
 
 ## Open items carried forward
 
