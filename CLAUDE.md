@@ -204,7 +204,7 @@ The PM's standard is that this product looks and feels like Apple made it: calm,
 | Programme and stream names | Working list in `docs/client-profile.md`, unconfirmed |
 | Admission documents | One certificate upload until PM approves multiple typed documents |
 | File uploads and R2 | Not enabled (D-020). Build the storage interface only; no uploads until PM says R2 is needed |
-| Disputed BS 2062 stretch | Flagged, not hidden. BS 2083 is verified against Hamro Patro. Verify BS 2084 before extending the range |
+| Disputed BS 2062 stretch | Flagged, not hidden. BS 2083 is verified against Hamro Patro. Verify BS 2084 before extending the range; the pinned converter likely has 2084 wrong (D-111, `docs/spikes/bs-2084.md`) |
 
 ## 10. Out of scope
 
