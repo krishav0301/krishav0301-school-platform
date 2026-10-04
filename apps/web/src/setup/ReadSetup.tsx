@@ -2,11 +2,10 @@
 
 import type { ReactNode } from "react";
 
-import { formatBsDate } from "@/content/model";
 import { t } from "@/i18n/messages";
 import { EmptyLine, Panel, ReadHeader, ReadTable, StatusWord, readStyles, type Column } from "@/read/ReadView";
 
-import { YEAR_STATUS_LABEL, classTitle, formatHundredths, type Curriculum, type SchoolClass, type Subject, type Terminal, type Year } from "./model";
+import { classTitle, formatHundredths, type Curriculum, type SchoolClass, type Subject, type Terminal } from "./model";
 
 /**
  * School setup as the Principal reads it (D-104, after the PM's topic 7 reference): the same facts the Co-ordinator
@@ -29,27 +28,6 @@ const withAction = <R,>(columns: Column<R>[], action?: RowAction<R>): Column<R>[
 
 export function ReadSetupHeader({ title, subtitle }: { title: string; subtitle: string }) {
   return <ReadHeader title={title} subtitle={subtitle} crumbs={[{ label: t("reports.title"), href: "/portal/reports" }, { label: title }]} />;
-}
-
-export function YearsTable({ years, action, empty = "setup.years.emptyReadOnly" }: { years: readonly Year[]; action?: RowAction<Year>; empty?: "setup.years.emptyReadOnly" | "setup.years.empty" }) {
-  if (years.length === 0) return <EmptyLine>{t(empty)}</EmptyLine>;
-  return (
-    <Panel>
-      <ReadTable
-        caption={t("setup.years.title")}
-        rows={years}
-        rowKey={(y) => y.id}
-        columns={withAction(
-          [
-            { key: "year", label: t("setup.read.year"), primary: true, cell: (y) => y.label },
-            { key: "dates", label: t("setup.read.dates"), cell: (y) => t("setup.years.dates", { from: formatBsDate(y.startDateBs), until: formatBsDate(y.endDateBs) }) },
-            { key: "status", label: t("attendance.class.status"), cell: (y) => <StatusWord tone={y.status === "active" ? "ok" : undefined}>{t(YEAR_STATUS_LABEL[y.status])}</StatusWord> },
-          ],
-          action,
-        )}
-      />
-    </Panel>
-  );
 }
 
 export function ClassesTable({ classes, action }: { classes: readonly SchoolClass[]; action?: RowAction<SchoolClass> }) {

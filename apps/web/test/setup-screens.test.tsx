@@ -5,12 +5,15 @@ import SetupPage from "@/app/portal/setup/page";
 import ProgrammesPage from "@/app/portal/setup/programmes/page";
 import ClassesPage from "@/app/portal/setup/classes/page";
 import TerminalsPage from "@/app/portal/setup/terminals/page";
+import PromotionPage from "@/app/portal/setup/promotion/page";
 import { ConfigContext, makeConfigValue, type PublicConfig } from "@/config/ConfigProvider";
 import { SetupTabs } from "@/setup/SetupLayout";
 import { ClassForm, ClassesView } from "@/setup/ClassesScreen";
 import { AcademicStructureView, type Structure, type StructureActions } from "@/setup/ProgrammesScreen";
 import { TerminalsView } from "@/setup/TerminalsScreen";
-import { YearsScreen, YearsView } from "@/setup/YearsScreen";
+import { YearsScreen } from "@/setup/YearsScreen";
+import { LevelPicker, TermsScreen, TermsTable, CloseCheckView } from "@/terms/TermsScreen";
+import type { Term } from "@/terms/model";
 import type { Programme, SchoolClass, Terminal, Year } from "@/setup/model";
 import { SessionContext } from "@/session/SessionProvider";
 import { fakeSession } from "./session";
@@ -37,7 +40,20 @@ const inContext = (element: React.ReactNode, session = as("coordinator", "instit
   );
 const count = (html: string, pattern: RegExp) => (html.match(pattern) ?? []).length;
 
-const year = (id: string, label: string, status: Year["status"]): Year => ({ id, bsYear: 2083, label, startDate: "2026-04-14", endDate: "2027-04-13", startDateBs: "2083-01-01", endDateBs: "2083-12-30", status });
+const year = (id: string, label: string, status: Year["status"], levels: Term["levels"] = []): Year => ({
+  id,
+  bsYear: 2083,
+  label,
+  code: label.replace(/\W/g, "").slice(0, 10).toUpperCase() || "T1",
+  startDate: "2026-04-14",
+  endDate: "2027-04-13",
+  startDateBs: "2083-01-01",
+  endDateBs: "2083-12-30",
+  status,
+  levels,
+  classes: 2,
+  students: 40,
+});
 const noop = () => {};
 
 // ---------------------------------------------------------------------------------------------
@@ -57,60 +73,58 @@ describe("the sub-menu", () => {
 });
 
 // ---------------------------------------------------------------------------------------------
-describe("the years screen", () => {
-  const years = [year("y3", "2084", "draft"), year("y2", "2083", "active"), year("y1", "2082", "closed")];
+describe("academic terms (D-110)", () => {
+  const sem = (id: string, name: string, programmeName = "BCA") => ({ id, name, ordinal: Number(id.slice(-1)), programmeId: "p", programmeName, sectionKey: "bachelors" });
+  const terms = [year("t3", "BCA even", "draft"), year("t2", "BCA odd", "active", [sem("l1", "Semester 1"), sem("l3", "Semester 3")]), year("t1", "2082", "closed")];
 
-  it("lists each year with its Nepali days and where it stands", () => {
-    const html = inContext(<YearsView years={years} canManage busy={null} onActivate={noop} />);
-    for (const label of ["2084", "2083", "2082"]) expect(html).toContain(`data-primary="true">${label}</td>`);
+  it("lists each term with its Nepali days, receipt code, levels and where it stands, in words", () => {
+    const html = inContext(<TermsTable terms={terms} />);
+    for (const label of ["BCA even", "BCA odd", "2082"]) expect(html).toContain(`<span>${label}</span>`);
     expect(html).toContain("1 Baisakh 2083");
-    expect(html).toContain(">Current year<");
-    expect(html).toContain(">Closed<");
-    expect(html).toContain(">Not started<");
+    expect(html).toContain("Receipt code BCAODD");
+    expect(html).toContain("BCA: Semester 1, Semester 3");
+    for (const word of [">Open<", ">Closed<", ">Not started<"]) expect(html).toContain(word);
+    expect(html).not.toContain("Manage"); // read only without an action
   });
 
-  it("offers 'Make current' only for a draft, and only when no year is current", () => {
-    const withCurrent = inContext(<YearsView years={years} canManage busy={null} onActivate={noop} />);
-    expect(withCurrent).not.toContain("Make current");
-    const none = inContext(<YearsView years={[year("y3", "2084", "draft")]} canManage busy={null} onActivate={noop} />);
-    expect(none).toContain('aria-label="Make 2084 the current year"');
-    expect(inContext(<YearsView years={[year("y3", "2084", "draft")]} canManage={false} busy={null} onActivate={noop} />)).not.toContain("Make current");
+  it("offers Manage on every row only where something can be done, and says so when there is none", () => {
+    expect(inContext(<TermsTable terms={terms} onOpen={noop} />)).toContain('aria-label="Manage BCA odd"');
+    expect(inContext(<TermsTable terms={[]} onOpen={noop} />)).toContain("Add the first one");
+    expect(inContext(<TermsTable terms={[]} />)).toContain("No term has been set up yet.");
   });
 
-  it("says so when there is no year yet", () => {
-    expect(inContext(<YearsView years={[]} canManage busy={null} onActivate={noop} />)).toContain("Add the first one");
+  it("the level picker shows a level another open term runs, but does not offer it", () => {
+    const programmes = [
+      { id: "p", key: "bca", name: "BCA", section: { key: "bachelors", name: "Bachelor's" }, affiliation: "TU", active: true, gradingPolicy: null, students: 0, canDelete: false, levels: [1, 2, 3, 4].map((i) => ({ id: `l${i}`, ordinal: i, name: `Semester ${i}`, active: true, usualMonths: 6, students: 0, canDelete: false })) },
+    ] as Programme[];
+    const html = inContext(<LevelPicker programmes={programmes} taken={new Map([["l1", "BCA odd"]])} value={["l2"]} onChange={noop} />);
+    expect(html).toContain("In BCA odd");
+    expect(count(html, /disabled=""/g)).toBe(1);
+    expect(count(html, /checked=""/g)).toBe(1);
+    expect(html).toContain('aria-label="Choose the odd levels of BCA"');
   });
 
-  it("does not invite someone who cannot add a year to add one (apple-design review: an empty state needs a next step the person can take)", () => {
-    const html = inContext(<YearsView years={[]} canManage={false} busy={null} onActivate={noop} />);
-    expect(html).toContain("No year has been set up yet.");
-    expect(html).not.toContain("Add the first one");
+  it("what stops a term from closing is said class by class, exam by exam", () => {
+    const html = inContext(<CloseCheckView check={{ ready: false, exams: 1, classes: 2, missing: [{ classId: "c1", className: "BCA · Semester 1 (A)", examId: "e1", examName: "Final" }, { classId: "c2", className: "BCA · Semester 3 (A)", examId: null, examName: null }] }} />);
+    expect(html).toContain("BCA · Semester 1 (A): Final");
+    expect(html).toContain("BCA · Semester 3 (A): this term has no exams yet");
+    expect(inContext(<CloseCheckView check={{ ready: true, exams: 1, classes: 2, missing: [] }} />)).toContain("The term can close");
   });
 
-  it("shows the shape of the page while it loads, and the add form to a whole-school Co-ordinator", () => {
-    const html = inContext(<YearsScreen />);
-    expect(html).toMatch(/role="status"[^>]*aria-busy="true"/);
-    expect(html).toContain(">Add a year<");
-    expect(html).toContain(">Year (BS)<");
-    expect(html).toContain(">First day<");
-    expect(html).toContain(">Last day<");
-    expect(html).toContain('inputMode="numeric"');
-  });
-
-  it("a section-scoped Co-ordinator and the Admin see no add form, and are told why in the school's words", () => {
-    const section = inContext(<YearsScreen />, as("coordinator", "section", "plus2"));
-    expect(section).not.toContain("Add a year");
-    expect(section).toContain("whole school");
-    expect(section).toContain("Vice Principal");
-    const admin = inContext(<YearsScreen />, as("admin", "institution"));
-    expect(admin).not.toContain("Add a year");
-    expect(admin).toContain("Read only. The Vice Principal manages this.");
+  it("the Co-ordinator reads the terms in Setup, told who changes them; the Principal's page shows its shape while it loads", () => {
+    const setup = inContext(<YearsScreen />);
+    expect(setup).toMatch(/aria-busy="true"/);
+    expect(setup).toContain("The Principal makes, opens and closes terms");
+    expect(setup).not.toContain("New term");
+    const principal = inContext(<TermsScreen />, as("admin", "institution"));
+    expect(principal).toContain(">Academic terms<");
+    expect(principal).toMatch(/aria-busy="true"/);
   });
 });
 
 // ---------------------------------------------------------------------------------------------
 describe("Academic Structure (D-095, D-096)", () => {
-  const level = (id: string, ordinal: number, name: string, students: number, active = true, canDelete = students === 0) => ({ id, ordinal, name, active, students, canDelete });
+  const level = (id: string, ordinal: number, name: string, students: number, active = true, canDelete = students === 0) => ({ id, ordinal, name, active, usualMonths: null, students, canDelete });
   const structure: Structure = {
     sections: [
       { key: "s1", name: "Bachelor of Engineering", active: true, receiptCode: "BE", receiptCodeLocked: true, canDelete: false },
@@ -127,6 +141,7 @@ describe("Academic Structure (D-095, D-096)", () => {
   const actions: StructureActions = {
     addSection: async () => true,
     editSection: async () => true,
+    setLevelLength: async () => true,
     addProgramme: async () => true,
     editProgramme: async () => true,
     setProgrammeActive: async () => true,
@@ -275,14 +290,14 @@ describe("the classes screen", () => {
     expect(inContext(<ClassesView classes={classes} canManage={false} busy={null} onToggle={noop} onDelete={async () => true} />)).not.toContain("Delete");
   });
 
-  it("says so when the year has no classes", () => {
-    expect(inContext(<ClassesView classes={[]} canManage busy={null} onToggle={noop} />)).toContain("No classes in this year yet.");
+  it("says so when the term has no classes", () => {
+    expect(inContext(<ClassesView classes={[]} canManage busy={null} onToggle={noop} />)).toContain("No classes in this term yet.");
   });
 
   it("the form offers only active levels of active programmes", () => {
     const programmes: Programme[] = [
-      { id: "p1", key: "bbs", name: "BBS", section: { key: "bachelors", name: "Bachelor's" }, affiliation: "TU", active: true, gradingPolicy: null, students: 0, canDelete: false, levels: [{ id: "l1", ordinal: 1, name: "Year 1", active: true, students: 0, canDelete: false }, { id: "l2", ordinal: 2, name: "Year 2", active: false, students: 0, canDelete: false }] },
-      { id: "p2", key: "old", name: "Old", section: { key: "plus2", name: "+2" }, affiliation: "NEB", active: false, gradingPolicy: null, students: 0, canDelete: false, levels: [{ id: "l3", ordinal: 1, name: "Grade 11", active: true, students: 0, canDelete: false }] },
+      { id: "p1", key: "bbs", name: "BBS", section: { key: "bachelors", name: "Bachelor's" }, affiliation: "TU", active: true, gradingPolicy: null, students: 0, canDelete: false, levels: [{ id: "l1", ordinal: 1, name: "Year 1", active: true, usualMonths: null, students: 0, canDelete: false }, { id: "l2", ordinal: 2, name: "Year 2", active: false, usualMonths: null, students: 0, canDelete: false }] },
+      { id: "p2", key: "old", name: "Old", section: { key: "plus2", name: "+2" }, affiliation: "NEB", active: false, gradingPolicy: null, students: 0, canDelete: false, levels: [{ id: "l3", ordinal: 1, name: "Grade 11", active: true, usualMonths: null, students: 0, canDelete: false }] },
     ];
     const html = inContext(<ClassForm yearId="y" programmes={programmes} onAdded={noop} />);
     expect(html).toContain("BBS · Year 1");
@@ -304,14 +319,15 @@ describe("the terminals screen", () => {
   });
 
   it("uses the school's word for the empty state", () => {
-    expect(inContext(<TerminalsView terminals={[]} />)).toContain("No Exams in this year yet.");
+    expect(inContext(<TerminalsView terminals={[]} />)).toContain("No Exams in this term yet.");
   });
 });
 
 // ---------------------------------------------------------------------------------------------
 describe("the pages", () => {
   it.each([
-    ["years", SetupPage, "Academic years"],
+    ["terms", SetupPage, "Academic terms"],
+    ["promotion", PromotionPage, "Move students on"],
     ["programmes", ProgrammesPage, "Academic Structure"],
     ["classes", ClassesPage, "Classes"],
     ["terminals", TerminalsPage, "Exams"],

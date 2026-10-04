@@ -21,6 +21,7 @@ import {
   renameLevel,
   updateSection,
   setLevelActive,
+  setLevelLength,
   setProgrammeActive,
   setSectionActive,
   updateProgramme,
@@ -72,6 +73,7 @@ export interface StructureActions {
   addLevel: (programme: Programme, name: string) => Promise<boolean>;
   renameLevel: (level: Level, name: string) => Promise<boolean>;
   setLevelActive: (level: Level, active: boolean) => Promise<boolean>;
+  setLevelLength: (level: Level, usualMonths: number | null) => Promise<boolean>;
   setSectionActive: (section: Section, active: boolean) => Promise<boolean>;
   /** Only offered when nothing is attached (D-097); the server checks again. */
   deleteSection: (section: Section) => Promise<boolean>;
@@ -122,6 +124,36 @@ function NameForm({ label, hint, initial = "", submitLabel, required, onSave, ch
         {children}
         <Button type="submit" loading={saving} loadingLabel={t("setup.working")}>
           {submitLabel}
+        </Button>
+      </div>
+    </form>
+  );
+}
+
+/** How long a level usually runs, in whole months, or empty when it varies (D-110). */
+function LengthForm({ initial, onSave }: { initial: number | null; onSave: (months: number | null) => Promise<boolean> }) {
+  const [months, setMonths] = useState(initial ? String(initial) : "");
+  const [error, setError] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+
+  async function submit(event: FormEvent) {
+    event.preventDefault();
+    if (saving) return;
+    const text = months.trim();
+    const value = text === "" ? null : Number(text);
+    if (value !== null && (!Number.isInteger(value) || value < 1 || value > 60)) return setError(t("structure.lengthInvalid"));
+    setError(null);
+    setSaving(true);
+    await onSave(value);
+    setSaving(false);
+  }
+
+  return (
+    <form onSubmit={submit} noValidate className={styles.form}>
+      <Field label={t("structure.length")} hint={t("structure.lengthHint")} inputMode="numeric" maxLength={2} autoComplete="off" value={months} onChange={(event) => setMonths(event.target.value)} error={error ?? undefined} />
+      <div className={styles.formActions}>
+        <Button type="submit" variant="secondary" loading={saving} loadingLabel={t("setup.working")}>
+          {t("structure.saveLength")}
         </Button>
       </div>
     </form>
@@ -358,7 +390,10 @@ function LevelRow({ level, words, student, canManage, actions }: { level: Level;
     <li className={styles.level} data-off={!level.active}>
       <Tile icon={BookOpen} tone="primary" size="small" />
       <span className={styles.levelName}>{level.name}</span>
-      <span className={styles.meta}>{studentsText(level.students, student)}</span>
+      <span className={styles.meta}>
+        {studentsText(level.students, student)}
+        {level.usualMonths ? ` · ${t(level.usualMonths === 1 ? "structure.monthOne" : "structure.months", { count: level.usualMonths })}` : ""}
+      </span>
       {level.active ? null : <Badge>{t("setup.programmes.off")}</Badge>}
       {canManage ? (
         <span className={styles.rowEnd}>
@@ -381,6 +416,7 @@ function LevelRow({ level, words, student, canManage, actions }: { level: Level;
                 >
                   <SwitchButton active={level.active} name={level.name} onSwitch={async () => (await actions.setLevelActive(level, !level.active)) && (close(), true)} />
                 </NameForm>
+                <LengthForm initial={level.usualMonths} onSave={async (months) => (await actions.setLevelLength(level, months)) && (close(), true)} />
                 <DeleteControl name={level.name} canDelete={level.canDelete} blocked="structure.levelInUse" onDelete={async () => (await actions.deleteLevel(level)) && (close(), true)} />
               </>
             )}
@@ -677,6 +713,7 @@ export function ProgrammesScreen() {
     addLevel: (programme, name) => run(addLevel(api, programme.id, name), "setup.done.added"),
     renameLevel: (level, name) => run(renameLevel(api, level.id, name), "structure.done.saved"),
     setLevelActive: (level, active) => run(setLevelActive(api, level.id, active), active ? "setup.done.switchedOn" : "setup.done.switchedOff"),
+    setLevelLength: (level, usualMonths) => run(setLevelLength(api, level.id, usualMonths), "structure.done.saved"),
     setSectionActive: (section, active) => run(setSectionActive(api, section.key, active), active ? "setup.done.switchedOn" : "setup.done.switchedOff", true),
     deleteSection: (section) => run(deleteSection(api, section.key), "structure.done.deleted", true),
     deleteProgramme: (programme) => run(deleteProgramme(api, programme.id), "structure.done.deleted"),

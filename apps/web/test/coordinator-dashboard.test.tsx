@@ -90,14 +90,14 @@ describe("the setup checklist", () => {
   it("lists the steps still to do first, each with its link and a status in words", () => {
     const html = inContext(<SetupList checklist={{ ...empty, year: true }} />);
     for (const item of CHECKLIST) expect(html).toContain(`href="${item.href}"`);
-    expect(html.indexOf("Add programmes and levels")).toBeLessThan(html.indexOf("Set an active academic year"));
+    expect(html.indexOf("Add programmes and levels")).toBeLessThan(html.indexOf("An open academic term"));
     expect((html.match(/>Not done</g) ?? []).length).toBe(6);
     expect((html.match(/>Done</g) ?? []).length).toBe(1);
   });
 
   it("once every step is done, says so in one line", () => {
     const html = inContext(<SetupList checklist={full} />);
-    expect(html).toContain("Everything is set up for this year.");
+    expect(html).toContain("Everything is set up for the open terms.");
     expect(html).not.toContain("Not done");
   });
 });

@@ -166,7 +166,11 @@ Grading policies (NEB credit-weighted GPA, percentage and division), bulk marks 
 
 ### Phase 8: Academic terms and their lifecycle (rewritten 2026-10-04, D-109)
 Academic terms of any length replace the academic year as the unit of time: the Principal creates a term (name, dates, the levels it runs; a level in only one open term at a time; several terms open at once), with the next term filled in from each level's usual length. The Co-ordinator sets up classes, subjects, teachers and students inside an open term. Closing a term (Principal) is refused until every class's results are published for every exam; a closed term refuses every write, tested on every write path. Promotion (Co-ordinator): Promote by default, Repeat, Leaving, and Graduated at the last level with zero dues; unpaid dues carried forward; waive-dues flow; +2 to Bachelor's handover; reactivation. Receipt numbering per section per term. Screens say "Academic term" and "Exam". Every flow runs for a yearly and a semester programme in CI.
-**Needs:** PM approval to start building. CGPA across terms is not in scope unless asked.
+**Needs:** CGPA across terms is not in scope unless asked.
+
+**Progress** (approved 2026-10-04):
+- [x] 1. Terms, their levels, opening and closing, the next term, and moving students with dues carried; screens for the Principal and the Co-ordinator; wording at every login (D-110)
+- [ ] 2. Waive-dues flow, +2 to Bachelor's handover, reactivation
 
 ### Phase 9: Paid integrations
 Payment gateway with server-side confirmation, reconciliation job and exceptions screen. SMS provider (2FA, approvals, overdue, results published) with budget alert. Production email, error tracking, uptime, CDN.

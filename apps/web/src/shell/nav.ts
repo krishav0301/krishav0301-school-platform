@@ -24,7 +24,7 @@ export interface NavItem {
   icon: NavIcon;
 }
 
-export type NavIcon = "overview" | "website" | "programs" | "setup" | "people" | "approvals" | "admissions" | "attendance" | "classwork" | "fees" | "results" | "reports" | "settings";
+export type NavIcon = "overview" | "website" | "programs" | "terms" | "setup" | "people" | "approvals" | "admissions" | "attendance" | "classwork" | "fees" | "results" | "reports" | "settings";
 
 export const MAX_TABS = 5;
 
@@ -35,6 +35,8 @@ export const NAV_ITEMS: readonly NavItem[] = [
   { id: "content", labelKey: "nav.content", href: "/portal/content", roles: ["coordinator", "admin", "super_admin"], rarely: true, icon: "website" },
   // D-087/D-088: programmes are the Admin's alone, so the Admin's Setup is just "Programs".
   { id: "programs", labelKey: "nav.programs", href: "/portal/setup/programmes", roles: ["admin"], rarely: true, icon: "programs" },
+  // D-110: the Principal makes, opens and closes academic terms; the Co-ordinator reads them in Setup.
+  { id: "terms", labelKey: "nav.terms", href: "/portal/terms", roles: ["admin", "super_admin"], rarely: true, icon: "terms" },
   // Phase 3: the academic structure. The Co-ordinator sets it up; the Admin can look (the API decides, D-025).
   { id: "setup", labelKey: "nav.setup", href: "/portal/setup", roles: ["coordinator", "super_admin"], rarely: true, icon: "setup" },
   // Phase 3, slice 3a: the staff. Whoever may add someone (the API decides, D-025).

@@ -39,8 +39,12 @@ export function defaultYearId(years: readonly Year[]): string | null {
 }
 
 /** What a class picker offers: the active levels of active programmes, named with their programme. */
-export function levelChoices(programmes: readonly Programme[]): { value: string; label: string }[] {
-  return programmes.filter((p) => p.active).flatMap((p) => p.levels.filter((l) => l.active).map((l) => ({ value: l.id, label: `${p.name} · ${l.name}` })));
+/** The levels a class can be made for: switched on, and (given a term's levels, D-110) run by that term. */
+export function levelChoices(programmes: readonly Programme[], only?: readonly string[]): { value: string; label: string }[] {
+  const allowed = only ? new Set(only) : null;
+  return programmes
+    .filter((p) => p.active)
+    .flatMap((p) => p.levels.filter((l) => l.active && (!allowed || allowed.has(l.id))).map((l) => ({ value: l.id, label: `${p.name} · ${l.name}` })));
 }
 
 export const classTitle = (c: SchoolClass): string => `${c.programmeName} · ${c.levelName}${c.label ? ` (${c.label})` : ""}`;
@@ -53,43 +57,19 @@ export const termWords = (term: (key: string) => string) => ({
   terminal: term("term.terminal"),
 });
 
-export const YEAR_STATUS_LABEL: Record<Year["status"], MessageKey> = {
-  draft: "setup.status.draft",
-  active: "setup.status.active",
-  closed: "setup.status.closed",
-};
-
-export type FailReason = "forbidden" | "not_found" | "conflict" | "year_closed" | "another_active" | "in_use" | "code_taken" | "code_locked" | "rejected" | "failed";
+export type FailReason = "forbidden" | "not_found" | "conflict" | "year_closed" | "in_use" | "code_taken" | "code_locked" | "rejected" | "failed";
 
 export const REASON_MESSAGE: Record<FailReason, MessageKey> = {
   forbidden: "setup.error.forbidden",
   not_found: "setup.error.gone",
   conflict: "setup.error.conflict",
   year_closed: "setup.error.yearClosed",
-  another_active: "setup.error.anotherActive",
   in_use: "setup.error.inUse",
   code_taken: "setup.error.codeTaken",
   code_locked: "setup.error.codeLocked",
   rejected: "setup.error.rejected",
   failed: "setup.error.failed",
 };
-
-export interface YearFormValues {
-  bsYear: string;
-  startBs: string;
-  endBs: string;
-}
-export const emptyYearForm = (): YearFormValues => ({ bsYear: "", startBs: "", endBs: "" });
-export type YearFormErrors = Partial<Record<keyof YearFormValues, MessageKey>>;
-
-/** The checks that need no server. Whether a Nepali day exists, and whether its year is verified, is the server's to say. */
-export function validateYearForm(values: YearFormValues): YearFormErrors {
-  const errors: YearFormErrors = {};
-  if (!/^\d{4}$/.test(values.bsYear.trim())) errors.bsYear = "setup.error.bsYear";
-  if (!values.startBs.trim()) errors.startBs = "setup.error.startRequired";
-  if (!values.endBs.trim()) errors.endBs = "setup.error.endRequired";
-  return errors;
-}
 
 // --- Subjects and the curriculum (slice 2) -----------------------------------------------------------
 

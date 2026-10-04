@@ -7,20 +7,18 @@ import {
   canManageStructure,
   classTitle,
   defaultYearId,
-  emptyYearForm,
   isReceiptCode,
   suggestReceiptCode,
   levelChoices,
   manageableSections,
   termWords,
-  validateYearForm,
   type Programme,
   type SchoolClass,
   type Year,
 } from "@/setup/model";
 
 const role = (r: string, scope: string, section?: string) => ({ role: r, scope, ...(section ? { section } : {}) });
-const year = (id: string, status: Year["status"]): Year => ({ id, bsYear: 2083, label: id, startDate: "2026-04-14", endDate: "2027-04-13", startDateBs: "2083-01-01", endDateBs: "2083-12-30", status });
+const year = (id: string, status: Year["status"]): Year => ({ id, bsYear: 2083, label: id, code: "2083", startDate: "2026-04-14", endDate: "2027-04-13", startDateBs: "2083-01-01", endDateBs: "2083-12-30", status, levels: [], classes: 0, students: 0 });
 
 describe("who sees the change controls (tidiness only; the API decides)", () => {
   it("the Co-ordinator and the Super Admin may change the structure; nobody else", () => {
@@ -63,8 +61,8 @@ describe("defaultYearId", () => {
 
 describe("levelChoices", () => {
   const programmes: Programme[] = [
-    { id: "p1", key: "bbs", name: "BBS", section: { key: "bachelors", name: "Bachelor's" }, affiliation: "TU", active: true, gradingPolicy: null, students: 0, canDelete: false, levels: [{ id: "l1", ordinal: 1, name: "Year 1", active: true, students: 0, canDelete: false }, { id: "l2", ordinal: 2, name: "Year 2", active: false, students: 0, canDelete: false }] },
-    { id: "p2", key: "old", name: "Old", section: { key: "plus2", name: "+2" }, affiliation: "NEB", active: false, gradingPolicy: null, students: 0, canDelete: false, levels: [{ id: "l3", ordinal: 1, name: "Grade 11", active: true, students: 0, canDelete: false }] },
+    { id: "p1", key: "bbs", name: "BBS", section: { key: "bachelors", name: "Bachelor's" }, affiliation: "TU", active: true, gradingPolicy: null, students: 0, canDelete: false, levels: [{ id: "l1", ordinal: 1, name: "Year 1", active: true, usualMonths: null, students: 0, canDelete: false }, { id: "l2", ordinal: 2, name: "Year 2", active: false, usualMonths: null, students: 0, canDelete: false }] },
+    { id: "p2", key: "old", name: "Old", section: { key: "plus2", name: "+2" }, affiliation: "NEB", active: false, gradingPolicy: null, students: 0, canDelete: false, levels: [{ id: "l3", ordinal: 1, name: "Grade 11", active: true, usualMonths: null, students: 0, canDelete: false }] },
   ];
   it("lists only the active levels of active programmes, named with their programme", () => {
     expect(levelChoices(programmes)).toEqual([{ value: "l1", label: "BBS · Year 1" }]);
@@ -79,17 +77,9 @@ describe("classTitle", () => {
   });
 });
 
-describe("validateYearForm", () => {
-  it("wants a four-digit year and both days", () => {
-    expect(validateYearForm(emptyYearForm())).toEqual({ bsYear: "setup.error.bsYear", startBs: "setup.error.startRequired", endBs: "setup.error.endRequired" });
-    expect(validateYearForm({ bsYear: "20x3", startBs: "2083-01-01", endBs: "2083-12-30" })).toEqual({ bsYear: "setup.error.bsYear" });
-    expect(validateYearForm({ bsYear: " 2083 ", startBs: "2083-01-01", endBs: "2083-12-30" })).toEqual({});
-  });
-});
-
 describe("words", () => {
   it("every failure reason has words", () => {
-    for (const reason of ["forbidden", "not_found", "conflict", "year_closed", "another_active", "rejected", "failed"] as const) expect(REASON_MESSAGE[reason]).toMatch(/^setup\.error\./);
+    for (const reason of ["forbidden", "not_found", "conflict", "year_closed", "rejected", "failed"] as const) expect(REASON_MESSAGE[reason]).toMatch(/^setup\.error\./);
   });
 
   it("the school's own words for programme, level, section and terminal come from its configuration", () => {
