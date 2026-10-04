@@ -5,9 +5,9 @@ import { useCallback, useState, type FormEvent } from "react";
 
 import { t, type MessageKey } from "@/i18n/messages";
 import { useSession } from "@/session/SessionProvider";
-import setupStyles from "@/setup/setup.module.css";
-import { Gate, useLoad } from "@/setup/useLoad";
-import { Button, Card, Field, Notice, PasswordField } from "@/ui";
+import { Panel, ReadFailure, ReadHeader, TableSkeleton, readStyles } from "@/read/ReadView";
+import { useLoad } from "@/setup/useLoad";
+import { Button, Field, Notice, PasswordField } from "@/ui";
 
 import { ownPasswordFailure, profileProblems } from "./model";
 import styles from "./settings.module.css";
@@ -60,16 +60,13 @@ export function ProfileCard({ profile }: { profile: Profile }) {
   }
 
   return (
-    <Card aria-labelledby="profile-title" className={styles.card}>
-      <h2 id="profile-title" className={styles.heading}>
-        {t("settings.profile.title")}
-      </h2>
+    <Panel title={t("settings.profile.title")} labelledBy="profile-title">
       {profile.canEditProfile ? (
         <form onSubmit={save} noValidate className={styles.form}>
           <SaidNotice said={said} />
           <Field label={t("settings.profile.name")} value={fullName} maxLength={120} autoComplete="name" onChange={(event) => setFullName(event.target.value)} />
           <Field label={t("settings.profile.phone")} type="tel" inputMode="tel" value={phone} maxLength={30} autoComplete="tel" onChange={(event) => setPhone(event.target.value)} />
-          <p className={setupStyles.muted}>{t("settings.profile.email", { email: profile.email })}</p>
+          <p className={readStyles.rowMeta}>{t("settings.profile.email", { email: profile.email })}</p>
           <div>
             <Button type="submit" loading={saving} loadingLabel={t("settings.saving")}>
               {t("settings.profile.save")}
@@ -79,17 +76,17 @@ export function ProfileCard({ profile }: { profile: Profile }) {
       ) : (
         <dl className={styles.facts}>
           <div>
-            <dt className={setupStyles.muted}>{t("settings.profile.name")}</dt>
+            <dt className={readStyles.rowMeta}>{t("settings.profile.name")}</dt>
             <dd>{profile.fullName}</dd>
           </div>
           <div>
-            <dt className={setupStyles.muted}>{t("settings.profile.emailLabel")}</dt>
+            <dt className={readStyles.rowMeta}>{t("settings.profile.emailLabel")}</dt>
             <dd>{profile.email}</dd>
           </div>
-          <p className={setupStyles.muted}>{t("settings.profile.askCoordinator")}</p>
+          <p className={readStyles.rowMeta}>{t("settings.profile.askCoordinator")}</p>
         </dl>
       )}
-    </Card>
+    </Panel>
   );
 }
 
@@ -128,22 +125,19 @@ export function PasswordCard() {
 
   const toggles = { showText: t("signIn.show"), hideText: t("signIn.hide"), showLabel: t("signIn.showPassword"), hideLabel: t("signIn.hidePassword") };
   return (
-    <Card aria-labelledby="password-title" className={styles.card}>
-      <h2 id="password-title" className={styles.heading}>
-        {t("settings.password.title")}
-      </h2>
+    <Panel title={t("settings.password.title")} labelledBy="password-title">
       <form onSubmit={change} noValidate className={styles.form}>
         <SaidNotice said={said} />
         <PasswordField label={t("settings.password.current")} name="current-password" autoComplete="current-password" value={current} onChange={(event) => setCurrent(event.target.value)} {...toggles} />
         <PasswordField label={t("settings.password.new")} name="new-password" autoComplete="new-password" value={next} onChange={(event) => setNext(event.target.value)} {...toggles} />
-        <p className={setupStyles.muted}>{t("settings.password.help")}</p>
+        <p className={readStyles.rowMeta}>{t("settings.password.help")}</p>
         <div>
-          <Button type="submit" loading={saving} loadingLabel={t("settings.saving")}>
+          <Button type="submit" variant="secondary" loading={saving} loadingLabel={t("settings.saving")}>
             {t("settings.password.save")}
           </Button>
         </div>
       </form>
-    </Card>
+    </Panel>
   );
 }
 
@@ -161,24 +155,21 @@ export function SettingsScreen() {
   const { view, reload } = useLoad(load);
 
   return (
-    <div className={styles.page}>
-      <h1 className={setupStyles.title}>{t("settings.title")}</h1>
-      <Gate view={view} onRetry={() => void reload()}>
-        {(profile) => <ProfileCard profile={profile} />}
-      </Gate>
+    <div className={`${readStyles.page} ${styles.narrow}`}>
+      <ReadHeader title={t("settings.title")} subtitle={t("settings.subtitle")} />
+      {view.status === "loading" ? <TableSkeleton rows={3} /> : null}
+      {view.status === "failed" || view.status === "forbidden" ? <ReadFailure status={view.status} onRetry={() => void reload()} /> : null}
+      {view.status === "ready" ? <ProfileCard profile={view.data} /> : null}
       <PasswordCard />
-      <Card aria-labelledby="signout-title" className={styles.card}>
-        <h2 id="signout-title" className={styles.heading}>
-          {t("settings.signOut.title")}
-        </h2>
-        <p className={setupStyles.muted}>{t("settings.signOut.help")}</p>
+      <Panel title={t("settings.signOut.title")} labelledBy="signout-title">
+        <p className={readStyles.rowMeta}>{t("settings.signOut.help")}</p>
         <div>
           <Button variant="secondary" onClick={() => void signOut()} className={styles.withIcon}>
             <LogOut aria-hidden className={styles.icon} />
             {t("shell.signOut")}
           </Button>
         </div>
-      </Card>
+      </Panel>
     </div>
   );
 }

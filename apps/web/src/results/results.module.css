@@ -212,3 +212,14 @@ a.wrapLabel {
   gap: var(--space-3);
   max-width: 26rem;
 }
+
+/* A form inside a pop-up: fields one under another, the one button last (D-107). */
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.form > p {
+  margin: 0;
+}

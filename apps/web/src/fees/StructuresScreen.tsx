@@ -1,5 +1,6 @@
 "use client";
 
+import { CircleAlert, CircleCheck, FilePen, Hourglass } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useCallback, useState } from "react";
 
@@ -7,7 +8,7 @@ import { loadOpenLevels } from "@/admissions/client";
 import type { OpenLevel } from "@/admissions/model";
 import { useConfig } from "@/config/ConfigProvider";
 import { t } from "@/i18n/messages";
-import { EmptyLine, OpenLink, Panel, ReadFailure, ReadHeader, ReadOnlyNote, ReadTable, StatusWord, TableSkeleton, readStyles } from "@/read/ReadView";
+import { EmptyLine, FigureTiles, OpenLink, Panel, ReadFailure, ReadHeader, ReadOnlyNote, ReadTable, StatusWord, TableSkeleton, readStyles, type Figure } from "@/read/ReadView";
 import { useSession } from "@/session/SessionProvider";
 import { useLoad } from "@/setup/useLoad";
 import { Button, Notice } from "@/ui";
@@ -54,6 +55,7 @@ export function StructuresScreen() {
             const missing = levels.filter((l) => !drafted.has(l.id));
             return (
               <>
+                {structures.structures.length > 0 ? <FigureTiles figures={structureFigures(structures, missing.length)} label={t("fees.structures.figures")} /> : null}
                 {structures.structures.length === 0 ? (
                   <EmptyLine>{t("fees.structures.empty")}</EmptyLine>
                 ) : (
@@ -63,15 +65,18 @@ export function StructuresScreen() {
                 )}
                 {accountant && missing.length > 0 ? (
                   <Panel title={t("fees.structures.missing")} labelledBy="structures-missing">
-                    <ul className={styles.list}>
+                    <ul className={readStyles.rows}>
                       {missing.map((l) => (
-                        <li key={l.id} className={styles.row}>
-                          <span>
-                            {l.programmeName} · {l.name}
-                          </span>
-                          <Button className={styles.wrapLabel} variant="secondary" onClick={() => void draft(l.id)}>
-                            {t("fees.structures.draft")}
-                          </Button>
+                        <li key={l.id} className={readStyles.rowItem}>
+                          <div className={readStyles.rowHead}>
+                            <h3 className={readStyles.rowTitle}>
+                              {l.programmeName} · {l.name}
+                            </h3>
+                            <Button className={styles.wrapLabel} variant="quiet" onClick={() => void draft(l.id)} aria-label={t("fees.structures.draftFor", { name: `${l.programmeName} · ${l.name}` })}>
+                              {t("fees.structures.draft")}
+                            </Button>
+                          </div>
+                          <p className={readStyles.rowMeta}>{t("fees.structures.noneYet")}</p>
                         </li>
                       ))}
                     </ul>
@@ -84,6 +89,17 @@ export function StructuresScreen() {
         : null}
     </div>
   );
+}
+
+/** This year's structures: live, waiting for the Principal, still drafts, and levels with none yet. Pure. */
+export function structureFigures(list: FeeStructureList, missing: number): Figure[] {
+  const count = (status: FeeStructure["status"]) => list.structures.filter((x) => x.status === status).length;
+  return [
+    { key: "live", icon: CircleCheck, tone: "ok", value: String(count("live")), label: t("fees.structures.figure.live") },
+    { key: "waiting", icon: Hourglass, tone: count("waiting") > 0 ? "warn" : "ok", value: String(count("waiting")), label: t("fees.structures.figure.waiting") },
+    { key: "draft", icon: FilePen, tone: "accent", value: String(count("draft")), label: t("fees.structures.figure.draft") },
+    { key: "missing", icon: CircleAlert, tone: missing > 0 ? "bad" : "ok", value: String(missing), label: t("fees.structures.figure.missing") },
+  ];
 }
 
 /** A structure's status in words: Live, Draft, Waiting for approval. */

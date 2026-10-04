@@ -81,30 +81,32 @@ export function DuesScreen() {
         title={t("fees.dues.title")}
         subtitle={t("fees.dues.subtitle")}
         actions={
-          <a className={`${buttonClass({ variant: "secondary" })} ${styles.wrapLabel}`} href={classId ? `/api/fees/dues.csv?classId=${classId}` : "/api/fees/dues.csv"} download>
-            <Download aria-hidden width={18} height={18} />
-            {t("fees.dues.export")}
-          </a>
+          <div className={styles.headerActions}>
+            <a className={`${buttonClass({ variant: "secondary" })} ${styles.wrapLabel}`} href={classId ? `/api/fees/dues.csv?classId=${classId}` : "/api/fees/dues.csv"} download>
+              <Download aria-hidden width={18} height={18} />
+              {t("fees.dues.export")}
+            </a>
+            {accountant && view.status === "ready" && view.data.students.some((x) => x.overduePaisa > 0) ? (
+              <Button className={styles.wrapLabel} variant="secondary" onClick={() => void remind()} loading={busy} loadingLabel={t("fees.saving")}>
+                {t("fees.dues.remind")}
+              </Button>
+            ) : null}
+          </div>
         }
       />
       {view.status === "loading" ? <TableSkeleton rows={6} tiles={3} /> : null}
       {view.status === "failed" || view.status === "forbidden" ? <ReadFailure status={view.status} onRetry={() => void reload()} /> : null}
       {view.status === "ready" ? (
         view.data.students.length === 0 ? (
-          <EmptyLine>{t("fees.dues.empty")}</EmptyLine>
+          <Panel>
+            <EmptyLine>{t("fees.dues.empty")}</EmptyLine>
+          </Panel>
         ) : (
           <>
             <FigureTiles figures={duesFigures(shown)} label={t("fees.dues.figures")} />
             <div className={readStyles.search}>
               <Select label={t("fees.dues.class")} options={[{ value: "", label: t("fees.dues.allClasses") }, ...classes.map(([value, label]) => ({ value, label }))]} value={classId} onChange={(event) => setClassId(event.target.value)} />
             </div>
-            {accountant ? (
-              <div className={styles.actions}>
-                <Button className={styles.wrapLabel} variant="secondary" onClick={() => void remind()} loading={busy} loadingLabel={t("fees.saving")}>
-                  {t("fees.dues.remind")}
-                </Button>
-              </div>
-            ) : null}
             {message ? <Notice tone={message.tone}>{message.text}</Notice> : null}
             <Panel>
               <DuesTable students={shown} />

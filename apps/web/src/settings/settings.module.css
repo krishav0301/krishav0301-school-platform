@@ -109,3 +109,8 @@
     gap: var(--space-2);
   }
 }
+
+/* Settings is a short column of forms: a reading width, not the whole screen (D-107). */
+.narrow {
+  max-width: 44rem;
+}

@@ -309,3 +309,34 @@ a.wrapLabel {
   border-top: 1px solid var(--color-border);
   font-weight: var(--weight-medium);
 }
+
+/* A form inside a pop-up or side panel: fields one under another, the one button last (D-107). */
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.form > p {
+  margin: 0;
+}
+
+/* The header's actions: the quieter ones first, the one prominent button last; they wrap on a phone (D-107). */
+.headerActions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: var(--space-2);
+}
+
+.headerActions > * {
+  max-width: 100%;
+}
+
+/* A row's own action at its end, under the words on a phone. */
+.rowActions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: var(--space-2);
+}

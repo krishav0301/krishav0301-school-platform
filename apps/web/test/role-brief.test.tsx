@@ -5,7 +5,7 @@ import { describe, expect, it, vi } from "vitest";
 
 import PortalPage from "@/app/portal/page";
 import { ConfigContext, makeConfigValue, type PublicConfig } from "@/config/ConfigProvider";
-import { ROLE_BRIEFS, RoleBrief } from "@/dashboard/RoleBrief";
+import { ROLE_BRIEFS, RoleBriefLinks } from "@/dashboard/RoleBrief";
 import { SessionContext } from "@/session/SessionProvider";
 import { fakeSession } from "./session";
 import royal from "../../../packs/royal-softech/pack.json";
@@ -39,13 +39,13 @@ describe("what each role can do (the PM, 2026-10-01)", () => {
   });
 
   it("names the role in the school's own words", () => {
-    expect(render(<RoleBrief role="coordinator" />)).toContain("What you can do as Co-ordinator");
-    expect(render(<RoleBrief role="coordinator" />, sample)).toContain("What you can do as Vice Principal");
+    expect(render(<RoleBriefLinks role="coordinator" />)).toContain("What you can do as Co-ordinator");
+    expect(render(<RoleBriefLinks role="coordinator" />, sample)).toContain("What you can do as Vice Principal");
   });
 
   it("leaves out what the school has switched off", () => {
-    const on = render(<RoleBrief role="teacher" />, royal, [{ role: "teacher", scope: "assigned" }], { attendance: true, homework: true });
-    const off = render(<RoleBrief role="teacher" />, royal, [{ role: "teacher", scope: "assigned" }], { attendance: false, homework: false });
+    const on = render(<RoleBriefLinks role="teacher" />, royal, [{ role: "teacher", scope: "assigned" }], { attendance: true, homework: true });
+    const off = render(<RoleBriefLinks role="teacher" />, royal, [{ role: "teacher", scope: "assigned" }], { attendance: false, homework: false });
     expect(on).toContain("Mark your class&#x27;s attendance");
     expect(off).not.toContain("Mark your class&#x27;s attendance");
     expect(off).not.toContain("Set homework");

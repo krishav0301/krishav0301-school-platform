@@ -1,23 +1,55 @@
 "use client";
 
-import Link from "next/link";
+import { Award, BookOpen, CircleAlert, CircleCheck } from "lucide-react";
 import { useCallback, useMemo, useState } from "react";
 
 import { useAddressQuery } from "@/content/address";
 import { useConfig } from "@/config/ConfigProvider";
 import { t } from "@/i18n/messages";
-import { EmptyLine, Panel, ReadFailure, ReadHeader, ReadTable, TableSkeleton, readStyles } from "@/read/ReadView";
+import { EmptyLine, FigureTiles, OpenLink, Panel, ReadFailure, ReadHeader, ReadTable, Segments, StatusWord, TableSkeleton, readStyles, type Figure } from "@/read/ReadView";
 import { useSession } from "@/session/SessionProvider";
 import setupStyles from "@/setup/setup.module.css";
 import { Gate, useLoad } from "@/setup/useLoad";
-import { Badge, Button, Field, Notice, Select } from "@/ui";
+import { AddDialog, Button, Field, Notice, Select } from "@/ui";
 
 import { gateFailure, loadCard, loadOwnResults, loadTop20, requestRecheck } from "./client";
 import { sentText } from "./MarkSheetScreen";
 import { RECHECK_LABEL, className, formatMarks, hundredthsText, scoreText, type MarksCard, type OwnResults, type Top20 } from "./model";
 import styles from "./results.module.css";
 
-/** The student's own results by year and terminal (source 6.1): nothing until published, then the card and rechecks. */
+type Result = OwnResults["results"][number];
+
+/** One result at a glance: the GPA or percentage, the result in words, the subjects passed. Pure. */
+export function resultFigures(r: Result): Figure[] {
+  const b = r.card.body;
+  const neb = b.policy === "neb_gpa";
+  const passed = b.subjects.filter((s) => s.passed).length;
+  return [
+    { key: "score", icon: Award, tone: "accent", value: scoreText(b) ?? b.outcome, label: t(neb ? "results.card.gpaLabel" : "results.card.percentLabel") },
+    { key: "result", icon: b.passed ? CircleCheck : CircleAlert, tone: b.passed ? "ok" : "bad", value: neb ? t(b.passed ? "results.card.gpa" : "results.own.ng") : b.outcome, label: t("results.card.result") },
+    { key: "subjects", icon: BookOpen, tone: passed < b.subjects.length ? "warn" : "ok", value: t("coord.ofTotal", { done: passed, total: b.subjects.length }), label: t("results.own.figure.passed") },
+  ];
+}
+
+/** Each subject with its grade (or percentage) and passed or not, in words. Pure. */
+export function SubjectsTable({ result }: { result: Result }) {
+  const b = result.card.body;
+  const neb = b.policy === "neb_gpa";
+  return (
+    <ReadTable
+      caption={t("results.card.subjects")}
+      rows={b.subjects}
+      rowKey={(s) => s.offeringId}
+      columns={[
+        { key: "subject", label: t("results.mine.subject"), primary: true, cell: (s) => s.name },
+        { key: "grade", label: t(neb ? "results.own.grade" : "results.own.percent"), align: "end", cell: (s) => <span className={readStyles.number}>{neb ? s.grade : `${hundredthsText(s.percentHundredths)}%`}</span> },
+        { key: "status", label: t("attendance.class.status"), cell: (s) => (s.passed ? <StatusWord tone="ok">{t("results.own.passed")}</StatusWord> : <StatusWord tone="bad">{neb ? t("results.own.ng") : t("results.card.failed")}</StatusWord>) },
+      ]}
+    />
+  );
+}
+
+/** The student's own results (source 6.1; redesigned in D-107): one terminal at a time, the subjects, the marks card, and rechecks. */
 export function OwnResultsScreen() {
   const { api } = useSession();
   const { moduleEnabled } = useConfig();
@@ -26,126 +58,111 @@ export function OwnResultsScreen() {
     return result.ok ? result : gateFailure(result.reason);
   }, [api]);
   const { view, reload } = useLoad<OwnResults>(loadNow);
+  const [picked, setPicked] = useState<string | null>(null);
+  const [sent, setSent] = useState<string | null>(null);
+  const own = view.status === "ready" ? view.data : null;
+  const result = own ? (own.results.find((r) => r.publicationId === picked) ?? own.results[0]) : undefined;
   return (
-    <>
-      <h1 className={setupStyles.title}>{t("results.own.title")}</h1>
-      <Gate view={view} onRetry={() => void reload()}>
-        {(own) =>
-          own.results.length === 0 ? (
-            <p className={setupStyles.empty}>{t("results.own.none")}</p>
-          ) : (
-            <ul className={setupStyles.list}>
-              {own.results.map((r) => (
-                <li key={r.publicationId} className={setupStyles.item}>
-                  <h2 className={setupStyles.itemTitle}>
-                    {t("results.own.heading", {
-                      terminal: r.terminalName,
-                      year: r.yearLabel,
-                    })}
-                  </h2>
-                  <p className={styles.score}>{scoreText(r.card.body) ?? r.card.body.outcome}</p>
-                  <p className={styles.meta}>{r.card.body.policy === "neb_gpa" ? t(r.card.body.passed ? "results.card.gpa" : "results.card.notGraded") : r.card.body.outcome}</p>
-                  <ul className={styles.list}>
-                    {r.card.body.subjects.map((s) => (
-                      <li key={s.offeringId} className={styles.row}>
-                        <span>{s.name}</span>
-                        <span className={styles.state}>
-                          <Badge tone={s.passed ? undefined : "bad"}>{s.grade}</Badge>
-                        </span>
-                      </li>
-                    ))}
-                  </ul>
-                  {r.card.version > 1 ? (
-                    <Notice>
-                      {t("results.own.corrected", {
-                        reason: r.card.reason ?? "",
-                      })}
-                    </Notice>
-                  ) : null}
-                  {r.rechecks.map((c) => (
-                    <p key={c.id} className={styles.meta}>
-                      {t("results.own.recheckLine", {
-                        subject: c.subjectName,
-                        status: t(RECHECK_LABEL[c.status]),
-                      })}
-                      {c.decisionReason ? ` ${c.decisionReason}` : ""}
-                    </p>
-                  ))}
-                  <Link href={`/portal/results/card?id=${r.card.id}`}>{t("results.own.openCard")}</Link>
-                  <RecheckForm result={r} onSent={() => void reload()} />
-                </li>
-              ))}
-            </ul>
-          )
-        }
-      </Gate>
-      {moduleEnabled("top20") ? (
-        <p>
-          <Link href="/portal/results/top20">{t("results.own.top20")}</Link>
-        </p>
+    <div className={readStyles.page}>
+      <ReadHeader
+        title={t("results.own.title")}
+        subtitle={result ? t("results.own.heading", { terminal: result.terminalName, year: result.yearLabel }) : undefined}
+        actions={moduleEnabled("top20") ? <OpenLink href="/portal/results/top20" label={t("results.own.top20")} text={t("results.own.top20")} /> : null}
+      />
+      {view.status === "loading" ? <TableSkeleton rows={6} tiles={3} /> : null}
+      {view.status === "failed" || view.status === "forbidden" ? <ReadFailure status={view.status} onRetry={() => void reload()} /> : null}
+      {own && own.results.length === 0 ? (
+        <Panel>
+          <EmptyLine>{t("results.own.none")}</EmptyLine>
+        </Panel>
       ) : null}
-    </>
+      {own && result ? (
+        <>
+          {own.results.length > 1 ? (
+            <Segments
+              label={t("results.own.which")}
+              value={result.publicationId}
+              options={own.results.map((r) => ({ key: r.publicationId, label: t("results.own.heading", { terminal: r.terminalName, year: r.yearLabel }) }))}
+              onChange={(key) => {
+                setPicked(key);
+                setSent(null);
+              }}
+            />
+          ) : null}
+          <FigureTiles figures={resultFigures(result)} label={t("results.own.figures")} />
+          {result.card.version > 1 ? <Notice>{t("results.own.corrected", { reason: result.card.reason ?? "" })}</Notice> : null}
+          {sent ? <Notice tone="ok">{sent}</Notice> : null}
+          <Panel title={t("results.card.subjects")} labelledBy="own-subjects" actions={<OpenLink href={`/portal/results/card?id=${result.card.id}`} label={t("results.own.openCard")} text={t("results.own.card")} />}>
+            <SubjectsTable result={result} />
+          </Panel>
+          <Panel
+            title={t("results.own.rechecks")}
+            labelledBy="own-rechecks"
+            actions={
+              <AddDialog label={t("results.own.recheck")} title={t("results.own.recheck")} variant="secondary" plus={false}>
+                {(close) => (
+                  <RecheckForm
+                    result={result}
+                    onSent={() => {
+                      close();
+                      setSent(t("results.own.recheckSent"));
+                      void reload();
+                    }}
+                  />
+                )}
+              </AddDialog>
+            }
+          >
+            {result.rechecks.length === 0 ? (
+              <EmptyLine>{t("results.own.noRechecks")}</EmptyLine>
+            ) : (
+              <ul className={readStyles.rows}>
+                {result.rechecks.map((c) => (
+                  <li key={c.id} className={readStyles.rowItem}>
+                    <div className={readStyles.rowHead}>
+                      <h3 className={readStyles.rowTitle}>{c.subjectName}</h3>
+                      <StatusWord tone={c.status === "changed" ? "ok" : c.status === "open" ? "warn" : undefined}>{t(RECHECK_LABEL[c.status])}</StatusWord>
+                    </div>
+                    <p className={readStyles.rowMeta}>{t("results.rechecks.asked", { reason: c.reason })}</p>
+                    {c.decisionReason ? <p>{c.decisionReason}</p> : null}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </Panel>
+        </>
+      ) : null}
+    </div>
   );
 }
 
-function RecheckForm({ result, onSent }: { result: OwnResults["results"][number]; onSent: () => void }) {
+function RecheckForm({ result, onSent }: { result: Result; onSent: () => void }) {
   const { api } = useSession();
   const open = new Set(result.rechecks.filter((c) => c.status === "open").map((c) => c.offeringId));
   const choices = result.card.body.subjects.filter((s) => !open.has(s.offeringId));
-  const [asking, setAsking] = useState(false);
   const [subject, setSubject] = useState("");
   const [reason, setReason] = useState("");
   const [busy, setBusy] = useState(false);
-  const [message, setMessage] = useState<{
-    tone: "ok" | "bad";
-    text: string;
-  } | null>(null);
-  if (choices.length === 0) return null;
+  const [error, setError] = useState<string | null>(null);
+  if (choices.length === 0) return <p className={styles.meta}>{t("results.own.allAsked")}</p>;
 
   async function send() {
     setBusy(true);
     const sent = await requestRecheck(api, result.publicationId, subject || choices[0]!.offeringId, reason.trim());
     setBusy(false);
-    if (sent.ok) {
-      setMessage({ tone: "ok", text: t("results.own.recheckSent") });
-      setAsking(false);
-      setReason("");
-      onSent();
-    } else setMessage({ tone: "bad", text: sentText(sent)! });
+    if (sent.ok) onSent();
+    else setError(sentText(sent));
   }
 
   return (
-    <>
-      {asking ? (
-        <div className={styles.card}>
-          <Select
-            label={t("results.own.recheckSubject")}
-            value={subject || choices[0]!.offeringId}
-            onChange={(event) => setSubject(event.target.value)}
-            options={choices.map((s) => ({
-              value: s.offeringId,
-              label: s.name,
-            }))}
-          />
-          <Field label={t("results.own.recheckReason")} hint={t("results.own.recheckHint")} value={reason} maxLength={500} onChange={(event) => setReason(event.target.value)} />
-          <div className={styles.actions}>
-            <Button className={styles.wrapLabel} variant="secondary" disabled={reason.trim().length < 3 || busy} loading={busy} loadingLabel={t("results.saving")} onClick={() => void send()}>
-              {t("results.own.recheckSend")}
-            </Button>
-            <Button className={styles.wrapLabel} variant="quiet" onClick={() => setAsking(false)}>
-              {t("results.cancel")}
-            </Button>
-          </div>
-        </div>
-      ) : (
-        <div className={styles.actions}>
-          <Button className={styles.wrapLabel} variant="quiet" onClick={() => setAsking(true)}>
-            {t("results.own.recheck")}
-          </Button>
-        </div>
-      )}
-      {message ? <Notice tone={message.tone}>{message.text}</Notice> : null}
-    </>
+    <div className={styles.form}>
+      <Select label={t("results.own.recheckSubject")} value={subject || choices[0]!.offeringId} onChange={(event) => setSubject(event.target.value)} options={choices.map((s) => ({ value: s.offeringId, label: s.name }))} />
+      <Field label={t("results.own.recheckReason")} hint={t("results.own.recheckHint")} value={reason} maxLength={500} onChange={(event) => setReason(event.target.value)} />
+      {error ? <Notice tone="bad">{error}</Notice> : null}
+      <Button className={styles.wrapLabel} fullWidth disabled={reason.trim().length < 3 || busy} loading={busy} loadingLabel={t("results.saving")} onClick={() => void send()}>
+        {t("results.own.recheckSend")}
+      </Button>
+    </div>
   );
 }
 
@@ -216,7 +233,7 @@ export function MarksCardScreen() {
                   </span>
                   <span className={styles.state}>
                     <span className={styles.number}>{neb ? s.grade : `${hundredthsText(s.percentHundredths)}%`}</span>
-                    {!s.passed ? <Badge tone="bad">{neb ? "NG" : t("results.card.failed")}</Badge> : null}
+                    {!s.passed ? <StatusWord tone="bad">{neb ? t("results.own.ng") : t("results.card.failed")}</StatusWord> : null}
                   </span>
                 </li>
               ))}

@@ -1,8 +1,8 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 
-import { ActivityEditor } from "@/classwork/ActivityEditor";
-import { ActivityScreen, ClassworkTable, classworkFigures, DayList } from "@/classwork/ActivityScreen";
+import { ActivityPanel } from "@/classwork/ActivityEditor";
+import { ActivityScreen, ClassworkTable, classworkFigures, DayList, TeacherSubjects, teacherLogFigures } from "@/classwork/ActivityScreen";
 import { SubjectEntries } from "@/classwork/ClassActivityScreen";
 import { ClassworkTabs } from "@/classwork/ClassworkTabs";
 import { StudentAssignment } from "@/classwork/HomeworkScreen";
@@ -39,19 +39,29 @@ describe("the activity log", () => {
     expect(className({ programmeName: "Science", levelName: "Grade 11", label: "Day" })).toBe("Science · Grade 11 · Day");
   });
 
-  it("a subject not written yet says so, with a labelled box and a Save that waits for words", () => {
-    const html = inContext(<ActivityEditor subject={subject} />);
-    expect(html).toContain("Physics");
+  it("a subject not written yet says so in words, first, with Write named for its subject and class (D-107)", () => {
+    const html = inContext(<TeacherSubjects subjects={[{ ...subject, offeringId: "o2", subjectName: "Chemistry", body: "Done." }, subject]} onOpen={() => {}} />);
+    expect(html.indexOf("Physics")).toBeLessThan(html.indexOf("Chemistry"));
     expect(html).toContain("Science · Grade 11");
     expect(html).toContain("Not written yet");
-    expect(html).toContain("What the class did today");
-    expect(html).toMatch(/<button[^>]*disabled/);
+    expect(html).toContain('aria-label="Write the entry for Physics, Science · Grade 11"');
+    expect(html).toContain('aria-label="Change the entry for Chemistry, Science · Grade 11"');
   });
 
-  it("a written subject shows its words and no 'not written' label", () => {
-    const html = inContext(<ActivityEditor subject={{ ...subject, body: "Chapter 3." }} />);
+  it("the entry is written in a side panel with a labelled box and a Save that waits for words", () => {
+    const html = inContext(<ActivityPanel subject={subject} onClose={() => {}} onSaved={() => {}} />);
+    expect(html).toContain("<dialog");
+    expect(html).toContain("What the class did today");
+    expect(html).toMatch(/<button[^>]*disabled[^>]*>Save entry/);
+    expect(inContext(<ActivityPanel subject={{ ...subject, body: "Chapter 3." }} onClose={() => {}} onSaved={() => {}} />)).toContain("Chapter 3.");
+  });
+
+  it("a written subject shows its words and no 'not written' label; the figures count what is left", () => {
+    const html = inContext(<TeacherSubjects subjects={[{ ...subject, body: "Chapter 3." }]} />);
     expect(html).toContain("Chapter 3.");
     expect(html).not.toContain("Not written yet");
+    const figures = teacherLogFigures({ date: "2026-09-28", dateBs: "2083-06-12", subjects: [subject, { ...subject, offeringId: "o2", body: "x" }] });
+    expect(figures.map((f) => f.value)).toEqual(["1 of 2", "1"]);
   });
 
   it("a student's days list each subject's entry under its day, newest first as given", () => {
@@ -64,7 +74,7 @@ describe("the activity log", () => {
       />,
       as("student", "own"),
     );
-    expect(html.indexOf("2083-06-12")).toBeLessThan(html.indexOf("2083-06-11"));
+    expect(html.indexOf("12 Ashwin 2083")).toBeLessThan(html.indexOf("11 Ashwin 2083"));
     expect(html).toContain("Motion.");
   });
 
@@ -168,7 +178,7 @@ describe("homework", () => {
 
   it("before submitting: the deadline in BS, 'Not submitted', an answer box and Submit", () => {
     const html = inContext(<StudentAssignment assignment={base} onChanged={() => {}} />, as("student", "own"));
-    expect(html).toContain("Due 2083-06-14, 10:00");
+    expect(html).toContain("Due 14 Ashwin 2083, 10:00");
     expect(html).toContain("Not submitted");
     expect(html).toContain("Your answer");
     expect(html).toContain(">Submit<");

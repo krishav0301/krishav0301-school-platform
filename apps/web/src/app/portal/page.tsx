@@ -1,71 +1,46 @@
 "use client";
 
-import { StudentRecordCard } from "@/admissions/StudentRecordCard";
-import { OwnAttendanceCard } from "@/attendance/OwnAttendanceCard";
 import { AdminDashboard } from "@/dashboard/AdminDashboard";
 import { CoordinatorDashboard } from "@/dashboard/CoordinatorDashboard";
-import { ROLE_BRIEFS, RoleBrief } from "@/dashboard/RoleBrief";
-import { StudentTodayCard, TeacherTodayCard } from "@/dashboard/TodayCards";
-import { useConfig } from "@/config/ConfigProvider";
+import { ROLE_BRIEFS, RoleBriefLinks } from "@/dashboard/RoleBrief";
+import { AccountantDashboard, StudentDashboard, TeacherDashboard, TeachingPanel } from "@/dashboard/RoleDashboards";
 import { t } from "@/i18n/messages";
-import { useSession, type RoleClaim } from "@/session/SessionProvider";
+import { EmptyLine, Panel, readStyles } from "@/read/ReadView";
+import { useSession } from "@/session/SessionProvider";
 import { PortalShell } from "@/shell/PortalShell";
-import { Badge, Card } from "@/ui";
 
-import styles from "./portal.module.css";
+type Brief = keyof typeof ROLE_BRIEFS;
 
+/**
+ * Each role's home (D-088, D-106, D-107): the Principal's dashboard, the Co-ordinator's school day, a teacher's day,
+ * a student's studies, the Accountant's fees. Someone with two roles gets the first home and, under it, what their
+ * other role can do.
+ */
 function Dashboard() {
   const { me } = useSession();
-  const { config, term } = useConfig();
   if (!me) return null;
-  // The Principal (Admin) and Support see the whole school at a glance (D-088).
-  if (me.roles.some((r) => r.role === "admin" || r.role === "super_admin")) return <AdminDashboard />;
-  // The Co-ordinator's home is their school day (D-106); a Co-ordinator who also teaches sees their own day below it.
-  if (me.roles.some((r) => r.role === "coordinator")) {
+  const has = (role: string) => me.roles.some((r) => r.role === role);
+  if (has("admin") || has("super_admin")) return <AdminDashboard />;
+  if (has("coordinator")) return <CoordinatorDashboard extra={has("teacher") ? <TeachingPanel /> : null} />;
+
+  const order: Brief[] = ["teacher", "accountant", "student"];
+  const first = order.find(has);
+  const others = order.filter((role) => role !== first && has(role));
+  const home = first === "teacher" ? <TeacherDashboard /> : first === "accountant" ? <AccountantDashboard /> : first === "student" ? <StudentDashboard /> : null;
+  if (!home) {
     return (
-      <>
-        <CoordinatorDashboard />
-        {me.roles.some((r) => r.role === "teacher") ? <TeacherTodayCard /> : null}
-      </>
+      <Panel>
+        <EmptyLine>{t("portal.nothingYet")}</EmptyLine>
+      </Panel>
     );
   }
-
-  // The school's own word for the role ("Vice Principal" for Co-ordinator), or "Support" for the build team.
-  const roleName = (role: string) => (role === "super_admin" ? t("portal.support") : term(`role.${role}`));
-  const scopeName = (claim: RoleClaim) => {
-    if (claim.scope === "institution") return t("portal.scopeInstitution");
-    if (claim.scope === "own") return t("portal.scopeOwn");
-    if (claim.scope === "assigned") return t("portal.scopeAssigned");
-    return t("portal.scopeSection", { section: config?.sections.find((s) => s.key === claim.section)?.name ?? claim.section ?? "" });
-  };
-
   return (
-    <>
-      <h1 className={styles.title}>{t("portal.welcome", { name: me.name })}</h1>
-      <Card aria-labelledby="roles-heading">
-        <h2 id="roles-heading" className={styles.heading}>
-          {t("portal.roles")}
-        </h2>
-        <ul className={styles.roles}>
-          {me.roles.map((claim) => (
-            <li key={`${claim.role}-${claim.scope}-${claim.section ?? ""}`}>
-              <Badge>{roleName(claim.role)}</Badge> <span className={styles.scope}>{scopeName(claim)}</span>
-            </li>
-          ))}
-        </ul>
-      </Card>
-      {/* What each of the person's roles can do, one card per role (the PM, 2026-10-01). */}
-      {[...new Set(me.roles.map((r) => r.role))]
-        .filter((role): role is keyof typeof ROLE_BRIEFS => role in ROLE_BRIEFS)
-        .map((role) => (
-          <RoleBrief key={role} role={role} />
-        ))}
-      {me.roles.some((r) => r.role === "teacher") ? <TeacherTodayCard /> : null}
-      {me.roles.some((r) => r.role === "student") ? <StudentRecordCard /> : null}
-      {me.roles.some((r) => r.role === "student") && config?.modules.attendance ? <OwnAttendanceCard /> : null}
-      {me.roles.some((r) => r.role === "student") ? <StudentTodayCard /> : null}
-      {me.roles.some((r) => r.role in ROLE_BRIEFS) ? null : <p className={styles.note}>{t("portal.nothingYet")}</p>}
-    </>
+    <div className={readStyles.page}>
+      {home}
+      {others.map((role) => (
+        <RoleBriefLinks key={role} role={role} />
+      ))}
+    </div>
   );
 }
 
