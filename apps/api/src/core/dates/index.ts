@@ -3,8 +3,9 @@
  *
  * Conversion is done by `@inicrea/bikram-sambat-core`, pinned to an exact version. This module
  * adds three things the library does not:
- *  1. A verified-years gate. Only BS 2000 to 2083 convert. Beyond 2083 no official calendar
- *     exists yet, and libraries disagree, so we refuse rather than guess.
+ *  1. A verified-years gate. Only BS 2000 to 2084 convert. Beyond that no published calendar has been
+ *     checked, and libraries disagree, so we refuse rather than guess. BS 2084 is provisional (D-112):
+ *     checked against nepcalendar.com, not yet against the official almanac.
  *  2. A disputed-window flag for the one stretch where public sources disagree.
  *  3. Nepal time. A day starts at Nepal midnight (18:15 UTC), never the server's midnight.
  *
@@ -20,7 +21,7 @@ export interface BsDate {
 }
 
 /** BS years whose calendar has been checked. Extend only after checking the official calendar. */
-export const VERIFIED_BS_YEARS = { from: 2000, to: 2083 } as const;
+export const VERIFIED_BS_YEARS = { from: 2000, to: 2084 } as const;
 
 export const BS_MONTH_NAMES = [
   "Baisakh", "Jestha", "Asar", "Shrawan", "Bhadra", "Ashwin",

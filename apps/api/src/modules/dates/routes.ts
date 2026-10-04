@@ -39,7 +39,7 @@ export function registerDates(app: App): void {
       path: "/api/dates/to-ad",
       operationId: "bs_to_ad",
       tags: ["dates"],
-      description: "Converts a Bikram Sambat day (YYYY-MM-DD, month as a number) to AD. Refuses a day that does not exist and any year outside BS 2000 to 2083.",
+      description: "Converts a Bikram Sambat day (YYYY-MM-DD, month as a number) to AD. Refuses a day that does not exist and any year outside BS 2000 to 2084.",
       access: { public: true },
       request: { query: z.object({ bs: DayText }) },
       responses: {
@@ -66,7 +66,7 @@ export function registerDates(app: App): void {
       path: "/api/dates/to-bs",
       operationId: "ad_to_bs",
       tags: ["dates"],
-      description: "Converts an AD day (YYYY-MM-DD) to Bikram Sambat. Refuses a day that does not exist and any day outside BS 2000 to 2083.",
+      description: "Converts an AD day (YYYY-MM-DD) to Bikram Sambat. Refuses a day that does not exist and any day outside BS 2000 to 2084.",
       access: { public: true },
       request: { query: z.object({ ad: DayText }) },
       responses: {

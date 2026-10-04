@@ -2580,7 +2580,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** @description Converts a Bikram Sambat day (YYYY-MM-DD, month as a number) to AD. Refuses a day that does not exist and any year outside BS 2000 to 2083. */
+        /** @description Converts a Bikram Sambat day (YYYY-MM-DD, month as a number) to AD. Refuses a day that does not exist and any year outside BS 2000 to 2084. */
         get: operations["bs_to_ad"];
         put?: never;
         post?: never;
@@ -2597,7 +2597,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** @description Converts an AD day (YYYY-MM-DD) to Bikram Sambat. Refuses a day that does not exist and any day outside BS 2000 to 2083. */
+        /** @description Converts an AD day (YYYY-MM-DD) to Bikram Sambat. Refuses a day that does not exist and any day outside BS 2000 to 2084. */
         get: operations["ad_to_bs"];
         put?: never;
         post?: never;

@@ -22,7 +22,7 @@ const addDays = (iso: string, days: number): string => {
   return new Date(Date.UTC(y, m - 1, d + days)).toISOString().slice(0, 10);
 };
 
-describe("golden calendar, BS 2000 to 2083", () => {
+describe("golden calendar, BS 2000 to 2084", () => {
   it("the verified range is exactly what the golden data covers", () => {
     expect(VERIFIED_BS_YEARS).toEqual({ from: golden.years[0]!.year, to: golden.years.at(-1)!.year });
   });
@@ -34,7 +34,7 @@ describe("golden calendar, BS 2000 to 2083", () => {
     }
   });
 
-  it("every single day converts to the golden BS date and back (30,681 days)", () => {
+  it("every single day converts to the golden BS date and back (31,046 days)", () => {
     let days = 0;
     for (const { year, startAd, months } of golden.years) {
       let offset = 0;
@@ -48,7 +48,7 @@ describe("golden calendar, BS 2000 to 2083", () => {
         }
       });
     }
-    expect(days).toBe(30681);
+    expect(days).toBe(31046);
   });
 });
 
@@ -78,15 +78,30 @@ describe("dates the project documents rely on", () => {
   });
 });
 
+describe("BS 2084 as printed by nepcalendar.com (provisional, D-112)", () => {
+  // Each month's length and the weekday of its first day, read from the PM's screenshot of the 2084 page (0 = Sunday).
+  const printed: [number, number][] = [[31, 3], [31, 6], [32, 2], [31, 6], [31, 2], [30, 5], [30, 0], [30, 2], [29, 4], [30, 5], [30, 0], [30, 2]];
+  it("every month has the printed length and starts on the printed weekday", () => {
+    printed.forEach(([days, firstWeekday], i) => {
+      expect(daysInMonth(2084, i + 1), `month ${i + 1}`).toBe(days);
+      expect(weekday({ year: 2084, month: i + 1, day: 1 }), `month ${i + 1}`).toBe(firstWeekday);
+    });
+  });
+  it("runs from Wednesday 14 April 2027 to Wednesday 12 April 2028", () => {
+    expect(bsToAd({ year: 2084, month: 1, day: 1 })).toBe("2027-04-14");
+    expect(bsToAd({ year: 2084, month: 12, day: 30 })).toBe("2028-04-12");
+  });
+});
+
 describe("only verified years convert (D-014)", () => {
   it("refuses the day after the last verified day", () => {
-    expect(adToBs("2027-04-13")).toEqual({ year: 2083, month: 12, day: 30 });
-    expect(() => adToBs("2027-04-14")).toThrow(UnverifiedCalendarYearError);
+    expect(adToBs("2028-04-12")).toEqual({ year: 2084, month: 12, day: 30 });
+    expect(() => adToBs("2028-04-13")).toThrow(UnverifiedCalendarYearError);
   });
 
-  it("refuses BS 2084, whose calendar has not been published", () => {
-    expect(() => bsToAd({ year: 2084, month: 1, day: 1 })).toThrow(UnverifiedCalendarYearError);
-    expect(() => daysInMonth(2084, 1)).toThrow(UnverifiedCalendarYearError);
+  it("refuses BS 2085, whose calendar has not been checked", () => {
+    expect(() => bsToAd({ year: 2085, month: 1, day: 1 })).toThrow(UnverifiedCalendarYearError);
+    expect(() => daysInMonth(2085, 1)).toThrow(UnverifiedCalendarYearError);
   });
 
   it("refuses years before the verified range", () => {
