@@ -159,3 +159,64 @@ export type CorrectStudent = z.infer<typeof CorrectStudentSchema>;
 
 /** Returned once, on the request that creates the login, and nowhere else (D-059's rule for a temporary password: never emailed, never logged). */
 export const AdmittedSchema = z.object({ id: z.string(), sid: z.string(), temporaryPassword: z.string() }).openapi("Admitted");
+
+// --- Moving students into the next term (D-109, D-110) ----------------------------------------------------------------
+
+export const PromotionBoardSchema = z
+  .object({
+    /** Closed terms, newest first; `pending` when some of their students have not been moved yet. */
+    terms: z.array(z.object({ id: z.string(), label: z.string(), pending: z.boolean() })),
+    termId: z.string().nullable(),
+    classes: z.array(
+      z.object({
+        classId: z.string(),
+        className: z.string(),
+        levelId: z.string(),
+        /** Null at the last level: its students graduate. */
+        nextLevelId: z.string().nullable(),
+        nextLevelName: z.string().nullable(),
+        students: z.array(
+          z.object({
+            enrollmentId: z.string(),
+            studentId: z.string(),
+            sid: z.string(),
+            name: z.string(),
+            rollNo: z.number().int().nullable(),
+            /** What the closed term's enrollment still owes (positive) or is owed (negative). */
+            balancePaisa: z.number().int(),
+            outcome: z.enum(["pending", "promoted", "repeated", "left", "graduated"]),
+            movedTo: z.string().nullable(),
+          }),
+        ),
+      }),
+    ),
+    /** The open terms' classes students can move into. */
+    targets: z.array(z.object({ classId: z.string(), className: z.string(), levelId: z.string(), termLabel: z.string() })),
+  })
+  .openapi("PromotionBoard");
+export type PromotionBoard = z.infer<typeof PromotionBoardSchema>;
+
+export const MoveInputSchema = z
+  .strictObject({
+    enrollmentId: PublicIdSchema,
+    action: z.enum(["promote", "repeat", "leave", "graduate"]),
+    /** The class to move into, for promote and repeat. */
+    classId: PublicIdSchema.optional(),
+  })
+  .refine((m) => (m.action === "promote" || m.action === "repeat") === (m.classId !== undefined), { path: ["classId"], message: "Promote and repeat need a class; leaving and graduating do not" });
+export type MoveInput = z.infer<typeof MoveInputSchema>;
+
+export const MovesSchema = z.strictObject({ moves: z.array(MoveInputSchema).min(1, "Choose at least one student").max(300, "Move at most 300 students at once") }).openapi("Moves");
+
+export const MoveResultSchema = z
+  .object({
+    enrollmentId: z.string(),
+    ok: z.boolean(),
+    reason: z.enum(["not_found", "invalid", "already_moved", "has_dues", "conflict"]).optional(),
+    message: z.string().optional(),
+    newEnrollmentId: z.string().optional(),
+    carriedDues: z.boolean().optional(),
+  })
+  .openapi("MoveResult");
+export type MoveResult = z.infer<typeof MoveResultSchema>;
+export const MoveResultsSchema = z.object({ results: z.array(MoveResultSchema) }).openapi("MoveResults");

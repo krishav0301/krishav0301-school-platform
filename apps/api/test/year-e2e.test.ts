@@ -126,10 +126,13 @@ describe.each([
     s.level2Id = programmes.programmes[0]!.levels[1]!.id;
 
     const b = todayBs().year;
-    const yearBody = { bsYear: b, startDate: bsToAd({ year: b, month: 1, day: 1 }), endDate: bsToAd({ year: b, month: 12, day: daysInMonth(b, 12) }) };
-    s.yearId = (await ok(await post("/api/academics/years", yearBody, c.coordinator), 201)).id as string;
-    expect((await post("/api/academics/years", yearBody, c.coordinator)).status).toBe(409); // the same year twice
-    await ok(await post(`/api/academics/years/${s.yearId}/activate`, undefined, c.coordinator));
+    // The Principal makes the term with the levels it runs, and opens it (D-110); the Co-ordinator may not.
+    const yearBody = { bsYear: b, startDate: bsToAd({ year: b, month: 1, day: 1 }), endDate: bsToAd({ year: b, month: 12, day: daysInMonth(b, 12) }), levelIds: [s.levelId, s.level2Id] };
+    expect((await post("/api/academics/years", yearBody, c.coordinator)).status).toBe(403);
+    s.yearId = (await ok(await post("/api/academics/years", yearBody, c.admin), 201)).id as string;
+    expect((await post("/api/academics/years", yearBody, c.admin)).status).toBe(409); // the same term twice (its name is taken)
+    expect((await post("/api/academics/years", { ...yearBody, label: `Second ${b}` }, c.admin)).status).toBe(422); // the same levels in a second open term
+    await ok(await post(`/api/academics/years/${s.yearId}/activate`, undefined, c.admin));
     for (const name of ["First terminal", "Second terminal", "Final"]) s.terminals.push((await ok(await post("/api/academics/terminals", { yearId: s.yearId, name }, c.coordinator), 201)).id as string);
     s.classId = (await ok(await post("/api/academics/classes", { yearId: s.yearId, levelId: s.levelId, label: "A" }, c.coordinator), 201)).id as string;
     s.class2Id = (await ok(await post("/api/academics/classes", { yearId: s.yearId, levelId: s.level2Id, label: "" }, c.coordinator), 201)).id as string;

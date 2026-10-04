@@ -11,25 +11,44 @@ export const CalendarDaySchema = z
 
 export const PublicIdSchema = z.string().regex(/^[0-9a-f]{32}$/, "That is not a valid id");
 
-// --- Academic years ---------------------------------------------------------------------------------
+// --- Academic terms (D-109, D-110) ----------------------------------------------------------------------
+// The code still says "year": a row of `academic_years` is an academic term of any length, set by the Principal.
 
-const YearLabel = z.string().trim().min(1, "Give the year a name").max(40, "Keep the name to 40 characters");
+const TermName = z.string().trim().min(1, "Give the term a name").max(60, "Keep the name to 60 characters");
+/** The marker in a receipt number, such as 2083 in P2-2083-00007: 2 to 10 capital letters or digits. */
+const TermCode = z
+  .string()
+  .trim()
+  .transform((v) => v.toUpperCase())
+  .pipe(z.string().regex(/^[A-Z0-9]{2,10}$/, "Use 2 to 10 letters or digits for the receipt code"));
+const LevelIds = z.array(PublicIdSchema).max(200, "That is too many levels for one term");
 
-/** The whole of a year. The service checks every write against this (and against the verified calendar). */
+/** The whole of a term. The service checks every write against this (and against the verified calendar). */
 export const YearInputSchema = z
   .strictObject({
-    bsYear: z.number().int("The BS year is a whole number"),
-    label: YearLabel.optional(),
+    /** Optional and only checked: the BS year is the one the start day falls in. */
+    bsYear: z.number().int("The BS year is a whole number").optional(),
+    label: TermName.optional(),
+    /** Optional: by default the BS year of the start day, with a letter added if that is taken. */
+    code: TermCode.optional(),
     startDate: CalendarDaySchema,
     endDate: CalendarDaySchema,
+    /** The levels that run in this term (none if left out). A level can be in only one open term at a time. */
+    levelIds: LevelIds.optional(),
   })
-  .refine((v) => v.endDate > v.startDate, { path: ["endDate"], message: "The year must end after it starts" });
+  .refine((v) => v.endDate > v.startDate, { path: ["endDate"], message: "The term must end after it starts" });
 export type YearInput = z.input<typeof YearInputSchema>;
 
 export const CreateYearSchema = YearInputSchema.openapi("CreateYear");
 
-/** What may change while a year is still a draft. The BS year itself is fixed. */
-export const YearChangesSchema = z.strictObject({ label: YearLabel, startDate: CalendarDaySchema, endDate: CalendarDaySchema }).partial().openapi("YearChanges");
+/**
+ * What may change. The name, receipt code and days only while the term is a draft; the levels while it is open (a level
+ * with classes in the term stays).
+ */
+export const YearChangesSchema = z
+  .strictObject({ label: TermName, code: TermCode, startDate: CalendarDaySchema, endDate: CalendarDaySchema, levelIds: LevelIds })
+  .partial()
+  .openapi("YearChanges");
 export type YearChanges = z.infer<typeof YearChangesSchema>;
 
 // --- Programmes and levels ---------------------------------------------------------------------------
@@ -73,10 +92,13 @@ export const ProgrammeChangesSchema = z
   .openapi("ProgrammeChanges");
 export type ProgrammeChanges = z.infer<typeof ProgrammeChangesSchema>;
 
-export const CreateLevelSchema = z.strictObject({ name: LevelName }).openapi("CreateLevel");
+/** How long a level usually runs, in months (D-110): fills in the next term's end date. */
+const UsualMonths = z.number().int("Use whole months").min(1, "At least 1 month").max(60, "At most 60 months");
+
+export const CreateLevelSchema = z.strictObject({ name: LevelName, usualMonths: UsualMonths.optional() }).openapi("CreateLevel");
 export type LevelInput = z.input<typeof CreateLevelSchema>;
 
-export const LevelChangesSchema = z.strictObject({ name: LevelName, active: z.boolean() }).partial().openapi("LevelChanges");
+export const LevelChangesSchema = z.strictObject({ name: LevelName, active: z.boolean(), usualMonths: UsualMonths.nullable() }).partial().openapi("LevelChanges");
 export type LevelChanges = z.infer<typeof LevelChangesSchema>;
 
 // --- Classes and terminals ---------------------------------------------------------------------------
@@ -99,21 +121,57 @@ export type TerminalChanges = z.infer<typeof TerminalChangesSchema>;
 
 // --- What the screens read ---------------------------------------------------------------------------
 
+export const TermLevelSchema = z
+  .object({ id: z.string(), name: z.string(), ordinal: z.number().int(), programmeId: z.string(), programmeName: z.string(), sectionKey: z.string() })
+  .openapi("TermLevel");
+
 export const AcademicYearSchema = z
   .object({
     id: z.string(),
+    /** The BS year the term starts in. */
     bsYear: z.number().int(),
     label: z.string(),
+    /** The marker in its receipt numbers. */
+    code: z.string(),
     startDate: z.string(),
     endDate: z.string(),
     /** The same days in Bikram Sambat, "YYYY-MM-DD"; null if a day is outside the verified years. */
     startDateBs: z.string().nullable(),
     endDateBs: z.string().nullable(),
     status: z.enum(["draft", "active", "closed"]),
+    /** The levels that run in it, by section, programme and level order. */
+    levels: z.array(TermLevelSchema),
+    classes: z.number().int(),
+    students: z.number().int(),
   })
   .openapi("AcademicYear");
 export const AcademicYearListSchema = z.object({ years: z.array(AcademicYearSchema) }).openapi("AcademicYearList");
 export type AcademicYearList = z.infer<typeof AcademicYearListSchema>;
+
+/** What still stops a term from closing (D-109): a class with students whose results are not published for an exam. */
+export const CloseCheckSchema = z
+  .object({
+    ready: z.boolean(),
+    exams: z.number().int(),
+    classes: z.number().int(),
+    missing: z.array(z.object({ classId: z.string(), className: z.string(), examId: z.string().nullable(), examName: z.string().nullable() })),
+  })
+  .openapi("TermCloseCheck");
+export type CloseCheck = z.infer<typeof CloseCheckSchema>;
+
+/** The next term, filled in for the Principal to confirm (D-109): the next level of each batch, and dates following on. */
+export const NextTermSchema = z
+  .object({
+    label: z.string(),
+    code: z.string(),
+    startDate: z.string(),
+    endDate: z.string(),
+    startDateBs: z.string().nullable(),
+    endDateBs: z.string().nullable(),
+    levels: z.array(TermLevelSchema.extend({ takenBy: z.string().nullable() })),
+  })
+  .openapi("NextTerm");
+export type NextTerm = z.infer<typeof NextTermSchema>;
 
 export const LevelSchema = z
   .object({
@@ -121,6 +179,8 @@ export const LevelSchema = z
     ordinal: z.number().int(),
     name: z.string(),
     active: z.boolean(),
+    /** How long it usually runs, in months; null when not given (D-110). */
+    usualMonths: z.number().int().nullable(),
     /** Students enrolled at this level in the active year (D-096); 0 when no year is active. */
     students: z.number().int(),
     /** Nothing is attached to it (no class, subject, elective group, application or fee structure), so it may be deleted (D-097). */

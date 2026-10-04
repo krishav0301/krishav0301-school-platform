@@ -25,8 +25,8 @@ async function newYear(status: "draft" | "active" | "closed" = "draft"): Promise
   const publicId = newPublicId();
   await db
     .prepare(
-      `INSERT INTO academic_years (public_id, bs_year, label, start_date, end_date, status, created_at, closed_at)
-       VALUES (?1, ?2, ?3, '2026-04-14', '2027-04-13', ?4, ?5, ?6)`,
+      `INSERT INTO academic_years (public_id, bs_year, code, label, start_date, end_date, status, created_at, closed_at)
+       VALUES (?1, ?2, 'T' || CAST(?2 AS INTEGER), ?3, '2026-04-14', '2027-04-13', ?4, ?5, ?6)`,
     )
     .bind(publicId, ++yc, `Year ${yc}`, status, at, status === "closed" ? at : null)
     .run();
@@ -41,6 +41,7 @@ async function closeYear(yearId: string): Promise<void> {
 /** A raw class (bypassing createClass, which is exercised elsewhere): a level, in a year. */
 async function newClass(yearId: string, levelId: string): Promise<string> {
   const publicId = newPublicId();
+  await db.prepare("INSERT OR IGNORE INTO term_levels (academic_year_id, level_id) SELECT y.id, l.id FROM academic_years y, levels l WHERE y.public_id = ?1 AND l.public_id = ?2").bind(yearId, levelId).run();
   await db
     .prepare(
       `INSERT INTO classes (public_id, academic_year_id, programme_id, level_id, label)

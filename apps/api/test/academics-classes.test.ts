@@ -22,14 +22,18 @@ const classes = () => count("SELECT COUNT(*) AS n FROM classes");
 const terminals = () => count("SELECT COUNT(*) AS n FROM terminals");
 
 let bs = 2010;
+/** The term the test is working in: a new level runs in it (D-110: a class is only for a level its term runs). */
+let currentYear: string | null = null;
 async function newYear(): Promise<string> {
   const bsYear = ++bs;
-  const r = await createYear(db, auditKey, coordinator.publicId, {
+  // The Principal makes the term (D-110).
+  const r = await createYear(db, auditKey, (await programmesAdmin()).publicId, {
     bsYear,
     startDate: bsToAd({ year: bsYear, month: 1, day: 1 }),
     endDate: bsToAd({ year: bsYear, month: 12, day: daysInMonth(bsYear, 12) }),
   });
   if (!r.ok) throw new Error(`year setup failed: ${r.reason}`);
+  currentYear = r.publicId;
   return r.publicId;
 }
 const closeYear = (publicId: string) =>
@@ -41,6 +45,12 @@ async function newLevel(sectionKey: "plus2" | "bachelors" = "bachelors"): Promis
   if (!p.ok) throw new Error("programme setup failed");
   const l = await addLevel(db, auditKey, (await programmesAdmin()).publicId, p.publicId, { name: "Level 1" });
   if (!l.ok) throw new Error("level setup failed");
+  if (currentYear) {
+    await db
+      .prepare("INSERT OR IGNORE INTO term_levels (academic_year_id, level_id) SELECT y.id, l.id FROM academic_years y, levels l WHERE y.public_id = ?1 AND l.public_id = ?2 AND y.status <> 'closed'")
+      .bind(currentYear, l.publicId)
+      .run();
+  }
   return { programmeId: p.publicId, levelId: l.publicId };
 }
 

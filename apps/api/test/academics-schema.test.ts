@@ -11,8 +11,8 @@ async function addYear(status: "draft" | "active" | "closed" = "draft", extra: {
   const closedAt = extra.closedAt !== undefined ? extra.closedAt : status === "closed" ? at : null;
   const result = await db
     .prepare(
-      `INSERT INTO academic_years (public_id, bs_year, label, start_date, end_date, status, created_at, closed_at)
-       VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)`,
+      `INSERT INTO academic_years (public_id, bs_year, code, label, start_date, end_date, status, created_at, closed_at)
+       VALUES (?1, ?2, 'T' || CAST(?2 AS INTEGER), ?3, ?4, ?5, ?6, ?7, ?8)`,
     )
     .bind(uniq("y"), ++yearCounter, uniq("label"), extra.start ?? "2026-04-14", extra.end ?? "2027-04-13", status, at, closedAt)
     .run();
@@ -41,21 +41,32 @@ async function addLevel(programmeId: number, ordinal = 1): Promise<number> {
   return result.meta.last_row_id;
 }
 
-const addClass = (yearId: number, programmeId: number, levelId: number, label = "") =>
-  db
+const addClass = async (yearId: number, programmeId: number, levelId: number, label = "") => {
+  // A class is only for a level its term runs (D-110).
+  await db.prepare("INSERT OR IGNORE INTO term_levels (academic_year_id, level_id) VALUES (?1, ?2)").bind(yearId, levelId).run();
+  return db
     .prepare("INSERT INTO classes (public_id, academic_year_id, programme_id, level_id, label) VALUES (?1, ?2, ?3, ?4, ?5)")
     .bind(uniq("c"), yearId, programmeId, levelId, label)
     .run();
+};
 
 const addTerminal = (yearId: number, ordinal: number) =>
   db.prepare("INSERT INTO terminals (public_id, academic_year_id, name, ordinal) VALUES (?1, ?2, 'First terminal', ?3)").bind(uniq("t"), yearId, ordinal).run();
 
 // ---------------------------------------------------------------------------------------------
 describe("academic_years", () => {
-  it("allows only one active year", async () => {
-    await addYear("active");
-    await expect(addYear("active")).rejects.toThrow(/UNIQUE/);
-    await addYear("draft"); // drafts are not limited
+  it("allows several open terms at once (D-110), but a level is in only one open term", async () => {
+    const first = await addYear("active");
+    const second = await addYear("active");
+    await addYear("draft");
+    const levelId = await addLevel(await addProgramme());
+    await db.prepare("INSERT INTO term_levels (academic_year_id, level_id) VALUES (?1, ?2)").bind(first, levelId).run();
+    await expect(db.prepare("INSERT INTO term_levels (academic_year_id, level_id) VALUES (?1, ?2)").bind(second, levelId).run()).rejects.toThrow(/already in another open term/);
+    await expect(db.prepare("UPDATE term_levels SET level_id = level_id WHERE academic_year_id = ?1").bind(first).run()).rejects.toThrow(/never changed/);
+    // Once the first term closes the level is free, and the closed term's levels never change.
+    await db.prepare("UPDATE academic_years SET status = 'closed', closed_at = ?2 WHERE id = ?1").bind(first, at).run();
+    await db.prepare("INSERT INTO term_levels (academic_year_id, level_id) VALUES (?1, ?2)").bind(second, levelId).run();
+    await expect(db.prepare("DELETE FROM term_levels WHERE academic_year_id = ?1").bind(first).run()).rejects.toThrow(/academic year is closed/);
   });
 
   it("refuses a year that does not end after it starts", async () => {
@@ -112,10 +123,12 @@ describe("classes", () => {
     await expect(addClass(yearId, programmeId, levelId, "Morning")).rejects.toThrow(/UNIQUE/);
   });
 
-  it("the same level in another year is another class", async () => {
+  it("the same level in another term is another class (once the first term has closed, D-110)", async () => {
     const programmeId = await addProgramme();
     const levelId = await addLevel(programmeId);
-    await addClass(await addYear(), programmeId, levelId);
+    const first = await addYear();
+    await addClass(first, programmeId, levelId);
+    await db.prepare("UPDATE academic_years SET status = 'closed', closed_at = ?2 WHERE id = ?1").bind(first, at).run();
     await addClass(await addYear(), programmeId, levelId);
   });
 
@@ -139,7 +152,8 @@ describe("classes", () => {
     const closed = await addYear("closed");
     await addClass(open, programmeId, levelId);
     const classId = (await db.prepare("SELECT id FROM classes WHERE academic_year_id = ?1").bind(open).first<{ id: number }>())!.id;
-    await expect(db.prepare("UPDATE classes SET academic_year_id = ?2 WHERE id = ?1").bind(classId, closed).run()).rejects.toThrow(/academic year is closed/);
+    // Refused either way: the closed term does not run the level, and is closed.
+    await expect(db.prepare("UPDATE classes SET academic_year_id = ?2 WHERE id = ?1").bind(classId, closed).run()).rejects.toThrow(/academic year is closed|not in the term/);
   });
 });
 

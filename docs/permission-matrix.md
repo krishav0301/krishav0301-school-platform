@@ -52,9 +52,10 @@ Phase is the build phase where the action first exists. The action id in code fo
 
 | Action | STU | TEA | COO | ACC | ADM | SUP | Phase |
 |---|---|---|---|---|---|---|---|
-| Manage academic years, classes, terminals (`setup.structure.manage`) | — | — | inst | — | — | ✓ | 3 |
+| Create academic terms, choose their levels, open and close them (D-110) (`setup.terms.manage`) | — | — | — | — | ✓ | ✓ | 3 |
+| Manage classes and exams (terminals) in an open term (`setup.structure.manage`) | — | — | inst | — | — | ✓ | 3 |
 | Manage sections, programmes and their levels (and a programme's grading policy) (`setup.programmes.manage`) | — | — | — | — | ✓ | ✓ | 3 |
-| View academic years, programmes, levels, classes, terminals (`setup.structure.view`) | — | — | inst | — | read | ✓ | 3 |
+| View academic terms, programmes, levels, classes, exams (terminals) (`setup.structure.view`) | — | — | inst | — | read | ✓ | 3 |
 | View subjects, offerings, mark components, elective groups (`setup.subjects.view`) | — | — | inst | — | read | ✓ | 3 |
 | Manage subjects, offerings, mark components, elective groups (`setup.subjects.manage`) | — | — | inst | — | — | ✓ | 3 |
 | View teacher assignments and Class Teachers (`setup.assignments.view`) | — | — | inst | — | read | ✓ | 3 |
@@ -68,6 +69,7 @@ Phase is the build phase where the action first exists. The action id in code fo
 | Register a walk-in (auto-approved) (`admissions.walkin.register`) | — | — | inst | — | — | ✓ | 4 |
 | Register a student (goes to the review queue) (`admissions.student.register`) | — | — | — | inst | — | — | 4 |
 | Review queue: approve, ask for changes, reject (`admissions.review`) | — | — | inst | — | — | ✓ | 4 |
+| Move students into the next term: promote, repeat, leaving, graduated (D-110) (`students.promote`) | — | — | inst | — | — | ✓ | 4 |
 | Search students (`students.search`) | — | sid+name (assigned) | inst | inst | inst | ✓ | 4 |
 | View personal details (`students.personal.view`) | own | — | inst | read | read | ✓ | 4 |
 | Correct personal details (reason required; SID never editable) (`students.personal.correct`) | — | — | inst | — | — | ✓ | 4 |

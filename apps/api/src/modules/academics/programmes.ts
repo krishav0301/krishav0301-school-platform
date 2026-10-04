@@ -127,16 +127,16 @@ export async function addLevel(db: D1Database, auditKey: string, actor: string, 
       entityPublicId: publicId,
       actorPublicId: actor,
       summary: `Level "${parsed.data.name}" added`,
-      after: { programmeId, name: parsed.data.name },
+      after: { programmeId, name: parsed.data.name, usualMonths: parsed.data.usualMonths ?? null },
     },
     db
       .prepare(
-        `INSERT INTO levels (public_id, programme_id, ordinal, name)
-         SELECT ?1, p.id, COALESCE((SELECT MAX(ordinal) FROM levels WHERE programme_id = p.id), 0) + 1, ?3
+        `INSERT INTO levels (public_id, programme_id, ordinal, name, usual_months)
+         SELECT ?1, p.id, COALESCE((SELECT MAX(ordinal) FROM levels WHERE programme_id = p.id), 0) + 1, ?3, ?5
            FROM programmes p
           WHERE p.public_id = ?2 AND p.is_active = 1 AND ${adminForProgrammes(4)}`,
       )
-      .bind(publicId, programmeId, parsed.data.name, actor),
+      .bind(publicId, programmeId, parsed.data.name, actor, parsed.data.usualMonths ?? null),
   );
 
   if (outcome === "done") return { ok: true, publicId };
@@ -153,6 +153,7 @@ export async function addLevel(db: D1Database, auditKey: string, actor: string, 
 interface LevelRow {
   name: string;
   is_active: number;
+  usual_months: number | null;
 }
 
 async function inspectLevel(db: D1Database, publicId: string, actor: string) {
@@ -162,7 +163,7 @@ async function inspectLevel(db: D1Database, publicId: string, actor: string) {
         `SELECT ${adminForProgrammes(1)} AS ok`,
       )
       .bind(actor),
-    db.prepare("SELECT name, is_active FROM levels WHERE public_id = ?1").bind(publicId),
+    db.prepare("SELECT name, is_active, usual_months FROM levels WHERE public_id = ?1").bind(publicId),
   ]);
   return {
     allowed: (allowed!.results[0] as { ok: number } | undefined)?.ok === 1,
@@ -180,8 +181,8 @@ export async function updateLevel(db: D1Database, auditKey: string, actor: strin
   if (!allowed) return { ok: false, reason: "not_allowed" };
   if (!level) return { ok: false, reason: "not_found" };
 
-  const before = { name: level.name, active: level.is_active === 1 };
-  const after = { name: c.name ?? before.name, active: c.active ?? before.active };
+  const before = { name: level.name, active: level.is_active === 1, usualMonths: level.usual_months };
+  const after = { name: c.name ?? before.name, active: c.active ?? before.active, usualMonths: c.usualMonths === undefined ? before.usualMonths : c.usualMonths };
   if (JSON.stringify(after) === JSON.stringify(before)) return { ok: true };
 
   const outcome = await write(
@@ -198,10 +199,10 @@ export async function updateLevel(db: D1Database, auditKey: string, actor: strin
     },
     db
       .prepare(
-        `UPDATE levels SET name = ?2, is_active = ?3
+        `UPDATE levels SET name = ?2, is_active = ?3, usual_months = ?5
           WHERE public_id = ?1 AND ${adminForProgrammes(4)}`,
       )
-      .bind(publicId, after.name, after.active ? 1 : 0, actor),
+      .bind(publicId, after.name, after.active ? 1 : 0, actor, after.usualMonths),
   );
   return outcome === "done" ? { ok: true } : { ok: false, reason: "not_allowed" };
 }

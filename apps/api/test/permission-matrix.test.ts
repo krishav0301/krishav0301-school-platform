@@ -92,6 +92,7 @@ describe("sensitive rules, stated independently (docs/source/sample-creation-inf
     "audit.edit": [],
     // Only the Co-ordinator approves students. Admin does not register students or create teachers.
     "admissions.review": ["COO", "SUP"],
+    "students.promote": ["COO", "SUP"],
     "admissions.walkin.register": ["COO", "SUP"],
     "admissions.student.register": ["ACC"],
     "accounts.teacher.create": ["COO", "SUP"],
@@ -115,6 +116,7 @@ describe("sensitive rules, stated independently (docs/source/sample-creation-inf
     "students.status.set": ["COO", "SUP"],
     "students.rollover": ["COO", "SUP"],
     // The Co-ordinator sets up years, classes and terminals; the Admin may look, never change them.
+    "setup.terms.manage": ["ADM", "SUP"],
     "setup.structure.manage": ["COO", "SUP"],
     // Programmes and their levels: only the Admin (and Support), never a Co-ordinator (D-087).
     "setup.programmes.manage": ["ADM", "SUP"],

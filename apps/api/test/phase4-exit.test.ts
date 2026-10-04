@@ -93,10 +93,10 @@ describe.each([
     state.levelId = programmes.programmes[0]!.levels[0]!.id;
 
     const b = ++bsYear;
-    const yearResponse = await post("/api/academics/years", { bsYear: b, startDate: bsToAd({ year: b, month: 1, day: 1 }), endDate: bsToAd({ year: b, month: 12, day: daysInMonth(b, 12) }) }, cookies.coordinator);
+    const yearResponse = await post("/api/academics/years", { bsYear: b, startDate: bsToAd({ year: b, month: 1, day: 1 }), endDate: bsToAd({ year: b, month: 12, day: daysInMonth(b, 12) }), levelIds: [state.levelId!] }, cookies.admin);
     expect(yearResponse.status).toBe(201);
     const yearId = await idOf(yearResponse);
-    expect((await post(`/api/academics/years/${yearId}/activate`, undefined, cookies.coordinator)).status).toBe(200);
+    expect((await post(`/api/academics/years/${yearId}/activate`, undefined, cookies.admin)).status).toBe(200);
 
     const classResponse = await post("/api/academics/classes", { yearId, levelId: state.levelId, label: "Morning" }, cookies.coordinator);
     expect(classResponse.status).toBe(201);

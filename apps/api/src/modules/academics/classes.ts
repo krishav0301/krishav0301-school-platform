@@ -73,6 +73,7 @@ export async function createClass(db: D1Database, auditKey: string, actor: strin
   if (outcome === "done") return { ok: true, publicId };
   if (outcome === "duplicate") return { ok: false, reason: "conflict" };
   if (outcome === "year_closed") return { ok: false, reason: "year_closed" };
+  if (outcome === "level_not_in_term") return { ok: false, reason: "invalid", message: "That level does not run in this term. The Principal adds a term's levels." };
   return whyNoClass(db, actor, c.yearId, c.levelId);
 }
 

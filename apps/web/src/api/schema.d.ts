@@ -356,7 +356,7 @@ export interface paths {
         /** @description Every academic year, newest first, with its days in both calendars. */
         get: operations["list_academic_years"];
         put?: never;
-        /** @description Adds a year as a draft. Days are AD; the BS year must be one whose calendar is verified. */
+        /** @description Adds an academic term as a draft (D-110: a row of years is a term of any length): a name, a receipt code, AD days inside the verified BS calendar, and the levels it runs. A level already in another open term is 422. */
         post: operations["create_academic_year"];
         delete?: never;
         options?: never;
@@ -448,7 +448,7 @@ export interface paths {
         delete?: never;
         options?: never;
         head?: never;
-        /** @description Changes a draft year's label or days. Send only what changes. */
+        /** @description Changes a term. Name, receipt code and days only while it is a draft (409 `not_draft`); the levels, as the whole new set, while it is open. A level with classes in the term cannot be taken out (422). The receipt code is fixed once a receipt carries it (409 `code_locked`). */
         patch: operations["update_academic_year"];
         trace?: never;
     };
@@ -461,8 +461,59 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** @description Makes a draft year the active one. Refused (409) while another year is active. */
+        /** @description Opens a draft term. Several terms can be open at once. */
         post: operations["activate_academic_year"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/academics/years/{id}/close-check": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description What still stops the term from closing: each class with students whose results are not published for an exam (an exam of null: the term has no exams). */
+        get: operations["get_term_close_check"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/academics/years/{id}/close": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Closes an open term once every class with students has its results published for every exam of the term (D-109). After that the term refuses every write. Not ready: 409 `not_ready` with the check. */
+        post: operations["close_academic_year"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/academics/years/{id}/next": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description The next term, filled in for the Principal to confirm: the next level of each batch in this term, starting the day after it ends and running for the levels' usual length. Nothing is created. */
+        get: operations["propose_next_term"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -1275,6 +1326,24 @@ export interface paths {
         head?: never;
         /** @description Correct a student's personal details, with a reason (Co-ordinator FUT F-06). Only what changes is sent. The SID is never editable, and the email (the student's sign-in) is not changed here. Re-checked inside the write for the student's section. */
         patch: operations["correct_student"];
+        trace?: never;
+    };
+    "/api/promotions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description A closed term's classes in the person's sections, with each student, what they owe, and where they have gone; and the open terms' classes they can move into. With no term asked for, the most recently closed term that still has students to move. */
+        get: operations["get_promotion_board"];
+        put?: never;
+        /** @description Moves students of a closed term: promote (a class of the next level in an open term), repeat (the same level), leave, or graduate (last level). Leaving and graduating need nothing owed. What is owed is carried into the new term. Each student is answered on its own; a repeat finds the move already made. */
+        post: operations["move_students"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
     "/api/attendance/classes": {
@@ -2772,12 +2841,24 @@ export interface components {
             id: string;
             bsYear: number;
             label: string;
+            code: string;
             startDate: string;
             endDate: string;
             startDateBs: string | null;
             endDateBs: string | null;
             /** @enum {string} */
             status: "draft" | "active" | "closed";
+            levels: components["schemas"]["TermLevel"][];
+            classes: number;
+            students: number;
+        };
+        TermLevel: {
+            id: string;
+            name: string;
+            ordinal: number;
+            programmeId: string;
+            programmeName: string;
+            sectionKey: string;
         };
         ProgrammeList: {
             programmes: components["schemas"]["Programme"][];
@@ -2810,6 +2891,7 @@ export interface components {
             ordinal: number;
             name: string;
             active: boolean;
+            usualMonths: number | null;
             students: number;
             canDelete: boolean;
         };
@@ -2866,10 +2948,12 @@ export interface components {
             message: string;
         };
         CreateYear: {
-            bsYear: number;
+            bsYear?: number;
             label?: string;
+            code?: string;
             startDate: string;
             endDate: string;
+            levelIds?: string[];
         };
         AcademicsOk: {
             /** @enum {boolean} */
@@ -2877,8 +2961,32 @@ export interface components {
         };
         YearChanges: {
             label?: string;
+            code?: string;
             startDate?: string;
             endDate?: string;
+            levelIds?: string[];
+        };
+        TermCloseCheck: {
+            ready: boolean;
+            exams: number;
+            classes: number;
+            missing: {
+                classId: string;
+                className: string;
+                examId: string | null;
+                examName: string | null;
+            }[];
+        };
+        NextTerm: {
+            label: string;
+            code: string;
+            startDate: string;
+            endDate: string;
+            startDateBs: string | null;
+            endDateBs: string | null;
+            levels: (components["schemas"]["TermLevel"] & {
+                takenBy: string | null;
+            })[];
         };
         CreateSection: {
             name: string;
@@ -2903,10 +3011,12 @@ export interface components {
         };
         CreateLevel: {
             name: string;
+            usualMonths?: number;
         };
         LevelChanges: {
             name?: string;
             active?: boolean;
+            usualMonths?: number | null;
         };
         CreateClass: {
             yearId: string;
@@ -3528,6 +3638,58 @@ export interface components {
             guardianPhone?: string;
             previousSchool?: string | null;
             reason: string;
+        };
+        PromotionBoard: {
+            terms: {
+                id: string;
+                label: string;
+                pending: boolean;
+            }[];
+            termId: string | null;
+            classes: {
+                classId: string;
+                className: string;
+                levelId: string;
+                nextLevelId: string | null;
+                nextLevelName: string | null;
+                students: {
+                    enrollmentId: string;
+                    studentId: string;
+                    sid: string;
+                    name: string;
+                    rollNo: number | null;
+                    balancePaisa: number;
+                    /** @enum {string} */
+                    outcome: "pending" | "promoted" | "repeated" | "left" | "graduated";
+                    movedTo: string | null;
+                }[];
+            }[];
+            targets: {
+                classId: string;
+                className: string;
+                levelId: string;
+                termLabel: string;
+            }[];
+        };
+        MoveResults: {
+            results: components["schemas"]["MoveResult"][];
+        };
+        MoveResult: {
+            enrollmentId: string;
+            ok: boolean;
+            /** @enum {string} */
+            reason?: "not_found" | "invalid" | "already_moved" | "has_dues" | "conflict";
+            message?: string;
+            newEnrollmentId?: string;
+            carriedDues?: boolean;
+        };
+        Moves: {
+            moves: {
+                enrollmentId: string;
+                /** @enum {string} */
+                action: "promote" | "repeat" | "leave" | "graduate";
+                classId?: string;
+            }[];
         };
         AttendanceClassList: {
             today: string;
@@ -5917,7 +6079,7 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description Now active */
+            /** @description Now open */
             200: {
                 headers: {
                     [name: string]: unknown;
@@ -5960,6 +6122,129 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AcademicsInvalid"];
+                };
+            };
+        };
+    };
+    get_term_close_check: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The check */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TermCloseCheck"];
+                };
+            };
+            /** @description No such term */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AcademicsError"];
+                };
+            };
+        };
+    };
+    close_academic_year: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Closed */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AcademicsOk"];
+                };
+            };
+            /** @description Not allowed (for example, switched off since signing in, or another section's data) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AcademicsError"];
+                };
+            };
+            /** @description No such item */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AcademicsError"];
+                };
+            };
+            /** @description Not ready (with the check), already closed, or not open */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                        check?: components["schemas"]["TermCloseCheck"];
+                    };
+                };
+            };
+            /** @description The change breaks a rule; nothing changed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AcademicsInvalid"];
+                };
+            };
+        };
+    };
+    propose_next_term: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The proposal */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NextTerm"];
+                };
+            };
+            /** @description No such term */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AcademicsError"];
                 };
             };
         };
@@ -8681,6 +8966,52 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AdmissionsInvalid"];
+                };
+            };
+        };
+    };
+    get_promotion_board: {
+        parameters: {
+            query?: {
+                term?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The board */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PromotionBoard"];
+                };
+            };
+        };
+    };
+    move_students: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["Moves"];
+            };
+        };
+        responses: {
+            /** @description Each student's answer */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MoveResults"];
                 };
             };
         };

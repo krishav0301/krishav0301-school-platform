@@ -8,27 +8,60 @@ const sectionFilter = (sections: "all" | readonly string[]): string | null => (s
 interface YearRow {
   public_id: string;
   bs_year: number;
+  code: string;
   label: string;
   start_date: string;
   end_date: string;
   status: "draft" | "active" | "closed";
+  classes: number;
+  students: number;
 }
 
-/** Every year, newest first. One database round trip. */
+interface TermLevelRow {
+  term_id: string;
+  id: string;
+  name: string;
+  ordinal: number;
+  programme_id: string;
+  programme_name: string;
+  section_key: string;
+}
+
+/** Every academic term (D-110), open ones first and then newest first, with the levels each runs. One round trip. */
 export async function listYears(db: D1Database): Promise<AcademicYearList> {
-  const { results } = await db
-    .prepare("SELECT public_id, bs_year, label, start_date, end_date, status FROM academic_years ORDER BY bs_year DESC")
-    .all<YearRow>();
+  const [terms, levels] = await db.batch([
+    db.prepare(
+      `SELECT ay.public_id, ay.bs_year, ay.code, ay.label, ay.start_date, ay.end_date, ay.status,
+              (SELECT COUNT(*) FROM classes c WHERE c.academic_year_id = ay.id AND c.is_active = 1) AS classes,
+              (SELECT COUNT(*) FROM enrollments e WHERE e.academic_year_id = ay.id AND e.status = 'active') AS students
+         FROM academic_years ay ORDER BY ay.status = 'closed', ay.start_date DESC, ay.id DESC`,
+    ),
+    db.prepare(
+      `SELECT ay.public_id AS term_id, lv.public_id AS id, lv.name, lv.ordinal, pv.public_id AS programme_id, pv.name AS programme_name, s.key AS section_key
+         FROM term_levels tl JOIN academic_years ay ON ay.id = tl.academic_year_id JOIN levels lv ON lv.id = tl.level_id
+         JOIN programmes pv ON pv.id = lv.programme_id JOIN sections s ON s.id = pv.section_id
+        ORDER BY s.ordering, pv.ordering, lv.ordinal`,
+    ),
+  ]);
+  const byTerm = new Map<string, AcademicYearList["years"][number]["levels"]>();
+  for (const l of levels!.results as unknown as TermLevelRow[]) {
+    const list = byTerm.get(l.term_id) ?? byTerm.set(l.term_id, []).get(l.term_id)!;
+    list.push({ id: l.id, name: l.name, ordinal: l.ordinal, programmeId: l.programme_id, programmeName: l.programme_name, sectionKey: l.section_key });
+  }
   return {
-    years: results.map((y) => ({
+    years: (terms!.results as unknown as YearRow[]).map((y) => ({
       id: y.public_id,
       bsYear: y.bs_year,
       label: y.label,
+      code: y.code,
       startDate: y.start_date,
       endDate: y.end_date,
       startDateBs: adToBsText(y.start_date),
       endDateBs: adToBsText(y.end_date),
       status: y.status,
+      levels: byTerm.get(y.public_id) ?? [],
+      classes: y.classes,
+      students: y.students,
     })),
   };
 }
@@ -46,6 +79,7 @@ interface ProgrammeRow {
   ordinal: number | null;
   level_name: string | null;
   level_active: number | null;
+  usual_months: number | null;
   programme_can_delete: number;
   level_can_delete: number | null;
 }
@@ -58,7 +92,7 @@ interface ProgrammeRow {
 export const LEVEL_FREE = (l: string) =>
   `(NOT EXISTS (SELECT 1 FROM classes x WHERE x.level_id = ${l}.id) AND NOT EXISTS (SELECT 1 FROM subject_offerings x WHERE x.level_id = ${l}.id)
     AND NOT EXISTS (SELECT 1 FROM elective_groups x WHERE x.level_id = ${l}.id) AND NOT EXISTS (SELECT 1 FROM applications x WHERE x.level_id = ${l}.id)
-    AND NOT EXISTS (SELECT 1 FROM fee_structures x WHERE x.level_id = ${l}.id))`;
+    AND NOT EXISTS (SELECT 1 FROM fee_structures x WHERE x.level_id = ${l}.id) AND NOT EXISTS (SELECT 1 FROM term_levels x WHERE x.level_id = ${l}.id))`;
 export const PROGRAMME_FREE = (p: string) =>
   `(NOT EXISTS (SELECT 1 FROM levels x WHERE x.programme_id = ${p}.id) AND NOT EXISTS (SELECT 1 FROM applications x WHERE x.programme_id = ${p}.id)
     AND NOT EXISTS (SELECT 1 FROM classes x WHERE x.programme_id = ${p}.id))`;
@@ -85,7 +119,7 @@ export async function listProgrammes(db: D1Database, sections: "all" | readonly 
     db
       .prepare(
         `SELECT p.public_id, p.key, p.name, p.affiliation, p.is_active, p.grading_policy, s.key AS section_key, s.name AS section_name,
-                l.public_id AS level_id, l.ordinal, l.name AS level_name, l.is_active AS level_active,
+                l.public_id AS level_id, l.ordinal, l.name AS level_name, l.is_active AS level_active, l.usual_months,
                 ${PROGRAMME_FREE("p")} AS programme_can_delete, CASE WHEN l.id IS NULL THEN NULL ELSE ${LEVEL_FREE("l")} END AS level_can_delete
            FROM programmes p
            JOIN sections s ON s.id = p.section_id
@@ -135,7 +169,7 @@ export async function listProgrammes(db: D1Database, sections: "all" | readonly 
     }
     if (r.level_id !== null) {
       const students = studentsAt.get(r.level_id) ?? 0;
-      programme.levels.push({ id: r.level_id, ordinal: r.ordinal!, name: r.level_name!, active: r.level_active === 1, students, canDelete: r.level_can_delete === 1 });
+      programme.levels.push({ id: r.level_id, ordinal: r.ordinal!, name: r.level_name!, active: r.level_active === 1, usualMonths: r.usual_months, students, canDelete: r.level_can_delete === 1 });
       programme.students += students;
     }
   }
@@ -410,9 +444,10 @@ export async function getTeaching(db: D1Database, sections: "all" | readonly str
 
 /**
  * Every active class's teaching in one year, as one round trip whatever the number of classes (D-108): the read pages
- * used to ask once per class. The year is the one given, or the active one; only classes in the viewer's sections.
+ * used to ask once per class. The term is the one given, or every open one; only classes in the viewer's sections.
  */
 export async function getYearTeaching(db: D1Database, sections: "all" | readonly string[], yearId: string | null): Promise<YearTeaching> {
+  // The term given, or every open (active) term: several can be open at once (D-110).
   const YEAR = `(SELECT id FROM academic_years WHERE CASE WHEN ?1 IS NULL THEN status = 'active' ELSE public_id = ?1 END)`;
   const [classResult, assignmentResult] = await db.batch([
     db
@@ -420,7 +455,7 @@ export async function getYearTeaching(db: D1Database, sections: "all" | readonly
         `SELECT c.public_id, c.label, l.name AS level_name, tu.public_id AS ct_id, tu.full_name AS ct_name
            FROM classes c JOIN levels l ON l.id = c.level_id JOIN programmes p ON p.id = l.programme_id JOIN sections s ON s.id = p.section_id
            LEFT JOIN users tu ON tu.id = c.class_teacher_user_id
-          WHERE c.academic_year_id = ${YEAR} AND c.is_active = 1 AND (?2 IS NULL OR s.key IN (SELECT value FROM json_each(?2)))
+          WHERE c.academic_year_id IN ${YEAR} AND c.is_active = 1 AND (?2 IS NULL OR s.key IN (SELECT value FROM json_each(?2)))
           ORDER BY s.ordering, p.ordering, l.ordinal, c.label`,
       )
       .bind(yearId, sectionFilter(sections)),
@@ -430,7 +465,7 @@ export async function getYearTeaching(db: D1Database, sections: "all" | readonly
            FROM classes c JOIN subject_offerings o ON o.level_id = c.level_id AND o.is_active = 1 JOIN subjects sb ON sb.id = o.subject_id
            LEFT JOIN teacher_assignments ta ON ta.class_id = c.id AND ta.offering_id = o.id AND ta.is_active = 1
            LEFT JOIN users tu ON tu.id = ta.teacher_user_id
-          WHERE c.academic_year_id = ${YEAR} AND c.is_active = 1
+          WHERE c.academic_year_id IN ${YEAR} AND c.is_active = 1
           ORDER BY c.id, sb.name COLLATE NOCASE`,
       )
       .bind(yearId),

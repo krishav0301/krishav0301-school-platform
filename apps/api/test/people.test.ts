@@ -173,8 +173,9 @@ describe("the two lists (D-099)", () => {
     const o = await createOffering(db, auditKey, coordinator.publicId, { levelId: l.publicId, subjectId: s.publicId });
     if (!o.ok) throw new Error("offering");
     const year = newPublicId();
-    await db.prepare("INSERT INTO academic_years (public_id, bs_year, label, start_date, end_date, status, created_at) VALUES (?1, 2071, 'Year 2071', '2026-04-14', '2027-04-13', 'draft', '2026-09-22T00:00:00Z')").bind(year).run();
+    await db.prepare("INSERT INTO academic_years (public_id, bs_year, code, label, start_date, end_date, status, created_at) VALUES (?1, 2071, 'Y2071', 'Year 2071', '2026-04-14', '2027-04-13', 'draft', '2026-09-22T00:00:00Z')").bind(year).run();
     const cls = newPublicId();
+    await db.prepare("INSERT OR IGNORE INTO term_levels (academic_year_id, level_id) SELECT y.id, l.id FROM academic_years y, levels l WHERE y.public_id = ?1 AND l.public_id = ?2").bind(year, l.publicId).run();
     await db
       .prepare("INSERT INTO classes (public_id, academic_year_id, programme_id, level_id, label) SELECT ?1, y.id, lv.programme_id, lv.id, '' FROM academic_years y, levels lv WHERE y.public_id = ?2 AND lv.public_id = ?3")
       .bind(cls, year, l.publicId)

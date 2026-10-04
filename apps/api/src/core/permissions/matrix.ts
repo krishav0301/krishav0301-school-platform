@@ -115,9 +115,10 @@ export const MATRIX = [
   row(G.site, "content.publish", "Publish content directly", 2, { ADM: all, SUP: all }),
 
   // --- Setup
-  row(G.setup, "setup.structure.manage", "Manage academic years, classes, terminals", 3, { COO: inst, SUP: all }),
+  row(G.setup, "setup.terms.manage", "Create academic terms, choose their levels, open and close them (D-110)", 3, { ADM: all, SUP: all }),
+  row(G.setup, "setup.structure.manage", "Manage classes and exams (terminals) in an open term", 3, { COO: inst, SUP: all }),
   row(G.setup, "setup.programmes.manage", "Manage sections, programmes and their levels (and a programme's grading policy)", 3, { ADM: all, SUP: all }),
-  row(G.setup, "setup.structure.view", "View academic years, programmes, levels, classes, terminals", 3, { COO: inst, ADM: read, SUP: all }),
+  row(G.setup, "setup.structure.view", "View academic terms, programmes, levels, classes, exams (terminals)", 3, { COO: inst, ADM: read, SUP: all }),
   row(G.setup, "setup.subjects.view", "View subjects, offerings, mark components, elective groups", 3, { COO: inst, ADM: read, SUP: all }),
   row(G.setup, "setup.subjects.manage", "Manage subjects, offerings, mark components, elective groups", 3, { COO: inst, SUP: all }),
   row(G.setup, "setup.assignments.view", "View teacher assignments and Class Teachers", 3, { COO: inst, ADM: read, SUP: all }),
@@ -131,6 +132,7 @@ export const MATRIX = [
   row(G.people, "admissions.walkin.register", "Register a walk-in (auto-approved)", 4, { COO: inst, SUP: all }),
   row(G.people, "admissions.student.register", "Register a student (goes to the review queue)", 4, { ACC: inst }),
   row(G.people, "admissions.review", "Review queue: approve, ask for changes, reject", 4, { COO: inst, SUP: all }),
+  row(G.people, "students.promote", "Move students into the next term: promote, repeat, leaving, graduated (D-110)", 4, { COO: inst, SUP: all }),
   row(G.people, "students.search", "Search students", 4, { TEA: only(assigned, "sid+name", "sid+name (assigned)"), COO: inst, ACC: inst, ADM: inst, SUP: all }),
   row(G.people, "students.personal.view", "View personal details", 4, { STU: own, COO: inst, ACC: read, ADM: read, SUP: all }),
   row(G.people, "students.personal.correct", "Correct personal details (reason required; SID never editable)", 4, { COO: inst, SUP: all }),

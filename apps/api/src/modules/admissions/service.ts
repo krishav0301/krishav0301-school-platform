@@ -104,7 +104,7 @@ export async function applyForAdmission(db: D1Database, dataKey: string, input: 
     .bind(p.levelId)
     .first<{ id: number; programme_id: number }>();
   if (!level) return { ok: false, reason: "not_found" };
-  const year = await db.prepare("SELECT id FROM academic_years WHERE status = 'active'").first<{ id: number }>();
+  const year = await openTermFor(db, level.id);
   if (!year) return { ok: false, reason: "not_found" };
 
   const duplicateFlags = await findDuplicateFlags(db, p.phone, p.firstName, p.lastName, p.dob);
@@ -206,7 +206,8 @@ export async function registerWalkIn(
   if (parsedLevel.success) {
     const ready = await db
       .prepare(
-        `SELECT EXISTS (SELECT 1 FROM classes cl JOIN levels lv ON lv.id = cl.level_id WHERE cl.public_id = ?1 AND lv.public_id = ?2 AND cl.is_active = 1) AS class_ok,
+        `SELECT EXISTS (SELECT 1 FROM classes cl JOIN levels lv ON lv.id = cl.level_id JOIN academic_years cy ON cy.id = cl.academic_year_id
+                         WHERE cl.public_id = ?1 AND lv.public_id = ?2 AND cl.is_active = 1 AND cy.status <> 'closed') AS class_ok,
                 EXISTS (SELECT 1 FROM users WHERE email = ?3) AS email_taken`,
       )
       .bind(classId, parsedLevel.data.levelId, parsedLevel.data.email.trim().toLowerCase())
@@ -235,7 +236,7 @@ async function registerApplication(db: D1Database, auditKey: string, actor: stri
     .bind(p.levelId)
     .first<{ id: number; programme_id: number; section_id: number }>();
   if (!level) return { ok: false, reason: "not_found" };
-  const year = await db.prepare("SELECT id FROM academic_years WHERE status = 'active'").first<{ id: number }>();
+  const year = await openTermFor(db, level.id);
   if (!year) return { ok: false, reason: "not_found" };
 
   const duplicateFlags = await findDuplicateFlags(db, p.phone, p.firstName, p.lastName, p.dob);
@@ -363,6 +364,21 @@ async function notifyDecision(db: D1Database, dataKey: string, applicationPublic
   ]);
 }
 
+/**
+ * The term an application belongs to (D-110): the open term that runs its level, else the newest open term. Only a
+ * record: approval enrols the student in the term of the class the Co-ordinator picks.
+ */
+const openTermFor = (db: D1Database, levelId: number) =>
+  db
+    .prepare(
+      `SELECT ay.id FROM academic_years ay WHERE ay.status <> 'closed'
+        ORDER BY EXISTS (SELECT 1 FROM term_levels tl WHERE tl.academic_year_id = ay.id AND tl.level_id = ?1) DESC,
+                 ay.status = 'active' DESC, ay.start_date DESC
+        LIMIT 1`,
+    )
+    .bind(levelId)
+    .first<{ id: number }>();
+
 const CLASS_NOT_OPEN = "That class is not open, or is not of the application's level.";
 const EMAIL_TAKEN = "That email already signs someone in. Each student needs their own email.";
 const EMAIL_TAKEN_APPROVE = `${EMAIL_TAKEN} Ask for changes so the applicant can give another.`;
@@ -390,8 +406,8 @@ export async function approveApplication(
   const temporaryPassword = generateTemporaryPassword();
   const at = now.toISOString();
 
-  const classGuard = `EXISTS (SELECT 1 FROM classes cl JOIN applications ap2 ON ap2.public_id = ?2
-                               WHERE cl.public_id = ?3 AND cl.level_id = ap2.level_id AND cl.is_active = 1)`;
+  const classGuard = `EXISTS (SELECT 1 FROM classes cl JOIN applications ap2 ON ap2.public_id = ?2 JOIN academic_years cy ON cy.id = cl.academic_year_id
+                               WHERE cl.public_id = ?3 AND cl.level_id = ap2.level_id AND cl.is_active = 1 AND cy.status <> 'closed')`;
   const appGuard = `EXISTS (SELECT 1 FROM applications WHERE public_id = ?2 AND status = 'pending_review')`;
 
   const outcome = await write(
@@ -407,10 +423,10 @@ export async function approveApplication(
           `INSERT INTO students (public_id, sid, first_name, middle_name, last_name, dob_ad, phone, email, guardian_name, guardian_phone, previous_school, referred_by, admission_bs_year, created_at)
            SELECT ?1, printf('%d-%05d', ay.bs_year, (SELECT next_sequence - 1 FROM sid_counter WHERE id = 1)),
                   ap.first_name, ap.middle_name, ap.last_name, ap.dob_ad, ap.phone, ap.email, ap.guardian_name, ap.guardian_phone, ap.previous_school, ap.referred_by, ay.bs_year, ?3
-             FROM applications ap JOIN academic_years ay ON ay.id = ap.academic_year_id
+             FROM applications ap JOIN classes cl ON cl.public_id = ?4 JOIN academic_years ay ON ay.id = cl.academic_year_id
             WHERE ap.public_id = ?2 AND changes() > 0`,
         )
-        .bind(studentPublicId, applicationPublicId, at),
+        .bind(studentPublicId, applicationPublicId, at, input.classId),
       db
         .prepare(
           `INSERT INTO users (public_id, email, password_hash, full_name, phone, must_change_password)
@@ -423,8 +439,8 @@ export async function approveApplication(
       db
         .prepare(
           `INSERT INTO enrollments (public_id, student_id, academic_year_id, class_id, roll_no, status, created_at)
-           SELECT ?1, (SELECT id FROM students WHERE public_id = ?2), ap.academic_year_id, (SELECT id FROM classes WHERE public_id = ?3), ?4, 'active', ?5
-             FROM applications ap WHERE ap.public_id = ?6 AND changes() > 0`,
+           SELECT ?1, (SELECT id FROM students WHERE public_id = ?2), cl.academic_year_id, cl.id, ?4, 'active', ?5
+             FROM applications ap JOIN classes cl ON cl.public_id = ?3 WHERE ap.public_id = ?6 AND changes() > 0`,
         )
         .bind(newPublicId(), studentPublicId, input.classId, input.rollNo ?? null, at, applicationPublicId),
       db
@@ -456,7 +472,8 @@ async function classifyApproveFailure(db: D1Database, actor: string, application
       `SELECT
          EXISTS (SELECT 1 FROM applications WHERE public_id = ?1) AS app_exists,
          EXISTS (SELECT 1 FROM applications WHERE public_id = ?1 AND status = 'pending_review') AS app_pending,
-         EXISTS (SELECT 1 FROM classes cl JOIN applications ap ON ap.public_id = ?1 WHERE cl.public_id = ?3 AND cl.level_id = ap.level_id AND cl.is_active = 1) AS class_ok,
+         EXISTS (SELECT 1 FROM classes cl JOIN applications ap ON ap.public_id = ?1 JOIN academic_years cy ON cy.id = cl.academic_year_id
+                  WHERE cl.public_id = ?3 AND cl.level_id = ap.level_id AND cl.is_active = 1 AND cy.status <> 'closed') AS class_ok,
          ${coordinatorForSection(2, applicationSection(1))} AS allowed
        `,
     )

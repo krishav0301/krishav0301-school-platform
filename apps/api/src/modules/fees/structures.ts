@@ -6,7 +6,7 @@ import type { Grant } from "../../core/permissions";
 import { requestApproval, type ApprovalHandler } from "../approvals/service";
 import { accountantFor, anyAccountant, levelSection, structureSection } from "./guard";
 import { ledgerInserts, writeMoney, type LedgerDraft } from "./ledger";
-import { billingSchedule, yearlyAmount, type Frequency } from "./policy";
+import { billingSchedule, termMonths, yearlyAmount, type Frequency } from "./policy";
 import { ChangeFeeItemSchema, NewFeeItemSchema, type ChangeFeeItem, type FeeStructure, type FeeStructureList, type NewFeeItem } from "./schema";
 
 /**
@@ -35,6 +35,15 @@ async function audited(db: D1Database, key: string, event: Parameters<typeof rec
   }
 }
 
+/** How many BS months a term spans: what a monthly item is charged for (D-110). Twelve if the days cannot be converted. */
+function monthsOf(startDate: string, endDate: string): number {
+  try {
+    return termMonths(startDate, endDate).length;
+  } catch {
+    return 12;
+  }
+}
+
 // --- Drafting ------------------------------------------------------------------------------------
 
 export async function createStructure(db: D1Database, key: string, actor: string, levelId: string): Promise<Created> {
@@ -43,8 +52,9 @@ export async function createStructure(db: D1Database, key: string, actor: string
     db
       .prepare(
         `INSERT INTO fee_structures (public_id, academic_year_id, level_id, created_by_user_id, created_at)
-         SELECT ?1, ay.id, lv.id, u.id, ?4 FROM academic_years ay, levels lv, users u
-          WHERE ay.status = 'active' AND lv.public_id = ?2 AND lv.is_active = 1 AND u.public_id = ?3 AND ${accountantFor(3, levelSection(2))}`,
+         SELECT ?1, ay.id, lv.id, u.id, ?4
+           FROM levels lv JOIN term_levels tl ON tl.level_id = lv.id JOIN academic_years ay ON ay.id = tl.academic_year_id AND ay.status <> 'closed', users u
+          WHERE lv.public_id = ?2 AND lv.is_active = 1 AND u.public_id = ?3 AND ${accountantFor(3, levelSection(2))}`,
       )
       .bind(publicId, levelId, actor, now()),
   ]);
@@ -104,7 +114,7 @@ export async function sendStructure(db: D1Database, key: string, actor: string, 
 
 // --- The approvals kind ----------------------------------------------------------------------------
 
-const FREQUENCY_WORD: Record<Frequency, string> = { one_time: "once", monthly: "a month", yearly: "a year", whole_course: "for the course" };
+const FREQUENCY_WORD: Record<Frequency, string> = { one_time: "once", monthly: "a month", yearly: "a term", whole_course: "for the course" };
 
 export const feeStructureApprovalHandler: ApprovalHandler = {
   requesterSql: anyAccountant,
@@ -114,21 +124,22 @@ export const feeStructureApprovalHandler: ApprovalHandler = {
   async describe(db, id) {
     const [head, items] = await db.batch([
       db.prepare(
-        `SELECT fs.public_id, ay.label AS year_label, pv.name AS programme_name, lv.name AS level_name
+        `SELECT fs.public_id, ay.label AS year_label, ay.start_date, ay.end_date, pv.name AS programme_name, lv.name AS level_name
            FROM fee_structures fs JOIN academic_years ay ON ay.id = fs.academic_year_id JOIN levels lv ON lv.id = fs.level_id JOIN programmes pv ON pv.id = lv.programme_id
           WHERE fs.id = ?1`,
       ).bind(id),
       db.prepare("SELECT name, amount_paisa, frequency FROM fee_items WHERE structure_id = ?1 AND is_active = 1 ORDER BY id").bind(id),
     ]);
-    const row = head!.results[0] as { public_id: string; year_label: string; programme_name: string; level_name: string } | undefined;
+    const row = head!.results[0] as { public_id: string; year_label: string; start_date: string; end_date: string; programme_name: string; level_name: string } | undefined;
     if (!row) return null;
+    const months = monthsOf(row.start_date, row.end_date);
     const lines = (items!.results as unknown as { name: string; amount_paisa: number; frequency: Frequency }[]).map((i) => ({ name: i.name, amountPaisa: i.amount_paisa, frequency: i.frequency }));
-    const yearlyTotalPaisa = lines.reduce((s, i) => s + yearlyAmount(i), 0);
+    const yearlyTotalPaisa = lines.reduce((s, i) => s + yearlyAmount(i, months), 0);
     // The Admin decides from this line, so it says what is being approved (found by the year test, D-084).
     const itemWords = lines.map((i) => `${i.name} NPR ${formatNpr(i.amountPaisa)} ${FREQUENCY_WORD[i.frequency]}`).join("; ");
     return {
       snapshot: { year: row.year_label, programme: row.programme_name, level: row.level_name, items: lines, yearlyTotalPaisa },
-      summary: `Fee structure: ${row.programme_name} ${row.level_name}, ${row.year_label}: ${itemWords}. NPR ${formatNpr(yearlyTotalPaisa)} a year`,
+      summary: `Fee structure: ${row.programme_name} ${row.level_name}, ${row.year_label}: ${itemWords}. NPR ${formatNpr(yearlyTotalPaisa)} for the term`,
       subjectPublicId: row.public_id,
     };
   },
@@ -164,7 +175,7 @@ export async function generateCharges(db: D1Database, key: string, actor: string
   const [head, items] = await db.batch([
     db
       .prepare(
-        `SELECT fs.status, ay.bs_year, ay.start_date, ay.status AS year_status, cl.id AS class_id, lv.programme_id, ${STRUCTURE_GUARD} AS allowed
+        `SELECT fs.status, ay.bs_year, ay.start_date, ay.end_date, ay.status AS year_status, cl.id AS class_id, lv.programme_id, ${STRUCTURE_GUARD} AS allowed
            FROM fee_structures fs JOIN academic_years ay ON ay.id = fs.academic_year_id JOIN levels lv ON lv.id = fs.level_id
            JOIN classes cl ON cl.level_id = fs.level_id AND cl.academic_year_id = fs.academic_year_id AND cl.public_id = ?3
           WHERE fs.public_id = ?2`,
@@ -172,7 +183,7 @@ export async function generateCharges(db: D1Database, key: string, actor: string
       .bind(actor, structureId, classId),
     db.prepare("SELECT fi.public_id, fi.name, fi.amount_paisa, fi.frequency FROM fee_items fi JOIN fee_structures fs ON fs.id = fi.structure_id WHERE fs.public_id = ?1 AND fi.is_active = 1 ORDER BY fi.id").bind(structureId),
   ]);
-  const s = head!.results[0] as { status: string; bs_year: number; start_date: string; year_status: string; class_id: number; programme_id: number; allowed: number } | undefined;
+  const s = head!.results[0] as { status: string; bs_year: number; start_date: string; end_date: string; year_status: string; class_id: number; programme_id: number; allowed: number } | undefined;
   if (!s || s.allowed !== 1) return { ok: false, reason: "not_found" };
   if (s.year_status === "closed") return { ok: false, reason: "year_closed" };
   if (s.status !== "live") return { ok: false, reason: "not_live" };
@@ -203,7 +214,7 @@ export async function generateCharges(db: D1Database, key: string, actor: string
     const drafts: LedgerDraft[] = [];
     for (const st of students!.results as unknown as { public_id: string; created_at: string; first_in_programme: number }[]) {
       for (const item of lines) {
-        for (const charge of billingSchedule(item, { bsYear: s.bs_year, startDate: s.start_date }, { enrolledOn: nepalDate(new Date(st.created_at)), firstInProgramme: st.first_in_programme === 1 })) {
+        for (const charge of billingSchedule(item, { bsYear: s.bs_year, startDate: s.start_date, endDate: s.end_date }, { enrolledOn: nepalDate(new Date(st.created_at)), firstInProgramme: st.first_in_programme === 1 })) {
           if (have.has(`${st.public_id}|${item.public_id}|${charge.period}`)) continue;
           drafts.push({
             publicId: newPublicId(),
@@ -259,30 +270,35 @@ interface SummaryRow {
   public_id: string;
   status: "draft" | "waiting" | "live";
   year_label: string;
+  start_date: string;
+  end_date: string;
   programme_name: string;
   level_name: string;
   section_key: string;
   level_id: string;
 }
-const SUMMARY = `fs.public_id, fs.status, ay.label AS year_label, pv.name AS programme_name, lv.name AS level_name, s.key AS section_key, lv.public_id AS level_id
+const SUMMARY = `fs.public_id, fs.status, ay.label AS year_label, ay.start_date, ay.end_date, pv.name AS programme_name, lv.name AS level_name, s.key AS section_key, lv.public_id AS level_id
                    FROM fee_structures fs JOIN academic_years ay ON ay.id = fs.academic_year_id JOIN levels lv ON lv.id = fs.level_id
                    JOIN programmes pv ON pv.id = lv.programme_id JOIN sections s ON s.id = pv.section_id`;
 
 async function totals(db: D1Database, structureIds: string[]): Promise<Map<string, number>> {
   if (structureIds.length === 0) return new Map();
   const { results } = await db
-    .prepare(`SELECT fs.public_id, fi.amount_paisa, fi.frequency FROM fee_items fi JOIN fee_structures fs ON fs.id = fi.structure_id WHERE fi.is_active = 1 AND fs.public_id IN (SELECT value FROM json_each(?1))`)
+    .prepare(
+      `SELECT fs.public_id, fi.amount_paisa, fi.frequency, ay.start_date, ay.end_date FROM fee_items fi JOIN fee_structures fs ON fs.id = fi.structure_id
+         JOIN academic_years ay ON ay.id = fs.academic_year_id WHERE fi.is_active = 1 AND fs.public_id IN (SELECT value FROM json_each(?1))`,
+    )
     .bind(JSON.stringify(structureIds))
-    .all<{ public_id: string; amount_paisa: number; frequency: Frequency }>();
+    .all<{ public_id: string; amount_paisa: number; frequency: Frequency; start_date: string; end_date: string }>();
   const map = new Map<string, number>();
-  for (const r of results) map.set(r.public_id, (map.get(r.public_id) ?? 0) + yearlyAmount({ frequency: r.frequency, amountPaisa: r.amount_paisa }));
+  for (const r of results) map.set(r.public_id, (map.get(r.public_id) ?? 0) + yearlyAmount({ frequency: r.frequency, amountPaisa: r.amount_paisa }, monthsOf(r.start_date, r.end_date)));
   return map;
 }
 
-/** The active year's structures in the person's sections. */
+/** The open terms' structures in the person's sections (D-110: a draft term's structure can be prepared ahead). */
 export async function listStructures(db: D1Database, grant: Grant): Promise<FeeStructureList> {
   const { results } = await db
-    .prepare(`SELECT ${SUMMARY} WHERE ay.status = 'active' AND (?1 IS NULL OR s.key IN (SELECT value FROM json_each(?1))) ORDER BY s.ordering, pv.ordering, lv.ordinal`)
+    .prepare(`SELECT ${SUMMARY} WHERE ay.status <> 'closed' AND (?1 IS NULL OR s.key IN (SELECT value FROM json_each(?1))) ORDER BY s.ordering, pv.ordering, lv.ordinal`)
     .bind(sectionFilter(grant))
     .all<SummaryRow>();
   const sums = await totals(db, results.map((r) => r.public_id));
@@ -314,7 +330,7 @@ export async function getStructure(db: D1Database, grant: Grant, structureId: st
     levelName: row.level_name,
     sectionKey: row.section_key,
     levelId: row.level_id,
-    yearlyTotalPaisa: lines.reduce((sum, i) => sum + yearlyAmount(i), 0),
+    yearlyTotalPaisa: lines.reduce((sum, i) => sum + yearlyAmount(i, monthsOf(row.start_date, row.end_date)), 0),
     items: lines,
     classes: (classes!.results as unknown as { public_id: string; label: string; students: number }[]).map((c) => ({ id: c.public_id, label: c.label, students: c.students })),
   };

@@ -121,6 +121,13 @@ interface StudentRow {
   class_name: string | null;
 }
 
+/**
+ * A student's most recent enrollment, by the start of its term (D-110: several terms can be open at once, so "the active
+ * year" is no longer one row). For a SQL alias `st`.
+ */
+const LATEST_ENROLLMENT = `(SELECT e2.id FROM enrollments e2 JOIN academic_years y2 ON y2.id = e2.academic_year_id
+                             WHERE e2.student_id = st.id ORDER BY y2.start_date DESC, e2.id DESC LIMIT 1)`;
+
 /** By name, SID or phone, scoped to the viewer's sections through the student's most recent enrollment. */
 export async function searchStudents(db: D1Database, sections: "all" | readonly string[], query: string): Promise<StudentList> {
   const like = `%${query.trim()}%`;
@@ -129,7 +136,7 @@ export async function searchStudents(db: D1Database, sections: "all" | readonly 
       `SELECT st.public_id, st.sid, st.first_name, st.last_name, st.status,
               pv.name || ' - ' || lv.name AS class_name
          FROM students st
-         LEFT JOIN enrollments en ON en.student_id = st.id AND en.academic_year_id = (SELECT id FROM academic_years WHERE status = 'active')
+         LEFT JOIN enrollments en ON en.id = ${LATEST_ENROLLMENT}
          LEFT JOIN classes cl ON cl.id = en.class_id
          LEFT JOIN levels lv ON lv.id = cl.level_id
          LEFT JOIN programmes pv ON pv.id = lv.programme_id
@@ -168,7 +175,7 @@ async function studentDetailFrom(db: D1Database, where: string, param: string): 
               st.guardian_name, st.guardian_phone, st.previous_school, st.status, st.created_at,
               pv.name || ' - ' || lv.name AS class_name
          FROM students st
-         LEFT JOIN enrollments en ON en.student_id = st.id AND en.academic_year_id = (SELECT id FROM academic_years WHERE status = 'active')
+         LEFT JOIN enrollments en ON en.id = ${LATEST_ENROLLMENT}
          LEFT JOIN classes cl ON cl.id = en.class_id
          LEFT JOIN levels lv ON lv.id = cl.level_id
          LEFT JOIN programmes pv ON pv.id = lv.programme_id
@@ -202,7 +209,7 @@ export async function getStudent(db: D1Database, sections: "all" | readonly stri
   const row = await db
     .prepare(
       `SELECT 1 FROM students st
-         LEFT JOIN enrollments en ON en.student_id = st.id AND en.academic_year_id = (SELECT id FROM academic_years WHERE status = 'active')
+         LEFT JOIN enrollments en ON en.id = ${LATEST_ENROLLMENT}
          LEFT JOIN classes cl ON cl.id = en.class_id LEFT JOIN levels lv ON lv.id = cl.level_id LEFT JOIN programmes pv ON pv.id = lv.programme_id LEFT JOIN sections s ON s.id = pv.section_id
         WHERE st.public_id = ?1 AND (s.key IS NULL OR s.key IN (SELECT value FROM json_each(?2)))`,
     )
