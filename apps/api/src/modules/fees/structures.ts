@@ -178,8 +178,9 @@ export async function generateCharges(db: D1Database, key: string, actor: string
   if (s.status !== "live") return { ok: false, reason: "not_live" };
   const lines = items!.results as unknown as { public_id: string; name: string; amount_paisa: number; frequency: Frequency }[];
 
-  let created = 0;
-  for (let round = 0; round < 50; round++) {
+  // What is missing, read once; then written a chunk at a time. Read again only when another run made some of the same
+  // charges first (a "duplicate"), so the reads do not grow with the number of chunks (D-108).
+  const plan = async (): Promise<LedgerDraft[]> => {
     // Who is in the class, whether this is their first year of the programme, and what they are already charged.
     const [students, existing] = await db.batch([
       db
@@ -219,20 +220,35 @@ export async function generateCharges(db: D1Database, key: string, actor: string
         }
       }
     }
-    if (drafts.length === 0) return { ok: true, created };
+    return drafts;
+  };
 
-    const chunk = drafts.slice(0, CHUNK);
-    const guard = `EXISTS (SELECT 1 FROM fee_structures gs WHERE gs.public_id = ?17 AND gs.status = 'live') AND ${accountantFor(16, structureSection("(SELECT id FROM fee_structures WHERE public_id = ?17)"))}`;
+  const guard = `EXISTS (SELECT 1 FROM fee_structures gs WHERE gs.public_id = ?17 AND gs.status = 'live') AND ${accountantFor(16, structureSection("(SELECT id FROM fee_structures WHERE public_id = ?17)"))}`;
+  let created = 0;
+  let drafts = await plan();
+  let from = 0;
+  // Every chunk either lands, or meets charges another run made, after which the plan is smaller; the bound only stops
+  // a fault from looping, and says so rather than reporting a partial run as done.
+  for (let attempt = 0; from < drafts.length; attempt++) {
+    if (attempt > 1000) throw new Error("Making charges did not finish: the plan kept meeting charges made elsewhere.");
+    const chunk = drafts.slice(from, from + CHUNK);
     const outcome = await writeMoney(
       db,
       key,
       { action: "fees.charges.generated", entityType: "fee_structure", entityPublicId: structureId, actorPublicId: actor, summary: `${chunk.length} charges made`, after: { classId, count: chunk.length, today } },
       async (ledgerHead) => (await ledgerInserts(db, key, ledgerHead, chunk, { guard, guardBinds: [actor, structureId] })).statements,
     );
-    if (outcome === "done") created += chunk.length;
-    else if (outcome === "year_closed") return { ok: false, reason: "year_closed" };
+    if (outcome === "done") {
+      created += chunk.length;
+      from += chunk.length;
+    } else if (outcome === "year_closed") return { ok: false, reason: "year_closed" };
     else if (outcome === "not_applied") return { ok: false, reason: "not_found" };
-    // "duplicate": another run made some of these a moment ago; the next round re-reads what exists.
+    else if (outcome === "duplicate") {
+      // Another run made some of these a moment ago: what is still missing is read again.
+      drafts = await plan();
+      from = 0;
+    } else throw new Error("The ledger refused a charge."); // "rejected": a constraint, which another try would only meet again
+
   }
   return { ok: true, created };
 }

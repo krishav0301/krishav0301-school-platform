@@ -51,8 +51,24 @@ async function makeAndSend(db: D1Database, key: string, actor: string, kind: Kin
     if (/CHECK constraint failed/i.test(message)) return invalid("That request is not complete");
     throw error;
   }
+  return send(db, key, actor, kind, publicId);
+}
+
+/**
+ * Sends a drafted request to the engine. The draft and the request are two writes (the engine's batch is its own), so a
+ * send that fails closes the draft rather than leaving it behind (D-108): a reversal's draft would otherwise hold its
+ * payment's one open reversal for good.
+ */
+async function send(db: D1Database, key: string, actor: string, kind: Kind, publicId: string): Promise<Created> {
   const sent = await requestApproval(db, key, actor, { kind, subjectId: publicId });
   if (sent.ok) return { ok: true, publicId };
+  await recordAudit(
+    db,
+    key,
+    { action: `fees.${kind}.closed`, entityType: "fee_adjustment", entityPublicId: publicId, actorPublicId: actor, summary: "Request closed: it could not be sent for approval" },
+    [db.prepare("UPDATE fee_adjustments SET status = 'closed' WHERE public_id = ?1 AND status = 'draft'").bind(publicId)],
+    { onlyIfLastChanged: true },
+  );
   return { ok: false, reason: sent.reason === "conflict" ? "conflict" : "not_found" };
 }
 
@@ -104,6 +120,12 @@ export async function requestReversal(db: D1Database, key: string, actor: string
   if (!state.allowed) return { ok: false, reason: "not_found" };
   if (state.closed) return { ok: false, reason: "year_closed" };
   if (payment.reversed === 1) return { ok: false, reason: "conflict" };
+  // A draft left by a request that stopped between its two writes is sent now, not left to block this payment (D-108).
+  const leftover = await db
+    .prepare("SELECT fa.public_id FROM fee_adjustments fa JOIN ledger_entries le ON le.id = fa.payment_entry_id WHERE le.public_id = ?1 AND fa.kind = 'reversal' AND fa.status = 'draft'")
+    .bind(paymentId)
+    .first<{ public_id: string }>();
+  if (leftover) return send(db, key, actor, "reversal", leftover.public_id);
   const publicId = newPublicId();
   return makeAndSend(
     db,
@@ -220,6 +242,24 @@ const readAdjustment = (db: D1Database, id: number) =>
 
 const KIND_WORD: Record<Kind, string> = { discount: "Discount", reversal: "Payment reversal", refund: "Refund" };
 
+/**
+ * A request's version as SQL over its adjustment row (`fa`): how many of the student's ledger entries it depends on, plus
+ * one. It goes stale when that number moves (CLAUDE.md section 6): a discount, with the charges (a percentage was taken
+ * of them) and the other discounts (together they may not pass the charges, D-085); a reversal, with its payment
+ * reversed already; a refund, with what takes credit away (a new charge, carried dues, a reversal, another refund), not
+ * what adds to it (found by the year test, D-084). The engine reads it at request and decision; the approve statement
+ * checks it again inside its own batch.
+ */
+function versionSql(kind: Kind, fa: string): string {
+  const counted =
+    kind === "discount"
+      ? "le.kind IN ('charge', 'carried_dues', 'discount')"
+      : kind === "reversal"
+        ? `le.kind = 'reversal' AND le.refers_to_id = ${fa}.payment_entry_id`
+        : "le.kind IN ('charge', 'carried_dues', 'reversal', 'refund')";
+  return `((SELECT COUNT(*) FROM ledger_entries le WHERE le.enrollment_id = ${fa}.enrollment_id AND ${counted}) + 1)`;
+}
+
 function adjustmentHandler(kind: Kind): ApprovalHandler {
   return {
     requesterSql: anyAccountant,
@@ -283,28 +323,23 @@ function adjustmentHandler(kind: Kind): ApprovalHandler {
         };
       return { kind: "refund" as const, ...who, availableCreditPaisa: Math.max(0, -row.balance), note: row.note };
     },
-    // Stale when what the request refers to changes between asking and deciding (CLAUDE.md section 6): a discount, the
-    // student's charges (a percentage was taken of them); a reversal, its payment (already reversed); a refund, the
-    // credit (any payment, discount, reversal or refund moves it).
+    // Stale when what the request refers to changes between asking and deciding (CLAUDE.md section 6): see `versionSql`.
     async currentVersion(db, id) {
-      const counted =
-        kind === "discount"
-          ? // The charges (a percentage was taken of them) and the other discounts (together they may not pass the charges, D-085).
-            "le.kind IN ('charge', 'carried_dues', 'discount')"
-          : kind === "reversal"
-            ? "le.kind = 'reversal' AND le.refers_to_id = fa.payment_entry_id"
-            : // A refund returns credit: it goes stale when something takes credit away (a new charge, carried dues, a
-              // reversal, another refund), not when a payment or discount adds to it (found by the year test, D-084).
-              "le.kind IN ('charge', 'carried_dues', 'reversal', 'refund')";
-      const row = await db
-        .prepare(`SELECT (SELECT COUNT(*) FROM ledger_entries le WHERE le.enrollment_id = fa.enrollment_id AND ${counted}) AS n FROM fee_adjustments fa WHERE fa.id = ?1`)
-        .bind(id)
-        .first<{ n: number }>();
-      return row ? row.n + 1 : null;
+      const row = await db.prepare(`SELECT ${versionSql(kind, "fa")} AS n FROM fee_adjustments fa WHERE fa.id = ?1`).bind(id).first<{ n: number }>();
+      return row?.n ?? null;
     },
     onRequested: (db, id) => [db.prepare("UPDATE fee_adjustments SET status = 'pending' WHERE id = ?1 AND status = 'draft'").bind(id)],
     async onApproved(db, id, context) {
-      const approveRow = db.prepare("UPDATE fee_adjustments SET status = 'approved' WHERE id = ?1 AND status = 'pending'").bind(id);
+      // The version is checked again here, inside the batch (D-108): two discounts for one student approved at the same
+      // moment both passed the engine's read, but only the first still matches here, so together they can never pass
+      // what was charged (D-085). The other changes nothing and is reported stale.
+      const approveRow = db
+        .prepare(
+          `UPDATE fee_adjustments SET status = 'approved'
+            WHERE id = ?1 AND status = 'pending'
+              AND ${versionSql(kind, "fee_adjustments")} = (SELECT ar.subject_version FROM approval_requests ar WHERE ar.subject_type = ?2 AND ar.subject_id = ?1 AND ar.status = 'pending')`,
+        )
+        .bind(id, kind);
       if (kind === "refund") return [approveRow];
       const a = (await readAdjustment(db, id))!;
       const draft: LedgerDraft =

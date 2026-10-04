@@ -155,7 +155,8 @@ export async function publishClass(db: D1Database, auditKey: string, me: string,
   const sheets = db
     .prepare(
       `UPDATE mark_sheets SET status = 'published', updated_at = ?2
-        WHERE status = 'verified' AND EXISTS (SELECT 1 FROM result_publications rp WHERE rp.public_id = ?1 AND rp.class_id = mark_sheets.class_id AND rp.terminal_id = mark_sheets.terminal_id)`,
+        WHERE class_id = (SELECT class_id FROM result_publications WHERE public_id = ?1) AND terminal_id = (SELECT terminal_id FROM result_publications WHERE public_id = ?1)
+          AND status = 'verified'`,
     )
     .bind(publicationId, at);
   const cardInsert = db

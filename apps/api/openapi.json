@@ -1634,6 +1634,62 @@
           "teacher"
         ]
       },
+      "YearTeaching": {
+        "type": "object",
+        "properties": {
+          "classes": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "classId": {
+                  "type": "string"
+                },
+                "classLabel": {
+                  "type": "string"
+                },
+                "levelName": {
+                  "type": "string"
+                },
+                "classTeacher": {
+                  "type": [
+                    "object",
+                    "null"
+                  ],
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "fullName": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "fullName"
+                  ]
+                },
+                "assignments": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/TeachingAssignment"
+                  }
+                }
+              },
+              "required": [
+                "classId",
+                "classLabel",
+                "levelName",
+                "classTeacher",
+                "assignments"
+              ]
+            }
+          }
+        },
+        "required": [
+          "classes"
+        ]
+      },
       "AssignmentInput": {
         "type": "object",
         "properties": {
@@ -11868,6 +11924,38 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/AcademicsError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/academics/teaching": {
+      "get": {
+        "operationId": "get_year_teaching",
+        "tags": [
+          "academics"
+        ],
+        "description": "Every active class's subjects with their current teacher, and its Class Teacher, for one year (the active one unless `year` is given), in the person's sections. One request for a page that reads the whole year (D-108).",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{32}$"
+            },
+            "required": false,
+            "name": "year",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The year's teaching",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/YearTeaching"
                 }
               }
             }

@@ -64,8 +64,24 @@ function canonical(prevHash: string, s: StoredFields): string {
 
 const encoder = new TextEncoder();
 
+/**
+ * The HMAC key, imported once per secret and kept for the life of the Worker instance: a run of entries (a class's
+ * charges, a long chain verified) signs with one key instead of importing it for every entry (D-108). The map is
+ * keyed by the secret the Worker's env already holds; a failed import is not kept, so the next call tries again.
+ */
+const keys = new Map<string, Promise<CryptoKey>>();
+function signingKey(secret: string): Promise<CryptoKey> {
+  let key = keys.get(secret);
+  if (!key) {
+    key = crypto.subtle.importKey("raw", encoder.encode(secret), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
+    keys.set(secret, key);
+    key.catch(() => keys.delete(secret));
+  }
+  return key;
+}
+
 async function hmacSha256Hex(key: string, message: string): Promise<string> {
-  const cryptoKey = await crypto.subtle.importKey("raw", encoder.encode(key), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
+  const cryptoKey = await signingKey(key);
   const signature = await crypto.subtle.sign("HMAC", cryptoKey, encoder.encode(message));
   return [...new Uint8Array(signature)].map((byte) => byte.toString(16).padStart(2, "0")).join("");
 }

@@ -300,6 +300,28 @@ describe("walk-ins and staff registration", () => {
     expect(response.status).toBe(422);
     expect(await count("SELECT COUNT(*) AS n FROM students")).toBe(before);
   });
+
+  it("a refused walk-in leaves no application behind either: the class is checked before anything is written (D-108)", async () => {
+    const before = await count("SELECT COUNT(*) AS n FROM applications");
+    const response = await walkIn({ ...applicant(), classId: "0".repeat(32) }, coordinator);
+    expect(response.status).toBe(422);
+    expect(((await response.json()) as { message: string }).message).toMatch(/not open/);
+    expect(await count("SELECT COUNT(*) AS n FROM applications")).toBe(before);
+  });
+
+  it("an email that already signs someone in is named as the reason, for a walk-in and for an approval (D-108)", async () => {
+    const taken = (await db.prepare("SELECT email FROM users WHERE public_id = ?1").bind(student.publicId).first<{ email: string }>())!.email;
+    const before = await count("SELECT COUNT(*) AS n FROM applications");
+    const walked = await walkIn({ ...applicant({ email: taken }), classId }, coordinator);
+    expect(walked.status).toBe(422);
+    expect(((await walked.json()) as { message: string }).message).toMatch(/already signs someone in/);
+    expect(await count("SELECT COUNT(*) AS n FROM applications")).toBe(before);
+
+    const { id } = (await (await register(applicant({ email: taken }), accountant)).json()) as { id: string };
+    const approved = await approve(id, { classId }, coordinator);
+    expect(approved.status).toBe(422);
+    expect(((await approved.json()) as { message: string }).message).toMatch(/Ask for changes/);
+  });
 });
 
 // ---------------------------------------------------------------------------------------------
