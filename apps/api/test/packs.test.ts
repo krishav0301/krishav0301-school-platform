@@ -175,7 +175,7 @@ describe.each([
     const { terms } = (await loadConfig(getDb()))!;
     expect(terms["role.coordinator"]).toBe(pack.terminology["role.coordinator"] ?? "Co-ordinator");
     expect(terms["role.student"]).toBe(pack.terminology["role.student"] ?? "Student");
-    expect(terms["term.terminal"]).toBe(pack.terminology["term.terminal"] ?? "Terminal");
+    expect(terms["term.terminal"]).toBe(pack.terminology["term.terminal"] ?? "Exam"); // D-110
     expect(terms["role.accountant"]).toBe("Accountant"); // not renamed by either pack
   });
 });
