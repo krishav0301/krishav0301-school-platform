@@ -54,8 +54,24 @@ function canonical(prevHash: string, d: LedgerDraft): string {
 }
 
 const encoder = new TextEncoder();
+
+/**
+ * The HMAC key, imported once per secret and kept for the life of the Worker instance: a run of entries (a class's
+ * charges, a long chain verified) signs with one key instead of importing it for every entry (D-108). The map is
+ * keyed by the secret the Worker's env already holds; a failed import is not kept, so the next call tries again.
+ */
+const keys = new Map<string, Promise<CryptoKey>>();
+function signingKey(secret: string): Promise<CryptoKey> {
+  let key = keys.get(secret);
+  if (!key) {
+    key = crypto.subtle.importKey("raw", encoder.encode(secret), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
+    keys.set(secret, key);
+    key.catch(() => keys.delete(secret));
+  }
+  return key;
+}
 async function hmac(key: string, message: string): Promise<string> {
-  const cryptoKey = await crypto.subtle.importKey("raw", encoder.encode(key), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
+  const cryptoKey = await signingKey(key);
   const signature = await crypto.subtle.sign("HMAC", cryptoKey, encoder.encode(message));
   return [...new Uint8Array(signature)].map((byte) => byte.toString(16).padStart(2, "0")).join("");
 }
@@ -165,47 +181,67 @@ interface LedgerRow {
 
 export type LedgerVerifyResult = { ok: true; count: number; lastHash: string } | { ok: false; brokenAtId: number | null; reason: string };
 
-/** Walks the whole ledger, recomputing every hash with the secret key, and checks the head. */
+/** How many entries a verification reads at a time. */
+const VERIFY_PAGE = 500;
+
+/**
+ * Walks the whole ledger, recomputing every hash with the secret key, and checks the head. A page at a time up to the
+ * head read first, so memory stays flat however long the ledger grows (D-108).
+ */
 export async function verifyLedgerChain(db: D1Database, key: string): Promise<LedgerVerifyResult> {
-  const [entries, headRows] = await db.batch([
-    db.prepare(
-      `SELECT le.id, le.public_id, en.public_id AS enrollment_public_id, le.kind, le.amount_paisa, fi.public_id AS fee_item_public_id, le.period, le.due_on,
-              rt.public_id AS refers_to_public_id, le.source_type, le.source_public_id, le.memo, u.public_id AS actor_public_id, le.created_at, le.prev_hash, le.hash
-         FROM ledger_entries le
-         LEFT JOIN enrollments en ON en.id = le.enrollment_id
-         LEFT JOIN fee_items fi ON fi.id = le.fee_item_id
-         LEFT JOIN ledger_entries rt ON rt.id = le.refers_to_id
-         LEFT JOIN users u ON u.id = le.created_by_user_id
-        ORDER BY le.id`,
-    ),
+  // The head and the newest entry in one snapshot: an append moves both together, so an entry past the head was put
+  // there around the guards.
+  const [headRows, newest] = await db.batch([
     db.prepare("SELECT last_id, last_hash FROM ledger_chain_head WHERE id = 1"),
+    db.prepare("SELECT COALESCE(MAX(id), 0) AS id FROM ledger_entries"),
   ]);
-  const rows = entries!.results as unknown as LedgerRow[];
   const head = headRows!.results[0] as { last_id: number; last_hash: string } | undefined;
+  const lastId = head?.last_id ?? 0;
+  if ((newest!.results[0] as { id: number }).id > lastId) return { ok: false, brokenAtId: null, reason: "head does not match the last entry" };
   let prev = LEDGER_GENESIS;
-  for (const r of rows) {
-    if (r.prev_hash !== prev) return { ok: false, brokenAtId: r.id, reason: "link broken" };
-    const expected = await hashLedgerEntry(key, prev, {
-      publicId: r.public_id,
-      enrollmentPublicId: r.enrollment_public_id,
-      kind: r.kind,
-      amountPaisa: r.amount_paisa,
-      feeItemPublicId: r.fee_item_public_id,
-      period: r.period,
-      dueOn: r.due_on,
-      refersToPublicId: r.refers_to_public_id,
-      sourceType: r.source_type,
-      sourcePublicId: r.source_public_id,
-      memo: r.memo,
-      actorPublicId: r.actor_public_id,
-      createdAt: r.created_at,
-    });
-    if (expected !== r.hash) return { ok: false, brokenAtId: r.id, reason: "hash mismatch" };
-    prev = r.hash;
+  let count = 0;
+  let after = 0;
+  for (;;) {
+    const { results } = await db
+      .prepare(
+        `SELECT le.id, le.public_id, en.public_id AS enrollment_public_id, le.kind, le.amount_paisa, fi.public_id AS fee_item_public_id, le.period, le.due_on,
+                rt.public_id AS refers_to_public_id, le.source_type, le.source_public_id, le.memo, u.public_id AS actor_public_id, le.created_at, le.prev_hash, le.hash
+           FROM ledger_entries le
+           LEFT JOIN enrollments en ON en.id = le.enrollment_id
+           LEFT JOIN fee_items fi ON fi.id = le.fee_item_id
+           LEFT JOIN ledger_entries rt ON rt.id = le.refers_to_id
+           LEFT JOIN users u ON u.id = le.created_by_user_id
+          WHERE le.id > ?1 AND le.id <= ?2
+          ORDER BY le.id LIMIT ?3`,
+      )
+      .bind(after, lastId, VERIFY_PAGE)
+      .all<LedgerRow>();
+    for (const r of results) {
+      if (r.prev_hash !== prev) return { ok: false, brokenAtId: r.id, reason: "link broken" };
+      const expected = await hashLedgerEntry(key, prev, {
+        publicId: r.public_id,
+        enrollmentPublicId: r.enrollment_public_id,
+        kind: r.kind,
+        amountPaisa: r.amount_paisa,
+        feeItemPublicId: r.fee_item_public_id,
+        period: r.period,
+        dueOn: r.due_on,
+        refersToPublicId: r.refers_to_public_id,
+        sourceType: r.source_type,
+        sourcePublicId: r.source_public_id,
+        memo: r.memo,
+        actorPublicId: r.actor_public_id,
+        createdAt: r.created_at,
+      });
+      if (expected !== r.hash) return { ok: false, brokenAtId: r.id, reason: "hash mismatch" };
+      prev = r.hash;
+      after = r.id;
+      count++;
+    }
+    if (results.length < VERIFY_PAGE) break;
   }
-  const lastId = rows.at(-1)?.id ?? 0;
-  if (!head || head.last_hash !== prev || head.last_id !== lastId) return { ok: false, brokenAtId: null, reason: "head does not match the last entry" };
-  return { ok: true, count: rows.length, lastHash: prev };
+  if (!head || head.last_hash !== prev || after !== lastId) return { ok: false, brokenAtId: null, reason: "head does not match the last entry" };
+  return { ok: true, count, lastHash: prev };
 }
 
 /** What a daily export copies to a second place: enough to catch the newest entries deleted together with the head. */

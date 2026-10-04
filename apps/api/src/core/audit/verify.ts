@@ -35,28 +35,39 @@ const stored = (row: Row): StoredFields => ({
 
 /** Walks the whole chain, recomputing every hash with the secret key. */
 export async function verifyAuditChain(db: D1Database, key: string): Promise<VerifyResult> {
-  // One round trip for both reads.
-  const [entries, headRows] = await db.batch([
-    db.prepare("SELECT * FROM audit_events ORDER BY id"),
+  // The head and the newest entry in one snapshot: an append moves both together, so an entry past the head was put
+  // there around the guards. The entries up to the head are then checked a page at a time, so memory stays flat however
+  // long the log grows (D-108); an entry appended while the check runs is left for the next one.
+  const [headRows, newest] = await db.batch([
     db.prepare("SELECT last_id, last_hash FROM audit_chain_head WHERE id = 1"),
+    db.prepare("SELECT COALESCE(MAX(id), 0) AS id FROM audit_events"),
   ]);
-  const rows = entries!.results as unknown as Row[];
-  const head = headRows!.results[0] as unknown as { last_id: number; last_hash: string } | undefined;
-
+  const head = headRows!.results[0] as { last_id: number; last_hash: string } | undefined;
+  const lastId = head?.last_id ?? 0;
+  if ((newest!.results[0] as { id: number }).id > lastId) return { ok: false, brokenAtId: null, reason: "head does not match the last entry" };
   let prev = GENESIS_HASH;
-  for (const row of rows) {
-    if (row.prev_hash !== prev) return { ok: false, brokenAtId: row.id, reason: "link broken" };
-    const expected = await hashStored(key, prev, stored(row));
-    if (expected !== row.hash) return { ok: false, brokenAtId: row.id, reason: "hash mismatch" };
-    prev = row.hash;
+  let count = 0;
+  let after = 0;
+  for (;;) {
+    const { results } = await db.prepare("SELECT * FROM audit_events WHERE id > ?1 AND id <= ?2 ORDER BY id LIMIT ?3").bind(after, lastId, VERIFY_PAGE).all<Row>();
+    for (const row of results) {
+      if (row.prev_hash !== prev) return { ok: false, brokenAtId: row.id, reason: "link broken" };
+      const expected = await hashStored(key, prev, stored(row));
+      if (expected !== row.hash) return { ok: false, brokenAtId: row.id, reason: "hash mismatch" };
+      prev = row.hash;
+      after = row.id;
+      count++;
+    }
+    if (results.length < VERIFY_PAGE) break;
   }
-
-  const lastId = rows.at(-1)?.id ?? 0;
-  if (!head || head.last_hash !== prev || head.last_id !== lastId) {
+  if (!head || head.last_hash !== prev || after !== lastId) {
     return { ok: false, brokenAtId: null, reason: "head does not match the last entry" };
   }
-  return { ok: true, count: rows.length, lastHash: prev };
+  return { ok: true, count, lastHash: prev };
 }
+
+/** How many entries a verification reads at a time. */
+const VERIFY_PAGE = 500;
 
 /** Small enough to store elsewhere every day. */
 export interface ChainSummary {

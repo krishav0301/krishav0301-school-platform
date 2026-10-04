@@ -1,6 +1,6 @@
 import { rowsOf, type DashboardPart } from "../../core/dashboard";
 import { adToBsText } from "../../core/dates";
-import type { AcademicYearList, Curriculum, ProgrammeList, SchoolClassList, SetupChecklist, SubjectList, Teaching, TerminalList } from "./schema";
+import type { AcademicYearList, Curriculum, ProgrammeList, SchoolClassList, SetupChecklist, SubjectList, Teaching, TerminalList, YearTeaching } from "./schema";
 
 /** A section filter for SQL: `null` means every section, otherwise a JSON array of section keys (used with `json_each`). */
 const sectionFilter = (sections: "all" | readonly string[]): string | null => (sections === "all" ? null : JSON.stringify(sections));
@@ -405,6 +405,50 @@ export async function getTeaching(db: D1Database, sections: "all" | readonly str
       teacher: r.teacher_id ? { id: r.teacher_id, fullName: r.teacher_name! } : null,
     })),
     teachers: (teacherResult!.results as unknown as TeachingTeacherRow[]).map((r) => ({ id: r.public_id, fullName: r.full_name })),
+  };
+}
+
+/**
+ * Every active class's teaching in one year, as one round trip whatever the number of classes (D-108): the read pages
+ * used to ask once per class. The year is the one given, or the active one; only classes in the viewer's sections.
+ */
+export async function getYearTeaching(db: D1Database, sections: "all" | readonly string[], yearId: string | null): Promise<YearTeaching> {
+  const YEAR = `(SELECT id FROM academic_years WHERE CASE WHEN ?1 IS NULL THEN status = 'active' ELSE public_id = ?1 END)`;
+  const [classResult, assignmentResult] = await db.batch([
+    db
+      .prepare(
+        `SELECT c.public_id, c.label, l.name AS level_name, tu.public_id AS ct_id, tu.full_name AS ct_name
+           FROM classes c JOIN levels l ON l.id = c.level_id JOIN programmes p ON p.id = l.programme_id JOIN sections s ON s.id = p.section_id
+           LEFT JOIN users tu ON tu.id = c.class_teacher_user_id
+          WHERE c.academic_year_id = ${YEAR} AND c.is_active = 1 AND (?2 IS NULL OR s.key IN (SELECT value FROM json_each(?2)))
+          ORDER BY s.ordering, p.ordering, l.ordinal, c.label`,
+      )
+      .bind(yearId, sectionFilter(sections)),
+    db
+      .prepare(
+        `SELECT c.public_id AS class_id, o.public_id AS offering_id, sb.name AS subject_name, tu.public_id AS teacher_id, tu.full_name AS teacher_name
+           FROM classes c JOIN subject_offerings o ON o.level_id = c.level_id AND o.is_active = 1 JOIN subjects sb ON sb.id = o.subject_id
+           LEFT JOIN teacher_assignments ta ON ta.class_id = c.id AND ta.offering_id = o.id AND ta.is_active = 1
+           LEFT JOIN users tu ON tu.id = ta.teacher_user_id
+          WHERE c.academic_year_id = ${YEAR} AND c.is_active = 1
+          ORDER BY c.id, sb.name COLLATE NOCASE`,
+      )
+      .bind(yearId),
+  ]);
+  const byClass = new Map<string, YearTeaching["classes"][number]["assignments"]>();
+  for (const r of assignmentResult!.results as unknown as (TeachingAssignmentRow & { class_id: string })[]) {
+    const list = byClass.get(r.class_id) ?? [];
+    list.push({ offeringId: r.offering_id, subjectName: r.subject_name, teacher: r.teacher_id ? { id: r.teacher_id, fullName: r.teacher_name! } : null });
+    byClass.set(r.class_id, list);
+  }
+  return {
+    classes: (classResult!.results as unknown as TeachingClassRow[]).map((cls) => ({
+      classId: cls.public_id,
+      classLabel: cls.label,
+      levelName: cls.level_name,
+      classTeacher: cls.ct_id ? { id: cls.ct_id, fullName: cls.ct_name! } : null,
+      assignments: byClass.get(cls.public_id) ?? [],
+    })),
   };
 }
 

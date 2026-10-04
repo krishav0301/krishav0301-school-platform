@@ -609,6 +609,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/academics/teaching": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Every active class's subjects with their current teacher, and its Class Teacher, for one year (the active one unless `year` is given), in the person's sections. One request for a page that reads the whole year (D-108). */
+        get: operations["get_year_teaching"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/academics/assignments": {
         parameters: {
             query?: never;
@@ -2929,6 +2946,18 @@ export interface components {
                 id: string;
                 fullName: string;
             } | null;
+        };
+        YearTeaching: {
+            classes: {
+                classId: string;
+                classLabel: string;
+                levelName: string;
+                classTeacher: {
+                    id: string;
+                    fullName: string;
+                } | null;
+                assignments: components["schemas"]["TeachingAssignment"][];
+            }[];
         };
         AssignmentInput: {
             classId: string;
@@ -6628,6 +6657,28 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AcademicsError"];
+                };
+            };
+        };
+    };
+    get_year_teaching: {
+        parameters: {
+            query?: {
+                year?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The year's teaching */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["YearTeaching"];
                 };
             };
         };

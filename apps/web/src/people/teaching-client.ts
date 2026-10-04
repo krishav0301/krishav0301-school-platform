@@ -1,6 +1,6 @@
 import type { ApiClient } from "@/api/client";
 
-import type { Teaching, TeachingFailReason } from "./teaching-model";
+import type { ClassTeaching, Teaching, TeachingFailReason } from "./teaching-model";
 
 /**
  * Everything the Teaching screen asks of the server. Nothing here throws: a dropped connection is `failed`.
@@ -15,6 +15,17 @@ export async function loadTeaching(api: ApiClient, classId: string): Promise<Loa
   try {
     const { data, response } = await api.GET("/api/academics/classes/{id}/teaching", { params: { path: { id: classId } } });
     if (data) return { ok: true, data };
+    return { ok: false, reason: response.status === 403 ? "forbidden" : "failed" };
+  } catch {
+    return { ok: false, reason: "failed" };
+  }
+}
+
+/** Every active class's teaching in one year (the active one unless given), in one request (D-108). */
+export async function loadYearTeaching(api: ApiClient, yearId?: string): Promise<Loaded<ClassTeaching[]>> {
+  try {
+    const { data, response } = await api.GET("/api/academics/teaching", { params: { query: yearId ? { year: yearId } : {} } });
+    if (data) return { ok: true, data: data.classes };
     return { ok: false, reason: response.status === 403 ? "forbidden" : "failed" };
   } catch {
     return { ok: false, reason: "failed" };

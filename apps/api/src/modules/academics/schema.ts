@@ -308,6 +308,12 @@ export const TeachingSchema = z
   .openapi("Teaching");
 export type Teaching = z.infer<typeof TeachingSchema>;
 
+/** Every class's teaching in one year, for reading (D-108): the subjects with their teacher and the Class Teacher. */
+export const YearTeachingSchema = z
+  .object({ classes: z.array(TeachingSchema.omit({ teachers: true })) })
+  .openapi("YearTeaching");
+export type YearTeaching = z.infer<typeof YearTeachingSchema>;
+
 // --- Setup checklist (D-062): nothing stored, computed fresh from the data --------------------------
 
 export const SetupChecklistSchema = z

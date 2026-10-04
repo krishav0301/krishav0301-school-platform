@@ -17,7 +17,13 @@ export function useLoad<T>(load: () => Promise<Loaded<T>>) {
 
   const reload = useCallback(async () => {
     const mine = ++latest.current;
-    const result = await load();
+    let result: Loaded<T>;
+    try {
+      result = await load();
+    } catch {
+      // A loader that throws (rather than answering "failed") must not leave the screen loading for good (D-108).
+      result = { ok: false, reason: "failed" };
+    }
     if (mine !== latest.current) return;
     setView(result.ok ? { status: "ready", data: result.data } : { status: result.reason });
   }, [load]);

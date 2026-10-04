@@ -83,7 +83,7 @@ export async function setPicks(db: D1Database, auditKey: string, me: string, enr
         `SELECT o.public_id AS offering_id, sb.name AS subject_name,
                 EXISTS (SELECT 1 FROM elective_picks ep WHERE ep.enrollment_id = en.id AND ep.offering_id = o.id AND ep.is_active = 1) AS picked,
                 EXISTS (SELECT 1 FROM marks m JOIN mark_sheets ms ON ms.id = m.sheet_id
-                         WHERE m.enrollment_id = en.id AND ms.offering_id = o.id AND (m.value_hundredths IS NOT NULL OR m.absent = 1)) AS has_marks
+                         WHERE ms.class_id = en.class_id AND ms.offering_id = o.id AND m.enrollment_id = en.id AND (m.value_hundredths IS NOT NULL OR m.absent = 1)) AS has_marks
            FROM enrollments en JOIN classes cl ON cl.id = en.class_id
            JOIN elective_groups g ON g.level_id = cl.level_id AND g.public_id = ?2
            JOIN subject_offerings o ON o.elective_group_id = g.id AND o.is_active = 1 JOIN subjects sb ON sb.id = o.subject_id

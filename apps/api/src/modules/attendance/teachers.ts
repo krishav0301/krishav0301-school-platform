@@ -15,9 +15,12 @@ import { SaveTeacherDaySchema, type OwnTeacherMonth, type SaveTeacherDay, type T
 
 type Status = "present" | "absent" | "leave";
 
-/** An active teacher (`tu`, home section `ts`), from the SELECT's own users row. */
-const ACTIVE_TEACHER = `tu.is_active = 1 AND EXISTS (SELECT 1 FROM role_assignments tr WHERE tr.user_id = tu.id AND tr.role = 'teacher' AND tr.is_active = 1)`;
-const TEACHER_JOINS = `LEFT JOIN staff_profiles tp ON tp.user_id = tu.id LEFT JOIN sections ts ON ts.id = tp.home_section_id`;
+/**
+ * The teachers (`tu`, home section `ts`), read from their teacher role rows (`tr`) through the role index rather than
+ * from every login in the school, students included (D-108). A teacher has one teacher role row.
+ */
+const TEACHERS = `role_assignments tr JOIN users tu ON tu.id = tr.user_id LEFT JOIN staff_profiles tp ON tp.user_id = tu.id LEFT JOIN sections ts ON ts.id = tp.home_section_id`;
+const ACTIVE_TEACHER = `tr.role = 'teacher' AND tr.is_active = 1 AND tu.is_active = 1`;
 
 /** From the token's grant (reads only): institution, or the listed sections. */
 const GRANT_REACH = `(?2 = 1 OR ts.key IN (SELECT value FROM json_each(COALESCE(?3, '[]'))))`;
@@ -46,7 +49,7 @@ export async function getTeacherDay(db: D1Database, grant: Grant, date: string, 
     db
       .prepare(
         `SELECT tu.public_id, tu.full_name, ts.key AS section_key, ta.status, ta.reason
-           FROM users tu ${TEACHER_JOINS}
+           FROM ${TEACHERS}
            LEFT JOIN teacher_attendance ta ON ta.user_id = tu.id AND ta.on_date = ?1
           WHERE ${ACTIVE_TEACHER} AND ${GRANT_REACH}
           ORDER BY tu.full_name, tu.id`,
@@ -93,7 +96,7 @@ export async function saveTeacherDay(db: D1Database, auditKey: string, actor: st
     db
       .prepare(
         `SELECT tu.public_id, ta.status
-           FROM users tu ${TEACHER_JOINS} LEFT JOIN teacher_attendance ta ON ta.user_id = tu.id AND ta.on_date = ?2, users mu
+           FROM ${TEACHERS} LEFT JOIN teacher_attendance ta ON ta.user_id = tu.id AND ta.on_date = ?2, users mu
           WHERE mu.public_id = ?1 AND ${ACTIVE_TEACHER} AND ${ACTOR_REACH}`,
       )
       .bind(actor, date),
@@ -110,7 +113,8 @@ export async function saveTeacherDay(db: D1Database, auditKey: string, actor: st
 
   const listOf = (rows: { id: string; status: Status | null }[], status: Status) => rows.filter((r) => r.status === status).map((r) => r.id).sort();
   const before = current.map((r) => ({ id: r.public_id, status: r.status }));
-  const after = current.map((r) => ({ id: r.public_id, status: (exceptions.find((e) => e.teacherId === r.public_id)?.status ?? "present") as Status }));
+  const exceptionOf = new Map(exceptions.map((e) => [e.teacherId, e.status]));
+  const after = current.map((r) => ({ id: r.public_id, status: (exceptionOf.get(r.public_id) ?? "present") as Status }));
 
   const at = now.toISOString();
   const upsert = db
@@ -119,7 +123,7 @@ export async function saveTeacherDay(db: D1Database, auditKey: string, actor: st
        SELECT tu.id, ?2,
               COALESCE((SELECT json_extract(value, '$.status') FROM json_each(?3) WHERE json_extract(value, '$.teacherId') = tu.public_id), 'present'),
               ?4, mu.id, ?5, ?5
-         FROM users tu ${TEACHER_JOINS}, users mu
+         FROM ${TEACHERS}, users mu
         WHERE mu.public_id = ?1 AND ${ACTIVE_TEACHER} AND ${ACTOR_REACH} AND ${moduleOn("teacher_attendance")}
        ON CONFLICT (user_id, on_date) DO UPDATE SET status = excluded.status, reason = excluded.reason, marked_by_user_id = excluded.marked_by_user_id, updated_at = excluded.updated_at`,
     )

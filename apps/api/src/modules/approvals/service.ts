@@ -128,15 +128,16 @@ export async function decideRequest(db: D1Database, auditKey: string, actor: str
   const currentVersion = await handler.currentVersion(db, request.subject_id);
   if (currentVersion === null) return { ok: false, reason: "not_found" };
   const staleRow = await db.prepare("SELECT subject_version FROM approval_requests WHERE id = ?1").bind(request.id).first<{ subject_version: number }>();
-  if (staleRow && staleRow.subject_version !== currentVersion) {
+  const markStale = async () => {
     await write(
       db,
       auditKey,
       { action: "approvals.request.staled", entityType: "approval_request", entityPublicId: requestPublicId, actorPublicId: actor, summary: "Approval request went stale: the subject changed" },
       db.prepare(`UPDATE approval_requests SET status = 'stale' WHERE id = ?1 AND status = 'pending'`).bind(request.id),
     );
-    return { ok: false, reason: "stale" };
-  }
+    return { ok: false as const, reason: "stale" as const };
+  };
+  if (staleRow && staleRow.subject_version !== currentVersion) return markStale();
 
   const now = new Date().toISOString();
   const decideStatement = parsed.data.approve
@@ -183,6 +184,14 @@ export async function decideRequest(db: D1Database, auditKey: string, actor: str
   }
   // A busy ledger is never reported as "someone else decided it" (D-085).
   if (outcome === null) throw new Error("The ledger is too busy: could not apply the approval after several attempts.");
-  return outcome === "done" ? { ok: true } : { ok: false, reason: "already_decided" }; // a lost race: someone else decided it a moment ago
+  if (outcome === "done") return { ok: true };
+  // Nothing changed. Decided by someone else a moment ago, or, while it is still pending: its subject changed in the
+  // moment between the read above and the batch (a kind may re-check its version inside the batch, D-108), or this
+  // person may no longer decide.
+  const after = await db.prepare("SELECT status FROM approval_requests WHERE id = ?1").bind(request.id).first<{ status: string }>();
+  if (after?.status !== "pending") return { ok: false, reason: after?.status === "stale" ? "stale" : "already_decided" };
+  if ((await handler.currentVersion(db, request.subject_id)) !== staleRow?.subject_version) return markStale();
+  const stillDecider = await db.prepare(`SELECT ${isDecider(1)} AS ok`).bind(actor).first<{ ok: number }>();
+  return { ok: false, reason: stillDecider?.ok === 1 ? "already_decided" : "not_allowed" };
 }
 export { approvalsDashboardPart } from "./queries";

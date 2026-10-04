@@ -4,7 +4,7 @@ import type { Context } from "hono";
 import { allowedSections } from "../../core/permissions";
 import { defineRoute } from "../../core/routes";
 import type { App, AppEnv } from "../../core/types";
-import { getSetupChecklist, getTeaching, listClasses, listProgrammes, listTerminals, listYears } from "./queries";
+import { getSetupChecklist, getTeaching, getYearTeaching, listClasses, listProgrammes, listTerminals, listYears } from "./queries";
 import {
   AcademicYearListSchema,
   AssignmentInputSchema,
@@ -25,6 +25,7 @@ import {
   SectionKeyParam,
   SetupChecklistSchema,
   TeachingSchema,
+  YearTeachingSchema,
   TerminalChangesSchema,
   TerminalListSchema,
   YearChangesSchema,
@@ -465,6 +466,24 @@ export function registerAcademics(app: App): void {
       c.header("Cache-Control", "no-store");
       const teaching = await getTeaching(c.env.DB, allowedSections(c.get("grant")!), c.req.valid("param").id);
       return teaching ? c.json(teaching, 200) : c.json({ error: "not_found" }, 404);
+    },
+  );
+
+  defineRoute(
+    app,
+    {
+      method: "get",
+      path: "/api/academics/teaching",
+      operationId: "get_year_teaching",
+      tags: ["academics"],
+      description: "Every active class's subjects with their current teacher, and its Class Teacher, for one year (the active one unless `year` is given), in the person's sections. One request for a page that reads the whole year (D-108).",
+      access: VIEW_ASSIGNMENTS,
+      request: { query: YearQuery },
+      responses: { 200: { description: "The year's teaching", content: json(YearTeachingSchema) } },
+    },
+    async (c) => {
+      c.header("Cache-Control", "no-store");
+      return c.json(await getYearTeaching(c.env.DB, allowedSections(c.get("grant")!), c.req.valid("query").year ?? null), 200);
     },
   );
 

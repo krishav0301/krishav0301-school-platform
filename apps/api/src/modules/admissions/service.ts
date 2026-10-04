@@ -200,6 +200,20 @@ export async function registerWalkIn(
       if (matches.length > 0) return { ok: false, reason: "possible_duplicate", matches };
     }
   }
+  // Checked before anything is written, so a walk-in that cannot be admitted is not left behind in the queue (D-108): the
+  // class must be open and of the chosen level, and the email must not already sign someone in.
+  const parsedLevel = WalkInSchema.safeParse(applicantOnly);
+  if (parsedLevel.success) {
+    const ready = await db
+      .prepare(
+        `SELECT EXISTS (SELECT 1 FROM classes cl JOIN levels lv ON lv.id = cl.level_id WHERE cl.public_id = ?1 AND lv.public_id = ?2 AND cl.is_active = 1) AS class_ok,
+                EXISTS (SELECT 1 FROM users WHERE email = ?3) AS email_taken`,
+      )
+      .bind(classId, parsedLevel.data.levelId, parsedLevel.data.email.trim().toLowerCase())
+      .first<{ class_ok: number; email_taken: number }>();
+    if (ready?.class_ok !== 1) return { ok: false, reason: "invalid", message: CLASS_NOT_OPEN };
+    if (ready.email_taken === 1) return { ok: false, reason: "invalid", message: EMAIL_TAKEN };
+  }
   const registered = await registerApplication(db, auditKey, actor, "walkin", applicantOnly, now);
   if (!registered.ok) return registered;
   const approved = await approveApplication(db, auditKey, dataKey, actor, registered.publicId, { classId }, now);
@@ -349,6 +363,10 @@ async function notifyDecision(db: D1Database, dataKey: string, applicationPublic
   ]);
 }
 
+const CLASS_NOT_OPEN = "That class is not open, or is not of the application's level.";
+const EMAIL_TAKEN = "That email already signs someone in. Each student needs their own email.";
+const EMAIL_TAKEN_APPROVE = `${EMAIL_TAKEN} Ask for changes so the applicant can give another.`;
+
 /** `temporaryPassword` is returned here and nowhere else (never emailed, never logged, D-059's own rule for a secret like this): shown once to the Co-ordinator who approved it, who must relay it to the new student some other way. */
 export type ApproveResult = { ok: true; sid: string; studentId: string; temporaryPassword: string } | WriteFailure | { ok: false; reason: "already_resolved" } | { ok: false; reason: "invalid"; message: string };
 
@@ -423,7 +441,12 @@ export async function approveApplication(
     await notifyDecision(db, dataKey, applicationPublicId, "approved", "", created!.sid);
     return { ok: true, sid: created!.sid, studentId: studentPublicId, temporaryPassword };
   }
-  if (outcome === "check_failed") return { ok: false, reason: "invalid", message: "That class is not open, or is not of the application's level." };
+  if (outcome === "check_failed") return { ok: false, reason: "invalid", message: CLASS_NOT_OPEN };
+  if (outcome === "duplicate") {
+    // The new login's email is already someone's sign-in (each login has its own email): say so, rather than "not allowed".
+    const taken = await db.prepare("SELECT EXISTS (SELECT 1 FROM users WHERE email = (SELECT lower(email) FROM applications WHERE public_id = ?1)) AS taken").bind(applicationPublicId).first<{ taken: number }>();
+    if (taken?.taken === 1) return { ok: false, reason: "invalid", message: EMAIL_TAKEN_APPROVE };
+  }
   return await classifyApproveFailure(db, actor, applicationPublicId, input.classId);
 }
 

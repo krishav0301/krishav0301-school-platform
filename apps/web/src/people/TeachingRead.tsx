@@ -11,8 +11,8 @@ import { classTitle, defaultYearId, type SchoolClass } from "@/setup/model";
 import { ReadSetupHeader } from "@/setup/ReadSetup";
 import { useLoad } from "@/setup/useLoad";
 
-import { loadTeaching } from "./teaching-client";
-import type { Teaching } from "./teaching-model";
+import { loadYearTeaching } from "./teaching-client";
+import type { ClassTeaching } from "./teaching-model";
 
 export interface TeacherLine {
   id: string;
@@ -22,12 +22,13 @@ export interface TeacherLine {
 }
 
 /** Who teaches what, by teacher (D-104): each teacher's subjects and classes, and the class they lead. Pure. */
-export function byTeacher(classes: readonly SchoolClass[], teachings: readonly Teaching[]): { teachers: TeacherLine[]; unassigned: number } {
+export function byTeacher(classes: readonly SchoolClass[], teachings: readonly ClassTeaching[]): { teachers: TeacherLine[]; unassigned: number } {
   const lines = new Map<string, TeacherLine>();
   const line = (id: string, name: string) => lines.get(id) ?? lines.set(id, { id, name, teaches: [], classTeacherOf: [] }).get(id)!;
+  const classById = new Map(classes.map((c) => [c.id, c]));
   let unassigned = 0;
   for (const teaching of teachings) {
-    const cls = classes.find((c) => c.id === teaching.classId);
+    const cls = classById.get(teaching.classId);
     const name = cls ? classTitle(cls) : teaching.levelName;
     if (teaching.classTeacher) line(teaching.classTeacher.id, teaching.classTeacher.fullName).classTeacherOf.push(name);
     for (const a of teaching.assignments) {
@@ -42,18 +43,16 @@ export function byTeacher(classes: readonly SchoolClass[], teachings: readonly T
 export function TeachingRead() {
   const { api } = useSession();
   const { term } = useConfig();
-  const loadNow = useCallback(async (): Promise<Loaded<{ classes: SchoolClass[]; teachings: Teaching[] }>> => {
+  // Three requests whatever the number of classes: the years, then the year's classes and its teaching together (D-108).
+  const loadNow = useCallback(async (): Promise<Loaded<{ classes: SchoolClass[]; teachings: ClassTeaching[] }>> => {
     const years = await loadYears(api);
     if (!years.ok) return { ok: false, reason: years.reason };
     const yearId = defaultYearId(years.data.years);
     if (!yearId) return { ok: true, data: { classes: [], teachings: [] } };
-    const classes = await loadClasses(api, yearId);
+    const [classes, teachings] = await Promise.all([loadClasses(api, yearId), loadYearTeaching(api, yearId)]);
     if (!classes.ok) return { ok: false, reason: classes.reason };
-    const active = classes.data.classes.filter((c) => c.active);
-    const teachings = await Promise.all(active.map((c) => loadTeaching(api, c.id)));
-    const failed = teachings.find((x) => !x.ok);
-    if (failed && !failed.ok) return { ok: false, reason: failed.reason };
-    return { ok: true, data: { classes: active, teachings: teachings.flatMap((x) => (x.ok ? [x.data] : [])) } };
+    if (!teachings.ok) return { ok: false, reason: teachings.reason };
+    return { ok: true, data: { classes: classes.data.classes.filter((c) => c.active), teachings: teachings.data } };
   }, [api]);
   const { view, reload } = useLoad(loadNow);
 

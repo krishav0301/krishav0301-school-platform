@@ -156,21 +156,25 @@ export async function top20(db: D1Database, viewer: { student: string } | { reac
     .bind(chosen, ...(isStudent ? [own!.section_key, own!.level_ordinal, own!.policy] : [viewer.reach.institution, viewer.reach.sections]))
     .all<PoolRow>();
 
+  // Grouped in one pass (each row pushed, never the list copied), and each ranked entry found by id, not by a search.
   const pools = new Map<string, PoolRow[]>();
   for (const r of results) {
     const key = `${r.section_key}|${r.level_ordinal}|${r.policy}`;
-    pools.set(key, [...(pools.get(key) ?? []), r]);
+    const pool = pools.get(key);
+    if (pool) pool.push(r);
+    else pools.set(key, [r]);
   }
   return {
     terminals,
     terminalId: chosen,
     pools: [...pools.values()].map((rows) => {
+      const byId = new Map(rows.map((x) => [x.enrollment_id, x]));
       const ranked = rankResults(rows.map((r) => ({ id: r.enrollment_id, score: rankScore({ gpaHundredths: r.gpa_hundredths, percentHundredths: r.percent_hundredths }), passed: r.passed === 1 }))).filter((r) => r.rank <= 20);
       return {
         sectionName: rows[0]!.section_name,
         levelName: rows[0]!.level_name,
         entries: ranked.map((r) => {
-          const row = rows.find((x) => x.enrollment_id === r.id)!;
+          const row = byId.get(r.id)!;
           return isStudent ? { rank: r.rank, name: row.name } : { rank: r.rank, name: row.name, className: row.class_name, score: rankScore({ gpaHundredths: row.gpa_hundredths, percentHundredths: row.percent_hundredths }) };
         }),
       };

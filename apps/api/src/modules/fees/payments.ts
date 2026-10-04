@@ -205,7 +205,7 @@ export async function verifyVoucher(db: D1Database, key: string, actor: string, 
   if (allowed?.ok !== 1) return { ok: false, reason: "not_found" };
   if (voucher.status !== "submitted") return { ok: false, reason: "conflict" };
   const at = now();
-  return pay(
+  const result = await pay(
     db,
     key,
     { action: "fees.payment.voucher", entityType: "fee_voucher", entityPublicId: voucherId, actorPublicId: actor, summary: `Voucher verified: ${voucher.bank} ${voucher.reference}`, after: { amountPaisa: voucher.amount_paisa } },
@@ -231,6 +231,11 @@ export async function verifyVoucher(db: D1Database, key: string, actor: string, 
       ],
     },
   );
+  if (result.ok || result.reason !== "not_found") return result;
+  // Nothing was written: another person verified or rejected it a moment ago (D-108), which is a conflict, not a
+  // missing voucher.
+  const after = await db.prepare("SELECT status FROM fee_vouchers WHERE public_id = ?1").bind(voucherId).first<{ status: string }>();
+  return after && after.status !== "submitted" ? { ok: false, reason: "conflict" } : result;
 }
 
 export async function rejectVoucher(db: D1Database, key: string, actor: string, voucherId: string, reason: string): Promise<{ ok: true } | { ok: false; reason: "not_found" | "conflict" }> {

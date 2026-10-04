@@ -95,11 +95,13 @@ export async function drainOutbox(db: D1Database, handlers: Readonly<Record<stri
   const nowIso = now.toISOString();
   const result: DrainResult = { processed: 0, failed: 0, dead: 0 };
 
+  // `next_attempt_at` alone (every event is queued with it set, migration 0029), so the partial index `outbox_due`
+  // serves the sweep: it reads the events still due, never the processed ones (D-108).
   const { results } = await db
     .prepare(
       `SELECT id, type, payload_json, dedupe_key FROM outbox_events
         WHERE processed_at IS NULL AND dead_at IS NULL
-          AND COALESCE(next_attempt_at, at) <= ?1
+          AND next_attempt_at <= ?1
           AND (claimed_until IS NULL OR claimed_until <= ?1)
         ORDER BY id LIMIT ?2`,
     )
