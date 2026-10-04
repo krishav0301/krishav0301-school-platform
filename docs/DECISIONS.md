@@ -1125,10 +1125,27 @@ The matrix lives in code (61 actions, 8 groups, from the reviewed `permission-ma
   - the shape of the page shown while it loads.
 - **Not done (Phase 8, rest).** A waive-dues flow, the +2 to Bachelor's handover, and reactivation. Also not done: CGPA across terms; billing choices beyond monthly and once a term; a credit at promotion (`OPEN:` above). The Co-ordinator FUT harness (`docs/fut/coordinator/scripts`) still makes years as the Co-ordinator and needs updating before it is run again.
 
+**D-111 BS 2084 checked: not verified, and our converter's 2084 data is likely wrong.** 2026-10-04, at the PM's request ("do what you can to verify this"). Details in `docs/spikes/bs-2084.md`.
+- **Not verified.** The network policy of this cloud environment blocks every Nepali calendar site and npns.gov.np, and the official 2084 almanac is likely not out yet. The verified range stays BS 2000 to 2083, so no term, due date or other date may fall after Chaitra 30, 2083 (13 April 2027).
+- **Evidence found.**
+  - Seven date packages split into two families for 2084.
+  - An astronomy check (`docs/spikes/bs-year-check/check.py`) is calibrated on the 1,008 verified month starts and predicts all 168 months of BS 2070 to 2083 out of sample. It puts 8 of our pinned converter's 13 boundaries for 2084 (counting Baisakh 1, 2085) a day early.
+  - Three of the converter's months would start a full day before anything seen in 84 years.
+  - The other family (31 32 31 32 31 30 30 30 29 29 30 31) agrees with the astronomy.
+- **Consequence.**
+  - When the official calendar is published, verifying 2084 will probably need converter data other than `@inicrea/bikram-sambat-core` 0.1.3: an upgrade or a replacement.
+  - Changing the converter changes D-022, so it needs PM approval when it comes.
+  - We still never write conversion tables ourselves.
+  - The check script is evidence for the two-person check, not a source.
+- **Unblock.**
+  - Either the PM allows hamropatro.com, nepalipatro.com.np and npns.gov.np in this environment's network settings,
+  - or the PM sends the twelve 2084 month lengths from the published calendar.
+  - Then compare them with the check, choose the converter, extend the golden test and the verified range.
+
 ## Open items carried forward
 
 - **Deploy D-108 and D-110 to staging (PM, from the laptop).** Migrations 0029 and 0030 and the Worker. 0030 rebuilds `academic_years` (see D-110); take a D1 Time Travel bookmark before applying it.
-- **Verify BS 2084 (urgent for semester schools, D-110).** No term may run past Chaitra 2083 until it is verified.
+- **Verify BS 2084 (urgent for semester schools, D-110, D-111).** No term may run past Chaitra 2083 until it is verified. Our pinned converter likely has 2084 wrong (D-111), so verifying it will probably need converter data that matches the official calendar (PM approval, changes D-022).
 - **A credit at promotion (`OPEN:`, D-110).** A credit stays with the closed term's enrollment and cannot be refunded there.
 
 - **Public pages carry the whole portal word list (D-102, D-106).** `apps/web/src/i18n/messages.ts` is about 108 KB and every page, the public ones included, loads all of it; it has twice pushed the sign-in page over its page-weight budget. Splitting it into a public catalog and a portal catalog (loaded only inside the portal) would take roughly half the weight off every public page. That changes the "words live in `messages.ts`" rule in CLAUDE.md, so it needs the PM's agreement first.
