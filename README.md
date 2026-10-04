@@ -76,6 +76,22 @@ npx wrangler deploy --config wrangler.local.jsonc
 USER_PASSWORD='...' AUDIT_HMAC_KEY='...' npm run dev:user -- --remote --config wrangler.local.jsonc --email you@school.example --name "Support" --role super_admin
 ```
 
+**Updating an existing deployment** (for example staging), from a laptop that has `apps/api/wrangler.local.jsonc` for it:
+
+```bash
+git checkout main && git pull
+cd apps/api && npm ci && cd ../web && npm ci && npm run build && cd ../api
+# 1. A restore point first: note the bookmark it prints (D1 Time Travel keeps 30 days).
+npx wrangler d1 time-travel info DB --config wrangler.local.jsonc
+# 2. See which migrations are new, then apply them with the school's pack (both safe to repeat):
+npx wrangler d1 migrations list DB --remote --config wrangler.local.jsonc
+npm run provision -- --pack ../../packs/royal-softech --remote --config wrangler.local.jsonc
+# 3. Deploy the Worker with the web app just built:
+npx wrangler deploy --config wrangler.local.jsonc
+```
+
+Then sign in as the Admin and open a page or two. If something is wrong after new migrations, roll back both, database first: `npx wrangler d1 time-travel restore DB --bookmark <bookmark> --config wrangler.local.jsonc` (this loses anything written since), then `npx wrangler rollback --config wrangler.local.jsonc`. Rolling back only the Worker is safe only when no migration ran: older code may not work on a newer database (after `0030`, it cannot make terms).
+
 Stop `wrangler dev` before `npm run build` in `apps/web` on Windows: it holds the `out` folder open.
 
 **A test site for UAT** (D-086) gets a starter set of classes, subjects, teachers, students and fees through its own API. It refuses any site that really sends email, so never production. The new sign-ins go to a file outside the repository:
