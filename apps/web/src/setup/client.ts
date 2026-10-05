@@ -106,6 +106,10 @@ export const setLevelActive = async (api: ApiClient, id: string, active: boolean
 export const createClass = async (api: ApiClient, body: { yearId: string; levelId: string; label: string }): Promise<CreateResult> =>
   created(await send(() => api.POST("/api/academics/classes", { body })));
 
+/** A class's section, such as A or Morning, or none (D-114). Its term and level never change. */
+export const renameClass = async (api: ApiClient, id: string, label: string): Promise<WriteResult> =>
+  done(await send(() => api.PATCH("/api/academics/classes/{id}", { params: { path: { id } }, body: { label } })));
+
 export const setClassActive = async (api: ApiClient, id: string, active: boolean): Promise<WriteResult> =>
   done(await send(() => api.PATCH("/api/academics/classes/{id}", { params: { path: { id } }, body: { active } })));
 

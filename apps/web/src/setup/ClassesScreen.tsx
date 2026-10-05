@@ -9,7 +9,7 @@ import { AddDialog, Button, Field, Notice, Select } from "@/ui";
 
 import { ReadHeader, ReadOnlyNote, readStyles } from "@/read/ReadView";
 
-import { createClass, deleteClass, loadClasses, loadProgrammes, loadYears, setClassActive, type Loaded } from "./client";
+import { createClass, deleteClass, loadClasses, loadProgrammes, loadYears, renameClass, setClassActive, type Loaded } from "./client";
 import { REASON_MESSAGE, canManageStructure, classTitle, defaultYearId, levelChoices, termWords, type Programme, type SchoolClass, type Year } from "./model";
 import { DeleteControl } from "./ProgrammesScreen";
 import { ClassesTable, ReadSetupHeader } from "./ReadSetup";
@@ -33,11 +33,14 @@ export function ClassesView({
   busy,
   onToggle,
   onDelete,
+  onRename,
 }: {
   classes: readonly SchoolClass[];
   canManage: boolean;
   busy: string | null;
   onToggle: (c: SchoolClass) => void;
+  /** A new section for the class (D-114); true when saved. */
+  onRename?: (c: SchoolClass, label: string) => Promise<true | string>;
   /** Only offered for a class nothing is attached to (D-097): with students it is switched off instead. */
   onDelete?: (c: SchoolClass) => Promise<boolean>;
 }) {
@@ -52,6 +55,20 @@ export function ClassesView({
                 const title = classTitle(c);
                 return (
                   <span className={styles.rowActions}>
+                    {onRename ? (
+                      <AddDialog label={t("structure.edit")} ariaLabel={t("structure.editItem", { name: title })} title={t("structure.editTitle", { name: title })} variant="quiet" plus={false}>
+                        {(close) => (
+                          <ClassSectionForm
+                            initial={c.label}
+                            onSave={async (label) => {
+                              const saved = await onRename(c, label);
+                              if (saved === true) close();
+                              return saved;
+                            }}
+                          />
+                        )}
+                      </AddDialog>
+                    ) : null}
                     <Button
                       variant="quiet"
                       loading={busy === c.id}
@@ -62,7 +79,7 @@ export function ClassesView({
                     >
                       {t(c.active ? "setup.programmes.switchOff" : "setup.programmes.switchOn")}
                     </Button>
-                    {onDelete && c.canDelete ? <DeleteControl name={title} canDelete onDelete={() => onDelete(c)} /> : null}
+                    {onDelete && c.canDelete ? <DeleteControl name={title} canDelete inline onDelete={() => onDelete(c)} /> : null}
                   </span>
                 );
               },
@@ -70,6 +87,34 @@ export function ClassesView({
           : undefined
       }
     />
+  );
+}
+
+/** A class's section, the only thing about a class that changes (D-114): its term and level stay. */
+export function ClassSectionForm({ initial, onSave }: { initial: string; onSave: (label: string) => Promise<true | string> }) {
+  const [label, setLabel] = useState(initial);
+  const [problem, setProblem] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+
+  async function submit(event: FormEvent) {
+    event.preventDefault();
+    if (saving) return;
+    setSaving(true);
+    setProblem(null);
+    const saved = await onSave(label.trim());
+    setSaving(false);
+    // Said inside the pop-up: the page's own notice is behind its backdrop (admin FUT F-01).
+    if (saved !== true) setProblem(saved);
+  }
+
+  return (
+    <form onSubmit={submit} noValidate className={styles.form}>
+      {problem ? <Notice tone="bad">{problem}</Notice> : null}
+      <Field label={t("setup.classes.label")} hint={t("setup.classes.labelHint")} value={label} maxLength={40} autoComplete="off" onChange={(event) => setLabel(event.target.value)} />
+      <Button type="submit" loading={saving} loadingLabel={t("setup.working")}>
+        {t("structure.saveChanges")}
+      </Button>
+    </form>
   );
 }
 
@@ -155,6 +200,14 @@ export function ClassesScreen() {
     await classes.reload();
   }
 
+  async function rename(c: SchoolClass, label: string): Promise<true | string> {
+    const result = await renameClass(api, c.id, label);
+    if (!result.ok) return t(REASON_MESSAGE[result.reason]);
+    setFlash({ tone: "ok", text: t("structure.done.saved") });
+    await classes.reload();
+    return true;
+  }
+
   async function remove(c: SchoolClass): Promise<boolean> {
     setFlash(null);
     const result = await deleteClass(api, c.id);
@@ -204,7 +257,7 @@ export function ClassesScreen() {
                 <YearPicker years={list} value={yearId} onChange={setPicked} />
               </div>
               <Gate view={classes.view} onRetry={() => void classes.reload()}>
-                {(data) => (canManage ? <ClassesView classes={data.classes} canManage={canManage} busy={busy} onToggle={(c) => void toggle(c)} onDelete={remove} /> : <ClassesTable classes={data.classes} />)}
+                {(data) => (canManage ? <ClassesView classes={data.classes} canManage={canManage} busy={busy} onToggle={(c) => void toggle(c)} onDelete={remove} onRename={rename} /> : <ClassesTable classes={data.classes} />)}
               </Gate>
             </>
           )

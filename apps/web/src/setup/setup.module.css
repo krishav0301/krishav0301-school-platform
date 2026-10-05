@@ -189,8 +189,9 @@
 }
 
 /* A row's controls in a setup table (D-106): side by side, wrapping under each other on a narrow phone. */
+/* A row's actions on one line, ending at the edge (D-114); they wrap only when the text is enlarged. */
 .rowActions {
-  display: inline-flex;
+  display: flex;
   flex-wrap: wrap;
   align-items: center;
   justify-content: flex-end;

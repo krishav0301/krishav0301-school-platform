@@ -8,7 +8,7 @@ import TerminalsPage from "@/app/portal/setup/terminals/page";
 import PromotionPage from "@/app/portal/setup/promotion/page";
 import { ConfigContext, makeConfigValue, type PublicConfig } from "@/config/ConfigProvider";
 import { SetupTabs } from "@/setup/SetupLayout";
-import { ClassForm, ClassesView } from "@/setup/ClassesScreen";
+import { ClassForm, ClassSectionForm, ClassesView } from "@/setup/ClassesScreen";
 import { AcademicStructureView, LengthForm, LevelForm, type Structure, type StructureActions } from "@/setup/ProgrammesScreen";
 import { TerminalsView } from "@/setup/TerminalsScreen";
 import { YearsScreen } from "@/setup/YearsScreen";
@@ -316,6 +316,23 @@ describe("the classes screen", () => {
     { id: "c1", yearId: "y", programmeId: "p1", programmeName: "BBS", sectionKey: "bachelors", levelId: "l1", levelName: "Year 1", label: "Morning", active: true, canDelete: false },
     { id: "c2", yearId: "y", programmeId: "p1", programmeName: "BBS", sectionKey: "bachelors", levelId: "l1", levelName: "Year 1", label: "", active: false, canDelete: true },
   ];
+
+  it("puts Edit, Switch off and Delete in one row of actions (D-114)", () => {
+    const html = inContext(<ClassesView classes={classes} canManage busy={null} onToggle={noop} onDelete={async () => true} onRename={async () => true as const} />);
+    const row = /<span class="rowActions">([\s\S]*?)<\/span><\/td>/.exec(html.slice(html.indexOf("BBS · Year 1</td>")))?.[1] ?? "";
+    expect(row).toContain("Edit");
+    expect(row).toContain("Switch on");
+    expect(row).toContain("Delete");
+    expect(row).not.toContain("deleteRow"); // the pop-up's separated block is not used in a table row
+    expect(html).toContain('aria-label="Edit BBS · Year 1 (Morning)"');
+  });
+
+  it("Edit changes only the class's section, prefilled (D-114)", () => {
+    const html = inContext(<ClassSectionForm initial="Morning" onSave={async () => true as const} />);
+    expect(html).toContain(">Section (optional)<");
+    expect(html).toContain('value="Morning"');
+    expect(count(html, /<input/g)).toBe(1);
+  });
 
   it("lists each class by programme, level and label, and marks one that is switched off", () => {
     const html = inContext(<ClassesView classes={classes} canManage busy={null} onToggle={noop} />);

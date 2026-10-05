@@ -388,20 +388,19 @@ function SwitchButton({ active, name, onSwitch }: { active: boolean; name: strin
  * Delete, inside an Edit or options pop-up (D-097). Offered only when nothing is attached; it then asks once more,
  * because it cannot be undone. When something is attached, it says why it cannot be deleted and what to do instead.
  */
-export function DeleteControl({ name, canDelete, blocked, onDelete }: { name: string; canDelete: boolean; blocked?: MessageKey; onDelete: () => Promise<boolean> }) {
+export function DeleteControl({ name, canDelete, blocked, onDelete, inline = false }: { name: string; canDelete: boolean; blocked?: MessageKey; onDelete: () => Promise<boolean>; inline?: boolean }) {
   const [confirming, setConfirming] = useState(false);
   const [working, setWorking] = useState(false);
   if (!canDelete) return blocked ? <p className={styles.deleteNote}>{t(blocked)}</p> : null;
-  if (!confirming)
-    return (
-      <div className={styles.deleteRow}>
-        <Button variant="quiet" aria-label={t("structure.deleteItem", { name })} onClick={() => setConfirming(true)}>
-          {t("structure.delete")}
-        </Button>
-      </div>
-    );
+  const ask = (
+    <Button variant="quiet" aria-label={t("structure.deleteItem", { name })} onClick={() => setConfirming(true)}>
+      {t("structure.delete")}
+    </Button>
+  );
+  // In a table row (D-114) it sits beside the other actions; in a pop-up it is set apart below them.
+  if (!confirming) return inline ? ask : <div className={styles.deleteRow}>{ask}</div>;
   return (
-    <div className={styles.confirm} role="group" aria-label={t("structure.deleteItem", { name })}>
+    <div className={inline ? styles.confirmInline : styles.confirm} role="group" aria-label={t("structure.deleteItem", { name })}>
       <p className={styles.confirmText}>{t("structure.deleteConfirm", { name })}</p>
       <div className={styles.formActions}>
         <Button variant="quiet" onClick={() => setConfirming(false)}>
