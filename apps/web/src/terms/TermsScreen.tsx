@@ -60,7 +60,7 @@ export function TermsTable({ terms, onOpen }: { terms: readonly Term[]; onOpen?:
         ) : (
           <span className={styles.cellStack}>
             <span>{levelSummary(x.levels)}</span>
-            <span className={styles.meta}>{t("terms.misfit", { levels: misfits.map((l) => l.name).join(", "), months: x.months ?? 0 })}</span>
+            <span className={styles.meta}>{t("terms.misfit", { levels: misfits.map((l) => `${l.programmeName} · ${l.name}`).join(", "), months: x.months ?? 0 })}</span>
           </span>
         );
       },
@@ -382,7 +382,7 @@ function TermPanel({ term, programmes, terms, onClose, onDone }: { term: Term; p
             />
             <PanelSection title={t("terms.col.levels")}>
               <p className={styles.meta}>{levelSummary(term.levels)}</p>
-              {misfitLevels(term).length > 0 ? <Notice>{t("terms.misfit", { levels: misfitLevels(term).map((l) => l.name).join(", "), months: term.months ?? 0 })}</Notice> : null}
+              {misfitLevels(term).length > 0 ? <Notice>{t("terms.misfit", { levels: misfitLevels(term).map((l) => `${l.programmeName} · ${l.name}`).join(", "), months: term.months ?? 0 })}</Notice> : null}
             </PanelSection>
             <p className={styles.meta}>{t(term.status === "draft" ? "terms.hint.draft" : term.status === "active" ? "terms.hint.active" : "terms.hint.closed")}</p>
           </>

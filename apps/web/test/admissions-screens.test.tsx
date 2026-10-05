@@ -97,7 +97,7 @@ describe("ApplicantFields", () => {
   it("shows every field with its label; with one open level, it says where the applicant is applying", () => {
     const html = inContext(<ApplicantFields values={emptyApplicantForm()} errors={{}} levels={levels} onChange={noop} />);
     for (const label of ["First name", "Last name", "Date of birth", "Phone", "Email", "Guardian&#x27;s name", "Guardian&#x27;s phone", "Applying for"]) expect(html).toContain(label);
-    expect(html).toContain("+2 · Science · Grade 11");
+    for (const line of [": +2<", ": Science<", ": Grade 11<"]) expect(html).toContain(line);
   });
 
   it("asks for the wing first, then the course, then the level (D-114)", () => {

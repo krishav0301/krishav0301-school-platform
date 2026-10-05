@@ -10,6 +10,8 @@ import { Field, Select } from "@/ui";
 import fieldStyles from "@/ui/Field.module.css";
 
 import styles from "./admissions.module.css";
+import { GivenStep } from "@/setup/StructurePicker";
+
 import { choiceForLevel, levelSteps, type LevelChoice } from "./level-steps";
 import type { ApplicantErrors, ApplicantForm, OpenLevel } from "./model";
 
@@ -67,12 +69,11 @@ function LevelFields({ levels, levelId, onChange, error, levelRef }: { levels: r
     onChange(settled.levelId ?? "");
   };
   const first = steps.wings.length > 1 && !choice.sectionKey ? "wing" : steps.courses.length > 1 && !choice.programmeId ? "course" : "level";
-  const given = [steps.wings.length === 1 ? steps.wings[0]!.name : null, steps.courses.length === 1 ? steps.courses[0]!.name : null, steps.levels.length === 1 ? steps.levels[0]!.name : null].filter(Boolean);
 
   return (
     <fieldset className={styles.levelSteps}>
       <legend className={fieldStyles.label}>{t("admissions.field.level")}</legend>
-      {given.length > 0 ? <p className={styles.levelGiven}>{given.join(" · ")}</p> : null}
+      {steps.wings.length === 1 ? <GivenStep label={term("term.section")} value={steps.wings[0]!.name} /> : null}
       {steps.wings.length > 1 ? (
         <Select
           ref={first === "wing" ? levelRef : undefined}
@@ -83,6 +84,7 @@ function LevelFields({ levels, levelId, onChange, error, levelRef }: { levels: r
           error={first === "wing" ? error : undefined}
         />
       ) : null}
+      {steps.courses.length === 1 ? <GivenStep label={term("term.programme")} value={steps.courses[0]!.name} /> : null}
       {steps.courses.length > 1 ? (
         <Select
           ref={first === "course" ? levelRef : undefined}
@@ -93,6 +95,7 @@ function LevelFields({ levels, levelId, onChange, error, levelRef }: { levels: r
           error={first === "course" ? error : undefined}
         />
       ) : null}
+      {steps.levels.length === 1 ? <GivenStep label={term("term.level")} value={steps.levels[0]!.name} /> : null}
       {steps.levels.length > 1 ? (
         <Select
           ref={first === "level" ? levelRef : undefined}

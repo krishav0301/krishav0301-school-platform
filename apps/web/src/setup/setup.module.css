@@ -189,13 +189,27 @@
 }
 
 /* A row's controls in a setup table (D-106): side by side, wrapping under each other on a narrow phone. */
-/* A row's actions on one line, ending at the edge (D-114); they wrap only when the text is enlarged. */
+/* A row's actions on one line, ending at the edge (D-114, FUT point 7): the column grows to hold them. */
 .rowActions {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   align-items: center;
   justify-content: flex-end;
   gap: var(--space-2);
+}
+
+/*
+ * Asking "Delete this?" drops the question under the row's actions; so does a phone or enlarged text (the width is in
+ * rem, so text at 200% counts as narrow), where one line would push the page sideways (D-030).
+ */
+.rowActions:has([role="group"]) {
+  flex-wrap: wrap;
+}
+
+@media (max-width: 48rem) {
+  .rowActions {
+    flex-wrap: wrap;
+  }
 }
 
 /* Wing, Course and Level, one under the other (D-114); two or three across when there is room. */

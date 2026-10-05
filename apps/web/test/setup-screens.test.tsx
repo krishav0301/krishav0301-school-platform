@@ -97,7 +97,7 @@ describe("academic terms (D-110)", () => {
 
   it("flags an open term's level whose length is not set or no longer matches (D-114)", () => {
     const html = inContext(<TermsTable terms={[year("t9", "Year", "active", [sem("l1", "Semester 1"), sem("l2", "Semester 2", "BCA", 6), sem("l4", "Semester 4", "BCA", null)])]} />);
-    expect(html).toContain("Check the length of Semester 2, Semester 4: this term runs 12 months.");
+    expect(html).toContain("Check the length of BCA · Semester 2, BCA · Semester 4: this term runs 12 months.");
     expect(inContext(<TermsTable terms={terms} />)).not.toContain("Check the length");
   });
 

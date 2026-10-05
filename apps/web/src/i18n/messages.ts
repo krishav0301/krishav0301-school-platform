@@ -431,6 +431,7 @@ export const en = {
   "setup.tab.subjects": "Subjects",
   "setup.tab.curriculum": "Curriculum",
   "setup.tab.teaching": "Teaching",
+  "setup.picker.given": "{label}: {value}",
   "setup.done.archived": "Archived.",
   "setup.done.restored": "Restored.",
   "setup.done.changed": "Changed.",
