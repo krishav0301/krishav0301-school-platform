@@ -2363,6 +2363,257 @@
         },
         "additionalProperties": false
       },
+      "ClassHubList": {
+        "type": "object",
+        "properties": {
+          "classes": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "termLabel": {
+                  "type": "string"
+                },
+                "wing": {
+                  "type": "string"
+                },
+                "course": {
+                  "type": "string"
+                },
+                "level": {
+                  "type": "string"
+                },
+                "section": {
+                  "type": "string"
+                },
+                "classTeacher": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "students": {
+                  "type": "integer"
+                },
+                "isClassTeacher": {
+                  "type": "boolean"
+                }
+              },
+              "required": [
+                "id",
+                "termLabel",
+                "wing",
+                "course",
+                "level",
+                "section",
+                "classTeacher",
+                "students",
+                "isClassTeacher"
+              ]
+            }
+          }
+        },
+        "required": [
+          "classes"
+        ]
+      },
+      "ClassHub": {
+        "type": "object",
+        "properties": {
+          "class": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "termLabel": {
+                "type": "string"
+              },
+              "wing": {
+                "type": "string"
+              },
+              "course": {
+                "type": "string"
+              },
+              "level": {
+                "type": "string"
+              },
+              "section": {
+                "type": "string"
+              },
+              "classTeacher": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "students": {
+                "type": "integer"
+              }
+            },
+            "required": [
+              "id",
+              "termLabel",
+              "wing",
+              "course",
+              "level",
+              "section",
+              "classTeacher",
+              "students"
+            ]
+          },
+          "viewer": {
+            "type": "object",
+            "properties": {
+              "seesAll": {
+                "type": "boolean"
+              },
+              "attendance": {
+                "type": "boolean"
+              },
+              "isClassTeacher": {
+                "type": "boolean"
+              },
+              "staff": {
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "seesAll",
+              "attendance",
+              "isClassTeacher",
+              "staff"
+            ]
+          },
+          "subjects": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "offeringId": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "offeringId",
+                "name"
+              ]
+            }
+          },
+          "mySubjects": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "offeringId": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "offeringId",
+                "name"
+              ]
+            }
+          },
+          "taughtSubjects": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "offeringId": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "offeringId",
+                "name"
+              ]
+            }
+          },
+          "terminals": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "published": {
+                  "type": "boolean"
+                }
+              },
+              "required": [
+                "id",
+                "name",
+                "published"
+              ]
+            }
+          },
+          "students": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "enrollmentId": {
+                  "type": "string"
+                },
+                "rollNo": {
+                  "type": [
+                    "integer",
+                    "null"
+                  ]
+                },
+                "name": {
+                  "type": "string"
+                },
+                "sid": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "studentId": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                }
+              },
+              "required": [
+                "enrollmentId",
+                "rollNo",
+                "name",
+                "sid",
+                "studentId"
+              ]
+            }
+          }
+        },
+        "required": [
+          "class",
+          "viewer",
+          "subjects",
+          "mySubjects",
+          "taughtSubjects",
+          "terminals",
+          "students"
+        ]
+      },
       "PublicConfig": {
         "type": "object",
         "properties": {
@@ -13556,6 +13807,69 @@
         }
       }
     },
+    "/api/classes": {
+      "get": {
+        "operationId": "list_class_pages",
+        "tags": [
+          "academics"
+        ],
+        "description": "The classes of open terms the person opens: every class (or a wing's) for the Principal and the Co-ordinator; for a teacher, the classes they teach in or lead.",
+        "responses": {
+          "200": {
+            "description": "The classes",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClassHubList"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/classes/{id}": {
+      "get": {
+        "operationId": "get_class_page",
+        "tags": [
+          "academics"
+        ],
+        "description": "One class as a page: where it sits, its students, its subjects and exams, and what the person may see of it. A subject teacher gets names only, their own subjects, and no attendance. A class the person does not open is 404, the same as a missing one.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{32}$"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The class",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClassHub"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such class, or not one the person opens",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AcademicsError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/config/public": {
       "get": {
         "operationId": "public_config",
@@ -19346,7 +19660,7 @@
         "tags": [
           "results"
         ],
-        "description": "The whole-class sheet of a published terminal: students by subjects, with the GPA or percentage and the rank in the class.",
+        "description": "The whole-class sheet of a published terminal: students by subjects, with the GPA or percentage and the rank in the class. A Class Teacher reads their own class's (FUT point 19).",
         "parameters": [
           {
             "schema": {

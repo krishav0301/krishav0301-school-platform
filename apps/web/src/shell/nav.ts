@@ -24,12 +24,14 @@ export interface NavItem {
   icon: NavIcon;
 }
 
-export type NavIcon = "overview" | "website" | "programs" | "terms" | "setup" | "people" | "approvals" | "admissions" | "attendance" | "classwork" | "fees" | "results" | "reports" | "settings";
+export type NavIcon = "overview" | "classes" | "website" | "programs" | "terms" | "setup" | "people" | "approvals" | "admissions" | "attendance" | "classwork" | "fees" | "results" | "reports" | "settings";
 
 export const MAX_TABS = 5;
 
 export const NAV_ITEMS: readonly NavItem[] = [
   { id: "dashboard", labelKey: "nav.dashboard", href: "/portal", icon: "overview" },
+  // FUT point 19 (D-116): a class as one page, for the staff who work with classes. A teacher sees the classes they teach.
+  { id: "classes", labelKey: "nav.classes", href: "/portal/classes", roles: ["teacher", "coordinator", "admin", "super_admin"], icon: "classes" },
   // Phase 2: the Admin edits the public website's content (D-040). Phase 3, slice 4: a Co-ordinator
   // drafts too, and sends a draft for approval instead of publishing it (D-061).
   { id: "content", labelKey: "nav.content", href: "/portal/content", roles: ["coordinator", "admin", "super_admin"], rarely: true, icon: "website" },

@@ -865,6 +865,40 @@ export interface paths {
         patch: operations["update_elective_group"];
         trace?: never;
     };
+    "/api/classes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description The classes of open terms the person opens: every class (or a wing's) for the Principal and the Co-ordinator; for a teacher, the classes they teach in or lead. */
+        get: operations["list_class_pages"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/classes/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description One class as a page: where it sits, its students, its subjects and exams, and what the person may see of it. A subject teacher gets names only, their own subjects, and no attendance. A class the person does not open is 404, the same as a missing one. */
+        get: operations["get_class_page"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/config/public": {
         parameters: {
             query?: never;
@@ -2444,7 +2478,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** @description The whole-class sheet of a published terminal: students by subjects, with the GPA or percentage and the rank in the class. */
+        /** @description The whole-class sheet of a published terminal: students by subjects, with the GPA or percentage and the rank in the class. A Class Teacher reads their own class's (FUT point 19). */
         get: operations["get_class_result_sheet"];
         put?: never;
         post?: never;
@@ -3190,6 +3224,61 @@ export interface components {
             name?: string;
             pickCount?: number;
             active?: boolean;
+        };
+        ClassHubList: {
+            classes: {
+                id: string;
+                termLabel: string;
+                wing: string;
+                course: string;
+                level: string;
+                section: string;
+                classTeacher: string | null;
+                students: number;
+                isClassTeacher: boolean;
+            }[];
+        };
+        ClassHub: {
+            class: {
+                id: string;
+                termLabel: string;
+                wing: string;
+                course: string;
+                level: string;
+                section: string;
+                classTeacher: string | null;
+                students: number;
+            };
+            viewer: {
+                seesAll: boolean;
+                attendance: boolean;
+                isClassTeacher: boolean;
+                staff: boolean;
+            };
+            subjects: {
+                offeringId: string;
+                name: string;
+            }[];
+            mySubjects: {
+                offeringId: string;
+                name: string;
+            }[];
+            taughtSubjects: {
+                offeringId: string;
+                name: string;
+            }[];
+            terminals: {
+                id: string;
+                name: string;
+                published: boolean;
+            }[];
+            students: {
+                enrollmentId: string;
+                rollNo: number | null;
+                name: string;
+                sid: string | null;
+                studentId: string | null;
+            }[];
         };
         PublicConfig: {
             school: {
@@ -7671,6 +7760,57 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AcademicsInvalid"];
+                };
+            };
+        };
+    };
+    list_class_pages: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The classes */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClassHubList"];
+                };
+            };
+        };
+    };
+    get_class_page: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The class */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClassHub"];
+                };
+            };
+            /** @description No such class, or not one the person opens */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AcademicsError"];
                 };
             };
         };

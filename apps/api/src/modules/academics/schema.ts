@@ -415,3 +415,39 @@ export const SetupChecklistSchema = z
   })
   .openapi("SetupChecklist");
 export type SetupChecklist = z.infer<typeof SetupChecklistSchema>;
+
+// --- A class as one page (FUT point 19, D-116) --------------------------------------------------------
+
+const ClassPlaceSchema = z.object({
+  id: z.string(),
+  termLabel: z.string(),
+  wing: z.string(),
+  course: z.string(),
+  level: z.string(),
+  /** Its section, such as A or Morning; empty when it has none. */
+  section: z.string(),
+  classTeacher: z.string().nullable(),
+  students: z.number().int(),
+});
+export const ClassHubListSchema = z.object({ classes: z.array(ClassPlaceSchema.extend({ isClassTeacher: z.boolean() })) }).openapi("ClassHubList");
+export type ClassHubList = z.infer<typeof ClassHubListSchema>;
+
+const HubSubjectSchema = z.object({ offeringId: z.string(), name: z.string() });
+export const ClassHubSchema = z
+  .object({
+    class: ClassPlaceSchema,
+    /** What the person sees: everything (the Class Teacher, the Co-ordinator, the Principal) or a subject teacher's part. */
+    /** `staff`: the Principal, a Co-ordinator or Support, who reach the class as a whole (not by teaching in it). */
+    viewer: z.object({ seesAll: z.boolean(), attendance: z.boolean(), isClassTeacher: z.boolean(), staff: z.boolean() }),
+    subjects: z.array(HubSubjectSchema),
+    /** The subjects whose marks the person sees: every one (published, for a Class Teacher), or a subject teacher's own. */
+    mySubjects: z.array(HubSubjectSchema),
+    /** The subjects the person teaches in this class: their classwork and their marks to enter. */
+    taughtSubjects: z.array(HubSubjectSchema),
+    /** The term's exams, and whether this class's results are published for each. */
+    terminals: z.array(z.object({ id: z.string(), name: z.string(), published: z.boolean() })),
+    /** The students, by roll number. `sid` and `studentId` are null for a subject teacher (names only). */
+    students: z.array(z.object({ enrollmentId: z.string(), rollNo: z.number().int().nullable(), name: z.string(), sid: z.string().nullable(), studentId: z.string().nullable() })),
+  })
+  .openapi("ClassHub");
+export type ClassHub = z.infer<typeof ClassHubSchema>;

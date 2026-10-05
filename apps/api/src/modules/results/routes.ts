@@ -56,6 +56,7 @@ const ENTER = { action: "marks.enter" } as const;
 const VERIFY = { action: "marks.verify" } as const;
 const PUBLISH = { action: "results.publish" } as const;
 const VIEW = { action: "results.view" } as const;
+const CLASS_SHEET = { action: "results.class_sheet.view" } as const;
 const TOP20 = { action: "results.top20.view" } as const;
 const RECHECK = { action: "results.recheck.request" } as const;
 const RECHECK_EDIT = { action: "results.recheck.edit" } as const;
@@ -322,15 +323,21 @@ export function registerResults(app: App): void {
       path: "/api/results/classes/{classId}/terminals/{terminalId}/sheet",
       operationId: "get_class_result_sheet",
       tags: ["results"],
-      description: "The whole-class sheet of a published terminal: students by subjects, with the GPA or percentage and the rank in the class.",
-      access: VIEW,
+      description: "The whole-class sheet of a published terminal: students by subjects, with the GPA or percentage and the rank in the class. A Class Teacher reads their own class's (FUT point 19).",
+      access: CLASS_SHEET,
       request: { params: ClassTerminal },
       responses: { 200: { description: "The sheet", content: json(ClassSheetSchema) }, 404: failures[404] },
     },
     async (c) => {
-      const reach = staffReach(c.get("grant")!);
+      const grant = c.get("grant")!;
+      const staff = staffReach(grant);
       const { classId, terminalId } = c.req.valid("param");
-      const sheet = reach ? await classSheet(c.env.DB, reach, classId, terminalId) : null;
+      // A Class Teacher reaches no wing, only the class they lead: any wing, filtered to that class.
+      const sheet = staff
+        ? await classSheet(c.env.DB, staff, classId, terminalId)
+        : grant.classOnly
+          ? await classSheet(c.env.DB, { institution: 1, sections: null }, classId, terminalId, c.get("auth")!.userPublicId)
+          : null;
       return sheet ? c.json(sheet, 200) : c.json({ error: "not_found" }, 404);
     },
   );

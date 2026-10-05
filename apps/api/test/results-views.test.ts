@@ -81,7 +81,8 @@ describe("the student's own results", () => {
     const cardId = other.results[0]!.card.id;
     const student = fixture.pupils[0]!.person;
     expect((await call(`/api/results/cards/${cardId}`, { cookie: student.cookie })).status).toBe(404);
-    expect((await call(`/api/results/classes/${fixture.classId}/terminals/${term}/sheet`, { cookie: student.cookie })).status).toBe(404);
+    // The class sheet has its own permission now, which a student does not hold (FUT point 19): refused outright.
+    expect((await call(`/api/results/classes/${fixture.classId}/terminals/${term}/sheet`, { cookie: student.cookie })).status).toBe(403);
     expect((await call("/api/results/rechecks", { cookie: student.cookie })).status).toBe(404);
     expect((await call(`/api/results/classes/${fixture.classId}/terminals/${term}/sheet.csv`, { cookie: student.cookie })).status).toBe(403);
   });

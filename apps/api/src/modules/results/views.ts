@@ -184,15 +184,17 @@ export async function top20(db: D1Database, viewer: { student: string } | { reac
 }
 
 /** The whole-class sheet (source 6.3): students by subjects, with the GPA or percentage and the rank within the class. */
-export async function classSheet(db: D1Database, reach: Reach, classId: string, terminalId: string): Promise<ClassSheet | null> {
+/** `classTeacher`: only a class this person leads (a Class Teacher reading their own class, FUT point 19). */
+export async function classSheet(db: D1Database, reach: Reach, classId: string, terminalId: string, classTeacher: string | null = null): Promise<ClassSheet | null> {
   const [head, cards] = await db.batch([
     db
       .prepare(
         `SELECT cl.public_id AS class_id, ${NAMING_COLUMNS}, t.public_id AS terminal_id, t.name AS terminal_name, rp.grading_policy, rp.published_at
            FROM classes cl ${CLASS_JOINS} JOIN terminals t ON t.public_id = ?2 JOIN result_publications rp ON rp.class_id = cl.id AND rp.terminal_id = t.id
-          WHERE cl.public_id = ?1 AND ${sectionInReach(3)}`,
+          WHERE cl.public_id = ?1 AND ${sectionInReach(3)}
+            AND (?5 IS NULL OR cl.class_teacher_user_id = (SELECT id FROM users WHERE public_id = ?5))`,
       )
-      .bind(classId, terminalId, reach.institution, reach.sections),
+      .bind(classId, terminalId, reach.institution, reach.sections, classTeacher),
     db
       .prepare(
         `SELECT en.public_id AS enrollment_id, mc.public_id AS card_id, mc.version, mc.body, mc.gpa_hundredths, mc.percent_hundredths, mc.passed, mc.outcome

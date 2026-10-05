@@ -35,7 +35,8 @@ export function SubjectEntries({ day }: { day: ClassActivityDay }) {
  * One class's activity log for a day (`?id=`), redesigned in D-104: today, or a day picked through Change date; every
  * subject, written or not. Nobody writes here: each teacher writes on their own Classwork page.
  */
-export function ClassActivityScreen() {
+/** `embedded`: one tab of a class page (FUT point 19): titled Classwork, without breadcrumbs. */
+export function ClassActivityScreen({ embedded = false }: { embedded?: boolean }) {
   const { api } = useSession();
   const search = useAddressQuery();
   const id = search === null ? "" : (new URLSearchParams(search).get("id") ?? "");
@@ -57,7 +58,8 @@ export function ClassActivityScreen() {
   return (
     <div className={readStyles.page}>
       <ReadHeader
-        title={name}
+        level={embedded ? 2 : 1}
+        title={embedded ? t("classwork.title") : name}
         subtitle={t("classwork.class.subtitle", { written, expected: day.entries.length })}
         crumbs={[{ label: t("classwork.title"), href: "/portal/classwork" }, { label: name }]}
         dayBs={dayLine(day.dateBs, date === undefined, day.date)}
