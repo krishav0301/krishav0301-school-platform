@@ -4456,6 +4456,91 @@
           "className"
         ]
       },
+      "OwnClass": {
+        "type": "object",
+        "properties": {
+          "termLabel": {
+            "type": "string"
+          },
+          "wing": {
+            "type": "string"
+          },
+          "course": {
+            "type": "string"
+          },
+          "level": {
+            "type": "string"
+          },
+          "section": {
+            "type": "string"
+          },
+          "classTeacher": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "subjects": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string"
+                },
+                "teacher": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "elective": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                }
+              },
+              "required": [
+                "name",
+                "teacher",
+                "elective"
+              ]
+            }
+          },
+          "electivesToChoose": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "group": {
+                  "type": "string"
+                },
+                "options": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              },
+              "required": [
+                "group",
+                "options"
+              ]
+            }
+          }
+        },
+        "required": [
+          "termLabel",
+          "wing",
+          "course",
+          "level",
+          "section",
+          "classTeacher",
+          "subjects",
+          "electivesToChoose"
+        ]
+      },
       "StudentDetail": {
         "type": "object",
         "properties": {
@@ -15150,6 +15235,37 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/StudentList"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/students/me/class": {
+      "get": {
+        "operationId": "get_own_class",
+        "tags": [
+          "students"
+        ],
+        "description": "The signed-in student's own class this term (FUT point 18): wing, course, level, section, Class Teacher, and each subject with who teaches it. Only their own; 404 when they have no class in an open term.",
+        "responses": {
+          "200": {
+            "description": "Their class",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OwnClass"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No class in an open term for this sign-in",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdmissionsError"
                 }
               }
             }

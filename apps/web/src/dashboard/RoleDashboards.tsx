@@ -3,7 +3,7 @@
 import { CalendarCheck, ClipboardCheck, FileText, NotebookPen, PenLine, Receipt, Scale, Wallet } from "lucide-react";
 import { useCallback, useState } from "react";
 
-import { loadOwnStudent } from "@/admissions/client";
+import { loadOwnClass, loadOwnStudent, type OwnClass } from "@/admissions/client";
 import { loadClasses, loadOwn } from "@/attendance/client";
 import type { OwnAttendance } from "@/attendance/model";
 import { loadMyToday, loadOwnActivity, loadStudentAssignments, loadTeacherAssignments } from "@/classwork/client";
@@ -13,7 +13,7 @@ import { loadDues, loadOwnAccount, loadStructures, loadVouchers } from "@/fees/c
 import { nprShort } from "@/fees/ReadFees";
 import { t } from "@/i18n/messages";
 import { Facts } from "@/read/SidePanel";
-import { FigureTiles, OpenLink, Panel, ReadFailure, ReadHeader, StatusWord, TableSkeleton, readStyles, type Figure } from "@/read/ReadView";
+import { FigureTiles, OpenLink, Panel, ReadFailure, ReadHeader, ReadTable, StatusWord, TableSkeleton, readStyles, type Figure } from "@/read/ReadView";
 import { loadMySheets, loadOwnResults } from "@/results/client";
 import { scoreText } from "@/results/model";
 import { useSession, type RoleClaim } from "@/session/SessionProvider";
@@ -194,6 +194,8 @@ export function TeachingPanel() {
 
 export interface StudyDay {
   record: { sid: string; className: string | null; dobBs: string | null; dob: string; guardianName: string } | null;
+  /** Their class this term (FUT point 18); null when they have none in an open term. */
+  cls: OwnClass | null;
   attendance: OwnAttendance | null;
   homework: { open: number; nextDue: string | null } | null;
   latestLog: string | null;
@@ -240,6 +242,39 @@ export function studyRows(d: StudyDay): DayRow[] {
   return rows;
 }
 
+/**
+ * The student's own class (FUT point 18): where it sits, its Class Teacher, each subject with who teaches it, and any
+ * elective group still to choose from. Read only; the student and their parents share this view.
+ */
+export function OwnClassPanel({ cls }: { cls: OwnClass }) {
+  const place = [cls.wing, cls.course, cls.level, cls.section ? t("home.student.class.section", { name: cls.section }) : null].filter(Boolean).join(" · ");
+  return (
+    <Panel title={t("home.student.class.title")} labelledBy="student-class">
+      <Facts
+        rows={[
+          { name: t("home.student.class.class"), value: place },
+          { name: t("home.student.class.term"), value: cls.termLabel },
+          { name: t("home.student.class.classTeacher"), value: cls.classTeacher ?? t("home.student.class.notAssigned") },
+        ]}
+      />
+      <ReadTable
+        caption={t("home.student.class.subjects")}
+        rows={cls.subjects}
+        rowKey={(s) => s.name}
+        columns={[
+          { key: "subject", label: t("home.student.class.subject"), primary: true, cell: (s) => (s.elective ? t("home.student.class.elective", { name: s.name, group: s.elective }) : s.name) },
+          { key: "teacher", label: t("home.student.class.teacher"), cell: (s) => s.teacher ?? <StatusWord>{t("home.student.class.noTeacher")}</StatusWord> },
+        ]}
+      />
+      {cls.electivesToChoose.map((g) => (
+        <p key={g.group} className={readStyles.subtitle}>
+          {t("home.student.class.choose", { group: g.group, options: g.options.join(", ") })}
+        </p>
+      ))}
+    </Panel>
+  );
+}
+
 /** The student's home (D-107): their record, then what is due, then what they can do. */
 export function StudentDashboard() {
   const { api, me } = useSession();
@@ -250,8 +285,9 @@ export function StudentDashboard() {
   const feesOn = moduleEnabled("fees");
   const resultsOn = moduleEnabled("results");
   const loadNow = useCallback(async (): Promise<Loaded<StudyDay>> => {
-    const [record, attendance, work, activity, fees, results] = await Promise.all([
+    const [record, cls, attendance, work, activity, fees, results] = await Promise.all([
       loadOwnStudent(api),
+      loadOwnClass(api),
       attendanceOn ? loadOwn(api) : null,
       homeworkOn ? loadStudentAssignments(api) : null,
       loadOwnActivity(api),
@@ -268,6 +304,8 @@ export function StudentDashboard() {
       ok: true,
       data: {
         record: record.ok ? { sid: record.data.sid, className: record.data.className, dobBs: record.data.dobBs, dob: record.data.dob, guardianName: record.data.guardianName } : null,
+        // No class in an open term leaves the panel out; a failed read too, rather than failing the whole home.
+        cls: cls.ok ? cls.data : null,
         attendance: attendance?.ok ? attendance.data : null,
         homework: work?.ok ? { open: open.length, nextDue: open[0] ? bsDay(open[0].dueDateBs, open[0].dueAt.slice(0, 10)) : null } : null,
         latestLog: log ? bsDay(log.dateBs, log.date) : null,
@@ -288,6 +326,7 @@ export function StudentDashboard() {
           <Panel title={t("home.student.title")} labelledBy="student-today">
             <DayList rows={studyRows(day)} />
           </Panel>
+          {day.cls ? <OwnClassPanel cls={day.cls} /> : null}
           {day.record ? (
             <Panel title={t("admissions.record.title")} labelledBy="student-record">
               <Facts

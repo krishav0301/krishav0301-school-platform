@@ -1293,6 +1293,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/students/me/class": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description The signed-in student's own class this term (FUT point 18): wing, course, level, section, Class Teacher, and each subject with who teaches it. Only their own; 404 when they have no class in an open term. */
+        get: operations["get_own_class"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/students/me": {
         parameters: {
             query?: never;
@@ -3617,6 +3634,23 @@ export interface components {
             /** @enum {string} */
             status: "active" | "left" | "graduated";
             className: string | null;
+        };
+        OwnClass: {
+            termLabel: string;
+            wing: string;
+            course: string;
+            level: string;
+            section: string;
+            classTeacher: string | null;
+            subjects: {
+                name: string;
+                teacher: string | null;
+                elective: string | null;
+            }[];
+            electivesToChoose: {
+                group: string;
+                options: string[];
+            }[];
         };
         StudentDetail: {
             id: string;
@@ -8852,6 +8886,35 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["StudentList"];
+                };
+            };
+        };
+    };
+    get_own_class: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Their class */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OwnClass"];
+                };
+            };
+            /** @description No class in an open term for this sign-in */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdmissionsError"];
                 };
             };
         };

@@ -195,6 +195,19 @@ export async function loadOwnStudent(api: ApiClient): Promise<LoadOwnStudentResu
   }
 }
 
+export type OwnClass = components["schemas"]["OwnClass"];
+
+/** The signed-in student's own class this term (FUT point 18); not_found when they have none in an open term. */
+export async function loadOwnClass(api: ApiClient): Promise<{ ok: true; data: OwnClass } | { ok: false; reason: "not_found" | "failed" }> {
+  try {
+    const { data, response } = await api.GET("/api/students/me/class");
+    if (data) return { ok: true, data };
+    return { ok: false, reason: response.status === 404 ? "not_found" : "failed" };
+  } catch {
+    return { ok: false, reason: "failed" };
+  }
+}
+
 export type CorrectOutcome = { ok: true; student: StudentDetail } | { ok: false; reason: "forbidden" | "not_found" | "failed" } | { ok: false; reason: "invalid"; message: string };
 
 /** Corrects a student's personal details with a reason (Co-ordinator FUT F-06). Only the changed fields are sent. */
