@@ -245,7 +245,7 @@ describe("Academic Structure (D-095, D-096)", () => {
     expect(html).not.toContain('aria-label="Delete 1st Year"');
     expect(html).toContain("This can&#x27;t be deleted while it has classes, subjects, fees or applications. Switch it off instead: nothing is lost.");
     // The sections in the fixture are all in use: each says so inside its Edit.
-    expect(html).toContain("This can&#x27;t be deleted while it has programmes, staff or receipts linked to it.");
+    expect(html).toContain("This can&#x27;t be deleted while it has Programmes, staff or receipts linked to it.");
     expect(html).not.toContain("Yes, delete"); // it asks once more only after Delete is pressed
   });
 
@@ -303,7 +303,7 @@ describe("the classes screen", () => {
     expect(html).toContain("BBS · Year 1");
     expect(html).not.toContain("Year 2");
     expect(html).not.toContain("Old · Grade 11");
-    expect(html).toContain("Label (optional)");
+    expect(html).toContain("Section (optional)");
   });
 });
 

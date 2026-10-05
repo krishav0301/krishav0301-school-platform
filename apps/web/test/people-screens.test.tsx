@@ -108,7 +108,7 @@ describe("the add form", () => {
     expect(html).toContain(">Vice Principal<");
     expect(html).toContain(">Accountant<");
     expect(html).not.toContain(">Teacher<"); // an Admin does not add teachers
-    for (const label of ["Full name", "Email", "Phone (optional)", "Section (optional)"]) expect(html).toContain(`>${label}<`);
+    for (const label of ["Full name", "Email", "Phone (optional)", "Wing (optional)"]) expect(html).toContain(`>${label}<`);
     expect(html).toContain(">Whole school<");
     expect(html).toContain('type="email"');
     expect(html).toContain('type="tel"');
@@ -118,7 +118,7 @@ describe("the add form", () => {
     const html = inContext(<StaffForm roles={cooRoles} sections={sections} onCreated={noop} />);
     expect(html).not.toContain(">Role<");
     expect(html).toContain("They will be a Teacher.");
-    expect(html).toContain(">Home section<");
+    expect(html).toContain(">Home Wing<");
     expect(html).not.toContain("Whole school");
     expect(html).toContain(">+2<");
     expect(html).toContain(">Bachelor&#x27;s<");

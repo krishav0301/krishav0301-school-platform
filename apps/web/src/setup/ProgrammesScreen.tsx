@@ -56,7 +56,7 @@ const POLICY_LABEL: Record<NonNullable<Programme["gradingPolicy"]> | "none", Mes
 const count = (n: number) => n.toLocaleString("en-IN");
 
 /** The school's words in the middle of a sentence: "sections, programmes and levels". */
-const inSentence = (words: Words): Words => ({ programme: words.programme.toLowerCase(), level: words.level.toLowerCase(), section: words.section.toLowerCase(), terminal: words.terminal.toLowerCase() });
+const inSentence = (words: Words): Words => ({ programme: words.programme.toLowerCase(), level: words.level.toLowerCase(), section: words.section.toLowerCase(), classSection: words.classSection.toLowerCase(), terminal: words.terminal.toLowerCase() });
 
 /** "1 Student", "780 Students"; "1 Level", "4 Levels": in the school's own words. */
 const studentsText = (n: number, student: string) => t(n === 1 ? "structure.studentsOne" : "structure.students", { count: count(n), student });

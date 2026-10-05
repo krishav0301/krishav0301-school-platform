@@ -84,7 +84,7 @@ describe("words", () => {
 
   it("the school's own words for programme, level, section and terminal come from its configuration", () => {
     const term = (key: string) => ({ "term.terminal": "Exam" })[key as "term.terminal"] ?? key;
-    expect(termWords(term)).toEqual({ programme: "term.programme", level: "term.level", section: "term.section", terminal: "Exam" });
+    expect(termWords(term)).toEqual({ programme: "term.programme", level: "term.level", section: "term.section", classSection: "term.classSection", terminal: "Exam" });
   });
 });
 

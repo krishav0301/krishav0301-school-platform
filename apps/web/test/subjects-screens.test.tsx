@@ -88,12 +88,12 @@ describe("the subjects screen", () => {
   it("a whole-school Co-ordinator can add and archive; a +2 Co-ordinator can add but is told renaming needs the whole school; the Admin only looks", () => {
     const whole = inContext(<SubjectsScreen />);
     expect(whole).toContain(">Add a subject<");
-    expect(whole).not.toContain("changes it for every section");
+    expect(whole).not.toContain("needs a Vice Principal for the whole school");
     expect(whole).toMatch(/role="status"[^>]*aria-busy="true"/);
 
     const section = inContext(<SubjectsScreen />, as("coordinator", "section", "plus2"));
     expect(section).toContain(">Add a subject<");
-    expect(section).toContain("changes it for every section");
+    expect(section).toContain("needs a Vice Principal for the whole school");
     expect(section).toContain("Vice Principal for the whole school");
 
     const admin = inContext(<SubjectsScreen />, as("admin", "institution"));

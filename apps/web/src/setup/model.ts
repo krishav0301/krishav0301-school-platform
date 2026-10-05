@@ -54,6 +54,7 @@ export const termWords = (term: (key: string) => string) => ({
   programme: term("term.programme"),
   level: term("term.level"),
   section: term("term.section"),
+  classSection: term("term.classSection"),
   terminal: term("term.terminal"),
 });
 
