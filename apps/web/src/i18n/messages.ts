@@ -449,7 +449,7 @@ export const en = {
   "setup.subjects.codeHint": "A short code such as MATH.",
   "setup.subjects.archived": "Archived",
   "setup.subjects.wing": "{section}",
-  "setup.subjects.noWing": "Choose a {section}",
+  "setup.subjects.noWing": "No {section} yet",
   "setup.subjects.chooseWing": "Choose {section}",
   "setup.subjects.chooseWingFor": "Choose the {section} of {name}",
   "setup.subjects.wingRequired": "Choose the {section} this subject is taught in.",

@@ -75,7 +75,7 @@ describe("the subjects screen", () => {
     const html = inContext(<SubjectsView subjects={withWings} wings={TEST_SECTIONS.royal} canArchive busy={null} onToggle={noop} onSetWing={async () => true as const} />);
     expect(html).toContain('data-label="Section">+2<');
     expect(html).toContain('data-label="Section">Bachelor&#x27;s<');
-    expect(html).toContain("Choose a Section");
+    expect(html).toContain("No Section yet");
     expect(html).toContain('aria-label="Choose the Section of Music"');
     expect(count(html, /aria-label="Choose the Section of/g)).toBe(1); // only the subject with no wing
   });
