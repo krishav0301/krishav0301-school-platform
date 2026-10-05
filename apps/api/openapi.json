@@ -921,6 +921,12 @@
               "null"
             ]
           },
+          "months": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
           "status": {
             "type": "string",
             "enum": [
@@ -951,6 +957,7 @@
           "endDate",
           "startDateBs",
           "endDateBs",
+          "months",
           "status",
           "levels",
           "classes",
@@ -977,6 +984,12 @@
           },
           "sectionKey": {
             "type": "string"
+          },
+          "usualMonths": {
+            "type": [
+              "integer",
+              "null"
+            ]
           }
         },
         "required": [
@@ -985,7 +998,8 @@
           "ordinal",
           "programmeId",
           "programmeName",
-          "sectionKey"
+          "sectionKey",
+          "usualMonths"
         ]
       },
       "ProgrammeList": {
@@ -1649,7 +1663,8 @@
           }
         },
         "required": [
-          "name"
+          "name",
+          "usualMonths"
         ],
         "additionalProperties": false
       },
@@ -1665,10 +1680,7 @@
             "type": "boolean"
           },
           "usualMonths": {
-            "type": [
-              "integer",
-              "null"
-            ],
+            "type": "integer",
             "minimum": 1,
             "maximum": 60
           }

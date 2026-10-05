@@ -95,10 +95,11 @@ export type ProgrammeChanges = z.infer<typeof ProgrammeChangesSchema>;
 /** How long a level usually runs, in months (D-110): fills in the next term's end date. */
 const UsualMonths = z.number().int("Use whole months").min(1, "At least 1 month").max(60, "At most 60 months");
 
-export const CreateLevelSchema = z.strictObject({ name: LevelName, usualMonths: UsualMonths.optional() }).openapi("CreateLevel");
+// A level's length is asked when it is added and may be changed, never cleared: a term takes only levels of its length (D-114).
+export const CreateLevelSchema = z.strictObject({ name: LevelName, usualMonths: UsualMonths }).openapi("CreateLevel");
 export type LevelInput = z.input<typeof CreateLevelSchema>;
 
-export const LevelChangesSchema = z.strictObject({ name: LevelName, active: z.boolean(), usualMonths: UsualMonths.nullable() }).partial().openapi("LevelChanges");
+export const LevelChangesSchema = z.strictObject({ name: LevelName, active: z.boolean(), usualMonths: UsualMonths }).partial().openapi("LevelChanges");
 export type LevelChanges = z.infer<typeof LevelChangesSchema>;
 
 // --- Classes and terminals ---------------------------------------------------------------------------
@@ -122,7 +123,16 @@ export type TerminalChanges = z.infer<typeof TerminalChangesSchema>;
 // --- What the screens read ---------------------------------------------------------------------------
 
 export const TermLevelSchema = z
-  .object({ id: z.string(), name: z.string(), ordinal: z.number().int(), programmeId: z.string(), programmeName: z.string(), sectionKey: z.string() })
+  .object({
+    id: z.string(),
+    name: z.string(),
+    ordinal: z.number().int(),
+    programmeId: z.string(),
+    programmeName: z.string(),
+    sectionKey: z.string(),
+    /** How long the level runs, in months; null until the Admin sets it (D-114). */
+    usualMonths: z.number().int().nullable(),
+  })
   .openapi("TermLevel");
 
 export const AcademicYearSchema = z
@@ -138,6 +148,8 @@ export const AcademicYearSchema = z
     /** The same days in Bikram Sambat, "YYYY-MM-DD"; null if a day is outside the verified years. */
     startDateBs: z.string().nullable(),
     endDateBs: z.string().nullable(),
+    /** Its length in whole months on the BS calendar (D-114); null if a day is outside the verified years. */
+    months: z.number().int().nullable(),
     status: z.enum(["draft", "active", "closed"]),
     /** The levels that run in it, by section, programme and level order. */
     levels: z.array(TermLevelSchema),

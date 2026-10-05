@@ -9,7 +9,7 @@ import PromotionPage from "@/app/portal/setup/promotion/page";
 import { ConfigContext, makeConfigValue, type PublicConfig } from "@/config/ConfigProvider";
 import { SetupTabs } from "@/setup/SetupLayout";
 import { ClassForm, ClassesView } from "@/setup/ClassesScreen";
-import { AcademicStructureView, type Structure, type StructureActions } from "@/setup/ProgrammesScreen";
+import { AcademicStructureView, LengthForm, LevelForm, type Structure, type StructureActions } from "@/setup/ProgrammesScreen";
 import { TerminalsView } from "@/setup/TerminalsScreen";
 import { YearsScreen } from "@/setup/YearsScreen";
 import { LevelPicker, TermsScreen, TermsTable, CloseCheckView } from "@/terms/TermsScreen";
@@ -155,6 +155,23 @@ describe("Academic Structure (D-095, D-096)", () => {
   };
   const view = (data: Structure, canManage = true) => inContext(<AcademicStructureView data={data} canManage={canManage} actions={actions} />, as(canManage ? "admin" : "coordinator", "institution"));
   const html = view(structure);
+
+  it("a level with no length says so, and a level with one shows it (D-114)", () => {
+    expect(html).toContain("Length not set");
+    const withLength = view({ ...structure, programmes: [{ ...structure.programmes[0]!, levels: [{ ...level("l1", 1, "1st Year", 80), usualMonths: 12 }] }] });
+    expect(withLength).toContain("80 Students · 12 months");
+    expect(withLength).not.toContain("Length not set");
+  });
+
+  it("adding a level asks for its name and its length in months, both required (D-114)", () => {
+    const form = inContext(<LevelForm submitLabel="Add a Level" onSave={async () => true} />, as("admin", "institution"));
+    expect(form).toContain(">Level name<");
+    expect(form).toContain(">Length (months)<");
+    expect(form).toContain("A term takes only levels of its own length");
+    const edit = inContext(<LengthForm initial={6} onSave={async () => true} />, as("admin", "institution"));
+    expect(edit).toContain(">Length (months)<");
+    expect(edit).toContain('value="6"');
+  });
 
   it("shows the four figures the server worked out, formatted, in the school's own words", () => {
     for (const label of ["Total Sections", "Total Programmes", "Total Levels", "Total Students"]) expect(html).toContain(label);

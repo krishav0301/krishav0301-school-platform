@@ -33,7 +33,7 @@ beforeAll(async () => {
 
   const programme = await call("/api/academics/programmes", { method: "POST", cookie: (await programmesAdmin()).cookie, body: { name: "Science", sectionKey: "plus2", affiliation: "NEB" } });
   const programmeId = ((await programme.json()) as { id: string }).id;
-  const level = await call(`/api/academics/programmes/${programmeId}/levels`, { method: "POST", cookie: (await programmesAdmin()).cookie, body: { name: "Grade 11" } });
+  const level = await call(`/api/academics/programmes/${programmeId}/levels`, { method: "POST", cookie: (await programmesAdmin()).cookie, body: { name: "Grade 11", usualMonths: 12 } });
   levelId = ((await level.json()) as { id: string }).id;
   expect((await call(`/api/academics/years/${yearId}`, { method: "PATCH", cookie: (await programmesAdmin()).cookie, body: { levelIds: [levelId] } })).status).toBe(200);
   const cls = await call("/api/academics/classes", { method: "POST", cookie: coordinator.cookie, body: { yearId, levelId, label: "Morning" } });

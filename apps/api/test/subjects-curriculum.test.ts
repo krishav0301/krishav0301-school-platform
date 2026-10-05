@@ -44,7 +44,7 @@ const ok = <T extends { ok: boolean }>(result: T, what: string): Extract<T, { ok
 /** A programme with one level in the given section. */
 async function newLevel(sectionKey: "plus2" | "bachelors" = "bachelors") {
   const p = ok(await createProgramme(db, auditKey, (await programmesAdmin()).publicId, { name: label("Programme"), sectionKey, affiliation: "Board" }), "programme");
-  const l = ok(await addLevel(db, auditKey, (await programmesAdmin()).publicId, p.publicId, { name: "Level 1" }), "level");
+  const l = ok(await addLevel(db, auditKey, (await programmesAdmin()).publicId, p.publicId, { name: "Level 1", usualMonths: 12 }), "level");
   return { programmeId: p.publicId, levelId: l.publicId };
 }
 const newSubject = async (over: Record<string, unknown> = {}) => ok(await createSubject(db, auditKey, coordinator.publicId, { name: label("Subject"), ...over }), "subject").publicId;

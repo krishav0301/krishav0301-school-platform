@@ -42,7 +42,7 @@ describe("deleting what nothing is attached to", () => {
     const sectionKey = await newSection(actor);
     const programme = await createProgramme(db, key, actor, { name: "BCA", sectionKey, affiliation: "TU" });
     if (!programme.ok) throw new Error("programme");
-    const level = await addLevel(db, key, actor, programme.publicId, { name: "Year 1" });
+    const level = await addLevel(db, key, actor, programme.publicId, { name: "Year 1", usualMonths: 12 });
     if (!level.ok) throw new Error("level");
 
     const before = await listProgrammes(db, "all");

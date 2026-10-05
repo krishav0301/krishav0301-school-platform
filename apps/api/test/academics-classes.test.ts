@@ -43,7 +43,7 @@ const closeYear = (publicId: string) =>
 async function newLevel(sectionKey: "plus2" | "bachelors" = "bachelors"): Promise<{ programmeId: string; levelId: string }> {
   const p = await createProgramme(db, auditKey, (await programmesAdmin()).publicId, { name: "Programme", sectionKey, affiliation: "Board" });
   if (!p.ok) throw new Error("programme setup failed");
-  const l = await addLevel(db, auditKey, (await programmesAdmin()).publicId, p.publicId, { name: "Level 1" });
+  const l = await addLevel(db, auditKey, (await programmesAdmin()).publicId, p.publicId, { name: "Level 1", usualMonths: 12 });
   if (!l.ok) throw new Error("level setup failed");
   if (currentYear) {
     await db

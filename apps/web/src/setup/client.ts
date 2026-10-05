@@ -92,11 +92,12 @@ export const renameLevel = async (api: ApiClient, id: string, name: string): Pro
 export const setProgrammeActive = async (api: ApiClient, id: string, active: boolean): Promise<WriteResult> =>
   done(await send(() => api.PATCH("/api/academics/programmes/{id}", { params: { path: { id } }, body: { active } })));
 
-export const addLevel = async (api: ApiClient, programmeId: string, name: string): Promise<CreateResult> =>
-  created(await send(() => api.POST("/api/academics/programmes/{id}/levels", { params: { path: { id: programmeId } }, body: { name } })));
+/** A new level, with how long it runs in months (D-114). */
+export const addLevel = async (api: ApiClient, programmeId: string, name: string, usualMonths: number): Promise<CreateResult> =>
+  created(await send(() => api.POST("/api/academics/programmes/{id}/levels", { params: { path: { id: programmeId } }, body: { name, usualMonths } })));
 
-/** A level's usual length in months, or none (D-110): it fills in the next term's last day. */
-export const setLevelLength = async (api: ApiClient, id: string, usualMonths: number | null): Promise<WriteResult> =>
+/** A level's length in months (D-114): a term takes only levels of its own length. */
+export const setLevelLength = async (api: ApiClient, id: string, usualMonths: number): Promise<WriteResult> =>
   done(await send(() => api.PATCH("/api/academics/levels/{id}", { params: { path: { id } }, body: { usualMonths } })));
 
 export const setLevelActive = async (api: ApiClient, id: string, active: boolean): Promise<WriteResult> =>

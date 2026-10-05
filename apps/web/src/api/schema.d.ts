@@ -2846,6 +2846,7 @@ export interface components {
             endDate: string;
             startDateBs: string | null;
             endDateBs: string | null;
+            months: number | null;
             /** @enum {string} */
             status: "draft" | "active" | "closed";
             levels: components["schemas"]["TermLevel"][];
@@ -2859,6 +2860,7 @@ export interface components {
             programmeId: string;
             programmeName: string;
             sectionKey: string;
+            usualMonths: number | null;
         };
         ProgrammeList: {
             programmes: components["schemas"]["Programme"][];
@@ -3011,12 +3013,12 @@ export interface components {
         };
         CreateLevel: {
             name: string;
-            usualMonths?: number;
+            usualMonths: number;
         };
         LevelChanges: {
             name?: string;
             active?: boolean;
-            usualMonths?: number | null;
+            usualMonths?: number;
         };
         CreateClass: {
             yearId: string;

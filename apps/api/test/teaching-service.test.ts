@@ -74,7 +74,7 @@ async function newLevel(sectionKey: "plus2" | "bachelors" = "plus2") {
   const label = () => `L ${Math.random().toString(36).slice(2, 8)}`;
   const p = await createProgramme(db, auditKey, (await programmesAdmin()).publicId, { name: label(), sectionKey, affiliation: "Board" });
   if (!p.ok) throw new Error(`programme setup failed: ${JSON.stringify(p)}`);
-  const l = await addLevel(db, auditKey, (await programmesAdmin()).publicId, p.publicId, { name: label() });
+  const l = await addLevel(db, auditKey, (await programmesAdmin()).publicId, p.publicId, { name: label(), usualMonths: 12 });
   if (!l.ok) throw new Error(`level setup failed: ${JSON.stringify(l)}`);
   return l.publicId;
 }

@@ -1,5 +1,6 @@
 import { rowsOf, type DashboardPart } from "../../core/dashboard";
 import { adToBsText } from "../../core/dates";
+import { termLengthMonths } from "./term-length";
 import type { AcademicYearList, Curriculum, ProgrammeList, SchoolClassList, SetupChecklist, SubjectList, Teaching, TerminalList, YearTeaching } from "./schema";
 
 /** A section filter for SQL: `null` means every section, otherwise a JSON array of section keys (used with `json_each`). */
@@ -25,6 +26,16 @@ interface TermLevelRow {
   programme_id: string;
   programme_name: string;
   section_key: string;
+  usual_months: number | null;
+}
+
+/** A term's length in months, or null when a day is outside the verified calendar. */
+function lengthOrNull(start: string, end: string): number | null {
+  try {
+    return termLengthMonths(start, end);
+  } catch {
+    return null;
+  }
 }
 
 /** Every academic term (D-110), open ones first and then newest first, with the levels each runs. One round trip. */
@@ -37,7 +48,7 @@ export async function listYears(db: D1Database): Promise<AcademicYearList> {
          FROM academic_years ay ORDER BY ay.status = 'closed', ay.start_date DESC, ay.id DESC`,
     ),
     db.prepare(
-      `SELECT ay.public_id AS term_id, lv.public_id AS id, lv.name, lv.ordinal, pv.public_id AS programme_id, pv.name AS programme_name, s.key AS section_key
+      `SELECT ay.public_id AS term_id, lv.public_id AS id, lv.name, lv.ordinal, pv.public_id AS programme_id, pv.name AS programme_name, s.key AS section_key, lv.usual_months
          FROM term_levels tl JOIN academic_years ay ON ay.id = tl.academic_year_id JOIN levels lv ON lv.id = tl.level_id
          JOIN programmes pv ON pv.id = lv.programme_id JOIN sections s ON s.id = pv.section_id
         ORDER BY s.ordering, pv.ordering, lv.ordinal`,
@@ -46,7 +57,7 @@ export async function listYears(db: D1Database): Promise<AcademicYearList> {
   const byTerm = new Map<string, AcademicYearList["years"][number]["levels"]>();
   for (const l of levels!.results as unknown as TermLevelRow[]) {
     const list = byTerm.get(l.term_id) ?? byTerm.set(l.term_id, []).get(l.term_id)!;
-    list.push({ id: l.id, name: l.name, ordinal: l.ordinal, programmeId: l.programme_id, programmeName: l.programme_name, sectionKey: l.section_key });
+    list.push({ id: l.id, name: l.name, ordinal: l.ordinal, programmeId: l.programme_id, programmeName: l.programme_name, sectionKey: l.section_key, usualMonths: l.usual_months });
   }
   return {
     years: (terms!.results as unknown as YearRow[]).map((y) => ({
@@ -58,6 +69,7 @@ export async function listYears(db: D1Database): Promise<AcademicYearList> {
       endDate: y.end_date,
       startDateBs: adToBsText(y.start_date),
       endDateBs: adToBsText(y.end_date),
+      months: lengthOrNull(y.start_date, y.end_date),
       status: y.status,
       levels: byTerm.get(y.public_id) ?? [],
       classes: y.classes,

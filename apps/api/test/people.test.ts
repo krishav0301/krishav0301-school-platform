@@ -166,7 +166,7 @@ describe("the two lists (D-099)", () => {
     const p = await createProgramme(db, auditKey, (await programmesAdmin()).publicId, { name: `${word} BCA`, sectionKey: "bachelors", affiliation: "TU" });
     if (!p.ok) throw new Error("programme");
     programmeId = p.publicId;
-    const l = await addLevel(db, auditKey, (await programmesAdmin()).publicId, p.publicId, { name: "Year 1" });
+    const l = await addLevel(db, auditKey, (await programmesAdmin()).publicId, p.publicId, { name: "Year 1", usualMonths: 12 });
     if (!l.ok) throw new Error("level");
     const s = await createSubject(db, auditKey, coordinator.publicId, { name: `${word} Computer Science` });
     if (!s.ok) throw new Error("subject");

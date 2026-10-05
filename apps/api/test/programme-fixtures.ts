@@ -51,7 +51,7 @@ export async function seedProgrammes(db: D1Database, auditKey: string, pack: Pac
     const made = await createProgramme(db, auditKey, admin, { name: site.name, sectionKey: site.section, affiliation: site.affiliation });
     if (!made.ok) throw new Error(`Could not make programme "${site.name}": ${made.reason}${"message" in made ? ` (${made.message})` : ""}`);
     for (const name of spec.levels) {
-      const level = await addLevel(db, auditKey, admin, made.publicId, { name });
+      const level = await addLevel(db, auditKey, admin, made.publicId, { name, usualMonths: 12 });
       if (!level.ok) throw new Error(`Could not add level "${name}": ${level.reason}`);
     }
     const policy = await updateProgramme(db, auditKey, admin, made.publicId, { gradingPolicy: spec.gradingPolicy });

@@ -28,7 +28,7 @@ const label = (prefix: string) => `${prefix} ${++n} ${crypto.randomUUID().slice(
 async function makeLevel(sectionKey: "plus2" | "bachelors") {
   const programme = await post("/programmes", { name: label("Programme"), sectionKey, affiliation: "Board" }, await programmesAdmin());
   expect(programme.status).toBe(201);
-  const level = await post(`/programmes/${await idOf(programme)}/levels`, { name: "Grade 11" }, await programmesAdmin());
+  const level = await post(`/programmes/${await idOf(programme)}/levels`, { name: "Grade 11", usualMonths: 12 }, await programmesAdmin());
   expect(level.status).toBe(201);
   return idOf(level);
 }
