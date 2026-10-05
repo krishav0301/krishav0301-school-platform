@@ -168,7 +168,7 @@ describe("the queue (D-106; Co-ordinator FUT F-05)", () => {
 });
 
 describe("the walk-in form (Co-ordinator FUT F-11)", () => {
-  const level = (id: string, sectionKey: string) => ({ id, name: "Year 1", programmeName: "P", sectionKey, sectionName: sectionKey });
+  const level = (id: string, sectionKey: string) => ({ id, name: "Year 1", programmeId: "p", programmeName: "P", sectionKey, sectionName: sectionKey });
   const levels = [level("l1", "plus2"), level("l2", "bachelors")];
   it("a Co-ordinator of one section is offered only that section's levels; a whole-school one all of them", () => {
     expect(levelsFor(levels, [{ role: "coordinator", scope: "section", section: "bachelors" }]).map((l) => l.id)).toEqual(["l2"]);

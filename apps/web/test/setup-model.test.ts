@@ -18,7 +18,7 @@ import {
 } from "@/setup/model";
 
 const role = (r: string, scope: string, section?: string) => ({ role: r, scope, ...(section ? { section } : {}) });
-const year = (id: string, status: Year["status"]): Year => ({ id, bsYear: 2083, label: id, code: "2083", startDate: "2026-04-14", endDate: "2027-04-13", startDateBs: "2083-01-01", endDateBs: "2083-12-30", status, levels: [], classes: 0, students: 0 });
+const year = (id: string, status: Year["status"]): Year => ({ id, bsYear: 2083, label: id, code: "2083", startDate: "2026-04-14", endDate: "2027-04-13", startDateBs: "2083-01-01", endDateBs: "2083-12-30", months: 12, status, levels: [], classes: 0, students: 0 });
 
 describe("who sees the change controls (tidiness only; the API decides)", () => {
   it("the Co-ordinator and the Super Admin may change the structure; nobody else", () => {

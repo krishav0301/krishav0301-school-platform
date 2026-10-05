@@ -66,12 +66,12 @@ describe("the other writes", () => {
   it("send what the API expects", async () => {
     const { api, seen } = fake(() => reply(201, { id }));
     await createProgramme(api, { name: "BBS", sectionKey: "bachelors", affiliation: "TU" });
-    await addLevel(api, id, "Year 1");
+    await addLevel(api, id, "Year 1", 12);
     await createClass(api, { yearId: id, levelId: id, label: "Morning" });
     await createTerminal(api, { yearId: id, name: "First" });
     expect(seen.map((s) => [s.method, s.path, s.body])).toEqual([
       ["POST", "/api/academics/programmes", { name: "BBS", sectionKey: "bachelors", affiliation: "TU" }],
-      ["POST", `/api/academics/programmes/${id}/levels`, { name: "Year 1" }],
+      ["POST", `/api/academics/programmes/${id}/levels`, { name: "Year 1", usualMonths: 12 }],
       ["POST", "/api/academics/classes", { yearId: id, levelId: id, label: "Morning" }],
       ["POST", "/api/academics/terminals", { yearId: id, name: "First" }],
     ]);
@@ -108,10 +108,10 @@ describe("the other writes", () => {
 
   it("404 is not_found, and a dropped connection is failed, for every write", async () => {
     const gone = fake(() => reply(404, { error: "not_found" })).api;
-    expect(await addLevel(gone, id, "x")).toEqual({ ok: false, reason: "not_found" });
+    expect(await addLevel(gone, id, "x", 12)).toEqual({ ok: false, reason: "not_found" });
     expect(await setClassActive(gone, id, true)).toEqual({ ok: false, reason: "not_found" });
     const offline = fake(() => "offline").api;
     expect(await createProgramme(offline, { name: "x", sectionKey: "plus2", affiliation: "y" })).toEqual({ ok: false, reason: "failed" });
-    expect(await setLevelLength(offline, id, null)).toEqual({ ok: false, reason: "failed" });
+    expect(await setLevelLength(offline, id, 6)).toEqual({ ok: false, reason: "failed" });
   });
 });

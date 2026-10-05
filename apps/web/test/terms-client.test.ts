@@ -80,8 +80,8 @@ describe("changing, opening and closing", () => {
 });
 
 describe("the model", () => {
-  const level = (id: string, name: string, programmeName: string) => ({ id, name, ordinal: 1, programmeId: "p", programmeName, sectionKey: "s" });
-  const term = (id: string, status: Term["status"], levels: Term["levels"] = [], students = 0): Term => ({ id, bsYear: 2083, label: id, code: "2083", startDate: "2026-04-14", endDate: "2027-04-13", startDateBs: "2083-01-01", endDateBs: "2083-12-30", status, levels, classes: 1, students });
+  const level = (id: string, name: string, programmeName: string) => ({ id, name, ordinal: 1, programmeId: "p", programmeName, sectionKey: "s", usualMonths: 12 });
+  const term = (id: string, status: Term["status"], levels: Term["levels"] = [], students = 0): Term => ({ id, bsYear: 2083, label: id, code: "2083", startDate: "2026-04-14", endDate: "2027-04-13", startDateBs: "2083-01-01", endDateBs: "2083-12-30", months: 12, status, levels, classes: 1, students });
 
   it("names the levels programme by programme, and says when there are none", () => {
     expect(levelSummary([level("1", "Semester 1", "BCA"), level("3", "Semester 3", "BCA"), level("g", "Grade 11", "Science")])).toBe("BCA: Semester 1, Semester 3 · Science: Grade 11");
