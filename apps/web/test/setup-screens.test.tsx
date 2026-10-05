@@ -49,6 +49,7 @@ const year = (id: string, label: string, status: Year["status"], levels: Term["l
   endDate: "2027-04-13",
   startDateBs: "2083-01-01",
   endDateBs: "2083-12-30",
+  months: 12,
   status,
   levels,
   classes: 2,
@@ -74,7 +75,7 @@ describe("the sub-menu", () => {
 
 // ---------------------------------------------------------------------------------------------
 describe("academic terms (D-110)", () => {
-  const sem = (id: string, name: string, programmeName = "BCA") => ({ id, name, ordinal: Number(id.slice(-1)), programmeId: "p", programmeName, sectionKey: "bachelors" });
+  const sem = (id: string, name: string, programmeName = "BCA", usualMonths: number | null = 12) => ({ id, name, ordinal: Number(id.slice(-1)), programmeId: "p", programmeName, sectionKey: "bachelors", usualMonths });
   const terms = [year("t3", "BCA even", "draft"), year("t2", "BCA odd", "active", [sem("l1", "Semester 1"), sem("l3", "Semester 3")]), year("t1", "2082", "closed")];
 
   it("lists each term with its Nepali days, receipt code, levels and where it stands, in words", () => {
@@ -87,21 +88,46 @@ describe("academic terms (D-110)", () => {
     expect(html).not.toContain("Manage"); // read only without an action
   });
 
+  it("flags an open term's level whose length is not set or no longer matches (D-114)", () => {
+    const html = inContext(<TermsTable terms={[year("t9", "Year", "active", [sem("l1", "Semester 1"), sem("l2", "Semester 2", "BCA", 6), sem("l4", "Semester 4", "BCA", null)])]} />);
+    expect(html).toContain("Check the length of Semester 2, Semester 4: this term runs 12 months.");
+    expect(inContext(<TermsTable terms={terms} />)).not.toContain("Check the length");
+  });
+
   it("offers Manage on every row only where something can be done, and says so when there is none", () => {
     expect(inContext(<TermsTable terms={terms} onOpen={noop} />)).toContain('aria-label="Manage BCA odd"');
     expect(inContext(<TermsTable terms={[]} onOpen={noop} />)).toContain("Add the first one");
     expect(inContext(<TermsTable terms={[]} />)).toContain("No term has been set up yet.");
   });
 
-  it("the level picker shows a level another open term runs, but does not offer it", () => {
+  it("the level picker asks for the wing, then offers only free levels of the term's length, and says what it hid (D-114)", () => {
+    const sem = (i: number, months: number | null = 6) => ({ id: `l${i}`, ordinal: i, name: `Semester ${i}`, active: true, usualMonths: months, students: 0, canDelete: false });
     const programmes = [
-      { id: "p", key: "bca", name: "BCA", section: { key: "bachelors", name: "Bachelor's" }, affiliation: "TU", active: true, gradingPolicy: null, students: 0, canDelete: false, levels: [1, 2, 3, 4].map((i) => ({ id: `l${i}`, ordinal: i, name: `Semester ${i}`, active: true, usualMonths: 6, students: 0, canDelete: false })) },
+      { id: "p", key: "bca", name: "BCA", section: { key: "bachelors", name: "Bachelor's" }, affiliation: "TU", active: true, gradingPolicy: null, students: 0, canDelete: false, levels: [sem(1), sem(2), sem(3), sem(4), sem(5, 3), sem(6, null)] },
+      { id: "q", key: "sci", name: "Science", section: { key: "plus2", name: "+2" }, affiliation: "NEB", active: true, gradingPolicy: null, students: 0, canDelete: false, levels: [{ ...sem(7, 12), name: "Grade 11" }] },
     ] as Programme[];
-    const html = inContext(<LevelPicker programmes={programmes} taken={new Map([["l1", "BCA odd"]])} value={["l2"]} onChange={noop} />);
-    expect(html).toContain("In BCA odd");
-    expect(count(html, /disabled=""/g)).toBe(1);
+    const taken = new Map([["l1", "BCA odd"]]);
+    // No days yet: the levels wait for them.
+    expect(inContext(<LevelPicker programmes={programmes} taken={taken} months={null} value={[]} onChange={noop} />)).toContain("Enter the first and last day");
+    // A 6-month term: only the +2 wing is hidden (its one level is 12 months), so BCA's wing is chosen for the person.
+    const html = inContext(<LevelPicker programmes={programmes} taken={taken} months={6} value={["l2"]} onChange={noop} />);
+    expect(html).toContain("Semester 2");
+    expect(html).toContain("Semester 3");
+    expect(html).not.toContain("Semester 1"); // in another open term: not listed at all
+    expect(html).not.toContain("Semester 5"); // 3 months
+    expect(html).not.toContain("Semester 6"); // no length
+    expect(html).not.toContain("Grade 11");
+    expect(html).toContain("4 Levels are not offered: 1 in another open term, 2 of another length, 1 with no length set.");
     expect(count(html, /checked=""/g)).toBe(1);
     expect(html).toContain('aria-label="Choose the odd levels of BCA"');
+  });
+
+  it("an open term flags a level it runs whose length no longer matches, without dropping it (D-114)", () => {
+    const programmes = [{ id: "p", key: "bca", name: "BCA", section: { key: "bachelors", name: "Bachelor's" }, affiliation: "TU", active: true, gradingPolicy: null, students: 0, canDelete: false, levels: [{ id: "l1", ordinal: 1, name: "Semester 1", active: true, usualMonths: 3, students: 0, canDelete: false }] }] as Programme[];
+    const html = inContext(<LevelPicker programmes={programmes} taken={new Map()} months={6} value={["l1"]} kept={["l1"]} onChange={noop} />);
+    expect(html).toContain("Semester 1");
+    expect(html).toContain("Runs 3 months");
+    expect(count(html, /checked=""/g)).toBe(1);
   });
 
   it("what stops a term from closing is said class by class, exam by exam", () => {

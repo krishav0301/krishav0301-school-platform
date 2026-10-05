@@ -27,7 +27,7 @@ describe("the school's words in messages", () => {
   });
 
   it("leaves every other placeholder alone", () => {
-    expect(t("terms.form.takenBy", {})).toContain("{term}");
+    expect(t("terms.misfit", {})).toContain("{levels}");
   });
 
 });
