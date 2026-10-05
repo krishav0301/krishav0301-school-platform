@@ -7,6 +7,7 @@ const sectionFilter = (sections: "all" | readonly string[]): string | null => (s
 interface OpenLevelRow {
   public_id: string;
   name: string;
+  programme_id: string;
   programme_name: string;
   section_key: string;
   section_name: string;
@@ -16,13 +17,13 @@ interface OpenLevelRow {
 export async function listOpenLevels(db: D1Database): Promise<OpenLevelList> {
   const { results } = await db
     .prepare(
-      `SELECT lv.public_id, lv.name, pv.name AS programme_name, s.key AS section_key, s.name AS section_name
+      `SELECT lv.public_id, lv.name, pv.public_id AS programme_id, pv.name AS programme_name, s.key AS section_key, s.name AS section_name
          FROM levels lv JOIN programmes pv ON pv.id = lv.programme_id JOIN sections s ON s.id = pv.section_id
         WHERE lv.is_active = 1 AND pv.is_active = 1
         ORDER BY s.ordering, pv.ordering, lv.ordinal`,
     )
     .all<OpenLevelRow>();
-  return { levels: results.map((r) => ({ id: r.public_id, name: r.name, programmeName: r.programme_name, sectionKey: r.section_key, sectionName: r.section_name })) };
+  return { levels: results.map((r) => ({ id: r.public_id, name: r.name, programmeId: r.programme_id, programmeName: r.programme_name, sectionKey: r.section_key, sectionName: r.section_name })) };
 }
 
 interface QueueRow {

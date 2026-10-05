@@ -16,6 +16,7 @@ import RegisterPage from "@/app/portal/admissions/register/page";
 import OwnAttendancePage from "@/app/portal/attendance/mine/page";
 import ReviewSheetPage from "@/app/portal/results/review/page";
 import { RoleGate } from "@/shell/RoleGate";
+import { choiceForLevel, levelSteps } from "@/admissions/level-steps";
 import { emptyApplicantForm, validateApplicant, type ApplicationSummary, type OpenLevel } from "@/admissions/model";
 import { ConfigContext, makeConfigValue, type PublicConfig } from "@/config/ConfigProvider";
 import { SessionContext } from "@/session/SessionProvider";
@@ -41,7 +42,14 @@ const inContext = (element: React.ReactNode, session = as("coordinator")) =>
     </ConfigContext.Provider>,
   );
 
-const levels: OpenLevel[] = [{ id: "l1", name: "Grade 11", programmeName: "Science", sectionKey: "plus2", sectionName: "+2" }];
+const levels: OpenLevel[] = [{ id: "l1", name: "Grade 11", programmeId: "p1", programmeName: "Science", sectionKey: "plus2", sectionName: "+2" }];
+const open = (id: string, name: string, programmeId: string, programmeName: string, sectionKey: string, sectionName: string): OpenLevel => ({ id, name, programmeId, programmeName, sectionKey, sectionName });
+const many: OpenLevel[] = [
+  open("g11", "Grade 11", "sci", "Science", "plus2", "+2"),
+  open("g12", "Grade 12", "sci", "Science", "plus2", "+2"),
+  open("m11", "Grade 11", "mgmt", "Management", "plus2", "+2"),
+  open("y1", "Year 1", "bbs", "BBS", "bachelors", "Bachelor's"),
+];
 const noop = () => {};
 
 // ---------------------------------------------------------------------------------------------
@@ -68,11 +76,37 @@ describe("validateApplicant", () => {
 });
 
 // ---------------------------------------------------------------------------------------------
+describe("Applying for: wing, course, level (D-114)", () => {
+  it("offers each step's choices and settles a step with one entry", () => {
+    const start = levelSteps(many, { sectionKey: null, programmeId: null, levelId: null });
+    expect(start.wings.map((w) => w.key)).toEqual(["plus2", "bachelors"]);
+    expect(start.courses).toEqual([]);
+    const bachelors = levelSteps(many, { sectionKey: "bachelors", programmeId: null, levelId: null });
+    expect(bachelors.choice).toEqual({ sectionKey: "bachelors", programmeId: "bbs", levelId: "y1" });
+    const plus2 = levelSteps(many, { sectionKey: "plus2", programmeId: "sci", levelId: null });
+    expect(plus2.levels.map((l) => l.id)).toEqual(["g11", "g12"]);
+    expect(levelSteps(many, { sectionKey: "plus2", programmeId: "bbs", levelId: "y1" }).choice).toEqual({ sectionKey: "plus2", programmeId: null, levelId: null });
+  });
+
+  it("finds a level's wing and course", () => {
+    expect(choiceForLevel(many, "m11")).toEqual({ sectionKey: "plus2", programmeId: "mgmt", levelId: "m11" });
+  });
+});
+
 describe("ApplicantFields", () => {
-  it("shows every field with its label, and the level choices", () => {
+  it("shows every field with its label; with one open level, it says where the applicant is applying", () => {
     const html = inContext(<ApplicantFields values={emptyApplicantForm()} errors={{}} levels={levels} onChange={noop} />);
     for (const label of ["First name", "Last name", "Date of birth", "Phone", "Email", "Guardian&#x27;s name", "Guardian&#x27;s phone", "Applying for"]) expect(html).toContain(label);
     expect(html).toContain("+2 · Science · Grade 11");
+  });
+
+  it("asks for the wing first, then the course, then the level (D-114)", () => {
+    const html = inContext(<ApplicantFields values={emptyApplicantForm()} errors={{}} levels={many} onChange={noop} />);
+    expect(html).toContain(">Bachelor&#x27;s<");
+    expect(html).not.toContain(">Management<"); // the course comes after the wing
+    const chosen = inContext(<ApplicantFields values={{ ...emptyApplicantForm(), levelId: "g12" }} errors={{}} levels={many} onChange={noop} />);
+    expect(chosen).toContain(">Management<");
+    expect(chosen).toMatch(/<option value="g12" selected="">Grade 12<\/option>/);
   });
 
   it("shows an error under the field it belongs to", () => {

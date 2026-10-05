@@ -3893,6 +3893,9 @@
           "name": {
             "type": "string"
           },
+          "programmeId": {
+            "type": "string"
+          },
           "programmeName": {
             "type": "string"
           },
@@ -3906,6 +3909,7 @@
         "required": [
           "id",
           "name",
+          "programmeId",
           "programmeName",
           "sectionKey",
           "sectionName"

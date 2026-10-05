@@ -3494,6 +3494,7 @@ export interface components {
         OpenLevel: {
             id: string;
             name: string;
+            programmeId: string;
             programmeName: string;
             sectionKey: string;
             sectionName: string;

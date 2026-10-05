@@ -154,3 +154,19 @@
   color: var(--color-text-muted);
   font-size: var(--text-sm);
 }
+
+/* "Applying for": Wing, Course and Level as one group of fields (D-114), without a box around it. */
+.levelSteps {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.levelGiven {
+  margin: 0;
+  color: var(--color-text-muted);
+}
