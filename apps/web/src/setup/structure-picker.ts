@@ -58,3 +58,20 @@ export function choiceOf(programmes: readonly Programme[], levelId: string | nul
   for (const p of programmes) if (p.levels.some((l) => l.id === levelId)) return { sectionKey: p.section.key, programmeId: p.id, levelId };
   return emptyChoice;
 }
+
+interface TermLike {
+  status: "draft" | "active" | "closed";
+  levels: readonly { id: string }[];
+}
+
+/** The levels some open (draft or active) term runs: the ones a school is working with now (D-114). */
+export function openTermLevelIds(terms: readonly TermLike[]): Set<string> {
+  const ids = new Set<string>();
+  for (const term of terms) if (term.status !== "closed") for (const l of term.levels) ids.add(l.id);
+  return ids;
+}
+
+/** The open term a level is in: at most one (D-110), so its classes are that term's. Null when none runs it. */
+export function openTermOf<T extends TermLike>(terms: readonly T[], levelId: string): T | null {
+  return terms.find((term) => term.status !== "closed" && term.levels.some((l) => l.id === levelId)) ?? null;
+}

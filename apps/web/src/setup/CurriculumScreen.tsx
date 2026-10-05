@@ -7,7 +7,7 @@ import { t, type MessageKey } from "@/i18n/messages";
 import { EmptyLine, Panel, ReadHeader, ReadOnlyNote, ReadTable, StatusWord, readStyles } from "@/read/ReadView";
 import { Facts, PanelSection, SidePanel } from "@/read/SidePanel";
 import { useSession } from "@/session/SessionProvider";
-import { AddDialog, Button, Field, Notice, Select } from "@/ui";
+import { AddDialog, Button, Checkbox, Field, Notice, Select } from "@/ui";
 
 import {
   addComponent,
@@ -16,6 +16,7 @@ import {
   loadCurriculum,
   loadProgrammes,
   loadSubjects,
+  loadYears,
   setComponentActive,
   setGroupActive,
   setOfferingActive,
@@ -26,7 +27,6 @@ import {
   REASON_MESSAGE,
   canManageStructure,
   formatHundredths,
-  levelChoices,
   parseHundredths,
   subjectChoices,
   termWords,
@@ -38,6 +38,8 @@ import {
   type Subject,
 } from "./model";
 import { CurriculumTable, ReadSetupHeader, midSentence } from "./ReadSetup";
+import { StructurePicker } from "./StructurePicker";
+import { choiceOf, levelsOf, openTermLevelIds, settle, type KeepLevel, type StructureChoice } from "./structure-picker";
 import { Gate, useLoad } from "./useLoad";
 import styles from "./setup.module.css";
 
@@ -515,10 +517,18 @@ export function CurriculumScreen() {
   const loadSubjectsNow = useCallback(() => loadSubjects(api), [api]);
   const programmes = useLoad(loadProgrammesNow);
   const subjects = useLoad(loadSubjectsNow);
-  const [picked, setLevelId] = useState("");
-  // An empty "Choose…" is a dead end, so the first level opens for everyone (D-104, and for the Co-ordinator D-106).
-  const choices = programmes.view.status === "ready" ? levelChoices(programmes.view.data.programmes) : [];
-  const levelId = picked || (choices[0]?.value ?? "");
+  const loadTermsNow = useCallback(() => loadYears(api), [api]);
+  const terms = useLoad(loadTermsNow);
+  const [picked, setPicked] = useState<StructureChoice | null>(null);
+  const [showAll, setShowAll] = useState(false);
+  // By default only the levels an open term runs (D-114): the ones the school works with now. All on request.
+  const open = terms.view.status === "ready" ? openTermLevelIds(terms.view.data.years) : new Set<string>();
+  const keep: KeepLevel = (level) => showAll || open.has(level.id);
+  const all = programmes.view.status === "ready" ? programmes.view.data.programmes : [];
+  // An empty "Choose…" is a dead end, so the first level offered opens for everyone (D-104, and for the Co-ordinator D-106).
+  const firstLevel = all.flatMap((p) => levelsOf(p, keep))[0]?.id ?? null;
+  const choice = settle(all, picked ?? choiceOf(all, firstLevel), keep);
+  const levelId = choice.levelId ?? "";
   const loadCurriculumNow = useCallback(
     (): Promise<Loaded<Curriculum | null>> => (levelId ? loadCurriculum(api, levelId) : Promise.resolve({ ok: true, data: null })),
     [api, levelId],
@@ -576,20 +586,22 @@ export function CurriculumScreen() {
       {notice}
 
       <Gate view={programmes.view} onRetry={() => void programmes.reload()}>
-        {() =>
-          choices.length === 0 ? (
+        {(data) =>
+          data.programmes.every((p) => levelsOf(p).length === 0) ? (
             <EmptyLine>{t("setup.curriculum.noLevels", words)}</EmptyLine>
           ) : (
             <div className={readStyles.search}>
-              <Select
-                label={t("setup.curriculum.pick", words)}
-                value={levelId}
-                onChange={(event) => {
+              <StructurePicker
+                programmes={data.programmes}
+                keep={keep}
+                value={choice}
+                empty={t("setup.curriculum.noOpenLevels")}
+                onChange={(next) => {
                   setFlash(null);
-                  setLevelId(event.target.value);
+                  setPicked(next);
                 }}
-                options={choices}
               />
+              <Checkbox label={t("setup.curriculum.showAll")} checked={showAll} onChange={(event) => setShowAll(event.target.checked)} />
             </div>
           )
         }

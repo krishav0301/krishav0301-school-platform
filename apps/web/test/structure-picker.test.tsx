@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest";
 import { ConfigContext, makeConfigValue, type PublicConfig } from "@/config/ConfigProvider";
 import type { Programme } from "@/setup/model";
 import { StructurePicker } from "@/setup/StructurePicker";
-import { choiceOf, coursesOf, emptyChoice, settle, wingsOf } from "@/setup/structure-picker";
+import { choiceOf, coursesOf, emptyChoice, openTermLevelIds, openTermOf, settle, wingsOf } from "@/setup/structure-picker";
 
 // D-114 (FUT points 4, 9, 14): a level is chosen by Wing, then Course, then Level, in the school's own words.
 const level = (id: string, name: string, months: number | null = 12, active = true) => ({ id, ordinal: 1, name, active, usualMonths: months, students: 0, canDelete: false });
@@ -67,5 +67,17 @@ describe("the picker", () => {
   it("says a problem at the first step still to choose", () => {
     const html = render(<StructurePicker programmes={programmes} value={emptyChoice} onChange={() => {}} empty="None" error="Choose one" />);
     expect(html).toMatch(/>Wing<[\s\S]*Choose one/);
+  });
+});
+
+describe("the levels open terms run (D-114, FUT point 9)", () => {
+  const termWith = (status: "draft" | "active" | "closed", ids: string[]) => ({ status, levels: ids.map((id) => ({ id })) });
+  it("collects the levels of draft and active terms, not closed ones", () => {
+    expect([...openTermLevelIds([termWith("active", ["g11"]), termWith("draft", ["y1"]), termWith("closed", ["y2"])])].sort()).toEqual(["g11", "y1"]);
+  });
+  it("finds the open term a level is in", () => {
+    const terms = [{ id: "t1", status: "closed" as const, levels: [{ id: "g11" }] }, { id: "t2", status: "active" as const, levels: [{ id: "g11" }] }];
+    expect(openTermOf(terms, "g11")?.id).toBe("t2");
+    expect(openTermOf(terms, "nope")).toBeNull();
   });
 });
