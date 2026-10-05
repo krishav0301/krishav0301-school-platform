@@ -3087,6 +3087,7 @@ export interface components {
             name: string;
             code: string | null;
             archived: boolean;
+            sectionKey: string | null;
         };
         Curriculum: {
             level: {
@@ -3094,6 +3095,7 @@ export interface components {
                 name: string;
                 programmeId: string;
                 programmeName: string;
+                sectionKey: string;
             };
             groups: components["schemas"]["CurriculumGroup"][];
             offerings: components["schemas"]["CurriculumOffering"][];
@@ -3127,11 +3129,13 @@ export interface components {
         CreateSubject: {
             name: string;
             code?: string | null;
+            sectionKey: string;
         };
         SubjectChanges: {
             name?: string;
             code?: string | null;
             archived?: boolean;
+            sectionKey?: string;
         };
         CreateOffering: {
             levelId: string;

@@ -25,7 +25,7 @@ import { signAccessToken, type RoleClaim } from "../src/core/tokens";
 import { createUser } from "../src/modules/accounts/service";
 import royalJson from "../../../packs/royal-softech/pack.json";
 import sampleJson from "../../../packs/sample-basic-school/pack.json";
-import { seedProgrammes, testPack } from "./programme-fixtures";
+import { seedProgrammes, testPack, wingOfLevel } from "./programme-fixtures";
 
 const app = createApp();
 
@@ -95,7 +95,7 @@ describe.each([
     expect(cls.status).toBe(201);
     state.classId = await idOf(cls);
 
-    const subject = await post("/api/academics/subjects", { name: `Science ${crypto.randomUUID().slice(0, 6)}` }, cookies.coordinator);
+    const subject = await post("/api/academics/subjects", { name: `Science ${crypto.randomUUID().slice(0, 6)}`, sectionKey: await wingOfLevel(db(), state.levelId!) }, cookies.coordinator);
     const offering = await post("/api/academics/offerings", { levelId: state.levelId, subjectId: await idOf(subject) }, cookies.coordinator);
     expect(offering.status).toBe(201);
     state.offeringId = await idOf(offering);

@@ -62,3 +62,10 @@ export async function seedProgrammes(db: D1Database, auditKey: string, pack: Pac
 
 /** The grading policy the first programme of a pack is given here (what the pack used to seed). */
 export const firstProgrammePolicy = (pack: Pack): "neb_gpa" | "percentage_division" => LEVELS[pack.site.programmes[0]!.key]!.gradingPolicy;
+
+/** The wing (section key) a level is in: a subject joins only its own wing's levels (D-114). */
+export const wingOfLevel = async (db: D1Database, levelPublicId: string): Promise<string> =>
+  (await db
+    .prepare("SELECT s.key FROM levels l JOIN programmes p ON p.id = l.programme_id JOIN sections s ON s.id = p.section_id WHERE l.public_id = ?1")
+    .bind(levelPublicId)
+    .first<{ key: string }>())!.key;

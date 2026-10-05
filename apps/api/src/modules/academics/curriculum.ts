@@ -151,6 +151,7 @@ export async function createOffering(db: D1Database, auditKey: string, actor: st
            CROSS JOIN subjects s
           WHERE l.public_id = ?2 AND s.public_id = ?3
             AND l.is_active = 1 AND p.is_active = 1 AND s.is_archived = 0
+            AND s.section_id = p.section_id
             AND (?5 IS NULL OR EXISTS (SELECT 1 FROM elective_groups g2 WHERE g2.public_id = ?5 AND g2.level_id = l.id AND g2.is_active = 1))
             AND ${coordinatorForSection(6, "p.section_id")}`,
       )
@@ -167,7 +168,7 @@ export async function createOffering(db: D1Database, auditKey: string, actor: st
     levelSection(2),
     o.levelId,
     levelState(db, o.levelId),
-    db.prepare("SELECT is_archived FROM subjects WHERE public_id = ?1").bind(o.subjectId),
+    db.prepare("SELECT x.is_archived, x.section_id, (SELECT p.section_id FROM levels l JOIN programmes p ON p.id = l.programme_id WHERE l.public_id = ?2) AS level_section FROM subjects x WHERE x.public_id = ?1").bind(o.subjectId, o.levelId),
     groupState(db, o.groupId ?? ""),
   );
   const [level, subject, group] = rows;
@@ -175,6 +176,9 @@ export async function createOffering(db: D1Database, auditKey: string, actor: st
   if (!level || !subject) return { ok: false, reason: "not_found" };
   if (switchedOff(level)) return { ok: false, reason: "invalid", message: "That level or its programme is switched off" };
   if (subject.is_archived === 1) return { ok: false, reason: "invalid", message: "That subject is archived" };
+  // A level takes only a subject of its own wing (D-114).
+  if (subject.section_id === null) return { ok: false, reason: "invalid", message: "Choose a wing for that subject first, on the Subjects page" };
+  if (subject.section_id !== subject.level_section) return { ok: false, reason: "invalid", message: "That subject belongs to another wing" };
   if (o.groupId !== null && (!group || group.level !== o.levelId || group.active === 0)) {
     return { ok: false, reason: "invalid", message: "That elective group is not available for this level" };
   }

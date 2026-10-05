@@ -120,6 +120,7 @@ export function GroupForm({ levelId, onAdded, showTitle = true }: { levelId: str
 
 export function OfferingForm({
   levelId,
+  sectionKey,
   subjects,
   offerings,
   groups,
@@ -127,6 +128,8 @@ export function OfferingForm({
   showTitle = true,
 }: {
   levelId: string;
+  /** The level's wing: only its subjects may join (D-114). */
+  sectionKey: string;
   subjects: readonly Subject[];
   offerings: readonly Offering[];
   groups: readonly Group[];
@@ -137,7 +140,7 @@ export function OfferingForm({
   const { api } = useSession();
   const { term } = useConfig();
   const words = termWords(term);
-  const choices = subjectChoices(subjects, offerings);
+  const choices = subjectChoices(subjects, offerings, sectionKey);
   const [subjectId, setSubjectId] = useState("");
   const [credit, setCredit] = useState("");
   const [groupId, setGroupId] = useState("");
@@ -566,6 +569,7 @@ export function CurriculumScreen() {
                 {(close) => (
                   <OfferingForm
                     levelId={data.level.id}
+                    sectionKey={data.level.sectionKey}
                     subjects={subjects.view.status === "ready" ? subjects.view.data.subjects : []}
                     offerings={data.offerings}
                     groups={data.groups}

@@ -121,8 +121,13 @@ export const createTerminal = async (api: ApiClient, body: { yearId: string; nam
 export const loadSubjects = (api: ApiClient) => load(() => api.GET("/api/academics/subjects"));
 export const loadCurriculum = (api: ApiClient, levelId: string) => load(() => api.GET("/api/academics/curriculum", { params: { query: { level: levelId } } }));
 
-export const createSubject = async (api: ApiClient, input: { name: string; code?: string }): Promise<CreateResult> =>
-  created(await send(() => api.POST("/api/academics/subjects", { body: { name: input.name, ...(input.code ? { code: input.code } : {}) } })));
+/** A subject in a wing (D-114). */
+export const createSubject = async (api: ApiClient, input: { name: string; code?: string; sectionKey: string }): Promise<CreateResult> =>
+  created(await send(() => api.POST("/api/academics/subjects", { body: { name: input.name, sectionKey: input.sectionKey, ...(input.code ? { code: input.code } : {}) } })));
+
+/** Gives an old subject its wing (D-114); a subject that has one keeps it. */
+export const setSubjectWing = async (api: ApiClient, id: string, sectionKey: string): Promise<WriteResult> =>
+  done(await send(() => api.PATCH("/api/academics/subjects/{id}", { params: { path: { id } }, body: { sectionKey } })));
 
 export const setSubjectArchived = async (api: ApiClient, id: string, archived: boolean): Promise<WriteResult> =>
   done(await send(() => api.PATCH("/api/academics/subjects/{id}", { params: { path: { id } }, body: { archived } })));

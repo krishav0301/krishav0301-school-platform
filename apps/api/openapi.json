@@ -1980,13 +1980,20 @@
           },
           "archived": {
             "type": "boolean"
+          },
+          "sectionKey": {
+            "type": [
+              "string",
+              "null"
+            ]
           }
         },
         "required": [
           "id",
           "name",
           "code",
-          "archived"
+          "archived",
+          "sectionKey"
         ]
       },
       "Curriculum": {
@@ -2006,13 +2013,17 @@
               },
               "programmeName": {
                 "type": "string"
+              },
+              "sectionKey": {
+                "type": "string"
               }
             },
             "required": [
               "id",
               "name",
               "programmeId",
-              "programmeName"
+              "programmeName",
+              "sectionKey"
             ]
           },
           "groups": {
@@ -2159,10 +2170,16 @@
             ],
             "minLength": 1,
             "maxLength": 20
+          },
+          "sectionKey": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 60
           }
         },
         "required": [
-          "name"
+          "name",
+          "sectionKey"
         ],
         "additionalProperties": false
       },
@@ -2184,6 +2201,11 @@
           },
           "archived": {
             "type": "boolean"
+          },
+          "sectionKey": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 60
           }
         },
         "additionalProperties": false

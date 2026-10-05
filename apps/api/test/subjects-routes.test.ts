@@ -33,7 +33,7 @@ async function makeLevel(sectionKey: "plus2" | "bachelors") {
   return idOf(level);
 }
 const makeSubject = async (over: Record<string, unknown> = {}, who: Person = coordinator) => {
-  const response = await post("/subjects", { name: label("Subject"), ...over }, who);
+  const response = await post("/subjects", { name: label("Subject"), sectionKey: "plus2", ...over }, who);
   expect(response.status).toBe(201);
   return idOf(response);
 };
@@ -96,7 +96,7 @@ describe("who may use the subject routes", () => {
     const off = await person("coordinator", "institution");
     await db.prepare("UPDATE users SET is_active = 0 WHERE public_id = ?1").bind(off.publicId).run();
     const before = await count("SELECT COUNT(*) AS n FROM subjects");
-    expect((await post("/subjects", { name: label("Subject") }, off)).status).toBe(403);
+    expect((await post("/subjects", { name: label("Subject"), sectionKey: "plus2" }, off)).status).toBe(403);
     expect(await count("SELECT COUNT(*) AS n FROM subjects")).toBe(before);
   });
 });
@@ -158,7 +158,7 @@ describe("keeping a level's subjects, end to end", () => {
 
   it("status codes for the failure cases: 400 for a bad shape, 422 for a broken rule, 404, and 409", async () => {
     const levelId = await makeLevel("bachelors");
-    const subjectId = await makeSubject();
+    const subjectId = await makeSubject({ sectionKey: "bachelors" });
     expect((await post("/subjects", { code: "x" }, coordinator)).status).toBe(400);
     expect((await post("/offerings", { levelId, subjectId, creditHundredths: 3.75 }, coordinator)).status).toBe(400);
     expect((await post(`/levels/${levelId}/groups`, { name: "x", stray: 1 }, coordinator)).status).toBe(400);
@@ -178,12 +178,24 @@ describe("keeping a level's subjects, end to end", () => {
     expect((await post("/offerings", { levelId: noId, subjectId: await makeSubject() }, coordinator)).status).toBe(404);
     expect((await patch(`/groups/${noId}`, { name: "x" }, coordinator)).status).toBe(404);
     expect((await get(`/curriculum?level=${noId}`, coordinator)).status).toBe(404);
-    expect((await post("/subjects", { name: (await (await get("/subjects", coordinator)).json() as { subjects: { name: string }[] }).subjects[0]!.name.toUpperCase() }, coordinator)).status).toBe(409);
+    expect((await post("/subjects", { name: (await (await get("/subjects", coordinator)).json() as { subjects: { name: string }[] }).subjects[0]!.name.toUpperCase(), sectionKey: "plus2" }, coordinator)).status).toBe(409);
   });
 });
 
 // ---------------------------------------------------------------------------------------------
 describe("a section-scoped Co-ordinator gets nothing from the other section (data-level)", () => {
+  it("lists only their own wing's subjects, and cannot add one to the other wing (D-114)", async () => {
+    const plus2 = await makeSubject({ sectionKey: "plus2" });
+    const bachelors = await makeSubject({ sectionKey: "bachelors" });
+    const listed = ((await (await get("/subjects", plus2Coordinator)).json()) as { subjects: { id: string; sectionKey: string | null }[] }).subjects;
+    expect(listed.map((x) => x.id)).toContain(plus2);
+    expect(listed.map((x) => x.id)).not.toContain(bachelors);
+    expect(listed.every((x) => x.sectionKey === "plus2")).toBe(true);
+    expect((await post("/subjects", { name: label("Sneaky"), sectionKey: "bachelors" }, plus2Coordinator)).status).toBe(403);
+    const everything = ((await (await get("/subjects", admin)).json()) as { subjects: { id: string }[] }).subjects.map((x) => x.id);
+    expect(everything).toEqual(expect.arrayContaining([plus2, bachelors]));
+  });
+
   it("cannot read a Bachelor's level's curriculum (404), even with the right id, but reads their own", async () => {
     const plus2 = await makeLevel("plus2");
     const bachelors = await makeLevel("bachelors");
@@ -196,14 +208,14 @@ describe("a section-scoped Co-ordinator gets nothing from the other section (dat
 
   it("cannot change the other section's groups, offerings or components, even with the right ids", async () => {
     const bachelors = await makeLevel("bachelors");
-    const subjectId = await makeSubject();
+    const subjectId = await makeSubject({ sectionKey: "bachelors" });
     const groupId = await idOf(await post(`/levels/${bachelors}/groups`, { name: "Option" }, coordinator));
     const offeringId = await idOf(await post("/offerings", { levelId: bachelors, subjectId }, coordinator));
     const componentId = await idOf(await post(`/offerings/${offeringId}/components`, { name: "Theory", maxHundredths: 7500 }, coordinator));
 
     expect((await post(`/levels/${bachelors}/groups`, { name: "Sneaky" }, plus2Coordinator)).status).toBe(403);
     expect((await patch(`/groups/${groupId}`, { name: "Hijacked" }, plus2Coordinator)).status).toBe(403);
-    expect((await post("/offerings", { levelId: bachelors, subjectId: await makeSubject() }, plus2Coordinator)).status).toBe(403);
+    expect((await post("/offerings", { levelId: bachelors, subjectId: await makeSubject({ sectionKey: "bachelors" }) }, plus2Coordinator)).status).toBe(403);
     expect((await patch(`/offerings/${offeringId}`, { active: false }, plus2Coordinator)).status).toBe(403);
     expect((await post(`/offerings/${offeringId}/components`, { name: "Sneaky", maxHundredths: 100 }, plus2Coordinator)).status).toBe(403);
     expect((await patch(`/components/${componentId}`, { name: "Hijacked" }, plus2Coordinator)).status).toBe(403);

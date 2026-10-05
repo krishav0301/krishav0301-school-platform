@@ -20,7 +20,7 @@ import { createUser } from "../src/modules/accounts/service";
 import { verifyLedgerChain } from "../src/modules/fees/ledger";
 import royalJson from "../../../packs/royal-softech/pack.json";
 import sampleJson from "../../../packs/sample-basic-school/pack.json";
-import { firstProgrammePolicy, seedProgrammes, testPack } from "./programme-fixtures";
+import { firstProgrammePolicy, seedProgrammes, testPack, wingOfLevel } from "./programme-fixtures";
 
 // These walk a whole school year, hashing many passwords on purpose-slow scrypt; with every test file running in
 // parallel they can pass the 60 s default on a busy machine (seen 2026-10-01), so they get three minutes.
@@ -141,7 +141,7 @@ describe.each([
 
   it("setup: subjects with components and credit hours, an elective group, teachers hired and assigned", async () => {
     const subject = async (name: string, credit: number, parts: [number, "theory" | "practical"][], groupId?: string) => {
-      const subjectId = (await ok(await post("/api/academics/subjects", { name: `${name} ${tag}` }, c.coordinator), 201)).id as string;
+      const subjectId = (await ok(await post("/api/academics/subjects", { name: `${name} ${tag}`, sectionKey: await wingOfLevel(db(), s.levelId!) }, c.coordinator), 201)).id as string;
       const offeringId = (await ok(await post("/api/academics/offerings", { levelId: s.levelId, subjectId, creditHundredths: credit * 100, ...(groupId ? { groupId } : {}) }, c.coordinator), 201)).id as string;
       const components: string[] = [];
       for (const [i, [max, kind]] of parts.entries()) components.push((await ok(await post(`/api/academics/offerings/${offeringId}/components`, { name: kind === "theory" ? `Theory ${i}` : `Practical ${i}`, maxHundredths: max * 100, kind }, c.coordinator), 201)).id as string);

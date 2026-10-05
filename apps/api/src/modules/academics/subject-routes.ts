@@ -40,7 +40,7 @@ export function registerSubjects(app: App): void {
     },
     async (c) => {
       c.header("Cache-Control", "no-store");
-      return c.json(await listSubjects(c.env.DB), 200);
+      return c.json(await listSubjects(c.env.DB, allowedSections(c.get("grant")!)), 200);
     },
   );
 
