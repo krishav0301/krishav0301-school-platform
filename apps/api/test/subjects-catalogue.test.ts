@@ -2,8 +2,8 @@ import { beforeAll, describe, expect, it } from "vitest";
 
 import { verifyAuditChain } from "../src/core/audit";
 import { listSubjects } from "../src/modules/academics/queries";
-import { createSubject, updateSubject } from "../src/modules/academics/service";
-import { auditActions, auditKey, count, db, person, seedSections, type Person } from "./academics-helpers";
+import { addLevel, createOffering, createProgramme, createSubject, updateSubject } from "../src/modules/academics/service";
+import { auditActions, auditKey, count, db, person, programmesAdmin, seedSections, type Person } from "./academics-helpers";
 
 let coordinator: Person, plus2Coordinator: Person, admin: Person, accountant: Person, teacher: Person, student: Person, superAdmin: Person;
 beforeAll(async () => {
@@ -135,14 +135,35 @@ describe("updateSubject", () => {
     expect(await db.prepare("SELECT name FROM subjects WHERE public_id = ?1").bind(id).first()).toEqual({ name: "English" });
   });
 
-  it("an old subject with no wing is given one by a whole-school Co-ordinator; once given, the wing stays (D-114)", async () => {
+  it("a whole-school Co-ordinator gives an old subject its wing, and may move a subject while no curriculum uses it (FUT point 17)", async () => {
     const id = await newSubject();
     await db.prepare("UPDATE subjects SET section_id = NULL WHERE public_id = ?1").bind(id).run();
     expect(await updateSubject(db, auditKey, plus2Coordinator.publicId, id, { sectionKey: "plus2" })).toEqual({ ok: false, reason: "not_allowed" });
     expect(await updateSubject(db, auditKey, coordinator.publicId, id, { sectionKey: "bachelors" })).toEqual({ ok: true });
-    expect(await db.prepare("SELECT s.key FROM subjects x JOIN sections s ON s.id = x.section_id WHERE x.public_id = ?1").bind(id).first()).toEqual({ key: "bachelors" });
-    expect(await updateSubject(db, auditKey, coordinator.publicId, id, { sectionKey: "plus2" })).toMatchObject({ ok: false, reason: "invalid", message: expect.stringMatching(/wing/i) });
-    expect(await updateSubject(db, auditKey, coordinator.publicId, id, { sectionKey: "bachelors" })).toEqual({ ok: true }); // the same wing: nothing to do
+    const wing = async () => (await db.prepare("SELECT s.key FROM subjects x JOIN sections s ON s.id = x.section_id WHERE x.public_id = ?1").bind(id).first<{ key: string }>())!.key;
+    expect(await wing()).toBe("bachelors");
+    // Not in any curriculum yet: it may move, and the change is recorded.
+    expect(await updateSubject(db, auditKey, coordinator.publicId, id, { sectionKey: "plus2" })).toEqual({ ok: true });
+    expect(await wing()).toBe("plus2");
+    expect(await updateSubject(db, auditKey, coordinator.publicId, id, { sectionKey: "plus2" })).toEqual({ ok: true }); // the same wing: nothing to do
+  });
+
+  it("once a curriculum uses a subject, its wing stays; name and code still change, and nothing false is recorded (FUT point 17)", async () => {
+    const id = await newSubject();
+    const programme = await createProgramme(db, auditKey, (await programmesAdmin()).publicId, { name: `Wing test ${crypto.randomUUID().slice(0, 6)}`, sectionKey: "plus2", affiliation: "Board" });
+    if (!programme.ok) throw new Error("programme setup failed");
+    const level = await addLevel(db, auditKey, (await programmesAdmin()).publicId, programme.publicId, { name: "Grade 11", usualMonths: 12 });
+    if (!level.ok) throw new Error("level setup failed");
+    expect((await createOffering(db, auditKey, coordinator.publicId, { levelId: level.publicId, subjectId: id })).ok).toBe(true);
+    const before = await audits();
+    expect(await updateSubject(db, auditKey, coordinator.publicId, id, { sectionKey: "bachelors" })).toMatchObject({ ok: false, reason: "invalid", message: expect.stringMatching(/curriculum/i) });
+    expect(await audits()).toBe(before);
+    expect(await updateSubject(db, auditKey, coordinator.publicId, id, { name: `Renamed ${crypto.randomUUID().slice(0, 6)}`, code: "RNM" })).toEqual({ ok: true });
+  });
+
+  it("the list says whether a curriculum uses each subject", async () => {
+    const unused = await newSubject();
+    expect((await listSubjects(db, "all")).subjects.find((x) => x.id === unused)?.inCurriculum).toBe(false);
   });
 
   it("an unknown subject is not found, and a bad change is invalid", async () => {

@@ -125,9 +125,9 @@ export const loadCurriculum = (api: ApiClient, levelId: string) => load(() => ap
 export const createSubject = async (api: ApiClient, input: { name: string; code?: string; sectionKey: string }): Promise<CreateResult> =>
   created(await send(() => api.POST("/api/academics/subjects", { body: { name: input.name, sectionKey: input.sectionKey, ...(input.code ? { code: input.code } : {}) } })));
 
-/** Gives an old subject its wing (D-114); a subject that has one keeps it. */
-export const setSubjectWing = async (api: ApiClient, id: string, sectionKey: string): Promise<WriteResult> =>
-  done(await send(() => api.PATCH("/api/academics/subjects/{id}", { params: { path: { id } }, body: { sectionKey } })));
+/** A subject's name, code (none when empty) and wing; the wing moves only while no curriculum uses it (FUT point 17). */
+export const updateSubject = async (api: ApiClient, id: string, input: { name: string; code: string; sectionKey: string }): Promise<WriteResult> =>
+  done(await send(() => api.PATCH("/api/academics/subjects/{id}", { params: { path: { id } }, body: { name: input.name, code: input.code || null, sectionKey: input.sectionKey } })));
 
 export const setSubjectArchived = async (api: ApiClient, id: string, archived: boolean): Promise<WriteResult> =>
   done(await send(() => api.PATCH("/api/academics/subjects/{id}", { params: { path: { id } }, body: { archived } })));

@@ -6,7 +6,7 @@ import SubjectsPage from "@/app/portal/setup/subjects/page";
 import { ConfigContext, makeConfigValue, type PublicConfig } from "@/config/ConfigProvider";
 import { ComponentForm, CurriculumView, GroupForm, OfferingForm, SubjectPanel } from "@/setup/CurriculumScreen";
 import { SetupTabs } from "@/setup/SetupLayout";
-import { SubjectForm, SubjectsScreen, SubjectsView, WingForm } from "@/setup/SubjectsScreen";
+import { SubjectEditForm, SubjectForm, SubjectsScreen, SubjectsView } from "@/setup/SubjectsScreen";
 import type { Curriculum, Offering, Subject } from "@/setup/model";
 import { SessionContext } from "@/session/SessionProvider";
 import { fakeSession } from "./session";
@@ -34,7 +34,7 @@ const inContext = (element: React.ReactNode, session = as("coordinator", "instit
 const count = (html: string, pattern: RegExp) => (html.match(pattern) ?? []).length;
 const noop = () => {};
 
-const subject = (id: string, name: string, over: Partial<Subject> = {}): Subject => ({ id, name, code: null, archived: false, sectionKey: "plus2", ...over });
+const subject = (id: string, name: string, over: Partial<Subject> = {}): Subject => ({ id, name, code: null, archived: false, sectionKey: "plus2", inCurriculum: false, ...over });
 
 // ---------------------------------------------------------------------------------------------
 describe("the sub-menu", () => {
@@ -72,12 +72,12 @@ describe("the subjects screen", () => {
 
   it("names each subject's wing, and asks for one where an old subject has none (D-114)", () => {
     const withWings = [subject("s1", "English"), subject("s2", "English", { sectionKey: "bachelors" }), subject("s3", "Music", { sectionKey: null })];
-    const html = inContext(<SubjectsView subjects={withWings} wings={TEST_SECTIONS.royal} canArchive busy={null} onToggle={noop} onSetWing={async () => true as const} />);
+    const html = inContext(<SubjectsView subjects={withWings} wings={TEST_SECTIONS.royal} canArchive busy={null} onToggle={noop} onEdit={async () => true as const} />);
     expect(html).toContain('data-label="Section">+2<');
     expect(html).toContain('data-label="Section">Bachelor&#x27;s<');
     expect(html).toContain("No Section yet");
-    expect(html).toContain('aria-label="Choose the Section of Music"');
-    expect(count(html, /aria-label="Choose the Section of/g)).toBe(1); // only the subject with no wing
+    expect(html).toContain('aria-label="Edit Music"');
+    expect(count(html, /aria-label="Edit /g)).toBe(3); // every subject, for someone who may change one (FUT point 17)
   });
 
   it("the add form asks for the wing first, or says the one wing a person reaches (D-114)", () => {
@@ -89,9 +89,15 @@ describe("the subjects screen", () => {
     expect(one).not.toContain("<select");
   });
 
-  it("choosing an old subject's wing says it then stays (D-114)", () => {
-    const html = inContext(<WingForm wings={TEST_SECTIONS.royal} onSave={async () => true as const} />);
-    expect(html).toContain("Once chosen, a subject stays in its Section.");
+  it("Edit changes the name, the code, and the wing while no curriculum uses the subject (FUT point 17)", () => {
+    const free = inContext(<SubjectEditForm subject={subject("s1", "Physics", { code: "PHY" })} wings={TEST_SECTIONS.royal} onSave={async () => true as const} />);
+    for (const label of [">Name<", ">Code (optional)<", ">Section<"]) expect(free).toContain(label);
+    expect(free).toContain('value="Physics"');
+    expect(free).toContain('value="PHY"');
+    expect(free).not.toMatch(/<select[^>]*disabled/);
+    const used = inContext(<SubjectEditForm subject={subject("s1", "Physics", { inCurriculum: true })} wings={TEST_SECTIONS.royal} onSave={async () => true as const} />);
+    expect(used).toMatch(/<select[^>]*disabled/);
+    expect(used).toContain("A curriculum uses this subject, so its Section stays.");
   });
 
   it("an empty catalogue invites adding only to someone who can add", () => {

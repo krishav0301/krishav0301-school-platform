@@ -327,6 +327,8 @@ export const SubjectSchema = z
     archived: z.boolean(),
     /** Its wing (D-114); null for an old subject not given one yet. */
     sectionKey: z.string().nullable(),
+    /** Some level's curriculum uses it: its wing is then fixed (FUT point 17). */
+    inCurriculum: z.boolean(),
   })
   .openapi("Subject");
 export const SubjectListSchema = z.object({ subjects: z.array(SubjectSchema) }).openapi("SubjectList");

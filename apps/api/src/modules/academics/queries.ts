@@ -279,6 +279,7 @@ interface SubjectRow {
   code: string | null;
   is_archived: number;
   section_key: string | null;
+  in_curriculum: number;
 }
 
 /**
@@ -288,14 +289,15 @@ interface SubjectRow {
 export async function listSubjects(db: D1Database, sections: "all" | readonly string[]): Promise<SubjectList> {
   const { results } = await db
     .prepare(
-      `SELECT x.public_id, x.name, x.code, x.is_archived, s.key AS section_key
+      `SELECT x.public_id, x.name, x.code, x.is_archived, s.key AS section_key,
+              EXISTS (SELECT 1 FROM subject_offerings o WHERE o.subject_id = x.id) AS in_curriculum
          FROM subjects x LEFT JOIN sections s ON s.id = x.section_id
         WHERE ?1 = 'all' OR s.key IN (SELECT value FROM json_each(?2))
         ORDER BY x.name COLLATE NOCASE, s.ordering`,
     )
     .bind(sections === "all" ? "all" : "some", JSON.stringify(sections === "all" ? [] : sections))
     .all<SubjectRow>();
-  return { subjects: results.map((s) => ({ id: s.public_id, name: s.name, code: s.code, archived: s.is_archived === 1, sectionKey: s.section_key })) };
+  return { subjects: results.map((s) => ({ id: s.public_id, name: s.name, code: s.code, archived: s.is_archived === 1, sectionKey: s.section_key, inCurriculum: s.in_curriculum === 1 })) };
 }
 
 interface CurriculumRow {
@@ -363,7 +365,7 @@ export async function getCurriculum(db: D1Database, sections: "all" | readonly s
     if (!offering || offering.id !== r.offering_id) {
       offering = {
         id: r.offering_id,
-        subject: { id: r.subject_id, name: r.subject_name, code: r.subject_code, archived: r.is_archived === 1, sectionKey: r.subject_section },
+        subject: { id: r.subject_id, name: r.subject_name, code: r.subject_code, archived: r.is_archived === 1, sectionKey: r.subject_section, inCurriculum: true },
         creditHundredths: r.credit_hundredths,
         group: r.group_id !== null ? { id: r.group_id, name: r.group_name! } : null,
         active: r.offering_active === 1,

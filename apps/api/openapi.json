@@ -1986,6 +1986,9 @@
               "string",
               "null"
             ]
+          },
+          "inCurriculum": {
+            "type": "boolean"
           }
         },
         "required": [
@@ -1993,7 +1996,8 @@
           "name",
           "code",
           "archived",
-          "sectionKey"
+          "sectionKey",
+          "inCurriculum"
         ]
       },
       "Curriculum": {

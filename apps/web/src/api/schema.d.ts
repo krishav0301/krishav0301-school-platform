@@ -3088,6 +3088,7 @@ export interface components {
             code: string | null;
             archived: boolean;
             sectionKey: string | null;
+            inCurriculum: boolean;
         };
         Curriculum: {
             level: {

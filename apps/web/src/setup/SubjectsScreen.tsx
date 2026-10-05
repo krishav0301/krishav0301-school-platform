@@ -9,7 +9,7 @@ import { AddDialog, Button, Field, Notice, Select } from "@/ui";
 
 import { ReadHeader, ReadOnlyNote } from "@/read/ReadView";
 
-import { createSubject, loadSubjects, setSubjectArchived, setSubjectWing } from "./client";
+import { createSubject, loadSubjects, setSubjectArchived, updateSubject } from "./client";
 import { REASON_MESSAGE, canManageInstitution, canManageStructure, manageableSections, type Subject } from "./model";
 import { ReadSetupHeader, SubjectsTable } from "./ReadSetup";
 import { Gate, useLoad } from "./useLoad";
@@ -28,7 +28,7 @@ export function SubjectsView({
   onToggle,
   canAdd = false,
   wings = [],
-  onSetWing,
+  onEdit,
 }: {
   subjects: readonly Subject[];
   canArchive: boolean;
@@ -36,8 +36,8 @@ export function SubjectsView({
   onToggle: (subject: Subject) => void;
   canAdd?: boolean;
   wings?: readonly { key: string; name: string }[];
-  /** Gives an old subject its wing (D-114): a whole-school Co-ordinator's. */
-  onSetWing?: (subject: Subject, sectionKey: string) => Promise<true | string>;
+  /** Saves a subject's name, code and wing (FUT point 17): a whole-school Co-ordinator's. True, or what went wrong. */
+  onEdit?: (subject: Subject, input: { name: string; code: string; sectionKey: string }) => Promise<true | string>;
 }) {
   return (
     <SubjectsTable
@@ -50,13 +50,14 @@ export function SubjectsView({
               label: t("setup.read.actions"),
               cell: (subject) => (
                 <span className={styles.rowActions}>
-                {subject.sectionKey === null && onSetWing ? (
-                  <AddDialog label={t("setup.subjects.chooseWing")} ariaLabel={t("setup.subjects.chooseWingFor", { name: subject.name })} title={t("setup.subjects.chooseWingFor", { name: subject.name })} variant="quiet" plus={false}>
+                {onEdit ? (
+                  <AddDialog label={t("structure.edit")} ariaLabel={t("structure.editItem", { name: subject.name })} title={t("structure.editTitle", { name: subject.name })} variant="quiet" plus={false}>
                     {(close) => (
-                      <WingForm
+                      <SubjectEditForm
+                        subject={subject}
                         wings={wings}
-                        onSave={async (key) => {
-                          const saved = await onSetWing(subject, key);
+                        onSave={async (input) => {
+                          const saved = await onEdit(subject, input);
                           if (saved === true) close();
                           return saved;
                         }}
@@ -83,19 +84,28 @@ export function SubjectsView({
   );
 }
 
-/** Choosing the wing of an old subject (D-114); once chosen it stays. A failure is said inside the pop-up (admin FUT F-01). */
-export function WingForm({ wings, onSave }: { wings: readonly { key: string; name: string }[]; onSave: (sectionKey: string) => Promise<true | string> }) {
-  const [key, setKey] = useState("");
+/**
+ * Editing a subject (FUT point 17): its name, its code (empty for none) and its wing. The wing is fixed once a curriculum
+ * uses the subject, and the field says so; the server checks the same as it saves. A failure is said inside the pop-up
+ * (admin FUT F-01).
+ */
+export function SubjectEditForm({ subject, wings, onSave }: { subject: Subject; wings: readonly { key: string; name: string }[]; onSave: (input: { name: string; code: string; sectionKey: string }) => Promise<true | string> }) {
+  const [name, setName] = useState(subject.name);
+  const [code, setCode] = useState(subject.code ?? "");
+  const [wing, setWing] = useState(subject.sectionKey ?? "");
+  const [errors, setErrors] = useState<{ name?: string; wing?: string }>({});
   const [problem, setProblem] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
   async function submit(event: FormEvent) {
     event.preventDefault();
     if (saving) return;
-    if (!key) return setProblem(t("setup.subjects.wingRequired"));
+    const found = { name: name.trim() ? undefined : t("setup.error.nameRequired"), wing: wing ? undefined : t("setup.subjects.wingRequired") };
+    setErrors(found);
+    if (found.name || found.wing) return;
     setSaving(true);
     setProblem(null);
-    const saved = await onSave(key);
+    const saved = await onSave({ name: name.trim(), code: code.trim(), sectionKey: wing });
     setSaving(false);
     if (saved !== true) setProblem(saved);
   }
@@ -103,7 +113,17 @@ export function WingForm({ wings, onSave }: { wings: readonly { key: string; nam
   return (
     <form onSubmit={submit} noValidate className={styles.form}>
       {problem ? <Notice tone="bad">{problem}</Notice> : null}
-      <Select label={t("setup.subjects.wing")} hint={t("setup.subjects.wingFixed")} value={key} onChange={(event) => setKey(event.target.value)} options={[{ value: "", label: t("setup.programmes.choose") }, ...wings.map((w) => ({ value: w.key, label: w.name }))]} />
+      <Field label={t("setup.subjects.name")} value={name} maxLength={120} autoComplete="off" onChange={(event) => setName(event.target.value)} error={errors.name} />
+      <Field label={t("setup.subjects.code")} hint={t("setup.subjects.codeHint")} value={code} maxLength={20} autoComplete="off" onChange={(event) => setCode(event.target.value)} />
+      <Select
+        label={t("setup.subjects.wing")}
+        hint={t(subject.inCurriculum ? "setup.subjects.wingInUse" : "setup.subjects.wingFree")}
+        value={wing}
+        disabled={subject.inCurriculum}
+        onChange={(event) => setWing(event.target.value)}
+        options={[{ value: "", label: t("setup.programmes.choose") }, ...wings.map((w) => ({ value: w.key, label: w.name }))]}
+        error={errors.wing}
+      />
       <Button type="submit" loading={saving} loadingLabel={t("setup.working")}>
         {t("structure.saveChanges")}
       </Button>
@@ -203,8 +223,8 @@ export function SubjectsScreen() {
     await reload();
   }
 
-  async function setWing(subject: Subject, sectionKey: string): Promise<true | string> {
-    const result = await setSubjectWing(api, subject.id, sectionKey);
+  async function saveEdit(subject: Subject, input: { name: string; code: string; sectionKey: string }): Promise<true | string> {
+    const result = await updateSubject(api, subject.id, input);
     if (!result.ok) return t(REASON_MESSAGE[result.reason]);
     setFlash({ tone: "ok", text: t("structure.done.saved") });
     await reload();
@@ -240,7 +260,7 @@ export function SubjectsScreen() {
       <Gate view={view} onRetry={() => void reload()}>
         {({ subjects }) =>
           canAdd ? (
-            <SubjectsView subjects={subjects} canArchive={canArchive} canAdd={canAdd} busy={busy} wings={wings} onToggle={(s) => void toggle(s)} onSetWing={setWing} />
+            <SubjectsView subjects={subjects} canArchive={canArchive} canAdd={canAdd} busy={busy} wings={wings} onToggle={(s) => void toggle(s)} onEdit={saveEdit} />
           ) : (
             <SubjectsTable subjects={subjects} wings={wings} />
           )
