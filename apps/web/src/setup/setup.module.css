@@ -196,3 +196,17 @@
   justify-content: flex-end;
   gap: var(--space-2);
 }
+
+/* Wing, Course and Level, one under the other (D-114); two or three across when there is room. */
+.picker {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(12rem, 100%), 1fr));
+  gap: var(--space-3);
+  align-items: start;
+}
+
+.pickerGiven {
+  grid-column: 1 / -1;
+  margin: 0;
+  color: var(--color-text-muted);
+}
