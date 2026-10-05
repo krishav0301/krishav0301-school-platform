@@ -28,7 +28,7 @@ export const CHECKLIST: { key: keyof Checklist; label: MessageKey; href: string 
   { key: "terminals", label: "portal.checklist.terminals", href: "/portal/setup/terminals" },
   { key: "subjects", label: "portal.checklist.subjects", href: "/portal/setup/curriculum" },
   { key: "teachers", label: "portal.checklist.teachers", href: "/portal/people" },
-  { key: "classTeachers", label: "portal.checklist.classTeachers", href: "/portal/people/teaching" },
+  { key: "classTeachers", label: "portal.checklist.classTeachers", href: "/portal/setup/teaching" },
 ];
 
 /** What the Co-ordinator's home needs, each from an API their own screens already use; null when a module is off. */

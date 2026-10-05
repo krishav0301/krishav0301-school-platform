@@ -68,6 +68,13 @@ describe("the sub-menu", () => {
     expect(html).toContain('aria-label="Setup sections"');
   });
 
+  it("puts Teaching after Curriculum, as a step of setup (D-114)", () => {
+    const html = inContext(<SetupTabs pathname="/portal/setup/teaching" />);
+    const order = [...html.matchAll(/href="(\/portal\/setup[^"]*)"/g)].map((m) => m[1]);
+    expect(order).toEqual(["/portal/setup", "/portal/setup/programmes", "/portal/setup/classes", "/portal/setup/terminals", "/portal/setup/subjects", "/portal/setup/curriculum", "/portal/setup/teaching", "/portal/setup/promotion"]);
+    expect(html).toMatch(/aria-current="page"[^>]*>Teaching</);
+  });
+
   it("a trailing slash in the address still marks the right one", () => {
     expect(inContext(<SetupTabs pathname="/portal/setup/classes/" />)).toMatch(/aria-current="page"[^>]*>Classes</);
   });
