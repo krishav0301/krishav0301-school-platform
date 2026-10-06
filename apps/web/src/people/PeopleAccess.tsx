@@ -295,6 +295,14 @@ function ListState({
   );
 }
 
+type AddOpen = false | "any" | "coordinator" | "accountant";
+
+/** Which Add pop-up is open: one chosen here, else the one the address asked for (`?add=`) until it is dismissed. Pure. */
+export function addOpen(chosen: AddOpen, asked: "coordinator" | "accountant" | null, dismissed: boolean): AddOpen {
+  if (chosen !== false) return chosen;
+  return asked !== null && !dismissed ? asked : false;
+}
+
 // --- Staff & Access ---------------------------------------------------------------------------------
 
 /** The people the Principal gives access to, with what each may reach, their account and their last sign-in. */
@@ -306,11 +314,15 @@ function AdminPanel({ onCounts }: { onCounts: (counts: PeoplePage["counts"]) => 
   const search = useAddressQuery();
   const asked = search === null ? null : new URLSearchParams(search).get("add");
   const askedRole = asked === "coordinator" || asked === "accountant" ? asked : null;
-  const [chosen, setChosen] = useState<false | "any" | "coordinator" | "accountant">(false);
-  const adding = chosen !== false ? chosen : (askedRole ?? false);
+  const [chosen, setChosen] = useState<AddOpen>(false);
+  // Closing must change state even when nothing was chosen here: the pop-up the address opened is then "dismissed".
+  // (Before, Close set `chosen` to false, which it already was, so nothing redrew and the pop-up stayed.)
+  const [dismissed, setDismissed] = useState(false);
+  const adding = addOpen(chosen, askedRole, dismissed);
   const closeAdd = () => {
     setChosen(false);
-    if (askedRole) window.history.replaceState(null, "", window.location.pathname); // so it does not open again
+    setDismissed(true);
+    if (askedRole) window.history.replaceState(null, "", window.location.pathname); // so a reload does not open it again
   };
   const [managing, setManaging] = useState<Person | null>(null);
   const [flash, setFlash] = useState<Flash | null>(null);

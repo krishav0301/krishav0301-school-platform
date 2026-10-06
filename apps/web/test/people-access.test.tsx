@@ -5,7 +5,7 @@ import { ConfigContext, makeConfigValue, type PublicConfig } from "@/config/Conf
 import { AddPersonDialog, ManageAccessDialog } from "@/people/AccessDialogs";
 import type { Person } from "@/people/access-client";
 import { chosenSections, emptyAdd, initials, lastSignIn, scopeWords, seesAccessCentre, signInLine, validateStep } from "@/people/access-model";
-import { PeopleAccess } from "@/people/PeopleAccess";
+import { addOpen, PeopleAccess } from "@/people/PeopleAccess";
 import { SessionContext } from "@/session/SessionProvider";
 
 import royal from "../../../packs/royal-softech/pack.json";
@@ -154,6 +154,15 @@ describe("Add a person from the dashboard (PM, 2026-10-06)", () => {
       expect(preset).toContain("Full name");
       expect(count(preset, /<input type="radio"[^>]*name="role"/g)).toBe(0);
     }
+  });
+});
+
+describe("which Add pop-up is open", () => {
+  it("the dashboard's ?add= opens it, and Close shuts it even though nothing was chosen on this page (the PM's bug, 2026-10-06)", () => {
+    expect(addOpen(false, "coordinator", false)).toBe("coordinator");
+    expect(addOpen(false, "coordinator", true)).toBe(false); // closed: stays closed while the address still says ?add=
+    expect(addOpen("any", "coordinator", true)).toBe("any"); // the page's own Add button still opens it afterwards
+    expect(addOpen(false, null, false)).toBe(false);
   });
 });
 
