@@ -7,13 +7,15 @@ import { ClassActivityScreen } from "@/classwork/ClassActivityScreen";
 import { useConfig } from "@/config/ConfigProvider";
 import { useAddressQuery } from "@/content/address";
 import { t, type MessageKey } from "@/i18n/messages";
-import { EmptyLine, OpenLink, Panel, ReadFailure, ReadHeader, ReadTable, Segments, StatusWord, TableSkeleton, readStyles } from "@/read/ReadView";
+import { EmptyLine, OpenLink, Panel, ReadFailure, ReadHeader, ReadTable, Segments, TableSkeleton, readStyles } from "@/read/ReadView";
 import { ClassSheetView } from "@/results/StaffScreens";
 import { useSession } from "@/session/SessionProvider";
+import { canManageStructure } from "@/setup/model";
 import { useLoad } from "@/setup/useLoad";
 
+import { AddClassLink, ClassesBrowser } from "./ClassesBrowser";
 import { loadClassHub, loadClassHubList } from "./client";
-import { classPlace, classTabs, pickTab, type ClassHub, type ClassHubItem, type ClassTab } from "./model";
+import { classPlace, classTabs, pickTab, type ClassHub, type ClassTab } from "./model";
 
 /**
  * A class as one page (FUT point 19, D-116). The list shows the classes a person opens; a class shows its students, and
@@ -21,37 +23,17 @@ import { classPlace, classTabs, pickTab, type ClassHub, type ClassHubItem, type 
  * leave out what it did not send.
  */
 
-/** Every class the person opens, with where it sits, its Class Teacher and its students. Pure. */
-export function ClassesTable({ classes }: { classes: readonly ClassHubItem[] }) {
-  if (classes.length === 0) return <EmptyLine>{t("classes.empty")}</EmptyLine>;
-  return (
-    <Panel>
-      <ReadTable
-        caption={t("classes.title")}
-        rows={classes}
-        rowKey={(c) => c.id}
-        columns={[
-          { key: "class", label: t("classes.col.class"), primary: true, cell: (c) => classPlace(c) },
-          { key: "term", label: t("classes.col.term"), cell: (c) => c.termLabel },
-          { key: "teacher", label: t("classes.col.classTeacher"), cell: (c) => (c.isClassTeacher ? <StatusWord tone="ok">{t("classes.you")}</StatusWord> : (c.classTeacher ?? t("classes.noClassTeacher"))) },
-          { key: "students", label: t("classes.col.students"), align: "end", cell: (c) => String(c.students) },
-          { key: "open", label: t("classes.col.open"), align: "end", plain: true, cell: (c) => <OpenLink href={`/portal/classes/class?id=${c.id}`} label={t("classes.openNamed", { name: classPlace(c) })} text={t("classes.open")} /> },
-        ]}
-      />
-    </Panel>
-  );
-}
-
 export function ClassesScreen() {
-  const { api } = useSession();
+  const { api, me } = useSession();
+  const canManage = canManageStructure(me?.roles ?? []);
   const loadNow = useCallback(() => loadClassHubList(api), [api]);
   const { view, reload } = useLoad(loadNow);
   return (
     <div className={readStyles.page}>
-      <ReadHeader title={t("classes.title")} subtitle={t("classes.subtitle")} />
+      <ReadHeader title={t("classes.title")} subtitle={t("classes.subtitle")} actions={canManage ? <AddClassLink /> : undefined} />
       {view.status === "loading" ? <TableSkeleton rows={5} /> : null}
       {view.status === "failed" || view.status === "forbidden" ? <ReadFailure status={view.status} onRetry={() => void reload()} /> : null}
-      {view.status === "ready" ? <ClassesTable classes={view.data.classes} /> : null}
+      {view.status === "ready" ? <ClassesBrowser classes={view.data.classes} canManage={canManage} onChanged={() => void reload()} /> : null}
     </div>
   );
 }

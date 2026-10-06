@@ -482,7 +482,12 @@ export type SetupChecklist = z.infer<typeof SetupChecklistSchema>;
 
 const ClassPlaceSchema = z.object({
   id: z.string(),
+  termId: z.string(),
   termLabel: z.string(),
+  courseId: z.string(),
+  levelId: z.string(),
+  /** For the Co-ordinator's Set Class Teacher (PM, 2026-10-06). */
+  classTeacherId: z.string().nullable(),
   wing: z.string(),
   course: z.string(),
   level: z.string(),
