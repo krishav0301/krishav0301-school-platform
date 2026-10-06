@@ -110,3 +110,218 @@
   gap: var(--space-1);
   min-width: 0;
 }
+
+/* --- The redesigned page (PM, 2026-10-06): banner, Currently Active cards, Other Terms ----------------------------- */
+
+.banner {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  margin: 0;
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid color-mix(in srgb, var(--color-primary) 18%, transparent);
+  border-radius: var(--radius-card);
+  background: color-mix(in srgb, var(--color-primary) 5%, var(--color-surface));
+  color: var(--color-text);
+  font-size: var(--text-sm);
+}
+
+.banner svg {
+  flex: none;
+  width: 1.25rem;
+  height: 1.25rem;
+  color: var(--color-primary);
+}
+
+.board {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  padding: min(var(--space-5), 4vw);
+  border: 1px solid color-mix(in srgb, var(--color-border) 70%, transparent);
+  border-radius: var(--radius-card);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-card);
+}
+
+.boardHead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-3) var(--space-4);
+}
+
+.boardHead > div:first-child {
+  flex: 1 1 16rem;
+  min-width: 0;
+}
+
+.boardTitle {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin: 0 0 var(--space-1);
+  font-family: var(--font-heading);
+  font-size: var(--text-xl);
+}
+
+.liveDot {
+  width: 0.625rem;
+  height: 0.625rem;
+  border-radius: 50%;
+  background: var(--color-ok);
+}
+
+.tools {
+  display: flex;
+  flex: 1 1 22rem;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--space-3);
+  min-width: 0;
+}
+
+.cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 16rem), 1fr));
+  gap: var(--space-4);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.card {
+  --tone-soft: color-mix(in srgb, var(--color-text) 4%, var(--color-surface));
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  min-width: 0;
+  padding: var(--space-4);
+  border: 1px solid color-mix(in srgb, var(--color-border) 70%, transparent);
+  border-radius: calc(var(--radius-card) - 4px);
+  background: linear-gradient(to bottom, var(--tone-soft), var(--color-surface) 7rem);
+}
+
+.card[data-tone="primary"] {
+  --tone-soft: color-mix(in srgb, var(--color-primary) 7%, var(--color-surface));
+}
+
+.card[data-tone="ok"] {
+  --tone-soft: color-mix(in srgb, var(--color-ok-soft) 60%, var(--color-surface));
+}
+
+.card[data-tone="accent"] {
+  --tone-soft: color-mix(in srgb, var(--color-accent-soft) 60%, var(--color-surface));
+}
+
+.card[data-tone="warn"] {
+  --tone-soft: color-mix(in srgb, var(--color-warn-soft) 60%, var(--color-surface));
+}
+
+.cardTop {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.cardTop > :last-child {
+  margin-left: auto;
+}
+
+.cardTitle {
+  margin: 0;
+  font-size: var(--text-lg);
+  font-weight: var(--weight-bold);
+  overflow-wrap: break-word;
+}
+
+.line {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+  margin: 0;
+  min-width: 0;
+}
+
+.line > svg {
+  flex: none;
+  width: 1.1rem;
+  height: 1.1rem;
+  margin-top: 0.15rem;
+  color: var(--color-text-muted);
+}
+
+.line > span {
+  min-width: 0;
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+  margin: var(--space-1) 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.chip {
+  padding: 0.1rem var(--space-2);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--color-primary) 8%, var(--color-surface));
+  color: var(--color-text);
+  font-size: var(--text-sm);
+}
+
+.counts {
+  display: flex;
+  gap: var(--space-5);
+  margin: auto 0 0;
+  padding-top: var(--space-3);
+  border-top: 1px solid color-mix(in srgb, var(--color-border) 60%, transparent);
+}
+
+.counts > div {
+  display: flex;
+  flex-direction: column-reverse;
+}
+
+.counts dt {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+}
+
+.counts dt svg {
+  width: 1rem;
+  height: 1rem;
+}
+
+.counts dd {
+  margin: 0;
+  font-size: var(--text-lg);
+  font-weight: var(--weight-bold);
+}
+
+.manage {
+  width: 100%;
+  white-space: normal;
+}
+
+.manage svg {
+  width: 1rem;
+  height: 1rem;
+}
+
+.rowActions {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+/* On this page a note under a line sits on its own line. */
+.board .meta {
+  display: block;
+}

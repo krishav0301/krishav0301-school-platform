@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { createApiClient } from "@/api/client";
 import { closeTerm, createTerm, openTerm, updateTerm } from "@/terms/client";
-import { levelSummary, levelsTaken, oddLevels, termFigures, validateTermForm, emptyTermForm, type Term } from "@/terms/model";
+import { levelSummary, levelsTaken, oddLevels, validateTermForm, emptyTermForm, type Term } from "@/terms/model";
 
 /** Academic terms on the web (D-110): what the Principal's screens send, and how the answers come back. */
 
@@ -97,8 +97,4 @@ describe("the model", () => {
     expect(oddLevels({ levels: [1, 2, 3, 4, 5].map((i) => ({ id: `l${i}`, ordinal: i, name: `S${i}`, active: i !== 5, usualMonths: 6, students: 0, canDelete: false })) })).toEqual(["l1", "l3"]);
   });
 
-  it("counts open, not started and closed terms, and students in open terms", () => {
-    const figures = termFigures([term("a", "active", [], 30), term("b", "active", [], 12), term("c", "draft"), term("d", "closed", [], 99)]);
-    expect(figures.map((f) => f.value)).toEqual(["2", "1", "42", "1"]);
-  });
 });

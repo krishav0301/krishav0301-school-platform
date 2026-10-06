@@ -1,10 +1,10 @@
 "use client";
 
-import { useCallback, useState, type FormEvent } from "react";
+import { useCallback, useEffect, useState, type FormEvent } from "react";
 
 import { BsDateField } from "@/content/BsDateField";
 import { t, type MessageKey } from "@/i18n/messages";
-import { EmptyLine, FigureTiles, Panel, ReadFailure, ReadHeader, ReadTable, StatusWord, TableSkeleton, readStyles, type Column } from "@/read/ReadView";
+import { EmptyLine, ReadFailure, ReadHeader, ReadTable, StatusWord, TableSkeleton, readStyles, type Column } from "@/read/ReadView";
 import { Facts, PanelSection, SidePanel } from "@/read/SidePanel";
 import { useConfig } from "@/config/ConfigProvider";
 import { useSession } from "@/session/SessionProvider";
@@ -22,7 +22,6 @@ import {
   misfitLevels,
   oddLevels,
   termDates,
-  termFigures,
   termMonthsBs,
   type CloseCheck,
   type Programme,
@@ -30,7 +29,11 @@ import {
   type TermFormErrors,
   type TermFormValues,
 } from "./model";
+import { ActiveTerms, OtherTerms, TermsBanner, type Manage, type TermStart } from "./TermsBoard";
 import styles from "./terms.module.css";
+
+/** Today's AD day in Nepal (UTC+5:45), "YYYY-MM-DD". */
+const nepalToday = () => new Date(Date.now() + 345 * 60_000).toISOString().slice(0, 10);
 
 const failText = (fail: Fail): string => (fail.reason === "rule" ? fail.message : t(FAIL_MESSAGE[fail.reason]));
 
@@ -290,9 +293,9 @@ const valuesOf = (term: Term): TermFormValues => ({ label: term.label, code: ter
 type Step = { kind: "view" } | { kind: "edit" } | { kind: "close"; check: CloseCheck | null } | { kind: "next"; values: TermFormValues | null };
 
 /** One term, opened at the side: its facts, and what the Principal can do with it now. */
-function TermPanel({ term, programmes, terms, onClose, onDone }: { term: Term; programmes: readonly Programme[]; terms: readonly Term[]; onClose: () => void; onDone: (text: string) => void }) {
+function TermPanel({ term, programmes, terms, start = "view", onClose, onDone }: { term: Term; programmes: readonly Programme[]; terms: readonly Term[]; start?: TermStart; onClose: () => void; onDone: (text: string) => void }) {
   const { api } = useSession();
-  const [step, setStep] = useState<Step>({ kind: "view" });
+  const [step, setStep] = useState<Step>(() => (start === "edit" ? { kind: "edit" } : start === "close" ? { kind: "close", check: null } : start === "next" ? { kind: "next", values: null } : { kind: "view" }));
   const [busy, setBusy] = useState(false);
   const [problem, setProblem] = useState<string | null>(null);
 
@@ -306,6 +309,9 @@ function TermPanel({ term, programmes, terms, onClose, onDone }: { term: Term; p
   async function startClose() {
     setProblem(null);
     setStep({ kind: "close", check: null });
+    await fetchCloseCheck();
+  }
+  async function fetchCloseCheck() {
     const loaded = await loadCloseCheck(api, term.id);
     if (loaded.ok) setStep({ kind: "close", check: loaded.data });
     else setProblem(t("terms.error.failed"));
@@ -321,6 +327,9 @@ function TermPanel({ term, programmes, terms, onClose, onDone }: { term: Term; p
   async function startNext() {
     setProblem(null);
     setStep({ kind: "next", values: null });
+    await fetchNext();
+  }
+  async function fetchNext() {
     const loaded = await loadNextTerm(api, term.id);
     if (!loaded.ok) {
       setProblem(t("terms.error.failed"));
@@ -329,6 +338,13 @@ function TermPanel({ term, programmes, terms, onClose, onDone }: { term: Term; p
     const n = loaded.data;
     setStep({ kind: "next", values: { label: n.label, code: n.code, startBs: n.startDateBs ?? "", endBs: n.endDateBs ?? "", levelIds: n.levels.filter((l) => !l.takenBy).map((l) => l.id) } });
   }
+
+  // Opened from a menu on Close or Next: fetch what that step shows, once.
+  useEffect(() => {
+    if (start === "close") void fetchCloseCheck();
+    if (start === "next") void fetchNext();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- only for the step the panel opened on
+  }, []);
 
   const status = TERM_STATUS[term.status];
   const foot =
@@ -432,7 +448,12 @@ export function TermsScreen() {
     return { ok: true as const, data: { terms: terms.data.years, programmes: programmes.data.programmes } };
   }, [api]);
   const { view, reload } = useLoad(loadNow);
-  const [open, setOpen] = useState<Term | null>(null);
+  const [open, setOpen] = useState<{ term: Term; start: TermStart } | null>(null);
+  const today = nepalToday();
+  const manage: Manage = (term, start) => {
+    setDone(null);
+    setOpen({ term, start });
+  };
   const [done, setDone] = useState<string | null>(null);
   const data = view.status === "ready" ? view.data : null;
 
@@ -440,7 +461,7 @@ export function TermsScreen() {
     <div className={readStyles.page}>
       <ReadHeader
         title={t("terms.title")}
-        subtitle={t("terms.subtitle")}
+        subtitle={t("terms.pageSubtitle")}
         actions={
           data ? (
             <AddDialog label={t("terms.add")} title={t("terms.add")}>
@@ -467,19 +488,14 @@ export function TermsScreen() {
       {done ? <Notice tone="ok">{done}</Notice> : null}
       {data ? (
         <>
-          <FigureTiles figures={termFigures(data.terms)} label={t("terms.figures")} />
-          <Panel title={t("terms.all")}>
-            <TermsTable
-              terms={data.terms}
-              onOpen={(term) => {
-                setDone(null);
-                setOpen(term);
-              }}
-            />
-          </Panel>
+          <TermsBanner />
+          <ActiveTerms terms={data.terms} today={today} manage={manage} />
+          <OtherTerms terms={data.terms} today={today} manage={manage} />
           {open ? (
             <TermPanel
-              term={open}
+              key={`${open.term.id}-${open.start}`}
+              term={open.term}
+              start={open.start}
               programmes={data.programmes}
               terms={data.terms}
               onClose={() => setOpen(null)}

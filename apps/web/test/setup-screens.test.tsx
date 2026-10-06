@@ -91,7 +91,7 @@ describe("academic terms (D-110)", () => {
     expect(html).toContain("1 Baisakh 2083");
     expect(html).toContain("Receipt code BCAODD");
     expect(html).toContain("BCA: Semester 1, Semester 3");
-    for (const word of [">Open<", ">Closed<", ">Not started<"]) expect(html).toContain(word);
+    for (const word of [">Active<", ">Closed<", ">Draft<"]) expect(html).toContain(word);
     expect(html).not.toContain("Manage"); // read only without an action
   });
 
