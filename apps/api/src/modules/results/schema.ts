@@ -26,7 +26,7 @@ export type SetPicks = z.infer<typeof SetPicksSchema>;
 
 // --- The marks grid (slice 2) ------------------------------------------------------------------------
 
-/** A part of a paper: the theory, or the practical where the terminal holds it and the subject has one (D-114). */
+/** A part of a paper: the theory, or the practical where the terminal holds it and the subject has one (D-117). */
 export const PartSchema = z.enum(["theory", "practical"]);
 export type Part = z.infer<typeof PartSchema>;
 
@@ -129,7 +129,7 @@ const PartMarksSchema = z.object({ maxHundredths: z.number().int(), valueHundred
 const Student = z.object({ name: z.string(), sid: z.string(), rollNo: z.number().int().nullable() });
 const ClassOf = z.object({ ...Naming, sectionName: z.string(), yearLabel: z.string() });
 
-/** The pattern as it was when a result was published (D-114). */
+/** The pattern as it was when a result was published (D-117). */
 export const PatternSnapshotSchema = z.object({
   graded: z.boolean(),
   theoryMinPercent: z.number().int(),
@@ -233,7 +233,7 @@ export const OwnResultsSchema = z
   .openapi("OwnResults");
 export type OwnResults = z.infer<typeof OwnResultsSchema>;
 
-/** The Top 20 ranks the final result only (D-114), per open term, section and level. */
+/** The Top 20 ranks the final result only (D-117), per open term, section and level. */
 export const Top20Schema = z
   .object({
     pools: z.array(

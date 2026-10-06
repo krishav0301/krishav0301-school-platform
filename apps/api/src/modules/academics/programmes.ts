@@ -69,7 +69,7 @@ export async function createProgramme(db: D1Database, auditKey: string, actor: s
 
 /**
  * Renames a programme, changes its affiliation, or switches it off and on. Nothing is deleted. (Grading is the term's
- * exam pattern since D-114, not the programme's.)
+ * exam pattern since D-117, not the programme's.)
  */
 export async function updateProgramme(db: D1Database, auditKey: string, actor: string, publicId: string, changes: ProgrammeChanges): Promise<Done> {
   const parsed = ProgrammeChangesSchema.safeParse(changes);

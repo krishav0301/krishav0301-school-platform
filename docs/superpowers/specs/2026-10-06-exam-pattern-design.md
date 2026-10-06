@@ -1,6 +1,6 @@
 # Exam pattern: one exam per term (design)
 
-Status: **built** (2026-10-06; approved by the PM: "Yes completely remove the old system. And start with the build"). Decided with the PM in conversation, recorded as D-114.
+Status: **built** (2026-10-06; approved by the PM: "Yes completely remove the old system. And start with the build"). Decided with the PM in conversation, recorded as D-117.
 It replaces how Phase 7 sets up exams and calculates results (D-079: the per-programme grading policy, NEB credit
 GPA, percentage with division). What Phase 7 built around that stays: the marks grid, Draft / Under review /
 Verified / Published, publish a whole class per terminal, snapshot marks cards, rechecks, the class sheet, the

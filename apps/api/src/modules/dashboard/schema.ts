@@ -48,7 +48,7 @@ export const DashboardOverviewSchema = z
         z.object({
           id: z.string(),
           name: z.string(),
-          /** Final results (D-114): the latest card of each student's final. */
+          /** Final results (D-117): the latest card of each student's final. */
           cards: z.number().int(),
           passed: z.number().int(),
           passPercent: percent,

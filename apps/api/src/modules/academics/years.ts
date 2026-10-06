@@ -1,6 +1,7 @@
 import { adToBs, adToBsText, bsToAd, BS_MONTH_NAMES, daysInMonth } from "../../core/dates";
 import { newPublicId } from "../../core/ids";
 import { adminForProgrammes } from "./guard";
+import { lengthProblem, termLengthMonths } from "./term-length";
 import { YearChangesSchema, YearInputSchema, type CloseCheck, type NextTerm, type YearChanges, type YearInput } from "./schema";
 import { firstMessage, write, type Created, type Done, type Outcome } from "./write";
 
@@ -38,9 +39,17 @@ interface TermRow {
   status: "draft" | "active" | "closed";
 }
 
+interface ChosenLevel {
+  id: string;
+  name: string;
+  usual_months: number | null;
+  /** Already in this term (an update): its length was checked when it joined, so a later change is flagged, not blocked. */
+  in_term: number;
+}
+
 /** One round trip: is the person allowed, what is the term now, and do the levels sent all exist and run? */
 async function inspect(db: D1Database, publicId: string | null, actor: string, levelIds: readonly string[]) {
-  const [allowed, row, levels] = await db.batch([
+  const [allowed, row, levels, chosen] = await db.batch([
     db.prepare(`SELECT ${adminForProgrammes(1)} AS ok`).bind(actor),
     db.prepare("SELECT bs_year, label, code, start_date, end_date, status FROM academic_years WHERE public_id = ?1").bind(publicId),
     db
@@ -49,8 +58,17 @@ async function inspect(db: D1Database, publicId: string | null, actor: string, l
           WHERE lv.public_id IN (SELECT value FROM json_each(?1)) AND lv.is_active = 1 AND pv.is_active = 1`,
       )
       .bind(JSON.stringify([...new Set(levelIds)])),
+    db
+      .prepare(
+        `SELECT lv.public_id AS id, pv.name || ' · ' || lv.name AS name, lv.usual_months,
+                EXISTS (SELECT 1 FROM term_levels tl JOIN academic_years ay ON ay.id = tl.academic_year_id WHERE ay.public_id = ?2 AND tl.level_id = lv.id) AS in_term
+           FROM levels lv JOIN programmes pv ON pv.id = lv.programme_id
+          WHERE lv.public_id IN (SELECT value FROM json_each(?1))`,
+      )
+      .bind(JSON.stringify([...new Set(levelIds)]), publicId),
   ]);
   return {
+    chosen: chosen!.results as unknown as ChosenLevel[],
     allowed: (allowed!.results[0] as { ok: number } | undefined)?.ok === 1,
     term: (row!.results[0] as unknown as TermRow | undefined) ?? null,
     levelsKnown: (levels!.results[0] as { n: number }).n === new Set(levelIds).size,
@@ -67,16 +85,38 @@ async function freeCode(db: D1Database, bsYear: number): Promise<string> {
   return `${bsYear}${Date.now().toString(36).toUpperCase().slice(-5)}`;
 }
 
-/** Adds the levels to a term, in the same batch as whatever comes before. */
-const addLevels = (db: D1Database, termPublicId: string, levelIds: readonly string[]) =>
+/**
+ * Adds the levels to a term, in the same batch as whatever comes before. Only a level of the term's length is ever
+ * inserted (D-114), so a length changed between the check and the write cannot slip a misfit in.
+ */
+const addLevels = (db: D1Database, termPublicId: string, levelIds: readonly string[], months: number) =>
   db
     .prepare(
       `INSERT INTO term_levels (academic_year_id, level_id)
        SELECT ay.id, lv.id FROM academic_years ay, levels lv
-        WHERE ay.public_id = ?1 AND lv.public_id IN (SELECT value FROM json_each(?2))
+        WHERE ay.public_id = ?1 AND lv.public_id IN (SELECT value FROM json_each(?2)) AND lv.usual_months = ?3
           AND NOT EXISTS (SELECT 1 FROM term_levels x WHERE x.academic_year_id = ay.id AND x.level_id = lv.id)`,
     )
-    .bind(termPublicId, JSON.stringify([...new Set(levelIds)]));
+    .bind(termPublicId, JSON.stringify([...new Set(levelIds)]), months);
+
+/** The first level that does not fit a term of `months` (D-114). With `onlyNew`, levels already in the term are skipped. */
+function firstMisfit(levels: readonly ChosenLevel[], months: number, onlyNew: boolean): string | null {
+  for (const level of levels) {
+    if (onlyNew && level.in_term === 1) continue;
+    const problem = lengthProblem(level, months);
+    if (problem) return problem;
+  }
+  return null;
+}
+
+/** The levels a term runs now. */
+async function levelIdsOf(db: D1Database, termPublicId: string): Promise<string[]> {
+  const { results } = await db
+    .prepare("SELECT lv.public_id AS id FROM term_levels tl JOIN academic_years ay ON ay.id = tl.academic_year_id JOIN levels lv ON lv.id = tl.level_id WHERE ay.public_id = ?1")
+    .bind(termPublicId)
+    .all<{ id: string }>();
+  return results.map((r) => r.id);
+}
 
 /** Adds a term as a draft, with the levels it runs. */
 export async function createYear(db: D1Database, auditKey: string, actor: string, input: YearInput, now: Date = new Date()): Promise<Created> {
@@ -87,9 +127,11 @@ export async function createYear(db: D1Database, auditKey: string, actor: string
   if ("problem" in calendar) return { ok: false, reason: "invalid", message: calendar.problem };
   if (t.bsYear !== undefined && t.bsYear !== calendar.bsYear) return { ok: false, reason: "invalid", message: `The start day is not in BS ${t.bsYear}` };
 
-  const { allowed, levelsKnown } = await inspect(db, null, actor, t.levelIds);
+  const { allowed, levelsKnown, chosen } = await inspect(db, null, actor, t.levelIds);
   if (!allowed) return { ok: false, reason: "not_allowed" };
   if (!levelsKnown) return { ok: false, reason: "invalid", message: "Choose levels that exist and are switched on" };
+  const misfit = firstMisfit(chosen, termLengthMonths(t.startDate, t.endDate), false);
+  if (misfit) return { ok: false, reason: "invalid", message: misfit };
 
   const label = t.label ?? String(calendar.bsYear);
   const code = t.code ?? (await freeCode(db, calendar.bsYear));
@@ -112,7 +154,7 @@ export async function createYear(db: D1Database, auditKey: string, actor: string
            SELECT ?1, ?2, ?3, ?4, ?5, ?6, 'draft', ?7 WHERE ${adminForProgrammes(8)}`,
         )
         .bind(publicId, calendar.bsYear, code, label, t.startDate, t.endDate, now.toISOString(), actor),
-      addLevels(db, publicId, t.levelIds),
+      addLevels(db, publicId, t.levelIds, termLengthMonths(t.startDate, t.endDate)),
       // The audit entry is written only if the last statement changed a row: the term itself, read back.
       db.prepare("UPDATE academic_years SET status = status WHERE public_id = ?1").bind(publicId),
     ],
@@ -134,7 +176,9 @@ export async function updateYear(db: D1Database, auditKey: string, actor: string
   if (!parsedChanges.success) return { ok: false, reason: "invalid", message: firstMessage(parsedChanges.error) };
   const c = parsedChanges.data;
 
-  const { allowed, term, levelsKnown } = await inspect(db, publicId, actor, c.levelIds ?? []);
+  const datesChange = c.startDate !== undefined || c.endDate !== undefined;
+  // New days are checked against every level the term runs; otherwise only the levels being added.
+  const { allowed, term, levelsKnown, chosen } = await inspect(db, publicId, actor, c.levelIds ?? (datesChange ? await levelIdsOf(db, publicId) : []));
   if (!allowed) return { ok: false, reason: "not_allowed" };
   if (!term) return { ok: false, reason: "not_found" };
   if (term.status === "closed") return { ok: false, reason: "year_closed" };
@@ -148,6 +192,10 @@ export async function updateYear(db: D1Database, auditKey: string, actor: string
   const calendar = calendarOf(merged.startDate, merged.endDate);
   if ("problem" in calendar) return { ok: false, reason: "invalid", message: calendar.problem };
   if (!detailsChange && c.levelIds === undefined) return { ok: true }; // nothing to change, nothing to record
+  const months = termLengthMonths(merged.startDate, merged.endDate);
+  const datesMoved = merged.startDate !== term.start_date || merged.endDate !== term.end_date;
+  const misfit = firstMisfit(chosen, months, !datesMoved);
+  if (misfit) return { ok: false, reason: "invalid", message: misfit };
   if (merged.code !== term.code) {
     const issued = await db.prepare("SELECT EXISTS (SELECT 1 FROM receipts r JOIN academic_years ay ON ay.id = r.academic_year_id WHERE ay.public_id = ?1) AS n").bind(publicId).first<{ n: number }>();
     if (issued?.n === 1) return { ok: false, reason: "code_locked" }; // receipts already carry the old code
@@ -162,7 +210,7 @@ export async function updateYear(db: D1Database, auditKey: string, actor: string
              AND level_id NOT IN (SELECT lv.id FROM levels lv WHERE lv.public_id IN (SELECT value FROM json_each(?2)))`,
         )
         .bind(publicId, JSON.stringify(c.levelIds), actor),
-      addLevels(db, publicId, c.levelIds),
+      addLevels(db, publicId, c.levelIds, months),
     );
   }
   statements.push(
@@ -389,6 +437,7 @@ export async function proposeNextTerm(db: D1Database, publicId: string): Promise
       programmeId: l.programme_id,
       programmeName: l.programme_name,
       sectionKey: l.section_key,
+      usualMonths: l.usual_months,
       takenBy: l.taken_by,
     })),
   };

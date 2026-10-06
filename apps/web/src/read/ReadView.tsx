@@ -26,11 +26,13 @@ export interface Crumb {
   href?: string;
 }
 
-export function ReadHeader({ title, subtitle, crumbs, dayBs, actions }: { title: string; subtitle?: string; crumbs?: Crumb[]; dayBs?: string | null; actions?: ReactNode }) {
+/** `level` 2: a section of a larger page (a class page's tab, FUT point 19), with no breadcrumbs of its own. */
+export function ReadHeader({ title, subtitle, crumbs, dayBs, actions, level = 1 }: { title: string; subtitle?: string; crumbs?: Crumb[]; dayBs?: string | null; actions?: ReactNode; level?: 1 | 2 }) {
+  const Heading = level === 1 ? "h1" : "h2";
   return (
     <header className={styles.header}>
       <div className={styles.headerText}>
-        {crumbs && crumbs.length > 0 ? (
+        {level === 1 && crumbs && crumbs.length > 0 ? (
           <nav aria-label={t("read.breadcrumb")}>
             <ol className={styles.crumbs}>
               {crumbs.map((c) => (
@@ -39,7 +41,7 @@ export function ReadHeader({ title, subtitle, crumbs, dayBs, actions }: { title:
             </ol>
           </nav>
         ) : null}
-        <h1 className={styles.title}>{title}</h1>
+        <Heading className={styles.title}>{title}</Heading>
         {subtitle ? <p className={styles.subtitle}>{subtitle}</p> : null}
       </div>
       {dayBs || actions ? (

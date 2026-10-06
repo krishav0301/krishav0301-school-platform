@@ -8,9 +8,9 @@ import { assign, classWith, type ClassFixture } from "./schoolday-helpers";
 
 /**
  * Elective picks and the marks grid (Phase 7, slice 2, D-080), verify and publish (slice 3, D-081), on the exam pattern
- * (D-114). CLAUDE.md section 6: marks in a bulk grid; teachers edit until the Co-ordinator verifies; Draft, Under review,
+ * (D-117). CLAUDE.md section 6: marks in a bulk grid; teachers edit until the Co-ordinator verifies; Draft, Under review,
  * Verified, Published; publish a whole class per terminal, disabled until every subject is verified; published marks
- * cards are snapshots. D-114, the PM's rules: a class with no exam pattern cannot be published; the teacher enters marks
+ * cards are snapshots. D-117, the PM's rules: a class with no exam pattern cannot be published; the teacher enters marks
  * out of the paper, theory and (where the terminal holds it and the subject has one) practical; a terminal's card is for
  * information, no pass or fail; the final result is published automatically with the class's last terminal.
  */

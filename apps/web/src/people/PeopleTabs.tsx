@@ -10,7 +10,7 @@ export function PeopleTabs({ pathname }: { pathname: string }) {
   const here = pathname.length > 1 ? pathname.replace(/\/$/, "") : pathname;
   const tabs = [
     { href: "/portal/people", label: t("people.tab.staff") },
-    { href: "/portal/people/teaching", label: t("people.tab.teaching") },
+    { href: "/portal/setup/teaching", label: t("people.tab.teaching") },
   ];
 
   return (

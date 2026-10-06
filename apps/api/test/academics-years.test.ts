@@ -3,6 +3,7 @@ import { beforeAll, describe, expect, it } from "vitest";
 import { verifyAuditChain } from "../src/core/audit";
 import { adToBs, bsToAd, daysInMonth } from "../src/core/dates";
 import { newPublicId } from "../src/core/ids";
+import { termLengthMonths } from "../src/modules/academics/term-length";
 import { activateYear, addLevel, closeCheck, closeYear, createClass, createProgramme, createYear, getExamPattern, proposeNextTerm, saveExamPattern, updateYear } from "../src/modules/academics/service";
 import { auditActions, auditKey, count, db, person, seedSections, type Person } from "./academics-helpers";
 import { enrol } from "./schoolday-helpers";
@@ -43,13 +44,13 @@ const years = () => count("SELECT COUNT(*) AS n FROM academic_years");
 const audits = () => count("SELECT COUNT(*) AS n FROM audit_events");
 const levelsOf = (termId: string) => count("SELECT COUNT(*) AS n FROM term_levels tl JOIN academic_years ay ON ay.id = tl.academic_year_id WHERE ay.public_id = ?1", termId);
 
-/** A programme with `n` levels, each lasting `months` (the Principal's ladder). */
-async function ladder(n: number, months?: number): Promise<string[]> {
+/** A programme with `n` levels, each lasting `months` (the Principal's ladder): 12 by default, the length of `freshYear`. */
+async function ladder(n: number, months: number | null = 12): Promise<string[]> {
   const p = await createProgramme(db, auditKey, principal.publicId, { name: `Programme ${newPublicId().slice(0, 6)}`, sectionKey: "bachelors", affiliation: "Board" });
   if (!p.ok) throw new Error("programme setup failed");
   const ids: string[] = [];
   for (let i = 1; i <= n; i++) {
-    const l = await addLevel(db, auditKey, principal.publicId, p.publicId, { name: `Semester ${i}`, ...(months ? { usualMonths: months } : {}) });
+    const l = await addLevel(db, auditKey, principal.publicId, p.publicId, { name: `Semester ${i}`, ...(months ? { usualMonths: months } : {}) } as never);
     if (!l.ok) throw new Error("level setup failed");
     ids.push(l.publicId);
   }
@@ -268,7 +269,7 @@ describe("the next term, filled in", () => {
       await enrol(cls.publicId, "Batch");
     }
     // Semester 4 already runs in another open term.
-    const other = await term({ label: `Other ${bsYear}`, levelIds: [sems[3]] });
+    const other = await term({ label: `Other ${bsYear}`, startDate: bsToAd({ year: bsYear, month: 4, day: 1 }), endDate: bsToAd({ year: bsYear, month: 9, day: daysInMonth(bsYear, 9) }), levelIds: [sems[3]] });
 
     const next = await proposeNextTerm(db, id);
     expect(next).not.toBeNull();
@@ -288,4 +289,67 @@ describe("the next term, filled in", () => {
 
 it("the audit chain is still unbroken", async () => {
   expect(await verifyAuditChain(db, auditKey)).toMatchObject({ ok: true });
+});
+
+// ---------------------------------------------------------------------------------------------
+describe("a term runs only levels of its own length (D-114)", () => {
+  /** A term from the first of `fromMonth` to the last day of `toMonth`, in a BS year not used yet. */
+  const span = (fromMonth: number, toMonth: number, over: Record<string, unknown> = {}) => {
+    const bsYear = ++bs;
+    return { label: `Span ${bsYear}`, startDate: bsToAd({ year: bsYear, month: fromMonth, day: 1 }), endDate: bsToAd({ year: bsYear, month: toMonth, day: daysInMonth(bsYear, toMonth) }), ...over };
+  };
+  const noLength = async (levelId: string) => db.prepare("UPDATE levels SET usual_months = NULL WHERE public_id = ?1").bind(levelId).run();
+
+  it("counts a term's length in whole months on the BS calendar, rounding a few days either way", () => {
+    expect(termLengthMonths(bsToAd({ year: 2082, month: 4, day: 1 }), bsToAd({ year: 2082, month: 9, day: daysInMonth(2082, 9) }))).toBe(6);
+    expect(termLengthMonths(bsToAd({ year: 2082, month: 4, day: 1 }), bsToAd({ year: 2082, month: 9, day: daysInMonth(2082, 9) - 3 }))).toBe(6); // a few days short
+    expect(termLengthMonths(bsToAd({ year: 2082, month: 1, day: 1 }), bsToAd({ year: 2082, month: 12, day: daysInMonth(2082, 12) }))).toBe(12);
+    expect(termLengthMonths(bsToAd({ year: 2082, month: 10, day: 15 }), bsToAd({ year: 2083, month: 1, day: 14 }))).toBe(3); // across the BS new year
+  });
+
+  it("refuses a 3-month level in a 6-month term, naming both lengths, and writes nothing", async () => {
+    const [quarter] = await ladder(1, 3);
+    const before = [await years(), await audits()];
+    expect(await createYear(db, auditKey, principal.publicId, span(4, 9, { levelIds: [quarter] }))).toMatchObject({ ok: false, reason: "invalid", message: expect.stringMatching(/3 months.*6 months/) });
+    expect([await years(), await audits()]).toEqual(before);
+  });
+
+  it("refuses a level whose length is not set yet", async () => {
+    const [level] = await ladder(1, 6);
+    await noLength(level!);
+    expect(await createYear(db, auditKey, principal.publicId, span(4, 9, { levelIds: [level] }))).toMatchObject({ ok: false, reason: "invalid", message: expect.stringMatching(/Set the length/) });
+  });
+
+  it("accepts a level of the term's length", async () => {
+    const [sem] = await ladder(1, 6);
+    const r = await createYear(db, auditKey, principal.publicId, span(4, 9, { levelIds: [sem] }));
+    expect(r.ok).toBe(true);
+  });
+
+  it("an open term already holding a mismatched level still takes a matching one (flagged, not blocked)", async () => {
+    const [a, b] = await ladder(2, 12);
+    const id = await term({ levelIds: [a] });
+    await db.prepare("UPDATE levels SET usual_months = 3 WHERE public_id = ?1").bind(a).run(); // the Admin changed it later
+    expect(await updateYear(db, auditKey, principal.publicId, id, { levelIds: [a!, b!] })).toEqual({ ok: true });
+    expect(await levelsOf(id)).toBe(2);
+  });
+
+  it("refuses new days for a draft term when a level it runs would no longer fit", async () => {
+    const [sem] = await ladder(1, 6);
+    const created = await createYear(db, auditKey, principal.publicId, span(4, 9, { levelIds: [sem] }));
+    if (!created.ok) throw new Error("term setup failed");
+    const year = adToBs(bsToAd({ year: bs, month: 4, day: 1 })).year;
+    const longer = { endDate: bsToAd({ year, month: 12, day: daysInMonth(year, 12) }) };
+    expect(await updateYear(db, auditKey, principal.publicId, created.publicId, longer)).toMatchObject({ ok: false, reason: "invalid", message: expect.stringMatching(/6 months.*9 months/) });
+  });
+
+  it("the term list says how long each term is and each level's length", async () => {
+    const [sem] = await ladder(1, 6);
+    const created = await createYear(db, auditKey, principal.publicId, span(4, 9, { levelIds: [sem] }));
+    if (!created.ok) throw new Error("term setup failed");
+    const { listYears } = await import("../src/modules/academics/queries");
+    const listed = (await listYears(db)).years.find((y) => y.id === created.publicId)!;
+    expect(listed.months).toBe(6);
+    expect(listed.levels.map((l) => l.usualMonths)).toEqual([6]);
+  });
 });

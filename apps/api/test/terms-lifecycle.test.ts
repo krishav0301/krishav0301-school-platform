@@ -31,6 +31,8 @@ async function ok<T = Record<string, unknown>>(r: Response, status = 200): Promi
  */
 const termStart = bsToAd({ year: 2082, month: 4, day: 1 });
 const termEnd = bsToAd({ year: 2082, month: 9, day: daysInMonth(2082, 9) });
+/** The +2 year beside it runs a full twelve months, Shrawan 2082 to Asar 2083: a term takes only levels of its own length (D-114). */
+const yearEnd = bsToAd({ year: 2083, month: 3, day: daysInMonth(2083, 3) });
 const s: { sems: string[]; grade?: string; odd?: string; yearly?: string; classes: Record<string, string>; exam?: string; enrollments: Record<string, string>; next?: string; nextClasses: Record<string, string> } = {
   sems: [],
   classes: {},
@@ -74,7 +76,7 @@ describe("a semester school beside a yearly one", () => {
     // The Co-ordinator does not make terms any more.
     expect((await post("/api/academics/years", { label: "Nope", startDate: termStart, endDate: termEnd }, coordinator)).status).toBe(403);
     s.odd = (await ok<{ id: string }>(await post("/api/academics/years", { label: "BCA odd", startDate: termStart, endDate: termEnd, levelIds: [s.sems[0], s.sems[2]] }, principal), 201)).id;
-    s.yearly = (await ok<{ id: string }>(await post("/api/academics/years", { label: "+2 year", code: "P2YR", startDate: termStart, endDate: termEnd, levelIds: [s.grade] }, principal), 201)).id;
+    s.yearly = (await ok<{ id: string }>(await post("/api/academics/years", { label: "+2 year", code: "P2YR", startDate: termStart, endDate: yearEnd, levelIds: [s.grade] }, principal), 201)).id;
     const clash = await post("/api/academics/years", { label: "Clash", startDate: termStart, endDate: termEnd, levelIds: [s.sems[0]] }, principal);
     expect(clash.status).toBe(422);
     for (const id of [s.odd, s.yearly]) await ok(await post(`/api/academics/years/${id}/activate`, undefined, principal));
@@ -90,7 +92,7 @@ describe("a semester school beside a yearly one", () => {
     const outside = await post("/api/academics/classes", { yearId: s.odd, levelId: s.sems[1], label: "A" }, coordinator);
     expect(outside.status).toBe(422);
     expect(((await outside.json()) as { message: string }).message).toMatch(/Principal/);
-    // The term's exam pattern (D-114): one exam, the whole of the final result.
+    // The term's exam pattern (D-117): one exam, the whole of the final result.
     const made = await call(`/api/academics/years/${s.odd}/exam-pattern`, { method: "PUT", body: { graded: false, theoryMinPercent: 35, practicalMinPercent: 40, gradeBands: null, terminals: [{ name: "Final", weight: 100, hasPractical: false }] }, cookie: coordinator.cookie });
     expect(made.status).toBe(200);
     s.exam = ((await (await call(`/api/academics/years/${s.odd}/exam-pattern`, { cookie: coordinator.cookie })).json()) as { terminals: { id: string }[] }).terminals[0]!.id;

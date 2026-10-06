@@ -8,7 +8,7 @@ import { DecideRecheckSchema, RequestRecheckSchema, type DecideRecheck, type Par
 /**
  * Rechecks (source 6.9; Phase 7, slice 5, D-083). A student asks for one published subject to be rechecked, with a
  * reason; the Co-ordinator is shown it at once, and decides: unchanged, or changed, which edits the marks and makes the
- * next version of the terminal's marks card, and of the final result's when it is out (D-114), in one batch, both with
+ * next version of the terminal's marks card, and of the final result's when it is out (D-117), in one batch, both with
  * a reason. Both are worked out under the pattern as it was published. Section 9's default: the Admin is told of every
  * post-publish change (the changes list), and the student sees the decision and the new card. The earlier card stays.
  */

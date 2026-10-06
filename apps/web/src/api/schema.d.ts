@@ -407,7 +407,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** @description The terminals of one year, or of every year, each with its weight and whether it holds the practical (D-114). */
+        /** @description The terminals of one year, or of every year, each with its weight and whether it holds the practical (D-117). */
         get: operations["list_terminals"];
         put?: never;
         post?: never;
@@ -831,6 +831,40 @@ export interface paths {
         patch: operations["update_elective_group"];
         trace?: never;
     };
+    "/api/classes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description The classes of open terms the person opens: every class (or a wing's) for the Principal and the Co-ordinator; for a teacher, the classes they teach in or lead. */
+        get: operations["list_class_pages"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/classes/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description One class as a page: where it sits, its students, its subjects and exams, and what the person may see of it. A subject teacher gets names only, their own subjects, and no attendance. A class the person does not open is 404, the same as a missing one. */
+        get: operations["get_class_page"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/config/public": {
         parameters: {
             query?: never;
@@ -1251,6 +1285,23 @@ export interface paths {
         };
         /** @description By name, SID or phone, scoped to the person's sections. */
         get: operations["search_students"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/students/me/class": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description The signed-in student's own class this term (FUT point 18): wing, course, level, section, Class Teacher, and each subject with who teaches it. Only their own; 404 when they have no class in an open term. */
+        get: operations["get_own_class"];
         put?: never;
         post?: never;
         delete?: never;
@@ -2393,7 +2444,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** @description The whole-class sheet of a published terminal: students by subjects, with the percentage and the grade when graded. For information: no pass, fail or rank. */
+        /** @description The whole-class sheet of a published terminal: students by subjects, with the percentage and the grade when graded. For information: no pass, fail or rank. A Class Teacher reads their own class's (FUT point 19). */
         get: operations["get_class_result_sheet"];
         put?: never;
         post?: never;
@@ -2427,7 +2478,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** @description The whole-class sheet of the final result: students by subjects (out of 100), the percentage, pass or fail, the grade when graded, and the rank in the class. */
+        /** @description The whole-class sheet of the final result: students by subjects (out of 100), the percentage, pass or fail, the grade when graded, and the rank in the class. A Class Teacher reads their own class's. */
         get: operations["get_class_final_sheet"];
         put?: never;
         post?: never;
@@ -2846,6 +2897,7 @@ export interface components {
             endDate: string;
             startDateBs: string | null;
             endDateBs: string | null;
+            months: number | null;
             /** @enum {string} */
             status: "draft" | "active" | "closed";
             levels: components["schemas"]["TermLevel"][];
@@ -2859,6 +2911,7 @@ export interface components {
             programmeId: string;
             programmeName: string;
             sectionKey: string;
+            usualMonths: number | null;
         };
         ProgrammeList: {
             programmes: components["schemas"]["Programme"][];
@@ -3009,12 +3062,12 @@ export interface components {
         };
         CreateLevel: {
             name: string;
-            usualMonths?: number;
+            usualMonths: number;
         };
         LevelChanges: {
             name?: string;
             active?: boolean;
-            usualMonths?: number | null;
+            usualMonths?: number;
         };
         CreateClass: {
             yearId: string;
@@ -3110,6 +3163,8 @@ export interface components {
             name: string;
             code: string | null;
             archived: boolean;
+            sectionKey: string | null;
+            inCurriculum: boolean;
         };
         Curriculum: {
             level: {
@@ -3117,6 +3172,7 @@ export interface components {
                 name: string;
                 programmeId: string;
                 programmeName: string;
+                sectionKey: string;
             };
             groups: components["schemas"]["CurriculumGroup"][];
             offerings: components["schemas"]["CurriculumOffering"][];
@@ -3142,11 +3198,13 @@ export interface components {
         CreateSubject: {
             name: string;
             code?: string | null;
+            sectionKey: string;
         };
         SubjectChanges: {
             name?: string;
             code?: string | null;
             archived?: boolean;
+            sectionKey?: string;
         };
         CreateOffering: {
             levelId: string;
@@ -3171,6 +3229,61 @@ export interface components {
             name?: string;
             pickCount?: number;
             active?: boolean;
+        };
+        ClassHubList: {
+            classes: {
+                id: string;
+                termLabel: string;
+                wing: string;
+                course: string;
+                level: string;
+                section: string;
+                classTeacher: string | null;
+                students: number;
+                isClassTeacher: boolean;
+            }[];
+        };
+        ClassHub: {
+            class: {
+                id: string;
+                termLabel: string;
+                wing: string;
+                course: string;
+                level: string;
+                section: string;
+                classTeacher: string | null;
+                students: number;
+            };
+            viewer: {
+                seesAll: boolean;
+                attendance: boolean;
+                isClassTeacher: boolean;
+                staff: boolean;
+            };
+            subjects: {
+                offeringId: string;
+                name: string;
+            }[];
+            mySubjects: {
+                offeringId: string;
+                name: string;
+            }[];
+            taughtSubjects: {
+                offeringId: string;
+                name: string;
+            }[];
+            terminals: {
+                id: string;
+                name: string;
+                published: boolean;
+            }[];
+            students: {
+                enrollmentId: string;
+                rollNo: number | null;
+                name: string;
+                sid: string | null;
+                studentId: string | null;
+            }[];
         };
         PublicConfig: {
             school: {
@@ -3493,6 +3606,7 @@ export interface components {
         OpenLevel: {
             id: string;
             name: string;
+            programmeId: string;
             programmeName: string;
             sectionKey: string;
             sectionName: string;
@@ -3614,6 +3728,23 @@ export interface components {
             /** @enum {string} */
             status: "active" | "left" | "graduated";
             className: string | null;
+        };
+        OwnClass: {
+            termLabel: string;
+            wing: string;
+            course: string;
+            level: string;
+            section: string;
+            classTeacher: string | null;
+            subjects: {
+                name: string;
+                teacher: string | null;
+                elective: string | null;
+            }[];
+            electivesToChoose: {
+                group: string;
+                options: string[];
+            }[];
         };
         StudentDetail: {
             id: string;
@@ -7538,6 +7669,57 @@ export interface operations {
             };
         };
     };
+    list_class_pages: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The classes */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClassHubList"];
+                };
+            };
+        };
+    };
+    get_class_page: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The class */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClassHub"];
+                };
+            };
+            /** @description No such class, or not one the person opens */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AcademicsError"];
+                };
+            };
+        };
+    };
     public_config: {
         parameters: {
             query?: never;
@@ -8749,6 +8931,35 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["StudentList"];
+                };
+            };
+        };
+    };
+    get_own_class: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Their class */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OwnClass"];
+                };
+            };
+            /** @description No class in an open term for this sign-in */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdmissionsError"];
                 };
             };
         };

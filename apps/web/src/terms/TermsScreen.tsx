@@ -6,19 +6,24 @@ import { BsDateField } from "@/content/BsDateField";
 import { t, type MessageKey } from "@/i18n/messages";
 import { EmptyLine, FigureTiles, Panel, ReadFailure, ReadHeader, ReadTable, StatusWord, TableSkeleton, readStyles, type Column } from "@/read/ReadView";
 import { Facts, PanelSection, SidePanel } from "@/read/SidePanel";
+import { useConfig } from "@/config/ConfigProvider";
 import { useSession } from "@/session/SessionProvider";
+import { coursesOf, levelsOf, settle, wingsOf, type KeepLevel } from "@/setup/structure-picker";
 import { useLoad } from "@/setup/useLoad";
-import { AddDialog, Button, Checkbox, Field, Notice } from "@/ui";
+import { AddDialog, Button, Checkbox, Field, Notice, Select } from "@/ui";
 
 import { FAIL_MESSAGE, closeTerm, createTerm, loadCloseCheck, loadNextTerm, loadProgrammes, loadTerms, openTerm, updateTerm, type Fail, type FormResult } from "./client";
 import {
   TERM_STATUS,
   emptyTermForm,
+  levelOffer,
   levelSummary,
   levelsTaken,
+  misfitLevels,
   oddLevels,
   termDates,
   termFigures,
+  termMonthsBs,
   type CloseCheck,
   type Programme,
   type Term,
@@ -45,7 +50,21 @@ export function TermsTable({ terms, onOpen }: { terms: readonly Term[]; onOpen?:
       ),
     },
     { key: "dates", label: t("terms.col.dates"), cell: (x) => termDates(x) },
-    { key: "levels", label: t("terms.col.levels"), cell: (x) => levelSummary(x.levels) },
+    {
+      key: "levels",
+      label: t("terms.col.levels"),
+      cell: (x) => {
+        const misfits = misfitLevels(x);
+        return misfits.length === 0 ? (
+          levelSummary(x.levels)
+        ) : (
+          <span className={styles.cellStack}>
+            <span>{levelSummary(x.levels)}</span>
+            <span className={styles.meta}>{t("terms.misfit", { levels: misfits.map((l) => `${l.programmeName} · ${l.name}`).join(", "), months: x.months ?? 0 })}</span>
+          </span>
+        );
+      },
+    },
     { key: "classes", label: t("terms.col.classes"), align: "end", cell: (x) => String(x.classes) },
     { key: "students", label: t("terms.col.students"), align: "end", cell: (x) => String(x.students) },
     { key: "status", label: t("terms.col.status"), plain: true, cell: (x) => <StatusWord tone={TERM_STATUS[x.status].tone}>{t(TERM_STATUS[x.status].key)}</StatusWord> },
@@ -66,26 +85,87 @@ export function TermsTable({ terms, onOpen }: { terms: readonly Term[]; onOpen?:
   return <ReadTable caption={t("terms.caption")} columns={columns} rows={terms} rowKey={(x) => x.id} />;
 }
 
-/** The levels a term runs, a programme at a time; a level another open term has is shown, not offered (D-110). */
-export function LevelPicker({ programmes, taken, value, onChange, error }: { programmes: readonly Programme[]; taken: ReadonlyMap<string, string>; value: readonly string[]; onChange: (ids: string[]) => void; error?: string }) {
+/**
+ * The levels a term runs (D-114, FUT points 4 to 6): first the wing, then each of its courses with the levels that may
+ * join. A level is offered only if it is free (no other open term runs it, D-110) and runs as many months as the term.
+ * Levels the term already runs (`kept`) stay, flagged if their length no longer matches. What was hidden is counted.
+ */
+export function LevelPicker({
+  programmes,
+  taken,
+  months,
+  value,
+  kept = [],
+  onChange,
+  error,
+}: {
+  programmes: readonly Programme[];
+  taken: ReadonlyMap<string, string>;
+  /** The term's length from its days; null until both are entered. */
+  months: number | null;
+  value: readonly string[];
+  /** The levels the term runs now (an existing term). */
+  kept?: readonly string[];
+  onChange: (ids: string[]) => void;
+  error?: string;
+}) {
+  const { term } = useConfig();
+  const [wingKey, setWingKey] = useState<string | null>(null);
   const chosen = new Set(value);
+  const keptSet = new Set(kept);
+  const offered = (level: { id: string; usualMonths: number | null }) => keptSet.has(level.id) || levelOffer(level, months, taken) === "ok";
+  const keep: KeepLevel = (level) => offered(level);
+
+  if (months === null && kept.length === 0) {
+    return (
+      <fieldset className={styles.picker}>
+        <legend>{t("terms.form.levels")}</legend>
+        <EmptyLine>{t("terms.form.daysFirst")}</EmptyLine>
+      </fieldset>
+    );
+  }
+
+  const hidden = { taken: 0, otherLength: 0, noLength: 0 };
+  for (const p of programmes) {
+    if (!p.active) continue;
+    for (const l of p.levels) {
+      if (!l.active || offered(l)) continue;
+      const why = levelOffer(l, months, taken);
+      if (why === "taken" || why === "otherLength" || why === "noLength") hidden[why] += 1;
+    }
+  }
+  const hiddenTotal = hidden.taken + hidden.otherLength + hidden.noLength;
+  const wings = wingsOf(programmes, keep);
+  const wing = settle(programmes, { sectionKey: wingKey, programmeId: null, levelId: null }, keep).sectionKey;
+  const courses = wing ? coursesOf(programmes, wing, keep) : [];
+  const elsewhere = programmes.filter((p) => p.section.key !== wing).flatMap((p) => p.levels.filter((l) => chosen.has(l.id)).map((l) => ({ programmeName: p.name, name: l.name })));
   const set = (ids: string[], on: boolean) => {
     const next = new Set(chosen);
     for (const id of ids) {
-      if (taken.has(id)) continue;
       if (on) next.add(id);
       else next.delete(id);
     }
     onChange([...next]);
   };
-  const usable = programmes.filter((p) => p.active && p.levels.some((l) => l.active));
+
   return (
     <fieldset className={styles.picker}>
       <legend>{t("terms.form.levels")}</legend>
       <p className={styles.meta}>{t("terms.form.levelsHint")}</p>
-      {usable.length === 0 ? <EmptyLine>{t("terms.form.noProgrammes")}</EmptyLine> : null}
-      {usable.map((programme) => {
-        const free = programme.levels.filter((l) => l.active && !taken.has(l.id)).map((l) => l.id);
+      {wings.length === 0 ? <EmptyLine>{t("terms.form.noneFits", { months: months ?? 0 })}</EmptyLine> : null}
+      {wings.length > 1 ? (
+        <Select
+          label={term("term.section")}
+          value={wing ?? ""}
+          options={[{ value: "", label: t("setup.programmes.choose") }, ...wings.map((w) => ({ value: w.key, label: w.name }))]}
+          onChange={(event) => setWingKey(event.target.value || null)}
+        />
+      ) : wings.length === 1 ? (
+        <p className={styles.meta}>{wings[0]!.name}</p>
+      ) : null}
+      {courses.map((programme) => {
+        const levels = levelsOf(programme, keep);
+        const free = levels.filter((l) => levelOffer(l, months, taken) === "ok").map((l) => l.id);
         return (
           <div key={programme.id} className={styles.programme}>
             <div className={styles.programmeHead}>
@@ -95,32 +175,41 @@ export function LevelPicker({ programmes, taken, value, onChange, error }: { pro
                   <Button variant="quiet" onClick={() => set(free, true)} aria-label={t("terms.form.allNamed", { name: programme.name })}>
                     {t("terms.form.all")}
                   </Button>
-                  <Button variant="quiet" onClick={() => onChange([...value.filter((id) => !programme.levels.some((l) => l.id === id)), ...oddLevels(programme).filter((id) => !taken.has(id))])} aria-label={t("terms.form.oddNamed", { name: programme.name })}>
+                  <Button variant="quiet" onClick={() => onChange([...value.filter((id) => !programme.levels.some((l) => l.id === id)), ...oddLevels(programme).filter((id) => free.includes(id))])} aria-label={t("terms.form.oddNamed", { name: programme.name })}>
                     {t("terms.form.odd")}
                   </Button>
                 </div>
               ) : null}
             </div>
             <div className={styles.levels}>
-              {programme.levels
-                .filter((l) => l.active)
-                .map((level) => (
-                  <Checkbox
-                    key={level.id}
-                    label={level.name}
-                    hint={taken.has(level.id) ? t("terms.form.takenBy", { term: taken.get(level.id)! }) : undefined}
-                    checked={chosen.has(level.id)}
-                    disabled={taken.has(level.id)}
-                    onChange={(event) => set([level.id], event.target.checked)}
-                  />
-                ))}
+              {levels.map((level) => (
+                <Checkbox
+                  key={level.id}
+                  label={level.name}
+                  hint={keptSet.has(level.id) && months !== null && level.usualMonths !== months ? (level.usualMonths === null ? t("terms.form.noLength") : t("terms.form.runsMonths", { count: level.usualMonths })) : undefined}
+                  checked={chosen.has(level.id)}
+                  onChange={(event) => set([level.id], event.target.checked)}
+                />
+              ))}
             </div>
           </div>
         );
       })}
+      {elsewhere.length > 0 ? <p className={styles.meta}>{t("terms.form.alsoChosen", { levels: levelSummary(elsewhere) })}</p> : null}
+      {hiddenTotal > 0 ? <p className={styles.meta}>{hiddenLine(hidden, hiddenTotal)}</p> : null}
       {error ? <Notice tone="bad">{error}</Notice> : null}
     </fieldset>
   );
+}
+
+/** "4 levels are not offered: 1 in another open term, 2 of another length, 1 with no length set." */
+function hiddenLine(hidden: { taken: number; otherLength: number; noLength: number }, total: number): string {
+  const parts = [
+    hidden.taken ? t("terms.form.hiddenTaken", { count: hidden.taken }) : null,
+    hidden.otherLength ? t("terms.form.hiddenOtherLength", { count: hidden.otherLength }) : null,
+    hidden.noLength ? t("terms.form.hiddenNoLength", { count: hidden.noLength }) : null,
+  ].filter(Boolean);
+  return t(total === 1 ? "terms.form.hiddenOne" : "terms.form.hidden", { count: total, why: parts.join(", ") });
 }
 
 /**
@@ -180,7 +269,14 @@ export function TermForm({
           </div>
         </>
       ) : null}
-      <LevelPicker programmes={programmes} taken={levelsTaken(terms, termId)} value={values.levelIds} onChange={(levelIds) => change({ levelIds }, "levelIds")} />
+      <LevelPicker
+        programmes={programmes}
+        taken={levelsTaken(terms, termId)}
+        months={termMonthsBs(values.startBs, values.endBs)}
+        value={values.levelIds}
+        kept={initial.levelIds}
+        onChange={(levelIds) => change({ levelIds }, "levelIds")}
+      />
       <Button type="submit" loading={saving} loadingLabel={t("terms.saving")}>
         {submitLabel}
       </Button>
@@ -286,6 +382,7 @@ function TermPanel({ term, programmes, terms, onClose, onDone }: { term: Term; p
             />
             <PanelSection title={t("terms.col.levels")}>
               <p className={styles.meta}>{levelSummary(term.levels)}</p>
+              {misfitLevels(term).length > 0 ? <Notice>{t("terms.misfit", { levels: misfitLevels(term).map((l) => `${l.programmeName} · ${l.name}`).join(", "), months: term.months ?? 0 })}</Notice> : null}
             </PanelSection>
             <p className={styles.meta}>{t(term.status === "draft" ? "terms.hint.draft" : term.status === "active" ? "terms.hint.active" : "terms.hint.closed")}</p>
           </>

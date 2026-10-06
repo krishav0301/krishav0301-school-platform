@@ -92,7 +92,7 @@ describe("elective groups", () => {
   });
 });
 
-describe("a subject's paper (D-114)", () => {
+describe("a subject's paper (D-117)", () => {
   it("is out of 100 with no practical unless set", async () => {
     const offering = await addOffering(await addLevel(), await addSubject());
     expect(await db.prepare("SELECT full_marks_hundredths AS full, practical_hundredths AS practical FROM subject_offerings WHERE id = ?1").bind(offering).first()).toEqual({ full: 10000, practical: null });

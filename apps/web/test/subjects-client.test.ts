@@ -57,14 +57,14 @@ describe("loading", () => {
 describe("the writes send what the API expects", () => {
   it("adding: a subject (the code only when there is one), a group, an offering with its paper", async () => {
     const { api, seen } = fake(() => reply(201, { id }));
-    expect(await createSubject(api, { name: "Biology" })).toEqual({ ok: true, id });
-    await createSubject(api, { name: "Physics", code: "PHY" });
+    expect(await createSubject(api, { name: "Biology", sectionKey: "plus2" })).toEqual({ ok: true, id });
+    await createSubject(api, { name: "Physics", code: "PHY", sectionKey: "plus2" });
     await createGroup(api, id, { name: "Science option", pickCount: 1 });
     await addOffering(api, { levelId: id, subjectId: id, creditHundredths: 375, groupId: id, fullMarksHundredths: 10000, practicalHundredths: 2500 });
     await addOffering(api, { levelId: id, subjectId: id, creditHundredths: null, groupId: null, fullMarksHundredths: 10000, practicalHundredths: null });
     expect(seen.map((s) => [s.method, s.path, s.body])).toEqual([
-      ["POST", "/api/academics/subjects", { name: "Biology" }],
-      ["POST", "/api/academics/subjects", { name: "Physics", code: "PHY" }],
+      ["POST", "/api/academics/subjects", { name: "Biology", sectionKey: "plus2" }],
+      ["POST", "/api/academics/subjects", { name: "Physics", sectionKey: "plus2", code: "PHY" }],
       ["POST", `/api/academics/levels/${id}/groups`, { name: "Science option", pickCount: 1 }],
       ["POST", "/api/academics/offerings", { levelId: id, subjectId: id, creditHundredths: 375, groupId: id, fullMarksHundredths: 10000, practicalHundredths: 2500 }],
       ["POST", "/api/academics/offerings", { levelId: id, subjectId: id, creditHundredths: null, groupId: null, fullMarksHundredths: 10000, practicalHundredths: null }],
@@ -91,9 +91,9 @@ describe("the writes send what the API expects", () => {
 
   it("maps the server's answers: 403 forbidden, 404 not_found, 409 conflict, 422 rejected, a dropped connection failed", async () => {
     const once = (status: number, body: unknown) => fake(() => reply(status, body)).api;
-    expect(await createSubject(once(403, { error: "forbidden" }), { name: "x" })).toEqual({ ok: false, reason: "forbidden" });
+    expect(await createSubject(once(403, { error: "forbidden" }), { name: "x", sectionKey: "plus2" })).toEqual({ ok: false, reason: "forbidden" });
     expect(await setOfferingPaper(once(404, { error: "not_found" }), id, { fullMarksHundredths: 10000, practicalHundredths: null })).toEqual({ ok: false, reason: "not_found" });
-    expect(await createSubject(once(409, { error: "conflict" }), { name: "x" })).toEqual({ ok: false, reason: "conflict" });
+    expect(await createSubject(once(409, { error: "conflict" }), { name: "x", sectionKey: "plus2" })).toEqual({ ok: false, reason: "conflict" });
     expect(await addOffering(once(422, { error: "invalid", message: "x" }), { levelId: id, subjectId: id, creditHundredths: null, groupId: null, fullMarksHundredths: 10000, practicalHundredths: null })).toEqual({ ok: false, reason: "rejected" });
     expect(await setGroupActive(fake(() => "offline").api, id, true)).toEqual({ ok: false, reason: "failed" });
   });

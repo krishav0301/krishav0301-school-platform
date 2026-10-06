@@ -9,12 +9,11 @@ import { Facts, PanelSection, SidePanel } from "@/read/SidePanel";
 import { useSession } from "@/session/SessionProvider";
 import { AddDialog, Button, Checkbox, Field, Notice, Select } from "@/ui";
 
-import { addOffering, createGroup, loadCurriculum, loadProgrammes, loadSubjects, setGroupActive, setOfferingActive, setOfferingGroup, setOfferingPaper, type Loaded } from "./client";
+import { addOffering, createGroup, loadCurriculum, loadProgrammes, loadSubjects, loadYears, setGroupActive, setOfferingActive, setOfferingGroup, setOfferingPaper, type Loaded } from "./client";
 import {
   REASON_MESSAGE,
   canManageStructure,
   formatHundredths,
-  levelChoices,
   paperLine,
   parseHundredths,
   subjectChoices,
@@ -26,6 +25,8 @@ import {
   type Subject,
 } from "./model";
 import { CurriculumTable, ReadSetupHeader, midSentence } from "./ReadSetup";
+import { StructurePicker } from "./StructurePicker";
+import { choiceOf, levelsOf, openTermLevelIds, settle, type KeepLevel, type StructureChoice } from "./structure-picker";
 import { Gate, useLoad } from "./useLoad";
 import styles from "./setup.module.css";
 
@@ -105,7 +106,7 @@ export function GroupForm({ levelId, onAdded, showTitle = true }: { levelId: str
 }
 
 /**
- * A subject's paper (D-114): what it is out of, and "This subject has a practical" with the practical's share (75/25 is
+ * A subject's paper (D-117): what it is out of, and "This subject has a practical" with the practical's share (75/25 is
  * 25). The practical's marks are entered only in a terminal that holds one. Shared by the Add form and the panel.
  */
 export interface PaperValues {
@@ -168,6 +169,7 @@ function PaperFields({ values, errors, onChange, disabled }: { values: PaperValu
 
 export function OfferingForm({
   levelId,
+  sectionKey,
   subjects,
   offerings,
   groups,
@@ -175,6 +177,8 @@ export function OfferingForm({
   showTitle = true,
 }: {
   levelId: string;
+  /** The level's wing: only its subjects may join (D-114). */
+  sectionKey: string;
   subjects: readonly Subject[];
   offerings: readonly Offering[];
   groups: readonly Group[];
@@ -185,7 +189,7 @@ export function OfferingForm({
   const { api } = useSession();
   const { term } = useConfig();
   const words = termWords(term);
-  const choices = subjectChoices(subjects, offerings);
+  const choices = subjectChoices(subjects, offerings, sectionKey);
   const [subjectId, setSubjectId] = useState("");
   const [credit, setCredit] = useState("");
   const [groupId, setGroupId] = useState("");
@@ -510,10 +514,18 @@ export function CurriculumScreen() {
   const loadSubjectsNow = useCallback(() => loadSubjects(api), [api]);
   const programmes = useLoad(loadProgrammesNow);
   const subjects = useLoad(loadSubjectsNow);
-  const [picked, setLevelId] = useState("");
-  // An empty "Choose…" is a dead end, so the first level opens for everyone (D-104, and for the Co-ordinator D-106).
-  const choices = programmes.view.status === "ready" ? levelChoices(programmes.view.data.programmes) : [];
-  const levelId = picked || (choices[0]?.value ?? "");
+  const loadTermsNow = useCallback(() => loadYears(api), [api]);
+  const terms = useLoad(loadTermsNow);
+  const [picked, setPicked] = useState<StructureChoice | null>(null);
+  const [showAll, setShowAll] = useState(false);
+  // By default only the levels an open term runs (D-114): the ones the school works with now. All on request.
+  const open = terms.view.status === "ready" ? openTermLevelIds(terms.view.data.years) : new Set<string>();
+  const keep: KeepLevel = (level) => showAll || open.has(level.id);
+  const all = programmes.view.status === "ready" ? programmes.view.data.programmes : [];
+  // An empty "Choose…" is a dead end, so the first level offered opens for everyone (D-104, and for the Co-ordinator D-106).
+  const firstLevel = all.flatMap((p) => levelsOf(p, keep))[0]?.id ?? null;
+  const choice = settle(all, picked ?? choiceOf(all, firstLevel), keep);
+  const levelId = choice.levelId ?? "";
   const loadCurriculumNow = useCallback(
     (): Promise<Loaded<Curriculum | null>> => (levelId ? loadCurriculum(api, levelId) : Promise.resolve({ ok: true, data: null })),
     [api, levelId],
@@ -551,6 +563,7 @@ export function CurriculumScreen() {
                 {(close) => (
                   <OfferingForm
                     levelId={data.level.id}
+                    sectionKey={data.level.sectionKey}
                     subjects={subjects.view.status === "ready" ? subjects.view.data.subjects : []}
                     offerings={data.offerings}
                     groups={data.groups}
@@ -571,20 +584,22 @@ export function CurriculumScreen() {
       {notice}
 
       <Gate view={programmes.view} onRetry={() => void programmes.reload()}>
-        {() =>
-          choices.length === 0 ? (
+        {(data) =>
+          data.programmes.every((p) => levelsOf(p).length === 0) ? (
             <EmptyLine>{t("setup.curriculum.noLevels", words)}</EmptyLine>
           ) : (
             <div className={readStyles.search}>
-              <Select
-                label={t("setup.curriculum.pick", words)}
-                value={levelId}
-                onChange={(event) => {
+              <StructurePicker
+                programmes={data.programmes}
+                keep={keep}
+                value={choice}
+                empty={t("setup.curriculum.noOpenLevels")}
+                onChange={(next) => {
                   setFlash(null);
-                  setLevelId(event.target.value);
+                  setPicked(next);
                 }}
-                options={choices}
               />
+              <Checkbox label={t("setup.curriculum.showAll")} checked={showAll} onChange={(event) => setShowAll(event.target.checked)} />
             </div>
           )
         }

@@ -39,7 +39,7 @@ async function makeProgramme(sectionKey: "plus2" | "bachelors", who?: Person) {
   const response = await post("/programmes", { name: `${sectionKey} programme`, sectionKey, affiliation: "Board" }, who);
   expect(response.status).toBe(201);
   const programmeId = await idOf(response);
-  const level = await post(`/programmes/${programmeId}/levels`, { name: "Level 1" }, who);
+  const level = await post(`/programmes/${programmeId}/levels`, { name: "Level 1", usualMonths: 12 }, who);
   expect(level.status).toBe(201);
   return { programmeId, levelId: await idOf(level) };
 }
@@ -63,7 +63,7 @@ const writes: [string, string, unknown][] = [
 const programmeWrites: [string, string, unknown][] = [
   ["POST", "/programmes", { name: "x", sectionKey: "plus2", affiliation: "y" }],
   ["PATCH", `/programmes/${noId}`, { name: "x" }],
-  ["POST", `/programmes/${noId}/levels`, { name: "x" }],
+  ["POST", `/programmes/${noId}/levels`, { name: "x", usualMonths: 12 }],
   ["PATCH", `/levels/${noId}`, { name: "x" }],
 ];
 
@@ -151,7 +151,7 @@ describe("setting up a year, end to end", () => {
     const programmes = (await (await get("/programmes", coordinator)).json()) as { programmes: { id: string; section: { key: string }; levels: { id: string; ordinal: number; name: string; active: boolean }[] }[] };
     const programme = programmes.programmes.find((p) => p.id === programmeId)!;
     expect(programme.section.key).toBe("bachelors");
-    expect(programme.levels).toEqual([{ id: levelId, ordinal: 1, name: "Level 1", active: true, usualMonths: null, students: 0, canDelete: false }]); // no one enrolled yet (D-096); its class means it cannot be deleted (D-097)
+    expect(programme.levels).toEqual([{ id: levelId, ordinal: 1, name: "Level 1", active: true, usualMonths: 12, students: 0, canDelete: false }]); // no one enrolled yet (D-096); its class means it cannot be deleted (D-097)
 
     const classes = (await (await get(`/classes?year=${yearId}`, coordinator)).json()) as { classes: { id: string; label: string; levelName: string; programmeName: string; active: boolean }[] };
     expect(classes.classes).toMatchObject([{ id: classId, label: "Morning", levelName: "Level 1", active: true }]);
@@ -179,7 +179,7 @@ describe("setting up a year, end to end", () => {
     expect(unverified.status).toBe(422);
     expect(await unverified.json()).toMatchObject({ error: "invalid" });
     // Not found.
-    expect((await post(`/programmes/${noId}/levels`, { name: "x" }, admin)).status).toBe(404);
+    expect((await post(`/programmes/${noId}/levels`, { name: "x", usualMonths: 12 }, admin)).status).toBe(404);
     expect((await patch(`/classes/${noId}`, { label: "x" }, coordinator)).status).toBe(404);
     // A repeat class is a conflict; a closed year is a conflict with its own word.
     const { levelId } = await makeProgramme("plus2");
@@ -247,7 +247,7 @@ describe("a section-scoped Co-ordinator gets nothing from the other section (dat
     const classId = await idOf(await post("/classes", { yearId, levelId: bachelors.levelId }, coordinator));
 
     expect((await patch(`/programmes/${bachelors.programmeId}`, { name: "Hijacked" }, plus2Coordinator)).status).toBe(403);
-    expect((await post(`/programmes/${bachelors.programmeId}/levels`, { name: "Year 2" }, plus2Coordinator)).status).toBe(403);
+    expect((await post(`/programmes/${bachelors.programmeId}/levels`, { name: "Year 2", usualMonths: 12 }, plus2Coordinator)).status).toBe(403);
     expect((await patch(`/levels/${bachelors.levelId}`, { name: "Hijacked" }, plus2Coordinator)).status).toBe(403);
     expect((await post("/classes", { yearId, levelId: bachelors.levelId, label: "Evening" }, plus2Coordinator)).status).toBe(403);
     expect((await patch(`/classes/${classId}`, { active: false }, plus2Coordinator)).status).toBe(403);

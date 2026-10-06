@@ -54,6 +54,7 @@ export const termWords = (term: (key: string) => string) => ({
   programme: term("term.programme"),
   level: term("term.level"),
   section: term("term.section"),
+  classSection: term("term.classSection"),
   terminal: term("term.terminal"),
 });
 
@@ -80,7 +81,7 @@ export type Offering = Curriculum["offerings"][number];
 export type Group = Curriculum["groups"][number];
 export type ExamPattern = components["schemas"]["ExamPattern"];
 
-/** A subject's paper in a line: "Out of 100", or "Out of 100: theory 75, practical 25" (D-114). */
+/** A subject's paper in a line: "Out of 100", or "Out of 100: theory 75, practical 25" (D-117). */
 export const paperLine = (o: { fullMarksHundredths: number; practicalHundredths: number | null }): string =>
   o.practicalHundredths === null
     ? t("setup.curriculum.paperLine", { full: formatHundredths(o.fullMarksHundredths) })
@@ -113,9 +114,10 @@ export function formatHundredths(hundredths: number): string {
  * What a level can still take: subjects that are not archived and not already on it. A subject whose offering is
  * switched off is still on the level, so it is not offered again (it is switched back on instead).
  */
-export function subjectChoices(subjects: readonly Subject[], offerings: readonly Offering[]): { value: string; label: string }[] {
+/** The subjects a level may take: in use, not on it yet, and of the level's own wing (D-114). */
+export function subjectChoices(subjects: readonly Subject[], offerings: readonly Offering[], sectionKey: string): { value: string; label: string }[] {
   const taken = new Set(offerings.map((o) => o.subject.id));
-  return subjects.filter((s) => !s.archived && !taken.has(s.id)).map((s) => ({ value: s.id, label: s.code ? `${s.name} (${s.code})` : s.name }));
+  return subjects.filter((s) => !s.archived && !taken.has(s.id) && s.sectionKey === sectionKey).map((s) => ({ value: s.id, label: s.code ? `${s.name} (${s.code})` : s.name }));
 }
 
 /**

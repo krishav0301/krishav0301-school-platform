@@ -62,4 +62,11 @@ export const auditActions = async (entityPublicId: string): Promise<string[]> =>
 
 let theProgrammesAdmin: Promise<Person> | undefined;
 /** The Admin who makes programmes and levels in a test file (D-087: no Co-ordinator may). One per file. */
+/** The wing (section key) a level is in: a subject joins only its own wing's levels (D-114). */
+export const wingOfLevel = async (levelPublicId: string): Promise<string> =>
+  (await db
+    .prepare("SELECT s.key FROM levels l JOIN programmes p ON p.id = l.programme_id JOIN sections s ON s.id = p.section_id WHERE l.public_id = ?1")
+    .bind(levelPublicId)
+    .first<{ key: string }>())!.key;
+
 export const programmesAdmin = (): Promise<Person> => (theProgrammesAdmin ??= person("admin", "institution"));

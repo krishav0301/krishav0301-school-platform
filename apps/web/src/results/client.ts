@@ -40,7 +40,7 @@ export const loadBoard = (api: ApiClient, terminalId?: string): Promise<Loaded<R
   );
 export const loadOwnResults = (api: ApiClient): Promise<Loaded<OwnResults>> => load(() => api.GET("/api/results/me"));
 export const loadCard = (api: ApiClient, cardId: string): Promise<Loaded<MarksCard>> => load(() => api.GET("/api/results/cards/{cardId}", { params: { path: { cardId } } }));
-/** The Top 20 ranks the final result only (D-114). */
+/** The Top 20 ranks the final result only (D-117). */
 export const loadTop20 = (api: ApiClient): Promise<Loaded<Top20>> => load(() => api.GET("/api/results/top20"));
 /** A class's sheet for one terminal, or for the final result (`terminalId` null). */
 export const loadClassSheet = (api: ApiClient, classId: string, terminalId: string | null): Promise<Loaded<ClassSheet>> =>

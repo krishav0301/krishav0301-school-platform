@@ -5,9 +5,9 @@ import { CLASS_JOINS, NAMING_COLUMNS, coordinatorFor, naming, readyToPublish, ta
 import type { FinalCardBody, PatternSnapshot, TerminalCardBody } from "./schema";
 
 /**
- * Publishing a class's results for a terminal (Phase 7, slice 3, D-081; on the exam pattern since D-114). CLAUDE.md
+ * Publishing a class's results for a terminal (Phase 7, slice 3, D-081; on the exam pattern since D-117). CLAUDE.md
  * section 6: results publish for a whole class per terminal, and only when every subject is verified; published marks
- * cards are snapshots. D-114: a class with no exam pattern cannot be published; a terminal's card is for information
+ * cards are snapshots. D-117: a class with no exam pattern cannot be published; a terminal's card is for information
  * (no pass or fail); when the class's last terminal is published, its final result is published with it, in the same
  * batch: every terminal scaled to its weight and added, out of 100, pass or fail.
  */
@@ -67,7 +67,7 @@ export function marksQuery(db: D1Database, classId: string, terminalId: string |
 
 /**
  * Groups the rows by student and subject. With `missingIsAbsent` (the final result), a paper with no mark at all counts
- * as an absence: a student who joined after a terminal was published (OPEN: D-114's stated default, an absence is 0).
+ * as an absence: a student who joined after a terminal was published (OPEN: D-117's stated default, an absence is 0).
  * Without it (one terminal), a missing mark stays missing and the calculation refuses it.
  */
 export function groupPapers(rows: MarkRow[], missingIsAbsent: boolean): StudentPapers[] {

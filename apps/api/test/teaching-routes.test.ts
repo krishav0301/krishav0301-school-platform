@@ -2,7 +2,7 @@ import { beforeAll, describe, expect, it } from "vitest";
 
 import { addLevel, createOffering, createProgramme, createSubject } from "../src/modules/academics/service";
 import { newPublicId } from "../src/core/ids";
-import { auditKey, call, count, db, person, seedSections, type Person, programmesAdmin } from "./academics-helpers";
+import { auditKey, call, count, db, person, seedSections, type Person, programmesAdmin, wingOfLevel } from "./academics-helpers";
 
 let coordinator: Person, plus2Coordinator: Person, admin: Person, accountant: Person, teacher: Person, student: Person, superAdmin: Person;
 beforeAll(async () => {
@@ -52,13 +52,13 @@ async function newLevel(sectionKey: "plus2" | "bachelors" = "plus2") {
   const label = () => `L ${Math.random().toString(36).slice(2, 8)}`;
   const p = await createProgramme(db, auditKey, (await programmesAdmin()).publicId, { name: label(), sectionKey, affiliation: "Board" });
   if (!p.ok) throw new Error("programme setup failed");
-  const l = await addLevel(db, auditKey, (await programmesAdmin()).publicId, p.publicId, { name: label() });
+  const l = await addLevel(db, auditKey, (await programmesAdmin()).publicId, p.publicId, { name: label(), usualMonths: 12 });
   if (!l.ok) throw new Error("level setup failed");
   return l.publicId;
 }
 
 async function newOffering(levelId: string): Promise<string> {
-  const subject = await createSubject(db, auditKey, coordinator.publicId, { name: `Subject ${Math.random().toString(36).slice(2, 8)}` });
+  const subject = await createSubject(db, auditKey, coordinator.publicId, { name: `Subject ${Math.random().toString(36).slice(2, 8)}`, sectionKey: await wingOfLevel(levelId) });
   if (!subject.ok) throw new Error("subject setup failed");
   const offering = await createOffering(db, auditKey, coordinator.publicId, { levelId, subjectId: subject.publicId });
   if (!offering.ok) throw new Error("offering setup failed");

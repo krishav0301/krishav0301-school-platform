@@ -44,7 +44,7 @@ const closeYear = (publicId: string) =>
 async function newLevel(sectionKey: "plus2" | "bachelors" = "bachelors"): Promise<{ programmeId: string; levelId: string }> {
   const p = await createProgramme(db, auditKey, (await programmesAdmin()).publicId, { name: "Programme", sectionKey, affiliation: "Board" });
   if (!p.ok) throw new Error("programme setup failed");
-  const l = await addLevel(db, auditKey, (await programmesAdmin()).publicId, p.publicId, { name: "Level 1" });
+  const l = await addLevel(db, auditKey, (await programmesAdmin()).publicId, p.publicId, { name: "Level 1", usualMonths: 12 });
   if (!l.ok) throw new Error("level setup failed");
   if (currentYear) {
     await db
@@ -176,7 +176,7 @@ describe("updateClass", () => {
 
 // ---------------------------------------------------------------------------------------------
 /**
- * The exam pattern (D-114), from the PM's rules: one per term, out of 100, made by the Co-ordinator; the terminals'
+ * The exam pattern (D-117), from the PM's rules: one per term, out of 100, made by the Co-ordinator; the terminals'
  * weights add up to 100; each terminal holds the practical or not; Grade = Yes needs grade ranges; it can change until
  * the first mark is entered in the term.
  */

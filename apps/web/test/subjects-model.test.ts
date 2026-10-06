@@ -42,12 +42,12 @@ describe("formatHundredths: whole hundredths become what a person reads", () => 
 });
 
 describe("subjectChoices: what a level can still take", () => {
-  const subject = (id: string, name: string, over: Partial<Subject> = {}): Subject => ({ id, name, code: null, archived: false, ...over });
+  const subject = (id: string, name: string, over: Partial<Subject> = {}): Subject => ({ id, name, code: null, archived: false, sectionKey: "plus2", inCurriculum: false, ...over });
   const offering = (subjectId: string): Offering => ({ id: `o-${subjectId}`, subject: subject(subjectId, "x"), creditHundredths: null, group: null, active: true, fullMarksHundredths: 10000, practicalHundredths: null });
 
   it("leaves out archived subjects and subjects already on the level, names the rest (with the code when there is one), in the order given", () => {
     const subjects = [subject("s1", "Biology", { code: "BIO" }), subject("s2", "Physics", { archived: true }), subject("s3", "Chemistry"), subject("s4", "English")];
-    expect(subjectChoices(subjects, [offering("s3")])).toEqual([
+    expect(subjectChoices(subjects, [offering("s3")], "plus2")).toEqual([
       { value: "s1", label: "Biology (BIO)" },
       { value: "s4", label: "English" },
     ]);
@@ -55,6 +55,12 @@ describe("subjectChoices: what a level can still take", () => {
 
   it("a subject whose offering is switched off is still on the level, so it is not offered again", () => {
     const off = { ...offering("s1"), active: false };
-    expect(subjectChoices([subject("s1", "Biology")], [off])).toEqual([]);
+    expect(subjectChoices([subject("s1", "Biology")], [off], "plus2")).toEqual([]);
+  });
+
+  it("offers only the level's own wing's subjects; one with no wing yet is never offered (D-114)", () => {
+    const subjects = [subject("s1", "English"), subject("s2", "English", { sectionKey: "bachelors" }), subject("s3", "Music", { sectionKey: null })];
+    expect(subjectChoices(subjects, [], "bachelors")).toEqual([{ value: "s2", label: "English" }]);
+    expect(subjectChoices(subjects, [], "plus2")).toEqual([{ value: "s1", label: "English" }]);
   });
 });

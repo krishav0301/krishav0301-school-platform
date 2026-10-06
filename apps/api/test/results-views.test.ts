@@ -11,7 +11,7 @@ import { setModule, type ClassFixture } from "./schoolday-helpers";
  * Section 9: ties share a rank; the Admin is told of every post-publish change, with a required reason; Top 20 is shown
  * to students. Source 6.3: the whole-class sheet with totals and rank, exportable. Source 6.9: a recheck button on a
  * published mark, the Co-ordinator notified and able to edit and republish, the student told of any change. On the exam
- * pattern (D-114): the Top 20 ranks the final result only; a recheck makes the next version of the terminal's card and
+ * pattern (D-117): the Top 20 ranks the final result only; a recheck makes the next version of the terminal's card and
  * of the final's. Also the exam pattern and a subject's paper, set through the real routes. One terminal of weight 100
  * here, so each publish is also the class's final result.
  */
@@ -55,7 +55,7 @@ beforeAll(async () => {
   await publish(bachelors, [bachelorsMaths]);
 });
 
-describe("setup through the real routes: the exam pattern and a subject's paper (D-114)", () => {
+describe("setup through the real routes: the exam pattern and a subject's paper (D-117)", () => {
   it("the Co-ordinator reads and makes a term's pattern; the Admin reads it but cannot change it; marks lock it", async () => {
     const read = (await (await call(`/api/academics/years/${examsTerm.yearId}/exam-pattern`, { cookie: admin.cookie })).json()) as { pattern: { graded: boolean }; terminals: { weight: number }[]; locked: boolean };
     expect(read).toMatchObject({ pattern: { graded: false }, terminals: [{ weight: 100 }], locked: true });
@@ -92,7 +92,8 @@ describe("the student's own results", () => {
     const cardId = other.results[0]!.card.id;
     const student = fixture.pupils[0]!.person;
     expect((await call(`/api/results/cards/${cardId}`, { cookie: student.cookie })).status).toBe(404);
-    expect((await call(`/api/results/classes/${fixture.classId}/terminals/${term}/sheet`, { cookie: student.cookie })).status).toBe(404);
+    // The class sheet has its own permission now, which a student does not hold (FUT point 19): refused outright.
+    expect((await call(`/api/results/classes/${fixture.classId}/terminals/${term}/sheet`, { cookie: student.cookie })).status).toBe(403);
     expect((await call("/api/results/rechecks", { cookie: student.cookie })).status).toBe(404);
     expect((await call(`/api/results/classes/${fixture.classId}/terminals/${term}/sheet.csv`, { cookie: student.cookie })).status).toBe(403);
   });

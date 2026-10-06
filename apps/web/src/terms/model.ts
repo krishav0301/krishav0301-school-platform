@@ -73,3 +73,32 @@ export function validateTermForm(values: TermFormValues): TermFormErrors {
   if (!values.endBs.trim()) errors.endBs = "terms.error.end";
   return errors;
 }
+
+/**
+ * A term's length in whole months from its BS days "YYYY-MM-DD" (D-114): the same count the server makes, so the form
+ * offers what the server will accept. Null until both days are whole and the end comes after the start.
+ */
+export function termMonthsBs(startBs: string, endBs: string): number | null {
+  const day = /^(\d{4})-(\d{2})-(\d{2})$/;
+  const s = day.exec(startBs.trim());
+  const e = day.exec(endBs.trim());
+  if (!s || !e) return null;
+  const [sy, sm, sd] = [Number(s[1]), Number(s[2]), Number(s[3])];
+  const [ey, em, ed] = [Number(e[1]), Number(e[2]), Number(e[3])];
+  if (ey * 10000 + em * 100 + ed <= sy * 10000 + sm * 100 + sd) return null;
+  return Math.round(ey * 12 + em - (sy * 12 + sm) + (ed - sd + 1) / 30);
+}
+
+export type LevelOffer = "ok" | "taken" | "noLength" | "otherLength" | "noDays";
+
+/** Whether a level may be added to a term of `months` (D-114): free (D-110), with a length, and of the term's length. */
+export function levelOffer(level: { id: string; usualMonths: number | null }, months: number | null, taken: ReadonlyMap<string, string>): LevelOffer {
+  if (taken.has(level.id)) return "taken";
+  if (months === null) return "noDays";
+  if (level.usualMonths === null) return "noLength";
+  return level.usualMonths === months ? "ok" : "otherLength";
+}
+
+/** An open term's levels whose length is not set or no longer matches the term's (D-114): flagged, never dropped. */
+export const misfitLevels = (term: Pick<Term, "status" | "months" | "levels">): TermLevel[] =>
+  term.status === "closed" || term.months === null ? [] : term.levels.filter((l) => l.usualMonths !== term.months);

@@ -8,7 +8,7 @@ import { createUser } from "../src/modules/accounts/service";
  * programmes, levels and grading policies the packs used to seed, kept here as test data, keyed by the pack's
  * `site.programmes` entry that gives each its name, section and affiliation.
  */
-/** Each test programme's levels, and whether its exams are graded (letters) or a percentage, for its term's exam pattern (D-114). */
+/** Each test programme's levels, and whether its exams are graded (letters) or a percentage, for its term's exam pattern (D-117). */
 const LEVELS: Record<string, { levels: string[]; graded: boolean }> = {
   "plus2-sample": { levels: ["Grade 11", "Grade 12"], graded: true },
   "bachelors-sample": { levels: ["Year 1", "Year 2", "Year 3", "Year 4"], graded: false },
@@ -52,7 +52,7 @@ export async function seedProgrammes(db: D1Database, auditKey: string, pack: Pac
     const made = await createProgramme(db, auditKey, admin, { name: site.name, sectionKey: site.section, affiliation: site.affiliation });
     if (!made.ok) throw new Error(`Could not make programme "${site.name}": ${made.reason}${"message" in made ? ` (${made.message})` : ""}`);
     for (const name of spec.levels) {
-      const level = await addLevel(db, auditKey, admin, made.publicId, { name });
+      const level = await addLevel(db, auditKey, admin, made.publicId, { name, usualMonths: 12 });
       if (!level.ok) throw new Error(`Could not add level "${name}": ${level.reason}`);
     }
   }
@@ -61,3 +61,10 @@ export async function seedProgrammes(db: D1Database, auditKey: string, pack: Pac
 
 /** Whether the first programme of a pack is graded here (+2: letters; the others: a percentage). */
 export const firstProgrammeGraded = (pack: Pack): boolean => LEVELS[pack.site.programmes[0]!.key]!.graded;
+
+/** The wing (section key) a level is in: a subject joins only its own wing's levels (D-114). */
+export const wingOfLevel = async (db: D1Database, levelPublicId: string): Promise<string> =>
+  (await db
+    .prepare("SELECT s.key FROM levels l JOIN programmes p ON p.id = l.programme_id JOIN sections s ON s.id = p.section_id WHERE l.public_id = ?1")
+    .bind(levelPublicId)
+    .first<{ key: string }>())!.key;

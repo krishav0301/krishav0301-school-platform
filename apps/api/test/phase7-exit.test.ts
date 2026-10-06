@@ -2,7 +2,7 @@
  * The Phase 7 exit check (docs/build-plan.md): results end to end, for BOTH schools, through the real HTTP API,
  * starting from each school's own pack, with real sign-ins from the real first-password flows.
  *
- *  - the Co-ordinator sets up the term (D-114): its exam pattern (two terminals of 40 and 60, both with the practical;
+ *  - the Co-ordinator sets up the term (D-117): its exam pattern (two terminals of 40 and 60, both with the practical;
  *    graded with letters for Royal Softech's +2, a percentage for the sample school, its pack's "percentage grading"),
  *    a class, two subjects (Science with a 75/25 practical, English theory only), a teacher hired through the staff
  *    flow and assigned both, two students admitted as walk-ins
@@ -24,7 +24,7 @@ import { signAccessToken, type RoleClaim } from "../src/core/tokens";
 import { createUser } from "../src/modules/accounts/service";
 import royalJson from "../../../packs/royal-softech/pack.json";
 import sampleJson from "../../../packs/sample-basic-school/pack.json";
-import { firstProgrammeGraded, seedProgrammes, testPack } from "./programme-fixtures";
+import { firstProgrammeGraded, seedProgrammes, testPack, wingOfLevel } from "./programme-fixtures";
 
 const app = createApp();
 
@@ -114,7 +114,7 @@ describe.each([
     [state.terminalId, state.finalId] = exam.terminals.map((t) => t.id);
 
     const addSubject = async (name: string, practical: number | null) => {
-      const subject = await post("/api/academics/subjects", { name: `${name} ${crypto.randomUUID().slice(0, 6)}` }, cookies.coordinator);
+      const subject = await post("/api/academics/subjects", { name: `${name} ${crypto.randomUUID().slice(0, 6)}`, sectionKey: await wingOfLevel(db(), levelId) }, cookies.coordinator);
       const made = await post("/api/academics/offerings", { levelId, subjectId: await idOf(subject), fullMarksHundredths: 10_000, practicalHundredths: practical }, cookies.coordinator);
       expect(made.status).toBe(201);
       return { id: await idOf(made) };

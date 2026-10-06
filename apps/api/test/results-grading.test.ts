@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest";
 import { finalResult, rankResults, terminalResult, validatePattern, type Paper, type PatternRules, type SubjectPapers } from "../src/modules/results/grading";
 
 /**
- * The exam pattern's calculation (D-114). Written before the code (CLAUDE.md section 7: tests before code for grading).
+ * The exam pattern's calculation (D-117). Written before the code (CLAUDE.md section 7: tests before code for grading).
  * The rules, all the PM's: one pattern per term, out of 100; terminals with weights adding up to 100; teachers enter
  * marks out of the paper, scaled to the terminal's weight; theory and practical added for the score, but each must
  * reach its minimum, the practical counting only the terminals that held it; pass or fail on the final result only;

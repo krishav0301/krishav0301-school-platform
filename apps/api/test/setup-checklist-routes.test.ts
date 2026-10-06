@@ -54,7 +54,7 @@ describe("what the checklist shows", () => {
     const programme = await call("/api/academics/programmes", { method: "POST", body: { name: "Bachelors only", sectionKey: "bachelors", affiliation: "TU" }, cookie: (await programmesAdmin()).cookie });
     expect(programme.status).toBe(201);
     const { id: programmeId } = (await programme.json()) as { id: string };
-    const level = await call(`/api/academics/programmes/${programmeId}/levels`, { method: "POST", body: { name: "Year 1" }, cookie: (await programmesAdmin()).cookie });
+    const level = await call(`/api/academics/programmes/${programmeId}/levels`, { method: "POST", body: { name: "Year 1", usualMonths: 12 }, cookie: (await programmesAdmin()).cookie });
     expect(level.status).toBe(201);
 
     const afterPlus2 = (await (await get(plus2Coordinator)).json()) as Checklist;

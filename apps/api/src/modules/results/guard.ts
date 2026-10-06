@@ -40,7 +40,7 @@ export const takes = (en: string, o: string): string =>
 /**
  * Whether subject `o` of class `cl` has a practical in a terminal (the terminal's internal id, an SQL expression): as
  * its sheet was made when there is one (a sheet keeps its paper), otherwise as it would be made now: the terminal holds
- * the practical and the subject has one (D-114).
+ * the practical and the subject has one (D-117).
  */
 export const practicalInPlay = (terminal: string): string =>
   `COALESCE((SELECT pms.practical_max_hundredths IS NOT NULL FROM mark_sheets pms WHERE pms.class_id = cl.id AND pms.offering_id = o.id AND pms.terminal_id = ${terminal}),

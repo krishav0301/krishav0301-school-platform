@@ -64,7 +64,8 @@ export function YearTable({ summary }: { summary: AttendanceSummary }) {
  * One class (`?id=`), redesigned in D-103 after the PM's reference. Its Class Teacher marks today here (unchanged).
  * Everyone else reads: today's register, or another day through Change date, and each student's year so far.
  */
-export function ClassAttendanceScreen() {
+/** `embedded`: one tab of a class page (FUT point 19): titled Attendance, without breadcrumbs. */
+export function ClassAttendanceScreen({ embedded = false }: { embedded?: boolean }) {
   const { api } = useSession();
   const search = useAddressQuery();
   const id = search === null ? "" : (new URLSearchParams(search).get("id") ?? "");
@@ -88,7 +89,8 @@ export function ClassAttendanceScreen() {
   return (
     <div className={readStyles.page}>
       <ReadHeader
-        title={name}
+        level={embedded ? 2 : 1}
+        title={embedded ? t("attendance.title") : name}
         subtitle={day.canMark ? undefined : t("attendance.class.readOnly")}
         crumbs={[{ label: t("attendance.title"), href: "/portal/attendance" }, { label: name }]}
         dayBs={dayLine(day.dateBs, day.isToday, day.date)}

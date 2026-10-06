@@ -22,7 +22,7 @@ const LevelQuery = z.object({ level: PublicIdSchema });
 const VIEW_SUBJECTS = { action: "setup.subjects.view" } as const;
 const MANAGE_SUBJECTS = { action: "setup.subjects.manage" } as const;
 
-/** The subject catalogue and what each programme level teaches (D-058): elective groups and offerings, each with its paper (D-114). */
+/** The subject catalogue and what each programme level teaches (D-058): elective groups and offerings, each with its paper (D-117). */
 export function registerSubjects(app: App): void {
   // --- Reads ---------------------------------------------------------------------------------------
   defineRoute(
@@ -38,7 +38,7 @@ export function registerSubjects(app: App): void {
     },
     async (c) => {
       c.header("Cache-Control", "no-store");
-      return c.json(await listSubjects(c.env.DB), 200);
+      return c.json(await listSubjects(c.env.DB, allowedSections(c.get("grant")!)), 200);
     },
   );
 

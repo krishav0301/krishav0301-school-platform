@@ -46,7 +46,7 @@ One open academic term (2083, running Grade 11 and Grade 12) with its exam patte
 
 ## Not in this test (known limits)
 
-- **Results were rebuilt on 2026-10-06 (D-114):** one exam pattern per term, out of 100. Results entered before that were cleared. The grade ranges are typed in by the school; the starter set's ranges are a stand-in, so **no real +2 result may be published until the official NEB figures are entered** (D-085). No credit hours or GPA for now.
+- **Results were rebuilt on 2026-10-06 (D-117):** one exam pattern per term, out of 100. Results entered before that were cleared. The grade ranges are typed in by the school; the starter set's ranges are a stand-in, so **no real +2 result may be published until the official NEB figures are entered** (D-085). No credit hours or GPA for now.
 - **No file uploads** (certificates, homework files, voucher scans) until file storage is turned on.
 - **Online payment is a demo:** no real money moves, and no gateway page opens.
 - **No SMS.** Email only goes to the test mailbox.

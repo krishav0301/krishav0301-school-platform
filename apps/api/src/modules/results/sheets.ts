@@ -4,7 +4,7 @@ import { CLASS_JOINS, NAMING_COLUMNS, coordinatorFor, missingCount, naming, read
 import { BulkVerifySchema, SaveMarksSchema, SendBackSchema, type MarkSheet, type MyMarkSheets, type Part, type ReviewBoard, type SaveMarks, type SheetStatus } from "./schema";
 
 /**
- * Mark sheets (Phase 7, slices 2 and 3, D-080, D-081; on the exam pattern since D-114): one per class, subject and
+ * Mark sheets (Phase 7, slices 2 and 3, D-080, D-081; on the exam pattern since D-117): one per class, subject and
  * terminal. The subject's teacher enters marks out of the paper (theory, and the practical where the terminal holds it
  * and the subject has one) in a bulk grid and saves drafts; submits when nothing is missing; the Co-ordinator verifies
  * or sends it back with a note, one or many at once. The database refuses a mark on anything but a draft. A sheet keeps

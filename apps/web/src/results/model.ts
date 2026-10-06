@@ -60,10 +60,10 @@ export const hundredthsText = (n: number): string => `${Math.trunc(n / 100)}.${S
 /** A percentage in whole hundredths: 8650 -> "86.50%". */
 export const percentText = (n: number): string => `${hundredthsText(n)}%`;
 
-/** The headline of a result (D-114): its percentage. */
+/** The headline of a result (D-117): its percentage. */
 export const scoreText = (r: { percentHundredths: number }): string => percentText(r.percentHundredths);
 
 export const className = (c: { programmeName: string; levelName: string; label: string }): string => [c.programmeName, c.levelName, c.label].filter(Boolean).join(" · ");
 
-/** A part of a paper in the school's words: Theory or Practical (D-114). */
+/** A part of a paper in the school's words: Theory or Practical (D-117). */
 export const partName = (part: Part): string => t(part === "practical" ? "results.card.practical" : "results.card.theory");

@@ -17,7 +17,7 @@ import { Gate, useLoad } from "./useLoad";
 import styles from "./setup.module.css";
 
 /**
- * The exam pattern (D-114): one per academic term, out of 100, made by the Co-ordinator. Every class in the term follows
+ * The exam pattern (D-117): one per academic term, out of 100, made by the Co-ordinator. Every class in the term follows
  * it. It asks the PM's questions (Grade system? the minimum % for theory and practical; the grade ranges when graded)
  * and lists the term's exams with their weights, adding up to 100, and whether each holds the practical. Once marks are
  * entered in the term it is locked and only read.

@@ -6,7 +6,7 @@ import { ExamPatternInputSchema, type ExamPattern, type ExamPatternInput } from 
 import { firstMessage, write, type Done } from "./write";
 
 /**
- * The exam pattern (D-114): one per academic term, out of 100, made by the Co-ordinator for a term the Principal
+ * The exam pattern (D-117): one per academic term, out of 100, made by the Co-ordinator for a term the Principal
  * created. Every class in the term follows it; a class that needs a different exam goes in a different term. It holds
  * the PM's questions (Grade system? the minimum % for theory and practical; the grade ranges when graded) and the
  * term's terminals with their weights (adding up to 100) and whether each holds the practical. It can change until the

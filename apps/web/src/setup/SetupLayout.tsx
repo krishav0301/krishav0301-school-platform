@@ -12,7 +12,7 @@ import { PortalShell } from "@/shell/PortalShell";
 import { termWords } from "./model";
 import styles from "./setup.module.css";
 
-/** The four setup screens. Exactly one is marked current; a trailing slash in the address makes no difference. */
+/** The setup screens, in the order a term is set up (D-114: Teaching after the curriculum). Exactly one is marked current; a trailing slash in the address makes no difference. */
 export function SetupTabs({ pathname }: { pathname: string }) {
   const { term } = useConfig();
   const words = termWords(term);
@@ -24,6 +24,7 @@ export function SetupTabs({ pathname }: { pathname: string }) {
     { href: "/portal/setup/terminals", label: t("setup.tab.terminals", words) },
     { href: "/portal/setup/subjects", label: t("setup.tab.subjects") },
     { href: "/portal/setup/curriculum", label: t("setup.tab.curriculum") },
+    { href: "/portal/setup/teaching", label: t("setup.tab.teaching") },
     { href: "/portal/setup/promotion", label: t("setup.tab.promotion") },
   ];
 

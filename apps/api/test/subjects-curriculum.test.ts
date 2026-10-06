@@ -41,10 +41,11 @@ const ok = <T extends { ok: boolean }>(result: T, what: string): Extract<T, { ok
 /** A programme with one level in the given section. */
 async function newLevel(sectionKey: "plus2" | "bachelors" = "bachelors") {
   const p = ok(await createProgramme(db, auditKey, (await programmesAdmin()).publicId, { name: label("Programme"), sectionKey, affiliation: "Board" }), "programme");
-  const l = ok(await addLevel(db, auditKey, (await programmesAdmin()).publicId, p.publicId, { name: "Level 1" }), "level");
+  const l = ok(await addLevel(db, auditKey, (await programmesAdmin()).publicId, p.publicId, { name: "Level 1", usualMonths: 12 }), "level");
   return { programmeId: p.publicId, levelId: l.publicId };
 }
-const newSubject = async (over: Record<string, unknown> = {}) => ok(await createSubject(db, auditKey, coordinator.publicId, { name: label("Subject"), ...over }), "subject").publicId;
+/** A subject in a wing: Bachelor's, the wing `newLevel` uses unless told otherwise (D-114). */
+const newSubject = async (over: Record<string, unknown> = {}) => ok(await createSubject(db, auditKey, coordinator.publicId, { name: label("Subject"), sectionKey: "bachelors", ...over }), "subject").publicId;
 const newGroup = async (levelId: string, over: Record<string, unknown> = {}) => ok(await createGroup(db, auditKey, coordinator.publicId, levelId, { name: label("Group"), ...over }), "group").publicId;
 const newOffering = async (levelId: string, subjectId?: string, extra: Record<string, unknown> = {}) =>
   ok(await createOffering(db, auditKey, coordinator.publicId, { levelId, subjectId: subjectId ?? (await newSubject()), ...extra } as never), "offering").publicId;
@@ -108,6 +109,20 @@ describe("elective groups", () => {
 
 // ---------------------------------------------------------------------------------------------
 describe("subject offerings", () => {
+  it("a level takes only a subject of its own wing; an old subject with no wing waits for one (D-114)", async () => {
+    const { levelId } = await newLevel("bachelors");
+    const before = [await offerings(), await audits()];
+    const plus2Subject = await newSubject({ sectionKey: "plus2" });
+    const mid = [await offerings(), await audits()];
+    expect(await createOffering(db, auditKey, coordinator.publicId, { levelId, subjectId: plus2Subject })).toMatchObject({ ok: false, reason: "invalid", message: expect.stringMatching(/another wing/i) });
+    const unsorted = await newSubject();
+    await db.prepare("UPDATE subjects SET section_id = NULL WHERE public_id = ?1").bind(unsorted).run();
+    expect(await createOffering(db, auditKey, coordinator.publicId, { levelId, subjectId: unsorted })).toMatchObject({ ok: false, reason: "invalid", message: expect.stringMatching(/Choose a wing/i) });
+    expect(await offerings()).toBe(mid[0]);
+    expect(before[0]).toBe(mid[0]);
+    expect((await createOffering(db, auditKey, coordinator.publicId, { levelId, subjectId: await newSubject() })).ok).toBe(true);
+  });
+
   it("adds a subject to a level, with or without credit hours and a group, and records who did it", async () => {
     const { levelId } = await newLevel();
     const group = await newGroup(levelId);
@@ -214,7 +229,7 @@ describe("subject offerings", () => {
 });
 
 // ---------------------------------------------------------------------------------------------
-/** A subject's paper (D-114): full marks (default 100) and, when ticked "has practical", the practical's share. */
+/** A subject's paper (D-117): full marks (default 100) and, when ticked "has practical", the practical's share. */
 describe("a subject's paper", () => {
   const paper = (id: string) => db.prepare("SELECT full_marks_hundredths AS full, practical_hundredths AS practical FROM subject_offerings WHERE public_id = ?1").bind(id).first();
 

@@ -90,6 +90,7 @@ Phase is the build phase where the action first exists. The action id in code fo
 | View notes and question papers (watermarked, no download) (`notes.view`) | own class | assigned | — | — | — | — | 5 |
 | Create and grade assignments (`assignments.manage`) | — | assigned | — | — | — | — | 5 |
 | Submit an assignment (`assignments.submit`) | own | — | — | — | — | — | 5 |
+| Open a class: its students, and the parts of it the person works with (FUT point 19) (`classes.view`) | — | assigned | inst | — | read | ✓ | 5 |
 
 ### Fees and money
 
@@ -124,6 +125,7 @@ The Co-ordinator has **no** fees access at all.
 | Verify, send back, bulk approve (`marks.verify`) | — | — | inst | — | — | ✓ | 7 |
 | Publish a whole class (all subjects verified) (`results.publish`) | — | — | inst | — | — | ✓ | 7 |
 | View published results and marks card (`results.view`) | own | — | inst | — | read | ✓ | 7 |
+| View a class's published result sheet, every subject (FUT point 19) (`results.class_sheet.view`) | — | class | inst | — | read | ✓ | 7 |
 | Top 20 (`results.top20.view`) | name and rank only, own section, published | — | inst | — | inst | ✓ | 7 |
 | Request a recheck (`results.recheck.request`) | own | — | — | — | — | — | 7 |
 | Edit and republish after recheck (`results.recheck.edit`) | — | — | inst | — | — | ✓ | 7 |

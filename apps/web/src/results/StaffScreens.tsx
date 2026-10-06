@@ -58,7 +58,7 @@ async function loadChoices(api: Parameters<typeof loadYears>[0]) {
             label: c.label,
           }),
         })),
-      // The term's exams in its pattern, then its final result (D-114).
+      // The term's exams in its pattern, then its final result (D-117).
       terminals: [
         ...terminals.data.terminals.filter((x) => x.weight !== null).map((x) => ({ id: x.id, name: x.name })),
         ...(terminals.data.terminals.some((x) => x.weight !== null) ? [{ id: FINAL, name: t("results.sheets.final") }] : []),
@@ -122,7 +122,7 @@ export function ClassSheetsScreen() {
 
 /**
  * The sheet itself: the student (kept in view while the subjects scroll), each subject, the percentage, the result. On
- * the final result also the rank in the class (an exam's sheet is for information, D-114). Pure.
+ * the final result also the rank in the class (an exam's sheet is for information, D-117). Pure.
  */
 export function SheetTable({ sheet }: { sheet: ClassSheet }) {
   const isFinal = sheet.terminal === null;
@@ -179,7 +179,8 @@ export function SheetTable({ sheet }: { sheet: ClassSheet }) {
   );
 }
 
-function ClassSheetView({ classId, terminalId }: { classId: string; terminalId: string }) {
+/** One published sheet. `exportable`: offer the CSV, which needs the reports permission (not a Class Teacher's, FUT point 19). */
+export function ClassSheetView({ classId, terminalId, exportable = true }: { classId: string; terminalId: string; exportable?: boolean }) {
   const { api } = useSession();
   const [missing, setMissing] = useState(false);
   const isFinal = terminalId === FINAL;
@@ -198,10 +199,12 @@ function ClassSheetView({ classId, terminalId }: { classId: string; terminalId: 
       title={t("results.sheets.caption", { name: className(sheet), terminal: sheetName(sheet) })}
       labelledBy="sheet-heading"
       actions={
+        exportable ? (
         <a className={`${buttonClass({ variant: "secondary" })} ${styles.wrapLabel}`} href={isFinal ? `/api/results/classes/${classId}/final/sheet.csv` : `/api/results/classes/${classId}/terminals/${terminalId}/sheet.csv`} download>
           <Download aria-hidden width={18} height={18} />
           {t("results.sheets.export")}
         </a>
+        ) : undefined
       }
     >
       <SheetTable sheet={sheet} />

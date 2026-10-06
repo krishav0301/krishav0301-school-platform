@@ -30,6 +30,8 @@
   border-radius: var(--radius-card);
   background: var(--color-surface);
   color: var(--color-text);
+  /* A pop-up opened from a table row sits inside that cell: it starts its own text, not the cell's (D-114). */
+  text-align: start;
   box-shadow: var(--shadow-card);
 }
 

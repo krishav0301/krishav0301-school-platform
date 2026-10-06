@@ -160,7 +160,7 @@ export function registerAcademics(app: App): void {
       path: "/api/academics/terminals",
       operationId: "list_terminals",
       tags: ["academics"],
-      description: "The terminals of one year, or of every year, each with its weight and whether it holds the practical (D-114).",
+      description: "The terminals of one year, or of every year, each with its weight and whether it holds the practical (D-117).",
       access: VIEW,
       request: { query: YearQuery },
       responses: { 200: { description: "The terminals", content: json(TerminalListSchema) } },
@@ -482,7 +482,7 @@ export function registerAcademics(app: App): void {
     },
   );
 
-  // --- The exam pattern (D-114): one per term, out of 100 ------------------------------------------------
+  // --- The exam pattern (D-117): one per term, out of 100 ------------------------------------------------
   defineRoute(
     app,
     {

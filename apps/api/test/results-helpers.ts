@@ -4,7 +4,7 @@ import { auditKey, call, db, person, seedSections, type Person } from "./academi
 import { assign, classWith, teacherIn, type ClassFixture } from "./schoolday-helpers";
 
 /**
- * Results fixtures on the exam pattern (D-114): a term of its own with its pattern (made through the service, as the
+ * Results fixtures on the exam pattern (D-117): a term of its own with its pattern (made through the service, as the
  * Co-ordinator would), classes in it, and subjects with their paper (full marks, and a practical when they have one),
  * each with a teacher. Plain SQL for what Phase 3 already tests; the results flows themselves go through the real API.
  */

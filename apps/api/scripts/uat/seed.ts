@@ -6,7 +6,7 @@ import { bsToAd, daysInMonth, todayBs } from "../../src/core/dates";
  * demo and test data is loaded through the same service functions the screens use, never direct SQL), so every
  * rule, permission and audit entry applies.
  *
- * Made: the active year (or this BS year, made and activated), its exam pattern (D-114: graded, three terminals of
+ * Made: the active year (or this BS year, made and activated), its exam pattern (D-117: graded, three terminals of
  * 30, 30 and 40, the practical in the second and last), class "A" of each level, five subjects (Physics and
  * Chemistry with a 75/25 practical) with credit hours, three teachers hired and assigned (a Class Teacher
  * for each class), six walk-in students per class, and a fee structure per level (approved by the Admin, charged).
@@ -35,7 +35,7 @@ export interface SeedResult {
   accounts: NewAccount[];
 }
 
-/** A stand-in pattern for the starter set (D-114). OPEN: the school sets its own. */
+/** A stand-in pattern for the starter set (D-117). OPEN: the school sets its own. */
 const PATTERN = {
   graded: true,
   theoryMinPercent: 35,
@@ -134,15 +134,17 @@ export async function seedUat(call: Call, options: { tag: string; emailDomain?: 
   const { classes: existing } = await get<{ classes: { yearId: string }[] }>("/api/academics/classes", "coordinator");
   if (existing.some((c) => c.yearId === year.id)) throw new SeedError(`The ${year.label} year already has classes, so the starter set was not added.`);
 
-  // The term's exam pattern, unless it already has one (D-114).
+  // The term's exam pattern, unless it already has one (D-117).
   const current = await get<{ pattern: unknown; locked: boolean }>(`/api/academics/years/${year.id}/exam-pattern`, "coordinator");
   if (current.pattern === null && !current.locked) await put(`/api/academics/years/${year.id}/exam-pattern`, "coordinator", PATTERN);
 
-  // Subjects: reuse a catalogue entry of the same name, if one exists.
-  const { subjects: catalogue } = await get<{ subjects: { id: string; name: string; archived: boolean }[] }>("/api/academics/subjects", "coordinator");
+  // Subjects: reuse a catalogue entry of the same name in the programme's wing, if one exists (a subject belongs to one wing, D-114).
+  const wing = programme.section.key;
+  const { subjects: catalogue } = await get<{ subjects: { id: string; name: string; archived: boolean; sectionKey: string | null }[] }>("/api/academics/subjects", "coordinator");
   const subjectIds: Record<string, string> = {};
   for (const s of SUBJECTS) {
-    subjectIds[s.name] = catalogue.find((c) => c.name === s.name && !c.archived)?.id ?? (await post<{ id: string }>("/api/academics/subjects", "coordinator", { name: s.name })).id;
+    subjectIds[s.name] =
+      catalogue.find((c) => c.name === s.name && !c.archived && c.sectionKey === wing)?.id ?? (await post<{ id: string }>("/api/academics/subjects", "coordinator", { name: s.name, sectionKey: wing })).id;
   }
 
   const accounts: NewAccount[] = [];

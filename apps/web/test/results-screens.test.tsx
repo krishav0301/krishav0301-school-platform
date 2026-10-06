@@ -216,7 +216,7 @@ describe("the Principal reads results (D-104, after the PM's topic 7 reference)"
   });
 });
 
-describe("a student's results on the exam pattern (D-114)", () => {
+describe("a student's results on the exam pattern (D-117)", () => {
   const student = { name: "Sita Chaudhary", sid: "2083-00002", rollNo: 2 };
   const klass = { programmeName: "+2 Science", levelName: "Grade 11", label: "A", sectionName: "+2", yearLabel: "2083" };
   const card = <B,>(body: B) => ({ id: "k1", version: 1, publishedAt: "2026-10-01T05:00:00.000Z", publishedAtBs: "2083-06-15", reason: null, body });

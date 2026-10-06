@@ -20,7 +20,7 @@ import { createUser } from "../src/modules/accounts/service";
 import { verifyLedgerChain } from "../src/modules/fees/ledger";
 import royalJson from "../../../packs/royal-softech/pack.json";
 import sampleJson from "../../../packs/sample-basic-school/pack.json";
-import { firstProgrammeGraded, seedProgrammes, testPack } from "./programme-fixtures";
+import { firstProgrammeGraded, seedProgrammes, testPack, wingOfLevel } from "./programme-fixtures";
 
 // These walk a whole school year, hashing many passwords on purpose-slow scrypt; with every test file running in
 // parallel they can pass the 60 s default on a busy machine (seen 2026-10-01), so they get three minutes.
@@ -132,7 +132,7 @@ describe.each([
     expect((await post("/api/academics/years", yearBody, c.admin)).status).toBe(409); // the same term twice (its name is taken)
     expect((await post("/api/academics/years", { ...yearBody, label: `Second ${b}` }, c.admin)).status).toBe(422); // the same levels in a second open term
     await ok(await post(`/api/academics/years/${s.yearId}/activate`, undefined, c.admin));
-    // The exam pattern (D-114): the Co-ordinator, not the Admin; 30 / 30 / 40, the practical held in every terminal.
+    // The exam pattern (D-117): the Co-ordinator, not the Admin; 30 / 30 / 40, the practical held in every terminal.
     const examPattern = {
       graded,
       theoryMinPercent: 35,
@@ -150,14 +150,14 @@ describe.each([
 
   it("setup: subjects with their papers (full marks, a practical where they have one), an elective group, teachers hired and assigned", async () => {
     const subject = async (name: string, practical: number | null, groupId?: string) => {
-      const subjectId = (await ok(await post("/api/academics/subjects", { name: `${name} ${tag}` }, c.coordinator), 201)).id as string;
+      const subjectId = (await ok(await post("/api/academics/subjects", { name: `${name} ${tag}`, sectionKey: await wingOfLevel(db(), s.levelId!) }, c.coordinator), 201)).id as string;
       const offeringId = (await ok(await post("/api/academics/offerings", { levelId: s.levelId, subjectId, practicalHundredths: practical === null ? null : practical * 100, ...(groupId ? { groupId } : {}) }, c.coordinator), 201)).id as string;
       return { id: offeringId };
     };
     s.subjects.english = await subject("English", null);
     s.subjects.science = await subject("Science", 25);
     // A practical that is not less than the full marks.
-    const sciencePaper = await post("/api/academics/offerings", { levelId: s.levelId, subjectId: (await ok(await post("/api/academics/subjects", { name: `Bad paper ${tag}` }, c.coordinator), 201)).id, practicalHundredths: 10_000 }, c.coordinator);
+    const sciencePaper = await post("/api/academics/offerings", { levelId: s.levelId, subjectId: (await ok(await post("/api/academics/subjects", { name: `Bad paper ${tag}`, sectionKey: await wingOfLevel(db(), s.levelId!) }, c.coordinator), 201)).id, practicalHundredths: 10_000 }, c.coordinator);
     expect(sciencePaper.status).toBe(400);
     s.groupId = (await ok(await post(`/api/academics/levels/${s.levelId}/groups`, { name: "Optional", pickCount: 1 }, c.coordinator), 201)).id as string;
     s.subjects.maths = await subject("Maths", null, s.groupId);
@@ -419,7 +419,7 @@ describe.each([
     await ok(await post(`${sheetPath(s.subjects.english!, t)}/submit`, undefined, c.gita));
     const published = await verifyAndPublish(t);
     expect(published.status, await published.clone().text()).toBe(201);
-    // A terminal is for information: Dipak's absence shows, but no pass or fail until the final (D-114).
+    // A terminal is for information: Dipak's absence shows, but no pass or fail until the final (D-117).
     const dipak = await get<{ results: { kind: string; card: { body: { passed?: boolean; subjects: { practical: { absent: boolean } | null; theory: { absent: boolean } }[] } } }[] }>("/api/results/me", c.Dipak);
     expect(dipak.results[0]!.kind).toBe("terminal");
     expect(dipak.results[0]!.card.body.passed).toBeUndefined();
@@ -466,7 +466,7 @@ describe.each([
     await enterAll(t, (who) => (who === "Asha" ? 95 : who === "Bina" ? 95 : 60));
     const last = await verifyAndPublish(t);
     expect(last.status).toBe(201);
-    // The last terminal: the final result comes with it (D-114).
+    // The last terminal: the final result comes with it (D-117).
     expect(((await last.json()) as { finalPublicationId: string | null }).finalPublicationId).toEqual(expect.any(String));
 
     // A recheck for Bina, changed; the Admin sees it; the card is version 2.

@@ -33,7 +33,7 @@ export const paperText = (s: TerminalCard["subjects"][number]): string =>
     : partText(s.theory);
 
 /**
- * One result at a glance (D-114). A terminal: its percentage, its grade when graded, and its weight in the final; it is
+ * One result at a glance (D-117). A terminal: its percentage, its grade when graded, and its weight in the final; it is
  * for information, so no pass or fail. The final: its percentage, the result (Pass or Fail, or the grade or NG), and the
  * subjects passed. Pure.
  */
@@ -334,7 +334,7 @@ export function Top20Table({ entries }: { entries: Top20["pools"][number]["entri
   );
 }
 
-/** The Top 20 (CLAUDE.md section 6, redesigned in D-104): on the final result only (D-114), per term, section and level; ties share a rank. */
+/** The Top 20 (CLAUDE.md section 6, redesigned in D-104): on the final result only (D-117), per term, section and level; ties share a rank. */
 export function Top20Screen() {
   const { api } = useSession();
   const loadNow = useCallback(async () => {

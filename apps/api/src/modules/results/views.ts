@@ -5,7 +5,7 @@ import { CLASS_JOINS, NAMING_COLUMNS, naming, sectionInReach, top20On, type Reac
 import type { CardBody, ClassSheet, MarksCard, OwnResults, Top20 } from "./schema";
 
 /**
- * What people read (Phase 7, slice 4, D-082; on the exam pattern since D-114): the student's own results, each
+ * What people read (Phase 7, slice 4, D-082; on the exam pattern since D-117): the student's own results, each
  * terminal's and the final; a marks card; the Top 20 on the final result; and the whole-class sheet. Everything is
  * read from the stored snapshots (the latest version of each card), never recomputed.
  */
@@ -102,7 +102,7 @@ interface PoolRow {
 }
 
 /**
- * The Top 20 on the final result only (D-114): ranked per section (CLAUDE.md section 6), among the same level of that
+ * The Top 20 on the final result only (D-117): ranked per section (CLAUDE.md section 6), among the same level of that
  * section in the same open term (Grade 11 with Grade 11), from classes whose final result is out, by the final
  * percentage among students who passed. Ties share a rank, so a list can run past 20 people. A student sees only their
  * own list, name and rank only, once their own class's final is out; staff see every list in reach with class and score.
@@ -170,17 +170,19 @@ export async function top20(db: D1Database, viewer: { student: string } | { reac
 /**
  * The whole-class sheet (source 6.3) of a terminal, or of the final result (`terminalId` null): students by subjects,
  * with the percentage, the grade when graded, and on the final the pass or fail and the rank in the class.
+ * `classTeacher`: only a class this person leads (a Class Teacher reading their own class, FUT point 19).
  */
-export async function classSheet(db: D1Database, reach: Reach, classId: string, terminalId: string | null): Promise<ClassSheet | null> {
+export async function classSheet(db: D1Database, reach: Reach, classId: string, terminalId: string | null, classTeacher: string | null = null): Promise<ClassSheet | null> {
   const [head, cards] = await db.batch([
     db
       .prepare(
         `SELECT cl.public_id AS class_id, ${NAMING_COLUMNS}, t.public_id AS terminal_id, t.name AS terminal_name, rp.pattern, rp.published_at
            FROM classes cl ${CLASS_JOINS} JOIN result_publications rp ON rp.class_id = cl.id
            LEFT JOIN terminals t ON t.id = rp.terminal_id
-          WHERE cl.public_id = ?1 AND (CASE WHEN ?2 IS NULL THEN rp.terminal_id IS NULL ELSE t.public_id = ?2 END) AND ${sectionInReach(3)}`,
+          WHERE cl.public_id = ?1 AND (CASE WHEN ?2 IS NULL THEN rp.terminal_id IS NULL ELSE t.public_id = ?2 END) AND ${sectionInReach(3)}
+            AND (?5 IS NULL OR cl.class_teacher_user_id = (SELECT id FROM users WHERE public_id = ?5))`,
       )
-      .bind(classId, terminalId, reach.institution, reach.sections),
+      .bind(classId, terminalId, reach.institution, reach.sections, classTeacher),
     db
       .prepare(
         `SELECT en.public_id AS enrollment_id, mc.public_id AS card_id, mc.version, mc.body, mc.percent_hundredths, mc.passed, mc.outcome
@@ -268,7 +270,7 @@ export interface ResultsDashboard {
 
 /**
  * The dashboard's results (D-088): the active terms' publications, and by programme how many final results passed,
- * with the average final percentage (D-114: only a final passes or fails). Only each card's latest version counts.
+ * with the average final percentage (D-117: only a final passes or fails). Only each card's latest version counts.
  */
 export function resultsDashboardPart(db: D1Database): DashboardPart<ResultsDashboard> {
   return {

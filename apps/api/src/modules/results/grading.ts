@@ -1,5 +1,5 @@
 /**
- * The exam pattern's calculation (D-114; it replaces Phase 7's grading policies, D-079). Pure functions over whole
+ * The exam pattern's calculation (D-117; it replaces Phase 7's grading policies, D-079). Pure functions over whole
  * hundredths of a mark. Scaling is done in exact fractions (bigint) and rounded half up only at the end, so no
  * terminal's rounding ever moves a final across a boundary, and no float reaches a stored number.
  *

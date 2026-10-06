@@ -150,6 +150,7 @@ export const MATRIX = [
   row(G.life, "notes.view", "View notes and question papers (watermarked, no download)", 5, { STU: only(own, "own class"), TEA: assigned }),
   row(G.life, "assignments.manage", "Create and grade assignments", 5, { TEA: assigned }),
   row(G.life, "assignments.submit", "Submit an assignment", 5, { STU: own }),
+  row(G.life, "classes.view", "Open a class: its students, and the parts of it the person works with (FUT point 19)", 5, { TEA: assigned, COO: inst, ADM: read, SUP: all }),
 
   // --- Fees and money
   row(G.fees, "fees.structure.draft", "Draft yearly fee structure", 6, { ACC: inst }),
@@ -176,6 +177,7 @@ export const MATRIX = [
   row(G.results, "marks.verify", "Verify, send back, bulk approve", 7, { COO: inst, SUP: all }),
   row(G.results, "results.publish", "Publish a whole class (all subjects verified)", 7, { COO: inst, SUP: all }),
   row(G.results, "results.view", "View published results and marks card", 7, { STU: own, COO: inst, ADM: read, SUP: all }),
+  row(G.results, "results.class_sheet.view", "View a class's published result sheet, every subject (FUT point 19)", 7, { TEA: cls, COO: inst, ADM: read, SUP: all }),
   row(G.results, "results.top20.view", "Top 20", 7, {
     STU: only(own, "name and rank only, own section, published"),
     COO: inst,
