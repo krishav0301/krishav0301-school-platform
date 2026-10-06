@@ -921,6 +921,12 @@
               "null"
             ]
           },
+          "months": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
           "status": {
             "type": "string",
             "enum": [
@@ -951,6 +957,7 @@
           "endDate",
           "startDateBs",
           "endDateBs",
+          "months",
           "status",
           "levels",
           "classes",
@@ -977,6 +984,12 @@
           },
           "sectionKey": {
             "type": "string"
+          },
+          "usualMonths": {
+            "type": [
+              "integer",
+              "null"
+            ]
           }
         },
         "required": [
@@ -985,7 +998,8 @@
           "ordinal",
           "programmeId",
           "programmeName",
-          "sectionKey"
+          "sectionKey",
+          "usualMonths"
         ]
       },
       "ProgrammeList": {
@@ -1649,7 +1663,8 @@
           }
         },
         "required": [
-          "name"
+          "name",
+          "usualMonths"
         ],
         "additionalProperties": false
       },
@@ -1665,10 +1680,7 @@
             "type": "boolean"
           },
           "usualMonths": {
-            "type": [
-              "integer",
-              "null"
-            ],
+            "type": "integer",
             "minimum": 1,
             "maximum": 60
           }
@@ -1968,13 +1980,24 @@
           },
           "archived": {
             "type": "boolean"
+          },
+          "sectionKey": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "inCurriculum": {
+            "type": "boolean"
           }
         },
         "required": [
           "id",
           "name",
           "code",
-          "archived"
+          "archived",
+          "sectionKey",
+          "inCurriculum"
         ]
       },
       "Curriculum": {
@@ -1994,13 +2017,17 @@
               },
               "programmeName": {
                 "type": "string"
+              },
+              "sectionKey": {
+                "type": "string"
               }
             },
             "required": [
               "id",
               "name",
               "programmeId",
-              "programmeName"
+              "programmeName",
+              "sectionKey"
             ]
           },
           "groups": {
@@ -2147,10 +2174,16 @@
             ],
             "minLength": 1,
             "maxLength": 20
+          },
+          "sectionKey": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 60
           }
         },
         "required": [
-          "name"
+          "name",
+          "sectionKey"
         ],
         "additionalProperties": false
       },
@@ -2172,6 +2205,11 @@
           },
           "archived": {
             "type": "boolean"
+          },
+          "sectionKey": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 60
           }
         },
         "additionalProperties": false
@@ -2324,6 +2362,257 @@
           }
         },
         "additionalProperties": false
+      },
+      "ClassHubList": {
+        "type": "object",
+        "properties": {
+          "classes": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "termLabel": {
+                  "type": "string"
+                },
+                "wing": {
+                  "type": "string"
+                },
+                "course": {
+                  "type": "string"
+                },
+                "level": {
+                  "type": "string"
+                },
+                "section": {
+                  "type": "string"
+                },
+                "classTeacher": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "students": {
+                  "type": "integer"
+                },
+                "isClassTeacher": {
+                  "type": "boolean"
+                }
+              },
+              "required": [
+                "id",
+                "termLabel",
+                "wing",
+                "course",
+                "level",
+                "section",
+                "classTeacher",
+                "students",
+                "isClassTeacher"
+              ]
+            }
+          }
+        },
+        "required": [
+          "classes"
+        ]
+      },
+      "ClassHub": {
+        "type": "object",
+        "properties": {
+          "class": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "termLabel": {
+                "type": "string"
+              },
+              "wing": {
+                "type": "string"
+              },
+              "course": {
+                "type": "string"
+              },
+              "level": {
+                "type": "string"
+              },
+              "section": {
+                "type": "string"
+              },
+              "classTeacher": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "students": {
+                "type": "integer"
+              }
+            },
+            "required": [
+              "id",
+              "termLabel",
+              "wing",
+              "course",
+              "level",
+              "section",
+              "classTeacher",
+              "students"
+            ]
+          },
+          "viewer": {
+            "type": "object",
+            "properties": {
+              "seesAll": {
+                "type": "boolean"
+              },
+              "attendance": {
+                "type": "boolean"
+              },
+              "isClassTeacher": {
+                "type": "boolean"
+              },
+              "staff": {
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "seesAll",
+              "attendance",
+              "isClassTeacher",
+              "staff"
+            ]
+          },
+          "subjects": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "offeringId": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "offeringId",
+                "name"
+              ]
+            }
+          },
+          "mySubjects": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "offeringId": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "offeringId",
+                "name"
+              ]
+            }
+          },
+          "taughtSubjects": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "offeringId": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "offeringId",
+                "name"
+              ]
+            }
+          },
+          "terminals": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "published": {
+                  "type": "boolean"
+                }
+              },
+              "required": [
+                "id",
+                "name",
+                "published"
+              ]
+            }
+          },
+          "students": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "enrollmentId": {
+                  "type": "string"
+                },
+                "rollNo": {
+                  "type": [
+                    "integer",
+                    "null"
+                  ]
+                },
+                "name": {
+                  "type": "string"
+                },
+                "sid": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "studentId": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                }
+              },
+              "required": [
+                "enrollmentId",
+                "rollNo",
+                "name",
+                "sid",
+                "studentId"
+              ]
+            }
+          }
+        },
+        "required": [
+          "class",
+          "viewer",
+          "subjects",
+          "mySubjects",
+          "taughtSubjects",
+          "terminals",
+          "students"
+        ]
       },
       "PublicConfig": {
         "type": "object",
@@ -3859,6 +4148,9 @@
           "name": {
             "type": "string"
           },
+          "programmeId": {
+            "type": "string"
+          },
           "programmeName": {
             "type": "string"
           },
@@ -3872,6 +4164,7 @@
         "required": [
           "id",
           "name",
+          "programmeId",
           "programmeName",
           "sectionKey",
           "sectionName"
@@ -4412,6 +4705,91 @@
           "lastName",
           "status",
           "className"
+        ]
+      },
+      "OwnClass": {
+        "type": "object",
+        "properties": {
+          "termLabel": {
+            "type": "string"
+          },
+          "wing": {
+            "type": "string"
+          },
+          "course": {
+            "type": "string"
+          },
+          "level": {
+            "type": "string"
+          },
+          "section": {
+            "type": "string"
+          },
+          "classTeacher": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "subjects": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string"
+                },
+                "teacher": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "elective": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                }
+              },
+              "required": [
+                "name",
+                "teacher",
+                "elective"
+              ]
+            }
+          },
+          "electivesToChoose": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "group": {
+                  "type": "string"
+                },
+                "options": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              },
+              "required": [
+                "group",
+                "options"
+              ]
+            }
+          }
+        },
+        "required": [
+          "termLabel",
+          "wing",
+          "course",
+          "level",
+          "section",
+          "classTeacher",
+          "subjects",
+          "electivesToChoose"
         ]
       },
       "StudentDetail": {
@@ -13429,6 +13807,69 @@
         }
       }
     },
+    "/api/classes": {
+      "get": {
+        "operationId": "list_class_pages",
+        "tags": [
+          "academics"
+        ],
+        "description": "The classes of open terms the person opens: every class (or a wing's) for the Principal and the Co-ordinator; for a teacher, the classes they teach in or lead.",
+        "responses": {
+          "200": {
+            "description": "The classes",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClassHubList"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/classes/{id}": {
+      "get": {
+        "operationId": "get_class_page",
+        "tags": [
+          "academics"
+        ],
+        "description": "One class as a page: where it sits, its students, its subjects and exams, and what the person may see of it. A subject teacher gets names only, their own subjects, and no attendance. A class the person does not open is 404, the same as a missing one.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{32}$"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The class",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClassHub"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such class, or not one the person opens",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AcademicsError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/config/public": {
       "get": {
         "operationId": "public_config",
@@ -15108,6 +15549,37 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/StudentList"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/students/me/class": {
+      "get": {
+        "operationId": "get_own_class",
+        "tags": [
+          "students"
+        ],
+        "description": "The signed-in student's own class this term (FUT point 18): wing, course, level, section, Class Teacher, and each subject with who teaches it. Only their own; 404 when they have no class in an open term.",
+        "responses": {
+          "200": {
+            "description": "Their class",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OwnClass"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No class in an open term for this sign-in",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdmissionsError"
                 }
               }
             }
@@ -19188,7 +19660,7 @@
         "tags": [
           "results"
         ],
-        "description": "The whole-class sheet of a published terminal: students by subjects, with the GPA or percentage and the rank in the class.",
+        "description": "The whole-class sheet of a published terminal: students by subjects, with the GPA or percentage and the rank in the class. A Class Teacher reads their own class's (FUT point 19).",
         "parameters": [
           {
             "schema": {

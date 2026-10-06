@@ -108,6 +108,10 @@ describe("sensitive rules, stated independently (docs/source/sample-creation-inf
     "results.recheck.request": ["STU"],
     "results.recheck.edit": ["COO", "SUP"],
     "results.electives.set": ["COO", "SUP"],
+    // A class as one page (FUT point 19): staff who work with the class open it; a student never does. The whole-class
+    // result sheet: the Co-ordinator and the Principal, and a Class Teacher for their own class only, published only.
+    "classes.view": ["TEA", "COO", "ADM", "SUP"],
+    "results.class_sheet.view": ["TEA", "COO", "ADM", "SUP"],
     // Attendance: the Class Teacher marks students; the Co-ordinator marks teachers.
     "attendance.student.mark": ["TEA"],
     "attendance.teacher.mark": ["COO", "SUP"],
@@ -243,6 +247,19 @@ describe("sensitive rules, stated independently (docs/source/sample-creation-inf
 // Part 3. Scope (D-004): one set of Co-ordinators and Accountants today, and the code must work
 // unchanged when they are split by section later.
 // ---------------------------------------------------------------------------------------------
+describe("a class as one page (FUT point 19)", () => {
+  it("a teacher opens only the classes they teach or lead, and reads a whole result sheet only as its Class Teacher", () => {
+    const opens = authorize([claim("TEA")], "classes.view")!;
+    expect(opens.assigned).toBe(true);
+    expect(opens.institution).toBe(false);
+    const sheet = authorize([claim("TEA")], "results.class_sheet.view")!;
+    expect(sheet.classOnly).toBe(true);
+    expect(sheet.assigned).toBe(false);
+    expect(sheet.institution).toBe(false);
+    expect(authorize([claim("ADM")], "results.class_sheet.view")!.readOnly).toBe(true);
+  });
+});
+
 describe("scope: whole institution today, per section when split (D-004)", () => {
   const institutionReach = MATRIX.filter((r) => !r.anonymous && (r.cells.COO?.reach === "inst" || r.cells.ACC?.reach === "inst"));
 

@@ -166,7 +166,8 @@ export function SheetTable({ sheet }: { sheet: ClassSheet }) {
   );
 }
 
-function ClassSheetView({ classId, terminalId }: { classId: string; terminalId: string }) {
+/** One published sheet. `exportable`: offer the CSV, which needs the reports permission (not a Class Teacher's, FUT point 19). */
+export function ClassSheetView({ classId, terminalId, exportable = true }: { classId: string; terminalId: string; exportable?: boolean }) {
   const { api } = useSession();
   const [missing, setMissing] = useState(false);
   const loadNow = useCallback(async () => {
@@ -184,10 +185,12 @@ function ClassSheetView({ classId, terminalId }: { classId: string; terminalId: 
       title={t("results.sheets.caption", { name: className(sheet), terminal: sheet.terminal.name })}
       labelledBy="sheet-heading"
       actions={
+        exportable ? (
         <a className={`${buttonClass({ variant: "secondary" })} ${styles.wrapLabel}`} href={`/api/results/classes/${classId}/terminals/${terminalId}/sheet.csv`} download>
           <Download aria-hidden width={18} height={18} />
           {t("results.sheets.export")}
         </a>
+        ) : undefined
       }
     >
       <SheetTable sheet={sheet} />

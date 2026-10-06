@@ -69,8 +69,20 @@ export function TerminalsTable({ terminals, words }: { terminals: readonly Termi
   );
 }
 
-export function SubjectsTable({ subjects, action, empty = "setup.subjects.emptyReadOnly" }: { subjects: readonly Subject[]; action?: RowAction<Subject>; empty?: "setup.subjects.emptyReadOnly" | "setup.subjects.empty" }) {
+export function SubjectsTable({
+  subjects,
+  action,
+  empty = "setup.subjects.emptyReadOnly",
+  wings = [],
+}: {
+  subjects: readonly Subject[];
+  action?: RowAction<Subject>;
+  empty?: "setup.subjects.emptyReadOnly" | "setup.subjects.empty";
+  /** The school's wings, to name each subject's (D-114). */
+  wings?: readonly { key: string; name: string }[];
+}) {
   if (subjects.length === 0) return <EmptyLine>{t(empty)}</EmptyLine>;
+  const wingName = (key: string | null) => (key === null ? null : (wings.find((w) => w.key === key)?.name ?? key));
   return (
     <Panel>
       <ReadTable
@@ -81,6 +93,7 @@ export function SubjectsTable({ subjects, action, empty = "setup.subjects.emptyR
           [
             { key: "name", label: t("setup.read.subject"), primary: true, cell: (x) => x.name },
             { key: "code", label: t("setup.read.code"), cell: (x) => x.code ?? "—" },
+            { key: "wing", label: t("setup.subjects.wing"), cell: (x) => wingName(x.sectionKey) ?? <StatusWord tone="warn">{t("setup.subjects.noWing")}</StatusWord> },
             { key: "status", label: t("attendance.class.status"), cell: (x) => (x.archived ? <StatusWord>{t("setup.subjects.archived")}</StatusWord> : <StatusWord tone="ok">{t("setup.read.inUse")}</StatusWord>) },
           ],
           action,

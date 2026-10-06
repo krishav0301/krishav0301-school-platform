@@ -10,9 +10,10 @@ export const TERM_DEFAULTS = {
   "role.accountant": "Accountant",
   "role.admin": "Admin",
   "term.terminal": "Exam",
-  "term.programme": "Programme",
+  "term.programme": "Course",
   "term.level": "Level",
-  "term.section": "Section",
+  "term.section": "Wing",
+  "term.classSection": "Section",
 } as const;
 
 export type TermKey = keyof typeof TERM_DEFAULTS;

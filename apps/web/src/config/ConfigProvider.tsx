@@ -4,7 +4,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState, u
 
 import { createApiClient } from "@/api/client";
 import type { components } from "@/api/schema";
-import { t } from "@/i18n/messages";
+import { setSchoolWords, t } from "@/i18n/messages";
 import { CONFIG_CACHE_KEY, applyThemeCss } from "@/theme/boot";
 import { themeToCss } from "@/theme/css";
 
@@ -33,6 +33,14 @@ export function useConfig(): ConfigValue {
 
 /** Builds the value the provider shares. Exported so tests can supply a school without the network. */
 export function makeConfigValue(status: ConfigStatus, config: PublicConfig | null, retry: () => void = () => {}): ConfigValue {
+  // Messages fill in the school's own words (D-114), so the catalog follows the school as soon as its config is known.
+  setSchoolWords({
+    section: config?.terms["term.section"],
+    programme: config?.terms["term.programme"],
+    level: config?.terms["term.level"],
+    classSection: config?.terms["term.classSection"],
+    terminal: config?.terms["term.terminal"],
+  });
   return {
     status,
     config,

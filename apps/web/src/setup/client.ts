@@ -92,11 +92,12 @@ export const renameLevel = async (api: ApiClient, id: string, name: string): Pro
 export const setProgrammeActive = async (api: ApiClient, id: string, active: boolean): Promise<WriteResult> =>
   done(await send(() => api.PATCH("/api/academics/programmes/{id}", { params: { path: { id } }, body: { active } })));
 
-export const addLevel = async (api: ApiClient, programmeId: string, name: string): Promise<CreateResult> =>
-  created(await send(() => api.POST("/api/academics/programmes/{id}/levels", { params: { path: { id: programmeId } }, body: { name } })));
+/** A new level, with how long it runs in months (D-114). */
+export const addLevel = async (api: ApiClient, programmeId: string, name: string, usualMonths: number): Promise<CreateResult> =>
+  created(await send(() => api.POST("/api/academics/programmes/{id}/levels", { params: { path: { id: programmeId } }, body: { name, usualMonths } })));
 
-/** A level's usual length in months, or none (D-110): it fills in the next term's last day. */
-export const setLevelLength = async (api: ApiClient, id: string, usualMonths: number | null): Promise<WriteResult> =>
+/** A level's length in months (D-114): a term takes only levels of its own length. */
+export const setLevelLength = async (api: ApiClient, id: string, usualMonths: number): Promise<WriteResult> =>
   done(await send(() => api.PATCH("/api/academics/levels/{id}", { params: { path: { id } }, body: { usualMonths } })));
 
 export const setLevelActive = async (api: ApiClient, id: string, active: boolean): Promise<WriteResult> =>
@@ -104,6 +105,10 @@ export const setLevelActive = async (api: ApiClient, id: string, active: boolean
 
 export const createClass = async (api: ApiClient, body: { yearId: string; levelId: string; label: string }): Promise<CreateResult> =>
   created(await send(() => api.POST("/api/academics/classes", { body })));
+
+/** A class's section, such as A or Morning, or none (D-114). Its term and level never change. */
+export const renameClass = async (api: ApiClient, id: string, label: string): Promise<WriteResult> =>
+  done(await send(() => api.PATCH("/api/academics/classes/{id}", { params: { path: { id } }, body: { label } })));
 
 export const setClassActive = async (api: ApiClient, id: string, active: boolean): Promise<WriteResult> =>
   done(await send(() => api.PATCH("/api/academics/classes/{id}", { params: { path: { id } }, body: { active } })));
@@ -116,8 +121,13 @@ export const createTerminal = async (api: ApiClient, body: { yearId: string; nam
 export const loadSubjects = (api: ApiClient) => load(() => api.GET("/api/academics/subjects"));
 export const loadCurriculum = (api: ApiClient, levelId: string) => load(() => api.GET("/api/academics/curriculum", { params: { query: { level: levelId } } }));
 
-export const createSubject = async (api: ApiClient, input: { name: string; code?: string }): Promise<CreateResult> =>
-  created(await send(() => api.POST("/api/academics/subjects", { body: { name: input.name, ...(input.code ? { code: input.code } : {}) } })));
+/** A subject in a wing (D-114). */
+export const createSubject = async (api: ApiClient, input: { name: string; code?: string; sectionKey: string }): Promise<CreateResult> =>
+  created(await send(() => api.POST("/api/academics/subjects", { body: { name: input.name, sectionKey: input.sectionKey, ...(input.code ? { code: input.code } : {}) } })));
+
+/** A subject's name, code (none when empty) and wing; the wing moves only while no curriculum uses it (FUT point 17). */
+export const updateSubject = async (api: ApiClient, id: string, input: { name: string; code: string; sectionKey: string }): Promise<WriteResult> =>
+  done(await send(() => api.PATCH("/api/academics/subjects/{id}", { params: { path: { id } }, body: { name: input.name, code: input.code || null, sectionKey: input.sectionKey } })));
 
 export const setSubjectArchived = async (api: ApiClient, id: string, archived: boolean): Promise<WriteResult> =>
   done(await send(() => api.PATCH("/api/academics/subjects/{id}", { params: { path: { id } }, body: { archived } })));

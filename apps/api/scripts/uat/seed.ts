@@ -111,11 +111,13 @@ export async function seedUat(call: Call, options: { tag: string; emailDomain?: 
 
   for (const name of ["First terminal", "Second terminal", "Final"]) await post("/api/academics/terminals", "coordinator", { yearId: year.id, name });
 
-  // Subjects: reuse a catalogue entry of the same name, if one exists.
-  const { subjects: catalogue } = await get<{ subjects: { id: string; name: string; archived: boolean }[] }>("/api/academics/subjects", "coordinator");
+  // Subjects: reuse a catalogue entry of the same name in the programme's wing, if one exists (a subject belongs to one wing, D-114).
+  const wing = programme.section.key;
+  const { subjects: catalogue } = await get<{ subjects: { id: string; name: string; archived: boolean; sectionKey: string | null }[] }>("/api/academics/subjects", "coordinator");
   const subjectIds: Record<string, string> = {};
   for (const s of SUBJECTS) {
-    subjectIds[s.name] = catalogue.find((c) => c.name === s.name && !c.archived)?.id ?? (await post<{ id: string }>("/api/academics/subjects", "coordinator", { name: s.name })).id;
+    subjectIds[s.name] =
+      catalogue.find((c) => c.name === s.name && !c.archived && c.sectionKey === wing)?.id ?? (await post<{ id: string }>("/api/academics/subjects", "coordinator", { name: s.name, sectionKey: wing })).id;
   }
 
   const accounts: NewAccount[] = [];

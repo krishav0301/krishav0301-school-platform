@@ -117,16 +117,27 @@ describe("updateProgramme", () => {
 
 // ---------------------------------------------------------------------------------------------
 describe("addLevel", () => {
+  it("asks for the level's length in months, 1 to 60, and never lets it be cleared (D-114)", async () => {
+    const id = await newProgramme();
+    expect(await addLevel(db, auditKey, admin.publicId, id, { name: "Year 1" } as never)).toMatchObject({ ok: false, reason: "invalid" });
+    for (const usualMonths of [0, 61, 1.5]) expect(await addLevel(db, auditKey, admin.publicId, id, { name: "Year 1", usualMonths })).toMatchObject({ ok: false, reason: "invalid" });
+    const made = await addLevel(db, auditKey, admin.publicId, id, { name: "Year 1", usualMonths: 12 });
+    if (!made.ok) throw new Error("level setup failed");
+    expect(await updateLevel(db, auditKey, admin.publicId, made.publicId, { usualMonths: null } as never)).toMatchObject({ ok: false, reason: "invalid" });
+    expect(await updateLevel(db, auditKey, admin.publicId, made.publicId, { usualMonths: 6 })).toEqual({ ok: true });
+    expect(await db.prepare("SELECT usual_months FROM levels WHERE public_id = ?1").bind(made.publicId).first()).toEqual({ usual_months: 6 });
+  });
+
   it("numbers levels 1, 2, 3 in the order they are added", async () => {
     const id = await newProgramme();
-    for (const name of ["Year 1", "Year 2", "Year 3"]) expect((await addLevel(db, auditKey, admin.publicId, id, { name })).ok).toBe(true);
+    for (const name of ["Year 1", "Year 2", "Year 3"]) expect((await addLevel(db, auditKey, admin.publicId, id, { name, usualMonths: 12 })).ok).toBe(true);
     const levels = (await db.prepare("SELECT l.ordinal, l.name FROM levels l JOIN programmes p ON p.id = l.programme_id WHERE p.public_id = ?1 ORDER BY l.ordinal").bind(id).all()).results;
     expect(levels).toEqual([{ ordinal: 1, name: "Year 1" }, { ordinal: 2, name: "Year 2" }, { ordinal: 3, name: "Year 3" }]);
   });
 
   it("numbers levels added at the same moment without a clash", async () => {
     const id = await newProgramme();
-    const results = await Promise.all([1, 2, 3, 4, 5].map((n) => addLevel(db, auditKey, admin.publicId, id, { name: `Level ${n}` })));
+    const results = await Promise.all([1, 2, 3, 4, 5].map((n) => addLevel(db, auditKey, admin.publicId, id, { name: `Level ${n}`, usualMonths: 12 })));
     expect(results.every((r) => r.ok)).toBe(true);
     const ordinals = (await db.prepare("SELECT l.ordinal FROM levels l JOIN programmes p ON p.id = l.programme_id WHERE p.public_id = ?1 ORDER BY l.ordinal").bind(id).all<{ ordinal: number }>()).results.map((r) => r.ordinal);
     expect(ordinals).toEqual([1, 2, 3, 4, 5]);
@@ -135,28 +146,28 @@ describe("addLevel", () => {
   it("no Co-ordinator adds a level, even with the right id (D-087)", async () => {
     const id = await newProgramme(admin, { sectionKey: "bachelors" });
     const before = [await rows(), await audits()];
-    for (const who of [coordinator, plus2Coordinator, bachelorsCoordinator]) expect(await addLevel(db, auditKey, who.publicId, id, { name: "Year 1" })).toEqual({ ok: false, reason: "not_allowed" });
+    for (const who of [coordinator, plus2Coordinator, bachelorsCoordinator]) expect(await addLevel(db, auditKey, who.publicId, id, { name: "Year 1", usualMonths: 12 })).toEqual({ ok: false, reason: "not_allowed" });
     expect([await rows(), await audits()]).toEqual(before);
   });
 
   it("refuses an unknown programme, an inactive one, an empty name, and a 21st level", async () => {
-    expect(await addLevel(db, auditKey, admin.publicId, "0".repeat(32), { name: "Year 1" })).toEqual({ ok: false, reason: "not_found" });
+    expect(await addLevel(db, auditKey, admin.publicId, "0".repeat(32), { name: "Year 1", usualMonths: 12 })).toEqual({ ok: false, reason: "not_found" });
 
     const off = await newProgramme();
     await updateProgramme(db, auditKey, admin.publicId, off, { active: false });
-    expect(await addLevel(db, auditKey, admin.publicId, off, { name: "Year 1" })).toMatchObject({ ok: false, reason: "invalid" });
+    expect(await addLevel(db, auditKey, admin.publicId, off, { name: "Year 1", usualMonths: 12 })).toMatchObject({ ok: false, reason: "invalid" });
 
     const id = await newProgramme();
-    expect(await addLevel(db, auditKey, admin.publicId, id, { name: " " })).toMatchObject({ ok: false, reason: "invalid" });
-    for (let n = 1; n <= 20; n++) expect((await addLevel(db, auditKey, admin.publicId, id, { name: `L${n}` })).ok).toBe(true);
-    expect(await addLevel(db, auditKey, admin.publicId, id, { name: "L21" })).toMatchObject({ ok: false, reason: "invalid", message: expect.stringMatching(/at most 20/) });
+    expect(await addLevel(db, auditKey, admin.publicId, id, { name: " ", usualMonths: 12 })).toMatchObject({ ok: false, reason: "invalid" });
+    for (let n = 1; n <= 20; n++) expect((await addLevel(db, auditKey, admin.publicId, id, { name: `L${n}`, usualMonths: 12 })).ok).toBe(true);
+    expect(await addLevel(db, auditKey, admin.publicId, id, { name: "L21", usualMonths: 12 })).toMatchObject({ ok: false, reason: "invalid", message: expect.stringMatching(/at most 20/) });
   });
 });
 
 // ---------------------------------------------------------------------------------------------
 describe("updateLevel", () => {
   const level = async (programmeId: string, name = "Year 1") => {
-    const r = await addLevel(db, auditKey, admin.publicId, programmeId, { name });
+    const r = await addLevel(db, auditKey, admin.publicId, programmeId, { name, usualMonths: 12 });
     if (!r.ok) throw new Error("setup failed");
     return r.publicId;
   };

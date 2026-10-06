@@ -111,7 +111,8 @@ export const StudentListSchema = z.object({ students: z.array(StudentSummarySche
 export type StudentList = z.infer<typeof StudentListSchema>;
 
 /** What the level picker on the public application form offers: every open level, whichever section. */
-export const OpenLevelSchema = z.object({ id: z.string(), name: z.string(), programmeName: z.string(), sectionKey: z.string(), sectionName: z.string() }).openapi("OpenLevel");
+// `programmeId` lets the form ask for the wing, then the course, then the level (D-114).
+export const OpenLevelSchema = z.object({ id: z.string(), name: z.string(), programmeId: z.string(), programmeName: z.string(), sectionKey: z.string(), sectionName: z.string() }).openapi("OpenLevel");
 export const OpenLevelListSchema = z.object({ levels: z.array(OpenLevelSchema) }).openapi("OpenLevelList");
 export type OpenLevelList = z.infer<typeof OpenLevelListSchema>;
 
@@ -135,6 +136,24 @@ export const StudentDetailSchema = z
   })
   .openapi("StudentDetail");
 export type StudentDetail = z.infer<typeof StudentDetailSchema>;
+
+/** A student's own class (FUT point 18): where it sits, its Class Teacher, and each subject with who teaches it. */
+export const OwnClassSchema = z
+  .object({
+    termLabel: z.string(),
+    wing: z.string(),
+    course: z.string(),
+    level: z.string(),
+    /** The class's section, such as A or Morning; empty when it has none. */
+    section: z.string(),
+    classTeacher: z.string().nullable(),
+    /** Every subject the student takes: the compulsory ones and the electives they chose (`elective` names its group). */
+    subjects: z.array(z.object({ name: z.string(), teacher: z.string().nullable(), elective: z.string().nullable() })),
+    /** Elective groups the student has not chosen from yet, with their choices. */
+    electivesToChoose: z.array(z.object({ group: z.string(), options: z.array(z.string()) })),
+  })
+  .openapi("OwnClass");
+export type OwnClass = z.infer<typeof OwnClassSchema>;
 
 /**
  * Correcting a student's personal details (students.personal.correct; Co-ordinator FUT F-06). Only what changed is sent,

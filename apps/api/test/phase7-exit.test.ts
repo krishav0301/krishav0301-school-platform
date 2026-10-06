@@ -22,7 +22,7 @@ import { signAccessToken, type RoleClaim } from "../src/core/tokens";
 import { createUser } from "../src/modules/accounts/service";
 import royalJson from "../../../packs/royal-softech/pack.json";
 import sampleJson from "../../../packs/sample-basic-school/pack.json";
-import { firstProgrammePolicy, seedProgrammes, testPack } from "./programme-fixtures";
+import { firstProgrammePolicy, seedProgrammes, testPack, wingOfLevel } from "./programme-fixtures";
 
 const app = createApp();
 
@@ -90,7 +90,7 @@ describe.each([
     state.terminalId = await idOf(terminal);
 
     const addSubject = async (name: string, credit: number, components: [string, number, "theory" | "practical"][]) => {
-      const subject = await post("/api/academics/subjects", { name: `${name} ${crypto.randomUUID().slice(0, 6)}` }, cookies.coordinator);
+      const subject = await post("/api/academics/subjects", { name: `${name} ${crypto.randomUUID().slice(0, 6)}`, sectionKey: await wingOfLevel(db(), levelId) }, cookies.coordinator);
       const offeringId = await idOf(await post("/api/academics/offerings", { levelId, subjectId: await idOf(subject), creditHundredths: credit * 100 }, cookies.coordinator));
       const ids: string[] = [];
       for (const [cname, max, kind] of components) {

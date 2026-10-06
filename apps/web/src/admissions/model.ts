@@ -65,5 +65,3 @@ export const STATUS_LABEL: Record<ApplicationStatus, MessageKey> = {
   expired: "admissions.status.expired",
 };
 
-export const levelChoices = (levels: readonly OpenLevel[]): { value: string; label: string }[] =>
-  levels.map((l) => ({ value: l.id, label: `${l.sectionName} · ${l.programmeName} · ${l.name}` }));

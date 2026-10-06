@@ -158,7 +158,7 @@ describe("Manage access", () => {
   });
 
   it("lets their access be changed to the whole school or chosen sections, never a switched-off one", () => {
-    expect(html).toContain("Selected sections");
+    expect(html).toContain("Selected Wings");
     expect(html).toMatch(/type="checkbox"[^>]*checked=""[^>]*\/?>Bachelor&#x27;s/);
     expect(html).toContain("+2 (Grade 11–12)");
     expect(html).not.toContain("Old section");

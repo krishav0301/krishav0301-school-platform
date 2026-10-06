@@ -56,7 +56,7 @@ const POLICY_LABEL: Record<NonNullable<Programme["gradingPolicy"]> | "none", Mes
 const count = (n: number) => n.toLocaleString("en-IN");
 
 /** The school's words in the middle of a sentence: "sections, programmes and levels". */
-const inSentence = (words: Words): Words => ({ programme: words.programme.toLowerCase(), level: words.level.toLowerCase(), section: words.section.toLowerCase(), terminal: words.terminal.toLowerCase() });
+const inSentence = (words: Words): Words => ({ programme: words.programme.toLowerCase(), level: words.level.toLowerCase(), section: words.section.toLowerCase(), classSection: words.classSection.toLowerCase(), terminal: words.terminal.toLowerCase() });
 
 /** "1 Student", "780 Students"; "1 Level", "4 Levels": in the school's own words. */
 const studentsText = (n: number, student: string) => t(n === 1 ? "structure.studentsOne" : "structure.students", { count: count(n), student });
@@ -70,10 +70,10 @@ export interface StructureActions {
   addProgramme: (sectionKey: string, values: { name: string; affiliation: string }) => Promise<boolean>;
   editProgramme: (programme: Programme, values: { name: string; affiliation: string; gradingPolicy: Programme["gradingPolicy"] }) => Promise<boolean>;
   setProgrammeActive: (programme: Programme, active: boolean) => Promise<boolean>;
-  addLevel: (programme: Programme, name: string) => Promise<boolean>;
+  addLevel: (programme: Programme, name: string, usualMonths: number) => Promise<boolean>;
   renameLevel: (level: Level, name: string) => Promise<boolean>;
   setLevelActive: (level: Level, active: boolean) => Promise<boolean>;
-  setLevelLength: (level: Level, usualMonths: number | null) => Promise<boolean>;
+  setLevelLength: (level: Level, usualMonths: number) => Promise<boolean>;
   setSectionActive: (section: Section, active: boolean) => Promise<boolean>;
   /** Only offered when nothing is attached (D-097); the server checks again. */
   deleteSection: (section: Section) => Promise<boolean>;
@@ -130,8 +130,15 @@ function NameForm({ label, hint, initial = "", submitLabel, required, onSave, ch
   );
 }
 
-/** How long a level usually runs, in whole months, or empty when it varies (D-110). */
-function LengthForm({ initial, onSave }: { initial: number | null; onSave: (months: number | null) => Promise<boolean> }) {
+/** Whole months, 1 to 60 (D-114), or the message key for what is wrong. */
+function parseMonths(text: string): number | MessageKey {
+  if (!text.trim()) return "structure.lengthRequired";
+  const value = Number(text.trim());
+  return Number.isInteger(value) && value >= 1 && value <= 60 ? value : "structure.lengthInvalid";
+}
+
+/** How long a level runs, in whole months (D-114): a term takes only levels of its own length. */
+export function LengthForm({ initial, onSave }: { initial: number | null; onSave: (months: number) => Promise<boolean> }) {
   const [months, setMonths] = useState(initial ? String(initial) : "");
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -139,9 +146,8 @@ function LengthForm({ initial, onSave }: { initial: number | null; onSave: (mont
   async function submit(event: FormEvent) {
     event.preventDefault();
     if (saving) return;
-    const text = months.trim();
-    const value = text === "" ? null : Number(text);
-    if (value !== null && (!Number.isInteger(value) || value < 1 || value > 60)) return setError(t("structure.lengthInvalid"));
+    const value = parseMonths(months);
+    if (typeof value === "string") return setError(t(value));
     setError(null);
     setSaving(true);
     await onSave(value);
@@ -154,6 +160,42 @@ function LengthForm({ initial, onSave }: { initial: number | null; onSave: (mont
       <div className={styles.formActions}>
         <Button type="submit" variant="secondary" loading={saving} loadingLabel={t("setup.working")}>
           {t("structure.saveLength")}
+        </Button>
+      </div>
+    </form>
+  );
+}
+
+/** Adding a level: its name and how long it runs, both required (D-114). */
+export function LevelForm({ submitLabel, onSave }: { submitLabel: string; onSave: (name: string, months: number) => Promise<boolean> }) {
+  const [name, setName] = useState("");
+  const [months, setMonths] = useState("");
+  const [errors, setErrors] = useState<{ name?: string; months?: string }>({});
+  const [saving, setSaving] = useState(false);
+
+  async function submit(event: FormEvent) {
+    event.preventDefault();
+    if (saving) return;
+    const value = parseMonths(months);
+    const found = { name: name.trim() ? undefined : t("structure.nameRequired"), months: typeof value === "string" ? t(value) : undefined };
+    setErrors(found);
+    if (found.name || found.months || typeof value === "string") return;
+    setSaving(true);
+    const saved = await onSave(name.trim(), value);
+    setSaving(false);
+    if (saved) {
+      setName("");
+      setMonths("");
+    }
+  }
+
+  return (
+    <form onSubmit={submit} noValidate className={styles.form}>
+      <Field label={t("setup.programmes.levelName")} hint={t("structure.levelHint")} value={name} maxLength={60} autoComplete="off" onChange={(event) => setName(event.target.value)} error={errors.name} />
+      <Field label={t("structure.length")} hint={t("structure.lengthHint")} inputMode="numeric" maxLength={2} autoComplete="off" value={months} onChange={(event) => setMonths(event.target.value)} error={errors.months} />
+      <div className={styles.formActions}>
+        <Button type="submit" loading={saving} loadingLabel={t("setup.working")}>
+          {submitLabel}
         </Button>
       </div>
     </form>
@@ -346,20 +388,19 @@ function SwitchButton({ active, name, onSwitch }: { active: boolean; name: strin
  * Delete, inside an Edit or options pop-up (D-097). Offered only when nothing is attached; it then asks once more,
  * because it cannot be undone. When something is attached, it says why it cannot be deleted and what to do instead.
  */
-export function DeleteControl({ name, canDelete, blocked, onDelete }: { name: string; canDelete: boolean; blocked?: MessageKey; onDelete: () => Promise<boolean> }) {
+export function DeleteControl({ name, canDelete, blocked, onDelete, inline = false }: { name: string; canDelete: boolean; blocked?: MessageKey; onDelete: () => Promise<boolean>; inline?: boolean }) {
   const [confirming, setConfirming] = useState(false);
   const [working, setWorking] = useState(false);
   if (!canDelete) return blocked ? <p className={styles.deleteNote}>{t(blocked)}</p> : null;
-  if (!confirming)
-    return (
-      <div className={styles.deleteRow}>
-        <Button variant="quiet" aria-label={t("structure.deleteItem", { name })} onClick={() => setConfirming(true)}>
-          {t("structure.delete")}
-        </Button>
-      </div>
-    );
+  const ask = (
+    <Button variant="quiet" aria-label={t("structure.deleteItem", { name })} onClick={() => setConfirming(true)}>
+      {t("structure.delete")}
+    </Button>
+  );
+  // In a table row (D-114) it sits beside the other actions; in a pop-up it is set apart below them.
+  if (!confirming) return inline ? ask : <div className={styles.deleteRow}>{ask}</div>;
   return (
-    <div className={styles.confirm} role="group" aria-label={t("structure.deleteItem", { name })}>
+    <div className={inline ? styles.confirmInline : styles.confirm} role="group" aria-label={t("structure.deleteItem", { name })}>
       <p className={styles.confirmText}>{t("structure.deleteConfirm", { name })}</p>
       <div className={styles.formActions}>
         <Button variant="quiet" onClick={() => setConfirming(false)}>
@@ -394,6 +435,7 @@ function LevelRow({ level, words, student, canManage, actions }: { level: Level;
         {studentsText(level.students, student)}
         {level.usualMonths ? ` · ${t(level.usualMonths === 1 ? "structure.monthOne" : "structure.months", { count: level.usualMonths })}` : ""}
       </span>
+      {level.usualMonths ? null : <Badge>{t("structure.lengthNotSet")}</Badge>}
       {level.active ? null : <Badge>{t("setup.programmes.off")}</Badge>}
       {canManage ? (
         <span className={styles.rowEnd}>
@@ -470,13 +512,7 @@ function ProgrammeCard({ programme, index, open, onToggle, words, student, canMa
                 {(close) => (
                   <>
                     <DialogFailure />
-                    <NameForm
-                    label={t("setup.programmes.levelName", words)}
-                    hint={t("structure.levelHint")}
-                    submitLabel={t("setup.programmes.addLevel", words)}
-                    required={t("structure.nameRequired")}
-                    onSave={async (name) => (await actions.addLevel(programme, name)) && (close(), true)}
-                  />
+                    <LevelForm submitLabel={t("setup.programmes.addLevel", words)} onSave={async (name, months) => (await actions.addLevel(programme, name, months)) && (close(), true)} />
                   </>
                 )}
               </AddDialog>
@@ -710,7 +746,7 @@ export function ProgrammesScreen() {
     addProgramme: (sectionKey, values) => run(createProgramme(api, { ...values, sectionKey }), "setup.done.added"),
     editProgramme: (programme, values) => run(updateProgramme(api, programme.id, values), "structure.done.saved"),
     setProgrammeActive: (programme, active) => run(setProgrammeActive(api, programme.id, active), active ? "setup.done.switchedOn" : "setup.done.switchedOff"),
-    addLevel: (programme, name) => run(addLevel(api, programme.id, name), "setup.done.added"),
+    addLevel: (programme, name, usualMonths) => run(addLevel(api, programme.id, name, usualMonths), "setup.done.added"),
     renameLevel: (level, name) => run(renameLevel(api, level.id, name), "structure.done.saved"),
     setLevelActive: (level, active) => run(setLevelActive(api, level.id, active), active ? "setup.done.switchedOn" : "setup.done.switchedOff"),
     setLevelLength: (level, usualMonths) => run(setLevelLength(api, level.id, usualMonths), "structure.done.saved"),

@@ -7,7 +7,7 @@ import { t } from "@/i18n/messages";
 import { EmptyLine, Panel, ReadFailure, ReadOnlyNote, ReadTable, StatusWord, TableSkeleton, readStyles } from "@/read/ReadView";
 import { useSession } from "@/session/SessionProvider";
 import { loadClasses, loadYears, type Loaded } from "@/setup/client";
-import { classTitle, defaultYearId, type SchoolClass } from "@/setup/model";
+import { classTitle, type SchoolClass } from "@/setup/model";
 import { ReadSetupHeader } from "@/setup/ReadSetup";
 import { useLoad } from "@/setup/useLoad";
 
@@ -39,20 +39,25 @@ export function byTeacher(classes: readonly SchoolClass[], teachings: readonly C
   return { teachers: [...lines.values()].sort((a, b) => a.name.localeCompare(b.name)), unassigned };
 }
 
-/** Teaching as the Principal reads it: every teacher this year, what they teach where, and the class they lead. */
+/** Teaching as the Principal reads it: every teacher in the open terms, what they teach where, and the class they lead. */
 export function TeachingRead() {
   const { api } = useSession();
   const { term } = useConfig();
-  // Three requests whatever the number of classes: the years, then the year's classes and its teaching together (D-108).
+  // The terms, then each open term's classes and teaching together (D-108): every open term, not only the first (D-114).
   const loadNow = useCallback(async (): Promise<Loaded<{ classes: SchoolClass[]; teachings: ClassTeaching[] }>> => {
     const years = await loadYears(api);
     if (!years.ok) return { ok: false, reason: years.reason };
-    const yearId = defaultYearId(years.data.years);
-    if (!yearId) return { ok: true, data: { classes: [], teachings: [] } };
-    const [classes, teachings] = await Promise.all([loadClasses(api, yearId), loadYearTeaching(api, yearId)]);
-    if (!classes.ok) return { ok: false, reason: classes.reason };
-    if (!teachings.ok) return { ok: false, reason: teachings.reason };
-    return { ok: true, data: { classes: classes.data.classes.filter((c) => c.active), teachings: teachings.data } };
+    const open = years.data.years.filter((y) => y.status !== "closed");
+    const loaded = await Promise.all(open.map((y) => Promise.all([loadClasses(api, y.id), loadYearTeaching(api, y.id)])));
+    const classes: SchoolClass[] = [];
+    const teachings: ClassTeaching[] = [];
+    for (const [c, tg] of loaded) {
+      if (!c.ok) return { ok: false, reason: c.reason };
+      if (!tg.ok) return { ok: false, reason: tg.reason };
+      classes.push(...c.data.classes.filter((x) => x.active));
+      teachings.push(...tg.data);
+    }
+    return { ok: true, data: { classes, teachings } };
   }, [api]);
   const { view, reload } = useLoad(loadNow);
 

@@ -24,7 +24,7 @@ import { signAccessToken, type RoleClaim } from "../src/core/tokens";
 import { createUser } from "../src/modules/accounts/service";
 import royalJson from "../../../packs/royal-softech/pack.json";
 import sampleJson from "../../../packs/sample-basic-school/pack.json";
-import { seedProgrammes, testPack } from "./programme-fixtures";
+import { seedProgrammes, testPack, wingOfLevel } from "./programme-fixtures";
 
 const app = createApp();
 
@@ -108,7 +108,7 @@ describe.each([
   });
 
   it("subjects: a subject catalogued and offered on the class's level makes that item true", async () => {
-    const subjectResponse = await post("/api/academics/subjects", { name: `Physics ${crypto.randomUUID().slice(0, 6)}` }, cookies.coordinator);
+    const subjectResponse = await post("/api/academics/subjects", { name: `Physics ${crypto.randomUUID().slice(0, 6)}`, sectionKey: await wingOfLevel(db(), state.levelId!) }, cookies.coordinator);
     expect(subjectResponse.status).toBe(201);
     const subjectId = await idOf(subjectResponse);
 

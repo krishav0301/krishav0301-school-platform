@@ -654,7 +654,7 @@ function TeachingPanel({ onCounts }: { onCounts: (counts: PeoplePage["counts"]) 
                     </td>
                     <td className={styles.actionsCell}>
                       {/* Oversight only: the Principal looks at a teacher's subjects and classes; their Co-ordinator manages them. */}
-                      <Link href="/portal/people/teaching" className={styles.viewLink} aria-label={t("access.viewTeachingOf", { name: person.fullName })}>
+                      <Link href="/portal/setup/teaching" className={styles.viewLink} aria-label={t("access.viewTeachingOf", { name: person.fullName })}>
                         {t("access.viewTeaching")}
                       </Link>
                     </td>

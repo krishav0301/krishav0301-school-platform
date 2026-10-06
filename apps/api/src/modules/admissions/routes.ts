@@ -21,11 +21,13 @@ import {
   PublicIdSchema,
   RejectSchema,
   RequestChangesSchema,
+  OwnClassSchema,
   StudentDetailSchema,
   StudentListSchema,
   VerifyEmailSchema,
   WalkInSchema,
 } from "./schema";
+import { getOwnClass } from "./own-class";
 import { moveStudents, promotionBoard } from "./promotion";
 import { applyForAdmission, approveApplication, correctStudent, registerStudent, registerWalkIn, reject, requestChanges, verifyApplicationEmail, type WriteFailure } from "./service";
 
@@ -287,6 +289,24 @@ export function registerAdmissions(app: App): void {
     async (c) => {
       c.header("Cache-Control", "no-store");
       return c.json(await searchStudents(c.env.DB, allowedSections(c.get("grant")!), c.req.valid("query").q), 200);
+    },
+  );
+
+  defineRoute(
+    app,
+    {
+      method: "get",
+      path: "/api/students/me/class",
+      operationId: "get_own_class",
+      tags: ["students"],
+      description: "The signed-in student's own class this term (FUT point 18): wing, course, level, section, Class Teacher, and each subject with who teaches it. Only their own; 404 when they have no class in an open term.",
+      access: VIEW_ACTION,
+      responses: { 200: { description: "Their class", content: json(OwnClassSchema) }, 404: { description: "No class in an open term for this sign-in", content: json(ErrorSchema) } },
+    },
+    async (c) => {
+      c.header("Cache-Control", "no-store");
+      const found = await getOwnClass(c.env.DB, c.get("auth")!.userPublicId);
+      return found ? c.json(found, 200) : c.json({ error: "not_found" }, 404);
     },
   );
 

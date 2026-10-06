@@ -1,5 +1,6 @@
 import { rowsOf, type DashboardPart } from "../../core/dashboard";
 import { adToBsText } from "../../core/dates";
+import { termLengthMonths } from "./term-length";
 import type { AcademicYearList, Curriculum, ProgrammeList, SchoolClassList, SetupChecklist, SubjectList, Teaching, TerminalList, YearTeaching } from "./schema";
 
 /** A section filter for SQL: `null` means every section, otherwise a JSON array of section keys (used with `json_each`). */
@@ -25,6 +26,16 @@ interface TermLevelRow {
   programme_id: string;
   programme_name: string;
   section_key: string;
+  usual_months: number | null;
+}
+
+/** A term's length in months, or null when a day is outside the verified calendar. */
+function lengthOrNull(start: string, end: string): number | null {
+  try {
+    return termLengthMonths(start, end);
+  } catch {
+    return null;
+  }
 }
 
 /** Every academic term (D-110), open ones first and then newest first, with the levels each runs. One round trip. */
@@ -37,7 +48,7 @@ export async function listYears(db: D1Database): Promise<AcademicYearList> {
          FROM academic_years ay ORDER BY ay.status = 'closed', ay.start_date DESC, ay.id DESC`,
     ),
     db.prepare(
-      `SELECT ay.public_id AS term_id, lv.public_id AS id, lv.name, lv.ordinal, pv.public_id AS programme_id, pv.name AS programme_name, s.key AS section_key
+      `SELECT ay.public_id AS term_id, lv.public_id AS id, lv.name, lv.ordinal, pv.public_id AS programme_id, pv.name AS programme_name, s.key AS section_key, lv.usual_months
          FROM term_levels tl JOIN academic_years ay ON ay.id = tl.academic_year_id JOIN levels lv ON lv.id = tl.level_id
          JOIN programmes pv ON pv.id = lv.programme_id JOIN sections s ON s.id = pv.section_id
         ORDER BY s.ordering, pv.ordering, lv.ordinal`,
@@ -46,7 +57,7 @@ export async function listYears(db: D1Database): Promise<AcademicYearList> {
   const byTerm = new Map<string, AcademicYearList["years"][number]["levels"]>();
   for (const l of levels!.results as unknown as TermLevelRow[]) {
     const list = byTerm.get(l.term_id) ?? byTerm.set(l.term_id, []).get(l.term_id)!;
-    list.push({ id: l.id, name: l.name, ordinal: l.ordinal, programmeId: l.programme_id, programmeName: l.programme_name, sectionKey: l.section_key });
+    list.push({ id: l.id, name: l.name, ordinal: l.ordinal, programmeId: l.programme_id, programmeName: l.programme_name, sectionKey: l.section_key, usualMonths: l.usual_months });
   }
   return {
     years: (terms!.results as unknown as YearRow[]).map((y) => ({
@@ -58,6 +69,7 @@ export async function listYears(db: D1Database): Promise<AcademicYearList> {
       endDate: y.end_date,
       startDateBs: adToBsText(y.start_date),
       endDateBs: adToBsText(y.end_date),
+      months: lengthOrNull(y.start_date, y.end_date),
       status: y.status,
       levels: byTerm.get(y.public_id) ?? [],
       classes: y.classes,
@@ -266,12 +278,26 @@ interface SubjectRow {
   name: string;
   code: string | null;
   is_archived: number;
+  section_key: string | null;
+  in_curriculum: number;
 }
 
-/** The whole catalogue, archived subjects included (they are marked), by name. One database round trip. */
-export async function listSubjects(db: D1Database): Promise<SubjectList> {
-  const { results } = await db.prepare("SELECT public_id, name, code, is_archived FROM subjects ORDER BY name COLLATE NOCASE").all<SubjectRow>();
-  return { subjects: results.map((s) => ({ id: s.public_id, name: s.name, code: s.code, archived: s.is_archived === 1 })) };
+/**
+ * The catalogue, archived subjects included (they are marked), by name, each with its wing (D-114). A person who reaches
+ * some wings sees only their subjects; the whole school also sees old subjects with no wing yet. One round trip.
+ */
+export async function listSubjects(db: D1Database, sections: "all" | readonly string[]): Promise<SubjectList> {
+  const { results } = await db
+    .prepare(
+      `SELECT x.public_id, x.name, x.code, x.is_archived, s.key AS section_key,
+              EXISTS (SELECT 1 FROM subject_offerings o WHERE o.subject_id = x.id) AS in_curriculum
+         FROM subjects x LEFT JOIN sections s ON s.id = x.section_id
+        WHERE ?1 = 'all' OR s.key IN (SELECT value FROM json_each(?2))
+        ORDER BY x.name COLLATE NOCASE, s.ordering`,
+    )
+    .bind(sections === "all" ? "all" : "some", JSON.stringify(sections === "all" ? [] : sections))
+    .all<SubjectRow>();
+  return { subjects: results.map((s) => ({ id: s.public_id, name: s.name, code: s.code, archived: s.is_archived === 1, sectionKey: s.section_key, inCurriculum: s.in_curriculum === 1 })) };
 }
 
 interface CurriculumRow {
@@ -282,6 +308,7 @@ interface CurriculumRow {
   subject_name: string;
   subject_code: string | null;
   is_archived: number;
+  subject_section: string | null;
   group_id: string | null;
   group_name: string | null;
   component_id: string | null;
@@ -300,7 +327,7 @@ export async function getCurriculum(db: D1Database, sections: "all" | readonly s
   const [levelResult, groupResult, offeringResult] = await db.batch([
     db
       .prepare(
-        `SELECT l.public_id, l.name, p.public_id AS programme_id, p.name AS programme_name
+        `SELECT l.public_id, l.name, p.public_id AS programme_id, p.name AS programme_name, s.key AS section_key
            FROM levels l JOIN programmes p ON p.id = l.programme_id JOIN sections s ON s.id = p.section_id
           WHERE l.public_id = ?1 AND (?2 IS NULL OR s.key IN (SELECT value FROM json_each(?2)))`,
       )
@@ -314,12 +341,13 @@ export async function getCurriculum(db: D1Database, sections: "all" | readonly s
     db
       .prepare(
         `SELECT o.public_id AS offering_id, o.credit_hundredths, o.is_active AS offering_active,
-                s.public_id AS subject_id, s.name AS subject_name, s.code AS subject_code, s.is_archived,
+                s.public_id AS subject_id, s.name AS subject_name, s.code AS subject_code, s.is_archived, ws.key AS subject_section,
                 g.public_id AS group_id, g.name AS group_name,
                 c.public_id AS component_id, c.name AS component_name, c.max_hundredths, c.kind, c.ordinal, c.is_active AS component_active
            FROM subject_offerings o
            JOIN levels l ON l.id = o.level_id
            JOIN subjects s ON s.id = o.subject_id
+           LEFT JOIN sections ws ON ws.id = s.section_id
            LEFT JOIN elective_groups g ON g.id = o.elective_group_id
            LEFT JOIN mark_components c ON c.offering_id = o.id
           WHERE l.public_id = ?1
@@ -328,7 +356,7 @@ export async function getCurriculum(db: D1Database, sections: "all" | readonly s
       .bind(levelId),
   ]);
 
-  const level = levelResult!.results[0] as { public_id: string; name: string; programme_id: string; programme_name: string } | undefined;
+  const level = levelResult!.results[0] as { public_id: string; name: string; programme_id: string; programme_name: string; section_key: string } | undefined;
   if (!level) return null;
 
   const offerings: Curriculum["offerings"] = [];
@@ -337,7 +365,7 @@ export async function getCurriculum(db: D1Database, sections: "all" | readonly s
     if (!offering || offering.id !== r.offering_id) {
       offering = {
         id: r.offering_id,
-        subject: { id: r.subject_id, name: r.subject_name, code: r.subject_code, archived: r.is_archived === 1 },
+        subject: { id: r.subject_id, name: r.subject_name, code: r.subject_code, archived: r.is_archived === 1, sectionKey: r.subject_section, inCurriculum: true },
         creditHundredths: r.credit_hundredths,
         group: r.group_id !== null ? { id: r.group_id, name: r.group_name! } : null,
         active: r.offering_active === 1,
@@ -351,7 +379,7 @@ export async function getCurriculum(db: D1Database, sections: "all" | readonly s
   }
 
   return {
-    level: { id: level.public_id, name: level.name, programmeId: level.programme_id, programmeName: level.programme_name },
+    level: { id: level.public_id, name: level.name, programmeId: level.programme_id, programmeName: level.programme_name, sectionKey: level.section_key },
     groups: (groupResult!.results as { public_id: string; name: string; pick_count: number; is_active: number }[]).map((g) => ({
       id: g.public_id,
       name: g.name,

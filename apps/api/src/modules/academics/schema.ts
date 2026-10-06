@@ -95,10 +95,11 @@ export type ProgrammeChanges = z.infer<typeof ProgrammeChangesSchema>;
 /** How long a level usually runs, in months (D-110): fills in the next term's end date. */
 const UsualMonths = z.number().int("Use whole months").min(1, "At least 1 month").max(60, "At most 60 months");
 
-export const CreateLevelSchema = z.strictObject({ name: LevelName, usualMonths: UsualMonths.optional() }).openapi("CreateLevel");
+// A level's length is asked when it is added and may be changed, never cleared: a term takes only levels of its length (D-114).
+export const CreateLevelSchema = z.strictObject({ name: LevelName, usualMonths: UsualMonths }).openapi("CreateLevel");
 export type LevelInput = z.input<typeof CreateLevelSchema>;
 
-export const LevelChangesSchema = z.strictObject({ name: LevelName, active: z.boolean(), usualMonths: UsualMonths.nullable() }).partial().openapi("LevelChanges");
+export const LevelChangesSchema = z.strictObject({ name: LevelName, active: z.boolean(), usualMonths: UsualMonths }).partial().openapi("LevelChanges");
 export type LevelChanges = z.infer<typeof LevelChangesSchema>;
 
 // --- Classes and terminals ---------------------------------------------------------------------------
@@ -122,7 +123,16 @@ export type TerminalChanges = z.infer<typeof TerminalChangesSchema>;
 // --- What the screens read ---------------------------------------------------------------------------
 
 export const TermLevelSchema = z
-  .object({ id: z.string(), name: z.string(), ordinal: z.number().int(), programmeId: z.string(), programmeName: z.string(), sectionKey: z.string() })
+  .object({
+    id: z.string(),
+    name: z.string(),
+    ordinal: z.number().int(),
+    programmeId: z.string(),
+    programmeName: z.string(),
+    sectionKey: z.string(),
+    /** How long the level runs, in months; null until the Admin sets it (D-114). */
+    usualMonths: z.number().int().nullable(),
+  })
   .openapi("TermLevel");
 
 export const AcademicYearSchema = z
@@ -138,6 +148,8 @@ export const AcademicYearSchema = z
     /** The same days in Bikram Sambat, "YYYY-MM-DD"; null if a day is outside the verified years. */
     startDateBs: z.string().nullable(),
     endDateBs: z.string().nullable(),
+    /** Its length in whole months on the BS calendar (D-114); null if a day is outside the verified years. */
+    months: z.number().int().nullable(),
     status: z.enum(["draft", "active", "closed"]),
     /** The levels that run in it, by section, programme and level order. */
     levels: z.array(TermLevelSchema),
@@ -259,11 +271,14 @@ export type TerminalList = z.infer<typeof TerminalListSchema>;
 const SubjectName = z.string().trim().min(1, "Give the subject a name").max(120, "Keep the name to 120 characters");
 const SubjectCode = z.string().trim().min(1, "Give the code at least one character").max(20, "Keep the code to 20 characters");
 
-export const CreateSubjectSchema = z.strictObject({ name: SubjectName, code: SubjectCode.nullable().optional() }).openapi("CreateSubject");
+const WingKey = z.string().trim().min(1, "Choose a wing").max(60);
+/** A subject belongs to one wing (D-114): +2's English and Bachelor's English are two subjects. */
+export const CreateSubjectSchema = z.strictObject({ name: SubjectName, code: SubjectCode.nullable().optional(), sectionKey: WingKey }).openapi("CreateSubject");
 export type SubjectInput = z.input<typeof CreateSubjectSchema>;
 
 /** `code: null` takes the code away. */
-export const SubjectChangesSchema = z.strictObject({ name: SubjectName, code: SubjectCode.nullable(), archived: z.boolean() }).partial().openapi("SubjectChanges");
+// `sectionKey` gives an old subject its wing (D-114); a subject that has one keeps it.
+export const SubjectChangesSchema = z.strictObject({ name: SubjectName, code: SubjectCode.nullable(), archived: z.boolean(), sectionKey: WingKey }).partial().openapi("SubjectChanges");
 export type SubjectChanges = z.infer<typeof SubjectChangesSchema>;
 
 // --- Elective groups, offerings and mark components ----------------------------------------------------
@@ -304,7 +319,18 @@ export type ComponentChanges = z.infer<typeof ComponentChangesSchema>;
 
 // --- What the subject screens read -------------------------------------------------------------------
 
-export const SubjectSchema = z.object({ id: z.string(), name: z.string(), code: z.string().nullable(), archived: z.boolean() }).openapi("Subject");
+export const SubjectSchema = z
+  .object({
+    id: z.string(),
+    name: z.string(),
+    code: z.string().nullable(),
+    archived: z.boolean(),
+    /** Its wing (D-114); null for an old subject not given one yet. */
+    sectionKey: z.string().nullable(),
+    /** Some level's curriculum uses it: its wing is then fixed (FUT point 17). */
+    inCurriculum: z.boolean(),
+  })
+  .openapi("Subject");
 export const SubjectListSchema = z.object({ subjects: z.array(SubjectSchema) }).openapi("SubjectList");
 export type SubjectList = z.infer<typeof SubjectListSchema>;
 
@@ -329,7 +355,8 @@ export const CurriculumGroupSchema = z.object({ id: z.string(), name: z.string()
 /** One level's elective groups, subjects and mark components, in one answer. */
 export const CurriculumSchema = z
   .object({
-    level: z.object({ id: z.string(), name: z.string(), programmeId: z.string(), programmeName: z.string() }),
+    /** `sectionKey`: the level's wing; only that wing's subjects may join (D-114). */
+    level: z.object({ id: z.string(), name: z.string(), programmeId: z.string(), programmeName: z.string(), sectionKey: z.string() }),
     groups: z.array(CurriculumGroupSchema),
     offerings: z.array(CurriculumOfferingSchema),
   })
@@ -388,3 +415,39 @@ export const SetupChecklistSchema = z
   })
   .openapi("SetupChecklist");
 export type SetupChecklist = z.infer<typeof SetupChecklistSchema>;
+
+// --- A class as one page (FUT point 19, D-116) --------------------------------------------------------
+
+const ClassPlaceSchema = z.object({
+  id: z.string(),
+  termLabel: z.string(),
+  wing: z.string(),
+  course: z.string(),
+  level: z.string(),
+  /** Its section, such as A or Morning; empty when it has none. */
+  section: z.string(),
+  classTeacher: z.string().nullable(),
+  students: z.number().int(),
+});
+export const ClassHubListSchema = z.object({ classes: z.array(ClassPlaceSchema.extend({ isClassTeacher: z.boolean() })) }).openapi("ClassHubList");
+export type ClassHubList = z.infer<typeof ClassHubListSchema>;
+
+const HubSubjectSchema = z.object({ offeringId: z.string(), name: z.string() });
+export const ClassHubSchema = z
+  .object({
+    class: ClassPlaceSchema,
+    /** What the person sees: everything (the Class Teacher, the Co-ordinator, the Principal) or a subject teacher's part. */
+    /** `staff`: the Principal, a Co-ordinator or Support, who reach the class as a whole (not by teaching in it). */
+    viewer: z.object({ seesAll: z.boolean(), attendance: z.boolean(), isClassTeacher: z.boolean(), staff: z.boolean() }),
+    subjects: z.array(HubSubjectSchema),
+    /** The subjects whose marks the person sees: every one (published, for a Class Teacher), or a subject teacher's own. */
+    mySubjects: z.array(HubSubjectSchema),
+    /** The subjects the person teaches in this class: their classwork and their marks to enter. */
+    taughtSubjects: z.array(HubSubjectSchema),
+    /** The term's exams, and whether this class's results are published for each. */
+    terminals: z.array(z.object({ id: z.string(), name: z.string(), published: z.boolean() })),
+    /** The students, by roll number. `sid` and `studentId` are null for a subject teacher (names only). */
+    students: z.array(z.object({ enrollmentId: z.string(), rollNo: z.number().int().nullable(), name: z.string(), sid: z.string().nullable(), studentId: z.string().nullable() })),
+  })
+  .openapi("ClassHub");
+export type ClassHub = z.infer<typeof ClassHubSchema>;

@@ -177,6 +177,10 @@ describe.each([
     expect(terms["role.student"]).toBe(pack.terminology["role.student"] ?? "Student");
     expect(terms["term.terminal"]).toBe(pack.terminology["term.terminal"] ?? "Exam"); // D-110
     expect(terms["role.accountant"]).toBe("Accountant"); // not renamed by either pack
+    // D-114: the top group is a Wing, the middle a Course, and a class's division a Section.
+    expect(terms["term.section"]).toBe(pack.terminology["term.section"] ?? "Wing");
+    expect(terms["term.programme"]).toBe(pack.terminology["term.programme"] ?? "Course");
+    expect(terms["term.classSection"]).toBe(pack.terminology["term.classSection"] ?? "Section");
   });
 });
 

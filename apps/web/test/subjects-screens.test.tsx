@@ -6,7 +6,7 @@ import SubjectsPage from "@/app/portal/setup/subjects/page";
 import { ConfigContext, makeConfigValue, type PublicConfig } from "@/config/ConfigProvider";
 import { ComponentForm, CurriculumView, GroupForm, OfferingForm, SubjectPanel } from "@/setup/CurriculumScreen";
 import { SetupTabs } from "@/setup/SetupLayout";
-import { SubjectForm, SubjectsScreen, SubjectsView } from "@/setup/SubjectsScreen";
+import { SubjectEditForm, SubjectForm, SubjectsScreen, SubjectsView } from "@/setup/SubjectsScreen";
 import type { Curriculum, Offering, Subject } from "@/setup/model";
 import { SessionContext } from "@/session/SessionProvider";
 import { fakeSession } from "./session";
@@ -34,7 +34,7 @@ const inContext = (element: React.ReactNode, session = as("coordinator", "instit
 const count = (html: string, pattern: RegExp) => (html.match(pattern) ?? []).length;
 const noop = () => {};
 
-const subject = (id: string, name: string, over: Partial<Subject> = {}): Subject => ({ id, name, code: null, archived: false, ...over });
+const subject = (id: string, name: string, over: Partial<Subject> = {}): Subject => ({ id, name, code: null, archived: false, sectionKey: "plus2", inCurriculum: false, ...over });
 
 // ---------------------------------------------------------------------------------------------
 describe("the sub-menu", () => {
@@ -70,6 +70,36 @@ describe("the subjects screen", () => {
     expect(readOnly).not.toContain("Restore Physics");
   });
 
+  it("names each subject's wing, and asks for one where an old subject has none (D-114)", () => {
+    const withWings = [subject("s1", "English"), subject("s2", "English", { sectionKey: "bachelors" }), subject("s3", "Music", { sectionKey: null })];
+    const html = inContext(<SubjectsView subjects={withWings} wings={TEST_SECTIONS.royal} canArchive busy={null} onToggle={noop} onEdit={async () => true as const} />);
+    expect(html).toContain('data-label="Section">+2<');
+    expect(html).toContain('data-label="Section">Bachelor&#x27;s<');
+    expect(html).toContain("No Section yet");
+    expect(html).toContain('aria-label="Edit Music"');
+    expect(count(html, /aria-label="Edit /g)).toBe(3); // every subject, for someone who may change one (FUT point 17)
+  });
+
+  it("the add form asks for the wing first, or says the one wing a person reaches (D-114)", () => {
+    const both = inContext(<SubjectForm onAdded={noop} wings={TEST_SECTIONS.royal} />);
+    expect(both).toContain(">Section<");
+    expect(both).toContain(">+2<");
+    const one = inContext(<SubjectForm onAdded={noop} wings={[TEST_SECTIONS.royal[0]!]} />);
+    expect(one).toContain("In +2");
+    expect(one).not.toContain("<select");
+  });
+
+  it("Edit changes the name, the code, and the wing while no curriculum uses the subject (FUT point 17)", () => {
+    const free = inContext(<SubjectEditForm subject={subject("s1", "Physics", { code: "PHY" })} wings={TEST_SECTIONS.royal} onSave={async () => true as const} />);
+    for (const label of [">Name<", ">Code (optional)<", ">Section<"]) expect(free).toContain(label);
+    expect(free).toContain('value="Physics"');
+    expect(free).toContain('value="PHY"');
+    expect(free).not.toMatch(/<select[^>]*disabled/);
+    const used = inContext(<SubjectEditForm subject={subject("s1", "Physics", { inCurriculum: true })} wings={TEST_SECTIONS.royal} onSave={async () => true as const} />);
+    expect(used).toMatch(/<select[^>]*disabled/);
+    expect(used).toContain("A curriculum uses this subject, so its Section stays.");
+  });
+
   it("an empty catalogue invites adding only to someone who can add", () => {
     expect(inContext(<SubjectsView subjects={[]} canArchive busy={null} onToggle={noop} canAdd />)).toContain("Add the first one");
     const read = inContext(<SubjectsView subjects={[]} canArchive={false} busy={null} onToggle={noop} canAdd={false} />);
@@ -78,7 +108,7 @@ describe("the subjects screen", () => {
   });
 
   it("the add form has a visible label for the name and the code", () => {
-    const html = inContext(<SubjectForm onAdded={noop} />);
+    const html = inContext(<SubjectForm onAdded={noop} wings={TEST_SECTIONS.royal} />);
     expect(html).toContain(">Add a subject<");
     expect(html).toContain(">Name<");
     expect(html).toContain(">Code (optional)<");
@@ -88,12 +118,12 @@ describe("the subjects screen", () => {
   it("a whole-school Co-ordinator can add and archive; a +2 Co-ordinator can add but is told renaming needs the whole school; the Admin only looks", () => {
     const whole = inContext(<SubjectsScreen />);
     expect(whole).toContain(">Add a subject<");
-    expect(whole).not.toContain("changes it for every section");
+    expect(whole).not.toContain("needs a Vice Principal for the whole school");
     expect(whole).toMatch(/role="status"[^>]*aria-busy="true"/);
 
     const section = inContext(<SubjectsScreen />, as("coordinator", "section", "plus2"));
     expect(section).toContain(">Add a subject<");
-    expect(section).toContain("changes it for every section");
+    expect(section).toContain("needs a Vice Principal for the whole school");
     expect(section).toContain("Vice Principal for the whole school");
 
     const admin = inContext(<SubjectsScreen />, as("admin", "institution"));
@@ -117,7 +147,7 @@ describe("the curriculum screen", () => {
   };
   const english: Offering = { id: "o2", subject: subject("s2", "English"), creditHundredths: null, group: null, active: false, components: [] };
   const curriculum: Curriculum = {
-    level: { id: "l1", name: "Grade 11", programmeId: "p1", programmeName: "+2 Science" },
+    level: { id: "l1", name: "Grade 11", programmeId: "p1", programmeName: "+2 Science", sectionKey: "plus2" },
     groups: [{ id: "g1", name: "Science option", pickCount: 1, active: true }, { id: "g2", name: "Old option", pickCount: 2, active: false }],
     offerings: [biology, english],
   };
@@ -190,7 +220,7 @@ describe("the curriculum screen", () => {
     expect(group).toContain(">How many to pick<");
     expect(group).toContain('inputMode="numeric"');
 
-    const offering = inContext(<OfferingForm levelId="l1" subjects={[subject("s9", "Chemistry", { code: "CHE" }), subject("s1", "Biology", { archived: true })]} offerings={[biology]} groups={curriculum.groups} onAdded={noop} />);
+    const offering = inContext(<OfferingForm levelId="l1" sectionKey="plus2" subjects={[subject("s9", "Chemistry", { code: "CHE" }), subject("s1", "Biology", { archived: true })]} offerings={[biology]} groups={curriculum.groups} onAdded={noop} />);
     expect(offering).toContain(">Add a subject to this Level<");
     expect(offering).toContain("Chemistry (CHE)");
     expect(offering).not.toContain("Biology (");
@@ -206,7 +236,7 @@ describe("the curriculum screen", () => {
   });
 
   it("the offering form says so when there is nothing left to add", () => {
-    const html = inContext(<OfferingForm levelId="l1" subjects={[]} offerings={[]} groups={[]} onAdded={noop} />);
+    const html = inContext(<OfferingForm levelId="l1" sectionKey="plus2" subjects={[]} offerings={[]} groups={[]} onAdded={noop} />);
     expect(html).toContain("Every subject is already on this Level, or none has been added yet.");
     expect(html).not.toContain("<form");
   });
