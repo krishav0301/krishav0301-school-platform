@@ -46,8 +46,8 @@ const count = (n: number, one: Parameters<typeof t>[0], many: Parameters<typeof 
 
 /**
  * The Classes page grouped (PM, 2026-10-06): one card per course with its wing once, its levels inside, and each
- * level's sections as rows; never "Wing · Course · Level · Section" on every row. The first course starts open
- * (`startOpen` for tests); while a search or filter is set every matching course is open. The Co-ordinator (and
+ * level's sections as rows; never "Wing · Course · Level · Section" on every row. Every course starts closed, as
+ * on Academic structure (the PM, 2026-10-06; `startOpen` for tests); while a search or filter is set every matching course is open. The Co-ordinator (and
  * Support) also add classes and sections, rename a section, set its Class Teacher and switch a class off, through the
  * same API calls as Setup; the server checks each.
  */
@@ -59,7 +59,7 @@ export function ClassesBrowser({ classes, canManage, onChanged, startOpen }: { c
   const groups = groupClasses(classes, filters);
   const options = classFilterOptions(classes, filters);
   const filtered = Object.values(filters).some(Boolean);
-  const openAtFirst = startOpen ?? (groups[0] ? [groups[0].courseId] : []);
+  const openAtFirst = startOpen ?? [];
   const isOpen = (id: string) => toggled[id] ?? (filtered || openAtFirst.includes(id));
   const done = useCallback(
     (text: string) => {
