@@ -14,12 +14,6 @@ export function greetingKey(now: Date): MessageKey {
   return "dashboard.greeting.evening";
 }
 
-export const STATUS_KEY: Record<Overview["status"], MessageKey> = {
-  on_track: "dashboard.status.onTrack",
-  attention: "dashboard.status.attention",
-  several: "dashboard.status.several",
-};
-
 /**
  * A rupee amount for a card: whole rupees below one lakh (NPR 45,000), else lakhs (NPR 28.4 L) or crores (NPR 1.2 Cr)
  * to one decimal, rounded half up. Integer arithmetic on paisa only (CLAUDE.md section 6).

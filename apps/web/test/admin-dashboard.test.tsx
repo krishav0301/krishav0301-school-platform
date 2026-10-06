@@ -53,10 +53,10 @@ const render = (o: Overview) =>
 describe("the Principal's dashboard (D-088)", () => {
   const html = render(base);
 
-  it("greets by the time of day in Nepal, with today in Bikram Sambat and the worked-out status", () => {
+  it("greets by the time of day in Nepal, with today in Bikram Sambat and no status line (the PM, 2026-10-06)", () => {
     expect(html).toContain("Good afternoon, Principal");
     expect(html).toContain("14 Ashwin 2083");
-    expect(html).toContain("A few things need your attention.");
+    expect(html).not.toMatch(/need your attention\.|on track\./);
     expect(html.match(/<h1/g)).toHaveLength(1);
   });
 
@@ -81,7 +81,6 @@ describe("the Principal's dashboard (D-088)", () => {
   it("an empty attention list reassures instead of showing nothing", () => {
     const calm = render({ ...base, status: "on_track", attention: { approvals: { count: 0, kinds: [] }, feeFollowUps: 0, anomalies: { count: 0, classes: [] }, websiteDrafts: 0 } });
     expect(calm).toContain("You&#x27;re all caught up.");
-    expect(calm).toContain("Everything important is on track.");
   });
 
   it("quick actions lead to the real flows", () => {

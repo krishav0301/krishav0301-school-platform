@@ -28,7 +28,6 @@ import { useLoad } from "@/setup/useLoad";
 import { Button, Skeleton } from "@/ui";
 
 import {
-  STATUS_KEY,
   attentionRows,
   bsDayMonth,
   bsLong,
@@ -452,10 +451,6 @@ export function AdminDashboardView({ o, name, now }: { o: Overview; name: string
         <h1 className={styles.hello}>{t(greetingKey(now), { name })}</h1>
         <p className={styles.today}>
           <span>{bsLong(o.todayBs)}</span>
-          <span className={styles.status} data-status={o.status}>
-            <span className={styles.statusDot} aria-hidden />
-            {t(STATUS_KEY[o.status])}
-          </span>
         </p>
       </header>
 

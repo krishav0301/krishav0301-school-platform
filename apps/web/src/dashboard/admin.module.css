@@ -41,34 +41,6 @@
   font-size: var(--text-lg);
 }
 
-.status {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-2);
-  font-weight: var(--weight-medium);
-}
-
-.status[data-status="on_track"] {
-  color: var(--color-ok);
-}
-
-.status[data-status="attention"],
-.status[data-status="several"] {
-  color: var(--color-text);
-}
-
-.statusDot {
-  width: 0.625rem;
-  height: 0.625rem;
-  border-radius: 50%;
-  background: var(--color-ok);
-}
-
-.status[data-status="attention"] .statusDot,
-.status[data-status="several"] .statusDot {
-  background: var(--color-warn);
-}
-
 /* --- Cards ------------------------------------------------------------------------------------ */
 
 .card {
