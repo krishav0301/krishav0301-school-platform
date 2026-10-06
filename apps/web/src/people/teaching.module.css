@@ -1,0 +1,282 @@
+/* The Principal's Teaching page redesigned (PM, 2026-10-06): teacher cards in four parts. Theme tokens only. */
+
+.muted {
+  display: block;
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+  overflow-wrap: break-word;
+}
+
+.toolbar,
+.board {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  padding: min(var(--space-4), 4vw);
+  border: 1px solid color-mix(in srgb, var(--color-border) 70%, transparent);
+  border-radius: var(--radius-card);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-card);
+}
+
+.toolbar {
+  gap: var(--space-3);
+}
+
+/* The shared search box grows along a row; in a column it keeps its own height. */
+.toolbar > :first-child {
+  flex: 0 0 auto;
+}
+
+.boardHead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-3) var(--space-4);
+}
+
+.boardHead > div:first-child {
+  flex: 1 1 16rem;
+  min-width: 0;
+}
+
+.boardTitle {
+  margin: 0 0 var(--space-1);
+  font-family: var(--font-heading);
+  font-size: var(--text-xl);
+}
+
+.missingHead {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+/* The figure that leads to its list. */
+.figureLink {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: var(--space-3);
+  min-width: 0;
+  color: inherit;
+  text-decoration: none;
+}
+
+.figureLink:focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: 4px;
+  border-radius: var(--radius-control);
+}
+
+.figureArrow {
+  flex: none;
+  width: 1.25rem;
+  height: 1.25rem;
+  margin-left: auto;
+  color: var(--color-text-muted);
+}
+
+/* Cards or table. */
+.views {
+  display: inline-flex;
+  padding: 0.2rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-control);
+  background: var(--color-surface);
+}
+
+.viewButton {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: var(--control-height);
+  padding: 0 var(--space-3);
+  border: 0;
+  border-radius: calc(var(--radius-control) - 2px);
+  background: transparent;
+  color: var(--color-text);
+  font: inherit;
+  cursor: pointer;
+}
+
+.viewButton[aria-pressed="true"] {
+  background: var(--color-primary);
+  color: var(--color-primary-text);
+}
+
+.viewButton:focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: 2px;
+}
+
+.viewButton svg {
+  width: 1.1rem;
+  height: 1.1rem;
+}
+
+.cards {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* A teacher: who, subjects, classes, Class Teacher; side by side on a wide screen, stacked on a phone. */
+.card {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-4);
+  padding: var(--space-4);
+  border: 1px solid color-mix(in srgb, var(--color-border) 70%, transparent);
+  border-radius: calc(var(--radius-card) - 4px);
+}
+
+@media (min-width: 48rem) {
+  .card {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 80rem) {
+  .card {
+    grid-template-columns: minmax(0, 1.1fr) minmax(0, 1.3fr) minmax(0, 1.1fr) minmax(0, 1fr);
+  }
+}
+
+.who {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-width: 0;
+}
+
+.whoText {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.name {
+  margin: 0;
+  font-size: var(--text-lg);
+  font-weight: var(--weight-bold);
+  overflow-wrap: break-word;
+}
+
+.email {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+  overflow-wrap: anywhere;
+}
+
+.email svg {
+  flex: none;
+  width: 0.9rem;
+  height: 0.9rem;
+}
+
+.part {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+/* Leading a class is its own job: a quiet line marks it off from the subjects. */
+.part[data-kind="lead"] {
+  padding-left: var(--space-4);
+  border-left: 1px solid color-mix(in srgb, var(--color-border) 70%, transparent);
+}
+
+@media (max-width: 47.99rem) {
+  .part[data-kind="lead"] {
+    padding: var(--space-3) 0 0;
+    border-left: 0;
+    border-top: 1px solid color-mix(in srgb, var(--color-border) 70%, transparent);
+  }
+}
+
+.partTitle {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin: 0;
+  font-size: var(--text-sm);
+  font-weight: var(--weight-bold);
+}
+
+.partTitle svg {
+  width: 1rem;
+  height: 1rem;
+  color: var(--color-text-muted);
+}
+
+.partTitle .crown {
+  color: var(--color-warn);
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.chip {
+  display: flex;
+  flex-direction: column;
+  max-width: 100%;
+  padding: var(--space-1) var(--space-3);
+  border-radius: calc(var(--radius-control) - 2px);
+  background: color-mix(in srgb, var(--color-accent-soft) 70%, var(--color-surface));
+}
+
+.chip[data-kind="subject"] {
+  background: color-mix(in srgb, var(--color-primary) 8%, var(--color-surface));
+}
+
+.chipMain {
+  font-weight: var(--weight-medium);
+  overflow-wrap: break-word;
+}
+
+.chipSub {
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+  overflow-wrap: break-word;
+}
+
+.more {
+  min-height: var(--control-height);
+  padding: 0 var(--space-3);
+  border: 1px dashed var(--color-border);
+  border-radius: calc(var(--radius-control) - 2px);
+  background: transparent;
+  color: var(--color-primary);
+  font: inherit;
+  cursor: pointer;
+}
+
+.more:focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: 2px;
+}
+
+.notLead {
+  align-self: flex-start;
+  margin: 0;
+  padding: var(--space-1) var(--space-3);
+  border-radius: calc(var(--radius-control) - 2px);
+  background: color-mix(in srgb, var(--color-text) 6%, var(--color-surface));
+  color: var(--color-text-muted);
+}
