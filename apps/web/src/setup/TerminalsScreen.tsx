@@ -157,7 +157,7 @@ export function PatternForm({ yearId, pattern, onSaved }: { yearId: string; patt
           <div key={r.id ?? `new-${i}`} className={styles.inline}>
             <Field label={t("setup.pattern.terminalName", { ...words, n: i + 1 })} maxLength={60} autoComplete="off" value={r.name} onChange={(event) => setRow(i, { name: event.target.value })} />
             <Field label={t("setup.pattern.weight")} inputMode="numeric" maxLength={3} autoComplete="off" value={r.weight} onChange={(event) => setRow(i, { weight: event.target.value })} />
-            <Checkbox label={t("setup.pattern.practical")} checked={r.hasPractical} onChange={(event) => setRow(i, { hasPractical: event.target.checked })} />
+            <Checkbox className={styles.wholeLine} label={t("setup.pattern.practical")} checked={r.hasPractical} onChange={(event) => setRow(i, { hasPractical: event.target.checked })} />
             {rows.length > 1 ? (
               <Button variant="quiet" aria-label={t("setup.pattern.removeTerminalItem", { ...words, n: i + 1 })} onClick={() => setRows((all) => all.filter((_, j) => j !== i))}>
                 {t("setup.pattern.remove")}

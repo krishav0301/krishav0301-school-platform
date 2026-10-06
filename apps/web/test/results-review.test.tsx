@@ -43,13 +43,13 @@ const cls = (over: Partial<Cls> = {}): Cls => ({
   programmeName: "+2 Science",
   levelName: "Grade 11",
   label: "A",
-  gradingPolicy: "neb_gpa",
   published: false,
+  finalPublished: false,
   ready: false,
   subjects: [subject("o1", "Biology", "under_review"), subject("o2", "Physics", "verified"), subject("o3", "Nepali", "not_started", { teacherName: null, missing: 4 })],
   ...over,
 });
-const board: ReviewBoard = { terminals: [{ id: "t1", name: "First terminal" }], terminalId: "t1", classes: [cls(), cls({ classId: "c2", label: "B", published: true, ready: true, subjects: [subject("o4", "English", "published")] })] };
+const board: ReviewBoard = { terminals: [{ id: "t1", name: "First terminal", weight: 30 }], terminalId: "t1", classes: [cls(), cls({ classId: "c2", label: "B", published: true, ready: true, subjects: [subject("o4", "English", "published")] })] };
 
 describe("the Co-ordinator's review board (D-106)", () => {
   it("shows its title at once and the shape of the page while it loads", () => {
@@ -67,11 +67,11 @@ describe("the Co-ordinator's review board (D-106)", () => {
     ]);
   });
 
-  it("a class's state in words: in progress, ready, no grading set, published", () => {
+  it("a class's state in words: in progress, ready, published, and published with the final result", () => {
     expect(classState(cls()).key).toBe("results.review.inProgress");
     expect(classState(cls({ ready: true })).key).toBe("results.review.ready");
-    expect(classState(cls({ gradingPolicy: null })).key).toBe("results.review.noPolicy");
     expect(classState(cls({ published: true })).key).toBe("results.status.published");
+    expect(classState(cls({ published: true, finalPublished: true })).key).toBe("results.review.finalOut");
   });
 
   it("a class card: a box only for a sheet waiting to be verified, each status in words, and Publish held until every subject is verified", () => {
@@ -94,6 +94,9 @@ describe("the Co-ordinator's review board (D-106)", () => {
     expect(html).toContain(">Published<");
     expect(html).toContain("/portal/results/sheets?class=c2&amp;terminal=t1");
     expect(html).not.toContain("Publish results");
+    expect(html).not.toContain("Final result sheet");
+    const withFinal = inContext(<BoardClassPanel cls={{ ...board.classes[1]!, finalPublished: true }} terminalId="t1" chosen={new Set()} busy={null} onChoose={noop} onPublish={noop} />);
+    expect(withFinal).toContain("/portal/results/sheets?class=c2&amp;terminal=final");
   });
 });
 
@@ -117,7 +120,7 @@ describe("rechecks and electives for the Co-ordinator (D-106)", () => {
     terminalName: "First terminal",
     studentName: "Sita Chaudhary",
     sid: "2083-00002",
-    marks: [{ componentId: "m1", name: "Theory", maxHundredths: 7500, valueHundredths: 6000, absent: false }],
+    marks: [{ componentId: "theory" as const, name: "Theory", maxHundredths: 7500, valueHundredths: 6000, absent: false }],
   };
 
   it("an open recheck is decided in a panel: why it was asked, the marks to correct, a reason, and one button", () => {

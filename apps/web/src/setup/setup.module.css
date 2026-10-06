@@ -136,7 +136,12 @@
   max-width: 100%;
 }
 
-.inline input {
+/* A yes-or-no box in a row of fields gets a line of its own, so its words never squeeze to a letter a line. */
+.inline > .wholeLine {
+  flex-basis: 100%;
+}
+
+.inline input:not([type="checkbox"]) {
   width: 100%;
 }
 

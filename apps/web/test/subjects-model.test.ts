@@ -43,7 +43,7 @@ describe("formatHundredths: whole hundredths become what a person reads", () => 
 
 describe("subjectChoices: what a level can still take", () => {
   const subject = (id: string, name: string, over: Partial<Subject> = {}): Subject => ({ id, name, code: null, archived: false, ...over });
-  const offering = (subjectId: string): Offering => ({ id: `o-${subjectId}`, subject: subject(subjectId, "x"), creditHundredths: null, group: null, active: true, components: [] });
+  const offering = (subjectId: string): Offering => ({ id: `o-${subjectId}`, subject: subject(subjectId, "x"), creditHundredths: null, group: null, active: true, fullMarksHundredths: 10000, practicalHundredths: null });
 
   it("leaves out archived subjects and subjects already on the level, names the rest (with the code when there is one), in the order given", () => {
     const subjects = [subject("s1", "Biology", { code: "BIO" }), subject("s2", "Physics", { archived: true }), subject("s3", "Chemistry"), subject("s4", "English")];

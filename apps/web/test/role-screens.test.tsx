@@ -95,8 +95,8 @@ describe("homework, for the student (D-107)", () => {
 describe("a teacher's mark sheets (D-107)", () => {
   const mine = {
     terminals: [
-      { id: "t1", name: "First terminal" },
-      { id: "t2", name: "Second terminal" },
+      { id: "t1", name: "First terminal", weight: 40 },
+      { id: "t2", name: "Second terminal", weight: 60 },
     ],
     subjects: [
       { classId: "c1", ...naming, offeringId: "o1", subjectName: "English", sheets: [{ terminalId: "t1", status: "published" as const, note: null }, { terminalId: "t2", status: "not_started" as const, note: null }] },

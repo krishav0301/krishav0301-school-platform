@@ -1,6 +1,6 @@
 # Exam pattern: one exam per term (design)
 
-Status: **draft, waiting for the PM's approval** (2026-10-06). Decided with the PM in conversation, recorded as D-114.
+Status: **built** (2026-10-06; approved by the PM: "Yes completely remove the old system. And start with the build"). Decided with the PM in conversation, recorded as D-114.
 It replaces how Phase 7 sets up exams and calculates results (D-079: the per-programme grading policy, NEB credit
 GPA, percentage with division). What Phase 7 built around that stays: the marks grid, Draft / Under review /
 Verified / Published, publish a whole class per terminal, snapshot marks cards, rechecks, the class sheet, the
@@ -69,8 +69,8 @@ There is no credit system and no grade point or GPA for now (`OPEN:` both can be
 ## Rules that keep it safe
 
 - The pattern can be edited until the first mark is entered in the term. After that it is locked.
-- A terminal's setup (practical Yes / No) is locked once any mark is entered for it.
-- A subject's full marks and split are locked for a term once any mark is entered for it in that term.
+- As built, the whole pattern (terminals, weights, practical, minimums, grade ranges) locks once any mark sheet exists in the term (database triggers as well as the service).
+- A subject's paper can still change, but a mark sheet copies the paper's maxima when it is made, so a change applies only to sheets made afterwards and marks already entered are never re-scaled.
 - A class cannot be published without a pattern.
 - Every change is audited, in the same batch.
 

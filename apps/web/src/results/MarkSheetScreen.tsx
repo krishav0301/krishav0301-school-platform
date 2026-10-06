@@ -134,7 +134,7 @@ export function SheetGrid({ sheet, draft, onChange, editable }: { sheet: MarkShe
           <th scope="col">{t("results.grid.student")}</th>
           {sheet.components.map((c) => (
             <th key={c.id} scope="col" className={styles.number}>
-              {t(c.kind === "practical" ? "results.grid.componentPractical" : "results.grid.component", { name: partName(c.id), max: formatMarks(c.maxHundredths) })}
+              {t("results.grid.component", { name: partName(c.id), max: formatMarks(c.maxHundredths) })}
             </th>
           ))}
         </tr>
