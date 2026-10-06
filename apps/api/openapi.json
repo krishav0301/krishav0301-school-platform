@@ -4777,6 +4777,257 @@
           "className"
         ]
       },
+      "StudentBrowse": {
+        "type": "object",
+        "properties": {
+          "students": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "sid": {
+                  "type": "string"
+                },
+                "firstName": {
+                  "type": "string"
+                },
+                "lastName": {
+                  "type": "string"
+                },
+                "status": {
+                  "type": "string",
+                  "enum": [
+                    "active",
+                    "left",
+                    "graduated"
+                  ]
+                },
+                "guardianPhone": {
+                  "type": "string"
+                },
+                "rollNo": {
+                  "type": [
+                    "integer",
+                    "null"
+                  ]
+                },
+                "class": {
+                  "type": [
+                    "object",
+                    "null"
+                  ],
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "label": {
+                      "type": "string"
+                    },
+                    "levelName": {
+                      "type": "string"
+                    },
+                    "courseName": {
+                      "type": "string"
+                    },
+                    "wingName": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "label",
+                    "levelName",
+                    "courseName",
+                    "wingName"
+                  ]
+                },
+                "term": {
+                  "type": [
+                    "object",
+                    "null"
+                  ],
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "label": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "label"
+                  ]
+                }
+              },
+              "required": [
+                "id",
+                "sid",
+                "firstName",
+                "lastName",
+                "status",
+                "guardianPhone",
+                "rollNo",
+                "class",
+                "term"
+              ]
+            }
+          },
+          "total": {
+            "type": "integer"
+          },
+          "page": {
+            "type": "integer"
+          },
+          "pageSize": {
+            "type": "integer"
+          },
+          "counts": {
+            "type": "object",
+            "properties": {
+              "active": {
+                "type": "integer"
+              },
+              "inOpenTerms": {
+                "type": "integer"
+              },
+              "leftOrGraduated": {
+                "type": "integer"
+              }
+            },
+            "required": [
+              "active",
+              "inOpenTerms",
+              "leftOrGraduated"
+            ]
+          },
+          "wings": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "key": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "count": {
+                  "type": "integer"
+                },
+                "courses": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string"
+                      },
+                      "name": {
+                        "type": "string"
+                      },
+                      "count": {
+                        "type": "integer"
+                      },
+                      "levels": {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "id": {
+                              "type": "string"
+                            },
+                            "name": {
+                              "type": "string"
+                            },
+                            "count": {
+                              "type": "integer"
+                            },
+                            "classes": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "id": {
+                                    "type": "string"
+                                  },
+                                  "label": {
+                                    "type": "string"
+                                  },
+                                  "count": {
+                                    "type": "integer"
+                                  }
+                                },
+                                "required": [
+                                  "id",
+                                  "label",
+                                  "count"
+                                ]
+                              }
+                            }
+                          },
+                          "required": [
+                            "id",
+                            "name",
+                            "count",
+                            "classes"
+                          ]
+                        }
+                      }
+                    },
+                    "required": [
+                      "id",
+                      "name",
+                      "count",
+                      "levels"
+                    ]
+                  }
+                }
+              },
+              "required": [
+                "key",
+                "name",
+                "count",
+                "courses"
+              ]
+            }
+          },
+          "terms": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "label": {
+                  "type": "string"
+                },
+                "open": {
+                  "type": "boolean"
+                }
+              },
+              "required": [
+                "id",
+                "label",
+                "open"
+              ]
+            }
+          }
+        },
+        "required": [
+          "students",
+          "total",
+          "page",
+          "pageSize",
+          "counts",
+          "wings",
+          "terms"
+        ]
+      },
       "OwnClass": {
         "type": "object",
         "properties": {
@@ -15655,6 +15906,127 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/StudentList"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/students/browse": {
+      "get": {
+        "operationId": "browse_students",
+        "tags": [
+          "students"
+        ],
+        "description": "The Students page: every student the person may see, by wing, course, level, class, search, status and term; paged, with the counts and the lists that have students.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{32}$"
+            },
+            "required": false,
+            "name": "term",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "enum": [
+                "active",
+                "left",
+                "graduated",
+                "all"
+              ]
+            },
+            "required": false,
+            "name": "status",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9_]{0,30}$"
+            },
+            "required": false,
+            "name": "wing",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{32}$"
+            },
+            "required": false,
+            "name": "course",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{32}$"
+            },
+            "required": false,
+            "name": "level",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{32}$"
+            },
+            "required": false,
+            "name": "class",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "maxLength": 100
+            },
+            "required": false,
+            "name": "q",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 10000
+            },
+            "required": false,
+            "name": "page",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 50
+            },
+            "required": false,
+            "name": "pageSize",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "A page of students",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StudentBrowse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not someone who sees whole sections",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdmissionsError"
                 }
               }
             }

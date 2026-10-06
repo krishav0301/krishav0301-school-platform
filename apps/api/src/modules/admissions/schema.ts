@@ -239,3 +239,65 @@ export const MoveResultSchema = z
   .openapi("MoveResult");
 export type MoveResult = z.infer<typeof MoveResultSchema>;
 export const MoveResultsSchema = z.object({ results: z.array(MoveResultSchema) }).openapi("MoveResults");
+
+/**
+ * The Students page (PM, 2026-10-06): every student, narrowed by wing, course, level and class, a search, a status and
+ * a term; paged. With no term, the open terms (and students with no class yet); a term, that term's students.
+ */
+export const StudentBrowseQuerySchema = z.object({
+  term: PublicIdSchema.optional(),
+  status: z.enum(["active", "left", "graduated", "all"]).optional(),
+  wing: z.string().regex(/^[a-z][a-z0-9_]{0,30}$/, "That is not a wing").optional(),
+  course: PublicIdSchema.optional(),
+  level: PublicIdSchema.optional(),
+  class: PublicIdSchema.optional(),
+  /** Words in the name, the SID, or the student's or guardian's phone. */
+  q: z.string().trim().max(100).optional(),
+  page: z.coerce.number().int().min(1).max(10_000).optional(),
+  pageSize: z.coerce.number().int().min(1).max(50).optional(),
+});
+export type StudentBrowseQuery = z.infer<typeof StudentBrowseQuerySchema>;
+
+const Counted = { count: z.number().int() };
+export const StudentBrowseSchema = z
+  .object({
+    students: z.array(
+      z.object({
+        id: z.string(),
+        sid: z.string(),
+        firstName: z.string(),
+        lastName: z.string(),
+        status: z.enum(["active", "left", "graduated"]),
+        guardianPhone: z.string(),
+        rollNo: z.number().int().nullable(),
+        /** Null: not placed in a class (in the term asked about). */
+        class: z.object({ id: z.string(), label: z.string(), levelName: z.string(), courseName: z.string(), wingName: z.string() }).nullable(),
+        term: z.object({ id: z.string(), label: z.string() }).nullable(),
+      }),
+    ),
+    total: z.number().int(),
+    page: z.number().int(),
+    pageSize: z.number().int(),
+    /** Over everyone the person may see, whatever the filters. */
+    counts: z.object({ active: z.number().int(), inOpenTerms: z.number().int(), leftOrGraduated: z.number().int() }),
+    /** Only wings, courses, levels and classes that have students under the term and status asked for. */
+    wings: z.array(
+      z.object({
+        key: z.string(),
+        name: z.string(),
+        ...Counted,
+        courses: z.array(
+          z.object({
+            id: z.string(),
+            name: z.string(),
+            ...Counted,
+            levels: z.array(z.object({ id: z.string(), name: z.string(), ...Counted, classes: z.array(z.object({ id: z.string(), label: z.string(), ...Counted })) })),
+          }),
+        ),
+      }),
+    ),
+    /** The terms that have students, newest first. */
+    terms: z.array(z.object({ id: z.string(), label: z.string(), open: z.boolean() })),
+  })
+  .openapi("StudentBrowse");
+export type StudentBrowse = z.infer<typeof StudentBrowseSchema>;

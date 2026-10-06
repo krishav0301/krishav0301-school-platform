@@ -1293,6 +1293,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/students/browse": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description The Students page: every student the person may see, by wing, course, level, class, search, status and term; paged, with the counts and the lists that have students. */
+        get: operations["browse_students"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/students/me/class": {
         parameters: {
             query?: never;
@@ -3728,6 +3745,62 @@ export interface components {
             /** @enum {string} */
             status: "active" | "left" | "graduated";
             className: string | null;
+        };
+        StudentBrowse: {
+            students: {
+                id: string;
+                sid: string;
+                firstName: string;
+                lastName: string;
+                /** @enum {string} */
+                status: "active" | "left" | "graduated";
+                guardianPhone: string;
+                rollNo: number | null;
+                class: {
+                    id: string;
+                    label: string;
+                    levelName: string;
+                    courseName: string;
+                    wingName: string;
+                } | null;
+                term: {
+                    id: string;
+                    label: string;
+                } | null;
+            }[];
+            total: number;
+            page: number;
+            pageSize: number;
+            counts: {
+                active: number;
+                inOpenTerms: number;
+                leftOrGraduated: number;
+            };
+            wings: {
+                key: string;
+                name: string;
+                count: number;
+                courses: {
+                    id: string;
+                    name: string;
+                    count: number;
+                    levels: {
+                        id: string;
+                        name: string;
+                        count: number;
+                        classes: {
+                            id: string;
+                            label: string;
+                            count: number;
+                        }[];
+                    }[];
+                }[];
+            }[];
+            terms: {
+                id: string;
+                label: string;
+                open: boolean;
+            }[];
         };
         OwnClass: {
             termLabel: string;
@@ -8931,6 +9004,45 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["StudentList"];
+                };
+            };
+        };
+    };
+    browse_students: {
+        parameters: {
+            query?: {
+                term?: string;
+                status?: "active" | "left" | "graduated" | "all";
+                wing?: string;
+                course?: string;
+                level?: string;
+                class?: string;
+                q?: string;
+                page?: number;
+                pageSize?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description A page of students */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StudentBrowse"];
+                };
+            };
+            /** @description Not someone who sees whole sections */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdmissionsError"];
                 };
             };
         };
