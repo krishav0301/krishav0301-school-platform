@@ -722,6 +722,11 @@
     text-align: left;
   }
 
+  /* The name takes the whole row here: the wide screen's 28% would squeeze it to a letter a line at 200% text. */
+  .table td.nameCell {
+    width: auto;
+  }
+
   .table td[data-label]::before {
     content: attr(data-label);
     display: block;

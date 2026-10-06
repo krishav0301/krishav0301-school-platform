@@ -23,10 +23,13 @@ import {
   RequestChangesSchema,
   OwnClassSchema,
   StudentDetailSchema,
+  StudentBrowseQuerySchema,
+  StudentBrowseSchema,
   StudentListSchema,
   VerifyEmailSchema,
   WalkInSchema,
 } from "./schema";
+import { browseStudents } from "./browse";
 import { getOwnClass } from "./own-class";
 import { moveStudents, promotionBoard } from "./promotion";
 import { applyForAdmission, approveApplication, correctStudent, registerStudent, registerWalkIn, reject, requestChanges, verifyApplicationEmail, type WriteFailure } from "./service";
@@ -289,6 +292,27 @@ export function registerAdmissions(app: App): void {
     async (c) => {
       c.header("Cache-Control", "no-store");
       return c.json(await searchStudents(c.env.DB, allowedSections(c.get("grant")!), c.req.valid("query").q), 200);
+    },
+  );
+
+  defineRoute(
+    app,
+    {
+      method: "get",
+      path: "/api/students/browse",
+      operationId: "browse_students",
+      tags: ["students"],
+      description: "The Students page: every student the person may see, by wing, course, level, class, search, status and term; paged, with the counts and the lists that have students.",
+      access: SEARCH_ACTION,
+      request: { query: StudentBrowseQuerySchema },
+      responses: { 200: { description: "A page of students", content: json(StudentBrowseSchema) }, 403: { description: "Not someone who sees whole sections", content: json(ErrorSchema) } },
+    },
+    async (c) => {
+      c.header("Cache-Control", "no-store");
+      const grant = c.get("grant")!;
+      // A teacher reaches their classes, not whole sections (the class page lists those): this page is for staff with a wing or the whole school.
+      if (!grant.institution && grant.sections.length === 0) return c.json({ error: "forbidden" }, 403);
+      return c.json(await browseStudents(c.env.DB, allowedSections(grant), c.req.valid("query")), 200);
     },
   );
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowDown, ChevronLeft, ChevronRight, Crown, GraduationCap, Info, Plus, Search, UserCog, UsersRound, Wallet, type LucideIcon } from "lucide-react";
+import { ArrowDown, Crown, GraduationCap, Info, Plus, UserCog, UsersRound, Wallet, type LucideIcon } from "lucide-react";
 import Link from "next/link";
 import { useCallback, useEffect, useId, useMemo, useState, type KeyboardEvent, type ReactNode } from "react";
 
@@ -11,6 +11,7 @@ import { Button, Notice, RowMenu, Skeleton, type MenuAction } from "@/ui";
 
 import { AddPersonDialog, ManageAccessDialog } from "./AccessDialogs";
 import { loadPeople, loadProgrammeOptions, type PeopleGroup, type PeoplePage, type Person, type ProgrammeOption } from "./access-client";
+import { FilterSelect, ListSkeleton, Pager, SearchBox } from "./ListParts";
 import { initials, lastSignIn, scopeWords, signInLine } from "./access-model";
 import { issueTemporaryPassword, setStaffActive } from "./client";
 import { REASON_MESSAGE } from "./model";
@@ -245,34 +246,6 @@ function usePeople(group: PeopleGroup, onCounts: (counts: PeoplePage["counts"]) 
   return { view, filters, typed, setTyped, filterBy, clear, page, setPage, reload, filtered };
 }
 
-function SearchBox({ label, value, onChange }: { label: MessageKey; value: string; onChange: (value: string) => void }) {
-  return (
-    <label className={styles.search}>
-      <Search aria-hidden />
-      <span className="sr-only">{t(label)}</span>
-      <input type="search" value={value} placeholder={t(label)} maxLength={100} onChange={(e) => onChange(e.target.value)} />
-    </label>
-  );
-}
-
-function FilterSelect({ label, value, options, onChange }: { label: MessageKey; value: string; options: { value: string; label: string }[]; onChange: (value: string) => void }) {
-  const id = useId();
-  return (
-    <div className={styles.filter}>
-      <label htmlFor={id} className={styles.filterLabel}>
-        {t(label)}
-      </label>
-      <select id={id} className={styles.select} value={value} onChange={(e) => onChange(e.target.value)}>
-        {options.map((o) => (
-          <option key={o.value} value={o.value}>
-            {o.label}
-          </option>
-        ))}
-      </select>
-    </div>
-  );
-}
-
 function ListState({
   view,
   filtered,
@@ -292,23 +265,7 @@ function ListState({
   onClear: () => void;
   action?: ReactNode;
 }) {
-  if (view.status === "loading") {
-    return (
-      <div role="status" aria-busy="true" className={styles.skeletons}>
-        <span className="sr-only">{t("access.loading")}</span>
-        {[0, 1, 2].map((n) => (
-          <div key={n} className={styles.skeletonRow} aria-hidden>
-            <Skeleton width="2.75rem" height="2.75rem" />
-            <div className={styles.skeletonText}>
-              <Skeleton width="40%" height="1.1rem" />
-              <Skeleton width="60%" />
-            </div>
-            <Skeleton width="6rem" height="1.75rem" />
-          </div>
-        ))}
-      </div>
-    );
-  }
+  if (view.status === "loading") return <ListSkeleton label="access.loading" />;
   if (view.status === "forbidden") return <Notice tone="bad">{t("people.error.forbidden")}</Notice>;
   if (view.status === "failed") {
     return (
@@ -333,35 +290,6 @@ function ListState({
       <p className={styles.stateTitle}>{t(empty)}</p>
       <p className={styles.muted}>{t(emptyBody, words)}</p>
       {action}
-    </div>
-  );
-}
-
-function Pager({ page, total, pageSize, onPage, noun }: { page: number; total: number; pageSize: number; onPage: (page: number) => void; noun: MessageKey }) {
-  const pages = Math.max(1, Math.ceil(total / pageSize));
-  if (total === 0) return null;
-  const from = (page - 1) * pageSize + 1;
-  const to = Math.min(total, page * pageSize);
-  return (
-    <div className={styles.pager}>
-      <p className={styles.muted}>{t(noun, { from, to, total })}</p>
-      {pages > 1 ? (
-        <nav aria-label={t("content.pages")} className={styles.pages}>
-          <button type="button" className={styles.pageButton} disabled={page <= 1} aria-label={t("content.prevPage")} onClick={() => onPage(page - 1)}>
-            <ChevronLeft aria-hidden />
-          </button>
-          {Array.from({ length: pages }, (_, i) => i + 1)
-            .filter((n) => n === 1 || n === pages || Math.abs(n - page) <= 2)
-            .map((n) => (
-              <button key={n} type="button" className={styles.pageButton} aria-current={n === page ? "page" : undefined} aria-label={t("content.pageNumber", { page: n })} onClick={() => onPage(n)}>
-                {n}
-              </button>
-            ))}
-          <button type="button" className={styles.pageButton} disabled={page >= pages} aria-label={t("content.nextPage")} onClick={() => onPage(page + 1)}>
-            <ChevronRight aria-hidden />
-          </button>
-        </nav>
-      ) : null}
     </div>
   );
 }
