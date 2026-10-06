@@ -146,6 +146,17 @@ describe("Add a person", () => {
   });
 });
 
+describe("Add a person from the dashboard (PM, 2026-10-06)", () => {
+  it("opens on Details with the role already chosen when asked for a Co-ordinator or an Accountant", () => {
+    for (const role of ["coordinator", "accountant"] as const) {
+      const preset = render(<AddPersonDialog sections={sections} startRole={role} onClose={() => {}} onCreated={() => {}} />);
+      expect(preset).toMatch(/aria-current="step"[^>]*>Details</);
+      expect(preset).toContain("Full name");
+      expect(count(preset, /<input type="radio"[^>]*name="role"/g)).toBe(0);
+    }
+  });
+});
+
 describe("Manage access", () => {
   const html = render(<ManageAccessDialog person={person()} sections={sections} now={new Date("2026-10-02T06:00:00Z")} onClose={() => {}} onChanged={() => {}} onToggle={() => {}} onNewPassword={() => {}} />);
 

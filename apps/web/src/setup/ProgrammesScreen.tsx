@@ -603,16 +603,18 @@ function Totals({ totals, words, student }: { totals: Structure["totals"]; words
   );
 }
 
-/** The page once its data is here. Pure, so it is drawn in tests without a network. The first section and its first programme start open. */
-export function AcademicStructureView({ data, canManage, actions }: { data: Structure; canManage: boolean; actions: StructureActions }) {
+/**
+ * The page once its data is here. Pure, so it is drawn in tests without a network. Everything starts closed at the
+ * wings (PM, 2026-10-06): open a wing to see its courses, a course to see its levels. `startOpen` names what starts
+ * open instead (tests).
+ */
+export function AcademicStructureView({ data, canManage, actions, startOpen = [] }: { data: Structure; canManage: boolean; actions: StructureActions; startOpen?: readonly string[] }) {
   const { term } = useConfig();
   const words = termWords(term);
   const student = term("role.student");
-  const first = data.sections[0]?.key;
-  const firstProgramme = data.programmes.find((p) => p.section.key === first)?.id;
   const [toggled, setToggled] = useState<Record<string, boolean>>({});
-  const isOpen = (id: string) => toggled[id] ?? (id === first || id === firstProgramme);
-  const toggle = useCallback((id: string) => setToggled((now) => ({ ...now, [id]: !(now[id] ?? (id === first || id === firstProgramme)) })), [first, firstProgramme]);
+  const isOpen = (id: string) => toggled[id] ?? startOpen.includes(id);
+  const toggle = useCallback((id: string) => setToggled((now) => ({ ...now, [id]: !(now[id] ?? startOpen.includes(id)) })), [startOpen]);
 
   return (
     <>

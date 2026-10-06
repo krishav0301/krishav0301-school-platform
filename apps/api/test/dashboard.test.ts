@@ -51,7 +51,7 @@ describe("an empty school", () => {
     expect(d.fees).toMatchObject({ collectedPaisa: 0, changePercent: null, duePaisa: 0 });
     expect(d.attention).toEqual({ approvals: { count: 0, kinds: [] }, feeFollowUps: 0, anomalies: { count: 0, classes: [] }, websiteDrafts: 0 });
     expect(d.programmes).toEqual([]);
-    expect(d.activity).toEqual([]);
+    expect(d).not.toHaveProperty("activity"); // the PM removed Recent activity (2026-10-06)
     expect(d.website).toMatchObject({ origin: "https://school.example", drafts: 0, live: 0 });
   });
 });
@@ -153,15 +153,12 @@ describe("a school with a day's worth of data", () => {
     expect(d.attention.feeFollowUps).toBe(1);
   });
 
-  it("approvals waiting, website drafts, the site's last publish, and recent activity with Support never named", async () => {
+  it("approvals waiting, website drafts and the site's last publish", async () => {
     const d = await overview();
     expect(d.attention.approvals).toEqual({ count: 1, kinds: [{ kind: "website_content", count: 1 }] });
     expect(d.attention.websiteDrafts).toBe(1);
     expect(d.website).toMatchObject({ drafts: 1, waiting: 1, live: 1 });
     expect(d.website.lastPublishedAt).not.toBeNull();
-    const published = d.activity.find((a) => a.action === "content.published")!;
-    expect(published).toMatchObject({ entityType: "content_item", actorIsSupport: true, actorName: null });
-    expect(d.activity.some((a) => a.action === "test.money")).toBe(false); // only the events the Principal cares about
   });
 
   it("programmes with this year's classes and students; the overall status counts each kind of thing waiting", async () => {

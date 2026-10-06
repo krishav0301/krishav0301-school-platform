@@ -7,7 +7,10 @@ import { useAddressQuery } from "@/content/address";
 import { formatBsDate } from "@/content/model";
 import { t } from "@/i18n/messages";
 import { useSession } from "@/session/SessionProvider";
-import { OpenLink, Panel, ReadFailure, ReadHeader, ReadOnlyNote, StatusWord, TableSkeleton, readStyles } from "@/read/ReadView";
+import { AccountView } from "@/fees/AccountView";
+import { loadStudentAccount } from "@/fees/client";
+import type { Account } from "@/fees/model";
+import { EmptyLine, OpenLink, Panel, ReadFailure, ReadHeader, ReadOnlyNote, StatusWord, TableSkeleton, readStyles } from "@/read/ReadView";
 import { useLoad } from "@/setup/useLoad";
 import { Notice } from "@/ui";
 
@@ -114,7 +117,45 @@ export function StudentScreen() {
           ) : null
         }
       />
+      {feesLink && id ? <RecordFees studentId={id} name={[(corrected ?? view.data).firstName, (corrected ?? view.data).lastName].join(" ")} /> : null}
       {reader ? <ReadOnlyNote>{t("admissions.record.readOnly", { coordinator: term("role.coordinator") })}</ReadOnlyNote> : null}
     </div>
+  );
+}
+
+/**
+ * The student's fees under their record (PM, 2026-10-06), for the roles that may read fees (never the Co-ordinator,
+ * CLAUDE.md section 6): the account of their current term, read only; payments and discounts stay on the fee page.
+ */
+function RecordFees({ studentId, name }: { studentId: string; name: string }) {
+  const { api } = useSession();
+  // No account yet (no enrollment) is a state of its own, not a failure.
+  const load = useCallback(async () => {
+    const result = await loadStudentAccount(api, studentId);
+    if (result.ok) return result;
+    return result.reason === "not_found" ? { ok: true as const, data: null } : { ok: false as const, reason: result.reason };
+  }, [api, studentId]);
+  const { view, reload } = useLoad<Account | null>(load);
+  if (view.status === "loading") return <TableSkeleton rows={3} tiles={4} />;
+  if (view.status !== "ready") return <ReadFailure status={view.status} onRetry={() => void reload()} />;
+  return <RecordFeesView account={view.data} studentId={studentId} name={name} />;
+}
+
+/** Pure: the fees section of a record, or the line that says there is no account yet. */
+export function RecordFeesView({ account, studentId, name }: { account: Account | null; studentId: string; name: string }) {
+  return (
+    <section className={readStyles.page} aria-labelledby="record-fees">
+      <h2 id="record-fees" className={readStyles.panelTitle}>
+        {t("admissions.record.fees")}
+      </h2>
+      {account ? (
+        <>
+          <AccountView account={account} />
+          <OpenLink href={`/portal/fees/student?id=${studentId}`} label={t("admissions.record.feesOf", { name })} text={t("admissions.record.feesOpen")} />
+        </>
+      ) : (
+        <EmptyLine>{t("admissions.record.noFees")}</EmptyLine>
+      )}
+    </section>
   );
 }

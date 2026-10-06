@@ -16,7 +16,7 @@ export function registerDashboard(app: App): void {
       path: "/api/dashboard/overview",
       operationId: "dashboard_overview",
       tags: ["dashboard"],
-      description: "The whole school at a glance for the Principal: students, staff, attendance, fees, programmes, results, what needs attention, the website and recent activity. One round trip.",
+      description: "The whole school at a glance for the Principal: students, staff, attendance, fees, programmes, results, what needs attention and the website. One round trip.",
       access: { action: "dashboard.overview.view" },
       responses: { 200: { description: "The dashboard", content: json(DashboardOverviewSchema) } },
     },

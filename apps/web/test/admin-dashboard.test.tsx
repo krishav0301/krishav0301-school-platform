@@ -41,10 +41,6 @@ const base: Overview = {
   results: { publications: 0, lastPublishedAt: null, byProgramme: [] },
   attention: { approvals: { count: 4, kinds: [{ kind: "discount", count: 4 }] }, feeFollowUps: 12, anomalies: { count: 0, classes: [] }, websiteDrafts: 0 },
   website: { origin: "https://royalsoftech.example", live: 3, drafts: 1, waiting: 0, lastPublishedAt: "2026-09-12T10:47:00.000Z" },
-  activity: [
-    { id: "1", at: "2026-09-30T06:00:00.000Z", action: "content.published", summary: "Notice published", actorName: null, actorIsSupport: true, entityType: "content_item", entityId: "c1" },
-    { id: "2", at: "2026-09-30T04:00:00.000Z", action: "admissions.approved", summary: "Rahul Sharma admitted", actorName: "Sita Sharma", actorIsSupport: false, entityType: "student", entityId: "s1" },
-  ],
 };
 
 const render = (o: Overview) =>
@@ -94,11 +90,8 @@ describe("the Principal's dashboard (D-088)", () => {
     }
   });
 
-  it("recent activity in plain words, the build team shown as Support and never by name", () => {
-    expect(html).toContain("Website post published");
-    expect(html).toContain("New student admitted");
-    expect(html).toContain("2 hours ago · Support");
-    expect(html).toContain("4 hours ago · Sita Sharma");
+  it("has no Recent activity (the PM, 2026-10-06)", () => {
+    expect(html).not.toContain("Recent activity");
   });
 
   it("carries no colour of its own", () => {

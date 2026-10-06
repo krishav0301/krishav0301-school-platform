@@ -132,11 +132,15 @@ function ScopeChoice({
  * reaches, and a last look at what they will be able to do. Nothing typed is lost if creating fails; the one-time
  * temporary password is shown once, here, and nowhere else.
  */
-export function AddPersonDialog({ sections, onClose, onCreated }: { sections: readonly Section[]; onClose: () => void; onCreated: () => void }) {
+/**
+ * `startRole`, when given (the dashboard's "Add Co-ordinator" or "Add Accountant", PM 2026-10-06), is already chosen, so the
+ * pop-up opens on the second step, Details; Back still reaches the first to change it.
+ */
+export function AddPersonDialog({ sections, startRole, onClose, onCreated }: { sections: readonly Section[]; startRole?: "coordinator" | "accountant"; onClose: () => void; onCreated: () => void }) {
   const { api } = useSession();
   const { term } = useConfig();
-  const [step, setStep] = useState<AddStep>("role");
-  const [values, setValues] = useState<AddValues>(emptyAdd);
+  const [step, setStep] = useState<AddStep>(startRole ? "details" : "role");
+  const [values, setValues] = useState<AddValues>(() => ({ ...emptyAdd(), role: startRole ?? null }));
   const [errors, setErrors] = useState<AddErrors>({});
   const [failure, setFailure] = useState<MessageKey | null>(null);
   const [busy, setBusy] = useState(false);

@@ -672,64 +672,6 @@
   color: var(--color-text-muted);
 }
 
-/* --- Recent activity -------------------------------------------------------------------------- */
-
-.activityList {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 12rem), 1fr));
-  gap: var(--space-4);
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.activityItem {
-  display: flex;
-  align-items: flex-start;
-  gap: var(--space-3);
-  min-height: var(--control-height);
-  color: var(--color-text);
-  text-decoration: none;
-}
-
-.activityDot {
-  flex: none;
-  width: 0.5rem;
-  height: 0.5rem;
-  margin-top: var(--space-4);
-  border-radius: 50%;
-  background: var(--color-primary);
-}
-
-.activityDot[data-tone="ok"] {
-  background: var(--color-ok);
-}
-
-.activityDot[data-tone="accent"] {
-  background: var(--color-accent);
-}
-
-.activityDot[data-tone="warn"] {
-  background: var(--color-warn);
-}
-
-.activityText {
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-  font-size: var(--text-sm);
-}
-
-.activityTitle {
-  font-weight: var(--weight-bold);
-}
-
-.activitySummary {
-  color: var(--color-text-muted);
-  overflow-wrap: break-word;
-  hyphens: auto;
-}
-
 .failed {
   align-items: flex-start;
 }

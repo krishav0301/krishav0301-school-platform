@@ -186,7 +186,9 @@ describe("Academic Structure (D-095, D-096)", () => {
     deleteProgramme: async () => true,
     deleteLevel: async () => true,
   };
-  const view = (data: Structure, canManage = true) => inContext(<AcademicStructureView data={data} canManage={canManage} actions={actions} />, as(canManage ? "admin" : "coordinator", "institution"));
+  // The content tests open the first wing and its first course; the page itself starts with everything closed.
+  const firstOpen = (data: Structure) => [data.sections[0]?.key, data.programmes.find((p) => p.section.key === data.sections[0]?.key)?.id].filter((id): id is string => Boolean(id));
+  const view = (data: Structure, canManage = true) => inContext(<AcademicStructureView data={data} canManage={canManage} actions={actions} startOpen={firstOpen(data)} />, as(canManage ? "admin" : "coordinator", "institution"));
   const html = view(structure);
 
   it("a level with no length says so, and a level with one shows it (D-114)", () => {
@@ -218,7 +220,15 @@ describe("Academic Structure (D-095, D-096)", () => {
     expect(html).toContain("0 Programmes · 0 Levels · 0 Students"); // School: its one programme is switched off
   });
 
-  it("the first section and its first programme start open; the others are closed and say so", () => {
+  it("starts with every wing closed (PM, 2026-10-06): only the wings show, each saying it can be opened", () => {
+    const closed = inContext(<AcademicStructureView data={structure} canManage actions={actions} />, as("admin", "institution"));
+    expect(count(closed, /aria-expanded="true"/g)).toBe(0);
+    for (const wing of ["Bachelor of Engineering", "School", "Master's"]) expect(closed).toContain(`aria-label="Show ${wing.replace("'", "&#x27;")}"`);
+    expect(closed).not.toMatch(/<h3[^>]*>Computer Science<\/h3>/); // a course shows once its wing is opened
+    expect(closed).not.toContain("1st Year"); // a level once its course is opened
+  });
+
+  it("an opened wing shows its courses, and an opened course its levels; the others stay closed and say so", () => {
     expect(html).toContain('aria-label="Hide Bachelor of Engineering"');
     expect(html).toContain('aria-label="Hide Computer Science"');
     expect(html).toContain('aria-label="Show Mechanical"');

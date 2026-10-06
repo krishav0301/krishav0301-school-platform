@@ -28,7 +28,6 @@ import { useLoad } from "@/setup/useLoad";
 import { Button, Skeleton } from "@/ui";
 
 import {
-  ACTIVITY,
   STATUS_KEY,
   attentionRows,
   bsDayMonth,
@@ -37,7 +36,6 @@ import {
   chartPoints,
   compactNpr,
   greetingKey,
-  relativeTime,
   type Overview,
 } from "./admin-model";
 import styles from "./admin.module.css";
@@ -413,46 +411,6 @@ function Website({ o }: { o: Overview }) {
   );
 }
 
-const ACTIVITY_ICON: Record<string, LucideIcon> = { primary: FileText, ok: UsersRound, accent: FileText, warn: Banknote };
-
-function Activity({ o, now }: { o: Overview; now: Date }) {
-  return (
-    <section className={`${styles.card} ${styles.activity}`} aria-labelledby="activity-title">
-      <h2 id="activity-title" className={styles.cardTitle}>
-        {t("dashboard.activity.title")}
-      </h2>
-      {o.activity.length === 0 ? (
-        <p className={styles.empty}>{t("dashboard.activity.empty")}</p>
-      ) : (
-        <ul className={styles.activityList}>
-          {o.activity.slice(0, 5).map((a) => {
-            const kind = ACTIVITY[a.action];
-            const tone = kind?.tone ?? "primary";
-            const Icon = a.action.startsWith("fees.") ? Banknote : (ACTIVITY_ICON[tone] ?? FileText);
-            const who = a.actorIsSupport ? t("portal.support") : a.actorName;
-            return (
-              <li key={a.id}>
-                <Link href={kind?.href ?? "/portal"} className={styles.activityItem}>
-                  <span className={styles.activityDot} data-tone={tone} aria-hidden />
-                  <Tile icon={Icon} tone={tone} size="small" />
-                  <span className={styles.activityText}>
-                    <span className={styles.activityTitle}>{t(kind?.title ?? "dashboard.activity.other")}</span>
-                    <span className={styles.activitySummary}>{a.summary}</span>
-                    <span className={styles.muted}>
-                      {relativeTime(a.at, now)}
-                      {who ? ` · ${who}` : ""}
-                    </span>
-                  </span>
-                </Link>
-              </li>
-            );
-          })}
-        </ul>
-      )}
-    </section>
-  );
-}
-
 // --- The page ----------------------------------------------------------------------------------------
 
 function Loading() {
@@ -529,7 +487,6 @@ export function AdminDashboardView({ o, name, now }: { o: Overview; name: string
         <Website o={o} />
       </div>
 
-      <Activity o={o} now={now} />
     </div>
   );
 }

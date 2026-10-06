@@ -6,6 +6,7 @@ import { useCallback, useEffect, useId, useMemo, useState, type KeyboardEvent, t
 
 import { useConfig } from "@/config/ConfigProvider";
 import { t, type MessageKey } from "@/i18n/messages";
+import { useAddressQuery } from "@/content/address";
 import { useSession } from "@/session/SessionProvider";
 import { Button, Notice, RowMenu, Skeleton, type MenuAction } from "@/ui";
 
@@ -301,7 +302,16 @@ function AdminPanel({ onCounts }: { onCounts: (counts: PeoplePage["counts"]) => 
   const { api } = useSession();
   const { term } = useConfig();
   const list = usePeople("admin", onCounts);
-  const [adding, setAdding] = useState(false);
+  // `?add=coordinator` or `?add=accountant` (the dashboard's quick actions) opens Add on its second step with that role.
+  const search = useAddressQuery();
+  const asked = search === null ? null : new URLSearchParams(search).get("add");
+  const askedRole = asked === "coordinator" || asked === "accountant" ? asked : null;
+  const [chosen, setChosen] = useState<false | "any" | "coordinator" | "accountant">(false);
+  const adding = chosen !== false ? chosen : (askedRole ?? false);
+  const closeAdd = () => {
+    setChosen(false);
+    if (askedRole) window.history.replaceState(null, "", window.location.pathname); // so it does not open again
+  };
   const [managing, setManaging] = useState<Person | null>(null);
   const [flash, setFlash] = useState<Flash | null>(null);
   const [secret, setSecret] = useState<{ name: string; password: string } | null>(null);
@@ -330,7 +340,7 @@ function AdminPanel({ onCounts }: { onCounts: (counts: PeoplePage["counts"]) => 
   }
 
   const addButton = (
-    <Button className={styles.addButton} onClick={() => setAdding(true)}>
+    <Button className={styles.addButton} onClick={() => setChosen("any")}>
       <Plus aria-hidden />
       {t("people.add")}
     </Button>
@@ -432,8 +442,9 @@ function AdminPanel({ onCounts }: { onCounts: (counts: PeoplePage["counts"]) => 
 
       {adding ? (
         <AddPersonDialog
+          startRole={adding === "any" ? undefined : adding}
           sections={sections}
-          onClose={() => setAdding(false)}
+          onClose={closeAdd}
           onCreated={() => {
             setFlash(null);
             list.reload();
