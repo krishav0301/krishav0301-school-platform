@@ -4,14 +4,16 @@ import { useCallback } from "react";
 
 import { useConfig } from "@/config/ConfigProvider";
 import { t } from "@/i18n/messages";
-import { EmptyLine, Panel, ReadFailure, ReadOnlyNote, ReadTable, StatusWord, TableSkeleton, readStyles } from "@/read/ReadView";
+import { ReadFailure, ReadOnlyNote, ReadTable, StatusWord, TableSkeleton, readStyles } from "@/read/ReadView";
 import { useSession } from "@/session/SessionProvider";
 import { loadClasses, loadYears, type Loaded } from "@/setup/client";
 import { classTitle, type SchoolClass } from "@/setup/model";
 import { ReadSetupHeader } from "@/setup/ReadSetup";
 import { useLoad } from "@/setup/useLoad";
 
+import { loadPeople } from "./access-client";
 import { loadYearTeaching } from "./teaching-client";
+import { TeachingBoardView, type BoardData } from "./TeachingBoardView";
 import type { ClassTeaching } from "./teaching-model";
 
 export interface TeacherLine {
@@ -44,8 +46,8 @@ export function TeachingRead() {
   const { api } = useSession();
   const { term } = useConfig();
   // The terms, then each open term's classes and teaching together (D-108): every open term, not only the first (D-114).
-  const loadNow = useCallback(async (): Promise<Loaded<{ classes: SchoolClass[]; teachings: ClassTeaching[] }>> => {
-    const years = await loadYears(api);
+  const loadNow = useCallback(async (): Promise<Loaded<BoardData>> => {
+    const [years, staff] = await Promise.all([loadYears(api), loadPeople(api, { group: "teaching", pageSize: 50 })]);
     if (!years.ok) return { ok: false, reason: years.reason };
     const open = years.data.years.filter((y) => y.status !== "closed");
     const loaded = await Promise.all(open.map((y) => Promise.all([loadClasses(api, y.id), loadYearTeaching(api, y.id)])));
@@ -57,7 +59,10 @@ export function TeachingRead() {
       classes.push(...c.data.classes.filter((x) => x.active));
       teachings.push(...tg.data);
     }
-    return { ok: true, data: { classes, teachings } };
+    // OPEN: only the first 50 teachers (by name) get their email shown (D-124).
+    // Emails and the number of teachers only dress the page; without the staff list it still shows (UI only, PM 2026-10-06).
+    const emails = new Map(staff.ok ? staff.people.map((p) => [p.id, p.email] as const) : []);
+    return { ok: true, data: { classes, teachings, terms: open.map((y) => ({ id: y.id, label: y.label })), emails, allTeachers: staff.ok ? staff.counts.teachers : null } };
   }, [api]);
   const { view, reload } = useLoad(loadNow);
 
@@ -66,18 +71,7 @@ export function TeachingRead() {
       <ReadSetupHeader title={t("people.teaching.title")} subtitle={t("people.teaching.read.subtitle")} />
       {view.status === "loading" ? <TableSkeleton rows={6} /> : null}
       {view.status === "failed" || view.status === "forbidden" ? <ReadFailure status={view.status} onRetry={() => void reload()} /> : null}
-      {view.status === "ready"
-        ? (() => {
-            const { teachers, unassigned } = byTeacher(view.data.classes, view.data.teachings);
-            if (teachers.length === 0) return <EmptyLine>{t("people.teaching.read.empty")}</EmptyLine>;
-            return (
-              <Panel>
-                <TeachersTable teachers={teachers} />
-                {unassigned > 0 ? <p className={readStyles.subtitle}>{t("people.teaching.read.unassigned", { count: unassigned })}</p> : null}
-              </Panel>
-            );
-          })()
-        : null}
+      {view.status === "ready" ? <TeachingBoardView data={view.data} /> : null}
       <ReadOnlyNote>{t("setup.read.readOnly", { coordinator: term("role.coordinator") })}</ReadOnlyNote>
     </div>
   );
