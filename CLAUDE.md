@@ -132,9 +132,9 @@ A role assignment carries a **scope**: the whole institution, or one section (+2
 **Marks and results**
 - Marks are entered per component in a bulk grid. Teachers can edit until the Co-ordinator verifies.
 - Statuses: Draft, Under review, Verified, Published. Results publish for a **whole class per terminal**, and Publish stays disabled until every subject is Verified.
-- Grading is a **per-programme grading policy**: marks to grade to GPA or percentage, the pass rule, the rank rule. +2 follows NEB: subject-wise letter grades and a credit-hour-weighted GPA, no total (verify the exact scale against NEB sources before coding). A class with no policy cannot be published. A policy change affects only unpublished results.
+- **Exam pattern (D-114, replacing the per-programme grading policy):** one per term, out of 100, created by the Co-ordinator: Grade system Yes / No, terminals with weights adding to 100, minimum % for theory and practical, grade ranges when graded. No credits or GPA for now. A subject has full marks and an optional practical split; a terminal holds the practical or not. Teachers enter paper marks, scaled to the terminal's weight. Pass or fail only on the final result, every subject must pass, a failed subject is NG. The final is published automatically with the last terminal. A class with no pattern cannot be published. The pattern locks at the first mark.
 - Published marks cards are **snapshots**.
-- Top 20: name and rank only for students, ranked **per section**, only after the class is published.
+- Top 20: name and rank only for students, ranked **per section** on the final result only (D-114), only after it is published.
 
 **Audit**
 - Insert-only audit log: triggers block update and delete, and a keyed hash chain (HMAC-SHA256 with the `AUDIT_HMAC_KEY` Worker secret, never stored in the database) makes any edit, or any insert or delete in the middle, detectable, because D1 has no database accounts. Deleting the newest entries together with the chain head is caught only by the daily export of `auditChainSummary`. Append with `recordAudit`, in the same batch as the change, and verify with `verifyAuditChain`. No update or delete for anyone, including Super Admin. Every service write emits an audit event in the same batch. Sign-ins and failed 2FA go in a separate Sign-ins view.

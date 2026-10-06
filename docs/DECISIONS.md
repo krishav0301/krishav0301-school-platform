@@ -1182,6 +1182,22 @@ The matrix lives in code (61 actions, 8 groups, from the reviewed `permission-ma
   - what is not built, and the provisional 2084 calendar.
 - **Not done.** The Co-ordinator FUT harness (`docs/fut/coordinator/scripts`) still makes years as the Co-ordinator (D-110). It is not needed for UAT.
 
+**D-114 Exam pattern: one exam per term, out of 100, replaces the Phase 7 grading policies.** 2026-10-06, decided with the PM in conversation ("I want to rebuild the entire exam system"), answers given one at a time. Design: `docs/superpowers/specs/2026-10-06-exam-pattern-design.md`. **Supersedes D-079's per-programme grading policy, NEB credit GPA and division**, and the free per-subject components of D-079 and D-080. **Will touch results, permissions and the audit log.** Not built yet: waiting for the PM to approve the design.
+- **One exam pattern per term, 1 to 1, out of 100.** Every class in the term follows it; a class that needs a different exam goes in a different term, and the term page says so (PM).
+- **The Co-ordinator creates it** for a term the Principal has created (PM).
+- **Questions when it is created:** Grade system Yes / No; the terminals and their weights, adding up to 100 (for example 30, 30, 40); the minimum % for theory and for practical; the grade ranges when Grade = Yes (PM).
+- **No credit system for now** (PM: "we should not focus on that"). **No grade points or GPA for now** (PM). Both `OPEN:`, to be added later if needed. Without credits a GPA could not match NEB's credit-weighted one anyway.
+- **Subject:** full marks of the paper, and a "has practical" tick with its own split (75/25, 70/30, 50/50) (PM chose the split on the subject, not the terminal).
+- **Terminal:** Practical Yes / No. No: every paper is theory only. Yes: ticked subjects get a practical column. The practical is not fixed to the last terminal (PM).
+- **Marks:** the teacher enters marks out of the paper's full marks; the system scales them to the terminal's weight (PM). Kept to the hundredth, rounded only at the end.
+- **Pass or fail is decided on the final result only** (PM). Theory and practical are added for the score but each must reach its minimum, the practical counting only the terminals where it was held (PM). **A student must pass every subject** (PM).
+- **Grade = No:** percentage and Pass / Fail, no division (PM). **Grade = Yes:** letter grades from the ranges; a failed subject is **NG** and so is the overall grade (PM, on the recommendation).
+- **Publishing:** each terminal per class, as today; the **final result is published automatically** when the last terminal is (PM).
+- **Top 20 ranks the final result only** (PM). Ties share a rank, as before.
+- **Build now, during UAT** (PM). Results test data on staging made under the old design is cleared.
+- **Stated defaults (`OPEN:`):** an absence counts 0 and shows AB; the pattern locks at the first mark; no "copy from last term" yet.
+- **Effect on the NEB open point:** grade ranges become school-entered data rather than a coded scale, so D-079's unverified scale is no longer in the code. The school must still enter the official figures before a real +2 result is published.
+
 ## Open items carried forward
 
 - **Deploy D-108, D-110 and D-112 to staging (PM, from the laptop, 2026-10-05).** Migrations 0029 and 0030 and the Worker; steps in `README.md`, "Updating an existing deployment". 0030 rebuilds `academic_years`, so note a D1 Time Travel bookmark first. Rehearsed in D-113.
