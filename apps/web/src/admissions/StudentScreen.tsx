@@ -17,7 +17,7 @@ import { CorrectDetails } from "./CorrectDetails";
 import type { StudentDetail } from "./model";
 
 /**
- * One student's personal record, read only, opened from Student search (admin FUT F-09). The server decides who may
+ * One student's personal record, read only, opened from the Students page (admin FUT F-09). The server decides who may
  * see it and how far (`students.personal.view`, within the person's sections); nothing here can change it.
  */
 export function StudentDetails({ student, feesLink = false, actions }: { student: StudentDetail; feesLink?: boolean; actions?: React.ReactNode }) {

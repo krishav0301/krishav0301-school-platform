@@ -8,8 +8,7 @@ import { QueueCard, queueFigures } from "@/admissions/QueueScreen";
 import { levelsFor } from "@/admissions/RegisterScreen";
 import { changesOf } from "@/admissions/CorrectDetails";
 import { RegisterScreen } from "@/admissions/RegisterScreen";
-import { SearchScreen } from "@/admissions/SearchScreen";
-import { StudentsTable } from "@/admissions/SearchScreen";
+import { StudentsScreen, StudentsTable } from "@/admissions/StudentsScreen";
 import { StudentDetails } from "@/admissions/StudentScreen";
 import AdmissionsPage from "@/app/portal/admissions/page";
 import RegisterPage from "@/app/portal/admissions/register/page";
@@ -201,12 +200,13 @@ describe("RegisterScreen", () => {
 });
 
 // ---------------------------------------------------------------------------------------------
-describe("SearchScreen", () => {
-  it("shows the search field, with no results section until something is typed", () => {
-    const html = inContext(<SearchScreen />);
-    expect(html).toContain("Student search");
-    expect(html).toContain("Name, SID or phone");
-    expect(html).not.toContain("No matches.");
+describe("StudentsScreen", () => {
+  it("opens on the list itself: the counts, a search and the filters, and the list's shape while it loads", () => {
+    const html = inContext(<StudentsScreen />);
+    expect(html).toContain(">Students</h1>");
+    expect(html).toContain("Search by name, SID or phone");
+    expect(html).toContain("Active students");
+    expect(html).toContain('aria-busy="true"');
   });
 });
 
@@ -222,13 +222,13 @@ describe("AdmissionsTabs", () => {
     const accountantHtml = inContext(<AdmissionsTabs pathname="/portal/admissions/register" />, as("accountant"));
     expect(accountantHtml).not.toContain("Queue");
     expect(accountantHtml).toContain("Register");
-    expect(accountantHtml).toContain("Search");
+    expect(accountantHtml).toContain("Students");
   });
 
-  it("offers the Principal no Register form: Search is their only reach, and a menu of one is not shown (admin FUT F-08)", () => {
+  it("offers the Principal no Register form: Students is their only reach, and a menu of one is not shown (admin FUT F-08)", () => {
     expect(inContext(<AdmissionsTabs pathname="/portal/admissions/search" />, as("admin"))).toBe("");
     const html = inContext(<AdmissionsPage />, as("admin"));
-    expect(html).toContain("Student search");
+    expect(html).toContain(">Students</h1>");
     expect(html).not.toContain("Register a student");
   });
 });
@@ -240,7 +240,7 @@ describe("pages of other roles, opened by address (admin FUT F-14)", () => {
   });
 });
 
-describe("a student's record from Student search (admin FUT F-09)", () => {
+describe("a student's record from the Students page (admin FUT F-09)", () => {
   it("search results open the record, which shows the personal details read only", () => {
     const html = inContext(
       <StudentDetails
@@ -261,7 +261,7 @@ describe("a student's record from Student search (admin FUT F-09)", () => {
     expect(html).toContain(">Left<");
     expect(html).toContain('href="/portal/fees/student?id=s1"');
     expect(inContext(<StudentDetails student={student} />, as("coordinator"))).not.toContain("/portal/fees/");
-    const found = inContext(<StudentsTable students={[{ id: "s1", sid: "2083-00012", firstName: "Rishav", lastName: "Kumar", status: "graduated", className: null }]} />, as("admin"));
+    const found = inContext(<StudentsTable students={[{ id: "s1", sid: "2083-00012", firstName: "Rishav", lastName: "Kumar", status: "graduated", guardianPhone: "9811111111", rollNo: null, class: null, term: null }]} />, as("admin"));
     expect(found).toContain('href="/portal/admissions/student?id=s1"');
     expect(found).toContain(">Graduated<");
   });

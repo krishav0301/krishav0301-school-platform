@@ -222,3 +222,45 @@ export async function correctStudent(api: ApiClient, id: string, changes: Correc
     return { ok: false, reason: "failed" };
   }
 }
+
+export type StudentBrowse = components["schemas"]["StudentBrowse"];
+export type BrowsedStudent = StudentBrowse["students"][number];
+
+/** What the Students page asks for: every filter optional; with no term, the open terms; with no status, active students. */
+export interface StudentFilter {
+  term?: string;
+  status?: "left" | "graduated" | "all";
+  wing?: string;
+  course?: string;
+  level?: string;
+  class?: string;
+  q?: string;
+  page?: number;
+  pageSize?: number;
+}
+
+/** One page of the Students page, filtered on the server, with its counts, the lists that have students and the terms. */
+export async function browseStudents(api: ApiClient, filter: StudentFilter): Promise<Loaded<StudentBrowse>> {
+  const q = filter.q?.trim().slice(0, 100);
+  try {
+    const { data, response } = await api.GET("/api/students/browse", {
+      params: {
+        query: {
+          ...(filter.term && { term: filter.term }),
+          ...(filter.status && { status: filter.status }),
+          ...(filter.wing && { wing: filter.wing }),
+          ...(filter.course && { course: filter.course }),
+          ...(filter.level && { level: filter.level }),
+          ...(filter.class && { class: filter.class }),
+          ...(q && { q }),
+          ...(filter.page && { page: filter.page }),
+          ...(filter.pageSize && { pageSize: filter.pageSize }),
+        },
+      },
+    });
+    if (data) return { ok: true, data };
+    return { ok: false, reason: response.status === 403 ? "forbidden" : "failed" };
+  } catch {
+    return { ok: false, reason: "failed" };
+  }
+}

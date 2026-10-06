@@ -1,12 +1,12 @@
 "use client";
 
 import { AdmissionsLayout } from "@/admissions/AdmissionsLayout";
-import { SearchScreen } from "@/admissions/SearchScreen";
+import { StudentsScreen } from "@/admissions/StudentsScreen";
 
 export default function AdmissionsSearchPage() {
   return (
     <AdmissionsLayout>
-      <SearchScreen />
+      <StudentsScreen />
     </AdmissionsLayout>
   );
 }
