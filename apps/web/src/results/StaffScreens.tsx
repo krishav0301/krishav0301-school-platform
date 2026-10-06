@@ -18,8 +18,14 @@ import { Button, Checkbox, Field, Notice, Select, buttonClass } from "@/ui";
 
 import { decideRecheck, gateFailure, loadClassSheet, loadElectives, loadRechecks, setPicks } from "./client";
 import { sentText } from "./MarkSheetScreen";
-import { RECHECK_LABEL, className, hundredthsText, markText, parseMark, scoreText, type ClassElectives, type ClassSheet, type RecheckList } from "./model";
+import { RECHECK_LABEL, className, hundredthsText, markText, parseMark, partName, scoreText, type ClassElectives, type ClassSheet, type RecheckList } from "./model";
 import styles from "./results.module.css";
+
+/** The picker's value for the final result rather than one exam. */
+const FINAL = "final";
+
+/** "First terminal", or "Final result". */
+const sheetName = (sheet: ClassSheet) => (sheet.terminal ? sheet.terminal.name : t("results.sheets.final"));
 
 interface Choices {
   classes: { id: string; name: string }[];
@@ -52,10 +58,11 @@ async function loadChoices(api: Parameters<typeof loadYears>[0]) {
             label: c.label,
           }),
         })),
-      terminals: terminals.data.terminals.map((x) => ({
-        id: x.id,
-        name: x.name,
-      })),
+      // The term's exams in its pattern, then its final result (D-114).
+      terminals: [
+        ...terminals.data.terminals.filter((x) => x.weight !== null).map((x) => ({ id: x.id, name: x.name })),
+        ...(terminals.data.terminals.some((x) => x.weight !== null) ? [{ id: FINAL, name: t("results.sheets.final") }] : []),
+      ],
     } satisfies Choices,
   };
 }
@@ -113,17 +120,23 @@ export function ClassSheetsScreen() {
   );
 }
 
-/** The sheet itself: rank, the student (kept in view while the subjects scroll), each subject, GPA or percentage, the result. Pure. */
+/**
+ * The sheet itself: the student (kept in view while the subjects scroll), each subject, the percentage, the result. On
+ * the final result also the rank in the class (an exam's sheet is for information, D-114). Pure.
+ */
 export function SheetTable({ sheet }: { sheet: ClassSheet }) {
+  const isFinal = sheet.terminal === null;
   return (
-    <div className={readStyles.scroll} data-scroll tabIndex={0} role="region" aria-label={t("results.sheets.caption", { name: className(sheet), terminal: sheet.terminal.name })}>
+    <div className={readStyles.scroll} data-scroll tabIndex={0} role="region" aria-label={t("results.sheets.caption", { name: className(sheet), terminal: sheetName(sheet) })}>
       <table className={readStyles.sheet}>
-        <caption className="sr-only">{t("results.sheets.caption", { name: className(sheet), terminal: sheet.terminal.name })}</caption>
+        <caption className="sr-only">{t("results.sheets.caption", { name: className(sheet), terminal: sheetName(sheet) })}</caption>
         <thead>
           <tr>
-            <th scope="col" data-align="end">
-              {t("results.sheets.rank")}
-            </th>
+            {isFinal ? (
+              <th scope="col" data-align="end">
+                {t("results.sheets.rank")}
+              </th>
+            ) : null}
             <th scope="col" data-sticky>
               {t("results.grid.student")}
             </th>
@@ -133,7 +146,7 @@ export function SheetTable({ sheet }: { sheet: ClassSheet }) {
               </th>
             ))}
             <th scope="col" data-align="end">
-              {t(sheet.policy === "neb_gpa" ? "results.card.gpaLabel" : "results.card.percentLabel")}
+              {t("results.card.percentLabel")}
             </th>
             <th scope="col">{t("results.card.result")}</th>
           </tr>
@@ -141,17 +154,17 @@ export function SheetTable({ sheet }: { sheet: ClassSheet }) {
         <tbody>
           {sheet.students.map((x) => (
             <tr key={x.enrollmentId}>
-              <td data-align="end">{x.rank ?? "–"}</td>
+              {isFinal ? <td data-align="end">{x.rank ?? "–"}</td> : null}
               <th scope="row" data-sticky>
                 <Link href={`/portal/results/card?id=${x.cardId}`}>{x.name}</Link>
                 <span className={readStyles.cellMeta}>{x.sid}</span>
               </th>
               {x.subjects.map((v, i) => (
                 <td key={sheet.subjects[i]!.offeringId} data-align="center">
-                  {v === null ? "–" : sheet.policy === "neb_gpa" ? v.grade : `${hundredthsText(v.percentHundredths)}%`}
+                  {v === null ? "–" : sheet.graded && v.grade ? `${hundredthsText(v.percentHundredths)} (${v.grade})` : hundredthsText(v.percentHundredths)}
                 </td>
               ))}
-              <td data-align="end">{scoreText(x) ?? "–"}</td>
+              <td data-align="end">{scoreText(x)}</td>
               <td>
                 <span className={readStyles.cellWords}>
                   {x.outcome}
@@ -169,11 +182,12 @@ export function SheetTable({ sheet }: { sheet: ClassSheet }) {
 function ClassSheetView({ classId, terminalId }: { classId: string; terminalId: string }) {
   const { api } = useSession();
   const [missing, setMissing] = useState(false);
+  const isFinal = terminalId === FINAL;
   const loadNow = useCallback(async () => {
-    const result = await loadClassSheet(api, classId, terminalId);
+    const result = await loadClassSheet(api, classId, isFinal ? null : terminalId);
     setMissing(!result.ok && result.reason === "not_found");
     return result.ok ? result : gateFailure(result.reason);
-  }, [api, classId, terminalId]);
+  }, [api, classId, terminalId, isFinal]);
   const { view, reload } = useLoad<ClassSheet>(loadNow);
   if (view.status === "loading") return <TableSkeleton rows={6} />;
   if (view.status === "failed" && missing) return <EmptyLine>{t("results.sheets.notPublished")}</EmptyLine>;
@@ -181,17 +195,17 @@ function ClassSheetView({ classId, terminalId }: { classId: string; terminalId: 
   const sheet = view.data;
   return (
     <Panel
-      title={t("results.sheets.caption", { name: className(sheet), terminal: sheet.terminal.name })}
+      title={t("results.sheets.caption", { name: className(sheet), terminal: sheetName(sheet) })}
       labelledBy="sheet-heading"
       actions={
-        <a className={`${buttonClass({ variant: "secondary" })} ${styles.wrapLabel}`} href={`/api/results/classes/${classId}/terminals/${terminalId}/sheet.csv`} download>
+        <a className={`${buttonClass({ variant: "secondary" })} ${styles.wrapLabel}`} href={isFinal ? `/api/results/classes/${classId}/final/sheet.csv` : `/api/results/classes/${classId}/terminals/${terminalId}/sheet.csv`} download>
           <Download aria-hidden width={18} height={18} />
           {t("results.sheets.export")}
         </a>
       }
     >
       <SheetTable sheet={sheet} />
-      <p className={readStyles.subtitle}>{t("results.sheets.ties")}</p>
+      <p className={readStyles.subtitle}>{t(isFinal ? "results.sheets.ties" : "results.sheets.forInformation")}</p>
     </Panel>
   );
 }
@@ -289,7 +303,7 @@ export function RecheckList({ rechecks, decide }: { rechecks: RecheckList["reche
             {r.requestedOnBs ? ` · ${t("results.rechecks.askedOn", { date: formatBsDate(r.requestedOnBs) })}` : ""}
           </p>
           <p>{t("results.rechecks.asked", { reason: r.reason })}</p>
-          <p className={readStyles.rowMeta}>{t("results.rechecks.marksNow", { marks: r.marks.map((m) => `${m.name} ${markRead(m)}`).join(" · ") })}</p>
+          <p className={readStyles.rowMeta}>{t("results.rechecks.marksNow", { marks: r.marks.map((m) => `${partName(m.componentId)} ${markRead(m)}`).join(" · ") })}</p>
           {r.status !== "open" ? (
             <p className={readStyles.rowMeta}>
               {t("results.rechecks.decidedOn", {
@@ -320,7 +334,7 @@ export function DecidePanel({ recheck, onClose, onDone }: { recheck: RecheckList
     for (const m of recheck.marks) {
       const parsed = parseMark(marks[m.componentId] ?? "");
       if (!parsed || (parsed.valueHundredths === null && !parsed.absent) || (parsed.valueHundredths !== null && parsed.valueHundredths > m.maxHundredths)) {
-        return setMessage(t("results.rechecks.badMark", { component: m.name }));
+        return setMessage(t("results.rechecks.badMark", { component: partName(m.componentId) }));
       }
       corrected.push({ componentId: m.componentId, ...parsed });
     }
@@ -349,7 +363,7 @@ export function DecidePanel({ recheck, onClose, onDone }: { recheck: RecheckList
         rows={[
           { name: t("results.rechecks.askedLabel"), value: recheck.reason },
           ...(recheck.requestedOnBs ? [{ name: t("results.rechecks.askedOnLabel"), value: formatBsDate(recheck.requestedOnBs) }] : []),
-          { name: t("results.rechecks.marksNowLabel"), value: recheck.marks.map((m) => `${m.name} ${markRead(m)}`).join(" · ") },
+          { name: t("results.rechecks.marksNowLabel"), value: recheck.marks.map((m) => `${partName(m.componentId)} ${markRead(m)}`).join(" · ") },
         ]}
       />
       <PanelSection title={t("results.rechecks.marksTitle")}>
@@ -357,7 +371,7 @@ export function DecidePanel({ recheck, onClose, onDone }: { recheck: RecheckList
         {recheck.marks.map((m) => (
           <Field
             key={m.componentId}
-            label={t("results.rechecks.mark", { name: m.name, max: hundredthsText(m.maxHundredths) })}
+            label={t("results.rechecks.mark", { name: partName(m.componentId), max: hundredthsText(m.maxHundredths) })}
             inputMode="decimal"
             autoComplete="off"
             value={marks[m.componentId] ?? ""}

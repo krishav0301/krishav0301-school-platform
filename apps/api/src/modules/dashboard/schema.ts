@@ -48,11 +48,10 @@ export const DashboardOverviewSchema = z
         z.object({
           id: z.string(),
           name: z.string(),
-          policy: z.string().nullable(),
+          /** Final results (D-114): the latest card of each student's final. */
           cards: z.number().int(),
           passed: z.number().int(),
           passPercent: percent,
-          avgGpaHundredths: z.number().int().nullable(),
           avgPercentHundredths: z.number().int().nullable(),
         }),
       ),

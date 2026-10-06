@@ -11,7 +11,7 @@ import { useLoad } from "@/setup/useLoad";
 import { Button, Notice, Table } from "@/ui";
 
 import { gateFailure, loadMySheets, loadSheet, saveMarks, submitSheet, type Sent } from "./client";
-import { STATUS_LABEL, className, formatMarks, markText, parseMark, type MarkSheet, type MyMarkSheets, type SheetStatus } from "./model";
+import { STATUS_LABEL, className, formatMarks, markText, parseMark, partName, type MarkSheet, type MyMarkSheets, type SheetStatus } from "./model";
 import styles from "./results.module.css";
 
 export function sentText(sent: Sent): string | null {
@@ -134,7 +134,7 @@ export function SheetGrid({ sheet, draft, onChange, editable }: { sheet: MarkShe
           <th scope="col">{t("results.grid.student")}</th>
           {sheet.components.map((c) => (
             <th key={c.id} scope="col" className={styles.number}>
-              {t(c.kind === "practical" ? "results.grid.componentPractical" : "results.grid.component", { name: c.name, max: formatMarks(c.maxHundredths) })}
+              {t(c.kind === "practical" ? "results.grid.componentPractical" : "results.grid.component", { name: partName(c.id), max: formatMarks(c.maxHundredths) })}
             </th>
           ))}
         </tr>
@@ -161,7 +161,7 @@ export function SheetGrid({ sheet, draft, onChange, editable }: { sheet: MarkShe
                       autoComplete="off"
                       aria-label={t("results.grid.markLabel", {
                         student: s.name,
-                        component: c.name,
+                        component: partName(c.id),
                       })}
                       aria-invalid={bad ? true : undefined}
                       value={value}
@@ -238,7 +238,7 @@ function SheetEditor({
             tone: "bad",
             text: t("results.grid.badMark", {
               student: s.name,
-              component: c.name,
+              component: partName(c.id),
             }),
           });
           return false;

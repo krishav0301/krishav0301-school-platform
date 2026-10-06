@@ -72,7 +72,6 @@ interface ProgrammeRow {
   name: string;
   affiliation: string;
   is_active: number;
-  grading_policy: "neb_gpa" | "percentage_division" | null;
   section_key: string;
   section_name: string;
   level_id: string | null;
@@ -118,7 +117,7 @@ export async function listProgrammes(db: D1Database, sections: "all" | readonly 
   const [rows, sectionRows, countRows] = await db.batch([
     db
       .prepare(
-        `SELECT p.public_id, p.key, p.name, p.affiliation, p.is_active, p.grading_policy, s.key AS section_key, s.name AS section_name,
+        `SELECT p.public_id, p.key, p.name, p.affiliation, p.is_active, s.key AS section_key, s.name AS section_name,
                 l.public_id AS level_id, l.ordinal, l.name AS level_name, l.is_active AS level_active, l.usual_months,
                 ${PROGRAMME_FREE("p")} AS programme_can_delete, CASE WHEN l.id IS NULL THEN NULL ELSE ${LEVEL_FREE("l")} END AS level_can_delete
            FROM programmes p
@@ -160,7 +159,6 @@ export async function listProgrammes(db: D1Database, sections: "all" | readonly 
         section: { key: r.section_key, name: r.section_name },
         affiliation: r.affiliation,
         active: r.is_active === 1,
-        gradingPolicy: r.grading_policy,
         levels: [],
         students: 0,
         canDelete: r.programme_can_delete === 1,
@@ -240,25 +238,29 @@ export async function listClasses(db: D1Database, sections: "all" | readonly str
   };
 }
 
-interface TerminalRow {
+export interface TerminalRow {
   public_id: string;
   year_id: string;
   name: string;
   ordinal: number;
+  weight: number | null;
+  has_practical: number;
 }
+
+export const toTerminal = (t: TerminalRow) => ({ id: t.public_id, yearId: t.year_id, name: t.name, ordinal: t.ordinal, weight: t.weight, hasPractical: t.has_practical === 1 });
 
 /** The terminals of one year, or of every year. They belong to the whole school, so no section filter. */
 export async function listTerminals(db: D1Database, yearId?: string): Promise<TerminalList> {
   const { results } = await db
     .prepare(
-      `SELECT t.public_id, y.public_id AS year_id, t.name, t.ordinal
+      `SELECT t.public_id, y.public_id AS year_id, t.name, t.ordinal, t.weight, t.has_practical
          FROM terminals t JOIN academic_years y ON y.id = t.academic_year_id
         WHERE (?1 IS NULL OR y.public_id = ?1)
         ORDER BY y.bs_year DESC, t.ordinal`,
     )
     .bind(yearId ?? null)
     .all<TerminalRow>();
-  return { terminals: results.map((t) => ({ id: t.public_id, yearId: t.year_id, name: t.name, ordinal: t.ordinal })) };
+  return { terminals: results.map(toTerminal) };
 }
 
 interface SubjectRow {
@@ -284,16 +286,12 @@ interface CurriculumRow {
   is_archived: number;
   group_id: string | null;
   group_name: string | null;
-  component_id: string | null;
-  component_name: string | null;
-  max_hundredths: number | null;
-  kind: "theory" | "practical" | null;
-  ordinal: number | null;
-  component_active: number | null;
+  full_marks_hundredths: number;
+  practical_hundredths: number | null;
 }
 
 /**
- * One level's elective groups, subjects and mark components, in one database round trip. Null when the level does not
+ * One level's elective groups and subjects (each with its paper), in one database round trip. Null when the level does not
  * exist or is in a section the person may not see, so a foreign level looks exactly like a missing one.
  */
 export async function getCurriculum(db: D1Database, sections: "all" | readonly string[], levelId: string): Promise<Curriculum | null> {
@@ -315,15 +313,13 @@ export async function getCurriculum(db: D1Database, sections: "all" | readonly s
       .prepare(
         `SELECT o.public_id AS offering_id, o.credit_hundredths, o.is_active AS offering_active,
                 s.public_id AS subject_id, s.name AS subject_name, s.code AS subject_code, s.is_archived,
-                g.public_id AS group_id, g.name AS group_name,
-                c.public_id AS component_id, c.name AS component_name, c.max_hundredths, c.kind, c.ordinal, c.is_active AS component_active
+                g.public_id AS group_id, g.name AS group_name, o.full_marks_hundredths, o.practical_hundredths
            FROM subject_offerings o
            JOIN levels l ON l.id = o.level_id
            JOIN subjects s ON s.id = o.subject_id
            LEFT JOIN elective_groups g ON g.id = o.elective_group_id
-           LEFT JOIN mark_components c ON c.offering_id = o.id
           WHERE l.public_id = ?1
-          ORDER BY s.name COLLATE NOCASE, o.id, c.ordinal`,
+          ORDER BY s.name COLLATE NOCASE, o.id`,
       )
       .bind(levelId),
   ]);
@@ -331,24 +327,15 @@ export async function getCurriculum(db: D1Database, sections: "all" | readonly s
   const level = levelResult!.results[0] as { public_id: string; name: string; programme_id: string; programme_name: string } | undefined;
   if (!level) return null;
 
-  const offerings: Curriculum["offerings"] = [];
-  for (const r of offeringResult!.results as unknown as CurriculumRow[]) {
-    let offering = offerings[offerings.length - 1];
-    if (!offering || offering.id !== r.offering_id) {
-      offering = {
-        id: r.offering_id,
-        subject: { id: r.subject_id, name: r.subject_name, code: r.subject_code, archived: r.is_archived === 1 },
-        creditHundredths: r.credit_hundredths,
-        group: r.group_id !== null ? { id: r.group_id, name: r.group_name! } : null,
-        active: r.offering_active === 1,
-        components: [],
-      };
-      offerings.push(offering);
-    }
-    if (r.component_id !== null) {
-      offering.components.push({ id: r.component_id, name: r.component_name!, maxHundredths: r.max_hundredths!, kind: r.kind!, ordinal: r.ordinal!, active: r.component_active === 1 });
-    }
-  }
+  const offerings: Curriculum["offerings"] = (offeringResult!.results as unknown as CurriculumRow[]).map((r) => ({
+    id: r.offering_id,
+    subject: { id: r.subject_id, name: r.subject_name, code: r.subject_code, archived: r.is_archived === 1 },
+    creditHundredths: r.credit_hundredths,
+    group: r.group_id !== null ? { id: r.group_id, name: r.group_name! } : null,
+    active: r.offering_active === 1,
+    fullMarksHundredths: r.full_marks_hundredths,
+    practicalHundredths: r.practical_hundredths,
+  }));
 
   return {
     level: { id: level.public_id, name: level.name, programmeId: level.programme_id, programmeName: level.programme_name },
@@ -504,7 +491,7 @@ export async function getSetupChecklist(db: D1Database, sections: "all" | readon
          EXISTS (SELECT 1 FROM classes c JOIN academic_years y ON y.id = c.academic_year_id
                   JOIN programmes p ON p.id = c.programme_id JOIN sections s ON s.id = p.section_id
                   WHERE y.status = 'active' AND c.is_active = 1 AND (?1 IS NULL OR s.key IN (SELECT value FROM json_each(?1)))) AS classes,
-         EXISTS (SELECT 1 FROM terminals t JOIN academic_years y ON y.id = t.academic_year_id WHERE y.status = 'active') AS terminals,
+         EXISTS (SELECT 1 FROM exam_patterns ep JOIN academic_years y ON y.id = ep.academic_year_id WHERE y.status = 'active') AS terminals,
          EXISTS (SELECT 1 FROM subject_offerings o JOIN levels l ON l.id = o.level_id JOIN programmes p ON p.id = l.programme_id
                   JOIN sections s ON s.id = p.section_id
                   WHERE o.is_active = 1 AND (?1 IS NULL OR s.key IN (SELECT value FROM json_each(?1)))) AS subjects,

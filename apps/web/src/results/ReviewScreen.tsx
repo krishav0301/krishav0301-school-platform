@@ -33,10 +33,9 @@ export function boardFigures(board: ReviewBoard): Figure[] {
   ];
 }
 
-/** Where a class stands, in words: published, ready to publish, needs a grading policy, or waiting for marks. */
-export function classState(cls: BoardClass): { tone: "ok" | "warn" | "bad" | undefined; key: "results.status.published" | "results.review.ready" | "results.review.noPolicy" | "results.review.inProgress" } {
-  if (cls.published) return { tone: "ok", key: "results.status.published" };
-  if (!cls.gradingPolicy) return { tone: "bad", key: "results.review.noPolicy" };
+/** Where a class stands, in words: published (with the final result, when it is out), ready to publish, or waiting for marks. */
+export function classState(cls: BoardClass): { tone: "ok" | "warn" | "bad" | undefined; key: "results.status.published" | "results.review.finalOut" | "results.review.ready" | "results.review.inProgress" } {
+  if (cls.published) return { tone: "ok", key: cls.finalPublished ? "results.review.finalOut" : "results.status.published" };
   if (cls.ready) return { tone: "ok", key: "results.review.ready" };
   return { tone: "warn", key: "results.review.inProgress" };
 }
@@ -102,14 +101,15 @@ export function BoardClassPanel({
         ]}
       />
       {cls.published ? (
-        <div>
+        <div className={readStyles.cellWords}>
           <OpenLink href={`/portal/results/sheets?class=${cls.classId}&terminal=${terminalId ?? ""}`} label={t("results.review.sheet")} text={t("results.review.sheet")} />
+          {cls.finalPublished ? <OpenLink href={`/portal/results/sheets?class=${cls.classId}&terminal=final`} label={t("results.review.finalSheet")} text={t("results.review.finalSheet")} /> : null}
         </div>
       ) : (
         <div className={styles.publishRow}>
           {!cls.ready ? (
             <p className={readStyles.rowMeta}>
-              {cls.gradingPolicy ? t("results.review.waiting", { subjects: holding.map((s) => `${s.subjectName} (${t(STATUS_LABEL[s.status])})`).join(", ") || t("results.review.marksMissing") }) : t("results.review.needsPolicy")}
+              {t("results.review.waiting", { subjects: holding.map((s) => `${s.subjectName} (${t(STATUS_LABEL[s.status])})`).join(", ") || t("results.review.marksMissing") })}
             </p>
           ) : (
             <p className={readStyles.rowMeta}>{t("results.review.readyLine")}</p>

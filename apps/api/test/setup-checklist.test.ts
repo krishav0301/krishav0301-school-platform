@@ -49,7 +49,12 @@ async function addClass(yearId: number, programmeId: number, levelId: number, ac
     .run();
   return result.meta.last_row_id;
 }
-const addTerminal = (yearId: number) => db.prepare("INSERT INTO terminals (public_id, academic_year_id, name, ordinal) VALUES (?1, ?2, 'First terminal', 1)").bind(uniq("t"), yearId).run();
+/** The term's exam pattern (D-114): what the checklist's "terminals" item now asks for. */
+const addTerminal = (yearId: number) =>
+  db
+    .prepare("INSERT INTO exam_patterns (public_id, academic_year_id, graded, theory_min_percent, practical_min_percent, created_at, updated_at) VALUES (?1, ?2, 0, 35, 40, 'x', 'x')")
+    .bind(uniq("p"), yearId)
+    .run();
 async function addSubject(): Promise<number> {
   const result = await db.prepare("INSERT INTO subjects (public_id, name) VALUES (?1, ?2)").bind(uniq("s"), uniq("Subject")).run();
   return result.meta.last_row_id;

@@ -15,7 +15,6 @@ import {
   CreateLevelSchema,
   CreateProgrammeSchema,
   CreateSectionSchema,
-  CreateTerminalSchema,
   CreateYearSchema,
   LevelChangesSchema,
   NextTermSchema,
@@ -28,7 +27,8 @@ import {
   SetupChecklistSchema,
   TeachingSchema,
   YearTeachingSchema,
-  TerminalChangesSchema,
+  ExamPatternInputSchema,
+  ExamPatternSchema,
   TerminalListSchema,
   YearChangesSchema,
 } from "./schema";
@@ -41,7 +41,6 @@ import {
   createClass,
   createProgramme,
   createSection,
-  createTerminal,
   createYear,
   setAssignment,
   setClassTeacher,
@@ -53,7 +52,8 @@ import {
   updateSection,
   updateLevel,
   updateProgramme,
-  updateTerminal,
+  getExamPattern,
+  saveExamPattern,
   updateYear,
   type Done,
   type Failure,
@@ -160,7 +160,7 @@ export function registerAcademics(app: App): void {
       path: "/api/academics/terminals",
       operationId: "list_terminals",
       tags: ["academics"],
-      description: "The terminals of one year, or of every year.",
+      description: "The terminals of one year, or of every year, each with its weight and whether it holds the practical (D-114).",
       access: VIEW,
       request: { query: YearQuery },
       responses: { 200: { description: "The terminals", content: json(TerminalListSchema) } },
@@ -482,39 +482,41 @@ export function registerAcademics(app: App): void {
     },
   );
 
-  // --- Terminals ---------------------------------------------------------------------------------------
+  // --- The exam pattern (D-114): one per term, out of 100 ------------------------------------------------
   defineRoute(
     app,
     {
-      method: "post",
-      path: "/api/academics/terminals",
-      operationId: "create_terminal",
+      method: "get",
+      path: "/api/academics/years/{id}/exam-pattern",
+      operationId: "get_exam_pattern",
       tags: ["academics"],
-      description: "Adds a terminal to a year, numbered after the last one.",
-      access: MANAGE,
-      request: { body: { required: true, content: json(CreateTerminalSchema) } },
-      responses: { 201: { description: "Added", content: json(CreatedSchema) }, ...failures },
+      description: "A term's exam pattern (null until made) and its terminals, and whether marks have locked it.",
+      access: VIEW,
+      request: { params: IdParam },
+      responses: { 200: { description: "The pattern", content: json(ExamPatternSchema) }, 404: failures[404] },
     },
     async (c) => {
-      const result = await createTerminal(c.env.DB, c.env.AUDIT_HMAC_KEY, c.get("auth")!.userPublicId, c.req.valid("json"));
-      return result.ok ? c.json({ id: result.publicId }, 201) : fail(c, result);
+      const pattern = await getExamPattern(c.env.DB, c.req.valid("param").id);
+      c.header("Cache-Control", "no-store");
+      return pattern ? c.json(pattern, 200) : c.json({ error: "not_found" }, 404);
     },
   );
 
   defineRoute(
     app,
     {
-      method: "patch",
-      path: "/api/academics/terminals/{id}",
-      operationId: "update_terminal",
+      method: "put",
+      path: "/api/academics/years/{id}/exam-pattern",
+      operationId: "save_exam_pattern",
       tags: ["academics"],
-      description: "Renames a terminal. A closed year cannot be changed.",
+      description:
+        "Creates or replaces a term's exam pattern: Grade system yes or no, the minimum % for theory and practical, the grade ranges when graded, and the terminals in order with weights adding up to 100 and whether each holds the practical. Refused (409 `locked`) once marks have been entered in the term.",
       access: MANAGE,
-      request: { params: IdParam, body: { required: true, content: json(TerminalChangesSchema) } },
+      request: { params: IdParam, body: { required: true, content: json(ExamPatternInputSchema) } },
       responses: { 200: { description: "Saved", content: json(OkSchema) }, ...failures },
     },
     async (c) => {
-      const result = await updateTerminal(c.env.DB, c.env.AUDIT_HMAC_KEY, c.get("auth")!.userPublicId, c.req.valid("param").id, c.req.valid("json"));
+      const result = await saveExamPattern(c.env.DB, c.env.AUDIT_HMAC_KEY, c.get("auth")!.userPublicId, c.req.valid("param").id, c.req.valid("json"));
       return result.ok ? c.json({ ok: true as const }, 200) : fail(c, result);
     },
   );

@@ -6,11 +6,13 @@ import { bsToAd, daysInMonth, todayBs } from "../../src/core/dates";
  * demo and test data is loaded through the same service functions the screens use, never direct SQL), so every
  * rule, permission and audit entry applies.
  *
- * Made: the active year (or this BS year, made and activated), three terminals, class "A" of each level, five
- * subjects with theory and practical parts and credit hours, three teachers hired and assigned (a Class Teacher
+ * Made: the active year (or this BS year, made and activated), its exam pattern (D-114: graded, three terminals of
+ * 30, 30 and 40, the practical in the second and last), class "A" of each level, five subjects (Physics and
+ * Chemistry with a 75/25 practical) with credit hours, three teachers hired and assigned (a Class Teacher
  * for each class), six walk-in students per class, and a fee structure per level (approved by the Admin, charged).
  *
- * `OPEN:` the subjects, marks split, credit hours and fee amounts are stand-ins until the college gives its own.
+ * `OPEN:` the subjects, marks split, grade ranges, credit hours and fee amounts are stand-ins until the college gives
+ * its own. The grade ranges are the widely republished NEB scale, unverified (D-079): a stand-in, not the real one.
  * No file system or network here: `call` is the caller's way to reach the API, so the same code runs against a
  * deployment (the command in `../uat-seed.ts`) and inside the tests (`test/uat-seed.test.ts`).
  */
@@ -32,6 +34,28 @@ export interface SeedResult {
   classes: { id: string; name: string }[];
   accounts: NewAccount[];
 }
+
+/** A stand-in pattern for the starter set (D-114). OPEN: the school sets its own. */
+const PATTERN = {
+  graded: true,
+  theoryMinPercent: 35,
+  practicalMinPercent: 40,
+  gradeBands: [
+    { grade: "A+", from: 90 },
+    { grade: "A", from: 80 },
+    { grade: "B+", from: 70 },
+    { grade: "B", from: 60 },
+    { grade: "C+", from: 50 },
+    { grade: "C", from: 40 },
+    { grade: "D", from: 35 },
+  ],
+  terminals: [
+    { name: "First terminal", weight: 30, hasPractical: false },
+    { name: "Second terminal", weight: 30, hasPractical: true },
+    { name: "Final", weight: 40, hasPractical: true },
+  ],
+};
+const WITH_PRACTICAL = new Set(["Physics", "Chemistry"]);
 
 const SUBJECTS: { name: string; credit: number }[] = [
   { name: "English", credit: 4 },
@@ -80,13 +104,14 @@ export async function seedUat(call: Call, options: { tag: string; emailDomain?: 
   const get = <T>(path: string, actor: Actor) => expectOk<T>(call("GET", path, actor), `GET ${path}`);
   const post = <T>(path: string, actor: Actor, body?: unknown) => expectOk<T>(call("POST", path, actor, body), `POST ${path}`);
   const patch = <T>(path: string, actor: Actor, body?: unknown) => expectOk<T>(call("PATCH", path, actor, body), `PATCH ${path}`);
+  const put = <T>(path: string, actor: Actor, body?: unknown) => expectOk<T>(call("PUT", path, actor, body), `PUT ${path}`);
 
-  // The +2 programme: the one graded the NEB way, else the first with two levels.
-  const { programmes } = await get<{ programmes: { id: string; name: string; section: { key: string }; gradingPolicy: string | null; levels: { id: string; name: string; active: boolean }[] }[] }>(
+  // The +2 programme: the first in the +2 section with two levels, else the first with two levels.
+  const { programmes } = await get<{ programmes: { id: string; name: string; section: { key: string }; levels: { id: string; name: string; active: boolean }[] }[] }>(
     "/api/academics/programmes",
     "coordinator",
   );
-  const programme = programmes.find((p) => p.gradingPolicy === "neb_gpa" && p.levels.length >= 2) ?? programmes.find((p) => p.levels.length >= 2);
+  const programme = programmes.find((p) => p.section.key === "plus2" && p.levels.length >= 2) ?? programmes.find((p) => p.levels.length >= 2);
   if (!programme) throw new SeedError("No programme with two levels yet. A school starts with none (D-087): the Admin makes the programmes on the Programmes screen first.");
   const levels = programme.levels.filter((l) => l.active).slice(0, 2);
 
@@ -109,7 +134,9 @@ export async function seedUat(call: Call, options: { tag: string; emailDomain?: 
   const { classes: existing } = await get<{ classes: { yearId: string }[] }>("/api/academics/classes", "coordinator");
   if (existing.some((c) => c.yearId === year.id)) throw new SeedError(`The ${year.label} year already has classes, so the starter set was not added.`);
 
-  for (const name of ["First terminal", "Second terminal", "Final"]) await post("/api/academics/terminals", "coordinator", { yearId: year.id, name });
+  // The term's exam pattern, unless it already has one (D-114).
+  const current = await get<{ pattern: unknown; locked: boolean }>(`/api/academics/years/${year.id}/exam-pattern`, "coordinator");
+  if (current.pattern === null && !current.locked) await put(`/api/academics/years/${year.id}/exam-pattern`, "coordinator", PATTERN);
 
   // Subjects: reuse a catalogue entry of the same name, if one exists.
   const { subjects: catalogue } = await get<{ subjects: { id: string; name: string; archived: boolean }[] }>("/api/academics/subjects", "coordinator");
@@ -135,9 +162,15 @@ export async function seedUat(call: Call, options: { tag: string; emailDomain?: 
     classes.push({ id: classId, name: className });
 
     for (const s of SUBJECTS) {
-      const offeringId = (await post<{ id: string }>("/api/academics/offerings", "coordinator", { levelId: level.id, subjectId: subjectIds[s.name], creditHundredths: s.credit * 100 })).id;
-      await post(`/api/academics/offerings/${offeringId}/components`, "coordinator", { name: "Theory", maxHundredths: 7_500, kind: "theory" });
-      await post(`/api/academics/offerings/${offeringId}/components`, "coordinator", { name: "Practical", maxHundredths: 2_500, kind: "practical" });
+      const offeringId = (
+        await post<{ id: string }>("/api/academics/offerings", "coordinator", {
+          levelId: level.id,
+          subjectId: subjectIds[s.name],
+          creditHundredths: s.credit * 100,
+          fullMarksHundredths: 10_000,
+          practicalHundredths: WITH_PRACTICAL.has(s.name) ? 2_500 : null,
+        })
+      ).id;
       await post("/api/academics/assignments", "coordinator", { classId, offeringId, teacherId: teacherIds[TEACHES[s.name]!] });
     }
     // One class per Class Teacher in a year: the first teacher has Grade 11, the second Grade 12.

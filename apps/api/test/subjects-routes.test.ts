@@ -47,7 +47,8 @@ interface Curriculum {
     creditHundredths: number | null;
     group: { id: string; name: string } | null;
     active: boolean;
-    components: { id: string; name: string; maxHundredths: number; ordinal: number; active: boolean }[];
+    fullMarksHundredths: number;
+    practicalHundredths: number | null;
   }[];
 }
 
@@ -57,8 +58,6 @@ const writes: [string, string, unknown][] = [
   ["PATCH", `/subjects/${noId}`, { name: "x" }],
   ["POST", "/offerings", { levelId: noId, subjectId: noId }],
   ["PATCH", `/offerings/${noId}`, { active: false }],
-  ["POST", `/offerings/${noId}/components`, { name: "x", maxHundredths: 100 }],
-  ["PATCH", `/components/${noId}`, { name: "x" }],
   ["POST", `/levels/${noId}/groups`, { name: "x" }],
   ["PATCH", `/groups/${noId}`, { name: "x" }],
 ];
@@ -103,7 +102,7 @@ describe("who may use the subject routes", () => {
 
 // ---------------------------------------------------------------------------------------------
 describe("keeping a level's subjects, end to end", () => {
-  it("subject, group, offering with group and credit, components: created, read together, changed and audited", async () => {
+  it("subject, group, offering with group, credit and its paper: created, read together, changed and audited", async () => {
     const levelId = await makeLevel("plus2");
     const biology = await makeSubject({ name: label("Biology"), code: label("BIO").slice(0, 12) });
     const maths = await makeSubject({ name: label("Mathematics") });
@@ -112,17 +111,13 @@ describe("keeping a level's subjects, end to end", () => {
     expect(groupResponse.status).toBe(201);
     const groupId = await idOf(groupResponse);
 
-    const bio = await post("/offerings", { levelId, subjectId: biology, creditHundredths: 375, groupId }, coordinator);
+    const bio = await post("/offerings", { levelId, subjectId: biology, creditHundredths: 375, groupId, practicalHundredths: 2500 }, coordinator);
     expect(bio.status).toBe(201);
     const bioId = await idOf(bio);
     const plain = await post("/offerings", { levelId, subjectId: maths }, coordinator);
     expect(plain.status).toBe(201);
     const mathsOffering = await idOf(plain);
 
-    const theory = await post(`/offerings/${bioId}/components`, { name: "Theory", maxHundredths: 7500 }, coordinator);
-    expect(theory.status).toBe(201);
-    const practical = await post(`/offerings/${bioId}/components`, { name: "Practical", maxHundredths: 2500 }, coordinator);
-    expect(practical.status).toBe(201);
 
     const response = await get(`/curriculum?level=${levelId}`, coordinator);
     expect(response.status).toBe(200);
@@ -133,15 +128,15 @@ describe("keeping a level's subjects, end to end", () => {
     const bioRow = curriculum.offerings.find((o) => o.id === bioId)!;
     expect(bioRow).toMatchObject({ creditHundredths: 375, group: { id: groupId, name: "Science option" }, active: true });
     expect(bioRow.subject.id).toBe(biology);
-    expect(bioRow.components.map((c) => [c.name, c.maxHundredths, c.ordinal])).toEqual([["Theory", 7500, 1], ["Practical", 2500, 2]]);
-    expect(curriculum.offerings.find((o) => o.id === mathsOffering)).toMatchObject({ creditHundredths: null, group: null, components: [] });
+    expect(bioRow).toMatchObject({ fullMarksHundredths: 10000, practicalHundredths: 2500 });
+    expect(curriculum.offerings.find((o) => o.id === mathsOffering)).toMatchObject({ creditHundredths: null, group: null, fullMarksHundredths: 10000, practicalHundredths: null });
 
     const subjects = (await (await get("/subjects", coordinator)).json()) as { subjects: { id: string; name: string; code: string | null; archived: boolean }[] };
     expect(subjects.subjects.find((s) => s.id === biology)).toMatchObject({ archived: false });
 
     expect((await patch(`/offerings/${bioId}`, { creditHundredths: 400, groupId: null }, coordinator)).status).toBe(200);
     expect((await patch(`/groups/${groupId}`, { pickCount: 2, active: false }, coordinator)).status).toBe(200);
-    expect((await patch(`/components/${await idOf(practical)}`, { maxHundredths: 3000, active: false }, coordinator)).status).toBe(200);
+    expect((await patch(`/offerings/${bioId}`, { practicalHundredths: 3000 }, coordinator)).status).toBe(200);
     expect((await patch(`/subjects/${biology}`, { archived: true }, coordinator)).status).toBe(200);
 
     const after = (await (await get(`/curriculum?level=${levelId}`, coordinator)).json()) as Curriculum;
@@ -149,9 +144,9 @@ describe("keeping a level's subjects, end to end", () => {
     expect(bioAfter).toMatchObject({ creditHundredths: 400, group: null });
     expect(bioAfter.subject.archived).toBe(true);
     expect(after.groups[0]).toMatchObject({ pickCount: 2, active: false });
-    expect(bioAfter.components[1]).toMatchObject({ maxHundredths: 3000, active: false });
+    expect(bioAfter).toMatchObject({ practicalHundredths: 3000 });
 
-    expect(await auditActions(bioId)).toEqual(["academics.offering.created", "academics.offering.updated"]);
+    expect(await auditActions(bioId)).toEqual(["academics.offering.created", "academics.offering.updated", "academics.offering.updated"]);
     const actor = await db.prepare("SELECT u.public_id AS actor FROM audit_events a JOIN users u ON u.id = a.actor_user_id WHERE a.entity_public_id = ?1 LIMIT 1").bind(bioId).first<{ actor: string }>();
     expect(actor!.actor).toBe(coordinator.publicId);
   });
@@ -194,23 +189,21 @@ describe("a section-scoped Co-ordinator gets nothing from the other section (dat
     expect((await get(`/curriculum?level=${bachelors}`, admin)).status).toBe(200);
   });
 
-  it("cannot change the other section's groups, offerings or components, even with the right ids", async () => {
+  it("cannot change the other section's groups or offerings (or their papers), even with the right ids", async () => {
     const bachelors = await makeLevel("bachelors");
     const subjectId = await makeSubject();
     const groupId = await idOf(await post(`/levels/${bachelors}/groups`, { name: "Option" }, coordinator));
     const offeringId = await idOf(await post("/offerings", { levelId: bachelors, subjectId }, coordinator));
-    const componentId = await idOf(await post(`/offerings/${offeringId}/components`, { name: "Theory", maxHundredths: 7500 }, coordinator));
 
     expect((await post(`/levels/${bachelors}/groups`, { name: "Sneaky" }, plus2Coordinator)).status).toBe(403);
     expect((await patch(`/groups/${groupId}`, { name: "Hijacked" }, plus2Coordinator)).status).toBe(403);
     expect((await post("/offerings", { levelId: bachelors, subjectId: await makeSubject() }, plus2Coordinator)).status).toBe(403);
     expect((await patch(`/offerings/${offeringId}`, { active: false }, plus2Coordinator)).status).toBe(403);
-    expect((await post(`/offerings/${offeringId}/components`, { name: "Sneaky", maxHundredths: 100 }, plus2Coordinator)).status).toBe(403);
-    expect((await patch(`/components/${componentId}`, { name: "Hijacked" }, plus2Coordinator)).status).toBe(403);
+    expect((await patch(`/offerings/${offeringId}`, { practicalHundredths: 2500 }, plus2Coordinator)).status).toBe(403);
 
     expect(await db.prepare("SELECT name FROM elective_groups WHERE public_id = ?1").bind(groupId).first()).toEqual({ name: "Option" });
     expect(await db.prepare("SELECT is_active FROM subject_offerings WHERE public_id = ?1").bind(offeringId).first()).toEqual({ is_active: 1 });
-    expect(await db.prepare("SELECT name FROM mark_components WHERE public_id = ?1").bind(componentId).first()).toEqual({ name: "Theory" });
+    expect(await db.prepare("SELECT practical_hundredths FROM subject_offerings WHERE public_id = ?1").bind(offeringId).first()).toEqual({ practical_hundredths: null });
   });
 
   it("may add a name to the catalogue (201) but not rename it (403); a whole-school Co-ordinator and the Super Admin may", async () => {

@@ -83,11 +83,8 @@ export const CreateProgrammeSchema = z
   .openapi("CreateProgramme");
 export type ProgrammeInput = z.input<typeof CreateProgrammeSchema>;
 
-/** A programme's grading policy (Phase 7, D-079); null means none, and a class of a programme with none cannot be published. */
-export const GradingPolicySchema = z.enum(["neb_gpa", "percentage_division"]);
-
 export const ProgrammeChangesSchema = z
-  .strictObject({ name: ProgrammeName, affiliation: Affiliation, active: z.boolean(), gradingPolicy: GradingPolicySchema.nullable() })
+  .strictObject({ name: ProgrammeName, affiliation: Affiliation, active: z.boolean() })
   .partial()
   .openapi("ProgrammeChanges");
 export type ProgrammeChanges = z.infer<typeof ProgrammeChangesSchema>;
@@ -113,11 +110,39 @@ export type ClassInput = z.input<typeof CreateClassSchema>;
 export const ClassChangesSchema = z.strictObject({ label: ClassLabel, active: z.boolean() }).partial().openapi("ClassChanges");
 export type ClassChanges = z.infer<typeof ClassChangesSchema>;
 
-export const CreateTerminalSchema = z.strictObject({ yearId: PublicIdSchema, name: TerminalName }).openapi("CreateTerminal");
-export type TerminalInput = z.input<typeof CreateTerminalSchema>;
+// --- The exam pattern (D-114): one per term, out of 100 -------------------------------------------------
 
-export const TerminalChangesSchema = z.strictObject({ name: TerminalName }).partial().openapi("TerminalChanges");
-export type TerminalChanges = z.infer<typeof TerminalChangesSchema>;
+const WholePercent = (what: string) => z.number().int(`${what} is a whole number`).min(0, `${what} is at least 0`).max(100, `${what} is at most 100`);
+
+export const GradeBandSchema = z.strictObject({
+  grade: z.string().trim().min(1, "Give each grade a letter").max(8, "Keep a grade to 8 characters"),
+  from: WholePercent("A grade's starting %"),
+});
+
+/**
+ * The whole pattern, saved at once: the questions (Grade system? the minimum % for theory and practical, the grade
+ * ranges when graded) and the terminals in order. A terminal with an `id` keeps it; one without is new; one left out
+ * is removed. Refused once marks have been entered in the term.
+ */
+export const ExamPatternInputSchema = z
+  .strictObject({
+    graded: z.boolean(),
+    theoryMinPercent: WholePercent("The theory minimum"),
+    practicalMinPercent: WholePercent("The practical minimum"),
+    gradeBands: z.array(GradeBandSchema).max(20, "At most 20 grades").nullable(),
+    terminals: z
+      .array(
+        z.strictObject({
+          id: PublicIdSchema.optional(),
+          name: TerminalName,
+          weight: z.number().int("A weight is a whole number").min(1, "A weight is at least 1").max(100, "A weight is at most 100"),
+          hasPractical: z.boolean(),
+        }),
+      )
+      .max(12, "A term can have at most 12 terminals"),
+  })
+  .openapi("ExamPatternInput");
+export type ExamPatternInput = z.infer<typeof ExamPatternInputSchema>;
 
 // --- What the screens read ---------------------------------------------------------------------------
 
@@ -195,7 +220,6 @@ export const ProgrammeSchema = z
     section: z.object({ key: z.string(), name: z.string() }),
     affiliation: z.string(),
     active: z.boolean(),
-    gradingPolicy: GradingPolicySchema.nullable(),
     levels: z.array(LevelSchema),
     /** Students enrolled in this programme in the active year: the sum of its levels' (D-096). */
     students: z.number().int(),
@@ -250,9 +274,38 @@ export const SchoolClassSchema = z
 export const SchoolClassListSchema = z.object({ classes: z.array(SchoolClassSchema) }).openapi("SchoolClassList");
 export type SchoolClassList = z.infer<typeof SchoolClassListSchema>;
 
-export const TerminalSchema = z.object({ id: z.string(), yearId: z.string(), name: z.string(), ordinal: z.number().int() }).openapi("Terminal");
+export const TerminalSchema = z
+  .object({
+    id: z.string(),
+    yearId: z.string(),
+    name: z.string(),
+    ordinal: z.number().int(),
+    /** Whole percent of the final result; null for a terminal made before D-114 and not yet in a pattern. */
+    weight: z.number().int().nullable(),
+    hasPractical: z.boolean(),
+  })
+  .openapi("Terminal");
 export const TerminalListSchema = z.object({ terminals: z.array(TerminalSchema) }).openapi("TerminalList");
 export type TerminalList = z.infer<typeof TerminalListSchema>;
+
+export const ExamPatternSchema = z
+  .object({
+    term: z.object({ id: z.string(), label: z.string(), status: z.enum(["draft", "active", "closed"]) }),
+    /** Null until the Co-ordinator creates it. */
+    pattern: z
+      .object({
+        graded: z.boolean(),
+        theoryMinPercent: z.number().int(),
+        practicalMinPercent: z.number().int(),
+        gradeBands: z.array(z.object({ grade: z.string(), from: z.number().int() })).nullable(),
+      })
+      .nullable(),
+    terminals: z.array(TerminalSchema),
+    /** Marks have been entered in this term, so the pattern can no longer change. */
+    locked: z.boolean(),
+  })
+  .openapi("ExamPattern");
+export type ExamPattern = z.infer<typeof ExamPatternSchema>;
 
 // --- Subjects -----------------------------------------------------------------------------------------
 
@@ -266,7 +319,7 @@ export type SubjectInput = z.input<typeof CreateSubjectSchema>;
 export const SubjectChangesSchema = z.strictObject({ name: SubjectName, code: SubjectCode.nullable(), archived: z.boolean() }).partial().openapi("SubjectChanges");
 export type SubjectChanges = z.infer<typeof SubjectChangesSchema>;
 
-// --- Elective groups, offerings and mark components ----------------------------------------------------
+// --- Elective groups and offerings ----------------------------------------------------
 
 const GroupName = z.string().trim().min(1, "Give the group a name").max(60, "Keep the name to 60 characters");
 const PickCount = z.number().int("How many to pick is a whole number").min(1, "Pick at least one").max(10, "Pick at most 10");
@@ -280,37 +333,43 @@ export type GroupChanges = z.infer<typeof GroupChangesSchema>;
 /** Credit hours in whole hundredths: 375 means 3.75. */
 const Credit = z.number().int("Credit hours are whole hundredths").min(1, "Credit hours must be more than zero").max(10000, "Credit hours are at most 100");
 
+/** Marks in whole hundredths: 7500 means 75. A paper's full marks; the practical's share of them. */
+const FullMarks = z.number().int("Marks are whole hundredths").min(100, "Full marks are at least 1").max(100000, "Full marks are at most 1000");
+const PracticalMarks = z.number().int("Marks are whole hundredths").min(100, "The practical is at least 1 mark");
+
+const practicalFits = (b: { fullMarksHundredths?: number; practicalHundredths?: number | null }) =>
+  b.practicalHundredths === null || b.practicalHundredths === undefined || b.practicalHundredths < (b.fullMarksHundredths ?? 10_000);
+
 export const CreateOfferingSchema = z
-  .strictObject({ levelId: PublicIdSchema, subjectId: PublicIdSchema, creditHundredths: Credit.nullable().optional(), groupId: PublicIdSchema.nullable().optional() })
+  .strictObject({
+    levelId: PublicIdSchema,
+    subjectId: PublicIdSchema,
+    creditHundredths: Credit.nullable().optional(),
+    groupId: PublicIdSchema.nullable().optional(),
+    /** The paper's full marks (default 100). */
+    fullMarksHundredths: FullMarks.optional(),
+    /** "This subject has a practical": the practical's share of the full marks (75/25 is 2500). Null or absent: none. */
+    practicalHundredths: PracticalMarks.nullable().optional(),
+  })
+  .refine(practicalFits, { message: "The practical must be less than the full marks", path: ["practicalHundredths"] })
   .openapi("CreateOffering");
 export type OfferingInput = z.input<typeof CreateOfferingSchema>;
 
-/** `creditHundredths: null` takes the credit hours away, and `groupId: null` takes the subject out of its group. */
-export const OfferingChangesSchema = z.strictObject({ creditHundredths: Credit.nullable(), groupId: PublicIdSchema.nullable(), active: z.boolean() }).partial().openapi("OfferingChanges");
+/**
+ * `creditHundredths: null` takes the credit hours away, `groupId: null` takes the subject out of its group, and
+ * `practicalHundredths: null` takes the practical away. The full marks and the practical are checked together by the service.
+ */
+export const OfferingChangesSchema = z
+  .strictObject({ creditHundredths: Credit.nullable(), groupId: PublicIdSchema.nullable(), active: z.boolean(), fullMarksHundredths: FullMarks, practicalHundredths: PracticalMarks.nullable() })
+  .partial()
+  .openapi("OfferingChanges");
 export type OfferingChanges = z.infer<typeof OfferingChangesSchema>;
-
-const ComponentName = z.string().trim().min(1, "Give the component a name").max(60, "Keep the name to 60 characters");
-/** Maximum marks in whole hundredths: 7500 means 75. */
-const MaxMarks = z.number().int("Maximum marks are whole hundredths").min(1, "The maximum must be more than zero").max(100000, "The maximum is at most 1000");
-
-/** Theory or practical (an internal assessment counts as practical): NEB's pass mark differs between them (D-079). */
-const ComponentKind = z.enum(["theory", "practical"]);
-
-export const CreateComponentSchema = z.strictObject({ name: ComponentName, maxHundredths: MaxMarks, kind: ComponentKind.default("theory") }).openapi("CreateComponent");
-export type ComponentInput = z.input<typeof CreateComponentSchema>;
-
-export const ComponentChangesSchema = z.strictObject({ name: ComponentName, maxHundredths: MaxMarks, kind: ComponentKind, active: z.boolean() }).partial().openapi("ComponentChanges");
-export type ComponentChanges = z.infer<typeof ComponentChangesSchema>;
 
 // --- What the subject screens read -------------------------------------------------------------------
 
 export const SubjectSchema = z.object({ id: z.string(), name: z.string(), code: z.string().nullable(), archived: z.boolean() }).openapi("Subject");
 export const SubjectListSchema = z.object({ subjects: z.array(SubjectSchema) }).openapi("SubjectList");
 export type SubjectList = z.infer<typeof SubjectListSchema>;
-
-export const CurriculumComponentSchema = z
-  .object({ id: z.string(), name: z.string(), maxHundredths: z.number().int(), kind: ComponentKind, ordinal: z.number().int(), active: z.boolean() })
-  .openapi("CurriculumComponent");
 
 export const CurriculumOfferingSchema = z
   .object({
@@ -320,13 +379,16 @@ export const CurriculumOfferingSchema = z
     creditHundredths: z.number().int().nullable(),
     group: z.object({ id: z.string(), name: z.string() }).nullable(),
     active: z.boolean(),
-    components: z.array(CurriculumComponentSchema),
+    /** The paper's full marks, whole hundredths. */
+    fullMarksHundredths: z.number().int(),
+    /** The practical's share of the full marks; null when the subject has no practical. */
+    practicalHundredths: z.number().int().nullable(),
   })
   .openapi("CurriculumOffering");
 
 export const CurriculumGroupSchema = z.object({ id: z.string(), name: z.string(), pickCount: z.number().int(), active: z.boolean() }).openapi("CurriculumGroup");
 
-/** One level's elective groups, subjects and mark components, in one answer. */
+/** One level's elective groups and subjects (each with its paper), in one answer. */
 export const CurriculumSchema = z
   .object({
     level: z.object({ id: z.string(), name: z.string(), programmeId: z.string(), programmeName: z.string() }),

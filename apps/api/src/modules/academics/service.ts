@@ -4,6 +4,7 @@ export * from "./programmes";
 export * from "./sections";
 export * from "./removal";
 export * from "./classes";
+export * from "./exam-pattern";
 export * from "./subjects";
 export * from "./curriculum";
 export * from "./teaching";

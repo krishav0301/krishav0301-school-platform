@@ -8,7 +8,7 @@ import { useConfig } from "@/config/ConfigProvider";
 import { useAddressQuery } from "@/content/address";
 import { t, type MessageKey } from "@/i18n/messages";
 import { useSession } from "@/session/SessionProvider";
-import { AddDialog, Badge, Button, Field, Notice, Select, Skeleton, TitleRow } from "@/ui";
+import { AddDialog, Badge, Button, Field, Notice, Skeleton, TitleRow } from "@/ui";
 
 import {
   addLevel,
@@ -47,12 +47,6 @@ type Tone = "primary" | "ok" | "accent" | "warn";
 const TONES: readonly Tone[] = ["primary", "ok", "accent", "warn"];
 const toneAt = (index: number): Tone => TONES[index % TONES.length]!;
 
-const POLICY_LABEL: Record<NonNullable<Programme["gradingPolicy"]> | "none", MessageKey> = {
-  none: "setup.grading.none",
-  neb_gpa: "setup.grading.neb",
-  percentage_division: "setup.grading.percentage",
-};
-
 const count = (n: number) => n.toLocaleString("en-IN");
 
 /** The school's words in the middle of a sentence: "sections, programmes and levels". */
@@ -68,7 +62,7 @@ export interface StructureActions {
   addSection: (values: SectionValues) => Promise<boolean>;
   editSection: (section: Section, values: SectionValues) => Promise<boolean>;
   addProgramme: (sectionKey: string, values: { name: string; affiliation: string }) => Promise<boolean>;
-  editProgramme: (programme: Programme, values: { name: string; affiliation: string; gradingPolicy: Programme["gradingPolicy"] }) => Promise<boolean>;
+  editProgramme: (programme: Programme, values: { name: string; affiliation: string }) => Promise<boolean>;
   setProgrammeActive: (programme: Programme, active: boolean) => Promise<boolean>;
   addLevel: (programme: Programme, name: string) => Promise<boolean>;
   renameLevel: (level: Level, name: string) => Promise<boolean>;
@@ -262,11 +256,10 @@ function SectionForm({ words, initial, submitLabel, onSave, children }: { words:
   );
 }
 
-/** A programme's name, affiliation and grading: for adding one to a section, and for editing it. */
-function ProgrammeFields({ words, initial, withGrading, submitLabel, onSave, children }: { words: Words; initial?: Programme; withGrading: boolean; submitLabel: string; onSave: (values: { name: string; affiliation: string; gradingPolicy: Programme["gradingPolicy"] }) => Promise<boolean>; children?: ReactNode }) {
+/** A programme's name and affiliation: for adding one to a section, and for editing it. (Grading is the term's exam pattern, D-114.) */
+function ProgrammeFields({ words, initial, submitLabel, onSave, children }: { words: Words; initial?: Programme; submitLabel: string; onSave: (values: { name: string; affiliation: string }) => Promise<boolean>; children?: ReactNode }) {
   const [name, setName] = useState(initial?.name ?? "");
   const [affiliation, setAffiliation] = useState(initial?.affiliation ?? "");
-  const [policy, setPolicy] = useState<Programme["gradingPolicy"]>(initial?.gradingPolicy ?? null);
   const [errors, setErrors] = useState<{ name?: MessageKey; affiliation?: MessageKey }>({});
   const [saving, setSaving] = useState(false);
 
@@ -279,7 +272,7 @@ function ProgrammeFields({ words, initial, withGrading, submitLabel, onSave, chi
     setErrors(found);
     if (Object.keys(found).length > 0) return;
     setSaving(true);
-    const saved = await onSave({ name: name.trim(), affiliation: affiliation.trim(), gradingPolicy: policy });
+    const saved = await onSave({ name: name.trim(), affiliation: affiliation.trim() });
     setSaving(false);
     if (saved && !initial) {
       setName("");
@@ -299,19 +292,6 @@ function ProgrammeFields({ words, initial, withGrading, submitLabel, onSave, chi
         onChange={(event) => setAffiliation(event.target.value)}
         error={errors.affiliation ? t(errors.affiliation, words) : undefined}
       />
-      {withGrading ? (
-        <Select
-          label={t("setup.programmes.grading")}
-          hint={t("setup.programmes.gradingHint")}
-          value={policy ?? ""}
-          onChange={(event) => setPolicy(event.target.value === "neb_gpa" || event.target.value === "percentage_division" ? event.target.value : null)}
-          options={[
-            { value: "", label: t(POLICY_LABEL.none) },
-            { value: "neb_gpa", label: t(POLICY_LABEL.neb_gpa) },
-            { value: "percentage_division", label: t(POLICY_LABEL.percentage_division) },
-          ]}
-        />
-      ) : null}
       <div className={styles.formActions}>
         {children}
         <Button type="submit" loading={saving} loadingLabel={t("setup.working")}>
@@ -441,7 +421,7 @@ function ProgrammeCard({ programme, index, open, onToggle, words, student, canMa
             {programme.active ? null : <Badge>{t("setup.programmes.off")}</Badge>}
           </div>
           <p className={styles.meta}>
-            {levelsText(levelsOn, words.level)} · {studentsText(programme.students, student)} · {t(POLICY_LABEL[programme.gradingPolicy ?? "none"])}
+            {levelsText(levelsOn, words.level)} · {studentsText(programme.students, student)}
           </p>
         </div>
         <div className={styles.headActions}>
@@ -450,7 +430,7 @@ function ProgrammeCard({ programme, index, open, onToggle, words, student, canMa
               {(close) => (
                 <>
                   <DialogFailure />
-                  <ProgrammeFields words={words} initial={programme} withGrading submitLabel={t("structure.saveChanges")} onSave={async (values) => (await actions.editProgramme(programme, values)) && (close(), true)}>
+                  <ProgrammeFields words={words} initial={programme} submitLabel={t("structure.saveChanges")} onSave={async (values) => (await actions.editProgramme(programme, values)) && (close(), true)}>
                     <SwitchButton active={programme.active} name={programme.name} onSwitch={async () => (await actions.setProgrammeActive(programme, !programme.active)) && (close(), true)} />
                   </ProgrammeFields>
                   <DeleteControl name={programme.name} canDelete={programme.canDelete} blocked="structure.programmeInUse" onDelete={async () => (await actions.deleteProgramme(programme)) && (close(), true)} />
@@ -544,7 +524,7 @@ function SectionCard({ section, index, programmes, open, isOpen, onToggle, words
                 {(close) => (
                   <>
                     <DialogFailure />
-                    <ProgrammeFields words={words} withGrading={false} submitLabel={t("setup.programmes.add", words)} onSave={async (values) => (await actions.addProgramme(section.key, values)) && (close(), true)} />
+                    <ProgrammeFields words={words} submitLabel={t("setup.programmes.add", words)} onSave={async (values) => (await actions.addProgramme(section.key, values)) && (close(), true)} />
                   </>
                 )}
               </AddDialog>

@@ -2,7 +2,7 @@ import { beforeAll, describe, expect, it } from "vitest";
 
 import { verifyAuditChain } from "../src/core/audit";
 import { auditKey, call, count, db, person, seedSections, type Person } from "./academics-helpers";
-import { addSubject, enterAndSubmit, resultsClass, sheetIdOf, terminal, type Subject } from "./results-helpers";
+import { addSubject, enterAndSubmit, examTerm, pattern, resultsClass, sheetIdOf, type Subject, type Term } from "./results-helpers";
 import { setModule, type ClassFixture } from "./schoolday-helpers";
 
 /**
@@ -10,14 +10,17 @@ import { setModule, type ClassFixture } from "./schoolday-helpers";
  * rank only for students, ranked per section, only after the class is published; published marks cards are snapshots.
  * Section 9: ties share a rank; the Admin is told of every post-publish change, with a required reason; Top 20 is shown
  * to students. Source 6.3: the whole-class sheet with totals and rank, exportable. Source 6.9: a recheck button on a
- * published mark, the Co-ordinator notified and able to edit and republish, the student told of any change. Also the
- * grading policy on a programme and the kind of a mark component (slice 1, D-079), set through the real routes.
+ * published mark, the Co-ordinator notified and able to edit and republish, the student told of any change. On the exam
+ * pattern (D-114): the Top 20 ranks the final result only; a recheck makes the next version of the terminal's card and
+ * of the final's. Also the exam pattern and a subject's paper, set through the real routes. One terminal of weight 100
+ * here, so each publish is also the class's final result.
  */
 
 let coordinator: Person, bachelorsCoordinator: Person, admin: Person;
 let fixture: ClassFixture, sibling: ClassFixture, bachelors: ClassFixture;
 let maths: Subject, siblingMaths: Subject;
 let term: string;
+let examsTerm: Term;
 let publicationId: string;
 
 const post = (path: string, body: unknown, who: Person) => call(path, { method: "POST", body, cookie: who.cookie });
@@ -25,7 +28,9 @@ const publish = async (cls: ClassFixture, subjects: Subject[]) => {
   await post("/api/results/review/verify", { sheetIds: await Promise.all(subjects.map((s) => sheetIdOf(cls, s, term))) }, coordinator);
   const response = await post(`/api/results/classes/${cls.classId}/publish`, { terminalId: term }, coordinator);
   if (response.status !== 201) throw new Error(`publish ${response.status} ${await response.text()}`);
-  return ((await response.json()) as { publicationId: string }).publicationId;
+  const body = (await response.json()) as { publicationId: string; finalPublicationId: string | null };
+  if (!body.finalPublicationId) throw new Error("the one terminal is the last: the final should come with it");
+  return body.publicationId;
 };
 
 beforeAll(async () => {
@@ -33,14 +38,15 @@ beforeAll(async () => {
   coordinator = await person("coordinator", "institution");
   bachelorsCoordinator = await person("coordinator", "section", "bachelors");
   admin = await person("admin", "institution");
-  term = await terminal(true);
+  examsTerm = await examTerm(pattern(false, [{ name: "Final", weight: 100, hasPractical: false }]));
+  term = examsTerm.terminals[0]!;
   // Two +2 classes of the same level ordinal (Grade 11 of two programmes), and a Bachelor's class.
-  fixture = await resultsClass("plus2", 4, "percentage_division");
-  sibling = await resultsClass("plus2", 2, "percentage_division");
-  bachelors = await resultsClass("bachelors", 1, "percentage_division");
-  maths = await addSubject(fixture, [[100, "theory"]]);
-  siblingMaths = await addSubject(sibling, [[100, "theory"]]);
-  const bachelorsMaths = await addSubject(bachelors, [[100, "theory"]], { section: "bachelors" });
+  fixture = await resultsClass("plus2", 4, examsTerm);
+  sibling = await resultsClass("plus2", 2, examsTerm);
+  bachelors = await resultsClass("bachelors", 1, examsTerm);
+  maths = await addSubject(fixture);
+  siblingMaths = await addSubject(sibling);
+  const bachelorsMaths = await addSubject(bachelors, {}, { section: "bachelors" });
   // Percentages: 90, 80, 80, 20 (fails); the sibling class 85 and 70; the Bachelor's student 99.
   await enterAndSubmit(fixture, maths, term, (p) => [90, 80, 80, 20][p]!);
   await enterAndSubmit(sibling, siblingMaths, term, (p) => [85, 70][p]!);
@@ -49,31 +55,36 @@ beforeAll(async () => {
   await publish(bachelors, [bachelorsMaths]);
 });
 
-describe("setup: the grading policy and component kinds (slice 1)", () => {
-  it("the Admin sets a programme's grading policy (D-087); the Co-ordinator cannot; it shows in the programme list", async () => {
-    const list = (await (await call("/api/academics/programmes", { cookie: coordinator.cookie })).json()) as { programmes: { id: string; levels: { id: string }[]; gradingPolicy: string | null }[] };
-    const programme = list.programmes.find((p) => p.levels.some((l) => l.id === fixture.levelId))!;
-    expect(programme.gradingPolicy).toBe("percentage_division");
-    expect((await call(`/api/academics/programmes/${programme.id}`, { method: "PATCH", body: { gradingPolicy: "neb_gpa" }, cookie: admin.cookie })).status).toBe(200);
-    expect((await call(`/api/academics/programmes/${programme.id}`, { method: "PATCH", body: { gradingPolicy: "letters" }, cookie: admin.cookie })).status).toBe(400);
-    expect((await call(`/api/academics/programmes/${programme.id}`, { method: "PATCH", body: { gradingPolicy: "percentage_division" }, cookie: coordinator.cookie })).status).toBe(403);
-    expect(await count("SELECT COUNT(*) AS n FROM audit_events WHERE action = 'academics.programme.updated' AND entity_public_id = ?1 AND after_json LIKE '%neb_gpa%'", programme.id)).toBe(1);
-    await call(`/api/academics/programmes/${programme.id}`, { method: "PATCH", body: { gradingPolicy: "percentage_division" }, cookie: admin.cookie });
+describe("setup through the real routes: the exam pattern and a subject's paper (D-114)", () => {
+  it("the Co-ordinator reads and makes a term's pattern; the Admin reads it but cannot change it; marks lock it", async () => {
+    const read = (await (await call(`/api/academics/years/${examsTerm.yearId}/exam-pattern`, { cookie: admin.cookie })).json()) as { pattern: { graded: boolean }; terminals: { weight: number }[]; locked: boolean };
+    expect(read).toMatchObject({ pattern: { graded: false }, terminals: [{ weight: 100 }], locked: true });
+    expect((await call(`/api/academics/years/${examsTerm.yearId}/exam-pattern`, { method: "PUT", body: pattern(true), cookie: admin.cookie })).status).toBe(403);
+    expect((await call(`/api/academics/years/${examsTerm.yearId}/exam-pattern`, { method: "PUT", body: pattern(true), cookie: coordinator.cookie })).status).toBe(409);
+    const fresh = await examTerm(pattern(false));
+    expect((await call(`/api/academics/years/${fresh.yearId}/exam-pattern`, { method: "PUT", body: { ...pattern(false), terminals: [{ name: "Only", weight: 90, hasPractical: false }] }, cookie: coordinator.cookie })).status).toBe(422);
+    expect((await call(`/api/academics/years/${fresh.yearId}/exam-pattern`, { method: "PUT", body: { ...pattern(false), extra: 1 }, cookie: coordinator.cookie })).status).toBe(400);
+    expect((await call(`/api/academics/years/${fresh.yearId}/exam-pattern`, { method: "PUT", body: pattern(true), cookie: coordinator.cookie })).status).toBe(200);
   });
 
-  it("a mark component is theory or practical", async () => {
-    const offering = (await (await call(`/api/academics/offerings/${maths.offeringId}/components`, { method: "POST", body: { name: "Lab", maxHundredths: 2500, kind: "practical" }, cookie: coordinator.cookie })).json()) as { id: string };
-    const curriculum = (await (await call(`/api/academics/curriculum?level=${fixture.levelId}`, { cookie: coordinator.cookie })).json()) as { offerings: { id: string; components: { id: string; kind: string }[] }[] };
-    expect(curriculum.offerings.find((o) => o.id === maths.offeringId)!.components.find((c) => c.id === offering.id)!.kind).toBe("practical");
-    expect((await call(`/api/academics/components/${offering.id}`, { method: "PATCH", body: { kind: "theory", active: false }, cookie: coordinator.cookie })).status).toBe(200);
+  it("a subject's paper shows in the curriculum and the Co-ordinator changes it", async () => {
+    expect((await call(`/api/academics/offerings/${maths.offeringId}`, { method: "PATCH", body: { practicalHundredths: 2500 }, cookie: coordinator.cookie })).status).toBe(200);
+    const curriculum = (await (await call(`/api/academics/curriculum?level=${fixture.levelId}`, { cookie: coordinator.cookie })).json()) as { offerings: { id: string; fullMarksHundredths: number; practicalHundredths: number | null }[] };
+    expect(curriculum.offerings.find((o) => o.id === maths.offeringId)).toMatchObject({ fullMarksHundredths: 10000, practicalHundredths: 2500 });
+    expect((await call(`/api/academics/offerings/${maths.offeringId}`, { method: "PATCH", body: { practicalHundredths: 10000 }, cookie: coordinator.cookie })).status).toBe(422);
+    expect((await call(`/api/academics/offerings/${maths.offeringId}`, { method: "PATCH", body: { practicalHundredths: null }, cookie: admin.cookie })).status).toBe(403);
+    expect((await call(`/api/academics/offerings/${maths.offeringId}`, { method: "PATCH", body: { practicalHundredths: null }, cookie: coordinator.cookie })).status).toBe(200);
   });
 });
 
 describe("the student's own results", () => {
-  it("shows each published result with its marks card, from the snapshot", async () => {
-    const own = (await (await call("/api/results/me", { cookie: fixture.pupils[0]!.person.cookie })).json()) as { results: { publicationId: string; card: { version: number; body: { percentHundredths: number; outcome: string; student: { sid: string } } } }[] };
-    expect(own.results).toHaveLength(1);
-    expect(own.results[0]!.card).toMatchObject({ version: 1, body: { percentHundredths: 9000, outcome: "Distinction" } });
+  it("shows the terminal's card and the final's, final first, from the snapshots", async () => {
+    const own = (await (await call("/api/results/me", { cookie: fixture.pupils[0]!.person.cookie })).json()) as { results: { kind: string; terminalName: string | null; card: { version: number; body: { kind: string; percentHundredths: number; outcome: string } } }[] };
+    expect(own.results.map((r) => [r.kind, r.terminalName])).toEqual([["final", null], ["terminal", "Final"]]);
+    expect(own.results[0]!.card).toMatchObject({ version: 1, body: { kind: "final", percentHundredths: 9000, outcome: "Pass" } });
+    expect(own.results[1]!.card).toMatchObject({ version: 1, body: { kind: "terminal", percentHundredths: 9000, outcome: "90.00%" } });
+    const failed = (await (await call("/api/results/me", { cookie: fixture.pupils[3]!.person.cookie })).json()) as { results: { card: { body: { outcome: string } } }[] };
+    expect(failed.results[0]!.card.body.outcome).toBe("Fail");
   });
 
   it("a student never reaches another's card, the class sheet or the recheck list", async () => {
@@ -95,16 +106,24 @@ describe("the student's own results", () => {
 });
 
 describe("the whole-class sheet", () => {
-  it("lists students by subject with the result and the rank in the class, ties sharing", async () => {
-    const sheet = (await (await call(`/api/results/classes/${fixture.classId}/terminals/${term}/sheet`, { cookie: coordinator.cookie })).json()) as { students: { enrollmentId: string; rank: number | null; outcome: string }[] };
-    const rank = (i: number) => sheet.students.find((s) => s.enrollmentId === fixture.pupils[i]!.enrollmentId)!.rank;
-    expect([rank(0), rank(1), rank(2), rank(3)]).toEqual([1, 2, 2, null]);
+  it("the final's sheet lists students by subject with the result and the rank in the class, ties sharing; a fail is not ranked", async () => {
+    const sheet = (await (await call(`/api/results/classes/${fixture.classId}/final/sheet`, { cookie: coordinator.cookie })).json()) as { terminal: null; students: { enrollmentId: string; rank: number | null; passed: boolean }[] };
+    expect(sheet.terminal).toBeNull();
+    const row = (i: number) => sheet.students.find((s) => s.enrollmentId === fixture.pupils[i]!.enrollmentId)!;
+    expect([0, 1, 2, 3].map((i) => row(i).rank)).toEqual([1, 2, 2, null]);
+    expect(row(3).passed).toBe(false);
+  });
+
+  it("a terminal's sheet is for information: no rank, no pass or fail", async () => {
+    const sheet = (await (await call(`/api/results/classes/${fixture.classId}/terminals/${term}/sheet`, { cookie: coordinator.cookie })).json()) as { students: { rank: number | null; passed: boolean | null; percentHundredths: number }[] };
+    expect(sheet.students.every((s) => s.rank === null && s.passed === null)).toBe(true);
+    expect(sheet.students.map((s) => s.percentHundredths)).toEqual([9000, 8000, 8000, 2000]);
   });
 
   it("exports as CSV with no spreadsheet formulas", async () => {
     await db.prepare("UPDATE students SET first_name = '=cmd' WHERE public_id = ?1").bind(fixture.pupils[3]!.studentId).run();
     // The card is a snapshot: the name on it was taken at publish, so the CSV still shows the old name.
-    const csv = await (await call(`/api/results/classes/${fixture.classId}/terminals/${term}/sheet.csv`, { cookie: admin.cookie })).text();
+    const csv = await (await call(`/api/results/classes/${fixture.classId}/final/sheet.csv`, { cookie: admin.cookie })).text();
     expect(csv.split("\r\n")[0]).toContain('"Rank","SID","Student"');
     expect(csv).not.toMatch(/(^|,)"?=/m);
     expect(csv.split("\r\n").filter(Boolean)).toHaveLength(5);
@@ -112,15 +131,16 @@ describe("the whole-class sheet", () => {
 
   it("does not exist before the class is published", async () => {
     expect((await call(`/api/results/classes/${sibling.classId}/terminals/${term}/sheet`, { cookie: coordinator.cookie })).status).toBe(404);
+    expect((await call(`/api/results/classes/${sibling.classId}/final/sheet`, { cookie: coordinator.cookie })).status).toBe(404);
   });
 });
 
-describe("the Top 20", () => {
-  it("a student sees their own section and level only, name and rank only, and only once their class is published", async () => {
+describe("the Top 20, on the final result only", () => {
+  it("a student sees their own section and level only, name and rank only, and only once their class's final is out", async () => {
     const siblingStudent = sibling.pupils[0]!.person;
-    const before = (await (await call(`/api/results/top20?terminalId=${term}`, { cookie: siblingStudent.cookie })).json()) as { pools: unknown[] };
+    const before = (await (await call(`/api/results/top20`, { cookie: siblingStudent.cookie })).json()) as { pools: unknown[] };
     expect(before.pools).toHaveLength(0);
-    const mine = (await (await call(`/api/results/top20?terminalId=${term}`, { cookie: fixture.pupils[3]!.person.cookie })).json()) as { pools: { entries: Record<string, unknown>[] }[] };
+    const mine = (await (await call(`/api/results/top20`, { cookie: fixture.pupils[3]!.person.cookie })).json()) as { pools: { entries: Record<string, unknown>[] }[] };
     expect(mine.pools).toHaveLength(1);
     expect(mine.pools[0]!.entries.map((e) => e.rank)).toEqual([1, 2, 2]);
     for (const entry of mine.pools[0]!.entries) expect(Object.keys(entry).sort()).toEqual(["name", "rank"]);
@@ -128,15 +148,15 @@ describe("the Top 20", () => {
 
   it("ranks the same level across the section's classes once each is published; the Bachelor's student is never in it", async () => {
     await publish(sibling, [siblingMaths]);
-    const list = (await (await call(`/api/results/top20?terminalId=${term}`, { cookie: fixture.pupils[0]!.person.cookie })).json()) as { pools: { entries: { rank: number; name: string }[] }[] };
+    const list = (await (await call(`/api/results/top20`, { cookie: fixture.pupils[0]!.person.cookie })).json()) as { pools: { entries: { rank: number; name: string }[] }[] };
     expect(list.pools[0]!.entries.map((e) => e.rank)).toEqual([1, 2, 3, 3, 5]); // 90, 85, 80, 80, 70
   });
 
   it("staff see every list in reach with the class and score", async () => {
-    const all = (await (await call(`/api/results/top20?terminalId=${term}`, { cookie: coordinator.cookie })).json()) as { pools: { sectionName: string; entries: { score?: number; className?: string }[] }[] };
+    const all = (await (await call(`/api/results/top20`, { cookie: coordinator.cookie })).json()) as { pools: { sectionName: string; entries: { score?: number; className?: string }[] }[] };
     expect(all.pools.length).toBeGreaterThanOrEqual(2);
     expect(all.pools.every((p) => p.entries.every((e) => typeof e.score === "number" && typeof e.className === "string"))).toBe(true);
-    const bachelorsOnly = (await (await call(`/api/results/top20?terminalId=${term}`, { cookie: bachelorsCoordinator.cookie })).json()) as { pools: { sectionName: string }[] };
+    const bachelorsOnly = (await (await call(`/api/results/top20`, { cookie: bachelorsCoordinator.cookie })).json()) as { pools: { sectionName: string }[] };
     expect(bachelorsOnly.pools.every((p) => p.sectionName === "Bachelor's")).toBe(true);
   });
 
@@ -180,16 +200,18 @@ describe("rechecks", () => {
   it("changed: the marks are corrected and the next card version is made in one batch, with the reason; the first card is kept", async () => {
     const response = await post(
       `/api/results/rechecks/${recheckId}/decide`,
-      { outcome: "changed", reason: "Question 4 was not added", marks: [{ componentId: maths.components[0]!.id, valueHundredths: 9500 }] },
+      { outcome: "changed", reason: "Question 4 was not added", marks: [{ componentId: "theory", valueHundredths: 9500 }] },
       coordinator,
     );
     expect(response.status).toBe(200);
     const own = (await (await call("/api/results/me", { cookie: fixture.pupils[1]!.person.cookie })).json()) as { results: { card: { version: number; reason: string; body: { percentHundredths: number } }; rechecks: { status: string; decisionReason: string }[] }[] };
+    // The final first, then the terminal: both have a second version with the reason.
     expect(own.results[0]!.card).toMatchObject({ version: 2, reason: "Question 4 was not added", body: { percentHundredths: 9500 } });
-    expect(own.results[0]!.rechecks[0]).toMatchObject({ status: "changed", decisionReason: "Question 4 was not added" });
-    expect(await count("SELECT COUNT(*) AS n FROM marks_cards mc JOIN enrollments en ON en.id = mc.enrollment_id WHERE en.public_id = ?1", fixture.pupils[1]!.enrollmentId)).toBe(2);
-    // The class sheet and the Top 20 now read the new version: pupil 1 is first.
-    const sheet = (await (await call(`/api/results/classes/${fixture.classId}/terminals/${term}/sheet`, { cookie: coordinator.cookie })).json()) as { students: { enrollmentId: string; rank: number; version: number }[] };
+    expect(own.results[1]!.card).toMatchObject({ version: 2, reason: "Question 4 was not added", body: { percentHundredths: 9500 } });
+    expect(own.results[1]!.rechecks[0]).toMatchObject({ status: "changed", decisionReason: "Question 4 was not added" });
+    expect(await count("SELECT COUNT(*) AS n FROM marks_cards mc JOIN enrollments en ON en.id = mc.enrollment_id WHERE en.public_id = ?1", fixture.pupils[1]!.enrollmentId)).toBe(4);
+    // The final's class sheet and the Top 20 now read the new version: pupil 1 is first.
+    const sheet = (await (await call(`/api/results/classes/${fixture.classId}/final/sheet`, { cookie: coordinator.cookie })).json()) as { students: { enrollmentId: string; rank: number; version: number }[] };
     expect(sheet.students.find((s) => s.enrollmentId === fixture.pupils[1]!.enrollmentId)).toMatchObject({ rank: 1, version: 2 });
   });
 
@@ -223,7 +245,7 @@ describe("rechecks", () => {
     const id = ((await made.json()) as { id: string }).id;
     expect((await post(`/api/results/rechecks/${id}/decide`, { outcome: "unchanged", reason: "" }, coordinator)).status).toBe(400);
     expect((await post(`/api/results/rechecks/${id}/decide`, { outcome: "unchanged", reason: "Marks are correct" }, coordinator)).status).toBe(200);
-    expect(await count("SELECT COUNT(*) AS n FROM marks_cards mc JOIN enrollments en ON en.id = mc.enrollment_id WHERE en.public_id = ?1", fixture.pupils[2]!.enrollmentId)).toBe(1);
+    expect(await count("SELECT COUNT(*) AS n FROM marks_cards mc JOIN enrollments en ON en.id = mc.enrollment_id WHERE en.public_id = ?1", fixture.pupils[2]!.enrollmentId)).toBe(2);
     await expect(db.prepare("UPDATE marks SET value_hundredths = 0 WHERE enrollment_id = (SELECT id FROM enrollments WHERE public_id = ?1)").bind(fixture.pupils[2]!.enrollmentId).run()).rejects.toThrow(/draft/);
   });
 

@@ -2,7 +2,8 @@ import { beforeAll, describe, expect, it } from "vitest";
 
 import { verifyAuditChain } from "../src/core/audit";
 import { bsToAd, daysInMonth } from "../src/core/dates";
-import { addLevel, createClass, createProgramme, createTerminal, createYear, updateClass, updateLevel, updateTerminal } from "../src/modules/academics/service";
+import { newPublicId } from "../src/core/ids";
+import { addLevel, createClass, createProgramme, createYear, getExamPattern, saveExamPattern, updateClass, updateLevel } from "../src/modules/academics/service";
 import { auditActions, auditKey, count, db, person, seedSections, type Person, programmesAdmin } from "./academics-helpers";
 
 let coordinator: Person, plus2Coordinator: Person, bachelorsCoordinator: Person, admin: Person, accountant: Person, teacher: Person, student: Person;
@@ -174,61 +175,136 @@ describe("updateClass", () => {
 });
 
 // ---------------------------------------------------------------------------------------------
-describe("createTerminal", () => {
-  it("numbers terminals 1, 2, 3 in the order they are added, including several at once", async () => {
+/**
+ * The exam pattern (D-114), from the PM's rules: one per term, out of 100, made by the Co-ordinator; the terminals'
+ * weights add up to 100; each terminal holds the practical or not; Grade = Yes needs grade ranges; it can change until
+ * the first mark is entered in the term.
+ */
+const PATTERN = {
+  graded: false,
+  theoryMinPercent: 35,
+  practicalMinPercent: 40,
+  gradeBands: null,
+  terminals: [
+    { name: "First terminal", weight: 30, hasPractical: false },
+    { name: "Second terminal", weight: 30, hasPractical: true },
+    { name: "Final", weight: 40, hasPractical: true },
+  ],
+};
+const BANDS = [
+  { grade: "A", from: 80 },
+  { grade: "B", from: 60 },
+  { grade: "C", from: 35 },
+];
+
+describe("the exam pattern", () => {
+  it("is made once for a term with its terminals in order, and read back", async () => {
     const yearId = await newYear();
-    const results = await Promise.all(["First", "Second", "Third"].map((name) => createTerminal(db, auditKey, coordinator.publicId, { yearId, name })));
-    expect(results.every((r) => r.ok)).toBe(true);
-    const ordinals = (await db.prepare("SELECT t.ordinal FROM terminals t JOIN academic_years y ON y.id = t.academic_year_id WHERE y.public_id = ?1 ORDER BY t.ordinal").bind(yearId).all<{ ordinal: number }>()).results.map((r) => r.ordinal);
-    expect(ordinals).toEqual([1, 2, 3]);
+    expect(await getExamPattern(db, yearId)).toMatchObject({ pattern: null, terminals: [], locked: false });
+    expect(await saveExamPattern(db, auditKey, coordinator.publicId, yearId, PATTERN)).toEqual({ ok: true });
+    const read = await getExamPattern(db, yearId);
+    expect(read).toMatchObject({ pattern: { graded: false, theoryMinPercent: 35, practicalMinPercent: 40, gradeBands: null }, locked: false });
+    expect(read!.terminals.map((t) => [t.name, t.ordinal, t.weight, t.hasPractical])).toEqual([
+      ["First terminal", 1, 30, false],
+      ["Second terminal", 2, 30, true],
+      ["Final", 3, 40, true],
+    ]);
+    expect(await auditActions(yearId)).toContain("academics.exam_pattern.created");
   });
 
-  it("records who did it", async () => {
+  it("can be changed before marks: a kept terminal keeps its id, a new one is added, a missing one goes", async () => {
     const yearId = await newYear();
-    const r = await createTerminal(db, auditKey, coordinator.publicId, { yearId, name: "First terminal" });
-    if (!r.ok) throw new Error("setup failed");
-    expect(await auditActions(r.publicId)).toEqual(["academics.terminal.created"]);
+    await saveExamPattern(db, auditKey, coordinator.publicId, yearId, PATTERN);
+    const [first] = (await getExamPattern(db, yearId))!.terminals;
+    const changed = {
+      ...PATTERN,
+      graded: true,
+      gradeBands: BANDS,
+      terminals: [
+        { id: first!.id, name: "Mid-term", weight: 40, hasPractical: true },
+        { name: "Final", weight: 60, hasPractical: true },
+      ],
+    };
+    expect(await saveExamPattern(db, auditKey, coordinator.publicId, yearId, changed)).toEqual({ ok: true });
+    const read = (await getExamPattern(db, yearId))!;
+    expect(read.pattern).toMatchObject({ graded: true, gradeBands: BANDS });
+    expect(read.terminals.map((t) => [t.id === first!.id, t.name, t.weight])).toEqual([
+      [true, "Mid-term", 40],
+      [false, "Final", 60],
+    ]);
+    expect(await auditActions(yearId)).toContain("academics.exam_pattern.updated");
   });
 
-  it("belongs to the whole school: only an institution-wide Co-ordinator (or the Super Admin) may add one", async () => {
+  it("refuses weights that do not add up to 100, grade ranges out of place, and a terminal of another term", async () => {
+    const yearId = await newYear();
+    const before = [await terminals(), await audits()];
+    expect(await saveExamPattern(db, auditKey, coordinator.publicId, yearId, { ...PATTERN, terminals: PATTERN.terminals.slice(0, 2) })).toMatchObject({ ok: false, reason: "invalid", message: expect.stringMatching(/add up to 100/) });
+    expect(await saveExamPattern(db, auditKey, coordinator.publicId, yearId, { ...PATTERN, graded: true })).toMatchObject({ ok: false, reason: "invalid", message: expect.stringMatching(/grade ranges/) });
+    expect(await saveExamPattern(db, auditKey, coordinator.publicId, yearId, { ...PATTERN, gradeBands: BANDS })).toMatchObject({ ok: false, reason: "invalid" });
+    expect(await saveExamPattern(db, auditKey, coordinator.publicId, yearId, { ...PATTERN, terminals: [{ id: newPublicId(), name: "Final", weight: 100, hasPractical: false }] })).toMatchObject({ ok: false, reason: "invalid" });
+    expect([await terminals(), await audits()]).toEqual(before);
+  });
+
+  it("belongs to the whole school: only an institution-wide Co-ordinator (or the Super Admin) may make it", async () => {
     const yearId = await newYear();
     const before = [await terminals(), await audits()];
     for (const [name, who] of [["+2 Co-ordinator", plus2Coordinator], ["admin", admin], ["accountant", accountant], ["teacher", teacher], ["student", student]] as const) {
-      expect(await createTerminal(db, auditKey, who.publicId, { yearId, name: "First" }), name).toEqual({ ok: false, reason: "not_allowed" });
+      expect(await saveExamPattern(db, auditKey, who.publicId, yearId, PATTERN), name).toEqual({ ok: false, reason: "not_allowed" });
     }
     expect([await terminals(), await audits()]).toEqual(before);
   });
 
-  it("refuses an unknown year, a closed year, an empty name, and a 13th terminal", async () => {
-    expect(await createTerminal(db, auditKey, coordinator.publicId, { yearId: "0".repeat(32), name: "First" })).toEqual({ ok: false, reason: "not_found" });
-
+  it("refuses an unknown term and a closed one", async () => {
+    expect(await saveExamPattern(db, auditKey, coordinator.publicId, "0".repeat(32), PATTERN)).toEqual({ ok: false, reason: "not_found" });
     const closed = await newYear();
     await closeYear(closed);
-    const before = [await terminals(), await audits()];
-    expect(await createTerminal(db, auditKey, coordinator.publicId, { yearId: closed, name: "First" })).toEqual({ ok: false, reason: "year_closed" });
-    expect([await terminals(), await audits()]).toEqual(before);
-
-    const yearId = await newYear();
-    expect(await createTerminal(db, auditKey, coordinator.publicId, { yearId, name: " " })).toMatchObject({ ok: false, reason: "invalid" });
-    for (let n = 1; n <= 12; n++) expect((await createTerminal(db, auditKey, coordinator.publicId, { yearId, name: `T${n}` })).ok).toBe(true);
-    expect(await createTerminal(db, auditKey, coordinator.publicId, { yearId, name: "T13" })).toMatchObject({ ok: false, reason: "invalid", message: expect.stringMatching(/at most 12/) });
+    expect(await saveExamPattern(db, auditKey, coordinator.publicId, closed, PATTERN)).toEqual({ ok: false, reason: "year_closed" });
   });
-});
 
-describe("updateTerminal", () => {
-  it("renames a terminal; refuses the wrong person, a closed year, and an unknown id", async () => {
+  it("locks once marks are entered in the term, in the service and in the database", async () => {
     const yearId = await newYear();
-    const r = await createTerminal(db, auditKey, coordinator.publicId, { yearId, name: "First" });
-    if (!r.ok) throw new Error("setup failed");
+    const { levelId } = await newLevel();
+    const cls = await createClass(db, auditKey, coordinator.publicId, { yearId, levelId, label: "" });
+    if (!cls.ok) throw new Error("class setup failed");
+    await saveExamPattern(db, auditKey, coordinator.publicId, yearId, PATTERN);
+    const subjectId = newPublicId();
+    await db.prepare("INSERT INTO subjects (public_id, name) VALUES (?1, ?2)").bind(subjectId, `Lock subject ${subjectId.slice(0, 6)}`).run();
+    await db.prepare("INSERT INTO subject_offerings (public_id, level_id, subject_id) SELECT ?1, l.id, s.id FROM levels l, subjects s WHERE l.public_id = ?2 AND s.public_id = ?3").bind(newPublicId(), levelId, subjectId).run();
+    // A sheet is the first mark (the results module makes it with the first save).
+    await db
+      .prepare(
+        `INSERT INTO mark_sheets (public_id, class_id, offering_id, terminal_id, theory_max_hundredths, created_at, updated_at)
+         SELECT ?1, c.id, o.id, t.id, 10000, '2026-10-06T00:00:00Z', '2026-10-06T00:00:00Z'
+           FROM classes c JOIN subject_offerings o ON o.level_id = c.level_id JOIN terminals t ON t.academic_year_id = c.academic_year_id AND t.ordinal = 1
+          WHERE c.public_id = ?2`,
+      )
+      .bind(newPublicId(), cls.publicId)
+      .run();
+    expect((await getExamPattern(db, yearId))!.locked).toBe(true);
+    expect(await saveExamPattern(db, auditKey, coordinator.publicId, yearId, { ...PATTERN, graded: true, gradeBands: BANDS })).toEqual({ ok: false, reason: "locked" });
+    await expect(db.prepare("UPDATE exam_patterns SET graded = 1, grade_bands = '[]' WHERE academic_year_id = (SELECT id FROM academic_years WHERE public_id = ?1)").bind(yearId).run()).rejects.toThrow(/locked/);
+    await expect(db.prepare("UPDATE terminals SET weight = 50 WHERE academic_year_id = (SELECT id FROM academic_years WHERE public_id = ?1)").bind(yearId).run()).rejects.toThrow(/locked/);
+    await expect(db.prepare("DELETE FROM terminals WHERE academic_year_id = (SELECT id FROM academic_years WHERE public_id = ?1) AND ordinal = 1").bind(yearId).run()).rejects.toThrow(/locked/);
+  });
 
-    expect(await updateTerminal(db, auditKey, coordinator.publicId, r.publicId, { name: "First terminal" })).toEqual({ ok: true });
-    expect(await auditActions(r.publicId)).toEqual(["academics.terminal.created", "academics.terminal.updated"]);
-    expect(await updateTerminal(db, auditKey, plus2Coordinator.publicId, r.publicId, { name: "x" })).toEqual({ ok: false, reason: "not_allowed" });
-    expect(await updateTerminal(db, auditKey, coordinator.publicId, "0".repeat(32), { name: "x" })).toEqual({ ok: false, reason: "not_found" });
-
-    await closeYear(yearId);
-    expect(await updateTerminal(db, auditKey, coordinator.publicId, r.publicId, { name: "Late" })).toEqual({ ok: false, reason: "year_closed" });
-    expect(await db.prepare("SELECT name FROM terminals WHERE public_id = ?1").bind(r.publicId).first()).toEqual({ name: "First terminal" });
+  it("a term with no pattern takes no mark sheet", async () => {
+    const yearId = await newYear();
+    const { levelId } = await newLevel();
+    const cls = await createClass(db, auditKey, coordinator.publicId, { yearId, levelId, label: "" });
+    if (!cls.ok) throw new Error("class setup failed");
+    await db.prepare("INSERT INTO terminals (public_id, academic_year_id, name, ordinal) SELECT ?1, id, 'Old', 1 FROM academic_years WHERE public_id = ?2").bind(newPublicId(), yearId).run();
+    const subjectId = newPublicId();
+    await db.prepare("INSERT INTO subjects (public_id, name) VALUES (?1, ?2)").bind(subjectId, `No pattern ${subjectId.slice(0, 6)}`).run();
+    await db.prepare("INSERT INTO subject_offerings (public_id, level_id, subject_id) SELECT ?1, l.id, s.id FROM levels l, subjects s WHERE l.public_id = ?2 AND s.public_id = ?3").bind(newPublicId(), levelId, subjectId).run();
+    await expect(
+      db
+        .prepare(
+          `INSERT INTO mark_sheets (public_id, class_id, offering_id, terminal_id, theory_max_hundredths, created_at, updated_at)
+           SELECT ?1, c.id, o.id, t.id, 10000, 'x', 'x' FROM classes c JOIN subject_offerings o ON o.level_id = c.level_id JOIN terminals t ON t.academic_year_id = c.academic_year_id WHERE c.public_id = ?2`,
+        )
+        .bind(newPublicId(), cls.publicId)
+        .run(),
+    ).rejects.toThrow(/no exam pattern/);
   });
 });
 
