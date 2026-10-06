@@ -49,7 +49,7 @@ export const REPORT_GROUPS: { title: MessageKey; roles: readonly string[]; entri
     roles: EVERYONE,
     entries: [
       { href: "/portal/setup", icon: CalendarRange, title: "reports.years", detail: "reports.yearsDetail" },
-      { href: "/portal/setup/classes", icon: School, title: "reports.classes", detail: "reports.classesDetail" },
+      { href: "/portal/classes", icon: School, title: "reports.classes", detail: "reports.classesDetail" },
       { href: "/portal/setup/terminals", icon: CalendarClock, title: "reports.terminals", detail: "reports.terminalsDetail" },
       { href: "/portal/setup/subjects", icon: BookOpen, title: "reports.subjects", detail: "reports.subjectsDetail" },
       { href: "/portal/setup/curriculum", icon: ListChecks, title: "reports.curriculum", detail: "reports.curriculumDetail" },

@@ -60,7 +60,7 @@ describe("the class list, grouped (PM, 2026-10-06)", () => {
   ];
 
   it("names the course and its wing once, the level once, and each section under it; never the whole place on a row", () => {
-    const html = inContext(<ClassesBrowser classes={list} canManage={false} onChanged={() => {}} />);
+    const html = inContext(<ClassesBrowser classes={list} canManage={false} onChanged={() => {}} startOpen={["co1"]} />);
     expect(html).toMatch(/<h2[^>]*>Science<\/h2>/);
     expect(html.split(">Grade 11</h3>").length - 1).toBe(1); // the level heading once, for both of its sections (only Science is open)
     expect(html).not.toContain("+2 · Science · Grade 11 · Section A</");
@@ -69,12 +69,13 @@ describe("the class list, grouped (PM, 2026-10-06)", () => {
     expect(html).toContain("No Class Teacher yet");
   });
 
-  it("opens the first course and keeps the others closed, each with a labelled button that says so", () => {
+  it("starts with every course closed, as Academic structure does (the PM), each with a labelled button that says so", () => {
     const html = inContext(<ClassesBrowser classes={list} canManage={false} onChanged={() => {}} />);
-    expect(html).toContain('aria-label="Hide Science"');
+    expect(html).toContain('aria-label="Show Science"');
     expect(html).toContain('aria-label="Show Management"');
-    expect(html).not.toContain(">Section B</a>"); // inside the closed course
-    expect(html.match(/aria-expanded="true"/g)).toHaveLength(1);
+    expect(html).not.toContain(">Section A</a>");
+    expect(html).not.toContain(">Section B</a>");
+    expect(html).not.toMatch(/aria-expanded="true"/);
   });
 
   it("counts each course's sections, students and classes with no Class Teacher", () => {
@@ -84,8 +85,8 @@ describe("the class list, grouped (PM, 2026-10-06)", () => {
   });
 
   it("offers the Co-ordinator Add Section on each level; nobody else", () => {
-    expect(inContext(<ClassesBrowser classes={list} canManage onChanged={() => {}} />)).toContain(">Add Section<");
-    expect(inContext(<ClassesBrowser classes={list} canManage={false} onChanged={() => {}} />)).not.toContain(">Add Section<");
+    expect(inContext(<ClassesBrowser classes={list} canManage onChanged={() => {}} startOpen={["co1"]} />)).toContain(">Add Section<");
+    expect(inContext(<ClassesBrowser classes={list} canManage={false} onChanged={() => {}} startOpen={["co1"]} />)).not.toContain(">Add Section<");
   });
 
   it("each section opens its class, and its menu is labelled with where the class sits", () => {

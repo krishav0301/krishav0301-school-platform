@@ -1369,7 +1369,7 @@ export const en = {
   "reports.years": "Academic terms",
   "reports.yearsDetail": "Each term, its dates and its levels",
   "reports.classes": "Classes",
-  "reports.classesDetail": "Every class of a term",
+  "reports.classesDetail": "Every class by {programme}, {level} and section",
   "reports.terminals": "{terminal}s",
   "reports.terminalsDetail": "The exams of each term",
   "reports.subjects": "Subjects",

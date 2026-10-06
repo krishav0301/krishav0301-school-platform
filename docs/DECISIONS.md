@@ -1306,6 +1306,11 @@ The matrix lives in code (61 actions, 8 groups, from the reviewed `permission-ma
 - **Tested.** Web: `teaching-board.test.tsx` (11: the grouping per teacher, the missing subjects, the figures, one term, the filters, the page's figures and link, the four parts, no actions, cards first, "+n more"); 830 tests, typecheck, lint. **Not checked in the browser:** the page is the Principal's (authenticator code).
 - **Design review (`apple-design`):** `layout.md › Visual hierarchy` (the four parts in reading order; Class Teacher marked off as its own job), `lists-and-tables.md › Content` (succinct chips instead of a sentence), `color.md › Inclusive color` (every chip and figure in words; the crown is a mark, not the meaning), `accessibility.md › Mobility` (44 px toggle and "+n more").
 
+**D-125 Classes starts closed; Reports, Classes opens it.** 2026-10-06, the PM: "as we did in academic structure, like all things were collapsed same the classes should also be collapsed" and "Classes option in report should be redirected to the classes tab what we use redesigned". **No permission or data change.**
+- Every course on the Classes page starts closed (was: the first open, D-122); a search or filter still opens what matches.
+- Reports, Classes leads to `/portal/classes` (was Setup, Classes), described as "Every class by Course, Level and section" in the school's words.
+- **Tested.** Web: all closed at first, the content tests opening a course themselves (`classes-screens.test.tsx`); the Reports link (`settings-reports.test.tsx`); 831 tests, CI's typecheck, lint.
+
 ## Open items carried forward
 
 - ~~**Deploy D-108, D-110 and D-112 to staging.**~~ **Done 2026-10-05** (migrations 0027 to 0030, which staging had not had, and the Worker; restore point noted first).

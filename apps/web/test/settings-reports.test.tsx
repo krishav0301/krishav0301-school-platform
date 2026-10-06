@@ -85,4 +85,10 @@ describe("Reports (D-091)", () => {
     expect(html).toContain("Class result sheets");
     expect(html).not.toMatch(/#[0-9a-fA-F]{3,8}\b/);
   });
+
+  it("Classes opens the grouped Classes page, not the Setup list (the PM, 2026-10-06)", () => {
+    const html = render(<ReportsScreen />);
+    expect(html).toContain('href="/portal/classes"');
+    expect(html).not.toContain('href="/portal/setup/classes"');
+  });
 });
