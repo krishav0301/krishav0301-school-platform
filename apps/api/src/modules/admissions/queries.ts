@@ -166,6 +166,11 @@ interface StudentDetailRow {
   previous_school: string | null;
   status: string;
   class_name: string | null;
+  wing_name: string | null;
+  course_name: string | null;
+  level_name: string | null;
+  class_label: string | null;
+  term_label: string | null;
   created_at: string;
 }
 
@@ -174,12 +179,15 @@ async function studentDetailFrom(db: D1Database, where: string, param: string): 
     .prepare(
       `SELECT st.public_id, st.sid, st.first_name, st.middle_name, st.last_name, st.dob_ad, st.phone, st.email,
               st.guardian_name, st.guardian_phone, st.previous_school, st.status, st.created_at,
-              pv.name || ' - ' || lv.name AS class_name
+              pv.name || ' - ' || lv.name AS class_name,
+              ws.name AS wing_name, pv.name AS course_name, lv.name AS level_name, cl.label AS class_label, ty.label AS term_label
          FROM students st
          LEFT JOIN enrollments en ON en.id = ${LATEST_ENROLLMENT}
+         LEFT JOIN academic_years ty ON ty.id = en.academic_year_id
          LEFT JOIN classes cl ON cl.id = en.class_id
          LEFT JOIN levels lv ON lv.id = cl.level_id
          LEFT JOIN programmes pv ON pv.id = lv.programme_id
+         LEFT JOIN sections ws ON ws.id = pv.section_id
         WHERE ${where}`,
     )
     .bind(param)
@@ -200,6 +208,10 @@ async function studentDetailFrom(db: D1Database, where: string, param: string): 
     previousSchool: row.previous_school,
     status: row.status as StudentDetail["status"],
     className: row.class_name,
+    place:
+      row.course_name && row.level_name
+        ? { wing: row.wing_name ?? "", course: row.course_name, level: row.level_name, section: row.class_label ?? "", term: row.term_label ?? "" }
+        : null,
     createdAt: row.created_at,
   };
 }

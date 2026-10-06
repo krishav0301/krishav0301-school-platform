@@ -4891,16 +4891,12 @@
               "active": {
                 "type": "integer"
               },
-              "inOpenTerms": {
-                "type": "integer"
-              },
               "leftOrGraduated": {
                 "type": "integer"
               }
             },
             "required": [
               "active",
-              "inOpenTerms",
               "leftOrGraduated"
             ]
           },
@@ -5181,6 +5177,36 @@
               "null"
             ]
           },
+          "place": {
+            "type": [
+              "object",
+              "null"
+            ],
+            "properties": {
+              "wing": {
+                "type": "string"
+              },
+              "course": {
+                "type": "string"
+              },
+              "level": {
+                "type": "string"
+              },
+              "section": {
+                "type": "string"
+              },
+              "term": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "wing",
+              "course",
+              "level",
+              "section",
+              "term"
+            ]
+          },
           "createdAt": {
             "type": "string"
           }
@@ -5200,6 +5226,7 @@
           "previousSchool",
           "status",
           "className",
+          "place",
           "createdAt"
         ]
       },

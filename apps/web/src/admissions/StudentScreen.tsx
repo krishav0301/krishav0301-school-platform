@@ -20,11 +20,26 @@ import type { StudentDetail } from "./model";
  * One student's personal record, read only, opened from the Students page (admin FUT F-09). The server decides who may
  * see it and how far (`students.personal.view`, within the person's sections); nothing here can change it.
  */
+/** "Information Science and Engineering, 4th Semester – Evening": the course, then the class. Pure. */
+export function placeLine(place: NonNullable<StudentDetail["place"]>): string {
+  const cls = place.section ? t("students.classIs", { level: place.level, section: place.section }) : place.level;
+  return t("admissions.record.placeLine", { course: place.course, class: cls });
+}
+
 export function StudentDetails({ student, feesLink = false, actions }: { student: StudentDetail; feesLink?: boolean; actions?: React.ReactNode }) {
   const name = [student.firstName, student.middleName, student.lastName].filter(Boolean).join(" ");
   const rows: [string, string][] = [
     [t("admissions.record.sid"), student.sid],
-    [t("admissions.record.class"), student.className ?? t("admissions.record.noClass")],
+    // Where the student is, each part on its own line (PM, 2026-10-06): wing, course, level, the class's section, term.
+    ...(student.place
+      ? ([
+          [t("admissions.record.wing"), student.place.wing],
+          [t("admissions.record.course"), student.place.course],
+          [t("admissions.record.level"), student.place.level],
+          [t("admissions.record.section"), student.place.section || "—"],
+          [t("admissions.record.term"), student.place.term],
+        ] as [string, string][])
+      : ([[t("admissions.record.class"), t("admissions.record.noClass")]] as [string, string][])),
     [t("admissions.field.dob"), student.dobBs ? formatBsDate(student.dobBs) : student.dob],
     [t("admissions.field.phone"), student.phone ?? "—"],
     [t("admissions.field.email"), student.email ?? "—"],
@@ -36,7 +51,7 @@ export function StudentDetails({ student, feesLink = false, actions }: { student
     <>
       <ReadHeader
         title={name}
-        subtitle={[student.sid, student.className].filter(Boolean).join(" · ")}
+        subtitle={[student.sid, student.place ? placeLine(student.place) : null].filter(Boolean).join(" · ")}
         crumbs={[{ label: t("admissions.search.title"), href: "/portal/admissions/search" }, { label: name }]}
         actions={
           <>

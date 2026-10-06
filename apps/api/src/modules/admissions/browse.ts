@@ -115,7 +115,6 @@ export async function browseStudents(db: D1Database, sections: "all" | readonly 
     db
       .prepare(
         `SELECT COALESCE(SUM(st.status = 'active'), 0) AS active,
-                COALESCE(SUM(st.status = 'active' AND y.status <> 'closed'), 0) AS in_open,
                 COALESCE(SUM(st.status IN ('left', 'graduated')), 0) AS gone
            FROM students st
            LEFT JOIN enrollments en ON en.id = ${LATEST}
@@ -135,7 +134,7 @@ export async function browseStudents(db: D1Database, sections: "all" | readonly 
   ]);
 
   const rows = list!.results as unknown as Row[];
-  const count = (counts!.results[0] ?? {}) as { active?: number; in_open?: number; gone?: number };
+  const count = (counts!.results[0] ?? {}) as { active?: number; gone?: number };
   return {
     students: rows.map((r) => ({
       id: r.public_id,
@@ -151,7 +150,7 @@ export async function browseStudents(db: D1Database, sections: "all" | readonly 
     total: (total!.results[0] as { n: number }).n,
     page,
     pageSize,
-    counts: { active: count.active ?? 0, inOpenTerms: count.in_open ?? 0, leftOrGraduated: count.gone ?? 0 },
+    counts: { active: count.active ?? 0, leftOrGraduated: count.gone ?? 0 },
     wings: placeTree(places!.results as unknown as PlaceRow[]),
     terms: (terms!.results as unknown as { id: string; label: string; status: string }[]).map((t) => ({ id: t.id, label: t.label, open: t.status !== "closed" })),
   };

@@ -23,14 +23,26 @@ export function SearchBox({ label, value, onChange }: { label: MessageKey; value
   );
 }
 
-export function FilterSelect({ label, value, options, onChange }: { label: MessageKey; value: string; options: { value: string; label: string }[]; onChange: (value: string) => void }) {
+export function FilterSelect({
+  label,
+  value,
+  options,
+  onChange,
+  disabled = false,
+}: {
+  label: MessageKey;
+  value: string;
+  options: { value: string; label: string }[];
+  onChange: (value: string) => void;
+  disabled?: boolean;
+}) {
   const id = useId();
   return (
     <div className={styles.filter}>
       <label htmlFor={id} className={styles.filterLabel}>
         {t(label)}
       </label>
-      <select id={id} className={styles.select} value={value} onChange={(e) => onChange(e.target.value)}>
+      <select id={id} className={styles.select} value={value} disabled={disabled} onChange={(e) => onChange(e.target.value)}>
         {options.map((o) => (
           <option key={o.value} value={o.value}>
             {o.label}
