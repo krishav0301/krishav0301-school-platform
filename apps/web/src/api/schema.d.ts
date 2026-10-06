@@ -3773,7 +3773,6 @@ export interface components {
             pageSize: number;
             counts: {
                 active: number;
-                inOpenTerms: number;
                 leftOrGraduated: number;
             };
             wings: {
@@ -3835,6 +3834,13 @@ export interface components {
             /** @enum {string} */
             status: "active" | "left" | "graduated";
             className: string | null;
+            place: {
+                wing: string;
+                course: string;
+                level: string;
+                section: string;
+                term: string;
+            } | null;
             createdAt: string;
         };
         CorrectStudent: {

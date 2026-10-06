@@ -1,6 +1,6 @@
 "use client";
 
-import { CalendarCheck, GraduationCap, UsersRound, type LucideIcon } from "lucide-react";
+import { GraduationCap, UsersRound, type LucideIcon } from "lucide-react";
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 
@@ -140,12 +140,18 @@ function useStudents() {
 
 const counted = (name: string, count: number) => t("students.option", { name, count });
 
-/** Term and status, then wing, course, level and class: each of the last four shown once the one before it is chosen. */
+/**
+ * Term and status, then wing, course, level and class, always on screen (PM, 2026-10-06). The course list is every
+ * course, or the chosen wing's; a course named alike in two wings carries its wing. Level and class need the one
+ * before them (a "4th Semester" is a different level in each course), and say so while it is not chosen.
+ */
 export function StudentFilters({ filters, data, onChange }: { filters: Filters; data: Pick<StudentBrowse, "wings" | "terms"> | null; onChange: (patch: Partial<Filters>) => void }) {
   const all = { value: "", label: t("content.filterAll") };
   const wings = data?.wings ?? [];
   const wing = wings.find((w) => w.key === filters.wing);
-  const course = wing?.courses.find((c) => c.id === filters.course);
+  const courses = (wing ? [wing] : wings).flatMap((w) => w.courses.map((c) => ({ ...c, wingName: w.name })));
+  const repeated = (name: string) => courses.filter((c) => c.name === name).length > 1;
+  const course = courses.find((c) => c.id === filters.course);
   const level = course?.levels.find((l) => l.id === filters.level);
   return (
     <div className={styles.filters}>
@@ -166,15 +172,18 @@ export function StudentFilters({ filters, data, onChange }: { filters: Filters; 
           { value: "all", label: t("content.filterAll") },
         ]}
       />
-      {wings.length > 0 ? (
-        <FilterSelect label="students.filter.wing" value={filters.wing} onChange={(v) => onChange({ wing: v })} options={[all, ...wings.map((w) => ({ value: w.key, label: counted(w.name, w.count) }))]} />
-      ) : null}
-      {wing ? (
-        <FilterSelect label="students.filter.course" value={filters.course} onChange={(v) => onChange({ course: v })} options={[all, ...wing.courses.map((c) => ({ value: c.id, label: counted(c.name, c.count) }))]} />
-      ) : null}
+      <FilterSelect label="students.filter.wing" value={filters.wing} onChange={(v) => onChange({ wing: v })} options={[all, ...wings.map((w) => ({ value: w.key, label: counted(w.name, w.count) }))]} />
+      <FilterSelect
+        label="students.filter.course"
+        value={filters.course}
+        onChange={(v) => onChange({ course: v })}
+        options={[all, ...courses.map((c) => ({ value: c.id, label: counted(repeated(c.name) ? t("students.inWing", { name: c.name, wing: c.wingName }) : c.name, c.count) }))]}
+      />
       {course ? (
         <FilterSelect label="students.filter.level" value={filters.level} onChange={(v) => onChange({ level: v })} options={[all, ...course.levels.map((l) => ({ value: l.id, label: counted(l.name, l.count) }))]} />
-      ) : null}
+      ) : (
+        <FilterSelect label="students.filter.level" value="" disabled onChange={() => {}} options={[{ value: "", label: t("students.chooseCourse") }]} />
+      )}
       {level ? (
         <FilterSelect
           label="students.filter.class"
@@ -182,7 +191,9 @@ export function StudentFilters({ filters, data, onChange }: { filters: Filters; 
           onChange={(v) => onChange({ class: v })}
           options={[all, ...level.classes.map((c) => ({ value: c.id, label: counted(c.label || level.name, c.count) }))]}
         />
-      ) : null}
+      ) : (
+        <FilterSelect label="students.filter.class" value="" disabled onChange={() => {}} options={[{ value: "", label: t("students.chooseLevel") }]} />
+      )}
     </div>
   );
 }
@@ -191,7 +202,6 @@ export function StudentFilters({ filters, data, onChange }: { filters: Filters; 
 
 const SUMMARY: { key: keyof StudentBrowse["counts"]; label: MessageKey; icon: LucideIcon; tone: string }[] = [
   { key: "active", label: "students.count.active", icon: UsersRound, tone: "primary" },
-  { key: "inOpenTerms", label: "students.count.inOpenTerms", icon: CalendarCheck, tone: "accent" },
   { key: "leftOrGraduated", label: "students.count.gone", icon: GraduationCap, tone: "ok" },
 ];
 
@@ -251,6 +261,7 @@ export function StudentsTable({ students }: { students: readonly BrowsedStudent[
       <thead>
         <tr>
           <th scope="col">{t("students.col.name")}</th>
+          <th scope="col">{t("students.col.course")}</th>
           <th scope="col">{t("students.col.class")}</th>
           <th scope="col">{t("students.col.term")}</th>
           <th scope="col">{t("students.col.guardian")}</th>
@@ -279,12 +290,19 @@ export function StudentsTable({ students }: { students: readonly BrowsedStudent[
                   </span>
                 </div>
               </td>
-              <td data-label={t("students.col.class")}>
+              <td data-label={t("students.col.course")}>
                 {s.class ? (
                   <>
-                    <span className={styles.cellMain}>{t("students.place", { course: s.class.courseName, level: s.class.levelName })}</span>
-                    <span className={styles.muted}>{s.class.label ? `${s.class.wingName} · ${s.class.label}` : s.class.wingName}</span>
+                    <span className={styles.cellMain}>{s.class.courseName}</span>
+                    <span className={styles.muted}>{s.class.wingName}</span>
                   </>
+                ) : (
+                  <span className={styles.muted}>—</span>
+                )}
+              </td>
+              <td data-label={t("students.col.class")}>
+                {s.class ? (
+                  <span className={styles.cellMain}>{s.class.label ? t("students.classIs", { level: s.class.levelName, section: s.class.label }) : s.class.levelName}</span>
                 ) : (
                   <span className={styles.muted}>{t("students.noClass")}</span>
                 )}

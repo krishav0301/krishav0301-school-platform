@@ -16,7 +16,7 @@ interface Browse {
   total: number;
   page: number;
   pageSize: number;
-  counts: { active: number; inOpenTerms: number; leftOrGraduated: number };
+  counts: { active: number; leftOrGraduated: number };
   wings: { key: string; name: string; count: number; courses: { id: string; name: string; count: number; levels: { id: string; name: string; count: number; classes: { id: string; label: string; count: number }[] }[] }[] }[];
   terms: { id: string; label: string; open: boolean }[];
 }
@@ -105,10 +105,10 @@ describe("the default list: active students of the open terms", () => {
     expect((await browse(principal)).pageSize).toBe(10);
   });
 
-  it("counts active students, those in an open term, and those who left or graduated", async () => {
+  it("counts active students and those who left or graduated (the PM: no separate open-term count)", async () => {
     const { counts } = await browse(principal);
     // Active: the six in open-term classes, the unplaced one and the one in the closed term.
-    expect(counts).toEqual({ active: 8, inOpenTerms: 6, leftOrGraduated: 1 });
+    expect(counts).toEqual({ active: 8, leftOrGraduated: 1 });
   });
 });
 
@@ -191,7 +191,7 @@ describe("who sees what", () => {
     expect(mine.wings.map((w) => w.key)).toEqual(["plus2"]);
     expect(ids(await browse(plus2Coordinator, { wing: "bachelors" }))).toEqual([]);
     expect(ids(await browse(plus2Coordinator, { class: bachelors.classId }))).toEqual([]);
-    expect(mine.counts.inOpenTerms).toBe(4);
+    expect(mine.counts.active).toBe(6); // its four, the unplaced one, and the closed term's +2 student
   });
 
   it("a teacher and a student are refused, and nobody signed out gets in", async () => {
@@ -202,7 +202,7 @@ describe("who sees what", () => {
 });
 
 describe("a draft term", () => {
-  it("counts as open, as on the class page: its students are listed by default and counted in open terms", async () => {
+  it("counts as open, as on the class page: its students are listed by default", async () => {
     const draftId = newPublicId();
     await db
       .prepare(`INSERT INTO academic_years (public_id, bs_year, code, label, start_date, end_date, status, created_at) VALUES (?1, 2084, 'D2084', 'Term 2084', '2027-04-14', '2028-04-13', 'draft', '2026-10-01T00:00:00.000Z')`)
@@ -211,7 +211,20 @@ describe("a draft term", () => {
     const draft = await classWith("bachelors", 1, { yearId: draftId });
     const all = await browse(principal, { pageSize: 50 });
     expect(ids(all)).toEqual(expect.arrayContaining(pupilIds(draft)));
-    expect(all.counts.inOpenTerms).toBe(7);
     expect(all.terms).toContainEqual({ id: draftId, label: "Term 2084", open: true });
+  });
+});
+
+describe("a student's record says where they are", () => {
+  it("gives the wing, course, level, the class's section and the term apart, not run together", async () => {
+    const pupil = plus2.pupils[0]!.studentId;
+    await db.prepare("UPDATE classes SET label = 'Evening' WHERE public_id = ?1").bind(plus2.classId).run();
+    const record = (await (await call(`/api/students/${pupil}`, { cookie: principal.cookie })).json()) as { place: Record<string, string> | null };
+    expect(record.place).toEqual({ wing: "+2", course: expect.stringMatching(/^Programme /), level: expect.stringMatching(/^Level /), section: "Evening", term: "2083" });
+  });
+
+  it("has no place for a student in no class", async () => {
+    const record = (await (await call(`/api/students/${unplacedId}`, { cookie: principal.cookie })).json()) as { place: unknown };
+    expect(record.place).toBeNull();
   });
 });

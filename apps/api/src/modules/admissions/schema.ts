@@ -132,6 +132,8 @@ export const StudentDetailSchema = z
     previousSchool: z.string().nullable(),
     status: z.enum(["active", "left", "graduated"]),
     className: z.string().nullable(),
+    /** Where the student is, each part apart (PM, 2026-10-06): their most recent enrollment's wing, course, level, the class's section label ("" when it has none) and term. Null: in no class. */
+    place: z.object({ wing: z.string(), course: z.string(), level: z.string(), section: z.string(), term: z.string() }).nullable(),
     createdAt: z.string(),
   })
   .openapi("StudentDetail");
@@ -279,7 +281,7 @@ export const StudentBrowseSchema = z
     page: z.number().int(),
     pageSize: z.number().int(),
     /** Over everyone the person may see, whatever the filters. */
-    counts: z.object({ active: z.number().int(), inOpenTerms: z.number().int(), leftOrGraduated: z.number().int() }),
+    counts: z.object({ active: z.number().int(), leftOrGraduated: z.number().int() }),
     /** Only wings, courses, levels and classes that have students under the term and status asked for. */
     wings: z.array(
       z.object({

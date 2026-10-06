@@ -10,7 +10,7 @@
   },
   "sections": [],
   "modules": {},
-  "terminology": { "role.admin": "Principal" },
+  "terminology": { "role.admin": "Principal", "term.programme": "Department" },
   "site": {
     "home": {
       "headline": "Royal Softech College, Lahan",

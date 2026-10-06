@@ -244,7 +244,7 @@ describe("a student's record from the Students page (admin FUT F-09)", () => {
   it("search results open the record, which shows the personal details read only", () => {
     const html = inContext(
       <StudentDetails
-        student={{ id: "s1", sid: "2083-00012", firstName: "Rishav", middleName: null, lastName: "Kumar", dob: "2008-05-01", dobBs: "2065-01-19", phone: "9800000000", email: null, guardianName: "Ram Kumar", guardianPhone: "9811111111", previousSchool: null, status: "active", className: "BBS · Year 1", createdAt: "2026-09-01T00:00:00Z" }}
+        student={{ id: "s1", sid: "2083-00012", firstName: "Rishav", middleName: null, lastName: "Kumar", dob: "2008-05-01", dobBs: "2065-01-19", phone: "9800000000", email: null, guardianName: "Ram Kumar", guardianPhone: "9811111111", previousSchool: null, status: "active", className: "BBS · Year 1", place: { wing: "Bachelor of Engineering", course: "Information Science and Engineering", level: "4th Semester", section: "Evening", term: "2083" }, createdAt: "2026-09-01T00:00:00Z" }}
       />,
       as("admin"),
     );
@@ -252,11 +252,14 @@ describe("a student's record from the Students page (admin FUT F-09)", () => {
     expect(html).toContain("2083-00012");
     expect(html).toContain("19 Baisakh 2065");
     expect(html).toContain("Ram Kumar");
+    // Where the student is, each part on its own line (PM, 2026-10-06), and run together only under the name.
+    for (const part of [">Bachelor of Engineering<", ">Information Science and Engineering<", ">4th Semester<", ">Evening<", ">2083<"]) expect(html).toContain(part);
+    expect(html).toContain("2083-00012 · Information Science and Engineering, 4th Semester – Evening");
     expect(html).not.toMatch(/<input|<button/);
   });
 
   it("says Active, Left or Graduated in words, and offers the fee account only where asked (D-104)", () => {
-    const student = { id: "s1", sid: "2083-00012", firstName: "Rishav", middleName: null, lastName: "Kumar", dob: "2008-05-01", dobBs: "2065-01-19", phone: null, email: null, guardianName: "Ram Kumar", guardianPhone: "9811111111", previousSchool: null, status: "left" as const, className: "BBS · Year 1", createdAt: "2026-09-01T00:00:00Z" };
+    const student = { id: "s1", sid: "2083-00012", firstName: "Rishav", middleName: null, lastName: "Kumar", dob: "2008-05-01", dobBs: "2065-01-19", phone: null, email: null, guardianName: "Ram Kumar", guardianPhone: "9811111111", previousSchool: null, status: "left" as const, className: null, place: null, createdAt: "2026-09-01T00:00:00Z" };
     const html = inContext(<StudentDetails student={student} feesLink />, as("admin"));
     expect(html).toContain(">Left<");
     expect(html).toContain('href="/portal/fees/student?id=s1"');
