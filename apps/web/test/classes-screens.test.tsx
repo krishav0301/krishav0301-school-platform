@@ -19,7 +19,7 @@ const inContext = (node: React.ReactNode) =>
     </ConfigContext.Provider>,
   );
 
-const place = { id: "c1", termLabel: "2083", wing: "+2", course: "Science", level: "Grade 11", section: "A", classTeacher: "Hari Prasad", students: 2 };
+const place = { id: "c1", termId: "t1", termLabel: "2083", courseId: "co1", levelId: "l1", classTeacherId: "u1", wing: "+2", course: "Science", level: "Grade 11", section: "A", classTeacher: "Hari Prasad", students: 2 };
 const subject = (offeringId: string, name: string) => ({ offeringId, name });
 const hub = (over: Partial<ClassHub> = {}): ClassHub => ({
   class: place,
