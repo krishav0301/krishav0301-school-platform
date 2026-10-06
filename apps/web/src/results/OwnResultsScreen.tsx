@@ -14,27 +14,65 @@ import { AddDialog, Button, Field, Notice, Select } from "@/ui";
 
 import { gateFailure, loadCard, loadOwnResults, loadTop20, requestRecheck } from "./client";
 import { sentText } from "./MarkSheetScreen";
-import { RECHECK_LABEL, className, formatMarks, hundredthsText, scoreText, type MarksCard, type OwnResults, type Top20 } from "./model";
+import { RECHECK_LABEL, className, formatMarks, hundredthsText, percentText, type FinalCard, type MarksCard, type OwnResults, type TerminalCard, type Top20 } from "./model";
 import styles from "./results.module.css";
 
 type Result = OwnResults["results"][number];
 
-/** One result at a glance: the GPA or percentage, the result in words, the subjects passed. Pure. */
+/** "First terminal, 2083" or "Final result, 2083": the one line that names a result. */
+export const resultName = (r: Result): string => (r.kind === "final" ? t("results.own.finalHeading", { year: r.yearLabel }) : t("results.own.heading", { terminal: r.terminalName ?? "", year: r.yearLabel }));
+
+/** A part of a paper as it was entered: "60 of 75", "AB of 25". */
+const partText = (p: { maxHundredths: number; valueHundredths: number | null; absent: boolean }) =>
+  t("results.card.part", { mark: p.absent ? "AB" : p.valueHundredths === null ? "–" : formatMarks(p.valueHundredths), max: formatMarks(p.maxHundredths) });
+
+/** A subject's paper in one terminal: theory, and the practical where it was held. */
+export const paperText = (s: TerminalCard["subjects"][number]): string =>
+  s.practical
+    ? `${t("results.card.theory")} ${partText(s.theory)} · ${t("results.card.practical")} ${partText(s.practical)}`
+    : partText(s.theory);
+
+/**
+ * One result at a glance (D-117). A terminal: its percentage, its grade when graded, and its weight in the final; it is
+ * for information, so no pass or fail. The final: its percentage, the result (Pass or Fail, or the grade or NG), and the
+ * subjects passed. Pure.
+ */
 export function resultFigures(r: Result): Figure[] {
   const b = r.card.body;
-  const neb = b.policy === "neb_gpa";
+  if (b.kind === "terminal") {
+    return [
+      { key: "score", icon: Award, tone: "accent", value: percentText(b.percentHundredths), label: t("results.card.percentLabel") },
+      ...(b.graded ? [{ key: "grade", icon: BookOpen, tone: "ok" as const, value: b.grade ?? "—", label: t("results.own.grade") }] : []),
+      { key: "weight", icon: CircleCheck, tone: "warn" as const, value: t("results.own.weightValue", { weight: b.terminal.weight }), label: t("results.own.weight") },
+    ];
+  }
   const passed = b.subjects.filter((s) => s.passed).length;
   return [
-    { key: "score", icon: Award, tone: "accent", value: scoreText(b) ?? "—", label: t(neb ? "results.card.gpaLabel" : "results.card.percentLabel") },
-    { key: "result", icon: b.passed ? CircleCheck : CircleAlert, tone: b.passed ? "ok" : "bad", value: neb ? t(b.passed ? "results.card.gpa" : "results.own.ng") : b.outcome, label: t("results.card.result") },
+    { key: "score", icon: Award, tone: "accent", value: percentText(b.percentHundredths), label: t("results.card.percentLabel") },
+    { key: "result", icon: b.passed ? CircleCheck : CircleAlert, tone: b.passed ? "ok" : "bad", value: b.grade ?? t(b.passed ? "results.card.pass" : "results.card.fail"), label: t("results.card.result") },
     { key: "subjects", icon: BookOpen, tone: passed < b.subjects.length ? "warn" : "ok", value: t("coord.ofTotal", { done: passed, total: b.subjects.length }), label: t("results.own.figure.passed") },
   ];
 }
 
-/** Each subject with its grade (or percentage) and passed or not, in words. Pure. */
+/** Each subject: in a terminal its paper, percentage and grade; in the final its mark out of 100, grade, and passed or not. Pure. */
 export function SubjectsTable({ result }: { result: Result }) {
   const b = result.card.body;
-  const neb = b.policy === "neb_gpa";
+  if (b.kind === "terminal") {
+    return (
+      <ReadTable
+        caption={t("results.card.subjects")}
+        rows={b.subjects}
+        rowKey={(s) => s.offeringId}
+        columns={[
+          { key: "subject", label: t("results.mine.subject"), primary: true, cell: (s) => s.name },
+          { key: "paper", label: t("results.card.marks"), cell: (s) => paperText(s) },
+          { key: "percent", label: t("results.own.percent"), align: "end", cell: (s) => <span className={readStyles.number}>{percentText(s.percentHundredths)}</span> },
+          ...(b.graded ? [{ key: "grade", label: t("results.own.grade"), align: "end" as const, cell: (s: TerminalCard["subjects"][number]) => s.grade ?? "—" }] : []),
+        ]}
+      />
+    );
+  }
+  const graded = b.pattern.graded;
   return (
     <ReadTable
       caption={t("results.card.subjects")}
@@ -42,8 +80,9 @@ export function SubjectsTable({ result }: { result: Result }) {
       rowKey={(s) => s.offeringId}
       columns={[
         { key: "subject", label: t("results.mine.subject"), primary: true, cell: (s) => s.name },
-        { key: "grade", label: t(neb ? "results.own.grade" : "results.own.percent"), align: "end", cell: (s) => <span className={readStyles.number}>{neb ? s.grade : `${hundredthsText(s.percentHundredths)}%`}</span> },
-        { key: "status", label: t("attendance.class.status"), cell: (s) => (s.passed ? <StatusWord tone="ok">{t("results.own.passed")}</StatusWord> : <StatusWord tone="bad">{neb ? t("results.own.ng") : t("results.card.failed")}</StatusWord>) },
+        { key: "final", label: t("results.card.outOf100"), align: "end", cell: (s) => <span className={readStyles.number}>{hundredthsText(s.finalHundredths)}</span> },
+        ...(graded ? [{ key: "grade", label: t("results.own.grade"), align: "end" as const, cell: (s: FinalCard["subjects"][number]) => s.grade ?? "—" }] : []),
+        { key: "status", label: t("attendance.class.status"), cell: (s) => (s.passed ? <StatusWord tone="ok">{t("results.own.passed")}</StatusWord> : <StatusWord tone="bad">{graded ? t("results.own.ng") : t("results.card.failed")}</StatusWord>) },
       ]}
     />
   );
@@ -66,7 +105,7 @@ export function OwnResultsScreen() {
     <div className={readStyles.page}>
       <ReadHeader
         title={t("results.own.title")}
-        subtitle={result ? t("results.own.heading", { terminal: result.terminalName, year: result.yearLabel }) : undefined}
+        subtitle={result ? resultName(result) : undefined}
         actions={moduleEnabled("top20") ? <OpenLink href="/portal/results/top20" label={t("results.own.top20")} text={t("results.own.top20")} /> : null}
       />
       {view.status === "loading" ? <TableSkeleton rows={6} tiles={3} /> : null}
@@ -82,7 +121,7 @@ export function OwnResultsScreen() {
             <Segments
               label={t("results.own.which")}
               value={result.publicationId}
-              options={own.results.map((r) => ({ key: r.publicationId, label: t("results.own.heading", { terminal: r.terminalName, year: r.yearLabel }) }))}
+              options={own.results.map((r) => ({ key: r.publicationId, label: resultName(r) }))}
               onChange={(key) => {
                 setPicked(key);
                 setSent(null);
@@ -95,6 +134,11 @@ export function OwnResultsScreen() {
           <Panel title={t("results.card.subjects")} labelledBy="own-subjects" actions={<OpenLink href={`/portal/results/card?id=${result.card.id}`} label={t("results.own.openCard")} text={t("results.own.card")} />}>
             <SubjectsTable result={result} />
           </Panel>
+          {result.kind === "final" ? (
+            <Panel>
+              <p className={readStyles.rowMeta}>{t(result.card.body.kind === "final" && result.card.body.passed ? "results.own.finalNote" : "results.own.finalNoteFail")}</p>
+            </Panel>
+          ) : (
           <Panel
             title={t("results.own.rechecks")}
             labelledBy="own-rechecks"
@@ -130,6 +174,7 @@ export function OwnResultsScreen() {
               </ul>
             )}
           </Panel>
+          )}
         </>
       ) : null}
     </div>
@@ -190,13 +235,12 @@ export function MarksCardScreen() {
     <Gate view={view} onRetry={() => void reload()}>
       {(card) => {
         const b = card.body;
-        const neb = b.policy === "neb_gpa";
         return (
           <article className={`${styles.card} ${styles.document}`} aria-labelledby="card-heading">
             <div>
               <p className={styles.meta}>{config?.school.name}</p>
               <h1 id="card-heading" className={setupStyles.title}>
-                {t("results.card.title", { terminal: b.terminal.name })}
+                {b.kind === "final" ? t("results.card.finalTitle") : t("results.card.title", { terminal: b.terminal.name })}
               </h1>
             </div>
             <dl>
@@ -208,35 +252,52 @@ export function MarksCardScreen() {
               <dd>
                 {className(b.class)} · {b.class.yearLabel}
               </dd>
-              <dt>{t(neb ? "results.card.gpaLabel" : "results.card.percentLabel")}</dt>
-              <dd className={styles.score}>{scoreText(b) ?? "–"}</dd>
-              <dt>{t("results.card.result")}</dt>
-              <dd>{neb ? t(b.passed ? "results.card.gpa" : "results.card.notGraded") : b.outcome}</dd>
+              <dt>{t("results.card.percentLabel")}</dt>
+              <dd className={styles.score}>{percentText(b.percentHundredths)}</dd>
+              {b.kind === "final" ? (
+                <>
+                  <dt>{t("results.card.result")}</dt>
+                  <dd>{b.grade ?? t(b.passed ? "results.card.pass" : "results.card.fail")}</dd>
+                </>
+              ) : b.graded ? (
+                <>
+                  <dt>{t("results.own.grade")}</dt>
+                  <dd>{b.grade ?? "—"}</dd>
+                </>
+              ) : null}
             </dl>
+            {b.kind === "terminal" ? <p className={styles.meta}>{t("results.card.forInformation", { weight: b.terminal.weight })}</p> : null}
             <ul className={styles.list} aria-label={t("results.card.subjects")}>
-              {b.subjects.map((s) => (
-                <li key={s.offeringId} className={styles.row}>
-                  <span>
-                    {s.name}
-                    <br />
-                    <span className={styles.meta}>
-                      {s.components
-                        .map((c) =>
-                          t("results.card.component", {
-                            name: c.name,
-                            mark: c.absent ? "AB" : c.valueHundredths === null ? "–" : formatMarks(c.valueHundredths),
-                            max: formatMarks(c.maxHundredths),
-                          }),
-                        )
-                        .join(" · ")}
-                    </span>
-                  </span>
-                  <span className={styles.state}>
-                    <span className={styles.number}>{neb ? s.grade : `${hundredthsText(s.percentHundredths)}%`}</span>
-                    {!s.passed ? <StatusWord tone="bad">{neb ? t("results.own.ng") : t("results.card.failed")}</StatusWord> : null}
-                  </span>
-                </li>
-              ))}
+              {b.kind === "terminal"
+                ? b.subjects.map((s) => (
+                    <li key={s.offeringId} className={styles.row}>
+                      <span>
+                        {s.name}
+                        <br />
+                        <span className={styles.meta}>{paperText(s)}</span>
+                      </span>
+                      <span className={styles.state}>
+                        <span className={styles.number}>{percentText(s.percentHundredths)}</span>
+                        {s.grade ? <span>{s.grade}</span> : null}
+                      </span>
+                    </li>
+                  ))
+                : b.subjects.map((s) => (
+                    <li key={s.offeringId} className={styles.row}>
+                      <span>
+                        {s.name}
+                        <br />
+                        <span className={styles.meta}>
+                          {s.terminals.map((x) => t("results.card.scaled", { terminal: x.terminalName, mark: hundredthsText(x.scaledHundredths), weight: x.weight })).join(" · ")}
+                        </span>
+                      </span>
+                      <span className={styles.state}>
+                        <span className={styles.number}>{hundredthsText(s.finalHundredths)}</span>
+                        {s.grade ? <span>{s.grade}</span> : null}
+                        {!s.passed ? <StatusWord tone="bad">{b.pattern.graded ? t("results.own.ng") : t("results.card.failed")}</StatusWord> : null}
+                      </span>
+                    </li>
+                  ))}
             </ul>
             <p className={styles.meta}>
               {t("results.card.published", {
@@ -273,14 +334,13 @@ export function Top20Table({ entries }: { entries: Top20["pools"][number]["entri
   );
 }
 
-/** The Top 20 (CLAUDE.md section 6, redesigned in D-104): per section and level, only from published results; ties share a rank. */
+/** The Top 20 (CLAUDE.md section 6, redesigned in D-104): on the final result only (D-117), per term, section and level; ties share a rank. */
 export function Top20Screen() {
   const { api } = useSession();
-  const [terminalId, setTerminalId] = useState<string | undefined>(undefined);
   const loadNow = useCallback(async () => {
-    const result = await loadTop20(api, terminalId);
+    const result = await loadTop20(api);
     return result.ok ? result : gateFailure(result.reason);
-  }, [api, terminalId]);
+  }, [api]);
   const { view, reload } = useLoad<Top20>(loadNow);
   return (
     <div className={readStyles.page}>
@@ -289,16 +349,11 @@ export function Top20Screen() {
       {view.status === "failed" || view.status === "forbidden" ? <ReadFailure status={view.status} onRetry={() => void reload()} /> : null}
       {view.status === "ready" ? (
         <>
-          {view.data.terminals.length > 1 ? (
-            <div className={readStyles.search}>
-              <Select label={t("results.terminal")} value={view.data.terminalId ?? ""} onChange={(event) => setTerminalId(event.target.value)} options={view.data.terminals.map((x) => ({ value: x.id, label: x.name }))} />
-            </div>
-          ) : null}
           {view.data.pools.length === 0 ? (
             <EmptyLine>{t("results.top20.none")}</EmptyLine>
           ) : (
             view.data.pools.map((pool, i) => (
-              <Panel key={`${pool.sectionName}-${pool.levelName}`} title={t("results.top20.pool", { section: pool.sectionName, level: pool.levelName })} labelledBy={`top20-${i}`}>
+              <Panel key={`${pool.termLabel}-${pool.sectionName}-${pool.levelName}`} title={t("results.top20.pool", { term: pool.termLabel, section: pool.sectionName, level: pool.levelName })} labelledBy={`top20-${i}`}>
                 <Top20Table entries={pool.entries} />
               </Panel>
             ))

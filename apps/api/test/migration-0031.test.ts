@@ -50,7 +50,7 @@ describe("migration 0031: subjects sorted into wings", () => {
     const english = await unsorted(name, uniq("ENG").slice(0, 20));
     const inA = await offer(await levelIn(a), english);
     const inB = await offer(await levelIn(b), english);
-    await db.prepare("INSERT INTO mark_components (public_id, offering_id, name, max_hundredths, ordinal) VALUES (?1, ?2, 'Theory', 10000, 1)").bind(uniq("c"), inB).run();
+    await db.prepare("UPDATE subject_offerings SET practical_hundredths = 2500 WHERE id = ?1").bind(inB).run();
 
     await db.batch(sortingBlock().map((q) => db.prepare(q)));
 
@@ -59,8 +59,8 @@ describe("migration 0031: subjects sorted into wings", () => {
     const copy = await subjectOf(inB);
     expect(copy).not.toBe(english);
     expect(await db.prepare("SELECT section_id, name, code FROM subjects WHERE id = ?1").bind(copy).first()).toMatchObject({ section_id: b, name });
-    // The mark component stays on its offering, which now points at the copy.
-    expect(await db.prepare("SELECT COUNT(*) AS n FROM mark_components WHERE offering_id = ?1").bind(inB).first<{ n: number }>()).toEqual({ n: 1 });
+    // The offering keeps what hangs off it (its paper, since D-117), and now points at the copy.
+    expect(await db.prepare("SELECT practical_hundredths AS p FROM subject_offerings WHERE id = ?1").bind(inB).first<{ p: number }>()).toEqual({ p: 2500 });
     expect(await db.prepare("SELECT COUNT(*) AS n FROM sqlite_master WHERE name = 'subject_wing_split'").first<{ n: number }>()).toEqual({ n: 0 });
   });
 

@@ -2,13 +2,11 @@ import { beforeAll, describe, expect, it } from "vitest";
 
 import { verifyAuditChain } from "../src/core/audit";
 import {
-  addComponent,
   addLevel,
   createGroup,
   createOffering,
   createProgramme,
   createSubject,
-  updateComponent,
   updateGroup,
   updateLevel,
   updateOffering,
@@ -31,7 +29,6 @@ beforeAll(async () => {
 const audits = () => count("SELECT COUNT(*) AS n FROM audit_events");
 const groups = () => count("SELECT COUNT(*) AS n FROM elective_groups");
 const offerings = () => count("SELECT COUNT(*) AS n FROM subject_offerings");
-const components = () => count("SELECT COUNT(*) AS n FROM mark_components");
 const noId = "0".repeat(32);
 let n = 0;
 const label = (prefix: string) => `${prefix} ${++n} ${crypto.randomUUID().slice(0, 6)}`;
@@ -232,58 +229,47 @@ describe("subject offerings", () => {
 });
 
 // ---------------------------------------------------------------------------------------------
-describe("mark components", () => {
-  it("are numbered 1, 2, 3 in the order added (including several at once), and recorded", async () => {
+/** A subject's paper (D-117): full marks (default 100) and, when ticked "has practical", the practical's share. */
+describe("a subject's paper", () => {
+  const paper = (id: string) => db.prepare("SELECT full_marks_hundredths AS full, practical_hundredths AS practical FROM subject_offerings WHERE public_id = ?1").bind(id).first();
+
+  it("is out of 100 with no practical unless said otherwise", async () => {
     const { levelId } = await newLevel();
-    const offering = await newOffering(levelId);
-    const results = await Promise.all(["Theory", "Practical", "Internal"].map((name) => addComponent(db, auditKey, coordinator.publicId, offering, { name, maxHundredths: 5000 })));
-    expect(results.every((r) => r.ok)).toBe(true);
-    const rows = (await db.prepare("SELECT c.ordinal FROM mark_components c JOIN subject_offerings o ON o.id = c.offering_id WHERE o.public_id = ?1 ORDER BY c.ordinal").bind(offering).all<{ ordinal: number }>()).results;
-    expect(rows.map((r) => r.ordinal)).toEqual([1, 2, 3]);
-    const first = results[0]!;
-    if (first.ok) expect(await auditActions(first.publicId)).toEqual(["academics.component.created"]);
+    expect(await paper(await newOffering(levelId))).toEqual({ full: 10000, practical: null });
+    expect(await paper(await newOffering(levelId, undefined, { fullMarksHundredths: 5000, practicalHundredths: 1500 }))).toEqual({ full: 5000, practical: 1500 });
   });
 
-  it("a repeat name is a conflict, the 11th component is invalid, and a maximum outside 1 to 100000 is invalid", async () => {
+  it("refuses a practical that is not less than the full marks, and full marks out of range", async () => {
     const { levelId } = await newLevel();
-    const offering = await newOffering(levelId);
-    ok(await addComponent(db, auditKey, coordinator.publicId, offering, { name: "Theory", maxHundredths: 7500 }), "component");
-    const before = [await components(), await audits()];
-    expect(await addComponent(db, auditKey, coordinator.publicId, offering, { name: "Theory", maxHundredths: 100 })).toEqual({ ok: false, reason: "conflict" });
-    expect(await addComponent(db, auditKey, coordinator.publicId, offering, { name: "Zero", maxHundredths: 0 })).toMatchObject({ ok: false, reason: "invalid" });
-    expect(await addComponent(db, auditKey, coordinator.publicId, offering, { name: "Huge", maxHundredths: 100001 })).toMatchObject({ ok: false, reason: "invalid" });
-    expect(await addComponent(db, auditKey, coordinator.publicId, offering, { name: "Decimal", maxHundredths: 12.5 })).toMatchObject({ ok: false, reason: "invalid" });
-    expect([await components(), await audits()]).toEqual(before);
-    for (let i = 2; i <= 10; i++) ok(await addComponent(db, auditKey, coordinator.publicId, offering, { name: `C${i}`, maxHundredths: 100 }), `component ${i}`);
-    expect(await addComponent(db, auditKey, coordinator.publicId, offering, { name: "C11", maxHundredths: 100 })).toMatchObject({ ok: false, reason: "invalid", message: expect.stringMatching(/at most 10/) });
-  });
-
-  it("renames, changes the maximum, and switches off and on; changing nothing records nothing", async () => {
-    const { levelId } = await newLevel();
-    const offering = await newOffering(levelId);
-    const id = ok(await addComponent(db, auditKey, coordinator.publicId, offering, { name: "Theory", maxHundredths: 7500 }), "component").publicId;
-    expect(await updateComponent(db, auditKey, coordinator.publicId, id, { name: "Written", maxHundredths: 8000 })).toEqual({ ok: true });
-    expect(await updateComponent(db, auditKey, coordinator.publicId, id, { active: false })).toEqual({ ok: true });
-    expect(await db.prepare("SELECT name, max_hundredths, is_active FROM mark_components WHERE public_id = ?1").bind(id).first()).toEqual({ name: "Written", max_hundredths: 8000, is_active: 0 });
-    const before = await audits();
-    expect(await updateComponent(db, auditKey, coordinator.publicId, id, { name: "Written" })).toEqual({ ok: true });
-    expect(await audits()).toBe(before);
-  });
-
-  it("another section's Co-ordinator gets nothing; the Admin and the rest are refused; unknown ids are not found", async () => {
-    const { levelId } = await newLevel("bachelors");
-    const offering = await newOffering(levelId);
-    const id = ok(await addComponent(db, auditKey, coordinator.publicId, offering, { name: "Theory", maxHundredths: 7500 }), "component").publicId;
-    const before = [await components(), await audits()];
-    expect(await addComponent(db, auditKey, plus2Coordinator.publicId, offering, { name: "Sneaky", maxHundredths: 100 })).toEqual({ ok: false, reason: "not_allowed" });
-    expect(await updateComponent(db, auditKey, plus2Coordinator.publicId, id, { name: "Hijacked" })).toEqual({ ok: false, reason: "not_allowed" });
-    for (const [name, who] of [["admin", admin], ["accountant", accountant], ["teacher", teacher], ["student", student]] as const) {
-      expect(await addComponent(db, auditKey, who.publicId, offering, { name: "x", maxHundredths: 100 }), name).toEqual({ ok: false, reason: "not_allowed" });
-      expect(await updateComponent(db, auditKey, who.publicId, id, { name: "x" }), name).toEqual({ ok: false, reason: "not_allowed" });
+    const subjectId = await newSubject();
+    const before = [await offerings(), await audits()];
+    for (const extra of [{ practicalHundredths: 10000 }, { fullMarksHundredths: 5000, practicalHundredths: 6000 }, { fullMarksHundredths: 0 }, { fullMarksHundredths: 100001 }, { practicalHundredths: 12.5 }]) {
+      expect(await createOffering(db, auditKey, coordinator.publicId, { levelId, subjectId, ...extra }), JSON.stringify(extra)).toMatchObject({ ok: false, reason: "invalid" });
     }
-    expect([await components(), await audits()]).toEqual(before);
-    expect(await addComponent(db, auditKey, coordinator.publicId, noId, { name: "x", maxHundredths: 100 })).toEqual({ ok: false, reason: "not_found" });
-    expect(await updateComponent(db, auditKey, coordinator.publicId, noId, { name: "x" })).toEqual({ ok: false, reason: "not_found" });
+    expect([await offerings(), await audits()]).toEqual(before);
+  });
+
+  it("changes the practical (75/25 to 70/30), takes it away, and changes the full marks; changing nothing records nothing", async () => {
+    const { levelId } = await newLevel();
+    const id = await newOffering(levelId, undefined, { practicalHundredths: 2500 });
+    expect(await updateOffering(db, auditKey, coordinator.publicId, id, { practicalHundredths: 3000 })).toEqual({ ok: true });
+    expect(await paper(id)).toEqual({ full: 10000, practical: 3000 });
+    expect(await updateOffering(db, auditKey, coordinator.publicId, id, { practicalHundredths: null, fullMarksHundredths: 7500 })).toEqual({ ok: true });
+    expect(await paper(id)).toEqual({ full: 7500, practical: null });
+    expect(await updateOffering(db, auditKey, coordinator.publicId, id, { practicalHundredths: 7500 })).toMatchObject({ ok: false, reason: "invalid" });
+    const before = await audits();
+    expect(await updateOffering(db, auditKey, coordinator.publicId, id, { fullMarksHundredths: 7500 })).toEqual({ ok: true });
+    expect(await audits()).toBe(before);
+    await expect(db.prepare("UPDATE subject_offerings SET practical_hundredths = 9000 WHERE public_id = ?1").bind(id).run()).rejects.toThrow(/less than the full marks/);
+  });
+
+  it("another section's Co-ordinator and the other roles cannot change it", async () => {
+    const { levelId } = await newLevel("bachelors");
+    const id = await newOffering(levelId);
+    for (const [name, who] of [["+2 Co-ordinator", plus2Coordinator], ["admin", admin], ["accountant", accountant], ["teacher", teacher], ["student", student]] as const) {
+      expect(await updateOffering(db, auditKey, who.publicId, id, { practicalHundredths: 2500 }), name).toEqual({ ok: false, reason: "not_allowed" });
+    }
+    expect(await paper(id)).toEqual({ full: 10000, practical: null });
   });
 });
 

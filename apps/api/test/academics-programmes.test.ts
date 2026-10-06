@@ -104,10 +104,9 @@ describe("updateProgramme", () => {
     const id = await newProgramme(admin, { sectionKey: "bachelors" });
     for (const who of [coordinator, plus2Coordinator, bachelorsCoordinator]) {
       expect(await updateProgramme(db, auditKey, who.publicId, id, { name: "Hijacked" })).toEqual({ ok: false, reason: "not_allowed" });
-      expect(await updateProgramme(db, auditKey, who.publicId, id, { gradingPolicy: "percentage_division" })).toEqual({ ok: false, reason: "not_allowed" });
     }
     expect(await updateProgramme(db, auditKey, admin.publicId, id, { name: "Ours" })).toEqual({ ok: true });
-    expect(await db.prepare("SELECT name, grading_policy FROM programmes WHERE public_id = ?1").bind(id).first()).toEqual({ name: "Ours", grading_policy: null });
+    expect(await db.prepare("SELECT name FROM programmes WHERE public_id = ?1").bind(id).first()).toEqual({ name: "Ours" });
   });
 
   it("an unknown programme is not found", async () => {

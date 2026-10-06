@@ -1,14 +1,10 @@
 import { newPublicId } from "../../core/ids";
-import { componentSection, coordinatorForSection, groupSection, levelSection, offeringSection } from "./guard";
+import { coordinatorForSection, groupSection, levelSection, offeringSection } from "./guard";
 import {
-  ComponentChangesSchema,
-  CreateComponentSchema,
   CreateGroupSchema,
   CreateOfferingSchema,
   GroupChangesSchema,
   OfferingChangesSchema,
-  type ComponentChanges,
-  type ComponentInput,
   type GroupChanges,
   type GroupInput,
   type OfferingChanges,
@@ -17,7 +13,8 @@ import {
 import { firstMessage, write, type Created, type Done } from "./write";
 
 /**
- * What each programme level teaches (D-058): elective groups, subject offerings, and mark components. Every write is
+ * What each programme level teaches (D-058): elective groups and subject offerings, each with its paper's full marks
+ * and, when it has one, its practical's share (D-117; this replaced the free list of mark components). Every write is
  * limited to a Co-ordinator whose scope covers the level's section (or the Super Admin), re-checked in the write's own
  * SQL. Nothing is deleted: things are switched off. Marks and credit hours are whole hundredths.
  */
@@ -128,7 +125,14 @@ export async function updateGroup(db: D1Database, auditKey: string, actor: strin
 export async function createOffering(db: D1Database, auditKey: string, actor: string, input: OfferingInput): Promise<Created> {
   const parsed = CreateOfferingSchema.safeParse(input);
   if (!parsed.success) return { ok: false, reason: "invalid", message: firstMessage(parsed.error) };
-  const o = { levelId: parsed.data.levelId, subjectId: parsed.data.subjectId, creditHundredths: parsed.data.creditHundredths ?? null, groupId: parsed.data.groupId ?? null };
+  const o = {
+    levelId: parsed.data.levelId,
+    subjectId: parsed.data.subjectId,
+    creditHundredths: parsed.data.creditHundredths ?? null,
+    groupId: parsed.data.groupId ?? null,
+    fullMarksHundredths: parsed.data.fullMarksHundredths ?? 10_000,
+    practicalHundredths: parsed.data.practicalHundredths ?? null,
+  };
 
   const publicId = newPublicId();
   const outcome = await write(
@@ -144,8 +148,8 @@ export async function createOffering(db: D1Database, auditKey: string, actor: st
     },
     db
       .prepare(
-        `INSERT INTO subject_offerings (public_id, level_id, subject_id, credit_hundredths, elective_group_id)
-         SELECT ?1, l.id, s.id, ?4, (SELECT g.id FROM elective_groups g WHERE g.public_id = ?5)
+        `INSERT INTO subject_offerings (public_id, level_id, subject_id, credit_hundredths, elective_group_id, full_marks_hundredths, practical_hundredths)
+         SELECT ?1, l.id, s.id, ?4, (SELECT g.id FROM elective_groups g WHERE g.public_id = ?5), ?7, ?8
            FROM levels l
            JOIN programmes p ON p.id = l.programme_id
            CROSS JOIN subjects s
@@ -155,7 +159,7 @@ export async function createOffering(db: D1Database, auditKey: string, actor: st
             AND (?5 IS NULL OR EXISTS (SELECT 1 FROM elective_groups g2 WHERE g2.public_id = ?5 AND g2.level_id = l.id AND g2.is_active = 1))
             AND ${coordinatorForSection(6, "p.section_id")}`,
       )
-      .bind(publicId, o.levelId, o.subjectId, o.creditHundredths, o.groupId, actor),
+      .bind(publicId, o.levelId, o.subjectId, o.creditHundredths, o.groupId, actor, o.fullMarksHundredths, o.practicalHundredths),
   );
 
   if (outcome === "done") return { ok: true, publicId };
@@ -185,7 +189,11 @@ export async function createOffering(db: D1Database, auditKey: string, actor: st
   return { ok: false, reason: "not_allowed" };
 }
 
-/** Changes an offering's credit hours (or takes them away), moves it to another group of its level (or out of its group), or switches it off and on. */
+/**
+ * Changes an offering's credit hours (or takes them away), its paper (full marks, and the practical's share or none),
+ * moves it to another group of its level (or out of its group), or switches it off and on. A new paper applies to mark
+ * sheets made from now on: a sheet keeps the maxima it was made with (D-117).
+ */
 export async function updateOffering(db: D1Database, auditKey: string, actor: string, publicId: string, changes: OfferingChanges): Promise<Done> {
   const parsed = OfferingChangesSchema.safeParse(changes);
   if (!parsed.success) return { ok: false, reason: "invalid", message: firstMessage(parsed.error) };
@@ -198,7 +206,7 @@ export async function updateOffering(db: D1Database, auditKey: string, actor: st
     publicId,
     db
       .prepare(
-        `SELECT o.credit_hundredths AS credit, o.is_active AS active, l.public_id AS level, g.public_id AS grp
+        `SELECT o.credit_hundredths AS credit, o.is_active AS active, l.public_id AS level, g.public_id AS grp, o.full_marks_hundredths AS full_marks, o.practical_hundredths AS practical
            FROM subject_offerings o JOIN levels l ON l.id = o.level_id LEFT JOIN elective_groups g ON g.id = o.elective_group_id
           WHERE o.public_id = ?1`,
       )
@@ -209,13 +217,24 @@ export async function updateOffering(db: D1Database, auditKey: string, actor: st
   const [row, newGroup] = rows;
   if (!row) return { ok: false, reason: "not_found" };
 
-  const before = { creditHundredths: row.credit as number | null, groupId: row.grp as string | null, active: row.active === 1 };
+  const before = {
+    creditHundredths: row.credit as number | null,
+    groupId: row.grp as string | null,
+    active: row.active === 1,
+    fullMarksHundredths: row.full_marks as number,
+    practicalHundredths: row.practical as number | null,
+  };
   const after = {
     creditHundredths: c.creditHundredths === undefined ? before.creditHundredths : c.creditHundredths,
     groupId: c.groupId === undefined ? before.groupId : c.groupId,
     active: c.active ?? before.active,
+    fullMarksHundredths: c.fullMarksHundredths ?? before.fullMarksHundredths,
+    practicalHundredths: c.practicalHundredths === undefined ? before.practicalHundredths : c.practicalHundredths,
   };
   if (JSON.stringify(after) === JSON.stringify(before)) return { ok: true };
+  if (after.practicalHundredths !== null && after.practicalHundredths >= after.fullMarksHundredths) {
+    return { ok: false, reason: "invalid", message: "The practical must be less than the full marks" };
+  }
   if (after.groupId !== null && after.groupId !== before.groupId && (!newGroup || newGroup.level !== row.level || newGroup.active === 0)) {
     return { ok: false, reason: "invalid", message: "That elective group is not available for this level" };
   }
@@ -235,102 +254,15 @@ export async function updateOffering(db: D1Database, auditKey: string, actor: st
     db
       .prepare(
         `UPDATE subject_offerings
-            SET credit_hundredths = ?2, elective_group_id = (SELECT g.id FROM elective_groups g WHERE g.public_id = ?3), is_active = ?4
+            SET credit_hundredths = ?2, elective_group_id = (SELECT g.id FROM elective_groups g WHERE g.public_id = ?3), is_active = ?4,
+                full_marks_hundredths = ?6, practical_hundredths = ?7
           WHERE public_id = ?1
             AND (?3 IS NULL OR EXISTS (SELECT 1 FROM elective_groups g2 WHERE g2.public_id = ?3 AND g2.level_id = subject_offerings.level_id))
             AND ${coordinatorForSection(5, offeringSection(1))}`,
       )
-      .bind(publicId, after.creditHundredths, after.groupId, after.active ? 1 : 0, actor),
+      .bind(publicId, after.creditHundredths, after.groupId, after.active ? 1 : 0, actor, after.fullMarksHundredths, after.practicalHundredths),
   );
   if (outcome === "done") return { ok: true };
   if (outcome === "check_failed") return { ok: false, reason: "invalid", message: "That elective group is not available for this level" };
-  return { ok: false, reason: "not_allowed" };
-}
-
-// --- Mark components ---------------------------------------------------------------------------------
-
-/** Adds a mark component (Theory, Practical, Internal) to an offering, numbered after the last. Two added at once get different numbers. */
-export async function addComponent(db: D1Database, auditKey: string, actor: string, offeringId: string, input: ComponentInput): Promise<Created> {
-  const parsed = CreateComponentSchema.safeParse(input);
-  if (!parsed.success) return { ok: false, reason: "invalid", message: firstMessage(parsed.error) };
-  const component = parsed.data;
-
-  const publicId = newPublicId();
-  const outcome = await write(
-    db,
-    auditKey,
-    {
-      action: "academics.component.created",
-      entityType: "mark_component",
-      entityPublicId: publicId,
-      actorPublicId: actor,
-      summary: `Mark component "${component.name}" added`,
-      after: { offeringId, ...component },
-    },
-    db
-      .prepare(
-        `INSERT INTO mark_components (public_id, offering_id, name, max_hundredths, ordinal, kind)
-         SELECT ?1, o.id, ?3, ?4, COALESCE((SELECT MAX(ordinal) FROM mark_components WHERE offering_id = o.id), 0) + 1, ?6
-           FROM subject_offerings o
-          WHERE o.public_id = ?2 AND ${coordinatorForSection(5, offeringSection(2))}`,
-      )
-      .bind(publicId, offeringId, component.name, component.maxHundredths, actor, component.kind),
-  );
-
-  if (outcome === "done") return { ok: true, publicId };
-  if (outcome === "check_failed") return { ok: false, reason: "invalid", message: "A subject can have at most 10 mark components" };
-  if (outcome === "duplicate") return { ok: false, reason: "conflict" };
-
-  const { allowed, rows } = await look(db, actor, offeringSection(2), offeringId, db.prepare("SELECT 1 AS found FROM subject_offerings WHERE public_id = ?1").bind(offeringId));
-  if (!allowed) return { ok: false, reason: "not_allowed" };
-  return rows[0] ? { ok: false, reason: "not_allowed" } : { ok: false, reason: "not_found" };
-}
-
-/** Renames a component, changes its maximum marks, or switches it off and on. */
-export async function updateComponent(db: D1Database, auditKey: string, actor: string, publicId: string, changes: ComponentChanges): Promise<Done> {
-  const parsed = ComponentChangesSchema.safeParse(changes);
-  if (!parsed.success) return { ok: false, reason: "invalid", message: firstMessage(parsed.error) };
-  const c = parsed.data;
-
-  const { allowed, rows } = await look(
-    db,
-    actor,
-    componentSection(2),
-    publicId,
-    db.prepare("SELECT name, max_hundredths, kind, is_active, (SELECT MAX(value_hundredths) FROM marks WHERE component_id = mark_components.id) AS highest FROM mark_components WHERE public_id = ?1").bind(publicId),
-  );
-  if (!allowed) return { ok: false, reason: "not_allowed" };
-  const row = rows[0];
-  if (!row) return { ok: false, reason: "not_found" };
-
-  const before = { name: row.name as string, maxHundredths: row.max_hundredths as number, kind: row.kind as "theory" | "practical", active: row.is_active === 1 };
-  const after = { name: c.name ?? before.name, maxHundredths: c.maxHundredths ?? before.maxHundredths, kind: c.kind ?? before.kind, active: c.active ?? before.active };
-  if (JSON.stringify(after) === JSON.stringify(before)) return { ok: true };
-  // A maximum below a mark already given would grade above 100% (found by the year test, D-084).
-  const highest = row.highest as number | null;
-  if (highest !== null && after.maxHundredths < highest) return { ok: false, reason: "invalid", message: "Marks above this maximum have already been given" };
-
-  const outcome = await write(
-    db,
-    auditKey,
-    {
-      action: "academics.component.updated",
-      entityType: "mark_component",
-      entityPublicId: publicId,
-      actorPublicId: actor,
-      summary: `Mark component "${after.name}" changed`,
-      before,
-      after,
-    },
-    db
-      .prepare(
-        `UPDATE mark_components SET name = ?2, max_hundredths = ?3, is_active = ?4, kind = ?6
-          WHERE public_id = ?1 AND ${coordinatorForSection(5, componentSection(1))}
-            AND NOT EXISTS (SELECT 1 FROM marks m WHERE m.component_id = mark_components.id AND m.value_hundredths > ?3)`,
-      )
-      .bind(publicId, after.name, after.maxHundredths, after.active ? 1 : 0, actor, after.kind),
-  );
-  if (outcome === "done") return { ok: true };
-  if (outcome === "duplicate") return { ok: false, reason: "conflict" };
   return { ok: false, reason: "not_allowed" };
 }

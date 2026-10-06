@@ -1080,17 +1080,6 @@
           "active": {
             "type": "boolean"
           },
-          "gradingPolicy": {
-            "type": [
-              "string",
-              "null"
-            ],
-            "enum": [
-              "neb_gpa",
-              "percentage_division",
-              null
-            ]
-          },
           "levels": {
             "type": "array",
             "items": {
@@ -1111,7 +1100,6 @@
           "section",
           "affiliation",
           "active",
-          "gradingPolicy",
           "levels",
           "students",
           "canDelete"
@@ -1278,13 +1266,24 @@
           },
           "ordinal": {
             "type": "integer"
+          },
+          "weight": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "hasPractical": {
+            "type": "boolean"
           }
         },
         "required": [
           "id",
           "yearId",
           "name",
-          "ordinal"
+          "ordinal",
+          "weight",
+          "hasPractical"
         ]
       },
       "SetupChecklist": {
@@ -1633,17 +1632,6 @@
           },
           "active": {
             "type": "boolean"
-          },
-          "gradingPolicy": {
-            "type": [
-              "string",
-              "null"
-            ],
-            "enum": [
-              "neb_gpa",
-              "percentage_division",
-              null
-            ]
           }
         },
         "additionalProperties": false
@@ -1723,34 +1711,177 @@
         },
         "additionalProperties": false
       },
-      "CreateTerminal": {
+      "ExamPattern": {
         "type": "object",
         "properties": {
-          "yearId": {
-            "type": "string",
-            "pattern": "^[0-9a-f]{32}$"
+          "term": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "label": {
+                "type": "string"
+              },
+              "status": {
+                "type": "string",
+                "enum": [
+                  "draft",
+                  "active",
+                  "closed"
+                ]
+              }
+            },
+            "required": [
+              "id",
+              "label",
+              "status"
+            ]
           },
-          "name": {
-            "type": "string",
-            "minLength": 1,
-            "maxLength": 60
+          "pattern": {
+            "type": [
+              "object",
+              "null"
+            ],
+            "properties": {
+              "graded": {
+                "type": "boolean"
+              },
+              "theoryMinPercent": {
+                "type": "integer"
+              },
+              "practicalMinPercent": {
+                "type": "integer"
+              },
+              "gradeBands": {
+                "type": [
+                  "array",
+                  "null"
+                ],
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "grade": {
+                      "type": "string"
+                    },
+                    "from": {
+                      "type": "integer"
+                    }
+                  },
+                  "required": [
+                    "grade",
+                    "from"
+                  ]
+                }
+              }
+            },
+            "required": [
+              "graded",
+              "theoryMinPercent",
+              "practicalMinPercent",
+              "gradeBands"
+            ]
+          },
+          "terminals": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Terminal"
+            }
+          },
+          "locked": {
+            "type": "boolean"
           }
         },
         "required": [
-          "yearId",
-          "name"
-        ],
-        "additionalProperties": false
+          "term",
+          "pattern",
+          "terminals",
+          "locked"
+        ]
       },
-      "TerminalChanges": {
+      "ExamPatternInput": {
         "type": "object",
         "properties": {
-          "name": {
-            "type": "string",
-            "minLength": 1,
-            "maxLength": 60
+          "graded": {
+            "type": "boolean"
+          },
+          "theoryMinPercent": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 100
+          },
+          "practicalMinPercent": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 100
+          },
+          "gradeBands": {
+            "type": [
+              "array",
+              "null"
+            ],
+            "items": {
+              "type": "object",
+              "properties": {
+                "grade": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 8
+                },
+                "from": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 100
+                }
+              },
+              "required": [
+                "grade",
+                "from"
+              ],
+              "additionalProperties": false
+            },
+            "maxItems": 20
+          },
+          "terminals": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "pattern": "^[0-9a-f]{32}$"
+                },
+                "name": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 60
+                },
+                "weight": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 100
+                },
+                "hasPractical": {
+                  "type": "boolean"
+                }
+              },
+              "required": [
+                "name",
+                "weight",
+                "hasPractical"
+              ],
+              "additionalProperties": false
+            },
+            "maxItems": 12
           }
         },
+        "required": [
+          "graded",
+          "theoryMinPercent",
+          "practicalMinPercent",
+          "gradeBands",
+          "terminals"
+        ],
         "additionalProperties": false
       },
       "Teaching": {
@@ -2108,11 +2239,14 @@
           "active": {
             "type": "boolean"
           },
-          "components": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/CurriculumComponent"
-            }
+          "fullMarksHundredths": {
+            "type": "integer"
+          },
+          "practicalHundredths": {
+            "type": [
+              "integer",
+              "null"
+            ]
           }
         },
         "required": [
@@ -2121,42 +2255,8 @@
           "creditHundredths",
           "group",
           "active",
-          "components"
-        ]
-      },
-      "CurriculumComponent": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string"
-          },
-          "name": {
-            "type": "string"
-          },
-          "maxHundredths": {
-            "type": "integer"
-          },
-          "kind": {
-            "type": "string",
-            "enum": [
-              "theory",
-              "practical"
-            ]
-          },
-          "ordinal": {
-            "type": "integer"
-          },
-          "active": {
-            "type": "boolean"
-          }
-        },
-        "required": [
-          "id",
-          "name",
-          "maxHundredths",
-          "kind",
-          "ordinal",
-          "active"
+          "fullMarksHundredths",
+          "practicalHundredths"
         ]
       },
       "CreateSubject": {
@@ -2239,6 +2339,18 @@
               "null"
             ],
             "pattern": "^[0-9a-f]{32}$"
+          },
+          "fullMarksHundredths": {
+            "type": "integer",
+            "minimum": 100,
+            "maximum": 100000
+          },
+          "practicalHundredths": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": 100
           }
         },
         "required": [
@@ -2267,60 +2379,18 @@
           },
           "active": {
             "type": "boolean"
-          }
-        },
-        "additionalProperties": false
-      },
-      "CreateComponent": {
-        "type": "object",
-        "properties": {
-          "name": {
-            "type": "string",
-            "minLength": 1,
-            "maxLength": 60
           },
-          "maxHundredths": {
+          "fullMarksHundredths": {
             "type": "integer",
-            "minimum": 1,
+            "minimum": 100,
             "maximum": 100000
           },
-          "kind": {
-            "type": "string",
-            "enum": [
-              "theory",
-              "practical"
+          "practicalHundredths": {
+            "type": [
+              "integer",
+              "null"
             ],
-            "default": "theory"
-          }
-        },
-        "required": [
-          "name",
-          "maxHundredths"
-        ],
-        "additionalProperties": false
-      },
-      "ComponentChanges": {
-        "type": "object",
-        "properties": {
-          "name": {
-            "type": "string",
-            "minLength": 1,
-            "maxLength": 60
-          },
-          "maxHundredths": {
-            "type": "integer",
-            "minimum": 1,
-            "maximum": 100000
-          },
-          "kind": {
-            "type": "string",
-            "enum": [
-              "theory",
-              "practical"
-            ]
-          },
-          "active": {
-            "type": "boolean"
+            "minimum": 100
           }
         },
         "additionalProperties": false
@@ -7876,11 +7946,15 @@
                 },
                 "name": {
                   "type": "string"
+                },
+                "weight": {
+                  "type": "integer"
                 }
               },
               "required": [
                 "id",
-                "name"
+                "name",
+                "weight"
               ]
             }
           },
@@ -7992,11 +8066,15 @@
               },
               "name": {
                 "type": "string"
+              },
+              "weight": {
+                "type": "integer"
               }
             },
             "required": [
               "id",
-              "name"
+              "name",
+              "weight"
             ]
           },
           "teacherName": {
@@ -8027,7 +8105,11 @@
               "type": "object",
               "properties": {
                 "id": {
-                  "type": "string"
+                  "type": "string",
+                  "enum": [
+                    "theory",
+                    "practical"
+                  ]
                 },
                 "name": {
                   "type": "string"
@@ -8077,7 +8159,11 @@
                     "type": "object",
                     "properties": {
                       "componentId": {
-                        "type": "string"
+                        "type": "string",
+                        "enum": [
+                          "theory",
+                          "practical"
+                        ]
                       },
                       "valueHundredths": {
                         "type": [
@@ -8141,7 +8227,10 @@
                 },
                 "componentId": {
                   "type": "string",
-                  "pattern": "^[0-9a-f]{32}$"
+                  "enum": [
+                    "theory",
+                    "practical"
+                  ]
                 },
                 "valueHundredths": {
                   "type": [
@@ -8185,11 +8274,15 @@
                 },
                 "name": {
                   "type": "string"
+                },
+                "weight": {
+                  "type": "integer"
                 }
               },
               "required": [
                 "id",
-                "name"
+                "name",
+                "weight"
               ]
             }
           },
@@ -8216,18 +8309,10 @@
                 "label": {
                   "type": "string"
                 },
-                "gradingPolicy": {
-                  "type": [
-                    "string",
-                    "null"
-                  ],
-                  "enum": [
-                    "neb_gpa",
-                    "percentage_division",
-                    null
-                  ]
-                },
                 "published": {
+                  "type": "boolean"
+                },
+                "finalPublished": {
                   "type": "boolean"
                 },
                 "ready": {
@@ -8286,8 +8371,8 @@
                 "programmeName",
                 "levelName",
                 "label",
-                "gradingPolicy",
                 "published",
+                "finalPublished",
                 "ready",
                 "subjects"
               ]
@@ -8359,8 +8444,18 @@
                 "yearLabel": {
                   "type": "string"
                 },
+                "kind": {
+                  "type": "string",
+                  "enum": [
+                    "terminal",
+                    "final"
+                  ]
+                },
                 "terminalName": {
-                  "type": "string"
+                  "type": [
+                    "string",
+                    "null"
+                  ]
                 },
                 "card": {
                   "$ref": "#/components/schemas/MarksCard"
@@ -8415,6 +8510,7 @@
               "required": [
                 "publicationId",
                 "yearLabel",
+                "kind",
                 "terminalName",
                 "card",
                 "rechecks"
@@ -8451,194 +8547,427 @@
             ]
           },
           "body": {
-            "type": "object",
-            "properties": {
-              "student": {
+            "oneOf": [
+              {
                 "type": "object",
                 "properties": {
-                  "name": {
-                    "type": "string"
-                  },
-                  "sid": {
-                    "type": "string"
-                  },
-                  "rollNo": {
-                    "type": [
-                      "integer",
-                      "null"
+                  "kind": {
+                    "type": "string",
+                    "enum": [
+                      "terminal"
                     ]
-                  }
-                },
-                "required": [
-                  "name",
-                  "sid",
-                  "rollNo"
-                ]
-              },
-              "class": {
-                "type": "object",
-                "properties": {
-                  "programmeName": {
-                    "type": "string"
                   },
-                  "levelName": {
-                    "type": "string"
-                  },
-                  "label": {
-                    "type": "string"
-                  },
-                  "sectionName": {
-                    "type": "string"
-                  },
-                  "yearLabel": {
-                    "type": "string"
-                  }
-                },
-                "required": [
-                  "programmeName",
-                  "levelName",
-                  "label",
-                  "sectionName",
-                  "yearLabel"
-                ]
-              },
-              "terminal": {
-                "type": "object",
-                "properties": {
-                  "name": {
-                    "type": "string"
-                  }
-                },
-                "required": [
-                  "name"
-                ]
-              },
-              "policy": {
-                "type": "string",
-                "enum": [
-                  "neb_gpa",
-                  "percentage_division"
-                ]
-              },
-              "subjects": {
-                "type": "array",
-                "items": {
-                  "type": "object",
-                  "properties": {
-                    "offeringId": {
-                      "type": "string"
-                    },
-                    "name": {
-                      "type": "string"
-                    },
-                    "creditHundredths": {
-                      "type": [
-                        "integer",
-                        "null"
-                      ]
-                    },
-                    "obtainedHundredths": {
-                      "type": "integer"
-                    },
-                    "maxHundredths": {
-                      "type": "integer"
-                    },
-                    "percentHundredths": {
-                      "type": "integer"
-                    },
-                    "grade": {
-                      "type": "string"
-                    },
-                    "gradePointHundredths": {
-                      "type": [
-                        "integer",
-                        "null"
-                      ]
-                    },
-                    "passed": {
-                      "type": "boolean"
-                    },
-                    "components": {
-                      "type": "array",
-                      "items": {
-                        "type": "object",
-                        "properties": {
-                          "name": {
-                            "type": "string"
-                          },
-                          "kind": {
-                            "type": "string",
-                            "enum": [
-                              "theory",
-                              "practical"
-                            ]
-                          },
-                          "maxHundredths": {
-                            "type": "integer"
-                          },
-                          "valueHundredths": {
-                            "type": [
-                              "integer",
-                              "null"
-                            ]
-                          },
-                          "absent": {
-                            "type": "boolean"
-                          }
-                        },
-                        "required": [
-                          "name",
-                          "kind",
-                          "maxHundredths",
-                          "valueHundredths",
-                          "absent"
+                  "student": {
+                    "type": "object",
+                    "properties": {
+                      "name": {
+                        "type": "string"
+                      },
+                      "sid": {
+                        "type": "string"
+                      },
+                      "rollNo": {
+                        "type": [
+                          "integer",
+                          "null"
                         ]
                       }
+                    },
+                    "required": [
+                      "name",
+                      "sid",
+                      "rollNo"
+                    ]
+                  },
+                  "class": {
+                    "type": "object",
+                    "properties": {
+                      "programmeName": {
+                        "type": "string"
+                      },
+                      "levelName": {
+                        "type": "string"
+                      },
+                      "label": {
+                        "type": "string"
+                      },
+                      "sectionName": {
+                        "type": "string"
+                      },
+                      "yearLabel": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "programmeName",
+                      "levelName",
+                      "label",
+                      "sectionName",
+                      "yearLabel"
+                    ]
+                  },
+                  "terminal": {
+                    "type": "object",
+                    "properties": {
+                      "name": {
+                        "type": "string"
+                      },
+                      "weight": {
+                        "type": "integer"
+                      }
+                    },
+                    "required": [
+                      "name",
+                      "weight"
+                    ]
+                  },
+                  "graded": {
+                    "type": "boolean"
+                  },
+                  "subjects": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "offeringId": {
+                          "type": "string"
+                        },
+                        "name": {
+                          "type": "string"
+                        },
+                        "theory": {
+                          "type": "object",
+                          "properties": {
+                            "maxHundredths": {
+                              "type": "integer"
+                            },
+                            "valueHundredths": {
+                              "type": [
+                                "integer",
+                                "null"
+                              ]
+                            },
+                            "absent": {
+                              "type": "boolean"
+                            }
+                          },
+                          "required": [
+                            "maxHundredths",
+                            "valueHundredths",
+                            "absent"
+                          ]
+                        },
+                        "practical": {
+                          "type": [
+                            "object",
+                            "null"
+                          ],
+                          "properties": {
+                            "maxHundredths": {
+                              "type": "integer"
+                            },
+                            "valueHundredths": {
+                              "type": [
+                                "integer",
+                                "null"
+                              ]
+                            },
+                            "absent": {
+                              "type": "boolean"
+                            }
+                          },
+                          "required": [
+                            "maxHundredths",
+                            "valueHundredths",
+                            "absent"
+                          ]
+                        },
+                        "obtainedHundredths": {
+                          "type": "integer"
+                        },
+                        "fullHundredths": {
+                          "type": "integer"
+                        },
+                        "percentHundredths": {
+                          "type": "integer"
+                        },
+                        "scaledHundredths": {
+                          "type": "integer"
+                        },
+                        "grade": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "offeringId",
+                        "name",
+                        "theory",
+                        "practical",
+                        "obtainedHundredths",
+                        "fullHundredths",
+                        "percentHundredths",
+                        "scaledHundredths",
+                        "grade"
+                      ]
                     }
                   },
-                  "required": [
-                    "offeringId",
-                    "name",
-                    "creditHundredths",
-                    "obtainedHundredths",
-                    "maxHundredths",
-                    "percentHundredths",
-                    "grade",
-                    "gradePointHundredths",
-                    "passed",
-                    "components"
-                  ]
-                }
-              },
-              "gpaHundredths": {
-                "type": [
-                  "integer",
-                  "null"
+                  "percentHundredths": {
+                    "type": "integer"
+                  },
+                  "grade": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "outcome": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "kind",
+                  "student",
+                  "class",
+                  "terminal",
+                  "graded",
+                  "subjects",
+                  "percentHundredths",
+                  "grade",
+                  "outcome"
                 ]
               },
-              "percentHundredths": {
-                "type": [
-                  "integer",
-                  "null"
+              {
+                "type": "object",
+                "properties": {
+                  "kind": {
+                    "type": "string",
+                    "enum": [
+                      "final"
+                    ]
+                  },
+                  "student": {
+                    "type": "object",
+                    "properties": {
+                      "name": {
+                        "type": "string"
+                      },
+                      "sid": {
+                        "type": "string"
+                      },
+                      "rollNo": {
+                        "type": [
+                          "integer",
+                          "null"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "name",
+                      "sid",
+                      "rollNo"
+                    ]
+                  },
+                  "class": {
+                    "type": "object",
+                    "properties": {
+                      "programmeName": {
+                        "type": "string"
+                      },
+                      "levelName": {
+                        "type": "string"
+                      },
+                      "label": {
+                        "type": "string"
+                      },
+                      "sectionName": {
+                        "type": "string"
+                      },
+                      "yearLabel": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "programmeName",
+                      "levelName",
+                      "label",
+                      "sectionName",
+                      "yearLabel"
+                    ]
+                  },
+                  "pattern": {
+                    "type": "object",
+                    "properties": {
+                      "graded": {
+                        "type": "boolean"
+                      },
+                      "theoryMinPercent": {
+                        "type": "integer"
+                      },
+                      "practicalMinPercent": {
+                        "type": "integer"
+                      },
+                      "gradeBands": {
+                        "type": [
+                          "array",
+                          "null"
+                        ],
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "grade": {
+                              "type": "string"
+                            },
+                            "from": {
+                              "type": "integer"
+                            }
+                          },
+                          "required": [
+                            "grade",
+                            "from"
+                          ]
+                        }
+                      },
+                      "terminals": {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "id": {
+                              "type": "string"
+                            },
+                            "name": {
+                              "type": "string"
+                            },
+                            "weight": {
+                              "type": "integer"
+                            }
+                          },
+                          "required": [
+                            "id",
+                            "name",
+                            "weight"
+                          ]
+                        }
+                      }
+                    },
+                    "required": [
+                      "graded",
+                      "theoryMinPercent",
+                      "practicalMinPercent",
+                      "gradeBands",
+                      "terminals"
+                    ]
+                  },
+                  "subjects": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "offeringId": {
+                          "type": "string"
+                        },
+                        "name": {
+                          "type": "string"
+                        },
+                        "terminals": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "terminalId": {
+                                "type": "string"
+                              },
+                              "terminalName": {
+                                "type": "string"
+                              },
+                              "weight": {
+                                "type": "integer"
+                              },
+                              "obtainedHundredths": {
+                                "type": "integer"
+                              },
+                              "fullHundredths": {
+                                "type": "integer"
+                              },
+                              "scaledHundredths": {
+                                "type": "integer"
+                              }
+                            },
+                            "required": [
+                              "terminalId",
+                              "terminalName",
+                              "weight",
+                              "obtainedHundredths",
+                              "fullHundredths",
+                              "scaledHundredths"
+                            ]
+                          }
+                        },
+                        "finalHundredths": {
+                          "type": "integer"
+                        },
+                        "theoryPercentHundredths": {
+                          "type": "integer"
+                        },
+                        "practicalPercentHundredths": {
+                          "type": [
+                            "integer",
+                            "null"
+                          ]
+                        },
+                        "passed": {
+                          "type": "boolean"
+                        },
+                        "grade": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "offeringId",
+                        "name",
+                        "terminals",
+                        "finalHundredths",
+                        "theoryPercentHundredths",
+                        "practicalPercentHundredths",
+                        "passed",
+                        "grade"
+                      ]
+                    }
+                  },
+                  "percentHundredths": {
+                    "type": "integer"
+                  },
+                  "passed": {
+                    "type": "boolean"
+                  },
+                  "grade": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "outcome": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "kind",
+                  "student",
+                  "class",
+                  "pattern",
+                  "subjects",
+                  "percentHundredths",
+                  "passed",
+                  "grade",
+                  "outcome"
                 ]
-              },
-              "outcome": {
-                "type": "string"
-              },
-              "passed": {
-                "type": "boolean"
               }
-            },
-            "required": [
-              "student",
-              "class",
-              "terminal",
-              "policy",
-              "subjects",
-              "gpaHundredths",
-              "percentHundredths",
-              "outcome",
-              "passed"
             ]
           }
         },
@@ -8667,7 +8996,10 @@
             "type": "string"
           },
           "terminal": {
-            "type": "object",
+            "type": [
+              "object",
+              "null"
+            ],
             "properties": {
               "id": {
                 "type": "string"
@@ -8681,12 +9013,8 @@
               "name"
             ]
           },
-          "policy": {
-            "type": "string",
-            "enum": [
-              "neb_gpa",
-              "percentage_division"
-            ]
+          "graded": {
+            "type": "boolean"
           },
           "publishedAt": {
             "type": "string"
@@ -8732,15 +9060,12 @@
                     "null"
                   ]
                 },
-                "gpaHundredths": {
-                  "type": [
-                    "integer",
-                    "null"
-                  ]
-                },
                 "percentHundredths": {
+                  "type": "integer"
+                },
+                "passed": {
                   "type": [
-                    "integer",
+                    "boolean",
                     "null"
                   ]
                 },
@@ -8762,7 +9087,10 @@
                         "type": "string"
                       },
                       "grade": {
-                        "type": "string"
+                        "type": [
+                          "string",
+                          "null"
+                        ]
                       },
                       "percentHundredths": {
                         "type": "integer"
@@ -8782,8 +9110,8 @@
                 "sid",
                 "name",
                 "rank",
-                "gpaHundredths",
                 "percentHundredths",
+                "passed",
                 "outcome",
                 "version",
                 "subjects"
@@ -8797,7 +9125,7 @@
           "levelName",
           "label",
           "terminal",
-          "policy",
+          "graded",
           "publishedAt",
           "subjects",
           "students"
@@ -8806,35 +9134,14 @@
       "Top20": {
         "type": "object",
         "properties": {
-          "terminals": {
-            "type": "array",
-            "items": {
-              "type": "object",
-              "properties": {
-                "id": {
-                  "type": "string"
-                },
-                "name": {
-                  "type": "string"
-                }
-              },
-              "required": [
-                "id",
-                "name"
-              ]
-            }
-          },
-          "terminalId": {
-            "type": [
-              "string",
-              "null"
-            ]
-          },
           "pools": {
             "type": "array",
             "items": {
               "type": "object",
               "properties": {
+                "termLabel": {
+                  "type": "string"
+                },
                 "sectionName": {
                   "type": "string"
                 },
@@ -8867,6 +9174,7 @@
                 }
               },
               "required": [
+                "termLabel",
                 "sectionName",
                 "levelName",
                 "entries"
@@ -8875,8 +9183,6 @@
           }
         },
         "required": [
-          "terminals",
-          "terminalId",
           "pools"
         ]
       },
@@ -8987,7 +9293,11 @@
                     "type": "object",
                     "properties": {
                       "componentId": {
-                        "type": "string"
+                        "type": "string",
+                        "enum": [
+                          "theory",
+                          "practical"
+                        ]
                       },
                       "name": {
                         "type": "string"
@@ -9065,7 +9375,10 @@
               "properties": {
                 "componentId": {
                   "type": "string",
-                  "pattern": "^[0-9a-f]{32}$"
+                  "enum": [
+                    "theory",
+                    "practical"
+                  ]
                 },
                 "valueHundredths": {
                   "type": [
@@ -9086,7 +9399,7 @@
               ],
               "additionalProperties": false
             },
-            "maxItems": 10,
+            "maxItems": 2,
             "default": []
           }
         },
@@ -9354,12 +9667,6 @@
                     "name": {
                       "type": "string"
                     },
-                    "policy": {
-                      "type": [
-                        "string",
-                        "null"
-                      ]
-                    },
                     "cards": {
                       "type": "integer"
                     },
@@ -9367,12 +9674,6 @@
                       "type": "integer"
                     },
                     "passPercent": {
-                      "type": [
-                        "integer",
-                        "null"
-                      ]
-                    },
-                    "avgGpaHundredths": {
                       "type": [
                         "integer",
                         "null"
@@ -9388,11 +9689,9 @@
                   "required": [
                     "id",
                     "name",
-                    "policy",
                     "cards",
                     "passed",
                     "passPercent",
-                    "avgGpaHundredths",
                     "avgPercentHundredths"
                   ]
                 }
@@ -11597,7 +11896,7 @@
         "tags": [
           "academics"
         ],
-        "description": "The terminals of one year, or of every year.",
+        "description": "The terminals of one year, or of every year, each with its weight and whether it holds the practical (D-117).",
         "parameters": [
           {
             "schema": {
@@ -11616,75 +11915,6 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/TerminalList"
-                }
-              }
-            }
-          }
-        }
-      },
-      "post": {
-        "operationId": "create_terminal",
-        "tags": [
-          "academics"
-        ],
-        "description": "Adds a terminal to a year, numbered after the last one.",
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CreateTerminal"
-              }
-            }
-          }
-        },
-        "responses": {
-          "201": {
-            "description": "Added",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/AcademicsCreated"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Not allowed (for example, switched off since signing in, or another section's data)",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/AcademicsError"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "No such item",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/AcademicsError"
-                }
-              }
-            }
-          },
-          "409": {
-            "description": "It conflicts with what is already there (a repeat, a closed year, another active year)",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/AcademicsError"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "The change breaks a rule; nothing changed",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/AcademicsInvalid"
                 }
               }
             }
@@ -12803,13 +13033,53 @@
         }
       }
     },
-    "/api/academics/terminals/{id}": {
-      "patch": {
-        "operationId": "update_terminal",
+    "/api/academics/years/{id}/exam-pattern": {
+      "get": {
+        "operationId": "get_exam_pattern",
         "tags": [
           "academics"
         ],
-        "description": "Renames a terminal. A closed year cannot be changed.",
+        "description": "A term's exam pattern (null until made) and its terminals, and whether marks have locked it.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{32}$"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The pattern",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExamPattern"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such item",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AcademicsError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "operationId": "save_exam_pattern",
+        "tags": [
+          "academics"
+        ],
+        "description": "Creates or replaces a term's exam pattern: Grade system yes or no, the minimum % for theory and practical, the grade ranges when graded, and the terminals in order with weights adding up to 100 and whether each holds the practical. Refused (409 `locked`) once marks have been entered in the term.",
         "parameters": [
           {
             "schema": {
@@ -12826,7 +13096,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/TerminalChanges"
+                "$ref": "#/components/schemas/ExamPatternInput"
               }
             }
           }
@@ -13208,7 +13478,7 @@
         "tags": [
           "academics"
         ],
-        "description": "One programme level's elective groups, subjects and mark components, in one answer. Marks and credit hours are whole hundredths. A level in a section the person may not see is 404, the same as a missing one.",
+        "description": "One programme level's elective groups and subjects, each with its paper's full marks and practical, in one answer. Marks and credit hours are whole hundredths. A level in a section the person may not see is 404, the same as a missing one.",
         "parameters": [
           {
             "schema": {
@@ -13332,7 +13602,7 @@
         "tags": [
           "academics"
         ],
-        "description": "Adds a subject to a programme level, with optional credit hours (whole hundredths) and an elective group of the same level. An archived subject, a switched-off level or group, or a group of another level is 422; the subject already on the level is 409.",
+        "description": "Adds a subject to a programme level, with its paper's full marks (default 100) and practical share (none by default), optional credit hours (whole hundredths) and an elective group of the same level. An archived subject, a switched-off level or group, or a group of another level is 422; the subject already on the level is 409.",
         "requestBody": {
           "required": true,
           "content": {
@@ -13403,7 +13673,7 @@
         "tags": [
           "academics"
         ],
-        "description": "Changes credit hours (null takes them away), the elective group (null takes the subject out of its group), or switches the subject off and on for the level.",
+        "description": "Changes the paper (full marks; the practical's share, null for none: applies to mark sheets made from now on), credit hours (null takes them away), the elective group (null takes the subject out of its group), or switches the subject off and on for the level.",
         "parameters": [
           {
             "schema": {
@@ -13421,170 +13691,6 @@
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/OfferingChanges"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Saved",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/AcademicsOk"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Not allowed (for example, switched off since signing in, or another section's data)",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/AcademicsError"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "No such item",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/AcademicsError"
-                }
-              }
-            }
-          },
-          "409": {
-            "description": "It conflicts with what is already there (a repeat, a closed year, another active year)",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/AcademicsError"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "The change breaks a rule; nothing changed",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/AcademicsInvalid"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/academics/offerings/{id}/components": {
-      "post": {
-        "operationId": "add_component",
-        "tags": [
-          "academics"
-        ],
-        "description": "Adds a mark component (Theory, Practical, Internal) to a subject on a level, numbered after the last. Maximum marks are whole hundredths. At most 10.",
-        "parameters": [
-          {
-            "schema": {
-              "type": "string",
-              "pattern": "^[0-9a-f]{32}$"
-            },
-            "required": true,
-            "name": "id",
-            "in": "path"
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CreateComponent"
-              }
-            }
-          }
-        },
-        "responses": {
-          "201": {
-            "description": "Added",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/AcademicsCreated"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Not allowed (for example, switched off since signing in, or another section's data)",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/AcademicsError"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "No such item",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/AcademicsError"
-                }
-              }
-            }
-          },
-          "409": {
-            "description": "It conflicts with what is already there (a repeat, a closed year, another active year)",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/AcademicsError"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "The change breaks a rule; nothing changed",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/AcademicsInvalid"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/academics/components/{id}": {
-      "patch": {
-        "operationId": "update_component",
-        "tags": [
-          "academics"
-        ],
-        "description": "Renames a component, changes its maximum marks, or switches it off and on. Nothing is deleted.",
-        "parameters": [
-          {
-            "schema": {
-              "type": "string",
-              "pattern": "^[0-9a-f]{32}$"
-            },
-            "required": true,
-            "name": "id",
-            "in": "path"
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/ComponentChanges"
               }
             }
           }
@@ -19513,7 +19619,7 @@
         "tags": [
           "results"
         ],
-        "description": "Publishes a whole class for a terminal: only when every subject is verified and the programme has a grading policy. Every student's marks card is stored as a snapshot in the same batch.",
+        "description": "Publishes a whole class for a terminal: only when every subject is verified and the term has an exam pattern. Every student's marks card is stored as a snapshot in the same batch. When it is the class's last terminal, the final result (every terminal scaled to its weight, out of 100, pass or fail) is published with it.",
         "parameters": [
           {
             "schema": {
@@ -19548,11 +19654,18 @@
                     },
                     "cards": {
                       "type": "integer"
+                    },
+                    "finalPublicationId": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
                     }
                   },
                   "required": [
                     "publicationId",
-                    "cards"
+                    "cards",
+                    "finalPublicationId"
                   ]
                 }
               }
@@ -19597,7 +19710,7 @@
         "tags": [
           "results"
         ],
-        "description": "The signed-in student's published results, every year and terminal, each with its marks card and rechecks. Nothing before publish.",
+        "description": "The signed-in student's published results, every term: each terminal's and the final, each with its marks card and rechecks. Nothing before publish.",
         "responses": {
           "200": {
             "description": "The results",
@@ -19660,7 +19773,7 @@
         "tags": [
           "results"
         ],
-        "description": "The whole-class sheet of a published terminal: students by subjects, with the GPA or percentage and the rank in the class. A Class Teacher reads their own class's (FUT point 19).",
+        "description": "The whole-class sheet of a published terminal: students by subjects, with the percentage and the grade when graded. For information: no pass, fail or rank. A Class Teacher reads their own class's (FUT point 19).",
         "parameters": [
           {
             "schema": {
@@ -19756,24 +19869,97 @@
         }
       }
     },
-    "/api/results/top20": {
+    "/api/results/classes/{classId}/final/sheet": {
       "get": {
-        "operationId": "get_top20",
+        "operationId": "get_class_final_sheet",
         "tags": [
           "results"
         ],
-        "description": "The Top 20 for a terminal, ranked per section among the same level, ties sharing a rank. A student sees their own list only, name and rank only, once their class is published; staff see every list in reach.",
+        "description": "The whole-class sheet of the final result: students by subjects (out of 100), the percentage, pass or fail, the grade when graded, and the rank in the class. A Class Teacher reads their own class's.",
         "parameters": [
           {
             "schema": {
               "type": "string",
               "pattern": "^[0-9a-f]{32}$"
             },
-            "required": false,
-            "name": "terminalId",
-            "in": "query"
+            "required": true,
+            "name": "classId",
+            "in": "path"
           }
         ],
+        "responses": {
+          "200": {
+            "description": "The sheet",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClassResultSheet"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such item, or not one the person may reach",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultsError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/results/classes/{classId}/final/sheet.csv": {
+      "get": {
+        "operationId": "export_class_final_sheet",
+        "tags": [
+          "results"
+        ],
+        "description": "The final result's whole-class sheet as CSV, for Excel.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{32}$"
+            },
+            "required": true,
+            "name": "classId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The CSV",
+            "content": {
+              "text/csv": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such item, or not one the person may reach",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultsError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/results/top20": {
+      "get": {
+        "operationId": "get_top20",
+        "tags": [
+          "results"
+        ],
+        "description": "The Top 20 on the final result, per open term, section and level, ties sharing a rank. A student sees their own list only, name and rank only, once their class's final result is out; staff see every list in reach.",
         "responses": {
           "200": {
             "description": "The lists",
@@ -19915,7 +20101,7 @@
         "tags": [
           "results"
         ],
-        "description": "The Co-ordinator decides a recheck, with a reason: unchanged, or changed with the corrected marks, which makes the next version of the marks card.",
+        "description": "The Co-ordinator decides a recheck, with a reason: unchanged, or changed with the corrected marks, which makes the next version of the terminal's marks card, and of the final result's when it is out.",
         "parameters": [
           {
             "schema": {

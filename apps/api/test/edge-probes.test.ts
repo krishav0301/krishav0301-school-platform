@@ -1,7 +1,7 @@
 import { beforeAll, describe, expect, it } from "vitest";
 
 import { call, db, person, seedSections, type Person } from "./academics-helpers";
-import { addSubject, enterAndSubmit, resultsClass, sheetIdOf, sheetPath, terminal, type Subject } from "./results-helpers";
+import { addSubject, enterAndSubmit, examTerm, pattern, resultsClass, sheetIdOf, sheetPath, type Subject, type Term } from "./results-helpers";
 import { classWith, type ClassFixture } from "./schoolday-helpers";
 
 /**
@@ -74,26 +74,27 @@ describe("homework and dates", () => {
 describe("results edge cases", () => {
   let cls: ClassFixture;
   let subject: Subject;
+  let exams: Term;
   let term: string;
 
   beforeAll(async () => {
-    cls = await resultsClass("plus2", 2, "percentage_division");
-    term = await terminal(true);
-    subject = await addSubject(cls, [[50, "theory"]]);
+    exams = await examTerm(pattern(false, [{ name: "Final", weight: 100, hasPractical: false }]));
+    term = exams.terminals[0]!;
+    cls = await resultsClass("plus2", 2, exams);
+    subject = await addSubject(cls, { full: 50 });
   });
 
-  it("a component's maximum cannot be lowered below a mark already given (the grade would pass 100%)", async () => {
+  it("a subject's full marks lowered below a mark already given never pass 100%: the sheet keeps the paper it was made with", async () => {
     await enterAndSubmit(cls, subject, term, 90, false); // 45 of 50
-    const lowered = await patch(`/api/academics/components/${subject.components[0]!.id}`, { maxHundredths: 4000 }, coordinator);
-    expect(lowered.status).toBeGreaterThanOrEqual(400);
-    expect(lowered.status).toBeLessThan(500);
-    expect((await patch(`/api/academics/components/${subject.components[0]!.id}`, { maxHundredths: 6000 }, coordinator)).status).toBe(200); // raising is fine
-    await patch(`/api/academics/components/${subject.components[0]!.id}`, { maxHundredths: 5000 }, coordinator);
+    expect((await patch(`/api/academics/offerings/${subject.offeringId}`, { fullMarksHundredths: 4000 }, coordinator)).status).toBe(200);
+    const grid = (await (await call(sheetPath(cls, subject, term), { cookie: subject.teacher.cookie })).json()) as { components: { maxHundredths: number }[] };
+    expect(grid.components[0]!.maxHundredths).toBe(5000);
+    await patch(`/api/academics/offerings/${subject.offeringId}`, { fullMarksHundredths: 5000 }, coordinator);
   });
 
   it("a class with no students, and a terminal with nothing entered, cannot be published and do not crash", async () => {
-    const empty = await resultsClass("plus2", 0, "neb_gpa");
-    await addSubject(empty, [[100, "theory"]]);
+    const empty = await resultsClass("plus2", 0, exams);
+    await addSubject(empty);
     const r = await post(`/api/results/classes/${empty.classId}/publish`, { terminalId: term }, coordinator);
     expect(r.status).toBe(409);
   });
@@ -109,7 +110,7 @@ describe("results edge cases", () => {
   });
 
   it("a mark is refused on a published sheet (the grid answers, the database refuses)", async () => {
-    const r = await put(sheetPath(cls, subject, term), { marks: [{ enrollmentId: cls.pupils[0]!.enrollmentId, componentId: subject.components[0]!.id, valueHundredths: 100 }] }, subject.teacher);
+    const r = await put(sheetPath(cls, subject, term), { marks: [{ enrollmentId: cls.pupils[0]!.enrollmentId, componentId: "theory", valueHundredths: 100 }] }, subject.teacher);
     expect(r.status).toBe(409);
   });
 });

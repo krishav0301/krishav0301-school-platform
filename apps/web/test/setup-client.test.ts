@@ -5,11 +5,11 @@ import {
   addLevel,
   createClass,
   createProgramme,
-  createTerminal,
   loadClasses,
   loadProgrammes,
   loadTerminals,
   loadYears,
+  saveExamPattern,
   setClassActive,
   setLevelActive,
   setLevelLength,
@@ -68,19 +68,20 @@ describe("the other writes", () => {
     await createProgramme(api, { name: "BBS", sectionKey: "bachelors", affiliation: "TU" });
     await addLevel(api, id, "Year 1", 12);
     await createClass(api, { yearId: id, levelId: id, label: "Morning" });
-    await createTerminal(api, { yearId: id, name: "First" });
+    const examPattern = { graded: false, theoryMinPercent: 35, practicalMinPercent: 40, gradeBands: null, terminals: [{ name: "First", weight: 100, hasPractical: false }] };
+    await saveExamPattern(api, id, examPattern);
     expect(seen.map((s) => [s.method, s.path, s.body])).toEqual([
       ["POST", "/api/academics/programmes", { name: "BBS", sectionKey: "bachelors", affiliation: "TU" }],
       ["POST", `/api/academics/programmes/${id}/levels`, { name: "Year 1", usualMonths: 12 }],
       ["POST", "/api/academics/classes", { yearId: id, levelId: id, label: "Morning" }],
-      ["POST", "/api/academics/terminals", { yearId: id, name: "First" }],
+      ["PUT", `/api/academics/years/${id}/exam-pattern`, { graded: false, theoryMinPercent: 35, practicalMinPercent: 40, gradeBands: null, terminals: [{ name: "First", weight: 100, hasPractical: false }] }],
     ]);
   });
 
   it("Add a Programme sends no grading choice, which the API's strict body would refuse (FUT F-02)", async () => {
     const { api, seen } = fake(() => reply(201, { id }));
     // What the Add a Programme form hands over: its values include the (hidden) grading choice.
-    const fromForm = { name: "+2 Science", affiliation: "NEB", gradingPolicy: null, sectionKey: "plus2" };
+    const fromForm = { name: "+2 Science", affiliation: "NEB", sectionKey: "plus2" };
     await createProgramme(api, fromForm);
     expect(seen[0]!.body).toEqual({ name: "+2 Science", sectionKey: "plus2", affiliation: "NEB" });
   });
@@ -102,7 +103,14 @@ describe("the other writes", () => {
   it("409 keeps its word: a closed term is told apart from a repeat", async () => {
     const closed = fake(() => reply(409, { error: "year_closed" })).api;
     expect(await createClass(closed, { yearId: id, levelId: id, label: "" })).toEqual({ ok: false, reason: "year_closed" });
-    expect(await createTerminal(closed, { yearId: id, name: "x" })).toEqual({ ok: false, reason: "year_closed" });
+    expect(await saveExamPattern(closed, id, { graded: false, theoryMinPercent: 0, practicalMinPercent: 0, gradeBands: null, terminals: [{ name: "x", weight: 100, hasPractical: false }] })).toEqual({ ok: false, reason: "year_closed" });
+    // A locked pattern keeps its own word; a broken rule comes back in the server's words.
+    expect(await saveExamPattern(fake(() => reply(409, { error: "locked" })).api, id, { graded: false, theoryMinPercent: 0, practicalMinPercent: 0, gradeBands: null, terminals: [] })).toEqual({ ok: false, reason: "locked" });
+    expect(await saveExamPattern(fake(() => reply(422, { error: "invalid", message: "The terminals' weights must add up to 100 (they add up to 60)" })).api, id, { graded: false, theoryMinPercent: 0, practicalMinPercent: 0, gradeBands: null, terminals: [] })).toEqual({
+      ok: false,
+      reason: "rejected",
+      message: "The terminals' weights must add up to 100 (they add up to 60)",
+    });
     expect(await createClass(fake(() => reply(409, { error: "conflict" })).api, { yearId: id, levelId: id, label: "" })).toEqual({ ok: false, reason: "conflict" });
   });
 

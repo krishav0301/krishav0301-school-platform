@@ -3,7 +3,7 @@
  * for BOTH schools, through the real HTTP API, starting from each school's own pack.
  *
  *  - a school starting from its pack already has structure (programmes and levels); a year, a class
- *    and a terminal are added, subjects are catalogued and offered, a teacher is hired through the
+ *    and the term's exam pattern are added, subjects are catalogued and offered, a teacher is hired through the
  *    real staff-and-first-password flow and put to work, until every item of the setup checklist
  *    (D-062) is done
  *  - a Co-ordinator drafts a notice, sends it for approval, and the Admin's approval makes it public
@@ -91,7 +91,7 @@ describe.each([
     state.levelId = programmes.programmes[0]!.levels[0]!.id;
   });
 
-  it("structure: a year, a class and a terminal make those three items true", async () => {
+  it("structure: a year, a class and the exam pattern make those three items true", async () => {
     const b = ++bsYear;
     const yearResponse = await post("/api/academics/years", { bsYear: b, startDate: bsToAd({ year: b, month: 1, day: 1 }), endDate: bsToAd({ year: b, month: 12, day: daysInMonth(b, 12) }), levelIds: [state.levelId!] }, cookies.admin);
     expect(yearResponse.status).toBe(201);
@@ -101,7 +101,8 @@ describe.each([
     const classResponse = await post("/api/academics/classes", { yearId: state.yearId, levelId: state.levelId, label: "Morning" }, cookies.coordinator);
     expect(classResponse.status).toBe(201);
     state.classId = await idOf(classResponse);
-    expect((await post("/api/academics/terminals", { yearId: state.yearId, name: "First terminal" }, cookies.coordinator)).status).toBe(201);
+    const examPattern = { graded: false, theoryMinPercent: 35, practicalMinPercent: 40, gradeBands: null, terminals: [{ name: "First terminal", weight: 100, hasPractical: false }] };
+    expect((await call(`/api/academics/years/${state.yearId}/exam-pattern`, { method: "PUT", body: examPattern, cookie: cookies.coordinator })).status).toBe(200);
 
     const checklist = (await (await call("/api/academics/checklist", { cookie: cookies.coordinator })).json()) as Checklist;
     expect(checklist).toMatchObject({ year: true, structure: true, classes: true, terminals: true, subjects: false, teachers: false, classTeachers: false });

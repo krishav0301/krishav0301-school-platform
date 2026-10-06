@@ -9,7 +9,7 @@ import { choiceOf, coursesOf, emptyChoice, openTermLevelIds, openTermOf, settle,
 // D-114 (FUT points 4, 9, 14): a level is chosen by Wing, then Course, then Level, in the school's own words.
 const level = (id: string, name: string, months: number | null = 12, active = true) => ({ id, ordinal: 1, name, active, usualMonths: months, students: 0, canDelete: false });
 const course = (id: string, name: string, wing: [string, string], levels: ReturnType<typeof level>[], active = true): Programme =>
-  ({ id, key: id, name, section: { key: wing[0], name: wing[1] }, affiliation: "Board", active, gradingPolicy: null, students: 0, canDelete: false, levels }) as Programme;
+  ({ id, key: id, name, section: { key: wing[0], name: wing[1] }, affiliation: "Board", active, students: 0, canDelete: false, levels }) as Programme;
 
 const plus2: [string, string] = ["plus2", "+2"];
 const bachelors: [string, string] = ["bachelors", "Bachelor's"];

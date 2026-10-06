@@ -310,7 +310,7 @@ export function StudentDashboard() {
         homework: work?.ok ? { open: open.length, nextDue: open[0] ? bsDay(open[0].dueDateBs, open[0].dueAt.slice(0, 10)) : null } : null,
         latestLog: log ? bsDay(log.dateBs, log.date) : null,
         fees: fees?.ok ? fees.data : null,
-        result: latest ? { terminal: latest.terminalName, score: scoreText(latest.card.body) ?? latest.card.body.outcome } : null,
+        result: latest ? { terminal: latest.terminalName ?? t("results.sheets.final"), score: latest.card.body.grade ?? scoreText(latest.card.body) } : null,
       },
     };
   }, [api, attendanceOn, homeworkOn, feesOn, resultsOn]);

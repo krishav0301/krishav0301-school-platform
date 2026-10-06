@@ -34,7 +34,7 @@ function reasonOf(response: Response, error: unknown): FailReason {
   if (status === 404) return "not_found";
   if (status === 409) {
     const code = (error as { error?: string } | undefined)?.error;
-    return code === "year_closed" || code === "in_use" || code === "code_taken" || code === "code_locked" ? code : "conflict";
+    return code === "year_closed" || code === "in_use" || code === "code_taken" || code === "code_locked" || code === "locked" ? code : "conflict";
   }
   if (status === 400 || status === 422) return "rejected";
   return "failed";
@@ -82,8 +82,8 @@ export const deleteLevel = async (api: ApiClient, id: string): Promise<WriteResu
 export const createProgramme = async (api: ApiClient, { name, sectionKey, affiliation }: { name: string; sectionKey: string; affiliation: string }): Promise<CreateResult> =>
   created(await send(() => api.POST("/api/academics/programmes", { body: { name, sectionKey, affiliation } })));
 
-/** Changes a programme's name, affiliation or grading policy (D-096's Edit). */
-export const updateProgramme = async (api: ApiClient, id: string, body: { name?: string; affiliation?: string; gradingPolicy?: "neb_gpa" | "percentage_division" | null }): Promise<WriteResult> =>
+/** Changes a programme's name or affiliation (D-096's Edit). */
+export const updateProgramme = async (api: ApiClient, id: string, body: { name?: string; affiliation?: string }): Promise<WriteResult> =>
   done(await send(() => api.PATCH("/api/academics/programmes/{id}", { params: { path: { id } }, body })));
 
 export const renameLevel = async (api: ApiClient, id: string, name: string): Promise<WriteResult> =>
@@ -113,8 +113,30 @@ export const renameClass = async (api: ApiClient, id: string, label: string): Pr
 export const setClassActive = async (api: ApiClient, id: string, active: boolean): Promise<WriteResult> =>
   done(await send(() => api.PATCH("/api/academics/classes/{id}", { params: { path: { id } }, body: { active } })));
 
-export const createTerminal = async (api: ApiClient, body: { yearId: string; name: string }): Promise<CreateResult> =>
-  created(await send(() => api.POST("/api/academics/terminals", { body })));
+// --- The exam pattern (D-117): one per term, out of 100 ---------------------------------------------------
+
+export const loadExamPattern = (api: ApiClient, yearId: string) => load(() => api.GET("/api/academics/years/{id}/exam-pattern", { params: { path: { id: yearId } } }));
+
+export interface ExamPatternInput {
+  graded: boolean;
+  theoryMinPercent: number;
+  practicalMinPercent: number;
+  gradeBands: { grade: string; from: number }[] | null;
+  terminals: { id?: string; name: string; weight: number; hasPractical: boolean }[];
+}
+
+/** Saves the whole pattern. A rule it breaks (weights not adding up to 100, grades out of order) comes back in the server's words. */
+export async function saveExamPattern(api: ApiClient, yearId: string, body: ExamPatternInput): Promise<WriteResult | { ok: false; reason: "rejected"; message: string }> {
+  try {
+    const { error, response } = await api.PUT("/api/academics/years/{id}/exam-pattern", { params: { path: { id: yearId } }, body });
+    if (response.ok) return { ok: true };
+    const message = (error as { message?: string } | undefined)?.message;
+    if (response.status === 422 && message) return { ok: false, reason: "rejected", message };
+    return { ok: false, reason: reasonOf(response, error) };
+  } catch {
+    return { ok: false, reason: "failed" };
+  }
+}
 
 // --- Subjects and the curriculum (slice 2) -----------------------------------------------------------
 
@@ -140,8 +162,12 @@ export const setGroupActive = async (api: ApiClient, id: string, active: boolean
 
 export const addOffering = async (
   api: ApiClient,
-  body: { levelId: string; subjectId: string; creditHundredths: number | null; groupId: string | null },
+  body: { levelId: string; subjectId: string; creditHundredths: number | null; groupId: string | null; fullMarksHundredths: number; practicalHundredths: number | null },
 ): Promise<CreateResult> => created(await send(() => api.POST("/api/academics/offerings", { body })));
+
+/** A subject's paper (D-117): its full marks, and the practical's share or none. */
+export const setOfferingPaper = async (api: ApiClient, id: string, body: { fullMarksHundredths: number; practicalHundredths: number | null }): Promise<WriteResult> =>
+  done(await send(() => api.PATCH("/api/academics/offerings/{id}", { params: { path: { id } }, body })));
 
 export const setOfferingGroup = async (api: ApiClient, id: string, groupId: string | null): Promise<WriteResult> =>
   done(await send(() => api.PATCH("/api/academics/offerings/{id}", { params: { path: { id } }, body: { groupId } })));
@@ -149,11 +175,4 @@ export const setOfferingGroup = async (api: ApiClient, id: string, groupId: stri
 export const setOfferingActive = async (api: ApiClient, id: string, active: boolean): Promise<WriteResult> =>
   done(await send(() => api.PATCH("/api/academics/offerings/{id}", { params: { path: { id } }, body: { active } })));
 
-export const setProgrammePolicy = async (api: ApiClient, id: string, gradingPolicy: "neb_gpa" | "percentage_division" | null): Promise<WriteResult> =>
-  done(await send(() => api.PATCH("/api/academics/programmes/{id}", { params: { path: { id } }, body: { gradingPolicy } })));
 
-export const addComponent = async (api: ApiClient, offeringId: string, body: { name: string; maxHundredths: number; kind: "theory" | "practical" }): Promise<CreateResult> =>
-  created(await send(() => api.POST("/api/academics/offerings/{id}/components", { params: { path: { id: offeringId } }, body })));
-
-export const setComponentActive = async (api: ApiClient, id: string, active: boolean): Promise<WriteResult> =>
-  done(await send(() => api.PATCH("/api/academics/components/{id}", { params: { path: { id } }, body: { active } })));

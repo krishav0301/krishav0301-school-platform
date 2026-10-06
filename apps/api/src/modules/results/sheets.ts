@@ -1,26 +1,42 @@
 import { recordAudit } from "../../core/audit";
 import { newPublicId } from "../../core/ids";
 import { CLASS_JOINS, NAMING_COLUMNS, coordinatorFor, missingCount, naming, readyToPublish, sectionInReach, takes, teacherName, teaches, type Reach } from "./guard";
-import { BulkVerifySchema, SaveMarksSchema, SendBackSchema, type MarkSheet, type MyMarkSheets, type ReviewBoard, type SaveMarks, type SheetStatus } from "./schema";
+import { BulkVerifySchema, SaveMarksSchema, SendBackSchema, type MarkSheet, type MyMarkSheets, type Part, type ReviewBoard, type SaveMarks, type SheetStatus } from "./schema";
 
 /**
- * Mark sheets (Phase 7, slices 2 and 3, D-080, D-081): one per class, subject and terminal. The subject's teacher
- * enters marks per component in a bulk grid and saves drafts; submits when nothing is missing; the Co-ordinator
- * verifies or sends it back with a note, one or many at once. The database refuses a mark on anything but a draft.
+ * Mark sheets (Phase 7, slices 2 and 3, D-080, D-081; on the exam pattern since D-117): one per class, subject and
+ * terminal. The subject's teacher enters marks out of the paper (theory, and the practical where the terminal holds it
+ * and the subject has one) in a bulk grid and saves drafts; submits when nothing is missing; the Co-ordinator verifies
+ * or sends it back with a note, one or many at once. The database refuses a mark on anything but a draft. A sheet keeps
+ * the paper's maxima it was made with; the scaling to the terminal's weight happens only in the result.
  */
 
-export type Write = { ok: true } | { ok: false; reason: "not_found" | "year_closed" | "wrong_state" } | { ok: false; reason: "invalid" | "missing"; message: string };
+export type Write = { ok: true } | { ok: false; reason: "not_found" | "year_closed" | "wrong_state" | "no_pattern" } | { ok: false; reason: "invalid" | "missing"; message: string };
 
 const yearClosed = (error: unknown) => /academic year is closed/i.test(error instanceof Error ? error.message : String(error));
 
 /**
- * The open terms' exams (terminals), term by term and oldest first. With more than one term open, each is named with its
- * term, so "Final" of one term is never mistaken for another's (D-110).
+ * The open terms' exams (terminals) that are part of an exam pattern, term by term and oldest first. With more than one
+ * term open, each is named with its term, so "Final" of one term is never mistaken for another's (D-110).
  */
 export const TERMINALS = `SELECT t.public_id AS id,
-                                 CASE WHEN (SELECT COUNT(*) FROM academic_years x WHERE x.status = 'active') > 1 THEN ay.label || ' · ' || t.name ELSE t.name END AS name
+                                 CASE WHEN (SELECT COUNT(*) FROM academic_years x WHERE x.status = 'active') > 1 THEN ay.label || ' · ' || t.name ELSE t.name END AS name,
+                                 t.weight
                             FROM terminals t JOIN academic_years ay ON ay.id = t.academic_year_id
-                           WHERE ay.status = 'active' ORDER BY ay.start_date, ay.id, t.ordinal`;
+                           WHERE ay.status = 'active' AND t.weight IS NOT NULL ORDER BY ay.start_date, ay.id, t.ordinal`;
+
+/** The parts of a paper with their maxima: as the sheet was made, or as it would be made now (terminal and subject). */
+export function paperParts(r: { sheet_theory_max: number | null; sheet_practical_max: number | null; sheet_exists: number; full_marks: number; practical: number | null; has_practical: number }): MarkSheet["components"] {
+  const theory = r.sheet_exists === 1 ? r.sheet_theory_max! : r.has_practical === 1 && r.practical !== null ? r.full_marks - r.practical : r.full_marks;
+  const practical = r.sheet_exists === 1 ? r.sheet_practical_max : r.has_practical === 1 ? r.practical : null;
+  const parts: MarkSheet["components"] = [{ id: "theory", name: "Theory", kind: "theory", maxHundredths: theory }];
+  if (practical !== null) parts.push({ id: "practical", name: "Practical", kind: "practical", maxHundredths: practical });
+  return parts;
+}
+
+/** The same choice in SQL, for making a sheet: `o` the subject on its level, `t` the terminal. */
+const THEORY_MAX = `CASE WHEN t.has_practical = 1 AND o.practical_hundredths IS NOT NULL THEN o.full_marks_hundredths - o.practical_hundredths ELSE o.full_marks_hundredths END`;
+const PRACTICAL_MAX = `CASE WHEN t.has_practical = 1 THEN o.practical_hundredths END`;
 
 /** The teacher's subjects this year, each with its sheet's state per terminal. */
 export async function mySheets(db: D1Database, me: string): Promise<MyMarkSheets> {
@@ -35,7 +51,7 @@ export async function mySheets(db: D1Database, me: string): Promise<MyMarkSheets
            JOIN classes cl ON cl.id = ta.class_id ${CLASS_JOINS}
            JOIN academic_years ay ON ay.id = cl.academic_year_id
            JOIN subject_offerings o ON o.id = ta.offering_id JOIN subjects sb ON sb.id = o.subject_id
-           LEFT JOIN terminals t ON t.academic_year_id = ay.id
+           LEFT JOIN terminals t ON t.academic_year_id = ay.id AND t.weight IS NOT NULL
            LEFT JOIN mark_sheets ms ON ms.class_id = cl.id AND ms.offering_id = o.id AND ms.terminal_id = t.id
           WHERE u.public_id = ?1 AND u.is_active = 1 AND ta.is_active = 1 AND ay.status = 'active'
           ORDER BY s.ordering, pv.ordering, lv.ordinal, cl.label, sb.name, t.ordinal`,
@@ -50,7 +66,7 @@ export async function mySheets(db: D1Database, me: string): Promise<MyMarkSheets
     }
     if (r.terminal_id) entry.sheets.push({ terminalId: r.terminal_id, status: r.status ?? "not_started", note: r.note });
   }
-  return { terminals: terminals!.results as { id: string; name: string }[], subjects };
+  return { terminals: terminals!.results as { id: string; name: string; weight: number }[], subjects };
 }
 
 /** Who is looking at a sheet: the subject's own teacher, or staff whose sections reach the class. */
@@ -65,6 +81,13 @@ interface SheetHead {
   subject_name: string;
   terminal_id: string;
   terminal_name: string;
+  weight: number | null;
+  has_practical: number;
+  full_marks: number;
+  practical: number | null;
+  sheet_theory_max: number | null;
+  sheet_practical_max: number | null;
+  sheet_exists: number;
   sheet_id: string | null;
   status: SheetStatus | null;
   note: string | null;
@@ -76,10 +99,12 @@ interface SheetHead {
 /** A sheet by its class, subject and terminal (it may not exist yet: then it reads as not started). */
 export async function loadSheet(db: D1Database, viewer: Viewer, classId: string, offeringId: string, terminalId: string): Promise<{ sheet: MarkSheet; yearStatus: string } | null> {
   const access = "teacher" in viewer ? teaches(4, "cl.id", "o.id") : sectionInReach(5);
-  const [head, components, students] = await db.batch([
+  const [head, students] = await db.batch([
     db
       .prepare(
         `SELECT cl.public_id AS class_id, ${NAMING_COLUMNS}, o.public_id AS offering_id, sb.name AS subject_name, t.public_id AS terminal_id, t.name AS terminal_name,
+                t.weight, t.has_practical, o.full_marks_hundredths AS full_marks, o.practical_hundredths AS practical,
+                ms.theory_max_hundredths AS sheet_theory_max, ms.practical_max_hundredths AS sheet_practical_max, ms.id IS NOT NULL AS sheet_exists,
                 ms.public_id AS sheet_id, ms.status, ms.note, ${teacherName} AS teacher_name, ay.status AS year_status, ${access} AS allowed
            FROM classes cl ${CLASS_JOINS} JOIN academic_years ay ON ay.id = cl.academic_year_id
            JOIN subject_offerings o ON o.level_id = cl.level_id AND o.public_id = ?2 JOIN subjects sb ON sb.id = o.subject_id
@@ -90,15 +115,9 @@ export async function loadSheet(db: D1Database, viewer: Viewer, classId: string,
       .bind(...[classId, offeringId, terminalId], ...("teacher" in viewer ? [viewer.teacher] : [null, viewer.reach.institution, viewer.reach.sections])),
     db
       .prepare(
-        `SELECT mc.public_id AS id, mc.name, mc.kind, mc.max_hundredths FROM subject_offerings o JOIN mark_components mc ON mc.offering_id = o.id AND mc.is_active = 1
-          WHERE o.public_id = ?1 ORDER BY mc.ordinal`,
-      )
-      .bind(offeringId),
-    db
-      .prepare(
         `SELECT en.public_id AS enrollment_id, st.sid, st.first_name || ' ' || st.last_name AS name, en.roll_no,
-                (SELECT json_group_array(json_object('c', mc.public_id, 'v', m.value_hundredths, 'a', m.absent))
-                   FROM marks m JOIN mark_sheets ms ON ms.id = m.sheet_id JOIN mark_components mc ON mc.id = m.component_id
+                (SELECT json_group_array(json_object('c', m.part, 'v', m.value_hundredths, 'a', m.absent))
+                   FROM marks m JOIN mark_sheets ms ON ms.id = m.sheet_id
                   WHERE m.enrollment_id = en.id AND ms.class_id = cl.id AND ms.offering_id = o.id AND ms.terminal_id = t.id) AS marks
            FROM classes cl JOIN subject_offerings o ON o.level_id = cl.level_id AND o.public_id = ?2
            JOIN terminals t ON t.academic_year_id = cl.academic_year_id AND t.public_id = ?3
@@ -109,16 +128,11 @@ export async function loadSheet(db: D1Database, viewer: Viewer, classId: string,
       .bind(classId, offeringId, terminalId),
   ]);
   const h = head!.results[0] as unknown as SheetHead | undefined;
-  if (!h || h.allowed !== 1) return null;
-  const comps = (components!.results as unknown as { id: string; name: string; kind: "theory" | "practical"; max_hundredths: number }[]).map((c) => ({
-    id: c.id,
-    name: c.name,
-    kind: c.kind,
-    maxHundredths: c.max_hundredths,
-  }));
+  if (!h || h.allowed !== 1 || h.weight === null) return null;
+  const comps = paperParts(h);
   let missing = 0;
   const people = (students!.results as unknown as { enrollment_id: string; sid: string; name: string; roll_no: number | null; marks: string }[]).map((s) => {
-    const entered = JSON.parse(s.marks) as { c: string; v: number | null; a: number }[];
+    const entered = JSON.parse(s.marks) as { c: Part; v: number | null; a: number }[];
     const marks = comps.map((c) => {
       const m = entered.find((e) => e.c === c.id);
       const value = m?.v ?? null;
@@ -136,7 +150,7 @@ export async function loadSheet(db: D1Database, viewer: Viewer, classId: string,
       ...naming(h),
       offeringId: h.offering_id,
       subjectName: h.subject_name,
-      terminal: { id: h.terminal_id, name: h.terminal_name },
+      terminal: { id: h.terminal_id, name: h.terminal_name, weight: h.weight },
       teacherName: h.teacher_name,
       status: h.status ?? "not_started",
       note: h.note,
@@ -170,25 +184,25 @@ export async function saveMarks(db: D1Database, auditKey: string, me: string, cl
                  WHERE cl.public_id = ?1 AND ${teaches(4, "cl.id", "o.id")}`;
   const openSheet = db
     .prepare(
-      `INSERT INTO mark_sheets (public_id, class_id, offering_id, terminal_id, created_at, updated_at)
-       SELECT ?5, cl.id, o.id, t.id, ?6, ?6 ${place}
+      `INSERT INTO mark_sheets (public_id, class_id, offering_id, terminal_id, theory_max_hundredths, practical_max_hundredths, created_at, updated_at)
+       SELECT ?5, cl.id, o.id, t.id, ${THEORY_MAX}, ${PRACTICAL_MAX}, ?6, ?6 ${place}
        ON CONFLICT (class_id, offering_id, terminal_id) DO NOTHING`,
     )
     .bind(classId, offeringId, terminalId, me, newPublicId(), at);
   const rows = parsed.data.marks.map((m) => ({ e: m.enrollmentId, c: m.componentId, v: m.valueHundredths, a: m.absent ? 1 : 0 }));
   const upsert = db
     .prepare(
-      `INSERT INTO marks (sheet_id, enrollment_id, component_id, value_hundredths, absent, updated_by_user_id, updated_at)
-       SELECT ms.id, en.id, mc.id, json_extract(j.value, '$.v'), json_extract(j.value, '$.a'), u.id, ?6
+      `INSERT INTO marks (sheet_id, enrollment_id, part, value_hundredths, absent, updated_by_user_id, updated_at)
+       SELECT ms.id, en.id, json_extract(j.value, '$.c'), json_extract(j.value, '$.v'), json_extract(j.value, '$.a'), u.id, ?6
          FROM classes cl JOIN subject_offerings o ON o.level_id = cl.level_id AND o.public_id = ?2
          JOIN terminals t ON t.academic_year_id = cl.academic_year_id AND t.public_id = ?3
          JOIN mark_sheets ms ON ms.class_id = cl.id AND ms.offering_id = o.id AND ms.terminal_id = t.id AND ms.status = 'draft'
          JOIN json_each(?5) j
          JOIN enrollments en ON en.public_id = json_extract(j.value, '$.e') AND en.class_id = cl.id AND en.status = 'active'
-         JOIN mark_components mc ON mc.public_id = json_extract(j.value, '$.c') AND mc.offering_id = o.id AND mc.is_active = 1
          JOIN users u ON u.public_id = ?4
         WHERE cl.public_id = ?1 AND ${teaches(4, "cl.id", "o.id")} AND ${takes("en", "o")}
-       ON CONFLICT (sheet_id, enrollment_id, component_id) DO UPDATE
+          AND (json_extract(j.value, '$.c') = 'theory' OR ms.practical_max_hundredths IS NOT NULL)
+       ON CONFLICT (sheet_id, enrollment_id, part) DO UPDATE
          SET value_hundredths = excluded.value_hundredths, absent = excluded.absent, updated_by_user_id = excluded.updated_by_user_id, updated_at = excluded.updated_at`,
     )
     .bind(classId, offeringId, terminalId, me, JSON.stringify(rows), at);
@@ -211,6 +225,7 @@ export async function saveMarks(db: D1Database, auditKey: string, me: string, cl
   } catch (error) {
     if (yearClosed(error)) return { ok: false, reason: "year_closed" };
     if (/only change on a draft/i.test(error instanceof Error ? error.message : String(error))) return { ok: false, reason: "wrong_state" };
+    if (/no exam pattern/i.test(error instanceof Error ? error.message : String(error))) return { ok: false, reason: "no_pattern" };
     throw error;
   }
 }
@@ -269,27 +284,27 @@ export async function reviewBoard(db: D1Database, reach: Reach, terminalId: stri
     db.prepare(TERMINALS),
     db.prepare(
       `SELECT t.public_id AS id FROM terminals t JOIN academic_years ay ON ay.id = t.academic_year_id
-        WHERE ay.status = 'active' AND EXISTS (SELECT 1 FROM mark_sheets ms WHERE ms.terminal_id = t.id)
+        WHERE ay.status = 'active' AND t.weight IS NOT NULL AND EXISTS (SELECT 1 FROM mark_sheets ms WHERE ms.terminal_id = t.id)
         ORDER BY t.ordinal DESC LIMIT 1`,
     ),
   ]);
-  const terminals = listed!.results as { id: string; name: string }[];
+  const terminals = listed!.results as { id: string; name: string; weight: number }[];
   const inProgress = (started!.results[0] as { id: string } | undefined)?.id;
   const chosen = terminalId && terminals.some((t) => t.id === terminalId) ? terminalId : (inProgress ?? terminals[0]?.id ?? null);
   if (!chosen) return { terminals, terminalId: null, classes: [] };
   const { results } = await db
     .prepare(
-      `SELECT cl.public_id AS class_id, ${NAMING_COLUMNS}, pv.grading_policy,
+      `SELECT cl.public_id AS class_id, ${NAMING_COLUMNS},
               o.public_id AS offering_id, sb.name AS subject_name, ${teacherName} AS teacher_name,
               ms.public_id AS sheet_id, ms.status, ${missingCount("t.id")} AS missing,
               EXISTS (SELECT 1 FROM result_publications rp WHERE rp.class_id = cl.id AND rp.terminal_id = t.id) AS published,
+              EXISTS (SELECT 1 FROM result_publications rp WHERE rp.class_id = cl.id AND rp.terminal_id IS NULL) AS final_published,
               (${readyToPublish("t.id")}) AS ready
          FROM classes cl ${CLASS_JOINS} JOIN academic_years ay ON ay.id = cl.academic_year_id
          JOIN terminals t ON t.academic_year_id = ay.id AND t.public_id = ?3
          JOIN subject_offerings o ON o.level_id = cl.level_id AND o.is_active = 1 JOIN subjects sb ON sb.id = o.subject_id
          LEFT JOIN mark_sheets ms ON ms.class_id = cl.id AND ms.offering_id = o.id AND ms.terminal_id = t.id
         WHERE ay.status = 'active' AND cl.is_active = 1 AND ${sectionInReach(1)}
-          AND EXISTS (SELECT 1 FROM mark_components mc WHERE mc.offering_id = o.id AND mc.is_active = 1)
           AND EXISTS (SELECT 1 FROM enrollments en WHERE en.class_id = cl.id AND en.status = 'active' AND ${takes("en", "o")})
         ORDER BY s.ordering, pv.ordering, lv.ordinal, cl.label, sb.name`,
     )
@@ -299,7 +314,6 @@ export async function reviewBoard(db: D1Database, reach: Reach, terminalId: stri
       programme_name: string;
       level_name: string;
       label: string;
-      grading_policy: "neb_gpa" | "percentage_division" | null;
       offering_id: string;
       subject_name: string;
       teacher_name: string | null;
@@ -307,13 +321,14 @@ export async function reviewBoard(db: D1Database, reach: Reach, terminalId: stri
       status: SheetStatus | null;
       missing: number;
       published: number;
+      final_published: number;
       ready: number;
     }>();
   const classes: ReviewBoard["classes"] = [];
   for (const r of results) {
     let entry = classes[classes.length - 1];
     if (!entry || entry.classId !== r.class_id) {
-      classes.push((entry = { classId: r.class_id, ...naming(r), gradingPolicy: r.grading_policy, published: r.published === 1, ready: r.ready === 1 && r.published === 0 && r.grading_policy !== null, subjects: [] }));
+      classes.push((entry = { classId: r.class_id, ...naming(r), published: r.published === 1, finalPublished: r.final_published === 1, ready: r.ready === 1 && r.published === 0, subjects: [] }));
     }
     entry.subjects.push({ offeringId: r.offering_id, subjectName: r.subject_name, teacherName: r.teacher_name, sheetId: r.sheet_id, status: r.status ?? "not_started", missing: r.missing });
   }

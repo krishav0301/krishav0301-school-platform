@@ -4,7 +4,7 @@ import { describe, expect, it, vi } from "vitest";
 import CurriculumPage from "@/app/portal/setup/curriculum/page";
 import SubjectsPage from "@/app/portal/setup/subjects/page";
 import { ConfigContext, makeConfigValue, type PublicConfig } from "@/config/ConfigProvider";
-import { ComponentForm, CurriculumView, GroupForm, OfferingForm, SubjectPanel } from "@/setup/CurriculumScreen";
+import { CurriculumView, GroupForm, OfferingForm, PaperForm, SubjectPanel, readPaper } from "@/setup/CurriculumScreen";
 import { SetupTabs } from "@/setup/SetupLayout";
 import { SubjectEditForm, SubjectForm, SubjectsScreen, SubjectsView } from "@/setup/SubjectsScreen";
 import type { Curriculum, Offering, Subject } from "@/setup/model";
@@ -140,25 +140,23 @@ describe("the curriculum screen", () => {
     creditHundredths: 375,
     group: { id: "g1", name: "Science option" },
     active: true,
-    components: [
-      { id: "c1", name: "Theory", maxHundredths: 7500, kind: "theory", ordinal: 1, active: true },
-      { id: "c2", name: "Practical", maxHundredths: 2550, kind: "practical", ordinal: 2, active: false },
-    ],
+    fullMarksHundredths: 10000,
+    practicalHundredths: 2500,
   };
-  const english: Offering = { id: "o2", subject: subject("s2", "English"), creditHundredths: null, group: null, active: false, components: [] };
+  const english: Offering = { id: "o2", subject: subject("s2", "English"), creditHundredths: null, group: null, active: false, fullMarksHundredths: 10000, practicalHundredths: null };
   const curriculum: Curriculum = {
     level: { id: "l1", name: "Grade 11", programmeId: "p1", programmeName: "+2 Science", sectionKey: "plus2" },
     groups: [{ id: "g1", name: "Science option", pickCount: 1, active: true }, { id: "g2", name: "Old option", pickCount: 2, active: false }],
     offerings: [biology, english],
   };
   const view = (canManage: boolean, data: Curriculum = curriculum) =>
-    inContext(<CurriculumView curriculum={data} canManage={canManage} busy={null} onToggleGroup={noop} onToggleOffering={noop} onSetGroup={noop} onToggleComponent={noop} />);
+    inContext(<CurriculumView curriculum={data} canManage={canManage} busy={null} onToggleGroup={noop} onToggleOffering={noop} onSetGroup={noop} />);
 
   it("a reader sees the Principal's table: subjects, credit hours and marks as decimals, and electives in words", () => {
     const html = view(false);
     expect(html).toContain('data-primary="true">Biology</td>');
     expect(html).toContain(">3.75<");
-    expect(html).toContain("Theory 75");
+    expect(html).toContain("Out of 100: theory 75, practical 25");
     expect(html).toContain("Choose 1 of: Biology");
     expect(html).not.toContain("English"); // switched off: not taught, so not shown to a reader
     expect(count(html, /<form/g)).toBe(0);
@@ -166,12 +164,12 @@ describe("the curriculum screen", () => {
     expect(count(html, /<select/g)).toBe(0);
   });
 
-  it("for the Co-ordinator: every subject in a table with its marks, elective and status in words, each with Edit", () => {
+  it("for the Co-ordinator: every subject in a table with its paper, elective and status in words, each with Edit", () => {
     const html = view(true);
     expect(html).toContain('data-primary="true">Biology (BIO)</td>');
     expect(html).toContain(">3.75<");
-    expect(html).toContain("Theory: 75"); // the switched-off Practical is left out of the summary
-    expect(html).not.toContain("Practical: 25.5");
+    expect(html).toContain("Out of 100: theory 75, practical 25");
+    expect(html).toContain("Out of 100<"); // English: no practical
     expect(html).toContain(">Science option<"); // Biology's elective group
     expect(html).toContain(">Compulsory<");
     expect(html).toContain(">In use<");
@@ -191,18 +189,18 @@ describe("the curriculum screen", () => {
     expect(trigger).toContain("secondary");
   });
 
-  it("a subject's panel: its facts, its elective group, its marks with a switch each, a form to add one, and Switch off", () => {
-    const html = inContext(<SubjectPanel curriculum={curriculum} offering={biology} busy={null} onClose={noop} onToggleOffering={noop} onSetGroup={noop} onToggleComponent={noop} onChanged={noop} />);
+  it("a subject's panel: its facts, its elective group, its paper with a form to change it, and Switch off", () => {
+    const html = inContext(<SubjectPanel curriculum={curriculum} offering={biology} busy={null} onClose={noop} onToggleOffering={noop} onSetGroup={noop} onChanged={noop} />);
     expect(html).toContain(">Biology</h2>");
     expect(html).toContain("+2 Science · Grade 11");
     expect(html).toContain(">BIO<");
     expect(html).toContain("Elective group for Biology");
     expect(html).toContain("None: everyone takes it");
     expect(html).not.toContain(">Old option<"); // a switched-off group cannot be chosen
-    expect(html).toContain("Theory: 75");
-    expect(html).toContain("Practical: 25.5 (practical)");
-    expect(html).toContain('aria-label="Switch off Theory"');
-    expect(html).toContain('aria-label="Switch on Practical"');
+    expect(html).toContain("Out of 100: theory 75, practical 25");
+    expect(html).toContain("This subject has a practical");
+    expect(html).toContain(">Practical marks<");
+    expect(html).toContain("Save paper");
     expect(html).toContain('aria-label="Switch off Biology"');
     expect(count(html, /<form/g)).toBe(1);
   });
@@ -229,10 +227,22 @@ describe("the curriculum screen", () => {
     expect(offering).toContain("Science option"); // an active group can be chosen
     expect(offering).not.toContain("Old option"); // a switched-off group cannot
 
-    const mark = inContext(<ComponentForm offeringId="o1" name="Biology" onAdded={noop} />);
-    expect(mark).toContain(">Component<");
-    expect(mark).toContain(">Maximum marks<");
-    expect(mark).toContain('inputMode="decimal"');
+    // The paper: full marks (100 to start), "This subject has a practical", and its marks only once ticked.
+    expect(offering).toContain(">Full marks<");
+    expect(offering).toContain('value="100"');
+    expect(offering).toContain("This subject has a practical");
+    expect(offering).not.toContain(">Practical marks<");
+    const paper = inContext(<PaperForm offering={biology} onSaved={noop} />);
+    expect(paper).toContain(">Practical marks<");
+    expect(paper).toContain('value="25"');
+  });
+
+  it("reads a paper: whole hundredths, the practical only when ticked, and less than the full marks", () => {
+    expect(readPaper({ full: "100", hasPractical: true, practical: "25" })).toEqual({ ok: true, fullMarksHundredths: 10000, practicalHundredths: 2500 });
+    expect(readPaper({ full: "75", hasPractical: false, practical: "99" })).toEqual({ ok: true, fullMarksHundredths: 7500, practicalHundredths: null });
+    expect(readPaper({ full: "100", hasPractical: true, practical: "100" })).toMatchObject({ ok: false, errors: { practical: "setup.error.practicalInvalid" } });
+    expect(readPaper({ full: "0", hasPractical: false, practical: "" })).toMatchObject({ ok: false, errors: { full: "setup.error.fullMarksInvalid" } });
+    expect(readPaper({ full: "100", hasPractical: true, practical: "" })).toMatchObject({ ok: false, errors: { practical: "setup.error.practicalInvalid" } });
   });
 
   it("the offering form says so when there is nothing left to add", () => {

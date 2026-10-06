@@ -64,6 +64,7 @@ const REPORTS = { action: "reports.results" } as const;
 
 const SheetParams = z.object({ classId: PublicIdSchema, offeringId: PublicIdSchema, terminalId: PublicIdSchema });
 const ClassTerminal = z.object({ classId: PublicIdSchema, terminalId: PublicIdSchema });
+const ClassOnly = z.object({ classId: PublicIdSchema });
 const TerminalQuery = z.object({ terminalId: PublicIdSchema.optional() });
 
 export function registerResults(app: App): void {
@@ -266,14 +267,14 @@ export function registerResults(app: App): void {
       operationId: "publish_class_results",
       tags: ["results"],
       description:
-        "Publishes a whole class for a terminal: only when every subject is verified and the programme has a grading policy. Every student's marks card is stored as a snapshot in the same batch.",
+        "Publishes a whole class for a terminal: only when every subject is verified and the term has an exam pattern. Every student's marks card is stored as a snapshot in the same batch. When it is the class's last terminal, the final result (every terminal scaled to its weight, out of 100, pass or fail) is published with it.",
       access: PUBLISH,
       request: { params: z.object({ classId: PublicIdSchema }), body: { required: true, content: json(PublishSchema) } },
-      responses: { 201: { description: "Published", content: json(z.object({ publicationId: z.string(), cards: z.number().int() })) }, ...failures },
+      responses: { 201: { description: "Published", content: json(z.object({ publicationId: z.string(), cards: z.number().int(), finalPublicationId: z.string().nullable() })) }, ...failures },
     },
     async (c) => {
       const result = await publishClass(c.env.DB, c.env.AUDIT_HMAC_KEY, c.get("auth")!.userPublicId, c.req.valid("param").classId, c.req.valid("json").terminalId);
-      if (result.ok) return c.json({ publicationId: result.publicationId, cards: result.cards }, 201);
+      if (result.ok) return c.json({ publicationId: result.publicationId, cards: result.cards, finalPublicationId: result.finalPublicationId }, 201);
       if (result.reason === "cannot_grade") return c.json({ error: "invalid" as const, message: result.message }, 422);
       return fail(c, result);
     },
@@ -287,7 +288,7 @@ export function registerResults(app: App): void {
       path: "/api/results/me",
       operationId: "get_own_results",
       tags: ["results"],
-      description: "The signed-in student's published results, every year and terminal, each with its marks card and rechecks. Nothing before publish.",
+      description: "The signed-in student's published results, every term: each terminal's and the final, each with its marks card and rechecks. Nothing before publish.",
       access: VIEW,
       responses: { 200: { description: "The results", content: json(OwnResultsSchema) } },
     },
@@ -323,7 +324,7 @@ export function registerResults(app: App): void {
       path: "/api/results/classes/{classId}/terminals/{terminalId}/sheet",
       operationId: "get_class_result_sheet",
       tags: ["results"],
-      description: "The whole-class sheet of a published terminal: students by subjects, with the GPA or percentage and the rank in the class. A Class Teacher reads their own class's (FUT point 19).",
+      description: "The whole-class sheet of a published terminal: students by subjects, with the percentage and the grade when graded. For information: no pass, fail or rank. A Class Teacher reads their own class's (FUT point 19).",
       access: CLASS_SHEET,
       request: { params: ClassTerminal },
       responses: { 200: { description: "The sheet", content: json(ClassSheetSchema) }, 404: failures[404] },
@@ -368,19 +369,64 @@ export function registerResults(app: App): void {
     app,
     {
       method: "get",
+      path: "/api/results/classes/{classId}/final/sheet",
+      operationId: "get_class_final_sheet",
+      tags: ["results"],
+      description: "The whole-class sheet of the final result: students by subjects (out of 100), the percentage, pass or fail, the grade when graded, and the rank in the class. A Class Teacher reads their own class's.",
+      access: CLASS_SHEET,
+      request: { params: ClassOnly },
+      responses: { 200: { description: "The sheet", content: json(ClassSheetSchema) }, 404: failures[404] },
+    },
+    async (c) => {
+      const grant = c.get("grant")!;
+      const staff = staffReach(grant);
+      const { classId } = c.req.valid("param");
+      const sheet = staff
+        ? await classSheet(c.env.DB, staff, classId, null)
+        : grant.classOnly
+          ? await classSheet(c.env.DB, { institution: 1, sections: null }, classId, null, c.get("auth")!.userPublicId)
+          : null;
+      return sheet ? c.json(sheet, 200) : c.json({ error: "not_found" }, 404);
+    },
+  );
+
+  defineRoute(
+    app,
+    {
+      method: "get",
+      path: "/api/results/classes/{classId}/final/sheet.csv",
+      operationId: "export_class_final_sheet",
+      tags: ["results"],
+      description: "The final result's whole-class sheet as CSV, for Excel.",
+      access: REPORTS,
+      request: { params: ClassOnly },
+      responses: { 200: { description: "The CSV", content: { "text/csv": { schema: z.string() } } }, 404: failures[404] },
+    },
+    async (c) => {
+      const sheet = await classSheet(c.env.DB, reachOf(c.get("grant")!), c.req.valid("param").classId, null);
+      if (!sheet) return c.json({ error: "not_found" }, 404);
+      c.header("Cache-Control", "no-store");
+      c.header("Content-Disposition", 'attachment; filename="final-results.csv"');
+      return c.body(classSheetCsv(sheet), 200, { "Content-Type": "text/csv; charset=utf-8" });
+    },
+  );
+
+  defineRoute(
+    app,
+    {
+      method: "get",
       path: "/api/results/top20",
       operationId: "get_top20",
       tags: ["results"],
       description:
-        "The Top 20 for a terminal, ranked per section among the same level, ties sharing a rank. A student sees their own list only, name and rank only, once their class is published; staff see every list in reach.",
+        "The Top 20 on the final result, per open term, section and level, ties sharing a rank. A student sees their own list only, name and rank only, once their class's final result is out; staff see every list in reach.",
       access: TOP20,
-      request: { query: TerminalQuery },
       responses: { 200: { description: "The lists", content: json(Top20Schema) }, 404: { description: "The Top 20 is switched off for this school", content: json(ErrorSchema) } },
     },
     async (c) => {
       const grant = c.get("grant")!;
       const reach = staffReach(grant);
-      const result = await top20(c.env.DB, reach ? { reach } : { student: c.get("auth")!.userPublicId }, c.req.valid("query").terminalId);
+      const result = await top20(c.env.DB, reach ? { reach } : { student: c.get("auth")!.userPublicId });
       c.header("Cache-Control", "no-store");
       return result ? c.json(result, 200) : c.json({ error: "not_found" }, 404);
     },
@@ -430,7 +476,7 @@ export function registerResults(app: App): void {
       path: "/api/results/rechecks/{recheckId}/decide",
       operationId: "decide_recheck",
       tags: ["results"],
-      description: "The Co-ordinator decides a recheck, with a reason: unchanged, or changed with the corrected marks, which makes the next version of the marks card.",
+      description: "The Co-ordinator decides a recheck, with a reason: unchanged, or changed with the corrected marks, which makes the next version of the terminal's marks card, and of the final result's when it is out.",
       access: RECHECK_EDIT,
       request: { params: z.object({ recheckId: PublicIdSchema }), body: { required: true, content: json(DecideRecheckSchema) } },
       responses: { 200: { description: "Decided", content: json(OkSchema) }, ...failures },

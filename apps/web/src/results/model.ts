@@ -1,5 +1,5 @@
 import type { components } from "@/api/schema";
-import type { MessageKey } from "@/i18n/messages";
+import { t, type MessageKey } from "@/i18n/messages";
 
 export type MyMarkSheets = components["schemas"]["MyMarkSheets"];
 export type MarkSheet = components["schemas"]["MarkSheet"];
@@ -11,7 +11,10 @@ export type ClassSheet = components["schemas"]["ClassResultSheet"];
 export type RecheckList = components["schemas"]["RecheckList"];
 export type ClassElectives = components["schemas"]["ClassElectives"];
 export type SheetStatus = MarkSheet["status"];
-export type Policy = MarksCard["body"]["policy"];
+export type CardBody = MarksCard["body"];
+export type TerminalCard = Extract<CardBody, { kind: "terminal" }>;
+export type FinalCard = Extract<CardBody, { kind: "final" }>;
+export type Part = MarkSheet["components"][number]["id"];
 
 export const STATUS_LABEL: Record<SheetStatus, MessageKey> = {
   not_started: "results.status.notStarted",
@@ -54,11 +57,13 @@ export const markText = (mark: { valueHundredths: number | null; absent: boolean
 /** 382 -> "3.82"; 8650 -> "86.50". */
 export const hundredthsText = (n: number): string => `${Math.trunc(n / 100)}.${String(Math.abs(n % 100)).padStart(2, "0")}`;
 
-/** The headline of a result: the GPA, the percentage, or what stands in for them. */
-export function scoreText(r: { gpaHundredths: number | null; percentHundredths: number | null }): string | null {
-  if (r.gpaHundredths !== null) return hundredthsText(r.gpaHundredths);
-  if (r.percentHundredths !== null) return `${hundredthsText(r.percentHundredths)}%`;
-  return null;
-}
+/** A percentage in whole hundredths: 8650 -> "86.50%". */
+export const percentText = (n: number): string => `${hundredthsText(n)}%`;
+
+/** The headline of a result (D-117): its percentage. */
+export const scoreText = (r: { percentHundredths: number }): string => percentText(r.percentHundredths);
 
 export const className = (c: { programmeName: string; levelName: string; label: string }): string => [c.programmeName, c.levelName, c.label].filter(Boolean).join(" · ");
+
+/** A part of a paper in the school's words: Theory or Practical (D-117). */
+export const partName = (part: Part): string => t(part === "practical" ? "results.card.practical" : "results.card.theory");

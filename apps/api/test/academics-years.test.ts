@@ -4,7 +4,7 @@ import { verifyAuditChain } from "../src/core/audit";
 import { adToBs, bsToAd, daysInMonth } from "../src/core/dates";
 import { newPublicId } from "../src/core/ids";
 import { termLengthMonths } from "../src/modules/academics/term-length";
-import { activateYear, addLevel, closeCheck, closeYear, createClass, createProgramme, createTerminal, createYear, proposeNextTerm, updateYear } from "../src/modules/academics/service";
+import { activateYear, addLevel, closeCheck, closeYear, createClass, createProgramme, createYear, getExamPattern, proposeNextTerm, saveExamPattern, updateYear } from "../src/modules/academics/service";
 import { auditActions, auditKey, count, db, person, seedSections, type Person } from "./academics-helpers";
 import { enrol } from "./schoolday-helpers";
 
@@ -226,8 +226,9 @@ describe("closing a term", () => {
 
     // No exams yet: a class with students has nothing published, so the term is not ready.
     expect(await closeCheck(db, id)).toMatchObject({ ready: false, exams: 0, classes: 1, missing: [{ classId: cls.publicId, examId: null }] });
-    const exam = await createTerminal(db, auditKey, coordinator.publicId, { yearId: id, name: "Final" });
-    if (!exam.ok) throw new Error("exam setup failed");
+    const made = await saveExamPattern(db, auditKey, coordinator.publicId, id, { graded: false, theoryMinPercent: 35, practicalMinPercent: 40, gradeBands: null, terminals: [{ name: "Final", weight: 100, hasPractical: false }] });
+    if (!made.ok) throw new Error("exam setup failed");
+    const exam = { publicId: (await getExamPattern(db, id))!.terminals[0]!.id };
     const refused = await closeYear(db, auditKey, principal.publicId, id);
     expect(refused).toMatchObject({ ok: false, reason: "not_ready", check: { ready: false, missing: [{ classId: cls.publicId, examId: exam.publicId, examName: "Final" }] } });
     expect(await db.prepare("SELECT status FROM academic_years WHERE public_id = ?1").bind(id).first()).toEqual({ status: "active" });
@@ -235,8 +236,8 @@ describe("closing a term", () => {
     // Published (the results module's own write, made directly here): now it closes, once.
     await db
       .prepare(
-        `INSERT INTO result_publications (public_id, class_id, terminal_id, grading_policy, published_by_user_id, published_at)
-         SELECT ?1, c.id, t.id, 'percentage_division', u.id, '2026-09-30T00:00:00Z' FROM classes c, terminals t, users u WHERE c.public_id = ?2 AND t.public_id = ?3 AND u.public_id = ?4`,
+        `INSERT INTO result_publications (public_id, class_id, terminal_id, pattern, published_by_user_id, published_at)
+         SELECT ?1, c.id, t.id, '{}', u.id, '2026-09-30T00:00:00Z' FROM classes c, terminals t, users u WHERE c.public_id = ?2 AND t.public_id = ?3 AND u.public_id = ?4`,
       )
       .bind(newPublicId(), cls.publicId, exam.publicId, coordinator.publicId)
       .run();
@@ -247,7 +248,7 @@ describe("closing a term", () => {
     expect(await closeYear(db, auditKey, principal.publicId, id)).toEqual({ ok: false, reason: "year_closed" });
     // Closed refuses every write.
     expect(await createClass(db, auditKey, coordinator.publicId, { yearId: id, levelId: level!, label: "Late" })).toEqual({ ok: false, reason: "year_closed" });
-    expect(await createTerminal(db, auditKey, coordinator.publicId, { yearId: id, name: "Another" })).toEqual({ ok: false, reason: "year_closed" });
+    expect(await saveExamPattern(db, auditKey, coordinator.publicId, id, { graded: false, theoryMinPercent: 0, practicalMinPercent: 0, gradeBands: null, terminals: [{ name: "Another", weight: 100, hasPractical: false }] })).toEqual({ ok: false, reason: "year_closed" });
   });
 
   it("a draft term is opened before it is closed", async () => {

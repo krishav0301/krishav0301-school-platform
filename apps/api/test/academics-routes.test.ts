@@ -57,8 +57,7 @@ const termWrites: [string, string, unknown][] = [
 const writes: [string, string, unknown][] = [
   ["POST", "/classes", { yearId: noId, levelId: noId }],
   ["PATCH", `/classes/${noId}`, { label: "x" }],
-  ["POST", "/terminals", { yearId: noId, name: "x" }],
-  ["PATCH", `/terminals/${noId}`, { name: "x" }],
+  ["PUT", `/years/${noId}/exam-pattern`, { graded: false, theoryMinPercent: 35, practicalMinPercent: 40, gradeBands: null, terminals: [{ name: "x", weight: 100, hasPractical: false }] }],
 ];
 /** Programmes and their levels: the Admin's alone (D-087). */
 const programmeWrites: [string, string, unknown][] = [
@@ -105,11 +104,13 @@ describe("who may use the academic routes", () => {
     expect((await post("/years", yearBody(), superAdmin)).status).toBe(201);
   });
 
-  it("a section-scoped Co-ordinator may look at years and terminals but not add them", async () => {
+  it("a section-scoped Co-ordinator may look at years and terminals but not make a term or its exam pattern (whole-school facts)", async () => {
     expect((await get("/years", plus2Coordinator)).status).toBe(200);
     expect((await get("/terminals", plus2Coordinator)).status).toBe(200);
     expect((await post("/years", yearBody(), plus2Coordinator)).status).toBe(403);
-    expect((await post("/terminals", { yearId: noId, name: "First" }, plus2Coordinator)).status).toBe(403);
+    const yearId = await makeYear();
+    const refused = await call(`/api/academics/years/${yearId}/exam-pattern`, { method: "PUT", body: { graded: false, theoryMinPercent: 35, practicalMinPercent: 40, gradeBands: null, terminals: [{ name: "First", weight: 100, hasPractical: false }] }, cookie: plus2Coordinator.cookie });
+    expect(refused.status).toBe(403);
   });
 
   it("a switched-off Principal with a valid sign-in is refused (403), not served from the token", async () => {
@@ -127,7 +128,7 @@ describe("who may use the academic routes", () => {
 
 // ---------------------------------------------------------------------------------------------
 describe("setting up a year, end to end", () => {
-  it("year, programme, level, class, terminal: created, listed, changed, and audited", async () => {
+  it("year, programme, level, class, exam pattern: created, listed, changed, and audited", async () => {
     const { programmeId, levelId } = await makeProgramme("bachelors");
     const yearId = await makeYear([levelId]);
 
@@ -137,9 +138,8 @@ describe("setting up a year, end to end", () => {
     const classResponse = await post("/classes", { yearId, levelId, label: "Morning" }, coordinator);
     expect(classResponse.status).toBe(201);
     const classId = await idOf(classResponse);
-    const terminalResponse = await post("/terminals", { yearId, name: "First terminal" }, coordinator);
-    expect(terminalResponse.status).toBe(201);
-    const terminalId = await idOf(terminalResponse);
+    const examPattern = (name: string) => ({ graded: false, theoryMinPercent: 35, practicalMinPercent: 40, gradeBands: null, terminals: [{ name, weight: 100, hasPractical: false }] });
+    expect((await call(`/api/academics/years/${yearId}/exam-pattern`, { method: "PUT", body: examPattern("First terminal"), cookie: coordinator.cookie })).status).toBe(200);
 
     const years = (await (await get("/years", coordinator)).json()) as { years: { id: string; status: string; startDate: string; startDateBs: string | null; code: string; levels: { id: string }[]; classes: number }[] };
     const year = years.years.find((y) => y.id === yearId)!;
@@ -155,13 +155,15 @@ describe("setting up a year, end to end", () => {
 
     const classes = (await (await get(`/classes?year=${yearId}`, coordinator)).json()) as { classes: { id: string; label: string; levelName: string; programmeName: string; active: boolean }[] };
     expect(classes.classes).toMatchObject([{ id: classId, label: "Morning", levelName: "Level 1", active: true }]);
-    const terminals = (await (await get(`/terminals?year=${yearId}`, coordinator)).json()) as { terminals: { id: string; name: string; ordinal: number }[] };
-    expect(terminals.terminals).toMatchObject([{ id: terminalId, name: "First terminal", ordinal: 1 }]);
+    const terminals = (await (await get(`/terminals?year=${yearId}`, coordinator)).json()) as { terminals: { id: string; name: string; ordinal: number; weight: number }[] };
+    expect(terminals.terminals).toMatchObject([{ name: "First terminal", ordinal: 1, weight: 100, hasPractical: false }]);
+    const terminalId = terminals.terminals[0]!.id;
 
     expect((await patch(`/classes/${classId}`, { active: false }, coordinator)).status).toBe(200);
     expect((await patch(`/levels/${levelId}`, { name: "Year 1" }, admin)).status).toBe(200);
     expect((await patch(`/programmes/${programmeId}`, { name: "Renamed" }, admin)).status).toBe(200);
-    expect((await patch(`/terminals/${terminalId}`, { name: "Mid-year" }, coordinator)).status).toBe(200);
+    expect((await call(`/api/academics/years/${yearId}/exam-pattern`, { method: "PUT", body: { ...examPattern("Mid-year"), terminals: [{ id: terminalId, name: "Mid-year", weight: 100, hasPractical: false }] }, cookie: coordinator.cookie })).status).toBe(200);
+    expect(await auditActions(yearId)).toEqual(expect.arrayContaining(["academics.exam_pattern.created", "academics.exam_pattern.updated"]));
 
     expect(await auditActions(classId)).toEqual(["academics.class.created", "academics.class.updated"]);
     const actor = await db.prepare("SELECT u.public_id AS actor FROM audit_events a JOIN users u ON u.id = a.actor_user_id WHERE a.entity_public_id = ?1 LIMIT 1").bind(classId).first<{ actor: string }>();
@@ -190,7 +192,9 @@ describe("setting up a year, end to end", () => {
     const closed = await post("/classes", { yearId, levelId, label: "Late" }, coordinator);
     expect(closed.status).toBe(409);
     expect(await closed.json()).toEqual({ error: "year_closed" });
-    expect((await post("/terminals", { yearId, name: "Late" }, coordinator)).status).toBe(409);
+    const late = await call(`/api/academics/years/${yearId}/exam-pattern`, { method: "PUT", body: { graded: false, theoryMinPercent: 35, practicalMinPercent: 40, gradeBands: null, terminals: [{ name: "Late", weight: 100, hasPractical: false }] }, cookie: coordinator.cookie });
+    expect(late.status).toBe(409);
+    expect(await late.json()).toEqual({ error: "year_closed" });
   });
 
   it("several terms can be open at once (D-110); a term with students but nothing published is 409 not_ready, with the check", async () => {

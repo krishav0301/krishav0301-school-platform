@@ -115,8 +115,8 @@ describe("the whole-class result sheet (FUT point 19: published only)", () => {
     for (const cls of [plus2.classId, bachelors.classId]) {
       await db
         .prepare(
-          `INSERT INTO result_publications (public_id, class_id, terminal_id, grading_policy, published_by_user_id, published_at)
-           SELECT ?1, c.id, t.id, 'percentage_division', u.id, '2026-10-05T00:00:00Z' FROM classes c, terminals t, users u
+          `INSERT INTO result_publications (public_id, class_id, terminal_id, pattern, published_by_user_id, published_at)
+           SELECT ?1, c.id, t.id, '{}', u.id, '2026-10-05T00:00:00Z' FROM classes c, terminals t, users u
             WHERE c.public_id = ?2 AND t.public_id = ?3 AND u.public_id = ?4`,
         )
         .bind(newPublicId(), cls, terminal, coordinator.publicId)

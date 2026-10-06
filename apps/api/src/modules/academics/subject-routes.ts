@@ -5,8 +5,6 @@ import { defineRoute } from "../../core/routes";
 import type { App } from "../../core/types";
 import { getCurriculum, listSubjects } from "./queries";
 import {
-  ComponentChangesSchema,
-  CreateComponentSchema,
   CreateGroupSchema,
   CreateOfferingSchema,
   CreateSubjectSchema,
@@ -18,13 +16,13 @@ import {
   SubjectListSchema,
 } from "./schema";
 import { CreatedSchema, ErrorSchema, IdParam, OkSchema, fail, failures, json } from "./routes";
-import { addComponent, createGroup, createOffering, createSubject, updateComponent, updateGroup, updateOffering, updateSubject } from "./service";
+import { createGroup, createOffering, createSubject, updateGroup, updateOffering, updateSubject } from "./service";
 
 const LevelQuery = z.object({ level: PublicIdSchema });
 const VIEW_SUBJECTS = { action: "setup.subjects.view" } as const;
 const MANAGE_SUBJECTS = { action: "setup.subjects.manage" } as const;
 
-/** The subject catalogue and what each programme level teaches (D-058): elective groups, offerings and mark components. */
+/** The subject catalogue and what each programme level teaches (D-058): elective groups and offerings, each with its paper (D-117). */
 export function registerSubjects(app: App): void {
   // --- Reads ---------------------------------------------------------------------------------------
   defineRoute(
@@ -52,7 +50,7 @@ export function registerSubjects(app: App): void {
       operationId: "get_curriculum",
       tags: ["academics"],
       description:
-        "One programme level's elective groups, subjects and mark components, in one answer. Marks and credit hours are whole hundredths. A level in a section the person may not see is 404, the same as a missing one.",
+        "One programme level's elective groups and subjects, each with its paper's full marks and practical, in one answer. Marks and credit hours are whole hundredths. A level in a section the person may not see is 404, the same as a missing one.",
       access: VIEW_SUBJECTS,
       request: { query: LevelQuery },
       responses: {
@@ -113,7 +111,7 @@ export function registerSubjects(app: App): void {
       operationId: "create_offering",
       tags: ["academics"],
       description:
-        "Adds a subject to a programme level, with optional credit hours (whole hundredths) and an elective group of the same level. An archived subject, a switched-off level or group, or a group of another level is 422; the subject already on the level is 409.",
+        "Adds a subject to a programme level, with its paper's full marks (default 100) and practical share (none by default), optional credit hours (whole hundredths) and an elective group of the same level. An archived subject, a switched-off level or group, or a group of another level is 422; the subject already on the level is 409.",
       access: MANAGE_SUBJECTS,
       request: { body: { required: true, content: json(CreateOfferingSchema) } },
       responses: { 201: { description: "Added", content: json(CreatedSchema) }, ...failures },
@@ -131,50 +129,13 @@ export function registerSubjects(app: App): void {
       path: "/api/academics/offerings/{id}",
       operationId: "update_offering",
       tags: ["academics"],
-      description: "Changes credit hours (null takes them away), the elective group (null takes the subject out of its group), or switches the subject off and on for the level.",
+      description: "Changes the paper (full marks; the practical's share, null for none: applies to mark sheets made from now on), credit hours (null takes them away), the elective group (null takes the subject out of its group), or switches the subject off and on for the level.",
       access: MANAGE_SUBJECTS,
       request: { params: IdParam, body: { required: true, content: json(OfferingChangesSchema) } },
       responses: { 200: { description: "Saved", content: json(OkSchema) }, ...failures },
     },
     async (c) => {
       const result = await updateOffering(c.env.DB, c.env.AUDIT_HMAC_KEY, c.get("auth")!.userPublicId, c.req.valid("param").id, c.req.valid("json"));
-      return result.ok ? c.json({ ok: true as const }, 200) : fail(c, result);
-    },
-  );
-
-  // --- Mark components -------------------------------------------------------------------------------------
-  defineRoute(
-    app,
-    {
-      method: "post",
-      path: "/api/academics/offerings/{id}/components",
-      operationId: "add_component",
-      tags: ["academics"],
-      description: "Adds a mark component (Theory, Practical, Internal) to a subject on a level, numbered after the last. Maximum marks are whole hundredths. At most 10.",
-      access: MANAGE_SUBJECTS,
-      request: { params: IdParam, body: { required: true, content: json(CreateComponentSchema) } },
-      responses: { 201: { description: "Added", content: json(CreatedSchema) }, ...failures },
-    },
-    async (c) => {
-      const result = await addComponent(c.env.DB, c.env.AUDIT_HMAC_KEY, c.get("auth")!.userPublicId, c.req.valid("param").id, c.req.valid("json"));
-      return result.ok ? c.json({ id: result.publicId }, 201) : fail(c, result);
-    },
-  );
-
-  defineRoute(
-    app,
-    {
-      method: "patch",
-      path: "/api/academics/components/{id}",
-      operationId: "update_component",
-      tags: ["academics"],
-      description: "Renames a component, changes its maximum marks, or switches it off and on. Nothing is deleted.",
-      access: MANAGE_SUBJECTS,
-      request: { params: IdParam, body: { required: true, content: json(ComponentChangesSchema) } },
-      responses: { 200: { description: "Saved", content: json(OkSchema) }, ...failures },
-    },
-    async (c) => {
-      const result = await updateComponent(c.env.DB, c.env.AUDIT_HMAC_KEY, c.get("auth")!.userPublicId, c.req.valid("param").id, c.req.valid("json"));
       return result.ok ? c.json({ ok: true as const }, 200) : fail(c, result);
     },
   );

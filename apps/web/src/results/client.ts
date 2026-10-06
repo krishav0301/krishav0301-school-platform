@@ -1,6 +1,6 @@
 import type { ApiClient } from "@/api/client";
 
-import type { ClassElectives, ClassSheet, MarkSheet, MarksCard, MyMarkSheets, OwnResults, RecheckList, ReviewBoard, Top20 } from "./model";
+import type { ClassElectives, ClassSheet, MarkSheet, MarksCard, MyMarkSheets, OwnResults, Part, RecheckList, ReviewBoard, Top20 } from "./model";
 
 /** What the results screens ask of the server, as plain results. Nothing here throws. */
 export type Loaded<T> = { ok: true; data: T } | { ok: false; reason: "forbidden" | "not_found" | "failed" };
@@ -40,18 +40,17 @@ export const loadBoard = (api: ApiClient, terminalId?: string): Promise<Loaded<R
   );
 export const loadOwnResults = (api: ApiClient): Promise<Loaded<OwnResults>> => load(() => api.GET("/api/results/me"));
 export const loadCard = (api: ApiClient, cardId: string): Promise<Loaded<MarksCard>> => load(() => api.GET("/api/results/cards/{cardId}", { params: { path: { cardId } } }));
-export const loadTop20 = (api: ApiClient, terminalId?: string): Promise<Loaded<Top20>> =>
-  load(() =>
-    api.GET("/api/results/top20", {
-      params: { query: terminalId ? { terminalId } : {} },
-    }),
-  );
-export const loadClassSheet = (api: ApiClient, classId: string, terminalId: string): Promise<Loaded<ClassSheet>> =>
-  load(() =>
-    api.GET("/api/results/classes/{classId}/terminals/{terminalId}/sheet", {
-      params: { path: { classId, terminalId } },
-    }),
-  );
+/** The Top 20 ranks the final result only (D-117). */
+export const loadTop20 = (api: ApiClient): Promise<Loaded<Top20>> => load(() => api.GET("/api/results/top20"));
+/** A class's sheet for one terminal, or for the final result (`terminalId` null). */
+export const loadClassSheet = (api: ApiClient, classId: string, terminalId: string | null): Promise<Loaded<ClassSheet>> =>
+  terminalId === null
+    ? load(() => api.GET("/api/results/classes/{classId}/final/sheet", { params: { path: { classId } } }))
+    : load(() =>
+        api.GET("/api/results/classes/{classId}/terminals/{terminalId}/sheet", {
+          params: { path: { classId, terminalId } },
+        }),
+      );
 export const loadRechecks = (api: ApiClient): Promise<Loaded<RecheckList>> => load(() => api.GET("/api/results/rechecks"));
 export const loadElectives = (api: ApiClient, classId: string): Promise<Loaded<ClassElectives>> =>
   load(() =>
@@ -73,6 +72,7 @@ async function send<T>(run: () => Promise<{ data?: T; error?: unknown; response:
     };
     if (response.status === 422) return { ok: false, reason: "invalid", message: body.message ?? null };
     if (response.status === 409 && body.error === "year_closed") return { ok: false, reason: "closed" };
+    if (response.status === 409 && body.error === "no_pattern") return { ok: false, reason: "refused", message: "no_pattern" };
     if (response.status === 400 || response.status === 404 || response.status === 409) return { ok: false, reason: "refused", message: body.message ?? null };
     return { ok: false, reason: "failed" };
   } catch {
@@ -82,7 +82,7 @@ async function send<T>(run: () => Promise<{ data?: T; error?: unknown; response:
 
 type Mark = {
   enrollmentId: string;
-  componentId: string;
+  componentId: Part;
   valueHundredths: number | null;
   absent: boolean;
 };
@@ -125,7 +125,7 @@ export const decideRecheck = (
     outcome: "changed" | "unchanged";
     reason: string;
     marks?: {
-      componentId: string;
+      componentId: Part;
       valueHundredths: number | null;
       absent: boolean;
     }[];

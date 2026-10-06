@@ -82,7 +82,7 @@ export async function getClassHub(db: D1Database, grant: Grant, actor: string, c
     db
       .prepare(
         `SELECT t.public_id AS id, t.name, EXISTS (SELECT 1 FROM result_publications rp WHERE rp.class_id = cl.id AND rp.terminal_id = t.id) AS published
-           FROM classes cl JOIN terminals t ON t.academic_year_id = cl.academic_year_id WHERE cl.public_id = ?1 ORDER BY t.ordinal`,
+           FROM classes cl JOIN terminals t ON t.academic_year_id = cl.academic_year_id AND t.weight IS NOT NULL WHERE cl.public_id = ?1 ORDER BY t.ordinal`,
       )
       .bind(classId),
     db

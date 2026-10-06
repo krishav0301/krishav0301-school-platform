@@ -282,11 +282,7 @@ function ResultsTab({ o }: { o: Overview }) {
                 <td>{p.cards}</td>
                 <td>{p.passPercent === null ? "–" : `${p.passPercent}%`}</td>
                 <td>
-                  {p.avgGpaHundredths !== null
-                    ? t("dashboard.glance.gpa", { gpa: (p.avgGpaHundredths / 100).toFixed(2) })
-                    : p.avgPercentHundredths !== null
-                      ? t("dashboard.glance.percent", { percent: (p.avgPercentHundredths / 100).toFixed(1) })
-                      : "–"}
+                  {p.avgPercentHundredths !== null ? t("dashboard.glance.percent", { percent: (p.avgPercentHundredths / 100).toFixed(1) }) : "–"}
                 </td>
               </tr>
             ))}

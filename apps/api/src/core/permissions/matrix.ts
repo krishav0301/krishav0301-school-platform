@@ -116,11 +116,11 @@ export const MATRIX = [
 
   // --- Setup
   row(G.setup, "setup.terms.manage", "Create academic terms, choose their levels, open and close them (D-110)", 3, { ADM: all, SUP: all }),
-  row(G.setup, "setup.structure.manage", "Manage classes and exams (terminals) in an open term", 3, { COO: inst, SUP: all }),
-  row(G.setup, "setup.programmes.manage", "Manage sections, programmes and their levels (and a programme's grading policy)", 3, { ADM: all, SUP: all }),
-  row(G.setup, "setup.structure.view", "View academic terms, programmes, levels, classes, exams (terminals)", 3, { COO: inst, ADM: read, SUP: all }),
-  row(G.setup, "setup.subjects.view", "View subjects, offerings, mark components, elective groups", 3, { COO: inst, ADM: read, SUP: all }),
-  row(G.setup, "setup.subjects.manage", "Manage subjects, offerings, mark components, elective groups", 3, { COO: inst, SUP: all }),
+  row(G.setup, "setup.structure.manage", "Manage classes and the exam pattern (its terminals) in an open term", 3, { COO: inst, SUP: all }),
+  row(G.setup, "setup.programmes.manage", "Manage sections, programmes and their levels", 3, { ADM: all, SUP: all }),
+  row(G.setup, "setup.structure.view", "View academic terms, programmes, levels, classes, the exam pattern and its terminals", 3, { COO: inst, ADM: read, SUP: all }),
+  row(G.setup, "setup.subjects.view", "View subjects, offerings (with their paper's full marks and practical), elective groups", 3, { COO: inst, ADM: read, SUP: all }),
+  row(G.setup, "setup.subjects.manage", "Manage subjects, offerings (with their paper's full marks and practical), elective groups", 3, { COO: inst, SUP: all }),
   row(G.setup, "setup.assignments.view", "View teacher assignments and Class Teachers", 3, { COO: inst, ADM: read, SUP: all }),
   row(G.setup, "setup.assignments.manage", "Assign teachers to subjects; pick the Class Teacher", 3, { COO: inst, SUP: all }),
 

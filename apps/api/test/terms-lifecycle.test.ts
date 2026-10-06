@@ -92,7 +92,10 @@ describe("a semester school beside a yearly one", () => {
     const outside = await post("/api/academics/classes", { yearId: s.odd, levelId: s.sems[1], label: "A" }, coordinator);
     expect(outside.status).toBe(422);
     expect(((await outside.json()) as { message: string }).message).toMatch(/Principal/);
-    s.exam = (await ok<{ id: string }>(await post("/api/academics/terminals", { yearId: s.odd, name: "Final" }, coordinator), 201)).id;
+    // The term's exam pattern (D-117): one exam, the whole of the final result.
+    const made = await call(`/api/academics/years/${s.odd}/exam-pattern`, { method: "PUT", body: { graded: false, theoryMinPercent: 35, practicalMinPercent: 40, gradeBands: null, terminals: [{ name: "Final", weight: 100, hasPractical: false }] }, cookie: coordinator.cookie });
+    expect(made.status).toBe(200);
+    s.exam = ((await (await call(`/api/academics/years/${s.odd}/exam-pattern`, { cookie: coordinator.cookie })).json()) as { terminals: { id: string }[] }).terminals[0]!.id;
 
     let n = 0;
     for (const [name, cls] of [["Asha", s.classes.sem1], ["Bikash", s.classes.sem1], ["Chandra", s.classes.sem3]] as const) {
@@ -140,8 +143,8 @@ describe("a semester school beside a yearly one", () => {
     for (const cls of [s.classes.sem1!, s.classes.sem3!]) {
       await db
         .prepare(
-          `INSERT INTO result_publications (public_id, class_id, terminal_id, grading_policy, published_by_user_id, published_at)
-           SELECT ?1, c.id, t.id, 'percentage_division', u.id, '2026-10-01T00:00:00Z' FROM classes c, terminals t, users u WHERE c.public_id = ?2 AND t.public_id = ?3 AND u.public_id = ?4`,
+          `INSERT INTO result_publications (public_id, class_id, terminal_id, pattern, published_by_user_id, published_at)
+           SELECT ?1, c.id, t.id, '{}', u.id, '2026-10-01T00:00:00Z' FROM classes c, terminals t, users u WHERE c.public_id = ?2 AND t.public_id = ?3 AND u.public_id = ?4`,
         )
         .bind(newPublicId(), cls, s.exam, coordinator.publicId)
         .run();

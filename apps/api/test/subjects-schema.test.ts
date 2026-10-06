@@ -29,8 +29,8 @@ const addOffering = async (levelId: number, subjectId: number, credit: number | 
       .run()
   ).meta.last_row_id;
 
-const addComponent = (offeringId: number, name: string, ordinal: number, max = 10000) =>
-  db.prepare("INSERT INTO mark_components (public_id, offering_id, name, max_hundredths, ordinal) VALUES (?1, ?2, ?3, ?4, ?5)").bind(uniq("c"), offeringId, name, max, ordinal).run();
+const setPaper = (offeringId: number, full: number, practical: number | null) =>
+  db.prepare("UPDATE subject_offerings SET full_marks_hundredths = ?2, practical_hundredths = ?3 WHERE id = ?1").bind(offeringId, full, practical).run();
 
 // ---------------------------------------------------------------------------------------------
 describe("subjects", () => {
@@ -92,23 +92,19 @@ describe("elective groups", () => {
   });
 });
 
-describe("mark components", () => {
-  it("a name and an ordinal are each used once per offering", async () => {
-    const level = await addLevel();
-    const offering = await addOffering(level, await addSubject());
-    await addComponent(offering, "Theory", 1);
-    await expect(addComponent(offering, "Theory", 2)).rejects.toThrow(/UNIQUE/);
-    await expect(addComponent(offering, "Practical", 1)).rejects.toThrow(/UNIQUE/);
-    await addComponent(offering, "Practical", 2);
-    await addComponent(await addOffering(level, await addSubject()), "Theory", 1); // another offering may reuse both
+describe("a subject's paper (D-117)", () => {
+  it("is out of 100 with no practical unless set", async () => {
+    const offering = await addOffering(await addLevel(), await addSubject());
+    expect(await db.prepare("SELECT full_marks_hundredths AS full, practical_hundredths AS practical FROM subject_offerings WHERE id = ?1").bind(offering).first()).toEqual({ full: 10000, practical: null });
   });
 
-  it("maximum marks are whole hundredths from 1 to 100000, and the ordinal is 1 to 10", async () => {
+  it("full marks are 1 to 1000 in whole hundredths; the practical is at least 1 mark and less than the full marks", async () => {
     const offering = await addOffering(await addLevel(), await addSubject());
-    await expect(addComponent(offering, "A", 1, 0)).rejects.toThrow(/CHECK/);
-    await expect(addComponent(offering, "B", 2, 100001)).rejects.toThrow(/CHECK/);
-    await expect(addComponent(offering, "C", 0)).rejects.toThrow(/CHECK/);
-    await expect(addComponent(offering, "D", 11)).rejects.toThrow(/CHECK/);
-    await addComponent(offering, "E", 3, 100000);
+    await expect(setPaper(offering, 0, null)).rejects.toThrow(/CHECK/);
+    await expect(setPaper(offering, 100001, null)).rejects.toThrow(/CHECK/);
+    await expect(setPaper(offering, 10000, 50)).rejects.toThrow(/CHECK/);
+    await expect(setPaper(offering, 10000, 10000)).rejects.toThrow(/less than the full marks/);
+    await setPaper(offering, 10000, 2500);
+    await setPaper(offering, 100000, null);
   });
 });

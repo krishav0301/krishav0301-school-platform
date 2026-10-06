@@ -53,11 +53,11 @@ Phase is the build phase where the action first exists. The action id in code fo
 | Action | STU | TEA | COO | ACC | ADM | SUP | Phase |
 |---|---|---|---|---|---|---|---|
 | Create academic terms, choose their levels, open and close them (D-110) (`setup.terms.manage`) | — | — | — | — | ✓ | ✓ | 3 |
-| Manage classes and exams (terminals) in an open term (`setup.structure.manage`) | — | — | inst | — | — | ✓ | 3 |
-| Manage sections, programmes and their levels (and a programme's grading policy) (`setup.programmes.manage`) | — | — | — | — | ✓ | ✓ | 3 |
-| View academic terms, programmes, levels, classes, exams (terminals) (`setup.structure.view`) | — | — | inst | — | read | ✓ | 3 |
-| View subjects, offerings, mark components, elective groups (`setup.subjects.view`) | — | — | inst | — | read | ✓ | 3 |
-| Manage subjects, offerings, mark components, elective groups (`setup.subjects.manage`) | — | — | inst | — | — | ✓ | 3 |
+| Manage classes and the exam pattern (its terminals) in an open term (`setup.structure.manage`) | — | — | inst | — | — | ✓ | 3 |
+| Manage sections, programmes and their levels (`setup.programmes.manage`) | — | — | — | — | ✓ | ✓ | 3 |
+| View academic terms, programmes, levels, classes, the exam pattern and its terminals (`setup.structure.view`) | — | — | inst | — | read | ✓ | 3 |
+| View subjects, offerings (with their paper's full marks and practical), elective groups (`setup.subjects.view`) | — | — | inst | — | read | ✓ | 3 |
+| Manage subjects, offerings (with their paper's full marks and practical), elective groups (`setup.subjects.manage`) | — | — | inst | — | — | ✓ | 3 |
 | View teacher assignments and Class Teachers (`setup.assignments.view`) | — | — | inst | — | read | ✓ | 3 |
 | Assign teachers to subjects; pick the Class Teacher (`setup.assignments.manage`) | — | — | inst | — | — | ✓ | 3 |
 

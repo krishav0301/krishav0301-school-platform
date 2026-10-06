@@ -90,7 +90,9 @@ npm run provision -- --pack ../../packs/royal-softech --remote --config wrangler
 npx wrangler deploy --config wrangler.local.jsonc
 ```
 
-Then sign in as the Admin and open a page or two. If something is wrong after new migrations, roll back both, database first: `npx wrangler d1 time-travel restore DB --bookmark <bookmark> --config wrangler.local.jsonc` (this loses anything written since), then `npx wrangler rollback --config wrangler.local.jsonc`. Rolling back only the Worker is safe only when no migration ran: older code may not work on a newer database (after `0030`, it cannot make terms).
+Then sign in as the Admin and open a page or two. If something is wrong after new migrations, roll back both, database first: `npx wrangler d1 time-travel restore DB --bookmark <bookmark> --config wrangler.local.jsonc` (this loses anything written since), then `npx wrangler rollback --config wrangler.local.jsonc`. Rolling back only the Worker is safe only when no migration ran: older code may not work on a newer database (after `0030`, it cannot make terms; after `0032`, it cannot read results at all).
+
+**Migration `0032_exam_pattern.sql` (D-117) is not backward compatible, on purpose.** It removes the old results system and **deletes every mark, mark sheet, published result and recheck** (UAT test data only, the PM agreed) and each programme's grading policy. Note the Time Travel bookmark first, apply it and deploy the Worker together, then have the Co-ordinator make each open term's exam pattern (Setup, Exam pattern) before any marks are entered.
 
 Stop `wrangler dev` before `npm run build` in `apps/web` on Windows: it holds the `out` folder open.
 

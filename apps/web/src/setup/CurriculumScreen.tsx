@@ -9,31 +9,18 @@ import { Facts, PanelSection, SidePanel } from "@/read/SidePanel";
 import { useSession } from "@/session/SessionProvider";
 import { AddDialog, Button, Checkbox, Field, Notice, Select } from "@/ui";
 
-import {
-  addComponent,
-  addOffering,
-  createGroup,
-  loadCurriculum,
-  loadProgrammes,
-  loadSubjects,
-  loadYears,
-  setComponentActive,
-  setGroupActive,
-  setOfferingActive,
-  setOfferingGroup,
-  type Loaded,
-} from "./client";
+import { addOffering, createGroup, loadCurriculum, loadProgrammes, loadSubjects, loadYears, setGroupActive, setOfferingActive, setOfferingGroup, setOfferingPaper, type Loaded } from "./client";
 import {
   REASON_MESSAGE,
   canManageStructure,
   formatHundredths,
+  paperLine,
   parseHundredths,
   subjectChoices,
   termWords,
   type Curriculum,
   type FailReason,
   type Group,
-  type MarkComponent,
   type Offering,
   type Subject,
 } from "./model";
@@ -118,6 +105,68 @@ export function GroupForm({ levelId, onAdded, showTitle = true }: { levelId: str
   );
 }
 
+/**
+ * A subject's paper (D-117): what it is out of, and "This subject has a practical" with the practical's share (75/25 is
+ * 25). The practical's marks are entered only in a terminal that holds one. Shared by the Add form and the panel.
+ */
+export interface PaperValues {
+  full: string;
+  hasPractical: boolean;
+  practical: string;
+}
+export const paperValues = (o?: { fullMarksHundredths: number; practicalHundredths: number | null }): PaperValues => ({
+  full: o ? formatHundredths(o.fullMarksHundredths) : "100",
+  hasPractical: (o?.practicalHundredths ?? null) !== null,
+  practical: o?.practicalHundredths != null ? formatHundredths(o.practicalHundredths) : "",
+});
+
+/** The paper as whole hundredths, or which box is wrong. */
+export function readPaper(v: PaperValues): { ok: true; fullMarksHundredths: number; practicalHundredths: number | null } | { ok: false; errors: { full?: MessageKey; practical?: MessageKey } } {
+  const full = parseHundredths(v.full);
+  const practical = v.hasPractical ? parseHundredths(v.practical) : null;
+  const errors: { full?: MessageKey; practical?: MessageKey } = {};
+  if (full === null || full < 100 || full > 100000) errors.full = "setup.error.fullMarksInvalid";
+  if (v.hasPractical && (practical === null || practical < 100 || (full !== null && practical >= full))) errors.practical = "setup.error.practicalInvalid";
+  if (errors.full || errors.practical) return { ok: false, errors };
+  return { ok: true, fullMarksHundredths: full!, practicalHundredths: practical };
+}
+
+function PaperFields({ values, errors, onChange, disabled }: { values: PaperValues; errors: { full?: MessageKey; practical?: MessageKey }; onChange: (next: PaperValues) => void; disabled?: boolean }) {
+  return (
+    <>
+      <Field
+        label={t("setup.curriculum.fullMarks")}
+        hint={t("setup.curriculum.fullMarksHint")}
+        inputMode="decimal"
+        autoComplete="off"
+        value={values.full}
+        disabled={disabled}
+        onChange={(event) => onChange({ ...values, full: event.target.value })}
+        error={errors.full ? t(errors.full) : undefined}
+      />
+      <Checkbox
+        label={t("setup.curriculum.hasPractical")}
+        hint={t("setup.curriculum.hasPracticalHint")}
+        checked={values.hasPractical}
+        disabled={disabled}
+        onChange={(event) => onChange({ ...values, hasPractical: event.target.checked })}
+      />
+      {values.hasPractical ? (
+        <Field
+          label={t("setup.curriculum.practicalMarks")}
+          hint={t("setup.curriculum.practicalMarksHint")}
+          inputMode="decimal"
+          autoComplete="off"
+          value={values.practical}
+          disabled={disabled}
+          onChange={(event) => onChange({ ...values, practical: event.target.value })}
+          error={errors.practical ? t(errors.practical) : undefined}
+        />
+      ) : null}
+    </>
+  );
+}
+
 export function OfferingForm({
   levelId,
   sectionKey,
@@ -144,7 +193,8 @@ export function OfferingForm({
   const [subjectId, setSubjectId] = useState("");
   const [credit, setCredit] = useState("");
   const [groupId, setGroupId] = useState("");
-  const [errors, setErrors] = useState<{ subject?: MessageKey; credit?: MessageKey }>({});
+  const [paper, setPaper] = useState<PaperValues>(paperValues());
+  const [errors, setErrors] = useState<{ subject?: MessageKey; credit?: MessageKey; full?: MessageKey; practical?: MessageKey }>({});
   const [problem, setProblem] = useState<MessageKey | null>(null);
   const [saving, setSaving] = useState(false);
 
@@ -158,16 +208,19 @@ export function OfferingForm({
     const found: typeof errors = {};
     if (!subjectId) found.subject = "setup.error.subjectRequired";
     if (credit.trim() && (hundredths === null || hundredths < 1 || hundredths > 10000)) found.credit = "setup.error.creditInvalid";
+    const read = readPaper(paper);
+    if (!read.ok) Object.assign(found, read.errors);
     setErrors(found);
-    if (Object.keys(found).length > 0) return;
+    if (Object.keys(found).length > 0 || !read.ok) return;
 
     setSaving(true);
-    const result = await addOffering(api, { levelId, subjectId, creditHundredths: hundredths, groupId: groupId || null });
+    const result = await addOffering(api, { levelId, subjectId, creditHundredths: hundredths, groupId: groupId || null, fullMarksHundredths: read.fullMarksHundredths, practicalHundredths: read.practicalHundredths });
     setSaving(false);
     if (result.ok) {
       setSubjectId("");
       setCredit("");
       setGroupId("");
+      setPaper(paperValues());
       onAdded();
     } else {
       setProblem(REASON_MESSAGE[result.reason]);
@@ -200,6 +253,14 @@ export function OfferingForm({
         }}
         error={errors.credit ? t(errors.credit) : undefined}
       />
+      <PaperFields
+        values={paper}
+        errors={errors}
+        onChange={(next) => {
+          setPaper(next);
+          setErrors((e) => ({ ...e, full: undefined, practical: undefined }));
+        }}
+      />
       {groups.some((g) => g.active) ? <Select label={t("setup.curriculum.group")} value={groupId} onChange={(event) => setGroupId(event.target.value)} options={groupOptions(groups, null)} /> : null}
       <Button type="submit" loading={saving} loadingLabel={t("setup.working")}>
         {t("setup.curriculum.addSubject", words)}
@@ -208,77 +269,44 @@ export function OfferingForm({
   );
 }
 
-export function ComponentForm({ offeringId, name: subjectName, onAdded }: { offeringId: string; name: string; onAdded: () => void }) {
+/** A subject's paper, changed from its panel. A change applies to mark sheets made from now on (each sheet keeps its own). */
+export function PaperForm({ offering, onSaved }: { offering: Offering; onSaved: () => void }) {
   const { api } = useSession();
-  const [name, setName] = useState("");
-  const [max, setMax] = useState("");
-  const [kind, setKind] = useState<"theory" | "practical">("theory");
-  const [errors, setErrors] = useState<{ name?: MessageKey; max?: MessageKey }>({});
+  const [values, setValues] = useState<PaperValues>(paperValues(offering));
+  const [errors, setErrors] = useState<{ full?: MessageKey; practical?: MessageKey }>({});
   const [problem, setProblem] = useState<MessageKey | null>(null);
   const [saving, setSaving] = useState(false);
-  const say = (key: MessageKey | undefined) => (key ? t(key) : undefined);
 
   async function submit(event: FormEvent) {
     event.preventDefault();
     if (saving) return;
     setProblem(null);
-    const hundredths = parseHundredths(max);
-    const found: typeof errors = {};
-    if (!name.trim()) found.name = "setup.error.nameRequired";
-    if (hundredths === null || hundredths < 1 || hundredths > 100000) found.max = "setup.error.maxInvalid";
-    setErrors(found);
-    if (Object.keys(found).length > 0 || hundredths === null) return;
-
-    setSaving(true);
-    const result = await addComponent(api, offeringId, { name: name.trim(), maxHundredths: hundredths, kind });
-    setSaving(false);
-    if (result.ok) {
-      setName("");
-      setMax("");
-      onAdded();
-    } else {
-      setProblem(REASON_MESSAGE[result.reason]);
+    const read = readPaper(values);
+    if (!read.ok) {
+      setErrors(read.errors);
+      return;
     }
+    setSaving(true);
+    const result = await setOfferingPaper(api, offering.id, { fullMarksHundredths: read.fullMarksHundredths, practicalHundredths: read.practicalHundredths });
+    setSaving(false);
+    if (result.ok) onSaved();
+    else setProblem(REASON_MESSAGE[result.reason]);
   }
 
   return (
-    <form onSubmit={submit} noValidate className={styles.inline} aria-label={`${t("setup.curriculum.addMark")}: ${subjectName}`}>
+    <form onSubmit={submit} noValidate className={styles.form} aria-label={t("setup.curriculum.paperOf", { name: offering.subject.name })}>
       {problem ? <Notice tone="bad">{t(problem)}</Notice> : null}
-      <Field
-        label={t("setup.curriculum.markName")}
-        hint={t("setup.curriculum.markNameHint")}
-        value={name}
-        maxLength={60}
-        autoComplete="off"
-        onChange={(event) => {
-          setName(event.target.value);
-          setErrors((e) => ({ ...e, name: undefined }));
+      <PaperFields
+        values={values}
+        errors={errors}
+        onChange={(next) => {
+          setValues(next);
+          setErrors({});
         }}
-        error={say(errors.name)}
       />
-      <Field
-        label={t("setup.curriculum.maxMarks")}
-        inputMode="decimal"
-        autoComplete="off"
-        value={max}
-        onChange={(event) => {
-          setMax(event.target.value);
-          setErrors((e) => ({ ...e, max: undefined }));
-        }}
-        error={say(errors.max)}
-      />
-      <Select
-        label={t("setup.curriculum.markKind")}
-        hint={t("setup.curriculum.markKindHint")}
-        value={kind}
-        onChange={(event) => setKind(event.target.value === "practical" ? "practical" : "theory")}
-        options={[
-          { value: "theory", label: t("setup.curriculum.kind.theory") },
-          { value: "practical", label: t("setup.curriculum.kind.practical") },
-        ]}
-      />
-      <Button type="submit" variant="secondary" loading={saving} loadingLabel={t("setup.working")} aria-label={`${t("setup.curriculum.addMark")}: ${subjectName}`}>
-        {t("setup.curriculum.addMark")}
+      <p className={readStyles.rowMeta}>{t("setup.curriculum.paperNote")}</p>
+      <Button type="submit" variant="secondary" loading={saving} loadingLabel={t("setup.working")}>
+        {t("setup.curriculum.savePaper")}
       </Button>
     </form>
   );
@@ -293,20 +321,14 @@ export interface CurriculumViewProps {
   onToggleGroup: (group: Group) => void;
   onToggleOffering: (offering: Offering) => void;
   onSetGroup: (offering: Offering, groupId: string | null) => void;
-  onToggleComponent: (component: MarkComponent) => void;
-  /** Called after a group or component is added, so the screen can reload. */
+  /** Called after a group is added or a paper saved, so the screen can reload. */
   onChanged?: () => void;
   /** What the last change said, shown where the person is working (the open subject's panel, or the page). */
   notice?: ReactNode;
 }
 
-const markLine = (c: MarkComponent) => t(c.kind === "practical" ? "setup.curriculum.markLinePractical" : "setup.curriculum.markLine", { name: c.name, max: formatHundredths(c.maxHundredths) });
-
-/** The marks a subject is out of, in one line: its components still in use. */
-const marksSummary = (o: Offering) => {
-  const live = o.components.filter((c) => c.active);
-  return live.length === 0 ? t("setup.curriculum.marksEmpty") : live.map(markLine).join(" · ");
-};
+/** The marks a subject is out of, in one line. */
+const marksSummary = (o: Offering) => paperLine(o);
 
 /** Switch off or on, named for what it switches. */
 function SwitchButton({ id, busy, active, name, label, labelOn, onClick, variant = "quiet" }: { id: string; busy: string | null; active: boolean; name: string; label: MessageKey; labelOn: MessageKey; onClick: () => void; variant?: "quiet" | "secondary" }) {
@@ -317,7 +339,7 @@ function SwitchButton({ id, busy, active, name, label, labelOn, onClick, variant
   );
 }
 
-/** One subject of the level, opened from its row: its facts, its elective group, its mark components, and Switch off. */
+/** One subject of the level, opened from its row: its facts, its elective group, its paper, and Switch off. */
 export function SubjectPanel({
   curriculum,
   offering,
@@ -326,7 +348,6 @@ export function SubjectPanel({
   onClose,
   onToggleOffering,
   onSetGroup,
-  onToggleComponent,
   onChanged,
 }: Omit<CurriculumViewProps, "canManage" | "onToggleGroup" | "onChanged"> & { offering: Offering; onClose: () => void; onChanged: () => void }) {
   return (
@@ -363,35 +384,9 @@ export function SubjectPanel({
         onChange={(event) => onSetGroup(offering, event.target.value || null)}
         options={groupOptions(curriculum.groups, offering.group?.id ?? null)}
       />
-      <PanelSection title={t("setup.curriculum.marks")}>
-        {offering.components.length === 0 ? (
-          <p className={readStyles.rowMeta}>{t("setup.curriculum.marksEmpty")}</p>
-        ) : (
-          <ul className={readStyles.rows}>
-            {offering.components.map((component) => (
-              <li key={component.id} className={readStyles.rowItem}>
-                <div className={readStyles.rowHead}>
-                  <span>{markLine(component)}</span>
-                  <span className={readStyles.cellWords}>
-                    {component.active ? null : <StatusWord>{t("setup.curriculum.markOff")}</StatusWord>}
-                    <SwitchButton
-                      id={component.id}
-                      busy={busy}
-                      active={component.active}
-                      name={component.name}
-                      label="setup.curriculum.markSwitchOffItem"
-                      labelOn="setup.curriculum.markSwitchOnItem"
-                      onClick={() => onToggleComponent(component)}
-                    />
-                  </span>
-                </div>
-              </li>
-            ))}
-          </ul>
-        )}
-      </PanelSection>
-      <PanelSection title={t("setup.curriculum.addMark")}>
-        <ComponentForm key={offering.id} offeringId={offering.id} name={offering.subject.name} onAdded={onChanged} />
+      <PanelSection title={t("setup.curriculum.paper")}>
+        <p className={readStyles.rowMeta}>{paperLine(offering)}</p>
+        <PaperForm key={`${offering.id}-${offering.fullMarksHundredths}-${offering.practicalHundredths}`} offering={offering} onSaved={onChanged} />
       </PanelSection>
     </SidePanel>
   );
@@ -399,10 +394,10 @@ export function SubjectPanel({
 
 /**
  * One level's curriculum (redesigned in D-106 after the Principal's read table): the subjects in a table, each opening a
- * side panel for its elective group and mark components; the elective groups below. Switching off keeps the history;
+ * side panel for its elective group and its paper; the elective groups below. Switching off keeps the history;
  * nothing is deleted. Someone who may not change it reads the Principal's table.
  */
-export function CurriculumView({ curriculum, canManage, busy, onToggleGroup, onToggleOffering, onSetGroup, onToggleComponent, onChanged = () => {}, notice }: CurriculumViewProps) {
+export function CurriculumView({ curriculum, canManage, busy, onToggleGroup, onToggleOffering, onSetGroup, onChanged = () => {}, notice }: CurriculumViewProps) {
   const { term } = useConfig();
   const words = termWords(term);
   const [open, setOpen] = useState<string | null>(null);
@@ -501,7 +496,6 @@ export function CurriculumView({ curriculum, canManage, busy, onToggleGroup, onT
           onClose={() => setOpen(null)}
           onToggleOffering={onToggleOffering}
           onSetGroup={onSetGroup}
-          onToggleComponent={onToggleComponent}
           onChanged={onChanged}
         />
       ) : null}
@@ -624,7 +618,6 @@ export function CurriculumScreen() {
                 onToggleGroup={(g) => void run(g.id, () => setGroupActive(api, g.id, !g.active), onOff(g.active))}
                 onToggleOffering={(o) => void run(o.id, () => setOfferingActive(api, o.id, !o.active), onOff(o.active))}
                 onSetGroup={(o, groupId) => void run(o.id, () => setOfferingGroup(api, o.id, groupId), "setup.done.changed")}
-                onToggleComponent={(c) => void run(c.id, () => setComponentActive(api, c.id, !c.active), onOff(c.active))}
               />
             )
           }

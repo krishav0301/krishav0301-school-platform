@@ -26,9 +26,15 @@ export type SetPicks = z.infer<typeof SetPicksSchema>;
 
 // --- The marks grid (slice 2) ------------------------------------------------------------------------
 
+/** A part of a paper: the theory, or the practical where the terminal holds it and the subject has one (D-117). */
+export const PartSchema = z.enum(["theory", "practical"]);
+export type Part = z.infer<typeof PartSchema>;
+
+const TerminalRef = z.object({ id: z.string(), name: z.string(), weight: z.number().int() });
+
 export const MyMarkSheetsSchema = z
   .object({
-    terminals: z.array(z.object({ id: z.string(), name: z.string() })),
+    terminals: z.array(TerminalRef),
     subjects: z.array(
       z.object({
         classId: z.string(),
@@ -49,18 +55,19 @@ export const MarkSheetSchema = z
     ...Naming,
     offeringId: z.string(),
     subjectName: z.string(),
-    terminal: z.object({ id: z.string(), name: z.string() }),
+    terminal: TerminalRef,
     teacherName: z.string().nullable(),
     status: SheetStatusSchema,
     note: z.string().nullable(),
-    components: z.array(z.object({ id: z.string(), name: z.string(), kind: z.enum(["theory", "practical"]), maxHundredths: z.number().int() })),
+    /** The paper's parts, out of the paper's own marks (the teacher never sees the scaling). */
+    components: z.array(z.object({ id: PartSchema, name: z.string(), kind: PartSchema, maxHundredths: z.number().int() })),
     students: z.array(
       z.object({
         enrollmentId: z.string(),
         sid: z.string(),
         name: z.string(),
         rollNo: z.number().int().nullable(),
-        marks: z.array(z.object({ componentId: z.string(), valueHundredths: z.number().int().nullable(), absent: z.boolean() })),
+        marks: z.array(z.object({ componentId: PartSchema, valueHundredths: z.number().int().nullable(), absent: z.boolean() })),
       }),
     ),
     missing: z.number().int(),
@@ -73,7 +80,7 @@ const MarkValue = z.number().int("Marks are whole hundredths").min(0, "A mark ca
 export const SaveMarksSchema = z
   .strictObject({
     marks: z
-      .array(z.strictObject({ enrollmentId: PublicIdSchema, componentId: PublicIdSchema, valueHundredths: MarkValue.nullable(), absent: z.boolean().default(false) }))
+      .array(z.strictObject({ enrollmentId: PublicIdSchema, componentId: PartSchema, valueHundredths: MarkValue.nullable(), absent: z.boolean().default(false) }))
       .min(1, "Enter at least one mark")
       .max(2000),
   })
@@ -86,14 +93,15 @@ export type SaveMarks = z.input<typeof SaveMarksSchema>;
 
 export const ReviewBoardSchema = z
   .object({
-    terminals: z.array(z.object({ id: z.string(), name: z.string() })),
+    terminals: z.array(TerminalRef),
     terminalId: z.string().nullable(),
     classes: z.array(
       z.object({
         classId: z.string(),
         ...Naming,
-        gradingPolicy: z.enum(["neb_gpa", "percentage_division"]).nullable(),
         published: z.boolean(),
+        /** The class's final result is out (published with its last terminal). */
+        finalPublished: z.boolean(),
         ready: z.boolean(),
         subjects: z.array(
           z.object({
@@ -117,32 +125,74 @@ export const PublishSchema = z.strictObject({ terminalId: PublicIdSchema }).open
 
 // --- What people read (slice 4) ----------------------------------------------------------------------
 
-export const CardSubjectSchema = z.object({
-  offeringId: z.string(),
-  name: z.string(),
-  creditHundredths: z.number().int().nullable(),
-  obtainedHundredths: z.number().int(),
-  maxHundredths: z.number().int(),
+const PartMarksSchema = z.object({ maxHundredths: z.number().int(), valueHundredths: z.number().int().nullable(), absent: z.boolean() });
+const Student = z.object({ name: z.string(), sid: z.string(), rollNo: z.number().int().nullable() });
+const ClassOf = z.object({ ...Naming, sectionName: z.string(), yearLabel: z.string() });
+
+/** The pattern as it was when a result was published (D-117). */
+export const PatternSnapshotSchema = z.object({
+  graded: z.boolean(),
+  theoryMinPercent: z.number().int(),
+  practicalMinPercent: z.number().int(),
+  gradeBands: z.array(z.object({ grade: z.string(), from: z.number().int() })).nullable(),
+  terminals: z.array(z.object({ id: z.string(), name: z.string(), weight: z.number().int() })),
+});
+export type PatternSnapshot = z.infer<typeof PatternSnapshotSchema>;
+
+/** One terminal's card: for information, no pass or fail. */
+export const TerminalCardBodySchema = z.object({
+  kind: z.literal("terminal"),
+  student: Student,
+  class: ClassOf,
+  terminal: z.object({ name: z.string(), weight: z.number().int() }),
+  graded: z.boolean(),
+  subjects: z.array(
+    z.object({
+      offeringId: z.string(),
+      name: z.string(),
+      theory: PartMarksSchema,
+      practical: PartMarksSchema.nullable(),
+      obtainedHundredths: z.number().int(),
+      fullHundredths: z.number().int(),
+      percentHundredths: z.number().int(),
+      scaledHundredths: z.number().int(),
+      grade: z.string().nullable(),
+    }),
+  ),
   percentHundredths: z.number().int(),
-  grade: z.string(),
-  gradePointHundredths: z.number().int().nullable(),
+  grade: z.string().nullable(),
+  outcome: z.string(),
+});
+
+/** The final result: every terminal scaled and added, out of 100, pass or fail. */
+export const FinalCardBodySchema = z.object({
+  kind: z.literal("final"),
+  student: Student,
+  class: ClassOf,
+  pattern: PatternSnapshotSchema,
+  subjects: z.array(
+    z.object({
+      offeringId: z.string(),
+      name: z.string(),
+      terminals: z.array(z.object({ terminalId: z.string(), terminalName: z.string(), weight: z.number().int(), obtainedHundredths: z.number().int(), fullHundredths: z.number().int(), scaledHundredths: z.number().int() })),
+      finalHundredths: z.number().int(),
+      theoryPercentHundredths: z.number().int(),
+      practicalPercentHundredths: z.number().int().nullable(),
+      passed: z.boolean(),
+      grade: z.string().nullable(),
+    }),
+  ),
+  percentHundredths: z.number().int(),
   passed: z.boolean(),
-  components: z.array(z.object({ name: z.string(), kind: z.enum(["theory", "practical"]), maxHundredths: z.number().int(), valueHundredths: z.number().int().nullable(), absent: z.boolean() })),
+  grade: z.string().nullable(),
+  outcome: z.string(),
 });
 
 /** What a marks card says: the snapshot stored at publish (or at a recheck), never recomputed. */
-export const CardBodySchema = z.object({
-  student: z.object({ name: z.string(), sid: z.string(), rollNo: z.number().int().nullable() }),
-  class: z.object({ ...Naming, sectionName: z.string(), yearLabel: z.string() }),
-  terminal: z.object({ name: z.string() }),
-  policy: z.enum(["neb_gpa", "percentage_division"]),
-  subjects: z.array(CardSubjectSchema),
-  gpaHundredths: z.number().int().nullable(),
-  percentHundredths: z.number().int().nullable(),
-  outcome: z.string(),
-  passed: z.boolean(),
-});
+export const CardBodySchema = z.discriminatedUnion("kind", [TerminalCardBodySchema, FinalCardBodySchema]);
 export type CardBody = z.infer<typeof CardBodySchema>;
+export type TerminalCardBody = z.infer<typeof TerminalCardBodySchema>;
+export type FinalCardBody = z.infer<typeof FinalCardBodySchema>;
 
 export const MarksCardSchema = z
   .object({
@@ -172,7 +222,9 @@ export const OwnResultsSchema = z
       z.object({
         publicationId: z.string(),
         yearLabel: z.string(),
-        terminalName: z.string(),
+        /** A terminal's result, or the final (terminalName null). */
+        kind: z.enum(["terminal", "final"]),
+        terminalName: z.string().nullable(),
         card: MarksCardSchema,
         rechecks: z.array(RecheckSummarySchema),
       }),
@@ -181,12 +233,12 @@ export const OwnResultsSchema = z
   .openapi("OwnResults");
 export type OwnResults = z.infer<typeof OwnResultsSchema>;
 
+/** The Top 20 ranks the final result only (D-117), per open term, section and level. */
 export const Top20Schema = z
   .object({
-    terminals: z.array(z.object({ id: z.string(), name: z.string() })),
-    terminalId: z.string().nullable(),
     pools: z.array(
       z.object({
+        termLabel: z.string(),
         sectionName: z.string(),
         levelName: z.string(),
         entries: z.array(z.object({ rank: z.number().int(), name: z.string(), className: z.string().optional(), score: z.number().int().optional() })),
@@ -200,8 +252,9 @@ export const ClassSheetSchema = z
   .object({
     classId: z.string(),
     ...Naming,
-    terminal: z.object({ id: z.string(), name: z.string() }),
-    policy: z.enum(["neb_gpa", "percentage_division"]),
+    /** The terminal, or null for the final result. */
+    terminal: z.object({ id: z.string(), name: z.string() }).nullable(),
+    graded: z.boolean(),
     publishedAt: z.string(),
     subjects: z.array(z.object({ offeringId: z.string(), name: z.string() })),
     students: z.array(
@@ -210,12 +263,14 @@ export const ClassSheetSchema = z
         cardId: z.string(),
         sid: z.string(),
         name: z.string(),
+        /** The rank in the class on the final result (passed students only); null on a terminal. */
         rank: z.number().int().nullable(),
-        gpaHundredths: z.number().int().nullable(),
-        percentHundredths: z.number().int().nullable(),
+        percentHundredths: z.number().int(),
+        /** Final only: pass or fail. */
+        passed: z.boolean().nullable(),
         outcome: z.string(),
         version: z.number().int(),
-        subjects: z.array(z.object({ offeringId: z.string(), grade: z.string(), percentHundredths: z.number().int() }).nullable()),
+        subjects: z.array(z.object({ offeringId: z.string(), grade: z.string().nullable(), percentHundredths: z.number().int() }).nullable()),
       }),
     ),
   })
@@ -231,7 +286,7 @@ export const DecideRecheckSchema = z
   .strictObject({
     outcome: z.enum(["changed", "unchanged"]),
     reason: Reason("reason"),
-    marks: z.array(z.strictObject({ componentId: PublicIdSchema, valueHundredths: MarkValue.nullable(), absent: z.boolean().default(false) })).max(10).default([]),
+    marks: z.array(z.strictObject({ componentId: PartSchema, valueHundredths: MarkValue.nullable(), absent: z.boolean().default(false) })).max(2).default([]),
   })
   .refine((b) => b.outcome === "unchanged" || b.marks.length > 0, "Give the corrected marks")
   .refine((b) => b.marks.every((m) => m.absent !== (m.valueHundredths !== null)), "Each mark is a number or absent")
@@ -252,7 +307,7 @@ export const RecheckListSchema = z
         decidedOnBs: z.string().nullable(),
         requestedOnBs: z.string().nullable(),
         decidedBy: z.string().nullable(),
-        marks: z.array(z.object({ componentId: z.string(), name: z.string(), maxHundredths: z.number().int(), valueHundredths: z.number().int().nullable(), absent: z.boolean() })),
+        marks: z.array(z.object({ componentId: PartSchema, name: z.string(), maxHundredths: z.number().int(), valueHundredths: z.number().int().nullable(), absent: z.boolean() })),
       }),
     ),
   })

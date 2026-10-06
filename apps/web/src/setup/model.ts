@@ -1,5 +1,5 @@
 import type { components } from "@/api/schema";
-import type { MessageKey } from "@/i18n/messages";
+import { t, type MessageKey } from "@/i18n/messages";
 
 export type Year = components["schemas"]["AcademicYear"];
 export type Programme = components["schemas"]["Programme"];
@@ -58,7 +58,7 @@ export const termWords = (term: (key: string) => string) => ({
   terminal: term("term.terminal"),
 });
 
-export type FailReason = "forbidden" | "not_found" | "conflict" | "year_closed" | "in_use" | "code_taken" | "code_locked" | "rejected" | "failed";
+export type FailReason = "forbidden" | "not_found" | "conflict" | "year_closed" | "in_use" | "code_taken" | "code_locked" | "locked" | "rejected" | "failed";
 
 export const REASON_MESSAGE: Record<FailReason, MessageKey> = {
   forbidden: "setup.error.forbidden",
@@ -68,6 +68,7 @@ export const REASON_MESSAGE: Record<FailReason, MessageKey> = {
   in_use: "setup.error.inUse",
   code_taken: "setup.error.codeTaken",
   code_locked: "setup.error.codeLocked",
+  locked: "setup.error.patternLocked",
   rejected: "setup.error.rejected",
   failed: "setup.error.failed",
 };
@@ -78,7 +79,17 @@ export type Subject = components["schemas"]["Subject"];
 export type Curriculum = components["schemas"]["Curriculum"];
 export type Offering = Curriculum["offerings"][number];
 export type Group = Curriculum["groups"][number];
-export type MarkComponent = Offering["components"][number];
+export type ExamPattern = components["schemas"]["ExamPattern"];
+
+/** A subject's paper in a line: "Out of 100", or "Out of 100: theory 75, practical 25" (D-117). */
+export const paperLine = (o: { fullMarksHundredths: number; practicalHundredths: number | null }): string =>
+  o.practicalHundredths === null
+    ? t("setup.curriculum.paperLine", { full: formatHundredths(o.fullMarksHundredths) })
+    : t("setup.curriculum.paperLinePractical", {
+        full: formatHundredths(o.fullMarksHundredths),
+        theory: formatHundredths(o.fullMarksHundredths - o.practicalHundredths),
+        practical: formatHundredths(o.practicalHundredths),
+      });
 
 /**
  * Whole hundredths from what a person typed: "3" is 300, "3.5" is 350, "3.75" is 375. Null when it is not a plain number

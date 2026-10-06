@@ -51,8 +51,8 @@ export interface ClassFixture {
 }
 
 /** A programme and level in the section, a class of the active year with a Class Teacher, one subject offering, and `size` enrolled students. */
-export async function classWith(sectionKey: "plus2" | "bachelors", size = 3, options: { classTeacher?: Person } = {}): Promise<ClassFixture> {
-  const yearId = await activeYear();
+export async function classWith(sectionKey: "plus2" | "bachelors", size = 3, options: { classTeacher?: Person; yearId?: string } = {}): Promise<ClassFixture> {
+  const yearId = options.yearId ?? (await activeYear());
   const t = tag();
   const programmeId = newPublicId();
   await db

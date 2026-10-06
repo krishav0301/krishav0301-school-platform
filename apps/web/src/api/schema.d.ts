@@ -407,11 +407,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** @description The terminals of one year, or of every year. */
+        /** @description The terminals of one year, or of every year, each with its weight and whether it holds the practical (D-117). */
         get: operations["list_terminals"];
         put?: never;
-        /** @description Adds a terminal to a year, numbered after the last one. */
-        post: operations["create_terminal"];
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -626,21 +625,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/academics/terminals/{id}": {
+    "/api/academics/years/{id}/exam-pattern": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        get?: never;
-        put?: never;
+        /** @description A term's exam pattern (null until made) and its terminals, and whether marks have locked it. */
+        get: operations["get_exam_pattern"];
+        /** @description Creates or replaces a term's exam pattern: Grade system yes or no, the minimum % for theory and practical, the grade ranges when graded, and the terminals in order with weights adding up to 100 and whether each holds the practical. Refused (409 `locked`) once marks have been entered in the term. */
+        put: operations["save_exam_pattern"];
         post?: never;
         delete?: never;
         options?: never;
         head?: never;
-        /** @description Renames a terminal. A closed year cannot be changed. */
-        patch: operations["update_terminal"];
+        patch?: never;
         trace?: never;
     };
     "/api/academics/classes/{id}/teaching": {
@@ -736,7 +736,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** @description One programme level's elective groups, subjects and mark components, in one answer. Marks and credit hours are whole hundredths. A level in a section the person may not see is 404, the same as a missing one. */
+        /** @description One programme level's elective groups and subjects, each with its paper's full marks and practical, in one answer. Marks and credit hours are whole hundredths. A level in a section the person may not see is 404, the same as a missing one. */
         get: operations["get_curriculum"];
         put?: never;
         post?: never;
@@ -772,7 +772,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** @description Adds a subject to a programme level, with optional credit hours (whole hundredths) and an elective group of the same level. An archived subject, a switched-off level or group, or a group of another level is 422; the subject already on the level is 409. */
+        /** @description Adds a subject to a programme level, with its paper's full marks (default 100) and practical share (none by default), optional credit hours (whole hundredths) and an elective group of the same level. An archived subject, a switched-off level or group, or a group of another level is 422; the subject already on the level is 409. */
         post: operations["create_offering"];
         delete?: never;
         options?: never;
@@ -793,42 +793,8 @@ export interface paths {
         delete?: never;
         options?: never;
         head?: never;
-        /** @description Changes credit hours (null takes them away), the elective group (null takes the subject out of its group), or switches the subject off and on for the level. */
+        /** @description Changes the paper (full marks; the practical's share, null for none: applies to mark sheets made from now on), credit hours (null takes them away), the elective group (null takes the subject out of its group), or switches the subject off and on for the level. */
         patch: operations["update_offering"];
-        trace?: never;
-    };
-    "/api/academics/offerings/{id}/components": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** @description Adds a mark component (Theory, Practical, Internal) to a subject on a level, numbered after the last. Maximum marks are whole hundredths. At most 10. */
-        post: operations["add_component"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/academics/components/{id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        /** @description Renames a component, changes its maximum marks, or switches it off and on. Nothing is deleted. */
-        patch: operations["update_component"];
         trace?: never;
     };
     "/api/academics/levels/{id}/groups": {
@@ -2429,7 +2395,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** @description Publishes a whole class for a terminal: only when every subject is verified and the programme has a grading policy. Every student's marks card is stored as a snapshot in the same batch. */
+        /** @description Publishes a whole class for a terminal: only when every subject is verified and the term has an exam pattern. Every student's marks card is stored as a snapshot in the same batch. When it is the class's last terminal, the final result (every terminal scaled to its weight, out of 100, pass or fail) is published with it. */
         post: operations["publish_class_results"];
         delete?: never;
         options?: never;
@@ -2444,7 +2410,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** @description The signed-in student's published results, every year and terminal, each with its marks card and rechecks. Nothing before publish. */
+        /** @description The signed-in student's published results, every term: each terminal's and the final, each with its marks card and rechecks. Nothing before publish. */
         get: operations["get_own_results"];
         put?: never;
         post?: never;
@@ -2478,7 +2444,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** @description The whole-class sheet of a published terminal: students by subjects, with the GPA or percentage and the rank in the class. A Class Teacher reads their own class's (FUT point 19). */
+        /** @description The whole-class sheet of a published terminal: students by subjects, with the percentage and the grade when graded. For information: no pass, fail or rank. A Class Teacher reads their own class's (FUT point 19). */
         get: operations["get_class_result_sheet"];
         put?: never;
         post?: never;
@@ -2505,6 +2471,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/results/classes/{classId}/final/sheet": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description The whole-class sheet of the final result: students by subjects (out of 100), the percentage, pass or fail, the grade when graded, and the rank in the class. A Class Teacher reads their own class's. */
+        get: operations["get_class_final_sheet"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/results/classes/{classId}/final/sheet.csv": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description The final result's whole-class sheet as CSV, for Excel. */
+        get: operations["export_class_final_sheet"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/results/top20": {
         parameters: {
             query?: never;
@@ -2512,7 +2512,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** @description The Top 20 for a terminal, ranked per section among the same level, ties sharing a rank. A student sees their own list only, name and rank only, once their class is published; staff see every list in reach. */
+        /** @description The Top 20 on the final result, per open term, section and level, ties sharing a rank. A student sees their own list only, name and rank only, once their class's final result is out; staff see every list in reach. */
         get: operations["get_top20"];
         put?: never;
         post?: never;
@@ -2565,7 +2565,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** @description The Co-ordinator decides a recheck, with a reason: unchanged, or changed with the corrected marks, which makes the next version of the marks card. */
+        /** @description The Co-ordinator decides a recheck, with a reason: unchanged, or changed with the corrected marks, which makes the next version of the terminal's marks card, and of the final result's when it is out. */
         post: operations["decide_recheck"];
         delete?: never;
         options?: never;
@@ -2933,8 +2933,6 @@ export interface components {
             };
             affiliation: string;
             active: boolean;
-            /** @enum {string|null} */
-            gradingPolicy: "neb_gpa" | "percentage_division" | null;
             levels: components["schemas"]["Level"][];
             students: number;
             canDelete: boolean;
@@ -2979,6 +2977,8 @@ export interface components {
             yearId: string;
             name: string;
             ordinal: number;
+            weight: number | null;
+            hasPractical: boolean;
         };
         SetupChecklist: {
             year: boolean;
@@ -3059,8 +3059,6 @@ export interface components {
             name?: string;
             affiliation?: string;
             active?: boolean;
-            /** @enum {string|null} */
-            gradingPolicy?: "neb_gpa" | "percentage_division" | null;
         };
         CreateLevel: {
             name: string;
@@ -3081,12 +3079,39 @@ export interface components {
             label?: string;
             active?: boolean;
         };
-        CreateTerminal: {
-            yearId: string;
-            name: string;
+        ExamPattern: {
+            term: {
+                id: string;
+                label: string;
+                /** @enum {string} */
+                status: "draft" | "active" | "closed";
+            };
+            pattern: {
+                graded: boolean;
+                theoryMinPercent: number;
+                practicalMinPercent: number;
+                gradeBands: {
+                    grade: string;
+                    from: number;
+                }[] | null;
+            } | null;
+            terminals: components["schemas"]["Terminal"][];
+            locked: boolean;
         };
-        TerminalChanges: {
-            name?: string;
+        ExamPatternInput: {
+            graded: boolean;
+            theoryMinPercent: number;
+            practicalMinPercent: number;
+            gradeBands: {
+                grade: string;
+                from: number;
+            }[] | null;
+            terminals: {
+                id?: string;
+                name: string;
+                weight: number;
+                hasPractical: boolean;
+            }[];
         };
         Teaching: {
             classId: string;
@@ -3167,16 +3192,8 @@ export interface components {
                 name: string;
             } | null;
             active: boolean;
-            components: components["schemas"]["CurriculumComponent"][];
-        };
-        CurriculumComponent: {
-            id: string;
-            name: string;
-            maxHundredths: number;
-            /** @enum {string} */
-            kind: "theory" | "practical";
-            ordinal: number;
-            active: boolean;
+            fullMarksHundredths: number;
+            practicalHundredths: number | null;
         };
         CreateSubject: {
             name: string;
@@ -3194,27 +3211,15 @@ export interface components {
             subjectId: string;
             creditHundredths?: number | null;
             groupId?: string | null;
+            fullMarksHundredths?: number;
+            practicalHundredths?: number | null;
         };
         OfferingChanges: {
             creditHundredths?: number | null;
             groupId?: string | null;
             active?: boolean;
-        };
-        CreateComponent: {
-            name: string;
-            maxHundredths: number;
-            /**
-             * @default theory
-             * @enum {string}
-             */
-            kind: "theory" | "practical";
-        };
-        ComponentChanges: {
-            name?: string;
-            maxHundredths?: number;
-            /** @enum {string} */
-            kind?: "theory" | "practical";
-            active?: boolean;
+            fullMarksHundredths?: number;
+            practicalHundredths?: number | null;
         };
         CreateGroup: {
             name: string;
@@ -4418,6 +4423,7 @@ export interface components {
             terminals: {
                 id: string;
                 name: string;
+                weight: number;
             }[];
             subjects: {
                 classId: string;
@@ -4445,13 +4451,15 @@ export interface components {
             terminal: {
                 id: string;
                 name: string;
+                weight: number;
             };
             teacherName: string | null;
             /** @enum {string} */
             status: "not_started" | "draft" | "under_review" | "verified" | "published";
             note: string | null;
             components: {
-                id: string;
+                /** @enum {string} */
+                id: "theory" | "practical";
                 name: string;
                 /** @enum {string} */
                 kind: "theory" | "practical";
@@ -4463,7 +4471,8 @@ export interface components {
                 name: string;
                 rollNo: number | null;
                 marks: {
-                    componentId: string;
+                    /** @enum {string} */
+                    componentId: "theory" | "practical";
                     valueHundredths: number | null;
                     absent: boolean;
                 }[];
@@ -4473,7 +4482,8 @@ export interface components {
         SaveMarks: {
             marks: {
                 enrollmentId: string;
-                componentId: string;
+                /** @enum {string} */
+                componentId: "theory" | "practical";
                 valueHundredths: number | null;
                 /** @default false */
                 absent: boolean;
@@ -4483,6 +4493,7 @@ export interface components {
             terminals: {
                 id: string;
                 name: string;
+                weight: number;
             }[];
             terminalId: string | null;
             classes: {
@@ -4490,9 +4501,8 @@ export interface components {
                 programmeName: string;
                 levelName: string;
                 label: string;
-                /** @enum {string|null} */
-                gradingPolicy: "neb_gpa" | "percentage_division" | null;
                 published: boolean;
+                finalPublished: boolean;
                 ready: boolean;
                 subjects: {
                     offeringId: string;
@@ -4518,7 +4528,9 @@ export interface components {
             results: {
                 publicationId: string;
                 yearLabel: string;
-                terminalName: string;
+                /** @enum {string} */
+                kind: "terminal" | "final";
+                terminalName: string | null;
                 card: components["schemas"]["MarksCard"];
                 rechecks: {
                     id: string;
@@ -4539,6 +4551,8 @@ export interface components {
             publishedAtBs: string | null;
             reason: string | null;
             body: {
+                /** @enum {string} */
+                kind: "terminal";
                 student: {
                     name: string;
                     sid: string;
@@ -4553,32 +4567,81 @@ export interface components {
                 };
                 terminal: {
                     name: string;
+                    weight: number;
                 };
-                /** @enum {string} */
-                policy: "neb_gpa" | "percentage_division";
+                graded: boolean;
                 subjects: {
                     offeringId: string;
                     name: string;
-                    creditHundredths: number | null;
-                    obtainedHundredths: number;
-                    maxHundredths: number;
-                    percentHundredths: number;
-                    grade: string;
-                    gradePointHundredths: number | null;
-                    passed: boolean;
-                    components: {
-                        name: string;
-                        /** @enum {string} */
-                        kind: "theory" | "practical";
+                    theory: {
                         maxHundredths: number;
                         valueHundredths: number | null;
                         absent: boolean;
-                    }[];
+                    };
+                    practical: {
+                        maxHundredths: number;
+                        valueHundredths: number | null;
+                        absent: boolean;
+                    } | null;
+                    obtainedHundredths: number;
+                    fullHundredths: number;
+                    percentHundredths: number;
+                    scaledHundredths: number;
+                    grade: string | null;
                 }[];
-                gpaHundredths: number | null;
-                percentHundredths: number | null;
+                percentHundredths: number;
+                grade: string | null;
                 outcome: string;
+            } | {
+                /** @enum {string} */
+                kind: "final";
+                student: {
+                    name: string;
+                    sid: string;
+                    rollNo: number | null;
+                };
+                class: {
+                    programmeName: string;
+                    levelName: string;
+                    label: string;
+                    sectionName: string;
+                    yearLabel: string;
+                };
+                pattern: {
+                    graded: boolean;
+                    theoryMinPercent: number;
+                    practicalMinPercent: number;
+                    gradeBands: {
+                        grade: string;
+                        from: number;
+                    }[] | null;
+                    terminals: {
+                        id: string;
+                        name: string;
+                        weight: number;
+                    }[];
+                };
+                subjects: {
+                    offeringId: string;
+                    name: string;
+                    terminals: {
+                        terminalId: string;
+                        terminalName: string;
+                        weight: number;
+                        obtainedHundredths: number;
+                        fullHundredths: number;
+                        scaledHundredths: number;
+                    }[];
+                    finalHundredths: number;
+                    theoryPercentHundredths: number;
+                    practicalPercentHundredths: number | null;
+                    passed: boolean;
+                    grade: string | null;
+                }[];
+                percentHundredths: number;
                 passed: boolean;
+                grade: string | null;
+                outcome: string;
             };
         };
         ClassResultSheet: {
@@ -4589,9 +4652,8 @@ export interface components {
             terminal: {
                 id: string;
                 name: string;
-            };
-            /** @enum {string} */
-            policy: "neb_gpa" | "percentage_division";
+            } | null;
+            graded: boolean;
             publishedAt: string;
             subjects: {
                 offeringId: string;
@@ -4603,24 +4665,20 @@ export interface components {
                 sid: string;
                 name: string;
                 rank: number | null;
-                gpaHundredths: number | null;
-                percentHundredths: number | null;
+                percentHundredths: number;
+                passed: boolean | null;
                 outcome: string;
                 version: number;
                 subjects: ({
                     offeringId: string;
-                    grade: string;
+                    grade: string | null;
                     percentHundredths: number;
                 } | null)[];
             }[];
         };
         Top20: {
-            terminals: {
-                id: string;
-                name: string;
-            }[];
-            terminalId: string | null;
             pools: {
+                termLabel: string;
                 sectionName: string;
                 levelName: string;
                 entries: {
@@ -4657,7 +4715,8 @@ export interface components {
                 requestedOnBs: string | null;
                 decidedBy: string | null;
                 marks: {
-                    componentId: string;
+                    /** @enum {string} */
+                    componentId: "theory" | "practical";
                     name: string;
                     maxHundredths: number;
                     valueHundredths: number | null;
@@ -4671,7 +4730,8 @@ export interface components {
             reason: string;
             /** @default [] */
             marks: {
-                componentId: string;
+                /** @enum {string} */
+                componentId: "theory" | "practical";
                 valueHundredths: number | null;
                 /** @default false */
                 absent: boolean;
@@ -4735,11 +4795,9 @@ export interface components {
                 byProgramme: {
                     id: string;
                     name: string;
-                    policy: string | null;
                     cards: number;
                     passed: number;
                     passPercent: number | null;
-                    avgGpaHundredths: number | null;
                     avgPercentHundredths: number | null;
                 }[];
             };
@@ -6057,66 +6115,6 @@ export interface operations {
             };
         };
     };
-    create_terminal: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["CreateTerminal"];
-            };
-        };
-        responses: {
-            /** @description Added */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["AcademicsCreated"];
-                };
-            };
-            /** @description Not allowed (for example, switched off since signing in, or another section's data) */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["AcademicsError"];
-                };
-            };
-            /** @description No such item */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["AcademicsError"];
-                };
-            };
-            /** @description It conflicts with what is already there (a repeat, a closed year, another active year) */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["AcademicsError"];
-                };
-            };
-            /** @description The change breaks a rule; nothing changed */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["AcademicsInvalid"];
-                };
-            };
-        };
-    };
     get_setup_checklist: {
         parameters: {
             query?: never;
@@ -6984,7 +6982,38 @@ export interface operations {
             };
         };
     };
-    update_terminal: {
+    get_exam_pattern: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The pattern */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExamPattern"];
+                };
+            };
+            /** @description No such item */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AcademicsError"];
+                };
+            };
+        };
+    };
+    save_exam_pattern: {
         parameters: {
             query?: never;
             header?: never;
@@ -6995,7 +7024,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["TerminalChanges"];
+                "application/json": components["schemas"]["ExamPatternInput"];
             };
         };
         responses: {
@@ -7466,130 +7495,6 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": components["schemas"]["OfferingChanges"];
-            };
-        };
-        responses: {
-            /** @description Saved */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["AcademicsOk"];
-                };
-            };
-            /** @description Not allowed (for example, switched off since signing in, or another section's data) */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["AcademicsError"];
-                };
-            };
-            /** @description No such item */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["AcademicsError"];
-                };
-            };
-            /** @description It conflicts with what is already there (a repeat, a closed year, another active year) */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["AcademicsError"];
-                };
-            };
-            /** @description The change breaks a rule; nothing changed */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["AcademicsInvalid"];
-                };
-            };
-        };
-    };
-    add_component: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["CreateComponent"];
-            };
-        };
-        responses: {
-            /** @description Added */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["AcademicsCreated"];
-                };
-            };
-            /** @description Not allowed (for example, switched off since signing in, or another section's data) */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["AcademicsError"];
-                };
-            };
-            /** @description No such item */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["AcademicsError"];
-                };
-            };
-            /** @description It conflicts with what is already there (a repeat, a closed year, another active year) */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["AcademicsError"];
-                };
-            };
-            /** @description The change breaks a rule; nothing changed */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["AcademicsInvalid"];
-                };
-            };
-        };
-    };
-    update_component: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["ComponentChanges"];
             };
         };
         responses: {
@@ -11979,6 +11884,7 @@ export interface operations {
                     "application/json": {
                         publicationId: string;
                         cards: number;
+                        finalPublicationId: string | null;
                     };
                 };
             };
@@ -12126,11 +12032,71 @@ export interface operations {
             };
         };
     };
+    get_class_final_sheet: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                classId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The sheet */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClassResultSheet"];
+                };
+            };
+            /** @description No such item, or not one the person may reach */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResultsError"];
+                };
+            };
+        };
+    };
+    export_class_final_sheet: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                classId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The CSV */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/csv": string;
+                };
+            };
+            /** @description No such item, or not one the person may reach */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResultsError"];
+                };
+            };
+        };
+    };
     get_top20: {
         parameters: {
-            query?: {
-                terminalId?: string;
-            };
+            query?: never;
             header?: never;
             path?: never;
             cookie?: never;

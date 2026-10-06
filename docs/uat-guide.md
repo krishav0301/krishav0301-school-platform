@@ -28,11 +28,11 @@ This site does not send real email. What it would have sent (an applicant's "con
 
 ## What is set up already (the starter set)
 
-One open academic term (2083, running Grade 11 and Grade 12), three exams, and class A of Grade 11 and Grade 12 with five subjects each (theory and practical parts), three teachers assigned (one is each class's Class Teacher), six students in each class, and a fee structure per grade, approved and charged. The subjects, marks split and fee amounts are stand-ins, not the college's own.
+One open academic term (2083, running Grade 11 and Grade 12) with its exam pattern (graded; three exams of 30, 30 and 40, the practical in the second and last), and class A of Grade 11 and Grade 12 with five subjects each (Physics and Chemistry with a 75/25 practical), three teachers assigned (one is each class's Class Teacher), six students in each class, and a fee structure per grade, approved and charged. The subjects, marks split and fee amounts are stand-ins, not the college's own.
 
 ## What to try, by role
 
-**Co-ordinator:** add a teacher; register a walk-in student; review an online application (apply from the public Admission page, confirm through the test mailbox); mark teachers' attendance; verify marks sheets and publish an exam's results; decide a recheck; after the Admin closes a term, move its students on (Setup, Move students: promote, repeat, leaving or graduated).
+**Co-ordinator:** make or change a term's **exam pattern** (Setup, Exam pattern: Grade system yes or no, the minimum % for theory and practical, the exams with weights adding up to 100 and whether each holds the practical, the grade ranges; it locks once marks are entered); set a subject's paper (Setup, Curriculum: full marks, "This subject has a practical" and its share); add a teacher; register a walk-in student; review an online application (apply from the public Admission page, confirm through the test mailbox); mark teachers' attendance; verify marks sheets and publish an exam's results (publishing the term's last exam brings out the final result too); decide a recheck; after the Admin closes a term, move its students on (Setup, Move students: promote, repeat, leaving or graduated).
 
 **Teacher:** mark today's attendance for your class; write the activity log; add a note and homework; review a submission; enter marks and send them for review.
 
@@ -40,13 +40,13 @@ One open academic term (2083, running Grade 11 and Grade 12), three exams, and c
 
 **Admin:** approve or decline fee requests and website changes; edit and publish a notice on the public site; add a Co-ordinator or Accountant; read the test mailbox; on **Academic terms**, make a new term (a semester or a year, with its levels), open it, try closing the current term (it says class by class which results are missing) and fill in the next term.
 
-**Student:** see your attendance, homework (and submit it), fees and receipts, results and marks card; report a bank voucher; ask for a recheck.
+**Student:** see your attendance, homework (and submit it), fees and receipts, each exam's result (for information) and the final result (pass or fail), and the marks cards; report a bank voucher; ask for a recheck.
 
 **Anyone:** the public site on a phone and a computer: Home, Programmes, Admission (apply), Scholarships, Facilities, Contact.
 
 ## Not in this test (known limits)
 
-- **Results for +2 are not final:** the NEB grading scale is not yet checked against the official directive (D-085).
+- **Results were rebuilt on 2026-10-06 (D-117):** one exam pattern per term, out of 100. Results entered before that were cleared. The grade ranges are typed in by the school; the starter set's ranges are a stand-in, so **no real +2 result may be published until the official NEB figures are entered** (D-085). No credit hours or GPA for now.
 - **No file uploads** (certificates, homework files, voucher scans) until file storage is turned on.
 - **Online payment is a demo:** no real money moves, and no gateway page opens.
 - **No SMS.** Email only goes to the test mailbox.

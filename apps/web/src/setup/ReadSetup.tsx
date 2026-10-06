@@ -5,7 +5,7 @@ import type { ReactNode } from "react";
 import { t } from "@/i18n/messages";
 import { EmptyLine, Panel, ReadHeader, ReadTable, StatusWord, readStyles, type Column } from "@/read/ReadView";
 
-import { classTitle, formatHundredths, type Curriculum, type SchoolClass, type Subject, type Terminal } from "./model";
+import { classTitle, formatHundredths, paperLine, type Curriculum, type SchoolClass, type Subject, type Terminal } from "./model";
 
 /**
  * School setup as the Principal reads it (D-104, after the PM's topic 7 reference): the same facts the Co-ordinator
@@ -63,6 +63,8 @@ export function TerminalsTable({ terminals, words }: { terminals: readonly Termi
         columns={[
           { key: "n", label: "#", cell: (x) => <span className={readStyles.number}>{x.ordinal}</span> },
           { key: "name", label: t("setup.read.name"), primary: true, cell: (x) => x.name },
+          { key: "weight", label: t("setup.pattern.weight"), align: "end", cell: (x) => (x.weight === null ? "—" : t("setup.pattern.percent", { n: x.weight })) },
+          { key: "practical", label: t("setup.pattern.practical"), cell: (x) => t(x.hasPractical ? "setup.pattern.practicalYes" : "setup.pattern.practicalNo") },
         ]}
       />
     </Panel>
@@ -124,13 +126,7 @@ export function CurriculumTable({ curriculum }: { curriculum: Curriculum }) {
           {
             key: "marks",
             label: t("setup.curriculum.marks"),
-            cell: (o) =>
-              o.components.filter((c) => c.active).length === 0
-                ? "—"
-                : o.components
-                    .filter((c) => c.active)
-                    .map((c) => t("setup.read.markPart", { name: c.name, max: formatHundredths(c.maxHundredths) }))
-                    .join(" · "),
+            cell: (o) => paperLine(o),
           },
           { key: "group", label: t("setup.read.elective"), cell: (o) => (o.group ? groupLine(o.group.id) : t("setup.read.compulsory")) },
         ]}

@@ -38,24 +38,36 @@ export const takes = (en: string, o: string): string =>
   `(${o}.elective_group_id IS NULL OR EXISTS (SELECT 1 FROM elective_picks ep WHERE ep.enrollment_id = ${en}.id AND ep.offering_id = ${o}.id AND ep.is_active = 1))`;
 
 /**
- * The marks a class still lacks for a terminal, as (student, subject, component) rows: every active student, every
- * active subject they take, every active component of it, with no mark and no absence recorded. `cl` is the class;
- * `terminal` the terminal's internal id (an SQL expression). A subject with no students or no components needs nothing.
+ * Whether subject `o` of class `cl` has a practical in a terminal (the terminal's internal id, an SQL expression): as
+ * its sheet was made when there is one (a sheet keeps its paper), otherwise as it would be made now: the terminal holds
+ * the practical and the subject has one (D-117).
+ */
+export const practicalInPlay = (terminal: string): string =>
+  `COALESCE((SELECT pms.practical_max_hundredths IS NOT NULL FROM mark_sheets pms WHERE pms.class_id = cl.id AND pms.offering_id = o.id AND pms.terminal_id = ${terminal}),
+            (SELECT tt.has_practical = 1 FROM terminals tt WHERE tt.id = ${terminal}) AND o.practical_hundredths IS NOT NULL)`;
+
+/** Student `en` has a mark (or an absence) for `part` of subject `o` in class `cl` and the terminal. */
+const hasMark = (terminal: string, part: "theory" | "practical"): string =>
+  `EXISTS (SELECT 1 FROM marks m JOIN mark_sheets ms ON ms.id = m.sheet_id
+            WHERE ms.class_id = cl.id AND ms.offering_id = o.id AND ms.terminal_id = ${terminal}
+              AND m.enrollment_id = en.id AND m.part = '${part}' AND (m.value_hundredths IS NOT NULL OR m.absent = 1))`;
+
+/** Student `en` still lacks a mark in subject `o` for the terminal: the theory, or the practical where it is in play. */
+export const lacksMark = (terminal: string): string => `(NOT ${hasMark(terminal, "theory")} OR (${practicalInPlay(terminal)} AND NOT ${hasMark(terminal, "practical")}))`;
+
+/**
+ * The marks a class still lacks for a terminal, as (student, subject) rows: every active student, every active subject
+ * they take, with a part not yet entered or marked absent. `cl` is the class; `terminal` the terminal's internal id.
  */
 export const missingMarks = (terminal: string): string =>
-  `SELECT en.id AS enrollment_id, o.id AS offering_id, mc.id AS component_id
+  `SELECT en.id AS enrollment_id, o.id AS offering_id
      FROM enrollments en
      JOIN subject_offerings o ON o.level_id = cl.level_id AND o.is_active = 1
-     JOIN mark_components mc ON mc.offering_id = o.id AND mc.is_active = 1
-    WHERE en.class_id = cl.id AND en.status = 'active' AND ${takes("en", "o")}
-      AND NOT EXISTS (SELECT 1 FROM marks m JOIN mark_sheets ms ON ms.id = m.sheet_id
-                       WHERE ms.class_id = cl.id AND ms.offering_id = o.id AND ms.terminal_id = ${terminal}
-                         AND m.enrollment_id = en.id AND m.component_id = mc.id AND (m.value_hundredths IS NOT NULL OR m.absent = 1))`;
+    WHERE en.class_id = cl.id AND en.status = 'active' AND ${takes("en", "o")} AND ${lacksMark(terminal)}`;
 
-/** The subjects of class `cl` that someone takes and that have components: the ones a terminal's results are made of. */
+/** The subjects of class `cl` that someone takes: the ones a terminal's results are made of. */
 export const neededSubjects = `SELECT o.id FROM subject_offerings o
     WHERE o.level_id = cl.level_id AND o.is_active = 1
-      AND EXISTS (SELECT 1 FROM mark_components mc WHERE mc.offering_id = o.id AND mc.is_active = 1)
       AND EXISTS (SELECT 1 FROM enrollments en WHERE en.class_id = cl.id AND en.status = 'active' AND ${takes("en", "o")})`;
 
 /** True when every needed subject of class `cl` has a verified (or published) sheet for the terminal and no mark is missing. */
@@ -66,17 +78,10 @@ export const readyToPublish = (terminal: string): string =>
    AND NOT EXISTS (${missingMarks(terminal)})
    AND EXISTS (${neededSubjects})`;
 
-/**
- * How many students of subject `o` in class `cl` still lack a mark for the terminal (a scalar subquery): a student counts
- * once however many of the subject's components are missing (Co-ordinator FUT F-07: theory and practical counted twice).
- */
+/** How many students of subject `o` in class `cl` still lack a mark for the terminal (a scalar subquery); each counts once. */
 export const missingCount = (terminal: string): string =>
   `(SELECT COUNT(*) FROM enrollments en
-     WHERE en.class_id = cl.id AND en.status = 'active' AND ${takes("en", "o")}
-       AND EXISTS (SELECT 1 FROM mark_components mc WHERE mc.offering_id = o.id AND mc.is_active = 1
-                     AND NOT EXISTS (SELECT 1 FROM marks m JOIN mark_sheets ms ON ms.id = m.sheet_id
-                                      WHERE ms.class_id = cl.id AND ms.offering_id = o.id AND ms.terminal_id = ${terminal}
-                                        AND m.enrollment_id = en.id AND m.component_id = mc.id AND (m.value_hundredths IS NOT NULL OR m.absent = 1))))`;
+     WHERE en.class_id = cl.id AND en.status = 'active' AND ${takes("en", "o")} AND ${lacksMark(terminal)})`;
 
 /** The active teacher of subject `o` in class `cl`, or null (a scalar subquery). */
 export const teacherName = `(SELECT tu.full_name FROM teacher_assignments ta JOIN users tu ON tu.id = ta.teacher_user_id WHERE ta.class_id = cl.id AND ta.offering_id = o.id AND ta.is_active = 1)`;

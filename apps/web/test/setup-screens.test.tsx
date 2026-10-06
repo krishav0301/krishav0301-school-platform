@@ -10,11 +10,11 @@ import { ConfigContext, makeConfigValue, type PublicConfig } from "@/config/Conf
 import { SetupTabs } from "@/setup/SetupLayout";
 import { ClassForm, ClassSectionForm, ClassesView } from "@/setup/ClassesScreen";
 import { AcademicStructureView, LengthForm, LevelForm, type Structure, type StructureActions } from "@/setup/ProgrammesScreen";
-import { TerminalsView } from "@/setup/TerminalsScreen";
+import { PatternForm, PatternView, TerminalsView } from "@/setup/TerminalsScreen";
 import { YearsScreen } from "@/setup/YearsScreen";
 import { LevelPicker, TermsScreen, TermsTable, CloseCheckView } from "@/terms/TermsScreen";
 import type { Term } from "@/terms/model";
-import type { Programme, SchoolClass, Terminal, Year } from "@/setup/model";
+import type { ExamPattern, Programme, SchoolClass, Terminal, Year } from "@/setup/model";
 import { SessionContext } from "@/session/SessionProvider";
 import { fakeSession } from "./session";
 import royal from "../../../packs/royal-softech/pack.json";
@@ -63,7 +63,7 @@ describe("the sub-menu", () => {
     const html = inContext(<SetupTabs pathname="/portal/setup/terminals" />);
     for (const href of ["/portal/setup", "/portal/setup/programmes", "/portal/setup/classes", "/portal/setup/terminals"]) expect(html).toContain(`href="${href}"`);
     expect(count(html, /aria-current="page"/g)).toBe(1);
-    expect(html).toMatch(/aria-current="page"[^>]*>Exams</);
+    expect(html).toMatch(/aria-current="page"[^>]*>Exam pattern</);
     expect(html).toContain(">Programmes<");
     expect(html).toContain('aria-label="Setup sections"');
   });
@@ -110,8 +110,8 @@ describe("academic terms (D-110)", () => {
   it("the level picker asks for the wing, then offers only free levels of the term's length, and says what it hid (D-114)", () => {
     const sem = (i: number, months: number | null = 6) => ({ id: `l${i}`, ordinal: i, name: `Semester ${i}`, active: true, usualMonths: months, students: 0, canDelete: false });
     const programmes = [
-      { id: "p", key: "bca", name: "BCA", section: { key: "bachelors", name: "Bachelor's" }, affiliation: "TU", active: true, gradingPolicy: null, students: 0, canDelete: false, levels: [sem(1), sem(2), sem(3), sem(4), sem(5, 3), sem(6, null)] },
-      { id: "q", key: "sci", name: "Science", section: { key: "plus2", name: "+2" }, affiliation: "NEB", active: true, gradingPolicy: null, students: 0, canDelete: false, levels: [{ ...sem(7, 12), name: "Grade 11" }] },
+      { id: "p", key: "bca", name: "BCA", section: { key: "bachelors", name: "Bachelor's" }, affiliation: "TU", active: true, students: 0, canDelete: false, levels: [sem(1), sem(2), sem(3), sem(4), sem(5, 3), sem(6, null)] },
+      { id: "q", key: "sci", name: "Science", section: { key: "plus2", name: "+2" }, affiliation: "NEB", active: true, students: 0, canDelete: false, levels: [{ ...sem(7, 12), name: "Grade 11" }] },
     ] as Programme[];
     const taken = new Map([["l1", "BCA odd"]]);
     // No days yet: the levels wait for them.
@@ -130,7 +130,7 @@ describe("academic terms (D-110)", () => {
   });
 
   it("an open term flags a level it runs whose length no longer matches, without dropping it (D-114)", () => {
-    const programmes = [{ id: "p", key: "bca", name: "BCA", section: { key: "bachelors", name: "Bachelor's" }, affiliation: "TU", active: true, gradingPolicy: null, students: 0, canDelete: false, levels: [{ id: "l1", ordinal: 1, name: "Semester 1", active: true, usualMonths: 3, students: 0, canDelete: false }] }] as Programme[];
+    const programmes = [{ id: "p", key: "bca", name: "BCA", section: { key: "bachelors", name: "Bachelor's" }, affiliation: "TU", active: true, students: 0, canDelete: false, levels: [{ id: "l1", ordinal: 1, name: "Semester 1", active: true, usualMonths: 3, students: 0, canDelete: false }] }] as Programme[];
     const html = inContext(<LevelPicker programmes={programmes} taken={new Map()} months={6} value={["l1"]} kept={["l1"]} onChange={noop} />);
     expect(html).toContain("Semester 1");
     expect(html).toContain("Runs 3 months");
@@ -165,9 +165,9 @@ describe("Academic Structure (D-095, D-096)", () => {
       { key: "s3", name: "Master's", active: true, receiptCode: null, receiptCodeLocked: false, canDelete: false },
     ],
     programmes: [
-      { id: "p1", key: "cse", name: "Computer Science", section: { key: "s1", name: "Bachelor of Engineering" }, affiliation: "TU", active: true, gradingPolicy: "percentage_division", students: 158, canDelete: false, levels: [level("l1", 1, "1st Year", 80), level("l2", 2, "2nd Year", 78), level("l3", 3, "3rd Year", 0, false)] },
-      { id: "p2", key: "mech", name: "Mechanical", section: { key: "s1", name: "Bachelor of Engineering" }, affiliation: "TU", active: true, gradingPolicy: null, students: 1, canDelete: false, levels: [level("l4", 1, "1st Year", 1)] },
-      { id: "p3", key: "pri", name: "Primary School", section: { key: "s2", name: "School" }, affiliation: "CDC", active: false, gradingPolicy: null, students: 0, canDelete: false, levels: [] },
+      { id: "p1", key: "cse", name: "Computer Science", section: { key: "s1", name: "Bachelor of Engineering" }, affiliation: "TU", active: true, students: 158, canDelete: false, levels: [level("l1", 1, "1st Year", 80), level("l2", 2, "2nd Year", 78), level("l3", 3, "3rd Year", 0, false)] },
+      { id: "p2", key: "mech", name: "Mechanical", section: { key: "s1", name: "Bachelor of Engineering" }, affiliation: "TU", active: true, students: 1, canDelete: false, levels: [level("l4", 1, "1st Year", 1)] },
+      { id: "p3", key: "pri", name: "Primary School", section: { key: "s2", name: "School" }, affiliation: "CDC", active: false, students: 0, canDelete: false, levels: [] },
     ],
     totals: { sections: 3, programmes: 2, levels: 3, students: 1248 },
   };
@@ -235,11 +235,12 @@ describe("Academic Structure (D-095, D-096)", () => {
     expect(html).toMatch(/<h4[^>]*>Levels<\/h4>/);
   });
 
-  it("a programme shows its affiliation, grading and levels; a level switched off says so", () => {
+  it("a programme shows its affiliation and levels (grading is the term's exam pattern, D-117); a level switched off says so", () => {
     expect(html).toContain(">TU<");
-    expect(html).toContain("2 Levels · 158 Students · Percentage and division");
+    expect(html).toContain("2 Levels · 158 Students");
+    expect(html).not.toContain("Percentage and division");
     expect(html).toContain(">Switched off<");
-    expect(html).toContain("1 Level · 1 Student · Not set"); // one, not "1 Students"
+    expect(html).toContain("1 Level · 1 Student"); // one, not "1 Students"
   });
 
   it("the Admin gets Rename, Edit, Add Programme, Add Level and each level's options, all named for what they act on", () => {
@@ -281,7 +282,7 @@ describe("Academic Structure (D-095, D-096)", () => {
   it("a section with no programmes, and a programme with no levels, say so", () => {
     const bare = view({
       sections: [{ key: "s1", name: "Master's", active: true, receiptCode: null, receiptCodeLocked: false, canDelete: false }],
-      programmes: [{ id: "p9", key: "me", name: "ME Civil", section: { key: "s1", name: "Master's" }, affiliation: "TU", active: true, gradingPolicy: null, students: 0, canDelete: false, levels: [] }],
+      programmes: [{ id: "p9", key: "me", name: "ME Civil", section: { key: "s1", name: "Master's" }, affiliation: "TU", active: true, students: 0, canDelete: false, levels: [] }],
       totals: { sections: 1, programmes: 1, levels: 0, students: 0 },
     });
     expect(bare).toContain("No Levels yet.");
@@ -363,8 +364,8 @@ describe("the classes screen", () => {
 
   it("the form offers only active levels of active programmes", () => {
     const programmes: Programme[] = [
-      { id: "p1", key: "bbs", name: "BBS", section: { key: "bachelors", name: "Bachelor's" }, affiliation: "TU", active: true, gradingPolicy: null, students: 0, canDelete: false, levels: [{ id: "l1", ordinal: 1, name: "Year 1", active: true, usualMonths: null, students: 0, canDelete: false }, { id: "l2", ordinal: 2, name: "Year 2", active: false, usualMonths: null, students: 0, canDelete: false }] },
-      { id: "p2", key: "old", name: "Old", section: { key: "plus2", name: "+2" }, affiliation: "NEB", active: false, gradingPolicy: null, students: 0, canDelete: false, levels: [{ id: "l3", ordinal: 1, name: "Grade 11", active: true, usualMonths: null, students: 0, canDelete: false }] },
+      { id: "p1", key: "bbs", name: "BBS", section: { key: "bachelors", name: "Bachelor's" }, affiliation: "TU", active: true, students: 0, canDelete: false, levels: [{ id: "l1", ordinal: 1, name: "Year 1", active: true, usualMonths: null, students: 0, canDelete: false }, { id: "l2", ordinal: 2, name: "Year 2", active: false, usualMonths: null, students: 0, canDelete: false }] },
+      { id: "p2", key: "old", name: "Old", section: { key: "plus2", name: "+2" }, affiliation: "NEB", active: false, students: 0, canDelete: false, levels: [{ id: "l3", ordinal: 1, name: "Grade 11", active: true, usualMonths: null, students: 0, canDelete: false }] },
     ];
     const html = inContext(<ClassForm yearId="y" programmes={programmes} onAdded={noop} />);
     expect(html).toContain("BBS · Year 1");
@@ -375,14 +376,53 @@ describe("the classes screen", () => {
 });
 
 // ---------------------------------------------------------------------------------------------
-describe("the terminals screen", () => {
-  const terminals: Terminal[] = [{ id: "t1", yearId: "y", name: "First terminal", ordinal: 1 }, { id: "t2", yearId: "y", name: "Second terminal", ordinal: 2 }];
+describe("the exam pattern screen (D-117)", () => {
+  const terminals: Terminal[] = [
+    { id: "t1", yearId: "y", name: "First terminal", ordinal: 1, weight: 30, hasPractical: false },
+    { id: "t2", yearId: "y", name: "Second terminal", ordinal: 2, weight: 70, hasPractical: true },
+  ];
 
-  it("lists terminals in order, with their number", () => {
+  it("lists the exams in order, with their number, weight and practical", () => {
     const html = inContext(<TerminalsView terminals={terminals} />);
     expect(html.indexOf("First terminal")).toBeLessThan(html.indexOf("Second terminal"));
     expect(html).toContain(">1</span>");
     expect(html).toContain(">2</span>");
+    expect(html).toContain("30%");
+    expect(html).toContain("70%");
+    expect(html).toContain("No: theory only");
+  });
+
+  const pattern: ExamPattern = {
+    term: { id: "y", label: "2083", status: "active" },
+    pattern: { graded: true, theoryMinPercent: 35, practicalMinPercent: 40, gradeBands: [{ grade: "A", from: 80 }, { grade: "B", from: 35 }] },
+    terminals,
+    locked: false,
+  };
+
+  it("reads the pattern back: grade system, minimums, exams and grade ranges", () => {
+    const html = inContext(<PatternView pattern={pattern} />);
+    expect(html).toContain("Yes: letter grades");
+    expect(html).toContain("35%");
+    expect(html).toContain("40%");
+    expect(html).toContain("Grade ranges");
+    expect(html).toContain("80%");
+  });
+
+  it("the form asks the PM's questions, with one primary action, and says the weights' total", () => {
+    const html = inContext(<PatternForm yearId="y" pattern={pattern} onSaved={() => {}} />);
+    expect(html).toContain("Grade system?");
+    expect(html).toContain("Theory: minimum % to pass");
+    expect(html).toContain("Practical: minimum % to pass");
+    expect(html).toContain("Practical in this exam");
+    expect(html).toContain("Total: 100 of 100");
+    expect(html).toContain("Grade ranges");
+    expect(html).toContain("Save exam pattern");
+  });
+
+  it("a new term's form starts with one exam of weight 100 and no grade ranges until graded", () => {
+    const html = inContext(<PatternForm yearId="y" pattern={{ ...pattern, pattern: null, terminals: [] }} onSaved={() => {}} />);
+    expect(html).toContain("Total: 100 of 100");
+    expect(html).not.toContain("Grade ranges");
   });
 
   it("uses the school's word for the empty state", () => {
@@ -397,7 +437,7 @@ describe("the pages", () => {
     ["promotion", PromotionPage, "Move students on"],
     ["programmes", ProgrammesPage, "Academic Structure"],
     ["classes", ClassesPage, "Classes"],
-    ["terminals", TerminalsPage, "Exams"],
+    ["terminals", TerminalsPage, "Exam pattern"],
   ] as const)("%s: a heading, the sub-menu, and the portal around it", (_name, Page, title) => {
     const html = inContext(<Page />);
     expect(html).toContain(`>${title}</h1>`);

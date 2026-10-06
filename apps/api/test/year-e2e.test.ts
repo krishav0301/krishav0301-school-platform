@@ -20,7 +20,7 @@ import { createUser } from "../src/modules/accounts/service";
 import { verifyLedgerChain } from "../src/modules/fees/ledger";
 import royalJson from "../../../packs/royal-softech/pack.json";
 import sampleJson from "../../../packs/sample-basic-school/pack.json";
-import { firstProgrammePolicy, seedProgrammes, testPack, wingOfLevel } from "./programme-fixtures";
+import { firstProgrammeGraded, seedProgrammes, testPack, wingOfLevel } from "./programme-fixtures";
 
 // These walk a whole school year, hashing many passwords on purpose-slow scrypt; with every test file running in
 // parallel they can pass the 60 s default on a busy machine (seen 2026-10-01), so they get three minutes.
@@ -35,7 +35,7 @@ describe.each([
 ])("A school year: $label", ({ label, json, database }) => {
   const pack: Pack = testPack(json);
   const modules = resolveModules(pack.modules ?? {});
-  const policy = firstProgrammePolicy(pack);
+  const graded = firstProgrammeGraded(pack);
   const db = () => database();
   const ip = label === "Royal Softech" ? "203.0.113.41" : "203.0.113.42";
 
@@ -94,7 +94,7 @@ describe.each([
     classId?: string;
     class2Id?: string;
     terminals: string[];
-    subjects: Record<string, { id: string; components: string[] }>;
+    subjects: Record<string, { id: string }>;
     teachers: Record<string, string>;
     students: Record<string, { enrollmentId: string; studentId: string; sid: string }>;
     structureId?: string;
@@ -104,7 +104,7 @@ describe.each([
 
   // --- 1. Setting up the year ---------------------------------------------------------------------
 
-  it("setup: the pack, staff created through the real flows, a year with three terminals and two classes", async () => {
+  it("setup: the pack, staff created through the real flows, a term with its exam pattern (three terminals) and two classes", async () => {
     await applyPack(db(), pack);
     await seedProgrammes(db(), env.AUDIT_HMAC_KEY, pack); // a school starts with no programmes: the Admin makes them (D-087)
     c.admin = await signedIn("admin", "institution");
@@ -120,8 +120,7 @@ describe.each([
     // A Co-ordinator cannot create an Accountant; only teachers.
     expect((await post("/api/staff", { fullName: "No", email: `no-${tag}@school.example`, role: "accountant" }, c.coordinator)).status).toBe(403);
 
-    const programmes = await get<{ programmes: { id: string; gradingPolicy: string | null; levels: { id: string }[] }[] }>("/api/academics/programmes", c.coordinator);
-    expect(programmes.programmes[0]!.gradingPolicy).toBe(policy);
+    const programmes = await get<{ programmes: { id: string; levels: { id: string }[] }[] }>("/api/academics/programmes", c.coordinator);
     s.levelId = programmes.programmes[0]!.levels[0]!.id;
     s.level2Id = programmes.programmes[0]!.levels[1]!.id;
 
@@ -133,27 +132,36 @@ describe.each([
     expect((await post("/api/academics/years", yearBody, c.admin)).status).toBe(409); // the same term twice (its name is taken)
     expect((await post("/api/academics/years", { ...yearBody, label: `Second ${b}` }, c.admin)).status).toBe(422); // the same levels in a second open term
     await ok(await post(`/api/academics/years/${s.yearId}/activate`, undefined, c.admin));
-    for (const name of ["First terminal", "Second terminal", "Final"]) s.terminals.push((await ok(await post("/api/academics/terminals", { yearId: s.yearId, name }, c.coordinator), 201)).id as string);
+    // The exam pattern (D-117): the Co-ordinator, not the Admin; 30 / 30 / 40, the practical held in every terminal.
+    const examPattern = {
+      graded,
+      theoryMinPercent: 35,
+      practicalMinPercent: 40,
+      gradeBands: graded ? [{ grade: "A", from: 80 }, { grade: "B", from: 60 }, { grade: "C", from: 35 }] : null,
+      terminals: ["First terminal", "Second terminal", "Final"].map((name, i) => ({ name, weight: [30, 30, 40][i]!, hasPractical: true })),
+    };
+    expect((await put(`/api/academics/years/${s.yearId}/exam-pattern`, examPattern, c.admin)).status).toBe(403);
+    await ok(await put(`/api/academics/years/${s.yearId}/exam-pattern`, examPattern, c.coordinator));
+    s.terminals = (await get<{ terminals: { id: string }[] }>(`/api/academics/years/${s.yearId}/exam-pattern`, c.coordinator)).terminals.map((t) => t.id);
     s.classId = (await ok(await post("/api/academics/classes", { yearId: s.yearId, levelId: s.levelId, label: "A" }, c.coordinator), 201)).id as string;
     s.class2Id = (await ok(await post("/api/academics/classes", { yearId: s.yearId, levelId: s.level2Id, label: "" }, c.coordinator), 201)).id as string;
     expect((await post("/api/academics/classes", { yearId: s.yearId, levelId: s.levelId, label: "A" }, c.coordinator)).status).toBe(409); // duplicate class
   });
 
-  it("setup: subjects with components and credit hours, an elective group, teachers hired and assigned", async () => {
-    const subject = async (name: string, credit: number, parts: [number, "theory" | "practical"][], groupId?: string) => {
+  it("setup: subjects with their papers (full marks, a practical where they have one), an elective group, teachers hired and assigned", async () => {
+    const subject = async (name: string, practical: number | null, groupId?: string) => {
       const subjectId = (await ok(await post("/api/academics/subjects", { name: `${name} ${tag}`, sectionKey: await wingOfLevel(db(), s.levelId!) }, c.coordinator), 201)).id as string;
-      const offeringId = (await ok(await post("/api/academics/offerings", { levelId: s.levelId, subjectId, creditHundredths: credit * 100, ...(groupId ? { groupId } : {}) }, c.coordinator), 201)).id as string;
-      const components: string[] = [];
-      for (const [i, [max, kind]] of parts.entries()) components.push((await ok(await post(`/api/academics/offerings/${offeringId}/components`, { name: kind === "theory" ? `Theory ${i}` : `Practical ${i}`, maxHundredths: max * 100, kind }, c.coordinator), 201)).id as string);
-      return { id: offeringId, components };
+      const offeringId = (await ok(await post("/api/academics/offerings", { levelId: s.levelId, subjectId, practicalHundredths: practical === null ? null : practical * 100, ...(groupId ? { groupId } : {}) }, c.coordinator), 201)).id as string;
+      return { id: offeringId };
     };
-    s.subjects.english = await subject("English", 4, [[100, "theory"]]);
-    s.subjects.science = await subject("Science", 5, [[75, "theory"], [25, "practical"]]);
-    // A component with a maximum that is not a whole number of marks.
-    expect((await post(`/api/academics/offerings/${s.subjects.english!.id}/components`, { name: "Zero", maxHundredths: 0 }, c.coordinator)).status).toBe(400);
+    s.subjects.english = await subject("English", null);
+    s.subjects.science = await subject("Science", 25);
+    // A practical that is not less than the full marks.
+    const sciencePaper = await post("/api/academics/offerings", { levelId: s.levelId, subjectId: (await ok(await post("/api/academics/subjects", { name: `Bad paper ${tag}`, sectionKey: await wingOfLevel(db(), s.levelId!) }, c.coordinator), 201)).id, practicalHundredths: 10_000 }, c.coordinator);
+    expect(sciencePaper.status).toBe(400);
     s.groupId = (await ok(await post(`/api/academics/levels/${s.levelId}/groups`, { name: "Optional", pickCount: 1 }, c.coordinator), 201)).id as string;
-    s.subjects.maths = await subject("Maths", 4, [[100, "theory"]], s.groupId);
-    s.subjects.computing = await subject("Computing", 4, [[50, "theory"], [50, "practical"]], s.groupId);
+    s.subjects.maths = await subject("Maths", null, s.groupId);
+    s.subjects.computing = await subject("Computing", 50, s.groupId);
 
     for (const name of ["ram", "gita", "hari"]) {
       const email = `${name}-${tag}@school.example`;
@@ -411,8 +419,11 @@ describe.each([
     await ok(await post(`${sheetPath(s.subjects.english!, t)}/submit`, undefined, c.gita));
     const published = await verifyAndPublish(t);
     expect(published.status, await published.clone().text()).toBe(201);
-    const dipak = await get<{ results: { card: { body: { passed: boolean } } }[] }>("/api/results/me", c.Dipak);
-    expect(dipak.results[0]!.card.body.passed).toBe(false); // absent in a component
+    // A terminal is for information: Dipak's absence shows, but no pass or fail until the final (D-117).
+    const dipak = await get<{ results: { kind: string; card: { body: { passed?: boolean; subjects: { practical: { absent: boolean } | null; theory: { absent: boolean } }[] } } }[] }>("/api/results/me", c.Dipak);
+    expect(dipak.results[0]!.kind).toBe("terminal");
+    expect(dipak.results[0]!.card.body.passed).toBeUndefined();
+    expect(dipak.results[0]!.card.body.subjects.some((x) => x.theory.absent)).toBe(true);
     // The class of the other level has nothing published and no one there sees anything.
     expect((await get<{ results: unknown[] }>("/api/results/me", c.Elina)).results).toHaveLength(0);
   });
@@ -453,27 +464,33 @@ describe.each([
     const again = await get<{ classes: { classId: string; subjects: { sheetId: string; status: string }[] }[] }>(`/api/results/review?terminalId=${t}`, c.coordinator);
     for (const sub of again.classes.find((x) => x.classId === s.classId)!.subjects) await ok(await post(`/api/results/review/sheets/${sub.sheetId}/send-back`, { note: "Add the new student" }, c.coordinator));
     await enterAll(t, (who) => (who === "Asha" ? 95 : who === "Bina" ? 95 : 60));
-    expect((await verifyAndPublish(t)).status).toBe(201);
+    const last = await verifyAndPublish(t);
+    expect(last.status).toBe(201);
+    // The last terminal: the final result comes with it (D-117).
+    expect(((await last.json()) as { finalPublicationId: string | null }).finalPublicationId).toEqual(expect.any(String));
 
     // A recheck for Bina, changed; the Admin sees it; the card is version 2.
     const own = await get<{ results: { publicationId: string; terminalName: string; card: { body: { subjects: { offeringId: string }[] } } }[] }>("/api/results/me", c.Bina);
     const final = own.results.find((r) => r.terminalName === "Final")!;
     const asked = await ok(await post(`/api/results/publications/${final.publicationId}/rechecks`, { offeringId: s.subjects.english!.id, reason: "Page three was not marked" }, c.Bina), 201);
     const list = await get<{ rechecks: { id: string; marks: { componentId: string }[] }[] }>("/api/results/rechecks", c.coordinator);
-    const component = list.rechecks.find((r) => r.id === asked.id)!.marks[0]!.componentId;
-    await ok(await post(`/api/results/rechecks/${asked.id}/decide`, { outcome: "changed", reason: "Page three added", marks: [{ componentId: component, valueHundredths: 9900 }] }, c.coordinator));
+    expect(list.rechecks.find((r) => r.id === asked.id)!.marks.map((m) => m.componentId)).toEqual(["theory"]);
+    await ok(await post(`/api/results/rechecks/${asked.id}/decide`, { outcome: "changed", reason: "Page three added", marks: [{ componentId: "theory", valueHundredths: 9900 }] }, c.coordinator));
     const changes = await get<{ rechecks: { id: string; status: string }[] }>("/api/results/rechecks", c.admin);
     expect(changes.rechecks.find((r) => r.id === asked.id)!.status).toBe("changed");
-    const after = await get<{ results: { terminalName: string; card: { version: number } }[] }>("/api/results/me", c.Bina);
+    const after = await get<{ results: { kind: string; terminalName: string | null; card: { version: number } }[] }>("/api/results/me", c.Bina);
     expect(after.results.find((r) => r.terminalName === "Final")!.card.version).toBe(2);
-    // Top 20 follows the school's switch; the class sheet ranks ties together.
-    const top = await call(`/api/results/top20?terminalId=${t}`, { cookie: c.Asha });
+    expect(after.results.find((r) => r.kind === "final")!.card.version).toBe(2);
+    // Top 20 (on the final) follows the school's switch; the final's class sheet ranks the class.
+    const top = await call("/api/results/top20", { cookie: c.Asha });
     expect(top.status).toBe(modules.top20 ? 200 : 404);
-    const sheet = await get<{ students: { name: string; rank: number | null }[] }>(`/api/results/classes/${s.classId}/terminals/${t}/sheet`, c.admin);
+    const sheet = await get<{ students: { name: string; rank: number | null }[] }>(`/api/results/classes/${s.classId}/final/sheet`, c.admin);
     expect(sheet.students.find((x) => x.name.startsWith("Bina"))!.rank).toBe(1);
-    // Every student has three results, the newest joiner one.
-    expect((await get<{ results: unknown[] }>("/api/results/me", c.Asha)).results).toHaveLength(3);
-    expect((await get<{ results: unknown[] }>("/api/results/me", c.Newest)).results).toHaveLength(1);
+    // Every student has three terminals and the final; the newest joiner one terminal and the final, missing marks counted as absent.
+    expect((await get<{ results: unknown[] }>("/api/results/me", c.Asha)).results).toHaveLength(4);
+    const newestOwn = await get<{ results: { kind: string; card: { body: { passed?: boolean } } }[] }>("/api/results/me", c.Newest);
+    expect(newestOwn.results).toHaveLength(2);
+    expect(newestOwn.results.find((r) => r.kind === "final")!.card.body.passed).toBe(false);
   });
 
   // --- 6. Staff leaving mid-year ------------------------------------------------------------------
@@ -499,10 +516,10 @@ describe.each([
       ["discount", post(`/api/fees/enrollments/${asha}/discounts`, { amountPaisa: 100, reason: "sibling" }, c.accountant)],
       ["refund", post(`/api/fees/enrollments/${asha}/refunds`, { amountPaisa: 100, reason: "After the year closed" }, c.accountant)],
       ["charges", post(`/api/fees/structures/${s.structureId}/charges`, { classId: s.classId }, c.accountant)],
-      ["marks", put(sheetPath(s.subjects.science!, s.terminals[2]!), { marks: [{ enrollmentId: asha, componentId: s.subjects.science!.components[0], valueHundredths: 100 }] }, c.ram)],
+      ["marks", put(sheetPath(s.subjects.science!, s.terminals[2]!), { marks: [{ enrollmentId: asha, componentId: "theory", valueHundredths: 100 }] }, c.ram)],
       ["picks", put(`/api/results/enrollments/${asha}/electives/${s.groupId}`, { offeringIds: [s.subjects.computing!.id] }, c.coordinator)],
       ["class", post("/api/academics/classes", { yearId: s.yearId, levelId: s.levelId, label: "Z" }, c.coordinator)],
-      ["terminal", post("/api/academics/terminals", { yearId: s.yearId, name: "Extra" }, c.coordinator)],
+      ["exam pattern", put(`/api/academics/years/${s.yearId}/exam-pattern`, { graded: false, theoryMinPercent: 0, practicalMinPercent: 0, gradeBands: null, terminals: [{ name: "Extra", weight: 100, hasPractical: false }] }, c.coordinator)],
     ];
     if (modules.notes) attempts.push(["note", post("/api/notes", { classId: s.classId, offeringId: s.subjects.science!.id, kind: "note", title: "Late" , body: "x" }, c.ram)]);
     const own = await get<{ results: { publicationId: string }[] }>("/api/results/me", c.Asha);
