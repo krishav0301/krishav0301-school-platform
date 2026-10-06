@@ -1,9 +1,6 @@
-import { CalendarCheck, CalendarClock, CalendarDays, Users } from "lucide-react";
-
 import type { components } from "@/api/schema";
 import { formatBsDate } from "@/content/model";
 import { t, type MessageKey } from "@/i18n/messages";
-import type { Figure } from "@/read/ReadView";
 
 /**
  * Academic terms (D-109, D-110): any period the Principal sets, with its dates and the levels it runs. The API still
@@ -31,17 +28,6 @@ export function levelSummary(levels: readonly Pick<TermLevel, "programmeName" | 
   const byProgramme = new Map<string, string[]>();
   for (const l of levels) (byProgramme.get(l.programmeName) ?? byProgramme.set(l.programmeName, []).get(l.programmeName)!).push(l.name);
   return [...byProgramme].map(([programme, names]) => t("terms.levelsOf", { programme, levels: names.join(", ") })).join(" · ");
-}
-
-/** The page's four figures: open terms, terms not started, students in open terms, closed terms. Pure. */
-export function termFigures(terms: readonly Term[]): Figure[] {
-  const open = terms.filter((x) => x.status === "active");
-  return [
-    { key: "open", icon: CalendarCheck, tone: "ok", value: String(open.length), label: t("terms.figure.open") },
-    { key: "draft", icon: CalendarClock, tone: "warn", value: String(terms.filter((x) => x.status === "draft").length), label: t("terms.figure.draft") },
-    { key: "students", icon: Users, tone: "accent", value: String(open.reduce((n, x) => n + x.students, 0)), label: t("terms.figure.students") },
-    { key: "closed", icon: CalendarDays, tone: "accent", value: String(terms.filter((x) => x.status === "closed").length), label: t("terms.figure.closed") },
-  ];
 }
 
 /** Which open term (other than `except`) already runs each level: a level is in only one open term (D-110). */
@@ -102,3 +88,46 @@ export function levelOffer(level: { id: string; usualMonths: number | null }, mo
 /** An open term's levels whose length is not set or no longer matches the term's (D-114): flagged, never dropped. */
 export const misfitLevels = (term: Pick<Term, "status" | "months" | "levels">): TermLevel[] =>
   term.status === "closed" || term.months === null ? [] : term.levels.filter((l) => l.usualMonths !== term.months);
+
+// --- The redesigned page (PM, 2026-10-06): Currently Active, then Other Terms ------------------------------------------
+
+/** The wings a term's levels belong to, by name, once each, in level order. Pure. */
+export function termWings(term: Pick<Term, "levels">, sections: readonly { key: string; name: string }[]): string[] {
+  const keys = [...new Set(term.levels.map((l) => l.sectionKey))];
+  return keys.map((key) => sections.find((s) => s.key === key)?.name ?? key);
+}
+
+/** The first `max` levels as "Course · Level" chips, and how many more there are. Pure. */
+export function levelChips(term: Pick<Term, "levels">, max = 3): { chips: string[]; more: number } {
+  const all = term.levels.map((l) => t("terms.chip", { course: l.programmeName, level: l.name }));
+  return { chips: all.slice(0, max), more: Math.max(0, all.length - max) };
+}
+
+const DAY = 86_400_000;
+const daysBetween = (from: string, to: string) => Math.round((Date.parse(`${to}T00:00:00Z`) - Date.parse(`${from}T00:00:00Z`)) / DAY);
+/** "5 months" or "12 days": whole months from 30 days on, else days. */
+const span = (days: number) => (days >= 30 ? t(Math.round(days / 30) === 1 ? "terms.time.month" : "terms.time.months", { n: Math.round(days / 30) }) : t(days === 1 ? "terms.time.day" : "terms.time.days", { n: days }));
+
+/** Where a term stands in time, in words, from today's AD day "YYYY-MM-DD" (Nepal's day). Pure. */
+export function termTiming(term: Pick<Term, "status" | "startDate" | "endDate">, today: string): string {
+  const untilStart = daysBetween(today, term.startDate);
+  const untilEnd = daysBetween(today, term.endDate);
+  if (term.status === "closed") return untilEnd < 0 ? t("terms.time.ended", { span: span(-untilEnd) }) : t("terms.time.closedEarly");
+  if (untilStart > 0) return t("terms.time.startsIn", { span: span(untilStart) });
+  if (term.status === "draft") return t("terms.time.notOpened");
+  if (untilEnd < 0) return t("terms.time.pastEnd");
+  return untilEnd === 0 ? t("terms.time.endsToday") : t("terms.time.remaining", { span: span(untilEnd) });
+}
+
+export type OtherStatus = "" | "draft" | "closed";
+
+/** Other Terms: every term not active (the PM: "all the terms which are not active"), by status and search. Pure. */
+export function otherTerms(terms: readonly Term[], q: string, status: OtherStatus): Term[] {
+  const words = q.trim().toLowerCase();
+  return terms.filter(
+    (x) =>
+      x.status !== "active" &&
+      (!status || x.status === status) &&
+      (!words || [x.label, x.code, ...x.levels.map((l) => `${l.programmeName} ${l.name}`)].some((text) => text.toLowerCase().includes(words))),
+  );
+}
