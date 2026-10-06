@@ -6,6 +6,7 @@ import { useCallback, useEffect, useId, useMemo, useState, type KeyboardEvent, t
 
 import { useConfig } from "@/config/ConfigProvider";
 import { t, type MessageKey } from "@/i18n/messages";
+import { useAddressQuery } from "@/content/address";
 import { useSession } from "@/session/SessionProvider";
 import { Button, Notice, RowMenu, Skeleton, type MenuAction } from "@/ui";
 
@@ -294,6 +295,14 @@ function ListState({
   );
 }
 
+type AddOpen = false | "any" | "coordinator" | "accountant";
+
+/** Which Add pop-up is open: one chosen here, else the one the address asked for (`?add=`) until it is dismissed. Pure. */
+export function addOpen(chosen: AddOpen, asked: "coordinator" | "accountant" | null, dismissed: boolean): AddOpen {
+  if (chosen !== false) return chosen;
+  return asked !== null && !dismissed ? asked : false;
+}
+
 // --- Staff & Access ---------------------------------------------------------------------------------
 
 /** The people the Principal gives access to, with what each may reach, their account and their last sign-in. */
@@ -301,7 +310,20 @@ function AdminPanel({ onCounts }: { onCounts: (counts: PeoplePage["counts"]) => 
   const { api } = useSession();
   const { term } = useConfig();
   const list = usePeople("admin", onCounts);
-  const [adding, setAdding] = useState(false);
+  // `?add=coordinator` or `?add=accountant` (the dashboard's quick actions) opens Add on its second step with that role.
+  const search = useAddressQuery();
+  const asked = search === null ? null : new URLSearchParams(search).get("add");
+  const askedRole = asked === "coordinator" || asked === "accountant" ? asked : null;
+  const [chosen, setChosen] = useState<AddOpen>(false);
+  // Closing must change state even when nothing was chosen here: the pop-up the address opened is then "dismissed".
+  // (Before, Close set `chosen` to false, which it already was, so nothing redrew and the pop-up stayed.)
+  const [dismissed, setDismissed] = useState(false);
+  const adding = addOpen(chosen, askedRole, dismissed);
+  const closeAdd = () => {
+    setChosen(false);
+    setDismissed(true);
+    if (askedRole) window.history.replaceState(null, "", window.location.pathname); // so a reload does not open it again
+  };
   const [managing, setManaging] = useState<Person | null>(null);
   const [flash, setFlash] = useState<Flash | null>(null);
   const [secret, setSecret] = useState<{ name: string; password: string } | null>(null);
@@ -330,7 +352,7 @@ function AdminPanel({ onCounts }: { onCounts: (counts: PeoplePage["counts"]) => 
   }
 
   const addButton = (
-    <Button className={styles.addButton} onClick={() => setAdding(true)}>
+    <Button className={styles.addButton} onClick={() => setChosen("any")}>
       <Plus aria-hidden />
       {t("people.add")}
     </Button>
@@ -432,8 +454,9 @@ function AdminPanel({ onCounts }: { onCounts: (counts: PeoplePage["counts"]) => 
 
       {adding ? (
         <AddPersonDialog
+          startRole={adding === "any" ? undefined : adding}
           sections={sections}
-          onClose={() => setAdding(false)}
+          onClose={closeAdd}
           onCreated={() => {
             setFlash(null);
             list.reload();

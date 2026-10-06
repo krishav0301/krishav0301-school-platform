@@ -72,19 +72,6 @@ export const DashboardOverviewSchema = z
       waiting: z.number().int(),
       lastPublishedAt: z.string().nullable(),
     }),
-    activity: z.array(
-      z.object({
-        id: z.string(),
-        at: z.string(),
-        action: z.string(),
-        summary: z.string(),
-        actorName: z.string().nullable(),
-        /** The build team: the screen shows "Support", never a name (CLAUDE.md section 5). */
-        actorIsSupport: z.boolean(),
-        entityType: z.string(),
-        entityId: z.string().nullable(),
-      }),
-    ),
   })
   .openapi("DashboardOverview");
 

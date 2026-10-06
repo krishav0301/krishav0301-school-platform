@@ -1,4 +1,3 @@
-import { recentActivityPart } from "../../core/audit";
 import { changePercent, runParts } from "../../core/dashboard";
 import { adToBsText, isWeeklyHoliday, nepalDate, todayBs } from "../../core/dates";
 import { programmesDashboardPart } from "../academics";
@@ -42,7 +41,6 @@ export async function dashboardOverview(db: D1Database, env: { SITE_ORIGIN?: str
     results: resultsDashboardPart(db),
     approvals: approvalsDashboardPart(db),
     content: contentDashboardPart(db),
-    activity: recentActivityPart(db, 10),
   });
 
   // Attendance: today's figure, and the register day before it for comparison.
@@ -103,15 +101,5 @@ export async function dashboardOverview(db: D1Database, env: { SITE_ORIGIN?: str
     },
     attention,
     website: { origin: env.SITE_ORIGIN ?? null, live: p.content.live, drafts: p.content.drafts, waiting: p.content.waiting, lastPublishedAt: p.content.lastPublishedAt },
-    activity: p.activity.map((r) => ({
-      id: String(r.id),
-      at: r.at,
-      action: r.action,
-      summary: r.summary,
-      actorName: r.actorIsSupport === 1 ? null : r.actorName,
-      actorIsSupport: r.actorIsSupport === 1,
-      entityType: r.entityType,
-      entityId: r.entityId,
-    })),
   };
 }

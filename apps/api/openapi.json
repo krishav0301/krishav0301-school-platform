@@ -10105,54 +10105,6 @@
               "waiting",
               "lastPublishedAt"
             ]
-          },
-          "activity": {
-            "type": "array",
-            "items": {
-              "type": "object",
-              "properties": {
-                "id": {
-                  "type": "string"
-                },
-                "at": {
-                  "type": "string"
-                },
-                "action": {
-                  "type": "string"
-                },
-                "summary": {
-                  "type": "string"
-                },
-                "actorName": {
-                  "type": [
-                    "string",
-                    "null"
-                  ]
-                },
-                "actorIsSupport": {
-                  "type": "boolean"
-                },
-                "entityType": {
-                  "type": "string"
-                },
-                "entityId": {
-                  "type": [
-                    "string",
-                    "null"
-                  ]
-                }
-              },
-              "required": [
-                "id",
-                "at",
-                "action",
-                "summary",
-                "actorName",
-                "actorIsSupport",
-                "entityType",
-                "entityId"
-              ]
-            }
           }
         },
         "required": [
@@ -10167,8 +10119,7 @@
           "programmes",
           "results",
           "attention",
-          "website",
-          "activity"
+          "website"
         ]
       },
       "AuditTrail": {
@@ -20572,7 +20523,7 @@
         "tags": [
           "dashboard"
         ],
-        "description": "The whole school at a glance for the Principal: students, staff, attendance, fees, programmes, results, what needs attention, the website and recent activity. One round trip.",
+        "description": "The whole school at a glance for the Principal: students, staff, attendance, fees, programmes, results, what needs attention and the website. One round trip.",
         "responses": {
           "200": {
             "description": "The dashboard",

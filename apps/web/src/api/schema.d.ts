@@ -2597,7 +2597,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** @description The whole school at a glance for the Principal: students, staff, attendance, fees, programmes, results, what needs attention, the website and recent activity. One round trip. */
+        /** @description The whole school at a glance for the Principal: students, staff, attendance, fees, programmes, results, what needs attention and the website. One round trip. */
         get: operations["dashboard_overview"];
         put?: never;
         post?: never;
@@ -4908,16 +4908,6 @@ export interface components {
                 waiting: number;
                 lastPublishedAt: string | null;
             };
-            activity: {
-                id: string;
-                at: string;
-                action: string;
-                summary: string;
-                actorName: string | null;
-                actorIsSupport: boolean;
-                entityType: string;
-                entityId: string | null;
-            }[];
         };
         AuditTrail: {
             rows: {

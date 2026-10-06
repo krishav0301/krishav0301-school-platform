@@ -33,7 +33,8 @@ describe("the real menu", () => {
 
   it("shows each role its own entries", () => {
     // D-087/D-088: the Admin's Setup is just "Programs"; Support keeps the whole Setup.
-    expect(seen("admin", "institution")).toEqual(["dashboard", "classes", "content", "programs", "terms", "people", "approvals", "attendance", "classwork", "reports", "settings"]);
+    // D-121: the Principal reaches attendance, classwork, results (Classes) and fees (a student's record) without menu entries.
+    expect(seen("admin", "institution")).toEqual(["dashboard", "classes", "content", "programs", "terms", "people", "approvals", "admissions", "reports", "settings"]);
     expect(seen("super_admin", "institution")).toEqual(["dashboard", "classes", "content", "terms", "setup", "people", "approvals", "attendance", "classwork", "reports", "settings"]);
     // Reports too: the Co-ordinator holds the student and results reports (Co-ordinator FUT F-10).
     expect(seen("coordinator", "institution")).toEqual(["dashboard", "classes", "content", "setup", "people", "admissions", "attendance", "classwork", "reports", "settings"]);
@@ -44,11 +45,11 @@ describe("the real menu", () => {
     // D-091: Settings is everyone's; Reports only the Principal's and Support's.
   });
 
-  it("fees are for the Accountant, the Admin and the student, never the Co-ordinator or a teacher", () => {
+  it("fees are in the menu for the Accountant and the student; never the Co-ordinator or a teacher; the Principal reads them on a student's record (D-121)", () => {
     const withFees = { attendance: true, fees: true };
     expect(seen("accountant", "institution", withFees)).toEqual(["dashboard", "admissions", "fees", "settings"]);
     expect(seen("student", "own", withFees)).toEqual(["dashboard", "classwork", "fees", "settings"]);
-    expect(seen("admin", "institution", withFees)).toContain("fees");
+    expect(seen("admin", "institution", withFees)).not.toContain("fees");
     expect(seen("coordinator", "institution", withFees)).not.toContain("fees");
     expect(seen("teacher", "assigned", withFees)).not.toContain("fees");
   });
@@ -57,7 +58,8 @@ describe("the real menu", () => {
     const withResults = { attendance: true, fees: true, results: true };
     expect(seen("teacher", "assigned", withResults)).toEqual(["dashboard", "classes", "attendance", "classwork", "results", "settings"]);
     expect(seen("student", "own", withResults)).toEqual(["dashboard", "classwork", "fees", "results", "settings"]);
-    for (const role of ["coordinator", "admin"]) expect(seen(role, "institution", withResults)).toContain("results");
+    expect(seen("coordinator", "institution", withResults)).toContain("results");
+    for (const id of ["results", "attendance", "classwork"]) expect(seen("admin", "institution", withResults)).not.toContain(id); // through Classes (D-121)
     expect(seen("accountant", "institution", withResults)).not.toContain("results");
   });
 
@@ -71,7 +73,7 @@ describe("the real menu", () => {
       return { tabs: tabs.map((i) => i.id), more: more.map((i) => i.id) };
     };
     expect(split("coordinator", "institution")).toEqual({ tabs: ["dashboard", "classes", "admissions", "attendance"], more: ["content", "setup", "people", "classwork", "reports", "settings"] });
-    expect(split("admin", "institution")).toEqual({ tabs: ["dashboard", "classes", "approvals", "attendance"], more: ["content", "programs", "terms", "people", "classwork", "reports", "settings"] });
+    expect(split("admin", "institution")).toEqual({ tabs: ["dashboard", "classes", "approvals", "admissions"], more: ["content", "programs", "terms", "people", "reports", "settings"] });
   });
 });
 

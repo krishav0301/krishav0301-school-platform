@@ -2,6 +2,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 
 import { ConfigContext, makeConfigValue, type PublicConfig } from "@/config/ConfigProvider";
+import { RecordFeesView } from "@/admissions/StudentScreen";
 import { AccountView, accountFigures, History } from "@/fees/AccountView";
 import { FeesTabs } from "@/fees/FeesTabs";
 import { FeesHome } from "@/fees/FeesHome";
@@ -54,6 +55,17 @@ const account: Account = {
   ],
   receipts: [{ id: "r1", number: "plus2-2083-00001", amountPaisa: 25_000_000, issuedOnBs: "2083-06-12", reversed: true }],
 };
+
+describe("fees on a student's record (PM, 2026-10-06)", () => {
+  it("shows the account read only, with the way to the full fee page; no account says why", () => {
+    const html = inContext(<RecordFeesView account={account} studentId="s1" name="Sita Sharma" />);
+    expect(html).toMatch(/<h2[^>]*>Fee account<\/h2>/);
+    expect(html).toContain("NPR 10,00,000");
+    expect(html).toContain('href="/portal/fees/student?id=s1"');
+    expect(html).not.toMatch(/<button/); // read only: payments, discounts and reversals stay on the fee page
+    expect(inContext(<RecordFeesView account={null} studentId="s1" name="Sita Sharma" />)).toContain("No fee account yet: the student is not in a class.");
+  });
+});
 
 describe("the account", () => {
   it("leads with charged, discount, paid and the balance, then what is due, overdue and next, in NPR with Nepali grouping (D-104)", () => {

@@ -86,8 +86,6 @@ describe("the audit trail", () => {
     await recordAudit(db, auditKey, { action: "admissions.approved", entityType: "student", entityPublicId: student!.public_id, actorPublicId: admin.publicId, summary: `Application approved; student ${student!.public_id} created` });
     const body = (await (await trail(admin, "?area=admissions")).json()) as Trail;
     expect(body.rows[0]!.summary).toBe(`${student!.name} admitted (${student!.sid})`);
-    const dashboard = (await (await call("/api/dashboard/overview", { cookie: admin.cookie })).json()) as { activity: { summary: string }[] };
-    expect(dashboard.activity[0]!.summary).toBe(`${student!.name} admitted (${student!.sid})`);
   });
 
   it("offers no way to change an entry", async () => {

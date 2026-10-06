@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { ACTIVITY, bsDayMonth, bsLong, changeLabel, chartPoints, compactNpr, greetingKey, relativeTime } from "@/dashboard/admin-model";
+import { bsDayMonth, bsLong, changeLabel, chartPoints, compactNpr, greetingKey, relativeTime } from "@/dashboard/admin-model";
 
 /** The Principal's dashboard (D-088): the display rules, separate from the data (which the API's own tests cover). */
 describe("the dashboard's display rules", () => {
@@ -39,25 +39,6 @@ describe("the dashboard's display rules", () => {
     expect(relativeTime("2026-09-30T11:55:00Z", now)).toBe("5 minutes ago");
     expect(relativeTime("2026-09-30T10:00:00Z", now)).toBe("2 hours ago");
     expect(relativeTime("2026-09-29T11:00:00Z", now)).toBe("1 day ago");
-  });
-
-  it("every kind of activity the API can send has words and a place to go", () => {
-    const kinds = [
-      "content.published",
-      "admissions.approved",
-      "admissions.walkin.registered",
-      "fees.payment.cash",
-      "fees.payment.voucher",
-      "fees.payment.online",
-      "fees.refund.recorded",
-      "results.published",
-      "results.recheck.changed",
-      "accounts.staff.created",
-      "academics.programme.created",
-      "approvals.request.approved",
-      "approvals.request.declined",
-    ];
-    for (const kind of kinds) expect(ACTIVITY[kind]?.href, kind).toMatch(/^\/portal/);
   });
 
   it("chart points: 100% at the top, 40% at the bottom, evenly spread", () => {

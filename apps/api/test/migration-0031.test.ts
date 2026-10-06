@@ -65,9 +65,11 @@ describe("migration 0031: subjects sorted into wings", () => {
   });
 
   it("running the block again changes nothing", async () => {
-    const before = await db.prepare("SELECT id, section_id FROM subjects ORDER BY id").all();
+    // Compare the rows only: the result also carries timings (meta.duration), which differ from run to run.
+    const rows = async () => (await db.prepare("SELECT id, section_id FROM subjects ORDER BY id").all()).results;
+    const before = await rows();
     await db.batch(sortingBlock().map((q) => db.prepare(q)));
-    expect(await db.prepare("SELECT id, section_id FROM subjects ORDER BY id").all()).toEqual(before);
+    expect(await rows()).toEqual(before);
   });
 
   it("names and codes are unique within a wing, whatever their case, and may repeat across wings", async () => {

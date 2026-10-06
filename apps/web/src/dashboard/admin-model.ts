@@ -14,12 +14,6 @@ export function greetingKey(now: Date): MessageKey {
   return "dashboard.greeting.evening";
 }
 
-export const STATUS_KEY: Record<Overview["status"], MessageKey> = {
-  on_track: "dashboard.status.onTrack",
-  attention: "dashboard.status.attention",
-  several: "dashboard.status.several",
-};
-
 /**
  * A rupee amount for a card: whole rupees below one lakh (NPR 45,000), else lakhs (NPR 28.4 L) or crores (NPR 1.2 Cr)
  * to one decimal, rounded half up. Integer arithmetic on paisa only (CLAUDE.md section 6).
@@ -69,23 +63,6 @@ export function relativeTime(iso: string, now: Date): string {
   const days = Math.floor(hours / 24);
   return t(days === 1 ? "dashboard.time.day" : "dashboard.time.days", { n: days });
 }
-
-/** What each kind of recent activity is called, and where it leads. */
-export const ACTIVITY: Record<string, { title: MessageKey; href: string; tone: "primary" | "ok" | "accent" | "warn" }> = {
-  "content.published": { title: "dashboard.activity.contentPublished", href: "/portal/content", tone: "primary" },
-  "admissions.approved": { title: "dashboard.activity.studentAdmitted", href: "/portal/admissions", tone: "ok" },
-  "admissions.walkin.registered": { title: "dashboard.activity.studentAdmitted", href: "/portal/admissions", tone: "ok" },
-  "fees.payment.cash": { title: "dashboard.activity.paymentReceived", href: "/portal/fees", tone: "primary" },
-  "fees.payment.voucher": { title: "dashboard.activity.paymentReceived", href: "/portal/fees", tone: "primary" },
-  "fees.payment.online": { title: "dashboard.activity.paymentReceived", href: "/portal/fees", tone: "primary" },
-  "fees.refund.recorded": { title: "dashboard.activity.refundPaid", href: "/portal/fees", tone: "warn" },
-  "results.published": { title: "dashboard.activity.resultPublished", href: "/portal/results", tone: "accent" },
-  "results.recheck.changed": { title: "dashboard.activity.resultChanged", href: "/portal/results", tone: "accent" },
-  "accounts.staff.created": { title: "dashboard.activity.staffAdded", href: "/portal/people", tone: "ok" },
-  "academics.programme.created": { title: "dashboard.activity.programmeAdded", href: "/portal/setup/programmes", tone: "primary" },
-  "approvals.request.approved": { title: "dashboard.activity.approved", href: "/portal/approvals", tone: "ok" },
-  "approvals.request.declined": { title: "dashboard.activity.declined", href: "/portal/approvals", tone: "warn" },
-};
 
 /** The attention rows, in the reference design's order; a row with nothing waiting is left out. */
 export function attentionRows(o: Overview): { id: "approvals" | "fees" | "attendance" | "website"; count: number; title: MessageKey; detail: MessageKey; href: string; tone: "bad" | "warn" | "primary" | "accent" }[] {

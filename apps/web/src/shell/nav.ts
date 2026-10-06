@@ -45,19 +45,19 @@ export const NAV_ITEMS: readonly NavItem[] = [
   { id: "people", labelKey: "nav.people", href: "/portal/people", roles: ["admin", "coordinator", "super_admin"], rarely: true, icon: "people" },
   // Phase 3, slice 4: the Admin's inbox for a Co-ordinator's draft sent for approval (D-061).
   { id: "approvals", labelKey: "nav.approvals", href: "/portal/approvals", roles: ["admin", "super_admin"], icon: "approvals" },
-  // Phase 4: applications, the review queue, walk-ins and student search. Not the Admin or Super
-  // Admin: both are already at MAX_TABS, and neither registers or reviews students (D-063).
-  // `OPEN:` an Admin's read-only reach into student search has no menu entry yet, the same
-  // overflow gap `visibleNav`'s own test already flags for a sixth entry.
-  { id: "admissions", labelKey: "nav.admissions", href: "/portal/admissions", roles: ["coordinator", "accountant"], icon: "admissions" },
+  // Phase 4: applications, the review queue, walk-ins and the Students page. The Principal reads students here (D-118),
+  // with each student's fees on their record, since Fees left the Principal's menu (D-121). Not the Super Admin.
+  { id: "admissions", labelKey: "nav.admissions", href: "/portal/admissions", roles: ["coordinator", "accountant", "admin"], icon: "admissions" },
+  // D-121 (the PM, 2026-10-06): the Principal reaches attendance, classwork and results through Classes, and fees
+  // through a student's record, so these four are not in the Principal's menu. The pages still open by address.
   // Phase 5, slice 1: student attendance. The Class Teacher marks it; the Co-ordinator and the Admin look (D-069).
-  { id: "attendance", labelKey: "nav.attendance", href: "/portal/attendance", roles: ["teacher", "coordinator", "admin", "super_admin"], module: "attendance", icon: "attendance" },
+  { id: "attendance", labelKey: "nav.attendance", href: "/portal/attendance", roles: ["teacher", "coordinator", "super_admin"], module: "attendance", icon: "attendance" },
   // Phase 5, slice 3: the daily activity log; notes and homework join it in slice 4 (D-071).
-  { id: "classwork", labelKey: "nav.classwork", href: "/portal/classwork", roles: ["teacher", "student", "coordinator", "admin", "super_admin"], icon: "classwork" },
+  { id: "classwork", labelKey: "nav.classwork", href: "/portal/classwork", roles: ["teacher", "student", "coordinator", "super_admin"], icon: "classwork" },
   // Phase 6: fees. The Accountant works here, the Admin looks, a student sees their own; never the Co-ordinator (D-078).
-  { id: "fees", labelKey: "nav.fees", href: "/portal/fees", roles: ["accountant", "admin", "super_admin", "student"], module: "fees", icon: "fees" },
+  { id: "fees", labelKey: "nav.fees", href: "/portal/fees", roles: ["accountant", "super_admin", "student"], module: "fees", icon: "fees" },
   // Phase 7: results. The teacher enters marks, the Co-ordinator verifies and publishes, a student sees their own, the Admin reads (D-082).
-  { id: "results", labelKey: "nav.results", href: "/portal/results", roles: ["teacher", "student", "coordinator", "admin", "super_admin"], module: "results", icon: "results" },
+  { id: "results", labelKey: "nav.results", href: "/portal/results", roles: ["teacher", "student", "coordinator", "super_admin"], module: "results", icon: "results" },
   // D-091: everything the Principal reads but does not change, in one place. The Co-ordinator holds the student and
   // results reports too (reports.students, reports.results), so she has the entry; the hub lists only her pages (Co-ordinator FUT F-10).
   { id: "reports", labelKey: "nav.reports", href: "/portal/reports", roles: ["admin", "coordinator", "super_admin"], rarely: true, icon: "reports" },
