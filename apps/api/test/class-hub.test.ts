@@ -45,6 +45,14 @@ beforeAll(async () => {
 const list = async (who: Person) => ((await (await call("/api/classes", { cookie: who.cookie })).json()) as { classes: { id: string }[] }).classes.map((c) => c.id);
 const open = (who: Person, id: string) => call(`/api/classes/${id}`, { cookie: who.cookie });
 
+describe("the class list carries what the grouped Classes page needs (PM, 2026-10-06)", () => {
+  it("each class names its term, course and level by id, and its Class Teacher's id, for grouping and the Co-ordinator's actions", async () => {
+    const body = (await (await call("/api/classes", { cookie: coordinator.cookie })).json()) as { classes: Record<string, unknown>[] };
+    const mine = body.classes.find((c) => c.id === plus2.classId)!;
+    expect(mine).toMatchObject({ levelId: plus2.levelId, termId: expect.stringMatching(/^[0-9a-f]{32}$/), courseId: expect.stringMatching(/^[0-9a-f]{32}$/), classTeacherId: plus2.classTeacher.publicId });
+  });
+});
+
 describe("which classes a person opens (FUT point 19)", () => {
   it("the Principal and a whole-school Co-ordinator list every class; a wing's Co-ordinator only their wing's", async () => {
     for (const who of [principal, coordinator]) expect(await list(who)).toEqual(expect.arrayContaining([plus2.classId, bachelors.classId]));

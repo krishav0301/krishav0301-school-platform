@@ -3250,7 +3250,11 @@ export interface components {
         ClassHubList: {
             classes: {
                 id: string;
+                termId: string;
                 termLabel: string;
+                courseId: string;
+                levelId: string;
+                classTeacherId: string | null;
                 wing: string;
                 course: string;
                 level: string;
@@ -3263,7 +3267,11 @@ export interface components {
         ClassHub: {
             class: {
                 id: string;
+                termId: string;
                 termLabel: string;
+                courseId: string;
+                levelId: string;
+                classTeacherId: string | null;
                 wing: string;
                 course: string;
                 level: string;

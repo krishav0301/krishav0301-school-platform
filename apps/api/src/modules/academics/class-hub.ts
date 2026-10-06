@@ -16,7 +16,7 @@ const IN_REACH = `(?1 = 1 OR s.key IN (SELECT value FROM json_each(?2))
 
 const reachParams = (grant: Grant, actor: string) => [grant.institution ? 1 : 0, JSON.stringify(grant.sections), actor, grant.assigned ? 1 : 0] as const;
 
-const CLASS_COLUMNS = `cl.public_id AS id, ay.label AS term_label, s.name AS wing, p.name AS course, l.name AS level, cl.label AS section,
+const CLASS_COLUMNS = `cl.public_id AS id, ay.public_id AS term_id, ay.label AS term_label, p.public_id AS course_id, l.public_id AS level_id, s.name AS wing, p.name AS course, l.name AS level, cl.label AS section,
         ct.full_name AS class_teacher, ct.public_id AS class_teacher_id,
         (SELECT COUNT(*) FROM enrollments en WHERE en.class_id = cl.id AND en.status = 'active') AS students`;
 const CLASS_JOINS = `FROM classes cl
@@ -28,7 +28,10 @@ const CLASS_JOINS = `FROM classes cl
 
 interface ClassRow {
   id: string;
+  term_id: string;
   term_label: string;
+  course_id: string;
+  level_id: string;
   wing: string;
   course: string;
   level: string;
@@ -40,7 +43,11 @@ interface ClassRow {
 
 const toClass = (r: ClassRow) => ({
   id: r.id,
+  termId: r.term_id,
   termLabel: r.term_label,
+  courseId: r.course_id,
+  levelId: r.level_id,
+  classTeacherId: r.class_teacher_id,
   wing: r.wing,
   course: r.course,
   level: r.level,

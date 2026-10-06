@@ -2444,8 +2444,23 @@
                 "id": {
                   "type": "string"
                 },
+                "termId": {
+                  "type": "string"
+                },
                 "termLabel": {
                   "type": "string"
+                },
+                "courseId": {
+                  "type": "string"
+                },
+                "levelId": {
+                  "type": "string"
+                },
+                "classTeacherId": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
                 },
                 "wing": {
                   "type": "string"
@@ -2474,7 +2489,11 @@
               },
               "required": [
                 "id",
+                "termId",
                 "termLabel",
+                "courseId",
+                "levelId",
+                "classTeacherId",
                 "wing",
                 "course",
                 "level",
@@ -2499,8 +2518,23 @@
               "id": {
                 "type": "string"
               },
+              "termId": {
+                "type": "string"
+              },
               "termLabel": {
                 "type": "string"
+              },
+              "courseId": {
+                "type": "string"
+              },
+              "levelId": {
+                "type": "string"
+              },
+              "classTeacherId": {
+                "type": [
+                  "string",
+                  "null"
+                ]
               },
               "wing": {
                 "type": "string"
@@ -2526,7 +2560,11 @@
             },
             "required": [
               "id",
+              "termId",
               "termLabel",
+              "courseId",
+              "levelId",
+              "classTeacherId",
               "wing",
               "course",
               "level",
