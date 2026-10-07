@@ -25,8 +25,9 @@
 }
 
 .header {
-  border-bottom: 1px solid var(--color-border);
-  background: var(--color-surface);
+  border-bottom: 1px solid var(--line-soft);
+  background: color-mix(in srgb, var(--color-surface) 82%, transparent);
+  backdrop-filter: saturate(1.4) blur(12px);
 }
 
 .bar {
@@ -91,9 +92,10 @@
   width: 2.5rem;
   height: 2.5rem;
   border-radius: 50%;
-  background: var(--color-primary);
+  background: var(--action-fill);
   color: var(--color-primary-text);
   font-weight: var(--weight-bold);
+  box-shadow: var(--shadow-glow);
 }
 
 .accountText {
@@ -172,6 +174,11 @@
   display: none;
 }
 
+/* The sidebar's card (D-126): wide screens only; on a phone the menu is the tab bar. */
+.sideCard {
+  display: none;
+}
+
 /* Menu on a phone: a bottom tab bar, inside reach of the thumb. It stays put while the page scrolls
    and clears the home indicator. Icon and one-word label, the current tab marked in text and weight
    as well as colour. */
@@ -184,8 +191,9 @@
   /* One row, always (admin FUT F-15): five equal tabs. With enlarged text the labels give way to the icons alone
      (below), rather than the bar wrapping onto a second row or a word breaking in the middle. */
   flex-wrap: nowrap;
-  border-top: 1px solid var(--color-border);
-  background: var(--color-surface);
+  border-top: 1px solid var(--line-soft);
+  background: color-mix(in srgb, var(--color-surface) 88%, transparent);
+  backdrop-filter: saturate(1.4) blur(12px);
   padding-bottom: env(safe-area-inset-bottom);
 }
 
@@ -352,8 +360,56 @@
     align-self: start;
     height: 100dvh;
     overflow-y: auto;
-    border-inline-end: 1px solid color-mix(in srgb, var(--color-border) 70%, transparent);
-    background: var(--color-surface);
+    display: flex;
+    flex-direction: column;
+    border-inline-end: 1px solid var(--line-soft);
+    background: color-mix(in srgb, var(--color-surface) 78%, transparent);
+    backdrop-filter: saturate(1.4) blur(16px);
+  }
+
+  .sideCard {
+    position: relative;
+    isolation: isolate;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+    margin: auto var(--space-3) var(--space-4);
+    padding: var(--space-4) var(--space-4) 0;
+    border: 1px solid color-mix(in srgb, var(--color-accent) 12%, var(--color-surface));
+    border-radius: var(--radius-hero);
+    background: linear-gradient(165deg, var(--tint-accent), var(--tint-primary));
+  }
+
+  .sideCard::after {
+    content: "";
+    position: absolute;
+    z-index: -1;
+    inset-inline: 0;
+    bottom: 0;
+    height: 55%;
+    background: color-mix(in srgb, var(--color-accent) 10%, transparent);
+    mask: var(--wave) no-repeat left bottom / 100% 100%;
+  }
+
+  .sideTitle {
+    font-family: var(--font-heading);
+    font-size: var(--text-lg);
+    font-weight: var(--weight-heavy);
+    line-height: var(--leading-tight);
+  }
+
+  .sideBody {
+    color: color-mix(in srgb, var(--color-text) 78%, var(--color-text-muted));
+    font-size: var(--text-sm);
+    line-height: var(--leading-tight);
+  }
+
+  /* The picture stands in the card's corner below the words, cut by its bottom edge. */
+  .sideArt {
+    align-self: flex-end;
+    margin-top: var(--space-2);
+    margin-bottom: -0.75rem;
   }
 
   .sidebarBrand {
@@ -406,13 +462,14 @@
   }
 
   .navLink:hover:not([aria-current="page"]) {
-    background: color-mix(in srgb, var(--color-text) 6%, transparent);
+    background: color-mix(in srgb, var(--color-primary) 6%, transparent);
   }
 
+  /* The current place: the action fill with a soft glow (D-126); the weight still marks it without colour. */
   .navLink[aria-current="page"] {
-    background: color-mix(in srgb, var(--color-primary) 12%, var(--color-surface));
-    color: var(--color-primary);
-    box-shadow: none;
+    background: var(--action-fill);
+    color: var(--color-primary-text);
+    box-shadow: var(--shadow-glow);
   }
 }
 
@@ -532,4 +589,14 @@
   font-weight: var(--weight-medium);
   text-decoration: none;
   overflow-wrap: anywhere;
+}
+
+/* Reduce Transparency or Increase Contrast (D-126 review, materials.md › Liquid Glass): the see-through bars become solid. */
+@media (prefers-reduced-transparency: reduce), (prefers-contrast: more) {
+  .header,
+  .nav,
+  .sidebar {
+    background: var(--color-surface);
+    backdrop-filter: none;
+  }
 }

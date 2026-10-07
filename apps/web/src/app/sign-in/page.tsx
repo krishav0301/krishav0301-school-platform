@@ -11,7 +11,7 @@ import { NewPasswordStep } from "@/session/NewPasswordStep";
 import { useSession, type Me, type SignInResult } from "@/session/SessionProvider";
 import { PublicShell } from "@/shell/PublicShell";
 import { CodeStep, RecoveryCodesStep, SetupStep } from "@/two-factor/steps";
-import { Button, Card, Field, Notice, PasswordField, buttonClass } from "@/ui";
+import { Button, Card, Field, HeroBand, Notice, PasswordField, buttonClass } from "@/ui";
 
 import styles from "./sign-in.module.css";
 
@@ -68,10 +68,12 @@ function CredentialsStep({ notice, onSecondStep }: { notice?: MessageKey; onSeco
 
   return (
     <Card className={styles.card}>
-      <div className={styles.heading}>
-        <h1 className={styles.title}>{t("signIn.title", { school: config?.school.name ?? "" })}</h1>
-        <p className={styles.help}>{t("signIn.help")}</p>
-      </div>
+      <HeroBand>
+        <div className={styles.heading}>
+          <h1 className={styles.title}>{t("signIn.title", { school: config?.school.name ?? "" })}</h1>
+          <p className={styles.help}>{t("signIn.help")}</p>
+        </div>
+      </HeroBand>
       <form onSubmit={submit} className={styles.form} noValidate>
         {notice && !problem ? <Notice>{t(notice)}</Notice> : null}
         {endedUnexpectedly && !problem && !notice ? <Notice>{t("signIn.sessionEnded")}</Notice> : null}

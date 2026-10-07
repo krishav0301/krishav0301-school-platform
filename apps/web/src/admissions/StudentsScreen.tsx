@@ -9,7 +9,7 @@ import { initials } from "@/people/access-model";
 import { FilterSelect, ListSkeleton, Pager, SearchBox } from "@/people/ListParts";
 import styles from "@/people/people-access.module.css";
 import { useSession } from "@/session/SessionProvider";
-import { Button, Notice, Skeleton } from "@/ui";
+import { Button, HeroBand, Notice, Skeleton } from "@/ui";
 
 import { browseStudents, type BrowsedStudent, type StudentBrowse, type StudentFilter } from "./client";
 
@@ -26,8 +26,10 @@ export function StudentsScreen() {
   return (
     <div className={styles.page}>
       <div className={styles.topMain}>
-        <h1 className={styles.title}>{t("students.title")}</h1>
-        <p className={styles.intro}>{t("students.intro")}</p>
+        <HeroBand>
+          <h1 className={styles.title}>{t("students.title")}</h1>
+          <p className={styles.intro}>{t("students.intro")}</p>
+        </HeroBand>
         <Summary counts={list.counts} />
       </div>
 

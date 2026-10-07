@@ -31,9 +31,41 @@
   /* Capped by screen width as well, so enlarged text (which enlarges rem spacing) cannot squeeze the content on a narrow phone. */
   --page-gutter: min(var(--space-4), 5vw);
 
-  --shadow-card: 0 1px 2px color-mix(in srgb, var(--color-text) 8%, transparent),
-    0 8px 24px color-mix(in srgb, var(--color-text) 6%, transparent);
+  /* Softer since D-126: a hairline lift and a wide, faint glow tinted by the brand colour. */
+  --shadow-card: 0 1px 2px color-mix(in srgb, var(--color-text) 5%, transparent),
+    0 14px 34px -14px color-mix(in srgb, var(--color-primary) 22%, transparent);
   --focus-ring: 3px solid var(--color-primary);
+
+  /*
+   * Calm surfaces (D-126). Every tint, wash and glow is mixed from the school's own theme colours, so a second
+   * school's theme gives its own calm version and nothing here names a colour. Tints stay light (under 12%)
+   * so text keeps the contrast the theme check guarantees on the plain surface.
+   */
+  --tint-primary: color-mix(in srgb, var(--color-primary) 7%, var(--color-surface));
+  --tint-accent: color-mix(in srgb, var(--color-accent) 9%, var(--color-surface));
+  --tint-ok: color-mix(in srgb, var(--color-ok-soft) 60%, var(--color-surface));
+  --tint-warn: color-mix(in srgb, var(--color-warn-soft) 60%, var(--color-surface));
+  --tint-bad: color-mix(in srgb, var(--color-bad-soft) 60%, var(--color-surface));
+  --line-soft: color-mix(in srgb, var(--color-border) 60%, transparent);
+  --page-wash:
+    radial-gradient(60rem 32rem at 85% -10%, color-mix(in srgb, var(--color-primary) 8%, transparent), transparent 70%),
+    radial-gradient(48rem 36rem at 100% 70%, color-mix(in srgb, var(--color-accent) 7%, transparent), transparent 70%),
+    linear-gradient(180deg, color-mix(in srgb, var(--color-primary) 3%, var(--color-background)), color-mix(in srgb, var(--color-accent) 3%, var(--color-background)));
+  --hero-wash: linear-gradient(
+    112deg,
+    color-mix(in srgb, var(--color-surface) 70%, transparent) 0%,
+    color-mix(in srgb, var(--color-primary) 8%, var(--color-surface)) 48%,
+    color-mix(in srgb, var(--color-accent) 13%, var(--color-surface)) 100%
+  );
+  /* The one prominent action and the current place: the brand colour deepening toward the text colour. */
+  --action-fill: linear-gradient(135deg, var(--color-primary), color-mix(in srgb, var(--color-primary) 70%, var(--color-text)));
+  --shadow-soft: var(--shadow-card);
+  --shadow-glow: 0 8px 20px -8px color-mix(in srgb, var(--color-primary) 55%, transparent);
+  --radius-hero: calc(var(--radius-card) + 6px);
+  --text-4xl: 2.75rem;
+  --weight-heavy: 780;
+  /* A soft wave drawn along the bottom of a hero or figure card (a mask, so its colour comes from the theme). */
+  --wave: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 300 60' preserveAspectRatio='none'%3E%3Cpath d='M0 42C70 14 150 62 300 8V60H0Z'/%3E%3C/svg%3E");
 
   --motion-fast: 120ms;
   --motion-ease: cubic-bezier(0.2, 0, 0, 1);
@@ -42,5 +74,20 @@
 @media (min-width: 48rem) {
   :root {
     --page-gutter: min(var(--space-6), 5vw);
+  }
+}
+
+/* Increase Contrast (D-126 review, color.md › Best practices): the calm washes and tints give way to the plain
+   theme surfaces and full-strength hairlines, so every edge and word stands out. */
+@media (prefers-contrast: more) {
+  :root {
+    --page-wash: var(--color-background);
+    --hero-wash: var(--color-surface);
+    --tint-primary: var(--color-surface);
+    --tint-accent: var(--color-surface);
+    --tint-ok: var(--color-surface);
+    --tint-warn: var(--color-surface);
+    --tint-bad: var(--color-surface);
+    --line-soft: var(--color-border);
   }
 }

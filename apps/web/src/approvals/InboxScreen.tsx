@@ -9,7 +9,7 @@ import { formatBsDate } from "@/content/model";
 import { t, type MessageKey } from "@/i18n/messages";
 import { useSession } from "@/session/SessionProvider";
 import { useLoad } from "@/setup/useLoad";
-import { Button, Notice, Select, Skeleton, TextArea } from "@/ui";
+import { Button, HeroBand, Notice, Select, Skeleton, TextArea } from "@/ui";
 
 import styles from "./approvals.module.css";
 import { approve, decline, loadInbox, loadReview, withdraw } from "./client";
@@ -590,15 +590,17 @@ export function InboxScreen() {
 
   return (
     <div className={styles.page}>
-      <header className={styles.header}>
-        <h1 className={styles.title}>{t("approvals.inbox.title")}</h1>
-        <p className={styles.intro}>{t("approvals.inbox.intro", { coordinators: term("role.coordinator"), accountants: term("role.accountant") })}</p>
-        {view.status === "ready" ? (
-          <p className={styles.waiting} aria-live="polite">
-            {t(forMe === 1 ? "approvals.inbox.waitingOne" : "approvals.inbox.waiting", { count: forMe })}
-          </p>
-        ) : null}
-      </header>
+      <HeroBand>
+        <header className={styles.header}>
+          <h1 className={styles.title}>{t("approvals.inbox.title")}</h1>
+          <p className={styles.intro}>{t("approvals.inbox.intro", { coordinators: term("role.coordinator"), accountants: term("role.accountant") })}</p>
+          {view.status === "ready" ? (
+            <p className={styles.waiting} aria-live="polite">
+              {t(forMe === 1 ? "approvals.inbox.waitingOne" : "approvals.inbox.waiting", { count: forMe })}
+            </p>
+          ) : null}
+        </header>
+      </HeroBand>
 
       <div className={styles.toolbar}>
         <div className={styles.filters} role="group" aria-label={t("approvals.filter.label")}>

@@ -1,7 +1,7 @@
 import Link from "next/link";
 
 import { t } from "@/i18n/messages";
-import { Card, Notice, buttonClass } from "@/ui";
+import { HeroBand, Notice, buttonClass } from "@/ui";
 
 import { groupProgrammes, type SiteContent } from "./model";
 import { Reach } from "./Reach";
@@ -16,7 +16,7 @@ import styles from "./site.module.css";
 export function HomeView({ site, sections, urgent }: { site: SiteContent; sections: { key: string; name: string }[]; urgent: { id: string; title: string }[] }) {
   return (
     <div className={styles.home}>
-      <Card className={styles.hero}>
+      <HeroBand art="W1" className={styles.hero}>
         <h1 className={styles.heroTitle}>{site.home.headline}</h1>
         <p className={styles.heroIntro}>{site.home.summary}</p>
         <div className={styles.actions}>
@@ -27,7 +27,7 @@ export function HomeView({ site, sections, urgent }: { site: SiteContent; sectio
             {t("home.notices")}
           </Link>
         </div>
-      </Card>
+      </HeroBand>
 
       {urgent.length > 0 ? (
         <Notice title={t("content.urgent")}>

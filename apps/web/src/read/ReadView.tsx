@@ -9,7 +9,7 @@ import { BsDateField } from "@/content/BsDateField";
 import { formatBsDate, isWholeBsDate } from "@/content/model";
 import { t, type MessageKey } from "@/i18n/messages";
 import { useSession } from "@/session/SessionProvider";
-import { AddDialog, Button, Notice, Skeleton } from "@/ui";
+import { AddDialog, Button, HeroBand, Illustration, Notice, Skeleton, type ArtCode } from "@/ui";
 
 import styles from "./ReadView.module.css";
 
@@ -26,10 +26,14 @@ export interface Crumb {
   href?: string;
 }
 
-/** `level` 2: a section of a larger page (a class page's tab, FUT point 19), with no breadcrumbs of its own. */
-export function ReadHeader({ title, subtitle, crumbs, dayBs, actions, level = 1 }: { title: string; subtitle?: string; crumbs?: Crumb[]; dayBs?: string | null; actions?: ReactNode; level?: 1 | 2 }) {
+/**
+ * `level` 2: a section of a larger page (a class page's tab, FUT point 19), with no breadcrumbs of its own. A page's
+ * own header (level 1) stands in the hero band with its illustration (D-126); `art` overrides the picture the address
+ * gives (the overview, per role).
+ */
+export function ReadHeader({ title, subtitle, crumbs, dayBs, actions, level = 1, art }: { title: string; subtitle?: string; crumbs?: Crumb[]; dayBs?: string | null; actions?: ReactNode; level?: 1 | 2; art?: ArtCode | null }) {
   const Heading = level === 1 ? "h1" : "h2";
-  return (
+  const header = (
     <header className={styles.header}>
       <div className={styles.headerText}>
         {level === 1 && crumbs && crumbs.length > 0 ? (
@@ -52,6 +56,7 @@ export function ReadHeader({ title, subtitle, crumbs, dayBs, actions, level = 1 
       ) : null}
     </header>
   );
+  return level === 1 ? <HeroBand art={art}>{header}</HeroBand> : header;
 }
 
 /** "Today · 17 Ashwin 2083", or the day shown when it is not today. */
@@ -76,7 +81,7 @@ export function FigureTiles({ figures, label }: { figures: readonly Figure[]; la
   return (
     <ul className={styles.tiles} aria-label={label}>
       {figures.slice(0, 4).map((f) => (
-        <li key={f.key} className={styles.tile}>
+        <li key={f.key} className={styles.tile} data-tone={f.tone}>
           <span className={styles.tileIcon} data-tone={f.tone} aria-hidden>
             <f.icon strokeWidth={1.75} />
           </span>
@@ -264,6 +269,7 @@ export function ReadFailure({ status, onRetry }: { status: "failed" | "forbidden
   return (
     <Notice tone="bad">
       <span className={styles.failed}>
+        <Illustration code="X2" size="spot" />
         {t("read.loadFailed")}
         <Button variant="secondary" onClick={onRetry}>
           {t("read.retry")}
@@ -273,6 +279,12 @@ export function ReadFailure({ status, onRetry }: { status: "failed" | "forbidden
   );
 }
 
+/** Nothing to show: a quiet line under a small picture (E1, D-126). */
 export function EmptyLine({ children }: { children: ReactNode }) {
-  return <p className={styles.empty}>{children}</p>;
+  return (
+    <div className={styles.emptyBox}>
+      <Illustration code="E1" size="spot" />
+      <p className={styles.empty}>{children}</p>
+    </div>
+  );
 }

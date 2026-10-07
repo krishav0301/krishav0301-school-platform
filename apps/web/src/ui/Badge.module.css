@@ -10,9 +10,9 @@
 }
 
 .neutral {
-  background: var(--color-surface);
+  background: color-mix(in srgb, var(--color-text) 5%, var(--color-surface));
   color: var(--color-text);
-  border-color: var(--color-text-muted);
+  border-color: color-mix(in srgb, var(--color-text-muted) 45%, transparent);
 }
 
 .ok {

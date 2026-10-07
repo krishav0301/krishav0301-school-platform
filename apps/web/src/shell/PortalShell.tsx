@@ -10,7 +10,7 @@ import { APPROVALS_CHANGED } from "@/approvals/client";
 import { useConfig } from "@/config/ConfigProvider";
 import { t } from "@/i18n/messages";
 import { useSession } from "@/session/SessionProvider";
-import { Skeleton, Spinner } from "@/ui";
+import { Illustration, Skeleton, Spinner } from "@/ui";
 
 import { MORE_HREF, NAV_ITEMS, isCurrent, showsMenu, splitNav, visibleNav, type NavIcon, type NavItem } from "./nav";
 import styles from "./shell.module.css";
@@ -173,6 +173,12 @@ export function PortalShell({ children, items = NAV_ITEMS }: { children: ReactNo
                 </Link>
               ) : null}
             </nav>
+            {/* Wide screens only: a calm card at the foot of the sidebar, its picture in the corner (D-126). */}
+            <div className={styles.sideCard} aria-hidden>
+              <p className={styles.sideTitle}>{t("art.sideTitle")}</p>
+              <p className={styles.sideBody}>{t("art.sideBody")}</p>
+              <Illustration code="S1" size="side" className={styles.sideArt} />
+            </div>
           </aside>
         ) : null}
         <main id="main" className={styles.main}>

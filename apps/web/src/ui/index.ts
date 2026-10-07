@@ -13,3 +13,6 @@ export { Table } from "./Table";
 export { TextArea } from "./TextArea";
 export { AddDialog, TitleRow } from "./AddDialog";
 export { RowMenu, type MenuAction } from "./RowMenu";
+export { HeroBand } from "./HeroBand";
+export { Illustration, type ArtSize } from "./Illustration";
+export { ART_CODES, OVERVIEW_ART, artForPath, type ArtCode } from "./art";

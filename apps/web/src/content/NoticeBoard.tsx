@@ -5,7 +5,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { createApiClient } from "@/api/client";
 import { usePageTitle } from "@/config/page-title";
 import { t } from "@/i18n/messages";
-import { Button, Notice, Skeleton } from "@/ui";
+import { Button, HeroBand, Notice, Skeleton } from "@/ui";
 
 import { loadPublic } from "./client";
 import { KINDS, KIND_PLURAL_LABEL, formatBsDate, holidayLine, type Kind, type PublicItem } from "./model";
@@ -45,10 +45,12 @@ export function NoticeBoard() {
 
   return (
     <>
-      <div className={styles.boardHeader}>
-        <h1 className={styles.title}>{t("notices.title")}</h1>
-        <p className={styles.muted}>{t("notices.intro")}</p>
-      </div>
+      <HeroBand>
+        <div className={styles.boardHeader}>
+          <h1 className={styles.title}>{t("notices.title")}</h1>
+          <p className={styles.muted}>{t("notices.intro")}</p>
+        </div>
+      </HeroBand>
 
       {view.status === "ready" && view.items.length > 0 ? <NoticeList items={view.items} kind={kind} onKind={setKind} /> : null}
 

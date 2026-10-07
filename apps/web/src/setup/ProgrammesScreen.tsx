@@ -8,7 +8,7 @@ import { useConfig } from "@/config/ConfigProvider";
 import { useAddressQuery } from "@/content/address";
 import { t, type MessageKey } from "@/i18n/messages";
 import { useSession } from "@/session/SessionProvider";
-import { AddDialog, Badge, Button, Field, Notice, Skeleton, TitleRow } from "@/ui";
+import { AddDialog, Badge, Button, Field, HeroBand, Notice, Skeleton, TitleRow } from "@/ui";
 
 import {
   addLevel,
@@ -742,22 +742,24 @@ export function ProgrammesScreen() {
   return (
     <FailureContext.Provider value={failure}>
     <div className={styles.page}>
-      <TitleRow>
-        <div className={styles.titleBlock}>
-          <h1 className={styles.title}>{t("structure.title")}</h1>
-          <p className={styles.subtitle}>{t("structure.subtitle", inSentence(words))}</p>
-        </div>
-        {canManage ? (
-          <AddDialog label={t("setup.sections.add", words)} title={t("setup.sections.add", words)} openNow={askedToAdd && none}>
-            {(close) => (
-              <>
-                <DialogFailure />
-                <SectionForm words={words} submitLabel={t("setup.sections.add", words)} onSave={async (values) => (await actions.addSection(values)) && (close(), true)} />
-              </>
-            )}
-          </AddDialog>
-        ) : null}
-      </TitleRow>
+      <HeroBand>
+        <TitleRow>
+          <div className={styles.titleBlock}>
+            <h1 className={styles.title}>{t("structure.title")}</h1>
+            <p className={styles.subtitle}>{t("structure.subtitle", inSentence(words))}</p>
+          </div>
+          {canManage ? (
+            <AddDialog label={t("setup.sections.add", words)} title={t("setup.sections.add", words)} openNow={askedToAdd && none}>
+              {(close) => (
+                <>
+                  <DialogFailure />
+                  <SectionForm words={words} submitLabel={t("setup.sections.add", words)} onSave={async (values) => (await actions.addSection(values)) && (close(), true)} />
+                </>
+              )}
+            </AddDialog>
+          ) : null}
+        </TitleRow>
+      </HeroBand>
       {flash ? (
         <div aria-live="polite">
           <Notice tone={flash.tone}>{flash.text}</Notice>

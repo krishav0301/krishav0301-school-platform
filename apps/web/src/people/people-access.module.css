@@ -101,7 +101,7 @@
 
 .summaryValue {
   font-size: var(--text-2xl);
-  font-weight: var(--weight-bold);
+  font-weight: var(--weight-heavy);
   line-height: var(--leading-tight);
 }
 
@@ -1120,4 +1120,49 @@
   .panelTitle {
     hyphens: auto;
   }
+}
+
+/* Each figure card in its own calm tint, white at its top-left deepening to its tone, a wave at its foot (D-126).
+   The tone is read from the card's own icon, so the markup is unchanged. */
+.summaryCard {
+  --card-tone: var(--color-primary);
+  --card-tint: var(--tint-primary);
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  border-color: color-mix(in srgb, var(--card-tone) 14%, var(--color-surface));
+  border-radius: var(--radius-hero);
+  background: linear-gradient(140deg, var(--color-surface) 0%, var(--card-tint) 100%);
+}
+
+.summaryCard::after {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  inset-inline: 0;
+  bottom: 0;
+  height: 42%;
+  background: color-mix(in srgb, var(--card-tone) 8%, transparent);
+  mask: var(--wave) no-repeat left bottom / 100% 100%;
+  pointer-events: none;
+}
+
+.summaryCard:has([data-tone="accent"]) {
+  --card-tone: var(--color-accent);
+  --card-tint: var(--tint-accent);
+}
+
+.summaryCard:has([data-tone="ok"]) {
+  --card-tone: var(--color-ok);
+  --card-tint: var(--tint-ok);
+}
+
+.summaryCard:has([data-tone="warn"]) {
+  --card-tone: var(--color-warn);
+  --card-tint: var(--tint-warn);
+}
+
+.summaryCard:has([data-tone="bad"]) {
+  --card-tone: var(--color-bad);
+  --card-tint: var(--tint-bad);
 }
