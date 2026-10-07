@@ -3,10 +3,14 @@
 import { LogOut } from "lucide-react";
 import { useCallback, useState, type FormEvent } from "react";
 
+import { useConfig } from "@/config/ConfigProvider";
+
 import { t, type MessageKey } from "@/i18n/messages";
 import { useSession } from "@/session/SessionProvider";
 import { Panel, ReadFailure, ReadHeader, TableSkeleton, readStyles } from "@/read/ReadView";
 import { useLoad } from "@/setup/useLoad";
+import { PALETTES, SCHOOL_PALETTE, type PaletteColors } from "@/theme/palettes";
+import { choosePalette, readPalette } from "@/theme/personal";
 import { Button, Field, Notice, PasswordField } from "@/ui";
 
 import { ownPasswordFailure, profileProblems } from "./model";
@@ -141,7 +145,49 @@ export function PasswordCard() {
   );
 }
 
-/** Settings (D-091): your profile, your password, and signing out. */
+/**
+ * Appearance (D-127): the colours of your own portal, the school's or one of the calm palettes. Chosen with radio
+ * buttons and shown at once; kept in this browser, so it writes nothing on the server.
+ */
+export function AppearanceCard() {
+  const { config } = useConfig();
+  const [chosen, setChosen] = useState(() => (typeof window === "undefined" ? SCHOOL_PALETTE : readPalette()));
+  const school = (config?.theme as { light?: PaletteColors } | null | undefined)?.light;
+  const options = [{ key: SCHOOL_PALETTE, name: "appearance.palette.school" as MessageKey, colors: school }, ...PALETTES];
+  return (
+    <Panel title={t("appearance.title")} labelledBy="appearance-title">
+      <p className={readStyles.rowMeta}>{t("appearance.help")}</p>
+      <fieldset className={styles.palettes}>
+        <legend className="sr-only">{t("appearance.legend")}</legend>
+        {options.map((o) => (
+          <label key={o.key} className={styles.palette}>
+            <input
+              type="radio"
+              name="palette"
+              value={o.key}
+              checked={chosen === o.key}
+              className={styles.paletteInput}
+              onChange={() => {
+                choosePalette(o.key);
+                setChosen(o.key);
+              }}
+            />
+            {/* A small picture of the palette: its page, a card, its action colour and its accent. */}
+            <span className={styles.preview} style={o.colors ? { background: o.colors.background, borderColor: o.colors.border } : undefined} aria-hidden>
+              <span className={styles.previewCard} style={o.colors ? { background: o.colors.surface } : undefined}>
+                <span className={styles.previewAction} style={o.colors ? { background: o.colors.primary } : undefined} />
+                <span className={styles.previewAccent} style={o.colors ? { background: o.colors.accent } : undefined} />
+              </span>
+            </span>
+            <span className={styles.paletteName}>{t(o.name)}</span>
+          </label>
+        ))}
+      </fieldset>
+    </Panel>
+  );
+}
+
+/** Settings (D-091): your profile, your password, your colours (D-127), and signing out. */
 export function SettingsScreen() {
   const { api, signOut } = useSession();
   const load = useCallback(async (): Promise<{ ok: true; data: Profile } | { ok: false; reason: "failed" }> => {
@@ -161,6 +207,7 @@ export function SettingsScreen() {
       {view.status === "failed" || view.status === "forbidden" ? <ReadFailure status={view.status} onRetry={() => void reload()} /> : null}
       {view.status === "ready" ? <ProfileCard profile={view.data} /> : null}
       <PasswordCard />
+      <AppearanceCard />
       <Panel title={t("settings.signOut.title")} labelledBy="signout-title">
         <p className={readStyles.rowMeta}>{t("settings.signOut.help")}</p>
         <div>

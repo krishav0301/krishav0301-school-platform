@@ -11,6 +11,7 @@ import { EmptyLine, OpenLink, Panel, ReadFailure, ReadHeader, ReadTable, Segment
 import { ClassSheetView } from "@/results/StaffScreens";
 import { useSession } from "@/session/SessionProvider";
 import { canManageStructure } from "@/setup/model";
+import { useTermChoice } from "@/shell/TermChoice";
 import { useLoad } from "@/setup/useLoad";
 
 import { AddClassLink, ClassesBrowser } from "./ClassesBrowser";
@@ -28,12 +29,18 @@ export function ClassesScreen() {
   const canManage = canManageStructure(me?.roles ?? []);
   const loadNow = useCallback(() => loadClassHubList(api), [api]);
   const { view, reload } = useLoad(loadNow);
+  // The term chosen in the top bar (D-127); a level is in one open term, so this keeps whole levels together.
+  const { choice } = useTermChoice();
   return (
     <div className={readStyles.page}>
       <ReadHeader title={t("classes.title")} subtitle={t("classes.subtitle")} actions={canManage ? <AddClassLink /> : undefined} />
       {view.status === "loading" ? <TableSkeleton rows={5} /> : null}
       {view.status === "failed" || view.status === "forbidden" ? <ReadFailure status={view.status} onRetry={() => void reload()} /> : null}
-      {view.status === "ready" ? <ClassesBrowser classes={view.data.classes} canManage={canManage} onChanged={() => void reload()} /> : null}
+      {view.status === "ready" && choice && view.data.classes.length > 0 && !view.data.classes.some((c) => c.termId === choice) ? (
+        <EmptyLine>{t("classes.noneInTerm")}</EmptyLine>
+      ) : view.status === "ready" ? (
+        <ClassesBrowser classes={choice ? view.data.classes.filter((c) => c.termId === choice) : view.data.classes} canManage={canManage} onChanged={() => void reload()} />
+      ) : null}
     </div>
   );
 }

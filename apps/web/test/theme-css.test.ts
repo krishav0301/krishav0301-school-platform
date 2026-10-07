@@ -59,7 +59,8 @@ describe("themeToCss", () => {
   it("writes the accent and attention colours, and the heading font: the serif when asked, else the body font (D-088)", () => {
     const css = themeToCss(royal.theme);
     for (const v of ["--color-accent:", "--color-accent-soft:", "--color-warn:", "--color-warn-soft:"]) expect(css).toContain(v);
-    expect(css).toContain(`--font-heading:${HEADING_STACKS["source-serif"]};`);
+    expect(themeToCss({ ...clone(royal.theme), headingFont: "source-serif" })).toContain(`--font-heading:${HEADING_STACKS["source-serif"]};`);
+    expect(css).toContain("--font-heading:var(--font-body);"); // Royal's headings are the heavy body font since D-127
     expect(themeToCss(sample.theme)).toContain("--font-heading:var(--font-body);");
     expect(HEADING_STACKS["source-serif"]).toContain("Noto Sans Devanagari"); // Nepali headings still have a font
     const bad = clone(royal.theme) as Record<string, unknown>;

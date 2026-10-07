@@ -57,7 +57,7 @@
   "theme": {
     "name": "Royal Softech (placeholder brand)",
     "font": "inter",
-    "headingFont": "source-serif",
+    "headingFont": "body",
     "shape": { "radiusCard": 18, "radiusControl": 12 },
     "light": {
       "background": "#f5f5f7",

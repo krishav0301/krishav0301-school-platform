@@ -30,15 +30,15 @@ export interface BoardData {
 const SUBJECTS_SHOWN = 4;
 
 /** The page below its header: figures, filters, the teachers, and the subjects without a teacher. Pure. */
-export function TeachingBoardView({ data }: { data: BoardData }) {
-  const [term, setTerm] = useState("");
+/** `term`: the term chosen in the top bar (D-127), "" for every open term. */
+export function TeachingBoardView({ data, term = "" }: { data: BoardData; term?: string }) {
   const [q, setQ] = useState("");
   const [status, setStatus] = useState<TeacherStatus>("");
   const [view, setView] = useState<"cards" | "table">("cards");
   const board = teachingBoard(data.classes, data.teachings, term);
   const teachers = filterTeachers(board.teachers, q, status);
   const termLabel = (id: string) => data.terms.find((x) => x.id === id)?.label ?? "";
-  const filtered = Boolean(term || q || status);
+  const filtered = Boolean(q || status);
 
   return (
     <>
@@ -47,9 +47,6 @@ export function TeachingBoardView({ data }: { data: BoardData }) {
       <div className={styles.toolbar}>
         <SearchBox label="teaching.search" value={q} onChange={setQ} />
         <div className={accessStyles.filters}>
-          {data.terms.length > 1 ? (
-            <FilterSelect label="teaching.filter.term" value={term} onChange={setTerm} options={[{ value: "", label: t("teaching.allTerms") }, ...data.terms.map((x) => ({ value: x.id, label: x.label }))]} />
-          ) : null}
           <FilterSelect
             label="content.filterState"
             value={status}
@@ -64,7 +61,6 @@ export function TeachingBoardView({ data }: { data: BoardData }) {
             <Button
               variant="secondary"
               onClick={() => {
-                setTerm("");
                 setQ("");
                 setStatus("");
               }}
