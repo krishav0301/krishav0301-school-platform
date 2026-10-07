@@ -19,15 +19,16 @@ export function HomeView({ site, sections, urgent }: { site: SiteContent; sectio
       <HeroBand art="W1" className={styles.hero}>
         <h1 className={styles.heroTitle}>{site.home.headline}</h1>
         <p className={styles.heroIntro}>{site.home.summary}</p>
-        <div className={styles.actions}>
-          <Link href="/admission" className={`${buttonClass()} ${styles.wrapLabel}`}>
-            {t("site.home.apply")}
-          </Link>
-          <Link href="/notices" className={`${buttonClass({ variant: "quiet" })} ${styles.wrapLabel}`}>
-            {t("home.notices")}
-          </Link>
-        </div>
       </HeroBand>
+      {/* The band holds words only (D-128): the way to apply sits just below it. */}
+      <div className={styles.actions}>
+        <Link href="/admission" className={`${buttonClass()} ${styles.wrapLabel}`}>
+          {t("site.home.apply")}
+        </Link>
+        <Link href="/notices" className={`${buttonClass({ variant: "quiet" })} ${styles.wrapLabel}`}>
+          {t("home.notices")}
+        </Link>
+      </div>
 
       {urgent.length > 0 ? (
         <Notice title={t("content.urgent")}>

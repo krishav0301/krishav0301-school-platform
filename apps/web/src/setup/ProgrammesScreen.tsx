@@ -8,6 +8,7 @@ import { useConfig } from "@/config/ConfigProvider";
 import { useAddressQuery } from "@/content/address";
 import { t, type MessageKey } from "@/i18n/messages";
 import { useSession } from "@/session/SessionProvider";
+import { readStyles } from "@/read/ReadView";
 import { AddDialog, Badge, Button, Field, HeroBand, Notice, Skeleton, TitleRow } from "@/ui";
 
 import {
@@ -748,18 +749,21 @@ export function ProgrammesScreen() {
             <h1 className={styles.title}>{t("structure.title")}</h1>
             <p className={styles.subtitle}>{t("structure.subtitle", inSentence(words))}</p>
           </div>
-          {canManage ? (
-            <AddDialog label={t("setup.sections.add", words)} title={t("setup.sections.add", words)} openNow={askedToAdd && none}>
-              {(close) => (
-                <>
-                  <DialogFailure />
-                  <SectionForm words={words} submitLabel={t("setup.sections.add", words)} onSave={async (values) => (await actions.addSection(values)) && (close(), true)} />
-                </>
-              )}
-            </AddDialog>
-          ) : null}
         </TitleRow>
       </HeroBand>
+      {/* The band holds words only (D-128): its action sits just below it. */}
+      {canManage ? (
+        <div className={readStyles.headerActions}>
+          <AddDialog label={t("setup.sections.add", words)} title={t("setup.sections.add", words)} openNow={askedToAdd && none}>
+            {(close) => (
+              <>
+                <DialogFailure />
+                <SectionForm words={words} submitLabel={t("setup.sections.add", words)} onSave={async (values) => (await actions.addSection(values)) && (close(), true)} />
+              </>
+            )}
+          </AddDialog>
+        </div>
+      ) : null}
       {flash ? (
         <div aria-live="polite">
           <Notice tone={flash.tone}>{flash.text}</Notice>

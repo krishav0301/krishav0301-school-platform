@@ -29,10 +29,13 @@ export interface Crumb {
 /**
  * `level` 2: a section of a larger page (a class page's tab, FUT point 19), with no breadcrumbs of its own. A page's
  * own header (level 1) stands in the hero band with its illustration (D-126); `art` overrides the picture the address
- * gives (the overview, per role).
+ * gives (the overview, per role). The band holds words only (the PM, 2026-10-07): a page's `actions` (New term, Change
+ * date, a status) sit in their own row just below it.
  */
 export function ReadHeader({ title, subtitle, crumbs, dayBs, actions, level = 1, art }: { title: string; subtitle?: string; crumbs?: Crumb[]; dayBs?: string | null; actions?: ReactNode; level?: 1 | 2; art?: ArtCode | null }) {
   const Heading = level === 1 ? "h1" : "h2";
+  const inBand = level === 1;
+  const aside = inBand ? null : actions;
   const header = (
     <header className={styles.header}>
       <div className={styles.headerText}>
@@ -48,15 +51,21 @@ export function ReadHeader({ title, subtitle, crumbs, dayBs, actions, level = 1,
         <Heading className={styles.title}>{title}</Heading>
         {subtitle ? <p className={styles.subtitle}>{subtitle}</p> : null}
       </div>
-      {dayBs || actions ? (
+      {dayBs || aside ? (
         <div className={styles.aside}>
           {dayBs ? <p className={styles.date}>{dayBs}</p> : null}
-          {actions}
+          {aside}
         </div>
       ) : null}
     </header>
   );
-  return level === 1 ? <HeroBand art={art}>{header}</HeroBand> : header;
+  if (!inBand) return header;
+  return (
+    <>
+      <HeroBand art={art}>{header}</HeroBand>
+      {actions ? <div className={styles.headerActions}>{actions}</div> : null}
+    </>
+  );
 }
 
 /** "Today · 17 Ashwin 2083", or the day shown when it is not today. */

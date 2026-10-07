@@ -9,6 +9,7 @@ import { RequestsPanel } from "@/approvals/RequestsPanel";
 import { relativeTime } from "@/dashboard/admin-model";
 import { t, type MessageKey } from "@/i18n/messages";
 import { useSession } from "@/session/SessionProvider";
+import { readStyles } from "@/read/ReadView";
 import { Button, HeroBand, Notice, RowMenu, Skeleton, buttonClass, type MenuAction } from "@/ui";
 
 import { useAddressQuery } from "./address";
@@ -232,12 +233,15 @@ export function ContentList() {
                 <h1 className={styles.title}>{t("content.title")}</h1>
                 <p className={styles.intro}>{t("content.intro")}</p>
               </div>
-              <Button className={styles.newButton} onClick={() => change(() => setDialog({ mode: "new", kind: "post" }))}>
-                <Plus aria-hidden />
-                {t("content.new")}
-              </Button>
             </div>
           </HeroBand>
+          {/* The band holds words only (D-128): its action sits just below it. */}
+          <div className={readStyles.headerActions}>
+            <Button className={styles.newButton} onClick={() => change(() => setDialog({ mode: "new", kind: "post" }))}>
+              <Plus aria-hidden />
+              {t("content.new")}
+            </Button>
+          </div>
           <Summary counts={ready?.counts ?? null} />
         </div>
         <SiteCard site={ready?.site ?? null} loading={view.status === "loading" && !ready} />

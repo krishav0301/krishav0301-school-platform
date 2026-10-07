@@ -1,10 +1,11 @@
-import { readFileSync } from "node:fs";
+import { readFileSync, readdirSync, statSync } from "node:fs";
 import { join } from "node:path";
 
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 
 import { t } from "@/i18n/messages";
+import { ReadHeader } from "@/read/ReadView";
 import { HeroBand, Illustration } from "@/ui";
 import { ART_CODES, ART_READY, OVERVIEW_ART, SLOGANS, artForPath } from "@/ui/art";
 
@@ -73,5 +74,28 @@ describe("a picture's place", () => {
     expect(renderToStaticMarkup(<HeroBand art="P2">x</HeroBand>)).toContain(">P2<");
     const none = renderToStaticMarkup(<HeroBand art={null}>x</HeroBand>);
     expect(none).not.toContain("aria-hidden");
+  });
+});
+
+/** D-128, the PM: the band at the top of a page holds words only; its buttons sit just below it. */
+describe("the band holds no controls", () => {
+  const src = join(import.meta.dirname, "..", "src");
+  const files = (dir: string): string[] => readdirSync(dir).flatMap((n) => (statSync(join(dir, n)).isDirectory() ? files(join(dir, n)) : n.endsWith(".tsx") ? [join(dir, n)] : []));
+  const CONTROL = /<Button\b|<button\b|buttonClass\(|<AddDialog\b|<ChangeDate\b|<select\b|<input\b|<Select\b|<Field\b|<RowMenu\b/;
+
+  it("no page puts a button, picker or field inside a <HeroBand>", () => {
+    const offenders: string[] = [];
+    for (const file of files(src)) {
+      for (const [, inside] of readFileSync(file, "utf8").matchAll(/<HeroBand\b[^>]*>([\s\S]*?)<\/HeroBand>/g)) {
+        if (CONTROL.test(inside!)) offenders.push(file.slice(src.length + 1));
+      }
+    }
+    expect(offenders).toEqual([]);
+  });
+
+  it("a page header's actions come after its band, in their own row, not inside it", () => {
+    const html = renderToStaticMarkup(<ReadHeader title="Teaching" actions={<button type="button">Change date</button>} />);
+    expect(html.indexOf(">P5<")).toBeLessThan(html.indexOf("<button")); // the band, with its picture, comes first
+    expect(html).toMatch(/headerActions[^"]*"><button/); // and the action is in the row after it
   });
 });
