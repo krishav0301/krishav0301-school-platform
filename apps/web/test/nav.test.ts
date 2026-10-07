@@ -162,3 +162,12 @@ describe("Setup's menu entry (D-130)", () => {
     for (const path of ["/portal/setup", "/portal/setup/programmes", "/portal/setup/classes", "/portal/setup/terminals"]) expect(isCurrent(path, setup.href)).toBe(true);
   });
 });
+
+describe("the People entry's name (D-131)", () => {
+  const names = (role: string) => visibleNav(NAV_ITEMS, [{ role }], { attendance: true }).filter((i) => i.id === "people").map((i) => i.labelKey);
+  it("says Teacher for a Co-ordinator and People for the Principal and Support", () => {
+    expect(names("coordinator")).toEqual(["nav.teacher"]);
+    expect(names("admin")).toEqual(["nav.people"]);
+    expect(names("super_admin")).toEqual(["nav.people"]);
+  });
+});

@@ -8,7 +8,7 @@ import { useConfig } from "@/config/ConfigProvider";
 import { t, type MessageKey } from "@/i18n/messages";
 import { useAddressQuery } from "@/content/address";
 import { useSession } from "@/session/SessionProvider";
-import { Button, HeroBand, Notice, RowMenu, Skeleton, type MenuAction } from "@/ui";
+import { AddDialog, Button, HeroBand, Notice, RowMenu, Skeleton, type MenuAction } from "@/ui";
 
 import { AddPersonDialog, ManageAccessDialog } from "./AccessDialogs";
 import { loadPeople, loadProgrammeOptions, type PeopleGroup, type PeoplePage, type Person, type ProgrammeOption } from "./access-client";
@@ -16,7 +16,7 @@ import { FilterSelect, ListSkeleton, Pager, SearchBox } from "./ListParts";
 import { initials, lastSignIn, scopeWords, signInLine } from "./access-model";
 import { issueTemporaryPassword, setStaffActive } from "./client";
 import { REASON_MESSAGE } from "./model";
-import { TemporaryPasswordNotice } from "./StaffScreen";
+import { StaffForm, TemporaryPasswordNotice } from "./StaffScreen";
 import styles from "./people-access.module.css";
 
 const PAGE_SIZE = 10;
@@ -486,11 +486,18 @@ function AdminPanel({ onCounts }: { onCounts: (counts: PeoplePage["counts"]) => 
 
 // --- Teaching ---------------------------------------------------------------------------------------
 
-/** The teaching staff, for oversight: what each teaches, where, who added them, their account and last sign-in. */
-function TeachingPanel({ onCounts }: { onCounts: (counts: PeoplePage["counts"]) => void }) {
-  const { api } = useSession();
-  const { term } = useConfig();
+/**
+ * The teaching staff: what each teaches, where, who added them, their account and last sign-in. The Principal looks;
+ * with `manage` (the Co-ordinator's Teacher page, D-131) the same table also adds teachers and, from each row, switches
+ * one off or on or gives a new temporary password. The API decides who may do either.
+ */
+function TeachingPanel({ onCounts, manage = false }: { onCounts: (counts: PeoplePage["counts"]) => void; manage?: boolean }) {
+  const { api, me } = useSession();
+  const { term, config } = useConfig();
   const list = usePeople("teaching", onCounts);
+  const [flash, setFlash] = useState<Flash | null>(null);
+  const [secret, setSecret] = useState<{ name: string; password: string } | null>(null);
+  const [busy, setBusy] = useState<string | null>(null);
   const [programmes, setProgrammes] = useState<ProgrammeOption[]>([]);
   const now = useMemo(() => new Date(), [list.view]); // eslint-disable-line react-hooks/exhaustive-deps -- "x ago" is worked out when a page arrives
   const sections = list.view.status === "ready" ? list.view.sections : [];
@@ -505,6 +512,42 @@ function TeachingPanel({ onCounts }: { onCounts: (counts: PeoplePage["counts"]) 
     };
   }, [api]);
 
+  async function toggle(person: Person) {
+    if (busy) return;
+    setBusy(person.id);
+    const result = await setStaffActive(api, person.id, !person.active);
+    setBusy(null);
+    setFlash(result.ok ? { tone: "ok", text: t(person.active ? "people.done.switchedOff" : "people.done.switchedOn", { name: person.fullName }) } : { tone: "bad", text: t(REASON_MESSAGE[result.reason]) });
+    list.reload();
+  }
+
+  async function newPassword(person: Person) {
+    if (busy) return;
+    setBusy(person.id);
+    const result = await issueTemporaryPassword(api, person.id);
+    setBusy(null);
+    if (result.ok) setSecret({ name: person.fullName, password: result.temporaryPassword });
+    else setFlash({ tone: "bad", text: t(REASON_MESSAGE[result.reason]) });
+  }
+
+  const addTeacher = manage ? (
+    <AddDialog label={t("teacher.add")} title={t("teacher.add")}>
+      {(close) => (
+        <StaffForm
+          roles={me?.roles ?? []}
+          sections={config?.sections ?? []}
+          showTitle={false}
+          onCreated={(name, password) => {
+            close();
+            setFlash(null);
+            setSecret({ name, password });
+            list.reload();
+          }}
+        />
+      )}
+    </AddDialog>
+  ) : null;
+
   const addedBy = (person: Person) => {
     if (!person.addedBy) return null;
     if (person.addedBy.support) return { name: t("content.support"), role: null };
@@ -516,12 +559,13 @@ function TeachingPanel({ onCounts }: { onCounts: (counts: PeoplePage["counts"]) 
       <div className={styles.panelHead}>
         <div>
           <h2 id="teaching-staff-title" className={styles.panelTitle}>
-            {t("access.teaching.title")}
+            {t(manage ? "teacher.panelTitle" : "access.teaching.title")}
           </h2>
-          <p className={styles.muted}>{t("access.teaching.intro", roleWords(term))}</p>
+          <p className={styles.muted}>{manage ? t("teacher.panelIntro") : t("access.teaching.intro", roleWords(term))}</p>
         </div>
         <div className={styles.panelTools}>
           <SearchBox label="access.searchTeachers" value={list.typed} onChange={list.setTyped} />
+          {addTeacher}
         </div>
       </div>
       <div className={styles.filters}>
@@ -547,7 +591,18 @@ function TeachingPanel({ onCounts }: { onCounts: (counts: PeoplePage["counts"]) 
         />
       </div>
 
-      <ListState view={list.view} filtered={list.filtered} empty="access.teaching.empty" emptyBody="access.teaching.emptyBody" words={roleWords(term)} onRetry={list.reload} onClear={list.clear} />
+      {flash ? <Notice tone={flash.tone}>{flash.text}</Notice> : null}
+      {secret ? <TemporaryPasswordNotice name={secret.name} password={secret.password} onDone={() => setSecret(null)} /> : null}
+      <ListState
+        view={list.view}
+        filtered={list.filtered}
+        empty="access.teaching.empty"
+        emptyBody={manage ? "teacher.emptyBody" : "access.teaching.emptyBody"}
+        words={roleWords(term)}
+        onRetry={list.reload}
+        onClear={list.clear}
+        action={addTeacher ?? undefined}
+      />
 
       {list.view.status === "ready" && list.view.people.length > 0 ? (
         <>
@@ -610,6 +665,16 @@ function TeachingPanel({ onCounts }: { onCounts: (counts: PeoplePage["counts"]) 
                       <Link href="/portal/setup/teaching" className={styles.viewLink} aria-label={t("access.viewTeachingOf", { name: person.fullName })}>
                         {t("access.viewTeaching")}
                       </Link>
+                      {manage ? (
+                        <RowMenu
+                          label={t("access.moreFor", { name: person.fullName })}
+                          disabled={busy !== null}
+                          actions={[
+                            { key: "toggle", label: t(person.active ? "people.switchOff" : "people.switchOn"), onSelect: () => void toggle(person) },
+                            ...(person.active ? [{ key: "password", label: t("people.newPassword"), onSelect: () => void newPassword(person) }] : []),
+                          ]}
+                        />
+                      ) : null}
                     </td>
                   </tr>
                 );
@@ -620,5 +685,21 @@ function TeachingPanel({ onCounts }: { onCounts: (counts: PeoplePage["counts"]) 
         </>
       ) : null}
     </section>
+  );
+}
+
+/**
+ * The Co-ordinator's Teacher page (the PM, 2026-10-07): the Principal's teachers table, one page and no tabs, where the
+ * Co-ordinator adds and manages teachers. Teaching sits in Setup.
+ */
+export function TeacherScreen() {
+  return (
+    <div className={styles.page}>
+      <HeroBand>
+        <h1 className={styles.title}>{t("teacher.title")}</h1>
+        <p className={styles.intro}>{t("teacher.intro")}</p>
+      </HeroBand>
+      <TeachingPanel onCounts={() => {}} manage />
+    </div>
   );
 }

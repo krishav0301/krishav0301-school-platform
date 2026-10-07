@@ -159,11 +159,16 @@ describe("the staff screen and its page", () => {
     expect(html).toContain(">Add a person<");
   });
 
-  it("the page has the portal around it: People & Access for the Principal (D-099), Staff for a Co-ordinator", () => {
+  it("the page has the portal around it: People & Access for the Principal (D-099), the Teacher page for a Co-ordinator (D-131)", () => {
     const html = inContext(<PeoplePage />);
     expect(html).toContain(">People &amp; Access</h1>");
     expect(html).toContain("Skip to main content");
-    expect(inContext(<PeoplePage />, as("coordinator", "institution"))).toContain(">Staff</h1>");
+    const coordinator = inContext(<PeoplePage />, as("coordinator", "institution"));
+    expect(coordinator).toContain(">Teacher</h1>");
+    expect(coordinator).toContain("Add Teacher");
+    expect(coordinator).not.toContain("role=\"tablist\""); // one page: no Staff and Teaching tabs
+    expect(coordinator).not.toContain(">Staff<");
+    expect(html).not.toContain("Add Teacher"); // the Principal looks, and does not add teachers
   });
 });
 

@@ -1352,6 +1352,13 @@ The matrix lives in code (61 actions, 8 groups, from the reviewed `permission-ma
 - **Tested.** `terms-page.test.tsx`: the boards with no `manage` show every term and offer nothing to change. `classes-screens.test.tsx`: the Setup tab uses the Classes page, and Add Class is a dialog shown to managers only. Not checked in a browser: both pages need the API and a sign-in.
 - Delete for a class nothing is attached to was on the old Setup list (D-097) and is not on the grouped page. The PM, asked about it, meant the **Classes icon in the Co-ordinator's side menu**, which is removed; the Delete question is closed, nothing to restore.
 
+**D-131 The Co-ordinator's People page is the Teacher page.** 2026-10-07, the PM: "people should only have 1 column, just Staff, rename to Teacher. Give the same UI as we have for people in admin. Change People to Teacher." Confirmed with the PM: "make the teacher changes as you suggested". **UI only; no permission changes.**
+- **One page, no tabs.** The Co-ordinator's People shows only the Principal's teachers table (name and email, subjects, where, added by, status, last sign-in), titled **Teacher**. The Staff and Teaching tabs are gone from it; Teaching is a tab of Setup (D-130). The Principal's People & Access page is unchanged. The old route `/portal/people/teaching` still opens.
+- **Add and manage kept.** The Co-ordinator still adds teachers (Add Teacher, the same form as before) and, from each row's menu, switches a teacher off or on or gives a new temporary password. These are the actions the old Staff cards had; the API (`accounts.staff.view`, the create and manage routes) decides, as before. It is the Principal's `TeachingPanel` with a `manage` switch, so the two pages cannot drift apart.
+- **Name.** The side-menu entry reads **Teacher** for someone who is a Co-ordinator and neither Principal nor Support; they keep **People**.
+- **Tested.** `people-screens.test.tsx`: the Co-ordinator gets Teacher and Add Teacher, no tabs and no Staff; the Principal gets no Add Teacher. `nav.test.ts`: the label by role. Not checked in a browser (needs the API and a sign-in).
+- **Left as it was.** The old `StaffScreen` and `PeopleTabs` are still in the code (the old Teaching route and the admissions screens use parts of them). The add form's button still says "Add a person".
+
 ## Open items carried forward
 
 - ~~**Search and the term picker (D-126).**~~ Built, D-127. Still open: a Student looking back at an earlier term, and Results following the chosen term (both need the server to accept a term).
