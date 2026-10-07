@@ -588,7 +588,7 @@ export function CurriculumScreen() {
           data.programmes.every((p) => levelsOf(p).length === 0) ? (
             <EmptyLine>{t("setup.curriculum.noLevels", words)}</EmptyLine>
           ) : (
-            <div className={readStyles.search}>
+            <div className={styles.pickerRow}>
               <StructurePicker
                 programmes={data.programmes}
                 keep={keep}

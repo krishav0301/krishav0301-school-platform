@@ -1,0 +1,356 @@
+/* The exam pattern screen (D-132): the term, where the pattern stands, the three figures, the exams, and the note. */
+
+.top {
+  display: grid;
+  gap: var(--space-4);
+  align-items: start;
+}
+
+@media (min-width: 56rem) {
+  .top {
+    grid-template-columns: minmax(16rem, 22rem) 1fr;
+  }
+}
+
+.picker {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+/* Where the pattern stands: set, not saved, incomplete, or too much. The tone is only a tint; the words carry it. */
+.card {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3) var(--space-4);
+  padding: var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-card);
+  background: var(--color-surface);
+}
+
+.card[data-tone="ok"] {
+  background: var(--tint-ok);
+}
+
+.card[data-tone="warn"] {
+  background: var(--tint-warn);
+}
+
+.card[data-tone="bad"] {
+  background: var(--tint-bad);
+}
+
+.card[data-tone="info"] {
+  background: var(--tint-primary);
+}
+
+.cardIcon {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 50%;
+  background: var(--color-surface);
+  color: var(--color-text);
+}
+
+.cardIcon svg {
+  width: 1.375rem;
+  height: 1.375rem;
+}
+
+.cardText {
+  flex: 1 1 14rem;
+  min-width: 0;
+}
+
+.cardTitle {
+  margin: 0;
+  font-weight: var(--weight-bold);
+}
+
+.cardBody {
+  margin: var(--space-1) 0 0;
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+}
+
+.cardActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+/* The three figures. */
+.overview {
+  display: grid;
+  gap: var(--space-4);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+}
+
+.stat {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  min-width: 0;
+}
+
+.statIcon {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 3.25rem;
+  height: 3.25rem;
+  border-radius: 50%;
+  background: var(--tint-primary);
+  color: var(--color-primary);
+}
+
+.statIcon[data-tone="ok"] {
+  background: var(--tint-ok);
+  color: var(--color-ok);
+}
+
+.statIcon[data-tone="accent"] {
+  background: var(--tint-accent);
+  color: var(--color-accent);
+}
+
+.statIcon svg {
+  width: 1.5rem;
+  height: 1.5rem;
+}
+
+.statText {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.statLabel,
+.statNote {
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+}
+
+.statValue {
+  font-size: var(--text-2xl);
+  font-weight: var(--weight-heavy);
+  line-height: var(--leading-tight);
+}
+
+/* The exams. */
+.total {
+  margin: var(--space-3) 0 0;
+  text-align: end;
+  font-weight: var(--weight-bold);
+}
+
+.total[data-state="complete"] {
+  color: var(--color-ok);
+}
+
+.total[data-state="incomplete"],
+.total[data-state="over"] {
+  color: var(--color-warn);
+}
+
+.rowLocked {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+}
+
+.rowLocked svg {
+  width: 1rem;
+  height: 1rem;
+}
+
+.empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-6) var(--space-4);
+  text-align: center;
+}
+
+.emptyTitle {
+  margin: 0;
+  font-size: var(--text-xl);
+  font-weight: var(--weight-bold);
+}
+
+.emptyBody {
+  max-width: 32rem;
+  margin: 0;
+  color: var(--color-text-muted);
+}
+
+.important {
+  display: flex;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-card);
+  background: var(--tint-primary);
+}
+
+.important svg {
+  flex: none;
+  width: 1.5rem;
+  height: 1.5rem;
+  color: var(--color-primary);
+}
+
+.importantTitle {
+  margin: 0;
+  font-weight: var(--weight-bold);
+}
+
+.importantBody {
+  margin: var(--space-1) 0 0;
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+}
+
+/* The add and edit exam form. */
+.examForm {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.formIntro {
+  margin: 0;
+  color: var(--color-text-muted);
+}
+
+.remaining {
+  display: grid;
+  gap: var(--space-1);
+  margin: 0;
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-card);
+  background: var(--tint-primary);
+  font-size: var(--text-sm);
+}
+
+.remaining[data-state="bad"] {
+  background: var(--tint-bad);
+}
+
+.remainingRule {
+  margin: 0;
+  color: var(--color-text-muted);
+}
+
+.remainingLine {
+  margin: 0;
+  font-weight: var(--weight-bold);
+}
+
+.radioGroup {
+  display: grid;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.radioGroup legend {
+  margin-bottom: var(--space-2);
+  padding: 0;
+  font-weight: var(--weight-bold);
+}
+
+.radioCard {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  column-gap: var(--space-3);
+  align-items: start;
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-card);
+  background: var(--color-surface);
+  cursor: pointer;
+}
+
+.radioCard input {
+  grid-row: span 2;
+  width: 1.25rem;
+  height: 1.25rem;
+  margin: 0.125rem 0 0;
+  accent-color: var(--color-primary);
+}
+
+.radioCard:has(input:checked) {
+  border-color: var(--color-primary);
+  background: var(--tint-primary);
+}
+
+.radioCard:has(input:focus-visible) {
+  outline: var(--focus-ring);
+  outline-offset: 2px;
+}
+
+.radioTitle {
+  font-weight: var(--weight-bold);
+}
+
+.radioBody {
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+}
+
+.formFoot {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: var(--space-2);
+}
+
+/* The pattern settings panel. */
+.settings {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.settingsHead {
+  margin: 0;
+  font-weight: var(--weight-bold);
+}
+
+.summaryList {
+  display: grid;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.summaryItem {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: var(--space-1) var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-card);
+}
+
+.summaryName {
+  font-weight: var(--weight-bold);
+}
+
+.summaryMeta {
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+}

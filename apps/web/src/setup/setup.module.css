@@ -225,6 +225,35 @@
   align-items: start;
 }
 
+/* Wing, Course and Level in one line on a wide screen, as the filters of the other pages (the PM, 2026-10-07); each
+   steps down to a line of its own as the screen narrows. The "show all" box sits at the end, or under them. */
+.pickerRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--space-3) var(--space-4);
+}
+
+.pickerRow > :first-child {
+  flex: 1 1 36rem;
+  min-width: 0;
+}
+
+/* A step with one choice ("Wing: +2") takes its place in the line, not a line of its own. */
+.pickerRow .pickerGiven {
+  grid-column: auto;
+  align-self: end;
+  min-height: var(--control-height);
+  display: flex;
+  align-items: center;
+}
+
+.pickerRow > :not(:first-child) {
+  flex: none;
+  min-width: 0;
+  max-width: 100%;
+}
+
 .pickerGiven {
   grid-column: 1 / -1;
   margin: 0;
