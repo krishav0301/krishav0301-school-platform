@@ -1,86 +1,197 @@
 "use client";
 
-import { useCallback, useState, type FormEvent } from "react";
+import { ChevronDown, Info, Landmark } from "lucide-react";
+import { useCallback, useId, useState, type FormEvent } from "react";
 
 import { useConfig } from "@/config/ConfigProvider";
 import { t, type MessageKey } from "@/i18n/messages";
+import { FilterSelect, SearchBox } from "@/people/ListParts";
+import { EmptyLine, ReadHeader, ReadOnlyNote, ReadTable, StatusWord } from "@/read/ReadView";
 import { useSession } from "@/session/SessionProvider";
 import { AddDialog, Button, Field, Notice, Select } from "@/ui";
 
-import { ReadHeader, ReadOnlyNote } from "@/read/ReadView";
-
 import { createSubject, loadSubjects, setSubjectArchived, updateSubject } from "./client";
 import { REASON_MESSAGE, canManageInstitution, canManageStructure, manageableSections, type Subject } from "./model";
-import { ReadSetupHeader, SubjectsTable } from "./ReadSetup";
+import { ReadSetupHeader } from "./ReadSetup";
 import { Gate, useLoad } from "./useLoad";
 import styles from "./setup.module.css";
+import board from "./subjects-board.module.css";
 
 type Flash = { tone: "ok" | "bad"; text: string };
+type Wing = { key: string; name: string };
+
+export type StatusFilter = "" | "inUse" | "archived";
+
+export interface SubjectGroup {
+  key: string;
+  name: string;
+  subjects: Subject[];
+}
 
 /**
- * The school's subjects, in the table the Principal reads, with Archive or Restore for a whole-school Co-ordinator
- * (D-106). Archiving hides a subject from the level pickers and keeps everything that used it.
+ * The subjects by wing, in the school's order, after the search and the status filter. A wing with none is kept while
+ * nothing is filtered (it still has its Add button), and left out when a filter is on. A subject with no wing (an old
+ * one, D-114) goes last in a group of its own. Pure.
  */
-export function SubjectsView({
+export function groupSubjects(subjects: readonly Subject[], wings: readonly Wing[], q: string, status: StatusFilter): { groups: SubjectGroup[]; filtered: boolean } {
+  const needle = q.trim().toLocaleLowerCase();
+  const filtered = needle !== "" || status !== "";
+  const keep = (s: Subject) => (status === "" || (status === "archived") === s.archived) && (needle === "" || s.name.toLocaleLowerCase().includes(needle) || (s.code ?? "").toLocaleLowerCase().includes(needle));
+  const known = new Set(wings.map((w) => w.key));
+  const groups: SubjectGroup[] = wings.map((w) => ({ key: w.key, name: w.name, subjects: subjects.filter((s) => s.sectionKey === w.key && keep(s)) }));
+  const loose = subjects.filter((s) => (s.sectionKey === null || !known.has(s.sectionKey)) && keep(s));
+  if (loose.length > 0) groups.push({ key: "", name: t("setup.subjects.noWing"), subjects: loose });
+  return { groups: filtered ? groups.filter((g) => g.subjects.length > 0) : groups, filtered };
+}
+
+const TONES = ["primary", "ok", "accent", "warn"] as const;
+
+const countLine = (n: number): string => t(n === 1 ? "setup.subjects.countOne" : "setup.subjects.count", { n });
+
+/**
+ * The school's subjects, one card per wing that opens to its table, as the PM drew it (D-133). A whole-school
+ * Co-ordinator may change a subject (Edit, Archive or Restore); someone who may add can add to a wing from its card;
+ * anyone else only reads. Archiving hides a subject from the level pickers and keeps everything that used it (D-106).
+ */
+export function SubjectsBoard({
   subjects,
+  wings,
+  q = "",
+  status = "",
+  canAdd = false,
+  addableWings = [],
   canArchive,
   busy,
   onToggle,
-  canAdd = false,
-  wings = [],
   onEdit,
+  onAdded,
 }: {
   subjects: readonly Subject[];
+  wings: readonly Wing[];
+  q?: string;
+  status?: StatusFilter;
+  canAdd?: boolean;
+  /** The wings the person may add to (a section Co-ordinator reaches only their own). */
+  addableWings?: readonly string[];
   canArchive: boolean;
   busy: string | null;
   onToggle: (subject: Subject) => void;
-  canAdd?: boolean;
-  wings?: readonly { key: string; name: string }[];
   /** Saves a subject's name, code and wing (FUT point 17): a whole-school Co-ordinator's. True, or what went wrong. */
   onEdit?: (subject: Subject, input: { name: string; code: string; sectionKey: string }) => Promise<true | string>;
+  onAdded?: () => void;
 }) {
+  const { term } = useConfig();
+  const [toggled, setToggled] = useState<Record<string, boolean>>({});
+  const idBase = useId();
+  if (subjects.length === 0) return <EmptyLine>{t(canAdd ? "setup.subjects.empty" : "setup.subjects.emptyReadOnly")}</EmptyLine>;
+  const { groups, filtered } = groupSubjects(subjects, wings, q, status);
+  if (groups.length === 0) return <EmptyLine>{t("setup.subjects.noMatch")}</EmptyLine>;
+  const wingWord = term("term.section").toLowerCase();
+
   return (
-    <SubjectsTable
-      subjects={subjects}
-      wings={wings}
-      empty={canAdd ? "setup.subjects.empty" : "setup.subjects.emptyReadOnly"}
-      action={
-        canArchive
-          ? {
-              label: t("setup.read.actions"),
-              cell: (subject) => (
-                <span className={styles.rowActions}>
-                {onEdit ? (
-                  <AddDialog label={t("structure.edit")} ariaLabel={t("structure.editItem", { name: subject.name })} title={t("structure.editTitle", { name: subject.name })} variant="quiet" plus={false}>
+    <ul className={board.cards}>
+      {groups.map((group, index) => {
+        // The first wing starts open; a search or filter opens every wing that has a match.
+        const open = toggled[group.key] ?? (filtered || index === 0);
+        const bodyId = `${idBase}-${group.key || "none"}`;
+        return (
+          <li key={group.key || "none"} className={board.card}>
+            <div className={board.head}>
+              <span className={board.tile} data-tone={TONES[index % TONES.length]} aria-hidden>
+                <Landmark strokeWidth={1.75} />
+              </span>
+              <div className={board.headText}>
+                <h2 className={board.name}>{group.name}</h2>
+                <p className={board.meta}>{countLine(group.subjects.length)}</p>
+              </div>
+              <div className={board.headActions}>
+                {canAdd && addableWings.includes(group.key) ? (
+                  <AddDialog label={t("setup.subjects.addToWing", { wing: wingWord })} title={t("setup.subjects.add")} variant="secondary">
                     {(close) => (
-                      <SubjectEditForm
-                        subject={subject}
-                        wings={wings}
-                        onSave={async (input) => {
-                          const saved = await onEdit(subject, input);
-                          if (saved === true) close();
-                          return saved;
+                      <SubjectForm
+                        showTitle={false}
+                        wings={[{ key: group.key, name: group.name }]}
+                        onAdded={() => {
+                          close();
+                          onAdded?.();
                         }}
                       />
                     )}
                   </AddDialog>
                 ) : null}
-                <Button
-                  variant="quiet"
-                  loading={busy === subject.id}
-                  loadingLabel={t("setup.working")}
-                  disabled={busy !== null && busy !== subject.id}
-                  aria-label={t(subject.archived ? "setup.subjects.restoreItem" : "setup.subjects.archiveItem", { name: subject.name })}
-                  onClick={() => onToggle(subject)}
+                <button
+                  type="button"
+                  className={board.disclosure}
+                  aria-expanded={open}
+                  aria-controls={bodyId}
+                  aria-label={t("setup.subjects.toggleWing", { name: group.name })}
+                  onClick={() => setToggled((all) => ({ ...all, [group.key]: !open }))}
                 >
-                  {t(subject.archived ? "setup.subjects.restore" : "setup.subjects.archive")}
-                </Button>
-                </span>
-              ),
-            }
-          : undefined
-      }
-    />
+                  <ChevronDown aria-hidden className={board.chevron} data-open={open} />
+                </button>
+              </div>
+            </div>
+            {open ? (
+              <div id={bodyId} className={board.body}>
+                {group.subjects.length === 0 ? (
+                  <EmptyLine>{t("setup.subjects.noneInWing", { wing: wingWord })}</EmptyLine>
+                ) : (
+                  <ReadTable
+                    caption={group.name}
+                    rows={group.subjects}
+                    rowKey={(x) => x.id}
+                    columns={[
+                      { key: "name", label: t("setup.read.subject"), primary: true, cell: (x) => x.name },
+                      { key: "code", label: t("setup.read.code"), cell: (x) => x.code ?? "—" },
+                      { key: "status", label: t("attendance.class.status"), cell: (x) => (x.archived ? <StatusWord>{t("setup.subjects.archived")}</StatusWord> : <StatusWord tone="ok">{t("setup.read.inUse")}</StatusWord>) },
+                      ...(canArchive
+                        ? [
+                            {
+                              key: "actions",
+                              label: t("setup.read.actions"),
+                              plain: true,
+                              align: "end" as const,
+                              cell: (subject: Subject) => (
+                                <span className={styles.rowActions}>
+                                  {onEdit ? (
+                                    <AddDialog label={t("structure.edit")} ariaLabel={t("structure.editItem", { name: subject.name })} title={t("structure.editTitle", { name: subject.name })} variant="quiet" plus={false}>
+                                      {(close) => (
+                                        <SubjectEditForm
+                                          subject={subject}
+                                          wings={wings}
+                                          onSave={async (input) => {
+                                            const saved = await onEdit(subject, input);
+                                            if (saved === true) close();
+                                            return saved;
+                                          }}
+                                        />
+                                      )}
+                                    </AddDialog>
+                                  ) : null}
+                                  <Button
+                                    variant="quiet"
+                                    loading={busy === subject.id}
+                                    loadingLabel={t("setup.working")}
+                                    disabled={busy !== null && busy !== subject.id}
+                                    aria-label={t(subject.archived ? "setup.subjects.restoreItem" : "setup.subjects.archiveItem", { name: subject.name })}
+                                    onClick={() => onToggle(subject)}
+                                  >
+                                    {t(subject.archived ? "setup.subjects.restore" : "setup.subjects.archive")}
+                                  </Button>
+                                </span>
+                              ),
+                            },
+                          ]
+                        : []),
+                    ]}
+                  />
+                )}
+              </div>
+            ) : null}
+          </li>
+        );
+      })}
+    </ul>
   );
 }
 
@@ -200,6 +311,19 @@ export function SubjectForm({ onAdded, showTitle = true, wings }: { onAdded: () 
   );
 }
 
+/** Said once, at the foot: where a subject is made and where it is given to a level. */
+export function SubjectsNote() {
+  return (
+    <div className={board.note}>
+      <Info aria-hidden strokeWidth={1.75} />
+      <div>
+        <p className={board.noteTitle}>{t("setup.subjects.noteTitle")}</p>
+        <p className={board.noteBody}>{t("setup.subjects.noteBody")}</p>
+      </div>
+    </div>
+  );
+}
+
 export function SubjectsScreen() {
   const { api, me } = useSession();
   const { term, config } = useConfig();
@@ -207,10 +331,13 @@ export function SubjectsScreen() {
   const roles = me?.roles ?? [];
   const canAdd = canManageStructure(roles);
   const canArchive = canManageInstitution(roles);
+  const addable = manageableSections(roles, wings);
   const load = useCallback(() => loadSubjects(api), [api]);
   const { view, reload } = useLoad(load);
   const [flash, setFlash] = useState<Flash | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
+  const [q, setQ] = useState("");
+  const [status, setStatus] = useState<StatusFilter>("");
   const coordinator = term("role.coordinator");
 
   async function toggle(subject: Subject) {
@@ -231,41 +358,62 @@ export function SubjectsScreen() {
     return true;
   }
 
+  const added = () => {
+    setFlash({ tone: "ok", text: t("setup.done.added") });
+    void reload();
+  };
+
   return (
     <>
-      {canAdd ? (
-        <ReadHeader
-          title={t("setup.subjects.title")}
-          subtitle={t("setup.subjects.intro")}
-          actions={
+      {canAdd ? <ReadHeader title={t("setup.subjects.title")} subtitle={t("setup.subjects.intro")} /> : <ReadSetupHeader title={t("setup.subjects.title")} subtitle={t("setup.read.subjectsSubtitle")} />}
+      <div className={board.toolbar}>
+        <SearchBox label="setup.subjects.search" value={q} onChange={setQ} />
+        <FilterSelect
+          label="setup.subjects.filterStatus"
+          value={status}
+          onChange={(v) => setStatus(v as StatusFilter)}
+          options={[
+            { value: "", label: t("setup.subjects.filterAll") },
+            { value: "inUse", label: t("setup.read.inUse") },
+            { value: "archived", label: t("setup.subjects.archived") },
+          ]}
+        />
+        {canAdd ? (
+          <div className={board.toolbarAdd}>
             <AddDialog label={t("setup.subjects.add")} title={t("setup.subjects.add")}>
               {(close) => (
                 <SubjectForm
                   showTitle={false}
-                  wings={manageableSections(roles, wings)}
+                  wings={addable}
                   onAdded={() => {
                     close();
-                    setFlash({ tone: "ok", text: t("setup.done.added") });
-                    void reload();
+                    added();
                   }}
                 />
               )}
             </AddDialog>
-          }
-        />
-      ) : (
-        <ReadSetupHeader title={t("setup.subjects.title")} subtitle={t("setup.read.subjectsSubtitle")} />
-      )}
+          </div>
+        ) : null}
+      </div>
       {flash ? <Notice tone={flash.tone}>{flash.text}</Notice> : null}
       <Gate view={view} onRetry={() => void reload()}>
-        {({ subjects }) =>
-          canAdd ? (
-            <SubjectsView subjects={subjects} canArchive={canArchive} canAdd={canAdd} busy={busy} wings={wings} onToggle={(s) => void toggle(s)} onEdit={saveEdit} />
-          ) : (
-            <SubjectsTable subjects={subjects} wings={wings} />
-          )
-        }
+        {({ subjects }) => (
+          <SubjectsBoard
+            subjects={subjects}
+            wings={wings}
+            q={q}
+            status={status}
+            canAdd={canAdd}
+            addableWings={addable.map((w) => w.key)}
+            canArchive={canArchive}
+            busy={busy}
+            onToggle={(s) => void toggle(s)}
+            {...(canArchive ? { onEdit: saveEdit } : {})}
+            onAdded={added}
+          />
+        )}
       </Gate>
+      <SubjectsNote />
       {canAdd && !canArchive ? <ReadOnlyNote>{t("setup.subjects.onlyWholeSchool", { coordinator })}</ReadOnlyNote> : null}
       {canAdd ? null : <ReadOnlyNote>{t("setup.read.readOnly", { coordinator })}</ReadOnlyNote>}
     </>
