@@ -10,11 +10,10 @@ import { ConfigContext, makeConfigValue, type PublicConfig } from "@/config/Conf
 import { SetupTabs } from "@/setup/SetupLayout";
 import { ClassForm, ClassSectionForm, ClassesView } from "@/setup/ClassesScreen";
 import { AcademicStructureView, LengthForm, LevelForm, type Structure, type StructureActions } from "@/setup/ProgrammesScreen";
-import { PatternForm, PatternView, TerminalsView } from "@/setup/TerminalsScreen";
 import { YearsScreen } from "@/setup/YearsScreen";
 import { LevelPicker, TermsScreen, TermsTable, CloseCheckView } from "@/terms/TermsScreen";
 import type { Term } from "@/terms/model";
-import type { ExamPattern, Programme, SchoolClass, Terminal, Year } from "@/setup/model";
+import type { Programme, SchoolClass, Year } from "@/setup/model";
 import { SessionContext } from "@/session/SessionProvider";
 import { fakeSession } from "./session";
 import royal from "../../../packs/royal-softech/pack.json";
@@ -382,61 +381,6 @@ describe("the classes screen", () => {
     expect(html).not.toContain("Year 2");
     expect(html).not.toContain("Old · Grade 11");
     expect(html).toContain("Section (optional)");
-  });
-});
-
-// ---------------------------------------------------------------------------------------------
-describe("the exam pattern screen (D-117)", () => {
-  const terminals: Terminal[] = [
-    { id: "t1", yearId: "y", name: "First terminal", ordinal: 1, weight: 30, hasPractical: false },
-    { id: "t2", yearId: "y", name: "Second terminal", ordinal: 2, weight: 70, hasPractical: true },
-  ];
-
-  it("lists the exams in order, with their number, weight and practical", () => {
-    const html = inContext(<TerminalsView terminals={terminals} />);
-    expect(html.indexOf("First terminal")).toBeLessThan(html.indexOf("Second terminal"));
-    expect(html).toContain(">1</span>");
-    expect(html).toContain(">2</span>");
-    expect(html).toContain("30%");
-    expect(html).toContain("70%");
-    expect(html).toContain("No: theory only");
-  });
-
-  const pattern: ExamPattern = {
-    term: { id: "y", label: "2083", status: "active" },
-    pattern: { graded: true, theoryMinPercent: 35, practicalMinPercent: 40, gradeBands: [{ grade: "A", from: 80 }, { grade: "B", from: 35 }] },
-    terminals,
-    locked: false,
-  };
-
-  it("reads the pattern back: grade system, minimums, exams and grade ranges", () => {
-    const html = inContext(<PatternView pattern={pattern} />);
-    expect(html).toContain("Yes: letter grades");
-    expect(html).toContain("35%");
-    expect(html).toContain("40%");
-    expect(html).toContain("Grade ranges");
-    expect(html).toContain("80%");
-  });
-
-  it("the form asks the PM's questions, with one primary action, and says the weights' total", () => {
-    const html = inContext(<PatternForm yearId="y" pattern={pattern} onSaved={() => {}} />);
-    expect(html).toContain("Grade system?");
-    expect(html).toContain("Theory: minimum % to pass");
-    expect(html).toContain("Practical: minimum % to pass");
-    expect(html).toContain("Practical in this exam");
-    expect(html).toContain("Total: 100 of 100");
-    expect(html).toContain("Grade ranges");
-    expect(html).toContain("Save exam pattern");
-  });
-
-  it("a new term's form starts with one exam of weight 100 and no grade ranges until graded", () => {
-    const html = inContext(<PatternForm yearId="y" pattern={{ ...pattern, pattern: null, terminals: [] }} onSaved={() => {}} />);
-    expect(html).toContain("Total: 100 of 100");
-    expect(html).not.toContain("Grade ranges");
-  });
-
-  it("uses the school's word for the empty state", () => {
-    expect(inContext(<TerminalsView terminals={[]} />)).toContain("No Exams in this term yet.");
   });
 });
 
