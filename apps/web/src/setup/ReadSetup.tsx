@@ -5,7 +5,7 @@ import type { ReactNode } from "react";
 import { t } from "@/i18n/messages";
 import { EmptyLine, Panel, ReadHeader, ReadTable, StatusWord, readStyles, type Column } from "@/read/ReadView";
 
-import { classTitle, formatHundredths, paperLine, type Curriculum, type SchoolClass, type Subject, type Terminal } from "./model";
+import { classTitle, formatHundredths, paperLine, type Curriculum, type SchoolClass, type Terminal } from "./model";
 
 /**
  * School setup as the Principal reads it (D-104, after the PM's topic 7 reference): the same facts the Co-ordinator
@@ -66,40 +66,6 @@ export function TerminalsTable({ terminals, words }: { terminals: readonly Termi
           { key: "weight", label: t("setup.pattern.weight"), align: "end", cell: (x) => (x.weight === null ? "—" : t("setup.pattern.percent", { n: x.weight })) },
           { key: "practical", label: t("setup.pattern.practical"), cell: (x) => t(x.hasPractical ? "setup.pattern.practicalYes" : "setup.pattern.practicalNo") },
         ]}
-      />
-    </Panel>
-  );
-}
-
-export function SubjectsTable({
-  subjects,
-  action,
-  empty = "setup.subjects.emptyReadOnly",
-  wings = [],
-}: {
-  subjects: readonly Subject[];
-  action?: RowAction<Subject>;
-  empty?: "setup.subjects.emptyReadOnly" | "setup.subjects.empty";
-  /** The school's wings, to name each subject's (D-114). */
-  wings?: readonly { key: string; name: string }[];
-}) {
-  if (subjects.length === 0) return <EmptyLine>{t(empty)}</EmptyLine>;
-  const wingName = (key: string | null) => (key === null ? null : (wings.find((w) => w.key === key)?.name ?? key));
-  return (
-    <Panel>
-      <ReadTable
-        caption={t("setup.subjects.title")}
-        rows={subjects}
-        rowKey={(x) => x.id}
-        columns={withAction(
-          [
-            { key: "name", label: t("setup.read.subject"), primary: true, cell: (x) => x.name },
-            { key: "code", label: t("setup.read.code"), cell: (x) => x.code ?? "—" },
-            { key: "wing", label: t("setup.subjects.wing"), cell: (x) => wingName(x.sectionKey) ?? <StatusWord tone="warn">{t("setup.subjects.noWing")}</StatusWord> },
-            { key: "status", label: t("attendance.class.status"), cell: (x) => (x.archived ? <StatusWord>{t("setup.subjects.archived")}</StatusWord> : <StatusWord tone="ok">{t("setup.read.inUse")}</StatusWord>) },
-          ],
-          action,
-        )}
       />
     </Panel>
   );

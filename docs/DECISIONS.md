@@ -1359,6 +1359,12 @@ The matrix lives in code (61 actions, 8 groups, from the reviewed `permission-ma
 - **Tested.** `people-screens.test.tsx`: the Co-ordinator gets Teacher and Add Teacher, no tabs and no Staff; the Principal gets no Add Teacher. `nav.test.ts`: the label by role. Not checked in a browser (needs the API and a sign-in).
 - **Left as it was.** The old `StaffScreen` and `PeopleTabs` are still in the code (the old Teaching route and the admissions screens use parts of them). The add form's button still says "Add a person".
 
+**D-133 The Subjects screen, as the PM drew it.** 2026-10-07, from the PM's screenshot. **UI only; the rules and the server are unchanged.**
+- **Layout.** A toolbar (a search box, a Status filter of All, In use and Archived, and Add a subject at the end), then one card per wing: an icon in a tone, the wing's name, its count of subjects, "Add subject to this wing" and a show/hide chevron. The first wing opens to its table (Subject, Code, Status, Actions); a search or a filter opens every wing with a match, and hides the others. A subject with no wing (an old one, D-114) is in a last group of its own. Then the note that subjects are made here and given to levels on the Curriculum screen.
+- **Actions are unchanged.** Edit and Archive or Restore for a whole-school Co-ordinator; Add (the toolbar's, to any wing the person reaches, and each card's, to its own wing) for whoever may add; the Principal and everyone else only read, in the same cards. The flat table the Principal read is gone, replaced by the same cards.
+- **Left out.** The three-dot menu on each wing card in the screenshot: it had no action to hold that does not already exist. To add if the PM names one.
+- **Tested.** `subjects-screens.test.tsx`: grouping and the filters, the cards and their counts, which wing is open, the search, In use and Archived in words, who gets Archive, Restore, Edit and Add, the old no-wing group, the empty states, and the toolbar and note on the screen. **Not checked in a browser** (the page needs the API and a sign-in).
+
 ## Open items carried forward
 
 - ~~**Search and the term picker (D-126).**~~ Built, D-127. Still open: a Student looking back at an earlier term, and Results following the chosen term (both need the server to accept a term).

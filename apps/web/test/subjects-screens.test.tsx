@@ -6,7 +6,7 @@ import SubjectsPage from "@/app/portal/setup/subjects/page";
 import { ConfigContext, makeConfigValue, type PublicConfig } from "@/config/ConfigProvider";
 import { CurriculumView, GroupForm, OfferingForm, PaperForm, SubjectPanel, readPaper } from "@/setup/CurriculumScreen";
 import { SetupTabs } from "@/setup/SetupLayout";
-import { SubjectEditForm, SubjectForm, SubjectsScreen, SubjectsView } from "@/setup/SubjectsScreen";
+import { SubjectEditForm, SubjectForm, SubjectsBoard, SubjectsScreen, groupSubjects } from "@/setup/SubjectsScreen";
 import type { Curriculum, Offering, Subject } from "@/setup/model";
 import { SessionContext } from "@/session/SessionProvider";
 import { fakeSession } from "./session";
@@ -53,31 +53,70 @@ describe("the sub-menu", () => {
 describe("the subjects screen", () => {
   const subjects = [subject("s1", "Biology", { code: "BIO" }), subject("s2", "Physics", { archived: true }), subject("s3", "English")];
 
-  it("lists each subject with its code, and marks an archived one in words", () => {
-    const html = inContext(<SubjectsView subjects={subjects} canArchive busy={null} onToggle={noop} />);
-    for (const name of ["Biology", "Physics", "English"]) expect(html).toContain(`data-primary="true">${name}</td>`);
-    expect(html).toContain('data-label="Code">BIO<');
-    expect(html).toContain(">Archived<");
-    expect(count(html, />Archived</g)).toBe(1);
+  const wings = TEST_SECTIONS.royal;
+  const board = (props: Partial<React.ComponentProps<typeof SubjectsBoard>> = {}) =>
+    inContext(<SubjectsBoard subjects={subjects} wings={wings} canArchive busy={null} onToggle={noop} {...props} />);
+
+  it("groups the subjects by wing in the school's order, an old one with no wing last, and filters by search and status", () => {
+    const all = [subject("s1", "English"), subject("s2", "English", { sectionKey: "bachelors" }), subject("s3", "Music", { sectionKey: null }), subject("s4", "Physics", { code: "PHY", archived: true })];
+    const { groups, filtered } = groupSubjects(all, wings, "", "");
+    expect(filtered).toBe(false);
+    expect(groups.map((g) => g.key)).toEqual([wings[0]!.key, wings[1]!.key, ""]);
+    expect(groups[0]!.subjects.map((s) => s.name)).toEqual(["English", "Physics"]);
+    expect(groups[2]!.subjects.map((s) => s.name)).toEqual(["Music"]);
+    const byCode = groupSubjects(all, wings, " phy ", "");
+    expect(byCode.filtered).toBe(true);
+    expect(byCode.groups.map((g) => g.key)).toEqual([wings[0]!.key]); // a wing with no match is left out while filtering
+    expect(groupSubjects(all, wings, "", "archived").groups[0]!.subjects.map((s) => s.name)).toEqual(["Physics"]);
+    expect(groupSubjects(all, wings, "", "inUse").groups.flatMap((g) => g.subjects.map((s) => s.name))).toEqual(["English", "English", "Music"]);
+    // Nothing filtered: a wing with no subjects is still there, for its Add button.
+    expect(groupSubjects([subject("s1", "English")], wings, "", "").groups).toHaveLength(2);
   });
 
-  it("offers Archive and Restore, each naming its subject, only to someone who may change a subject", () => {
-    const html = inContext(<SubjectsView subjects={subjects} canArchive busy={null} onToggle={noop} />);
+  it("is one card per wing with its name and a count; the first opens to its table, the others stay closed", () => {
+    const html = board({ subjects: [subject("s1", "Biology", { code: "BIO" }), subject("s2", "Physics", { archived: true }), subject("s3", "English", { sectionKey: "bachelors" })] });
+    expect(html).toContain(">+2<");
+    expect(html).toContain(">Bachelor&#x27;s<");
+    expect(html).toContain("2 subjects");
+    expect(html).toContain("1 subject<");
+    expect(html).toContain('aria-expanded="true"');
+    expect(html).toContain('aria-expanded="false"');
+    for (const name of ["Biology", "Physics"]) expect(html).toContain(`data-primary="true">${name}</td>`);
+    expect(html).not.toContain("English"); // the second wing is closed
+    expect(html).toContain('data-label="Code">BIO<');
+  });
+
+  it("a search opens every wing that has a match", () => {
+    const html = board({ subjects: [subject("s1", "English"), subject("s2", "English", { sectionKey: "bachelors" })], q: "eng" });
+    expect(count(html, /aria-expanded="true"/g)).toBe(2);
+    expect(count(html, /data-primary="true">English</g)).toBe(2);
+    expect(board({ q: "zzz" })).toContain("No subjects match.");
+  });
+
+  it("says In use or Archived in words, and offers Archive and Restore naming their subject only to someone who may change one", () => {
+    const html = board();
+    expect(html).toContain(">In use<");
+    expect(count(html, />Archived</g)).toBe(1);
     expect(html).toContain('aria-label="Archive Biology"');
     expect(html).toContain('aria-label="Restore Physics"');
-    const readOnly = inContext(<SubjectsView subjects={subjects} canArchive={false} busy={null} onToggle={noop} />);
+    const readOnly = board({ canArchive: false });
     expect(readOnly).not.toContain("Archive Biology");
     expect(readOnly).not.toContain("Restore Physics");
+    expect(readOnly).not.toContain(">Actions<");
   });
 
-  it("names each subject's wing, and asks for one where an old subject has none (D-114)", () => {
-    const withWings = [subject("s1", "English"), subject("s2", "English", { sectionKey: "bachelors" }), subject("s3", "Music", { sectionKey: null })];
-    const html = inContext(<SubjectsView subjects={withWings} wings={TEST_SECTIONS.royal} canArchive busy={null} onToggle={noop} onEdit={async () => true as const} />);
-    expect(html).toContain('data-label="Section">+2<');
-    expect(html).toContain('data-label="Section">Bachelor&#x27;s<');
+  it("names a subject with no wing in a group of its own, and Edit is on every subject for someone who may change one (FUT point 17)", () => {
+    const html = board({ subjects: [subject("s1", "English"), subject("s3", "Music", { sectionKey: null })], onEdit: async () => true as const, q: "m" });
     expect(html).toContain("No Section yet");
     expect(html).toContain('aria-label="Edit Music"');
-    expect(count(html, /aria-label="Edit /g)).toBe(3); // every subject, for someone who may change one (FUT point 17)
+    const two = board({ subjects: [subject("s1", "English"), subject("s2", "Maths")], onEdit: async () => true as const });
+    expect(count(two, /aria-label="Edit /g)).toBe(2);
+  });
+
+  it("each wing card can add to its own wing, for the wings the person reaches, in the school's word", () => {
+    const html = board({ canAdd: true, addableWings: [wings[0]!.key] });
+    expect(count(html, />Add subject to this section</g)).toBe(1);
+    expect(board({ canAdd: false, addableWings: [wings[0]!.key] })).not.toContain("Add subject to this");
   });
 
   it("the add form asks for the wing first, or says the one wing a person reaches (D-114)", () => {
@@ -101,8 +140,8 @@ describe("the subjects screen", () => {
   });
 
   it("an empty catalogue invites adding only to someone who can add", () => {
-    expect(inContext(<SubjectsView subjects={[]} canArchive busy={null} onToggle={noop} canAdd />)).toContain("Add the first one");
-    const read = inContext(<SubjectsView subjects={[]} canArchive={false} busy={null} onToggle={noop} canAdd={false} />);
+    expect(inContext(<SubjectsBoard subjects={[]} wings={wings} canArchive busy={null} onToggle={noop} canAdd />)).toContain("Add the first one");
+    const read = inContext(<SubjectsBoard subjects={[]} wings={wings} canArchive={false} busy={null} onToggle={noop} canAdd={false} />);
     expect(read).toContain("No subject has been added yet.");
     expect(read).not.toContain("Add the first one");
   });
@@ -118,6 +157,9 @@ describe("the subjects screen", () => {
   it("a whole-school Co-ordinator can add and archive; a +2 Co-ordinator can add but is told renaming needs the whole school; the Admin only looks", () => {
     const whole = inContext(<SubjectsScreen />);
     expect(whole).toContain(">Add a subject<");
+    expect(whole).toContain("Search subjects...");
+    expect(whole).toContain(">Status<");
+    expect(whole).toContain("Subjects are created here and assigned to levels from the Curriculum screen.");
     expect(whole).not.toContain("needs a Vice Principal for the whole school");
     expect(whole).toMatch(/role="status"[^>]*aria-busy="true"/);
 
