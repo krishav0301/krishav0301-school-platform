@@ -274,7 +274,7 @@ export const en = {
 
   // Setup: years, programmes, classes, terminals (Phase 3). {programme}, {level}, {section} and {terminal} are the school's own words.
   "setup.tabs": "Setup sections",
-  "setup.tab.years": "Academic terms",
+  "setup.tab.years": "Academic Terms",
   "setup.tab.programmes": "{programme}s",
   "setup.tab.classes": "Classes",
   "setup.tab.terminals": "Exam pattern",
