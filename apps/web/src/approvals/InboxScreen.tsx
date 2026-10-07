@@ -9,7 +9,7 @@ import { formatBsDate } from "@/content/model";
 import { t, type MessageKey } from "@/i18n/messages";
 import { useSession } from "@/session/SessionProvider";
 import { useLoad } from "@/setup/useLoad";
-import { Button, HeroBand, Notice, Select, Skeleton, TextArea } from "@/ui";
+import { Button, HeroBand, Illustration, Notice, Select, Skeleton, TextArea } from "@/ui";
 
 import styles from "./approvals.module.css";
 import { approve, decline, loadInbox, loadReview, withdraw } from "./client";
@@ -128,7 +128,7 @@ export function ApprovalsList({ requests, filtered, onReview }: { requests: read
   if (requests.length === 0)
     return (
       <div className={styles.empty} role="status">
-        <Inbox aria-hidden strokeWidth={1.5} />
+        {filtered ? <Inbox aria-hidden strokeWidth={1.5} /> : <Illustration code="E3" size="spot" />}
         <p className={styles.emptyTitle}>{t(filtered ? "approvals.empty.filtered" : "approvals.inbox.empty")}</p>
         {filtered ? null : <p className={styles.line}>{t("approvals.empty.caughtUp")}</p>}
       </div>

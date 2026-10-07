@@ -12,6 +12,7 @@ import { t, type MessageKey } from "@/i18n/messages";
 import { loadPeople } from "@/people/access-client";
 import { useSession } from "@/session/SessionProvider";
 import { loadSubjects } from "@/setup/client";
+import { Illustration } from "@/ui";
 
 import { MIN_CHARS, PER_GROUP, groupsFor, matches, placeholderFor, seesAllStaff, studentHref, type SearchGroup, type SearchHit } from "./search-model";
 import styles from "./shell.module.css";
@@ -213,7 +214,16 @@ export function GlobalSearch({ pages }: { pages: readonly { label: string; href:
             ) : null,
           )}
           {waiting ? <p className={styles.searchNote}>{t("search.searching")}</p> : null}
-          {!waiting && total === 0 ? <p className={styles.searchNote}>{ready || groups.length === 1 ? t("search.none", { q: query }) : t("search.keepTyping")}</p> : null}
+          {!waiting && total === 0 ? (
+            ready || groups.length === 1 ? (
+              <div className={styles.searchNone}>
+                <Illustration code="E2" size="spot" />
+                <p className={styles.searchNote}>{t("search.none", { q: query })}</p>
+              </div>
+            ) : (
+              <p className={styles.searchNote}>{t("search.keepTyping")}</p>
+            )
+          ) : null}
           {failed ? <p className={styles.searchNote}>{t("search.partial")}</p> : null}
         </div>
       ) : null}

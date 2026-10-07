@@ -844,3 +844,10 @@
     padding-inline-end: 4.5rem;
   }
 }
+
+/* Search with no results: a small picture over the line (E2, D-126). */
+.searchNone {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}

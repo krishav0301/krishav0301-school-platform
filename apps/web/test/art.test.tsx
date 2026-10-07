@@ -52,10 +52,10 @@ describe("which picture a page shows", () => {
 
 describe("a picture's place", () => {
   it("until its picture is added it is a box showing its code, hidden from screen readers", () => {
-    expect(ART_READY.has("P5")).toBe(false);
-    const html = renderToStaticMarkup(<Illustration code="P5" />);
+    expect(ART_READY.has("W2")).toBe(false);
+    const html = renderToStaticMarkup(<Illustration code="W2" />);
     expect(html).toContain('aria-hidden="true"');
-    expect(html).toContain(">P5<");
+    expect(html).toContain(">W2<");
     expect(html).not.toContain("<img");
   });
 
@@ -66,12 +66,12 @@ describe("a picture's place", () => {
       </HeroBand>,
     );
     expect(html).toContain("<h1>Teaching</h1>");
-    expect(html).toContain(">P5<");
+    expect(html).toContain("/illustrations/P5.webp");
     expect(html).toContain(t("art.slogan.P5"));
   });
 
   it("a page can choose its picture, or none", () => {
-    expect(renderToStaticMarkup(<HeroBand art="P2">x</HeroBand>)).toContain(">P2<");
+    expect(renderToStaticMarkup(<HeroBand art="P2">x</HeroBand>)).toContain("/illustrations/P2.webp");
     const none = renderToStaticMarkup(<HeroBand art={null}>x</HeroBand>);
     expect(none).not.toContain("aria-hidden");
   });
@@ -95,7 +95,38 @@ describe("the band holds no controls", () => {
 
   it("a page header's actions come after its band, in their own row, not inside it", () => {
     const html = renderToStaticMarkup(<ReadHeader title="Teaching" actions={<button type="button">Change date</button>} />);
-    expect(html.indexOf(">P5<")).toBeLessThan(html.indexOf("<button")); // the band, with its picture, comes first
+    expect(html.indexOf("/illustrations/P5.webp")).toBeLessThan(html.indexOf("<button")); // the band, with its picture, comes first
     expect(html).toMatch(/headerActions[^"]*"><button/); // and the action is in the row after it
+  });});
+
+/** Every picture marked ready is a real file within the page-weight budget (docs/illustrations.md). */
+describe("the added pictures", () => {
+  const dir = join(import.meta.dirname, "..", "public", "illustrations");
+  it("each code in ART_READY has its .webp file, at most 80 KB", () => {
+    for (const code of ART_READY) {
+      const size = statSync(join(dir, `${code}.webp`)).size;
+      expect(size, code).toBeGreaterThan(0);
+      expect(size, code).toBeLessThanOrEqual(80_000);
+    }
+  });
+  it("no file sits in the folder without being marked ready", () => {
+    const names = readdirSync(dir).map((n) => n.replace(/\.webp$/, ""));
+    expect(names.sort()).toEqual([...ART_READY].sort());
+  });
+});
+
+describe("the small pictures in their places", () => {
+  it("an approvals inbox with nothing waiting shows E3; a filtered one keeps its icon", async () => {
+    const { ApprovalsList } = await import("@/approvals/InboxScreen");
+    expect(renderToStaticMarkup(<ApprovalsList requests={[]} filtered={false} onReview={() => {}} />)).toContain("/illustrations/E3.webp");
+    expect(renderToStaticMarkup(<ApprovalsList requests={[]} filtered onReview={() => {}} />)).not.toContain("/illustrations/E3.webp");
+  });
+
+  it("the page-not-found screen shows X1, its words and a way home", async () => {
+    const { default: NotFound } = await import("@/app/not-found");
+    expect(NotFound).toBeTypeOf("function");
+    const src = readFileSync(join(import.meta.dirname, "..", "src", "app", "not-found.tsx"), "utf8");
+    expect(src).toContain('code="X1"');
+    expect(src).toContain('href="/"');
   });
 });

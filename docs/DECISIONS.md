@@ -1338,11 +1338,17 @@ The matrix lives in code (61 actions, 8 groups, from the reviewed `permission-ma
 - The breadcrumb links stay in the band: they say where the page is, they are not actions.
 - **Tested.** `art.test.tsx`: a scan of every `<HeroBand>` in the source fails on a button, a link dressed as one, a pop-up, a picker, a field or a menu inside it; a page header's actions render after its band. 861 web tests, typecheck, lint. Checked in a browser: Terms (New term below the band), Classes, Academic Structure at 390 px, Home; no sideways scroll at 320 px.
 
+**D-129 The PM's illustrations are in.** 2026-10-07, the PM drew P1 to P20, S1, E1, E2, E3, X1 and X2 (W1 to W11 are still to come, with a new design of the public home page). **UI only.**
+- Converted from the PM's PNGs (about 1.5 MB each) to transparent WebP at the sizes in `docs/illustrations.md` (P 720 × 600; S1 480 × 400; E 480 × 360; X 600 × 450), each 25 to 79 KB, saved as `apps/web/public/illustrations/<code>.webp` and listed in `ART_READY`.
+- Two new codes, E2 (search with no results) and E3 (nothing waiting in Approvals), and X1 (page not found), added to `ART_CODES` and to the table in `docs/illustrations.md`. E2 shows over the "Nothing found" line in the top-bar search, E3 replaces the icon when the Approvals inbox is empty and unfiltered, and X1 is a new `not-found.tsx` with a way home (it does not wait for the school's configuration).
+- **Tested.** `art.test.tsx`: every ready code has its file, at most 80 KB; no file in the folder without its code; E3 and X1 in place. The 404 page was checked in the browser.
+- X1's drawing contains the number 404; the style rule says no text. Left as drawn.
+
 ## Open items carried forward
 
 - ~~**Search and the term picker (D-126).**~~ Built, D-127. Still open: a Student looking back at an earlier term, and Results following the chosen term (both need the server to accept a term).
 - **Provision Royal's pack on staging (D-127)** for the sans headings (`npm run provision -- --pack ../../packs/royal-softech --remote --config wrangler.local.jsonc`), then deploy the Worker.
-- **The illustrations (D-126).** The PM makes them from `docs/illustrations.md`; each is added by saving its file and listing its code in `ART_READY`.
+- **The illustrations (D-126).** P, S, E and X are in (D-129). Still to come: W1 to W11, for the public pages.
 
 - ~~**Deploy D-108, D-110 and D-112 to staging.**~~ **Done 2026-10-05** (migrations 0027 to 0030, which staging had not had, and the Worker; restore point noted first).
 - **Deploy D-114 to staging (PM).** Migration 0031 (rebuilds `subjects`, so note a D1 Time Travel bookmark first) and the Worker, as in `README.md`, "Updating an existing deployment". Then the Admin sets each level's length, and a whole-school Co-ordinator gives each "No Wing yet" subject its wing.

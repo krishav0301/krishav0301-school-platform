@@ -3,13 +3,13 @@ import type { MessageKey } from "@/i18n/messages";
 /**
  * The illustrations (D-126). Each has a code, and `docs/illustrations.md` gives the prompt it is drawn from, so a
  * placeholder box showing "P5" says which picture goes there. The same pictures serve every school: they show no
- * school's name, logo or people. P: a portal page's hero; W: a public page's hero; S: the sidebar card; E: an empty list;
- * X: a page that could not load.
+ * school's name, logo or people. P: a portal page's hero; W: a public page's hero; S: the sidebar card; E: an empty list, no search results, all done;
+ * X: a page not found, or one that could not load.
  */
 export const ART_CODES = [
   "P1", "P2", "P3", "P4", "P5", "P6", "P7", "P8", "P9", "P10", "P11", "P12", "P13", "P14", "P15", "P16", "P17", "P18", "P19", "P20",
   "W1", "W2", "W3", "W4", "W5", "W6", "W7", "W8", "W9", "W10", "W11",
-  "S1", "E1", "X2",
+  "S1", "E1", "E2", "E3", "X1", "X2",
 ] as const;
 export type ArtCode = (typeof ART_CODES)[number];
 
@@ -17,7 +17,10 @@ export type ArtCode = (typeof ART_CODES)[number];
  * The codes whose picture has been added, as `public/illustrations/<code>.webp`. Until a code is listed here its place
  * shows a labelled box. Adding a picture is: save the file, add its code here.
  */
-export const ART_READY: ReadonlySet<ArtCode> = new Set<ArtCode>([]);
+export const ART_READY: ReadonlySet<ArtCode> = new Set<ArtCode>([
+  "P1", "P2", "P3", "P4", "P5", "P6", "P7", "P8", "P9", "P10", "P11", "P12", "P13", "P14", "P15", "P16", "P17", "P18", "P19", "P20",
+  "S1", "E1", "E2", "E3", "X1", "X2",
+]);
 
 /** Which hero picture a page shows, by its address: the longest matching start wins. The overview is per role (below). */
 const BY_PATH: readonly (readonly [string, ArtCode])[] = [

@@ -70,6 +70,9 @@ The picture stands at the right of the page's top band, cut by its bottom edge. 
 
 | Code | Where it shows | Size | Prompt (after the style) |
 |---|---|---|---|
-| **S1** | The card at the foot of the sidebar (wide screens) | 480 × 540 | A friendly teacher holding a book, upper body, pointing upward |
-| **E1** | A list with nothing in it yet | 360 × 300 | An empty open box with a small sparkle (no person) |
-| **X2** | A page that could not load | 360 × 300 | An unplugged cable, a patient character holding its end |
+| **S1** | The card at the foot of the sidebar (wide screens) | 480 × 400 | A friendly teacher holding a book, upper body, pointing upward |
+| **E1** | A list with nothing in it yet | 480 × 360 | An empty open box with a small sparkle (no person) |
+| **E2** | Search with no results | 480 × 360 | A magnifying glass over blank paper |
+| **E3** | Everything done (no approvals waiting) | 480 × 360 | A relaxed student leaning back with a tick badge |
+| **X1** | Page not found | 600 × 450 | A student looking at a map, puzzled, with a signpost |
+| **X2** | A page that could not load, or offline | 600 × 450 | An unplugged cable, a patient character holding its end |
