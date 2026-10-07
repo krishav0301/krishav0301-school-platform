@@ -5,12 +5,13 @@ import { useCallback, useState, type FormEvent } from "react";
 import { useConfig } from "@/config/ConfigProvider";
 import { t, type MessageKey } from "@/i18n/messages";
 import { useSession } from "@/session/SessionProvider";
+import { useRememberedTerm } from "@/shell/TermChoice";
 import { AddDialog, Button, Field, Notice, Select } from "@/ui";
 
 import { ReadHeader, ReadOnlyNote, readStyles } from "@/read/ReadView";
 
 import { createClass, deleteClass, loadClasses, loadProgrammes, loadYears, renameClass, setClassActive, type Loaded } from "./client";
-import { REASON_MESSAGE, canManageStructure, classTitle, defaultYearId, levelChoices, termWords, type Programme, type SchoolClass, type Year } from "./model";
+import { REASON_MESSAGE, canManageStructure, classTitle, startYearId, levelChoices, termWords, type Programme, type SchoolClass, type Year } from "./model";
 import { DeleteControl } from "./ProgrammesScreen";
 import { ClassesTable, ReadSetupHeader } from "./ReadSetup";
 import { Gate, useLoad } from "./useLoad";
@@ -180,8 +181,10 @@ export function ClassesScreen() {
   const loadProgrammesNow = useCallback(() => loadProgrammes(api), [api]);
   const years = useLoad(loadYearsNow);
   const programmes = useLoad(loadProgrammesNow);
+  // Starts on the term remembered from the top bar (D-127) when it is one of these; choosing here remembers it.
+  const { remembered, remember } = useRememberedTerm();
   const [picked, setPicked] = useState<string | null>(null);
-  const yearId = picked ?? (years.view.status === "ready" ? defaultYearId(years.view.data.years) : null);
+  const yearId = picked ?? (years.view.status === "ready" ? startYearId(years.view.data.years, remembered) : null);
   const loadClassesNow = useCallback(
     (): Promise<Loaded<{ classes: SchoolClass[] }>> => (yearId ? loadClasses(api, yearId) : Promise.resolve({ ok: true, data: { classes: [] } })),
     [api, yearId],
@@ -254,7 +257,14 @@ export function ClassesScreen() {
           ) : (
             <>
               <div className={readStyles.search}>
-                <YearPicker years={list} value={yearId} onChange={setPicked} />
+                <YearPicker
+                  years={list}
+                  value={yearId}
+                  onChange={(id) => {
+                    setPicked(id);
+                    remember(id);
+                  }}
+                />
               </div>
               <Gate view={classes.view} onRetry={() => void classes.reload()}>
                 {(data) => (canManage ? <ClassesView classes={data.classes} canManage={canManage} busy={busy} onToggle={(c) => void toggle(c)} onDelete={remove} onRename={rename} /> : <ClassesTable classes={data.classes} />)}

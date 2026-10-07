@@ -6,7 +6,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { toAd } from "@/content/client";
 import { t } from "@/i18n/messages";
 import { useSession } from "@/session/SessionProvider";
-import { Button, Card, Checkbox, Notice, Skeleton } from "@/ui";
+import { Button, Card, Checkbox, HeroBand, Notice, Skeleton } from "@/ui";
 
 import { ApplicantFields } from "./ApplicantFields";
 import admissionsStyles from "./admissions.module.css";
@@ -87,8 +87,10 @@ export function ApplyScreen() {
 
   return (
     <Card>
-      <h1 className={setupStyles.title}>{t("admissions.apply.title")}</h1>
-      <p className={setupStyles.muted}>{t("admissions.apply.intro")}</p>
+      <HeroBand>
+        <h1 className={setupStyles.title}>{t("admissions.apply.title")}</h1>
+        <p className={setupStyles.muted}>{t("admissions.apply.intro")}</p>
+      </HeroBand>
       {levels.status === "loading" ? (
         <div role="status" aria-busy="true" className={setupStyles.list}>
           <span className="sr-only">{t("setup.loading")}</span>

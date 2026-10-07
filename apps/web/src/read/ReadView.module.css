@@ -45,18 +45,28 @@
   color: var(--color-primary);
 }
 
+.crumbs [aria-current="page"] {
+  color: var(--color-text);
+  font-weight: var(--weight-medium);
+}
+
 .title {
   margin: 0;
   font-family: var(--font-heading);
   /* Capped by screen width too, so a short title never breaks mid-word at 320 px with text at 200%. */
   font-size: min(var(--text-3xl), 10vw);
+  font-weight: var(--weight-heavy);
   line-height: var(--leading-tight);
+  letter-spacing: -0.01em;
   overflow-wrap: break-word;
 }
 
+/* In the hero band the muted words sit on a tint, so they take the full text colour, softened (D-126). */
 .subtitle {
   margin: 0;
-  color: var(--color-text-muted);
+  color: color-mix(in srgb, var(--color-text) 78%, var(--color-text-muted));
+  font-size: var(--text-lg);
+  line-height: var(--leading-normal);
 }
 
 .aside {
@@ -70,7 +80,7 @@
 
 .date {
   margin: 0;
-  color: var(--color-text-muted);
+  color: color-mix(in srgb, var(--color-text) 78%, var(--color-text-muted));
   font-size: var(--text-sm);
   text-align: end;
   overflow-wrap: break-word;
@@ -86,16 +96,51 @@
   list-style: none;
 }
 
+/* Each figure in its own calm tint, white at its top-left deepening to its tone, with a wave along the bottom
+   (D-126). The words keep the full text colour: the tint is light enough for the theme's contrast to hold. */
 .tile {
+  --tile-tint: var(--tint-accent);
+  --tile-tone: var(--color-accent);
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
   display: flex;
   align-items: center;
-  gap: var(--space-3);
+  gap: var(--space-4);
   min-width: 0;
-  padding: var(--space-4);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-card);
-  background: var(--color-surface);
-  box-shadow: var(--shadow-card);
+  min-height: 6.5rem;
+  padding: var(--space-5) var(--space-4);
+  border: 1px solid color-mix(in srgb, var(--tile-tone) 14%, var(--color-surface));
+  border-radius: var(--radius-hero);
+  background: linear-gradient(140deg, var(--color-surface) 0%, var(--tile-tint) 100%);
+  box-shadow: var(--shadow-soft);
+}
+
+.tile::after {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  inset-inline: 0;
+  bottom: 0;
+  height: 42%;
+  background: color-mix(in srgb, var(--tile-tone) 8%, transparent);
+  mask: var(--wave) no-repeat left bottom / 100% 100%;
+  pointer-events: none;
+}
+
+.tile[data-tone="ok"] {
+  --tile-tint: var(--tint-ok);
+  --tile-tone: var(--color-ok);
+}
+
+.tile[data-tone="bad"] {
+  --tile-tint: var(--tint-bad);
+  --tile-tone: var(--color-bad);
+}
+
+.tile[data-tone="warn"] {
+  --tile-tint: var(--tint-warn);
+  --tile-tone: var(--color-warn);
 }
 
 .tileIcon {
@@ -104,11 +149,12 @@
   display: inline-grid;
   flex: none;
   place-items: center;
-  width: 2.75rem;
-  height: 2.75rem;
-  border-radius: var(--radius-control);
-  background: var(--tone-soft);
+  width: 3.25rem;
+  height: 3.25rem;
+  border-radius: 50%;
+  background: var(--color-surface);
   color: var(--tone);
+  box-shadow: 0 0 0 6px color-mix(in srgb, var(--tone-soft) 70%, transparent);
 }
 
 .tileIcon[data-tone="ok"] {
@@ -127,8 +173,8 @@
 }
 
 .tileIcon svg {
-  width: 1.25rem;
-  height: 1.25rem;
+  width: 1.5rem;
+  height: 1.5rem;
 }
 
 .tileText {
@@ -139,16 +185,18 @@
 }
 
 .tileValue {
-  font-size: var(--text-xl);
-  font-weight: var(--weight-bold);
+  font-size: var(--text-2xl);
+  font-weight: var(--weight-heavy);
+  letter-spacing: -0.02em;
   line-height: var(--leading-tight);
   overflow-wrap: break-word;
 }
 
 /* Whole words only (D-030): a word moves to the next line rather than breaking in the middle. */
 .tileLabel {
-  color: var(--color-text-muted);
+  color: var(--color-text);
   font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
   overflow-wrap: normal;
   word-break: normal;
   hyphens: manual;
@@ -162,16 +210,17 @@
 }
 
 /* --- A card holding a table or a list --- */
+/* A card: the surface fading to a faint brand tint at its foot, a hairline edge and a soft shadow (D-126). */
 .panel {
   display: flex;
   flex-direction: column;
   gap: var(--space-3);
   min-width: 0;
-  padding: var(--space-4) min(var(--space-5), 4vw);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-card);
-  background: var(--color-surface);
-  box-shadow: var(--shadow-card);
+  padding: var(--space-5) min(var(--space-5), 4vw);
+  border: 1px solid var(--line-soft);
+  border-radius: var(--radius-hero);
+  background: linear-gradient(180deg, var(--color-surface) 60%, color-mix(in srgb, var(--color-primary) 3%, var(--color-surface)));
+  box-shadow: var(--shadow-soft);
 }
 
 .panelHead {
@@ -184,7 +233,10 @@
 
 .panelTitle {
   margin: 0;
-  font-size: var(--text-lg);
+  font-family: var(--font-heading);
+  font-size: var(--text-xl);
+  font-weight: var(--weight-heavy);
+  letter-spacing: -0.01em;
 }
 
 /* --- Tables: a real table on a wide screen; each row a stacked card on a phone, every value with its label. --- */
@@ -204,17 +256,18 @@
 }
 
 .table th {
-  padding: var(--space-2) var(--space-3);
+  padding: var(--space-3);
   border-bottom: 1px solid var(--color-border);
+  background: color-mix(in srgb, var(--color-primary) 3%, var(--color-surface));
   color: var(--color-text-muted);
-  font-weight: var(--weight-medium);
+  font-weight: var(--weight-bold);
   text-align: start;
   white-space: nowrap;
 }
 
 .table td {
   padding: var(--space-3);
-  border-bottom: 1px solid var(--color-border);
+  border-bottom: 1px solid var(--line-soft);
   vertical-align: middle;
   overflow-wrap: break-word;
 }
@@ -334,8 +387,8 @@
 .status {
   display: inline-flex;
   align-items: center;
-  padding: 0.125rem var(--space-2);
-  border-radius: calc(var(--radius-control) - 4px);
+  padding: 0.1875rem var(--space-3);
+  border-radius: 999px;
   background: color-mix(in srgb, var(--color-text) 7%, var(--color-surface));
   color: var(--color-text);
   font-size: var(--text-sm);
@@ -365,10 +418,10 @@
   max-width: 100%;
   flex-wrap: wrap;
   gap: var(--space-1);
-  padding: 0.1875rem;
-  border: 1px solid var(--color-border);
+  padding: 0.25rem;
+  border: 1px solid var(--line-soft);
   border-radius: var(--radius-control);
-  background: var(--color-surface);
+  background: color-mix(in srgb, var(--color-text) 4%, var(--color-surface));
 }
 
 .segment {
@@ -383,10 +436,12 @@
   cursor: pointer;
 }
 
+/* The chosen view: the action fill, as on the menu's current place (D-126). */
 .segment[aria-pressed="true"] {
-  background: color-mix(in srgb, var(--color-primary) 10%, var(--color-surface));
-  color: var(--color-primary);
+  background: var(--action-fill);
+  color: var(--color-primary-text);
   font-weight: var(--weight-bold);
+  box-shadow: var(--shadow-glow);
 }
 
 .segment:focus-visible {
@@ -411,9 +466,16 @@
   margin-top: 0.15rem;
 }
 
+.emptyBox {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-5) 0;
+}
+
 .empty {
   margin: 0;
-  padding: var(--space-5) 0;
   color: var(--color-text-muted);
   text-align: center;
 }
@@ -577,4 +639,14 @@
   grid-template-columns: repeat(auto-fit, minmax(min(24rem, 100%), 1fr));
   align-items: start;
   gap: var(--space-5);
+}
+
+/* A page's actions, in their own row just below its hero band (the band holds words only, D-128). */
+.headerActions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--space-2) var(--space-3);
+  min-width: 0;
 }

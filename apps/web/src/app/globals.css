@@ -12,6 +12,16 @@ html,
 body {
   margin: 0;
   background: var(--color-background);
+}
+
+/* A calm wash behind every page (D-126), mixed from the theme; it stays put while the page scrolls. */
+body {
+  background: var(--page-wash);
+  background-attachment: fixed;
+}
+
+html,
+body {
   color: var(--color-text);
   font-family: var(--font-body);
   font-size: var(--text-base);

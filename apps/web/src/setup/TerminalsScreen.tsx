@@ -7,11 +7,12 @@ import { t, type MessageKey } from "@/i18n/messages";
 import { EmptyLine, Panel, ReadHeader, ReadOnlyNote, ReadTable, readStyles } from "@/read/ReadView";
 import { Facts } from "@/read/SidePanel";
 import { useSession } from "@/session/SessionProvider";
+import { useRememberedTerm } from "@/shell/TermChoice";
 import { Button, Checkbox, Field, Notice, Select } from "@/ui";
 
 import { YearPicker } from "./ClassesScreen";
 import { loadExamPattern, loadYears, saveExamPattern, type ExamPatternInput, type Loaded } from "./client";
-import { REASON_MESSAGE, canManageInstitution, defaultYearId, termWords, type ExamPattern, type Terminal } from "./model";
+import { REASON_MESSAGE, canManageInstitution, startYearId, termWords, type ExamPattern, type Terminal } from "./model";
 import { ReadSetupHeader, TerminalsTable, midSentence } from "./ReadSetup";
 import { Gate, useLoad } from "./useLoad";
 import styles from "./setup.module.css";
@@ -213,8 +214,10 @@ export function TerminalsScreen() {
   const words = termWords(term);
   const loadYearsNow = useCallback(() => loadYears(api), [api]);
   const years = useLoad(loadYearsNow);
+  // Starts on the term remembered from the top bar (D-127) when it is one of these; choosing here remembers it.
+  const { remembered, remember } = useRememberedTerm();
   const [picked, setPicked] = useState<string | null>(null);
-  const yearId = picked ?? (years.view.status === "ready" ? defaultYearId(years.view.data.years) : null);
+  const yearId = picked ?? (years.view.status === "ready" ? startYearId(years.view.data.years, remembered) : null);
   const loadPatternNow = useCallback((): Promise<Loaded<ExamPattern | null>> => (yearId ? loadExamPattern(api, yearId) : Promise.resolve({ ok: true, data: null })), [api, yearId]);
   const pattern = useLoad(loadPatternNow);
   const [saved, setSaved] = useState(false);
@@ -240,6 +243,7 @@ export function TerminalsScreen() {
                   onChange={(id) => {
                     setSaved(false);
                     setPicked(id);
+                    remember(id);
                   }}
                 />
               </div>

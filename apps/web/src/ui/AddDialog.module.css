@@ -26,13 +26,13 @@
   width: min(36rem, calc(100vw - 2 * var(--page-gutter)));
   max-height: calc(100dvh - 2 * var(--space-5));
   padding: 0;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-card);
+  border: 1px solid var(--line-soft);
+  border-radius: var(--radius-hero);
   background: var(--color-surface);
   color: var(--color-text);
   /* A pop-up opened from a table row sits inside that cell: it starts its own text, not the cell's (D-114). */
   text-align: start;
-  box-shadow: var(--shadow-card);
+  box-shadow: var(--shadow-soft);
 }
 
 .dialog[open] {
@@ -40,7 +40,8 @@
 }
 
 .dialog::backdrop {
-  background: color-mix(in srgb, var(--color-text) 35%, transparent);
+  background: color-mix(in srgb, var(--color-text) 30%, transparent);
+  backdrop-filter: blur(4px);
 }
 
 @keyframes rise {

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 
 import { DEFAULT_THEME_CSS, THEME_BOOT_SCRIPT, THEME_STYLE_ID } from "@/theme/boot";
+import { PALETTE_BOOT_SCRIPT, PALETTE_STYLE_ID } from "@/theme/personal";
 
 import "./fonts.css";
 import "./globals.css";
@@ -17,6 +18,9 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         {/* The built-in theme. The script below swaps in the school's cached theme before first paint. */}
         <style id={THEME_STYLE_ID} suppressHydrationWarning dangerouslySetInnerHTML={{ __html: DEFAULT_THEME_CSS }} />
         <script dangerouslySetInnerHTML={{ __html: THEME_BOOT_SCRIPT }} />
+        {/* A person's own colours for the portal (D-127), laid over the school's; filled before first paint on portal pages. */}
+        <style id={PALETTE_STYLE_ID} suppressHydrationWarning />
+        <script dangerouslySetInnerHTML={{ __html: PALETTE_BOOT_SCRIPT }} />
       </head>
       <body>
         <Providers>{children}</Providers>

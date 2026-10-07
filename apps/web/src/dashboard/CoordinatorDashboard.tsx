@@ -9,6 +9,7 @@ import { loadActivityClasses } from "@/classwork/client";
 import { useConfig } from "@/config/ConfigProvider";
 import { t, type MessageKey } from "@/i18n/messages";
 import { FigureTiles, OpenLink, Panel, ReadFailure, ReadHeader, StatusWord, TableSkeleton, readStyles, type Figure } from "@/read/ReadView";
+import { OVERVIEW_ART } from "@/ui";
 import { loadBoard } from "@/results/client";
 import { useSession, type RoleClaim } from "@/session/SessionProvider";
 import { loadChecklist, type Checklist } from "@/setup/checklist-client";
@@ -181,7 +182,7 @@ export function CoordinatorDashboard({ extra }: { extra?: ReactNode } = {}) {
   // The greeting needs nothing from the server, so it is there at once; the day fills in below it.
   return (
     <div className={readStyles.page}>
-      <ReadHeader title={t(greetingKey(now), { name: me.name })} subtitle={`${term("role.coordinator")} · ${scope}`} dayBs={view.status === "ready" && view.data.todayBs ? bsLong(view.data.todayBs) : null} />
+      <ReadHeader art={OVERVIEW_ART.coordinator} title={t(greetingKey(now), { name: me.name })} subtitle={`${term("role.coordinator")} · ${scope}`} dayBs={view.status === "ready" && view.data.todayBs ? bsLong(view.data.todayBs) : null} />
       {view.status === "loading" ? <TableSkeleton rows={6} tiles={4} /> : null}
       {view.status === "failed" || view.status === "forbidden" ? <ReadFailure status={view.status} onRetry={() => void reload()} /> : null}
       {view.status === "ready" ? <CoordinatorDayView day={view.data} extra={extra} /> : null}

@@ -173,6 +173,50 @@
   transform: translateY(-2px);
 }
 
+/* Each figure card in its own calm tint, white at its top-left deepening to its tone, a wave at its foot (D-126). */
+.kpi[data-tone] {
+  --kpi-tint: var(--tint-primary);
+  --kpi-tone: var(--color-primary);
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  border-color: color-mix(in srgb, var(--kpi-tone) 14%, var(--color-surface));
+  border-radius: var(--radius-hero);
+  background: linear-gradient(140deg, var(--color-surface) 0%, var(--kpi-tint) 100%);
+}
+
+.kpi[data-tone]::after {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  inset-inline: 0;
+  bottom: 0;
+  height: 40%;
+  background: color-mix(in srgb, var(--kpi-tone) 8%, transparent);
+  mask: var(--wave) no-repeat left bottom / 100% 100%;
+  pointer-events: none;
+}
+
+.kpi[data-tone="accent"] {
+  --kpi-tint: var(--tint-accent);
+  --kpi-tone: var(--color-accent);
+}
+
+.kpi[data-tone="ok"] {
+  --kpi-tint: var(--tint-ok);
+  --kpi-tone: var(--color-ok);
+}
+
+.kpi[data-tone="warn"] {
+  --kpi-tint: var(--tint-warn);
+  --kpi-tone: var(--color-warn);
+}
+
+.kpi[data-tone="bad"] {
+  --kpi-tint: var(--tint-bad);
+  --kpi-tone: var(--color-bad);
+}
+
 .kpiBody {
   display: flex;
   flex: 1;
@@ -188,7 +232,7 @@
 
 .kpiValue {
   font-size: var(--text-3xl);
-  font-weight: var(--weight-bold);
+  font-weight: var(--weight-heavy);
   letter-spacing: -0.02em;
   line-height: var(--leading-tight);
   overflow-wrap: anywhere;
@@ -340,9 +384,10 @@
   list-style: none;
 }
 
+/* The label column may shrink below 4rem with enlarged text on a narrow phone, so the row fits (D-126 check). */
 .barRow {
   display: grid;
-  grid-template-columns: minmax(4rem, 7rem) minmax(0, 1fr) auto;
+  grid-template-columns: minmax(0, 7rem) minmax(0, 1fr) auto;
   align-items: center;
   gap: var(--space-3);
 }

@@ -1,0 +1,122 @@
+/*
+ * The hero band at the top of every page (D-126). Everything is mixed from the theme's colours. Its size follows the
+ * band's own width (a container), so the picture shows where there is room and steps aside on a narrow phone or
+ * with enlarged text, rather than squeezing the heading.
+ */
+.band {
+  --band-pad-block: min(var(--space-6), 6vw);
+  --band-pad-inline: min(var(--space-6), 5vw);
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  container-type: inline-size;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--space-3) var(--space-5);
+  min-width: 0;
+  padding: var(--band-pad-block) var(--band-pad-inline);
+  border: 1px solid color-mix(in srgb, var(--color-surface) 80%, var(--color-border));
+  border-radius: var(--radius-hero);
+  background: var(--hero-wash);
+  box-shadow: var(--shadow-soft);
+}
+
+/* Two soft waves along the bottom, in the accent and brand tints. */
+.band::before,
+.band::after {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  inset-inline: 0;
+  bottom: 0;
+  pointer-events: none;
+  mask: var(--wave) no-repeat left bottom / 100% 100%;
+}
+
+.band::before {
+  inset-inline-start: 35%;
+  height: 70%;
+  background: color-mix(in srgb, var(--color-accent) 9%, transparent);
+}
+
+.band::after {
+  inset-inline-start: 55%;
+  height: 40%;
+  background: color-mix(in srgb, var(--color-primary) 7%, transparent);
+  transform: scaleX(-1);
+}
+
+.text {
+  display: flex;
+  flex: 1 1 12rem;
+  flex-direction: column;
+  gap: var(--space-2);
+  min-width: 0;
+  align-self: center;
+}
+
+/* The page's own heading, whatever its class (an element and a class, so it wins over a page's one-class title): one size and weight on every page. */
+.text h1 {
+  margin: 0;
+  color: var(--color-text);
+  font-family: var(--font-heading);
+  /* Capped by screen width too, so a short title never breaks mid-word at 320 px with text at 200%. */
+  font-size: min(var(--text-4xl), 10vw);
+  font-weight: var(--weight-heavy);
+  line-height: 1.08;
+  letter-spacing: -0.02em;
+  overflow-wrap: break-word;
+}
+
+.artSide {
+  display: none;
+  flex: none;
+  align-items: flex-end;
+  gap: var(--space-4);
+  /* The picture stands on the band's bottom edge, as if behind it. */
+  margin-block-end: calc(-1 * var(--band-pad-block) - 0.75rem);
+}
+
+/* Two classes, so these sizes win over the picture's own defaults whatever order the stylesheets load in. */
+.artSide .art {
+  width: 5rem;
+  height: 5rem;
+}
+
+.slogan {
+  display: none;
+  max-width: 11rem;
+  margin: 0 0 calc(var(--band-pad-block) + 1.5rem);
+  color: color-mix(in srgb, var(--color-accent) 75%, var(--color-text));
+  font-family: var(--font-heading);
+  font-size: var(--text-lg);
+  font-style: italic;
+  font-weight: var(--weight-medium);
+  line-height: var(--leading-tight);
+  text-align: end;
+}
+
+@container (min-width: 18rem) {
+  .artSide {
+    display: flex;
+  }
+}
+
+@container (min-width: 40rem) {
+  .artSide .art {
+    width: 9rem;
+    height: 8rem;
+  }
+}
+
+@container (min-width: 56rem) {
+  .artSide .art {
+    width: 11rem;
+    height: 9.5rem;
+  }
+
+  .slogan {
+    display: block;
+  }
+}

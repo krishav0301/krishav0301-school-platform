@@ -10,9 +10,12 @@ import { APPROVALS_CHANGED } from "@/approvals/client";
 import { useConfig } from "@/config/ConfigProvider";
 import { t } from "@/i18n/messages";
 import { useSession } from "@/session/SessionProvider";
-import { Skeleton, Spinner } from "@/ui";
+import { readPalette, showPalette } from "@/theme/personal";
+import { Illustration, Skeleton, Spinner } from "@/ui";
 
+import { GlobalSearch } from "./GlobalSearch";
 import { MORE_HREF, NAV_ITEMS, isCurrent, showsMenu, splitNav, visibleNav, type NavIcon, type NavItem } from "./nav";
+import { TERM_ROLES, TermChoiceProvider, TermPicker } from "./TermChoice";
 import styles from "./shell.module.css";
 
 const ICONS: Record<NavIcon, LucideIcon> = {
@@ -86,6 +89,12 @@ export function PortalShell({ children, items = NAV_ITEMS }: { children: ReactNo
     if (status === "signedOut") router.replace("/sign-in");
   }, [status, router]);
 
+  // The person's own colours (D-127) inside the portal only; leaving it restores the school's.
+  useEffect(() => {
+    showPalette(readPalette());
+    return () => showPalette(null);
+  }, []);
+
   if (status !== "signedIn" || !me) {
     return (
       <div className={styles.frame}>
@@ -112,7 +121,11 @@ export function PortalShell({ children, items = NAV_ITEMS }: { children: ReactNo
     </Link>
   );
 
+  const choosesTerm = me.roles.some((r) => (TERM_ROLES as readonly string[]).includes(r.role));
+  const pages = menu.map((item) => ({ label: t(item.labelKey), href: item.href }));
+
   return (
+    <TermChoiceProvider enabled={choosesTerm}>
     <div className={`${styles.frame} ${hasMenu ? styles.withTabs : ""}`}>
       <a href="#main" className={styles.skip}>
         {t("shell.skipToContent")}
@@ -120,6 +133,11 @@ export function PortalShell({ children, items = NAV_ITEMS }: { children: ReactNo
       <header className={styles.header}>
         <div className={styles.bar}>
           <div className={styles.headerBrand}>{brand}</div>
+          {/* Search and the term picker (D-127), between the school's name and the account. */}
+          <div className={styles.tools}>
+            <GlobalSearch pages={pages} />
+            <TermPicker />
+          </div>
           <details className={styles.account}>
             <summary className={styles.accountButton} aria-label={t("shell.account")}>
               <span className={styles.avatar} title={me.name} aria-hidden>
@@ -173,6 +191,12 @@ export function PortalShell({ children, items = NAV_ITEMS }: { children: ReactNo
                 </Link>
               ) : null}
             </nav>
+            {/* Wide screens only: a calm card at the foot of the sidebar, its picture in the corner (D-126). */}
+            <div className={styles.sideCard} aria-hidden>
+              <p className={styles.sideTitle}>{t("art.sideTitle")}</p>
+              <p className={styles.sideBody}>{t("art.sideBody")}</p>
+              <Illustration code="S1" size="side" className={styles.sideArt} />
+            </div>
           </aside>
         ) : null}
         <main id="main" className={styles.main}>
@@ -180,5 +204,6 @@ export function PortalShell({ children, items = NAV_ITEMS }: { children: ReactNo
         </main>
       </div>
     </div>
+    </TermChoiceProvider>
   );
 }

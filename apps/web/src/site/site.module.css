@@ -7,7 +7,7 @@
 
 .intro {
   max-width: 40rem;
-  color: var(--color-text-muted);
+  color: color-mix(in srgb, var(--color-text) 78%, var(--color-text-muted));
   font-size: var(--text-lg);
 }
 
@@ -26,7 +26,10 @@
 }
 
 .groupTitle {
-  font-size: var(--text-xl);
+  font-family: var(--font-heading);
+  font-size: var(--text-2xl);
+  font-weight: var(--weight-heavy);
+  letter-spacing: -0.01em;
 }
 
 .itemTitle {
@@ -92,9 +95,10 @@
   flex-direction: column;
   gap: var(--space-2);
   padding: min(var(--space-5), 5vw);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-card);
-  background: var(--color-surface);
+  border: 1px solid var(--line-soft);
+  border-radius: var(--radius-hero);
+  background: linear-gradient(180deg, var(--color-surface) 60%, color-mix(in srgb, var(--color-primary) 3%, var(--color-surface)));
+  box-shadow: var(--shadow-soft);
 }
 
 .stepNumber {
@@ -149,9 +153,10 @@
   gap: var(--space-6);
 }
 
-.hero {
-  gap: var(--space-5);
-  padding: min(var(--space-6), 7.5vw) min(var(--space-5), 7.5vw);
+/* The home hero is the hero band (D-126), roomier: two classes so its padding wins over the band's own. */
+.home .hero {
+  --band-pad-block: min(var(--space-7), 8vw);
+  --band-pad-inline: min(var(--space-6), 7.5vw);
 }
 
 .heroTitle {
@@ -161,13 +166,14 @@
 
 .heroIntro {
   max-width: 40rem;
-  color: var(--color-text-muted);
+  color: color-mix(in srgb, var(--color-text) 78%, var(--color-text-muted));
   font-size: var(--text-lg);
 }
 
 @media (min-width: 48rem) {
-  .hero {
-    padding: var(--space-8) var(--space-7);
+  .home .hero {
+    --band-pad-block: var(--space-8);
+    --band-pad-inline: var(--space-7);
   }
 
   .heroTitle {
@@ -206,10 +212,11 @@
   justify-content: center;
   gap: var(--space-1);
   min-height: var(--control-height);
-  padding: var(--space-3) var(--space-4);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-card);
-  background: var(--color-surface);
+  padding: var(--space-4) var(--space-5);
+  border: 1px solid var(--line-soft);
+  border-radius: var(--radius-hero);
+  background: linear-gradient(140deg, var(--color-surface) 0%, var(--tint-primary) 100%);
+  box-shadow: var(--shadow-soft);
   color: var(--color-text);
   text-decoration: none;
   overflow-wrap: anywhere;

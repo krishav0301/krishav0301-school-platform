@@ -8,7 +8,8 @@ import { useConfig } from "@/config/ConfigProvider";
 import { useAddressQuery } from "@/content/address";
 import { t, type MessageKey } from "@/i18n/messages";
 import { useSession } from "@/session/SessionProvider";
-import { AddDialog, Badge, Button, Field, Notice, Skeleton, TitleRow } from "@/ui";
+import { readStyles } from "@/read/ReadView";
+import { AddDialog, Badge, Button, Field, HeroBand, Notice, Skeleton, TitleRow } from "@/ui";
 
 import {
   addLevel,
@@ -742,12 +743,17 @@ export function ProgrammesScreen() {
   return (
     <FailureContext.Provider value={failure}>
     <div className={styles.page}>
-      <TitleRow>
-        <div className={styles.titleBlock}>
-          <h1 className={styles.title}>{t("structure.title")}</h1>
-          <p className={styles.subtitle}>{t("structure.subtitle", inSentence(words))}</p>
-        </div>
-        {canManage ? (
+      <HeroBand>
+        <TitleRow>
+          <div className={styles.titleBlock}>
+            <h1 className={styles.title}>{t("structure.title")}</h1>
+            <p className={styles.subtitle}>{t("structure.subtitle", inSentence(words))}</p>
+          </div>
+        </TitleRow>
+      </HeroBand>
+      {/* The band holds words only (D-128): its action sits just below it. */}
+      {canManage ? (
+        <div className={readStyles.headerActions}>
           <AddDialog label={t("setup.sections.add", words)} title={t("setup.sections.add", words)} openNow={askedToAdd && none}>
             {(close) => (
               <>
@@ -756,8 +762,8 @@ export function ProgrammesScreen() {
               </>
             )}
           </AddDialog>
-        ) : null}
-      </TitleRow>
+        </div>
+      ) : null}
       {flash ? (
         <div aria-live="polite">
           <Notice tone={flash.tone}>{flash.text}</Notice>

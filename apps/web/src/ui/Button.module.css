@@ -41,15 +41,19 @@
   cursor: not-allowed;
 }
 
+/* The one prominent action: the brand colour deepening toward the text colour, with a soft glow (D-126). The
+   deeper end only raises the contrast the theme check already guarantees for the plain brand colour. */
 .primary {
-  background: var(--color-primary);
+  background: var(--action-fill);
   color: var(--color-primary-text);
+  box-shadow: var(--shadow-glow);
 }
 
 .secondary {
   background: var(--color-surface);
   color: var(--color-text);
   border-color: var(--color-text-muted);
+  box-shadow: 0 1px 2px color-mix(in srgb, var(--color-text) 6%, transparent);
 }
 
 .quiet {

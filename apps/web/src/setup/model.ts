@@ -38,6 +38,11 @@ export function defaultYearId(years: readonly Year[]): string | null {
   return years.find((y) => y.status === "active")?.id ?? years[0]?.id ?? null;
 }
 
+/** The term a one-term screen starts on: the one remembered from the top bar (D-127) if it is listed, else the default. */
+export function startYearId(years: readonly Year[], remembered: string | null): string | null {
+  return remembered && years.some((y) => y.id === remembered) ? remembered : defaultYearId(years);
+}
+
 /** What a class picker offers: the active levels of active programmes, named with their programme. */
 /** The levels a class can be made for: switched on, and (given a term's levels, D-110) run by that term. */
 export function levelChoices(programmes: readonly Programme[], only?: readonly string[]): { value: string; label: string }[] {

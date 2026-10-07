@@ -7,7 +7,7 @@ import { t } from "@/i18n/messages";
 import { useSession } from "@/session/SessionProvider";
 import setupStyles from "@/setup/setup.module.css";
 import { Gate, useLoad } from "@/setup/useLoad";
-import { Notice } from "@/ui";
+import { HeroBand, Notice } from "@/ui";
 
 import styles from "./mailbox.module.css";
 
@@ -83,8 +83,10 @@ export function MailboxScreen() {
   const { view, reload } = useLoad<{ messages: MailboxMessage[] } | null>(loadNow);
   return (
     <>
-      <h1 className={setupStyles.title}>{t("mailbox.title")}</h1>
-      <p className={setupStyles.muted}>{t("mailbox.intro")}</p>
+      <HeroBand>
+        <h1 className={setupStyles.title}>{t("mailbox.title")}</h1>
+        <p className={setupStyles.muted}>{t("mailbox.intro")}</p>
+      </HeroBand>
       <Gate view={view} onRetry={() => void reload()}>
         {(data) => (data === null ? <Notice tone="bad">{t("mailbox.unavailable")}</Notice> : <MailboxList messages={data.messages} />)}
       </Gate>

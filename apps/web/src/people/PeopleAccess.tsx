@@ -8,7 +8,7 @@ import { useConfig } from "@/config/ConfigProvider";
 import { t, type MessageKey } from "@/i18n/messages";
 import { useAddressQuery } from "@/content/address";
 import { useSession } from "@/session/SessionProvider";
-import { Button, Notice, RowMenu, Skeleton, type MenuAction } from "@/ui";
+import { Button, HeroBand, Notice, RowMenu, Skeleton, type MenuAction } from "@/ui";
 
 import { AddPersonDialog, ManageAccessDialog } from "./AccessDialogs";
 import { loadPeople, loadProgrammeOptions, type PeopleGroup, type PeoplePage, type Person, type ProgrammeOption } from "./access-client";
@@ -43,8 +43,10 @@ export function PeopleAccess() {
     <div className={styles.page}>
       <div className={styles.top}>
         <div className={styles.topMain}>
-          <h1 className={styles.title}>{t("access.title")}</h1>
-          <p className={styles.intro}>{t("access.intro")}</p>
+          <HeroBand>
+            <h1 className={styles.title}>{t("access.title")}</h1>
+            <p className={styles.intro}>{t("access.intro")}</p>
+          </HeroBand>
           <Summary counts={counts} />
         </div>
         <HowAccessWorks />

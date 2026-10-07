@@ -6,6 +6,7 @@ import { useConfig } from "@/config/ConfigProvider";
 import { t } from "@/i18n/messages";
 import { ReadFailure, ReadOnlyNote, ReadTable, StatusWord, TableSkeleton, readStyles } from "@/read/ReadView";
 import { useSession } from "@/session/SessionProvider";
+import { useTermChoice } from "@/shell/TermChoice";
 import { loadClasses, loadYears, type Loaded } from "@/setup/client";
 import { classTitle, type SchoolClass } from "@/setup/model";
 import { ReadSetupHeader } from "@/setup/ReadSetup";
@@ -65,13 +66,14 @@ export function TeachingRead() {
     return { ok: true, data: { classes, teachings, terms: open.map((y) => ({ id: y.id, label: y.label })), emails, allTeachers: staff.ok ? staff.counts.teachers : null } };
   }, [api]);
   const { view, reload } = useLoad(loadNow);
+  const { choice } = useTermChoice();
 
   return (
     <div className={readStyles.page}>
       <ReadSetupHeader title={t("people.teaching.title")} subtitle={t("people.teaching.read.subtitle")} />
       {view.status === "loading" ? <TableSkeleton rows={6} /> : null}
       {view.status === "failed" || view.status === "forbidden" ? <ReadFailure status={view.status} onRetry={() => void reload()} /> : null}
-      {view.status === "ready" ? <TeachingBoardView data={view.data} /> : null}
+      {view.status === "ready" ? <TeachingBoardView data={view.data} term={choice ?? ""} /> : null}
       <ReadOnlyNote>{t("setup.read.readOnly", { coordinator: term("role.coordinator") })}</ReadOnlyNote>
     </div>
   );

@@ -8,7 +8,7 @@ import { t, type MessageKey } from "@/i18n/messages";
 import { useSession } from "@/session/SessionProvider";
 import { Bell } from "lucide-react";
 
-import { Button, Card, Checkbox, Field, Notice, Skeleton, buttonClass } from "@/ui";
+import { Button, Card, Checkbox, Field, HeroBand, Notice, Skeleton, buttonClass } from "@/ui";
 
 import { useAddressQuery } from "./address";
 import { BsDateField } from "./BsDateField";
@@ -98,12 +98,14 @@ export function ContentForm() {
   const id = target?.mode === "edit" ? target.id : null;
   return (
     <>
-      <div className={contentStyles.header}>
-        <div>
-          <h1 className={contentStyles.title}>{t(id === null ? "contentForm.newTitle" : "contentForm.editTitle")}</h1>
-          <p className={contentStyles.muted}>{t(id === null ? "contentForm.newSubtitle" : "contentForm.editSubtitle")}</p>
+      <HeroBand>
+        <div className={contentStyles.header}>
+          <div>
+            <h1 className={contentStyles.title}>{t(id === null ? "contentForm.newTitle" : "contentForm.editTitle")}</h1>
+            <p className={contentStyles.muted}>{t(id === null ? "contentForm.newSubtitle" : "contentForm.editSubtitle")}</p>
+          </div>
         </div>
-      </div>
+      </HeroBand>
       <ContentEditor
       key={id ?? "new"}
       id={id}

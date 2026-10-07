@@ -1,0 +1,54 @@
+/* An illustration's place (D-126). Sizes in rem, so a picture grows with enlarged text like everything else. */
+.art {
+  display: block;
+  flex: none;
+  width: 9rem;
+  height: 7.5rem;
+  object-fit: contain;
+  object-position: bottom center;
+}
+
+.art[data-size="side"] {
+  width: 7.5rem;
+  height: 8.5rem;
+}
+
+.art[data-size="spot"] {
+  width: 4.5rem;
+  height: 3.75rem;
+}
+
+/* Until the picture arrives: a soft box with the code that names its prompt. */
+.placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.125rem;
+  border: 1.5px dashed color-mix(in srgb, var(--color-accent) 45%, transparent);
+  border-radius: var(--radius-card);
+  background: color-mix(in srgb, var(--color-surface) 55%, transparent);
+  color: var(--color-accent);
+  text-align: center;
+}
+
+.code {
+  font-size: var(--text-xl);
+  font-weight: var(--weight-heavy);
+  letter-spacing: -0.01em;
+  line-height: 1;
+}
+
+.word {
+  font-size: var(--text-xs);
+  font-weight: var(--weight-medium);
+  opacity: 0.85;
+}
+
+.art[data-size="spot"] .code {
+  font-size: var(--text-base);
+}
+
+.art[data-size="spot"] .word {
+  display: none;
+}

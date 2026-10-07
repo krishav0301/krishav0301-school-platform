@@ -114,3 +114,96 @@
 .narrow {
   max-width: 44rem;
 }
+
+/* --- Appearance (D-127): a choice of palettes, each a small picture above its name. --- */
+.palettes {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(9rem, 100%), 1fr));
+  gap: var(--space-3);
+  margin: 0;
+  padding: 0;
+  border: 0;
+  min-width: 0;
+}
+
+.palette {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  min-height: var(--control-height);
+  padding: var(--space-2);
+  border: 1px solid var(--line-soft);
+  border-radius: var(--radius-card);
+  background: var(--color-surface);
+  cursor: pointer;
+  transition: transform var(--motion-fast) var(--motion-ease);
+}
+
+.palette:active {
+  transform: scale(0.98);
+}
+
+/* The radio itself is hidden for sight but still reached by keyboard and read out; its card shows the choice. */
+.paletteInput {
+  position: absolute;
+  opacity: 0;
+  width: 1px;
+  height: 1px;
+  margin: 0;
+}
+
+.palette:has(.paletteInput:checked) {
+  border-color: transparent;
+  box-shadow: 0 0 0 2px var(--color-primary), var(--shadow-glow);
+}
+
+.palette:has(.paletteInput:focus-visible) {
+  outline: var(--focus-ring);
+  outline-offset: 3px;
+}
+
+.preview {
+  display: flex;
+  align-items: flex-end;
+  height: 4rem;
+  padding: var(--space-2);
+  border: 1px solid var(--color-border);
+  border-radius: calc(var(--radius-card) - 4px);
+  background: var(--color-background);
+}
+
+.previewCard {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  width: 100%;
+  padding: var(--space-2);
+  border-radius: calc(var(--radius-control) - 2px);
+  background: var(--color-surface);
+}
+
+.previewAction {
+  width: 2.25rem;
+  height: 0.75rem;
+  border-radius: 999px;
+  background: var(--color-primary);
+}
+
+.previewAccent {
+  width: 0.75rem;
+  height: 0.75rem;
+  border-radius: 50%;
+  background: var(--color-accent);
+}
+
+/* The chosen palette's name is bold too, so the choice is not shown by colour alone. */
+.paletteName {
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+  text-align: center;
+}
+
+.palette:has(.paletteInput:checked) .paletteName {
+  font-weight: var(--weight-heavy);
+}

@@ -23,8 +23,9 @@ const sources = [...walk(src)].filter((f) => /\.(css|tsx?)$/.test(f) && !f.endsW
 const stylesheets = sources.filter((f) => f.endsWith(".css"));
 const read = (file: string) => readFileSync(file, "utf8");
 
-// The built-in default theme and the font stacks are where colours and fonts may be written out.
-const ALLOWED_LITERALS = new Set(["theme/default-theme.ts", "theme/css.ts"]);
+// The built-in default theme, the font stacks and the colour palettes a person may choose (D-127) are where colours
+// and fonts may be written out.
+const ALLOWED_LITERALS = new Set(["theme/default-theme.ts", "theme/css.ts", "theme/palettes.ts"]);
 // The one stylesheet that names font files (self-hosted, D-038).
 const FONT_FACE_FILE = "app/fonts.css";
 

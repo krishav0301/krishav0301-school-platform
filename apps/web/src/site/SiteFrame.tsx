@@ -5,7 +5,7 @@ import { useCallback, useEffect, useRef, useState, type ReactNode } from "react"
 import { createApiClient } from "@/api/client";
 import { usePageTitle } from "@/config/page-title";
 import { t } from "@/i18n/messages";
-import { Button, Notice, Skeleton } from "@/ui";
+import { Button, HeroBand, Notice, Skeleton } from "@/ui";
 
 import { loadSite } from "./client";
 import type { SiteContent } from "./model";
@@ -44,7 +44,9 @@ export function useSite(): { view: SiteView; retry: () => void } {
 export function SiteFrameView({ title, view, onRetry, children }: { title: string; view: SiteView; onRetry: () => void; children: (site: SiteContent) => ReactNode }) {
   return (
     <>
-      <h1 className={styles.pageTitle}>{title}</h1>
+      <HeroBand>
+        <h1 className={styles.pageTitle}>{title}</h1>
+      </HeroBand>
 
       {view.status === "loading" ? (
         <div role="status" aria-busy="true" className={styles.stack}>

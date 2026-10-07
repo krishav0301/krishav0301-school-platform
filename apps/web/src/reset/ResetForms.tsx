@@ -5,7 +5,7 @@ import { useRef, useState, type FormEvent } from "react";
 
 import { createApiClient } from "@/api/client";
 import { t, type MessageKey } from "@/i18n/messages";
-import { Button, Card, Field, Notice, PasswordField, buttonClass } from "@/ui";
+import { Button, Card, Field, HeroBand, Notice, PasswordField, buttonClass } from "@/ui";
 
 import styles from "./reset.module.css";
 
@@ -59,10 +59,12 @@ export function RequestForm() {
 
   return (
     <Card className={styles.card}>
-      <div className={styles.heading}>
-        <h1 className={styles.title}>{t("reset.title")}</h1>
-        <p className={styles.body}>{t("reset.help")}</p>
-      </div>
+      <HeroBand>
+        <div className={styles.heading}>
+          <h1 className={styles.title}>{t("reset.title")}</h1>
+          <p className={styles.body}>{t("reset.help")}</p>
+        </div>
+      </HeroBand>
       <form onSubmit={submit} className={styles.form} noValidate>
         {problem ? <Notice tone="bad">{t(problem)}</Notice> : null}
         <Field

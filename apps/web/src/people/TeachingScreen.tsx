@@ -7,9 +7,10 @@ import { useConfig } from "@/config/ConfigProvider";
 import { t, type MessageKey } from "@/i18n/messages";
 import { EmptyLine, FigureTiles, Panel, ReadFailure, ReadHeader, StatusWord, TableSkeleton, readStyles, type Figure } from "@/read/ReadView";
 import { useSession } from "@/session/SessionProvider";
+import { useRememberedTerm } from "@/shell/TermChoice";
 import { YearPicker } from "@/setup/ClassesScreen";
 import { loadClasses, loadYears, type Loaded as SetupLoaded } from "@/setup/client";
-import { canManageStructure, classTitle, defaultYearId, type SchoolClass } from "@/setup/model";
+import { canManageStructure, classTitle, startYearId, type SchoolClass } from "@/setup/model";
 import { useLoad } from "@/setup/useLoad";
 import { Notice, Select } from "@/ui";
 
@@ -124,8 +125,10 @@ function TeachingManage() {
 
   const loadYearsNow = useCallback(() => loadYears(api), [api]);
   const years = useLoad(loadYearsNow);
+  // Starts on the term remembered from the top bar (D-127) when it is one of these; choosing here remembers it.
+  const { remembered, remember } = useRememberedTerm();
   const [pickedYear, setPickedYear] = useState<string | null>(null);
-  const yearId = pickedYear ?? (years.view.status === "ready" ? defaultYearId(years.view.data.years) : null);
+  const yearId = pickedYear ?? (years.view.status === "ready" ? startYearId(years.view.data.years, remembered) : null);
 
   const loadClassesNow = useCallback(
     (): Promise<SetupLoaded<{ classes: SchoolClass[] }>> => (yearId ? loadClasses(api, yearId) : Promise.resolve({ ok: true, data: { classes: [] } })),
@@ -168,6 +171,7 @@ function TeachingManage() {
             value={yearId}
             onChange={(id) => {
               setPickedYear(id);
+              remember(id);
               setClassId(null);
               setFlash(null);
             }}

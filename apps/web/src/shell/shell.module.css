@@ -2,7 +2,7 @@
   position: absolute;
   left: var(--space-4);
   top: var(--space-2);
-  z-index: 20;
+  z-index: 30; /* above the header (D-127) */
   padding: var(--space-2) var(--space-4);
   border-radius: var(--radius-control);
   background: var(--color-primary);
@@ -24,9 +24,14 @@
   min-height: 100dvh;
 }
 
+/* Above the page (D-127): the blur makes the header its own layer, so without this the search results would sit
+   under the page's hero band. */
 .header {
-  border-bottom: 1px solid var(--color-border);
-  background: var(--color-surface);
+  position: relative;
+  z-index: 20;
+  border-bottom: 1px solid var(--line-soft);
+  background: color-mix(in srgb, var(--color-surface) 82%, transparent);
+  backdrop-filter: saturate(1.4) blur(12px);
 }
 
 .bar {
@@ -91,9 +96,10 @@
   width: 2.5rem;
   height: 2.5rem;
   border-radius: 50%;
-  background: var(--color-primary);
+  background: var(--action-fill);
   color: var(--color-primary-text);
   font-weight: var(--weight-bold);
+  box-shadow: var(--shadow-glow);
 }
 
 .accountText {
@@ -172,6 +178,11 @@
   display: none;
 }
 
+/* The sidebar's card (D-126): wide screens only; on a phone the menu is the tab bar. */
+.sideCard {
+  display: none;
+}
+
 /* Menu on a phone: a bottom tab bar, inside reach of the thumb. It stays put while the page scrolls
    and clears the home indicator. Icon and one-word label, the current tab marked in text and weight
    as well as colour. */
@@ -184,8 +195,9 @@
   /* One row, always (admin FUT F-15): five equal tabs. With enlarged text the labels give way to the icons alone
      (below), rather than the bar wrapping onto a second row or a word breaking in the middle. */
   flex-wrap: nowrap;
-  border-top: 1px solid var(--color-border);
-  background: var(--color-surface);
+  border-top: 1px solid var(--line-soft);
+  background: color-mix(in srgb, var(--color-surface) 88%, transparent);
+  backdrop-filter: saturate(1.4) blur(12px);
   padding-bottom: env(safe-area-inset-bottom);
 }
 
@@ -352,8 +364,56 @@
     align-self: start;
     height: 100dvh;
     overflow-y: auto;
-    border-inline-end: 1px solid color-mix(in srgb, var(--color-border) 70%, transparent);
-    background: var(--color-surface);
+    display: flex;
+    flex-direction: column;
+    border-inline-end: 1px solid var(--line-soft);
+    background: color-mix(in srgb, var(--color-surface) 78%, transparent);
+    backdrop-filter: saturate(1.4) blur(16px);
+  }
+
+  .sideCard {
+    position: relative;
+    isolation: isolate;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+    margin: auto var(--space-3) var(--space-4);
+    padding: var(--space-4) var(--space-4) 0;
+    border: 1px solid color-mix(in srgb, var(--color-accent) 12%, var(--color-surface));
+    border-radius: var(--radius-hero);
+    background: linear-gradient(165deg, var(--tint-accent), var(--tint-primary));
+  }
+
+  .sideCard::after {
+    content: "";
+    position: absolute;
+    z-index: -1;
+    inset-inline: 0;
+    bottom: 0;
+    height: 55%;
+    background: color-mix(in srgb, var(--color-accent) 10%, transparent);
+    mask: var(--wave) no-repeat left bottom / 100% 100%;
+  }
+
+  .sideTitle {
+    font-family: var(--font-heading);
+    font-size: var(--text-lg);
+    font-weight: var(--weight-heavy);
+    line-height: var(--leading-tight);
+  }
+
+  .sideBody {
+    color: color-mix(in srgb, var(--color-text) 78%, var(--color-text-muted));
+    font-size: var(--text-sm);
+    line-height: var(--leading-tight);
+  }
+
+  /* The picture stands in the card's corner below the words, cut by its bottom edge. */
+  .sideArt {
+    align-self: flex-end;
+    margin-top: var(--space-2);
+    margin-bottom: -0.75rem;
   }
 
   .sidebarBrand {
@@ -406,13 +466,14 @@
   }
 
   .navLink:hover:not([aria-current="page"]) {
-    background: color-mix(in srgb, var(--color-text) 6%, transparent);
+    background: color-mix(in srgb, var(--color-primary) 6%, transparent);
   }
 
+  /* The current place: the action fill with a soft glow (D-126); the weight still marks it without colour. */
   .navLink[aria-current="page"] {
-    background: color-mix(in srgb, var(--color-primary) 12%, var(--color-surface));
-    color: var(--color-primary);
-    box-shadow: none;
+    background: var(--action-fill);
+    color: var(--color-primary-text);
+    box-shadow: var(--shadow-glow);
   }
 }
 
@@ -532,4 +593,254 @@
   font-weight: var(--weight-medium);
   text-decoration: none;
   overflow-wrap: anywhere;
+}
+
+/* Reduce Transparency or Increase Contrast (D-126 review, materials.md › Liquid Glass): the see-through bars become solid. */
+@media (prefers-reduced-transparency: reduce), (prefers-contrast: more) {
+  .header,
+  .nav,
+  .sidebar {
+    background: var(--color-surface);
+    backdrop-filter: none;
+  }
+}
+
+/* --- Search and the term picker in the top bar (D-127) --- */
+.tools {
+  display: flex;
+  flex: 1 1 auto;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--space-2) var(--space-3);
+  min-width: 0;
+}
+
+.searchArea {
+  position: relative;
+  display: flex;
+  align-items: center;
+  min-width: 0;
+}
+
+/* On a phone the field hides behind a button; it opens as its own full-width row. */
+.searchToggle {
+  display: inline-grid;
+  place-items: center;
+  width: var(--control-height);
+  height: var(--control-height);
+  border: 1px solid var(--line-soft);
+  border-radius: var(--radius-control);
+  background: var(--color-surface);
+  color: var(--color-text);
+  cursor: pointer;
+}
+
+.searchToggle svg {
+  width: 1.25rem;
+  height: 1.25rem;
+}
+
+.searchField {
+  display: none;
+  position: relative;
+  align-items: center;
+  width: 100%;
+}
+
+.searchArea[data-shown] {
+  order: 3;
+  flex: 1 1 100%;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.searchArea[data-shown] .searchToggle {
+  order: 2;
+}
+
+.searchArea[data-shown] .searchField {
+  display: flex;
+  flex: 1 1 12rem;
+  order: 1;
+}
+
+.searchIcon {
+  position: absolute;
+  inset-inline-start: var(--space-3);
+  width: 1.125rem;
+  height: 1.125rem;
+  color: var(--color-text-muted);
+  pointer-events: none;
+}
+
+.searchInput {
+  flex: 1;
+  min-width: 0;
+  min-height: var(--control-height);
+  padding: 0 var(--space-4) 0 2.5rem;
+  border: 1px solid var(--line-soft);
+  border-radius: var(--radius-control);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font: inherit;
+  font-size: max(1rem, 16px);
+  box-shadow: 0 2px 8px color-mix(in srgb, var(--color-text) 4%, transparent);
+}
+
+.searchInput::-webkit-search-cancel-button {
+  display: none;
+}
+
+.searchKey {
+  display: none;
+  position: absolute;
+  inset-inline-end: var(--space-2);
+  padding: 0.0625rem var(--space-2);
+  border: 1px solid var(--line-soft);
+  border-radius: calc(var(--radius-control) - 4px);
+  background: color-mix(in srgb, var(--color-text) 4%, var(--color-surface));
+  color: var(--color-text-muted);
+  font-family: var(--font-body);
+  font-size: var(--text-xs);
+  pointer-events: none;
+}
+
+.searchPanel {
+  position: absolute;
+  inset-inline: 0;
+  top: calc(100% + var(--space-2));
+  z-index: 40;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  max-height: min(70dvh, 32rem);
+  overflow-y: auto;
+  padding: var(--space-3);
+  border: 1px solid var(--line-soft);
+  border-radius: var(--radius-hero);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-card), 0 24px 48px -24px color-mix(in srgb, var(--color-text) 30%, transparent);
+}
+
+.searchGroupTitle {
+  margin: 0 0 var(--space-1);
+  padding: 0 var(--space-2);
+  color: var(--color-text-muted);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-bold);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.searchList {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.searchHit {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-height: var(--control-height);
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-control);
+  color: var(--color-text);
+  text-decoration: none;
+  overflow-wrap: anywhere;
+}
+
+.searchHit:hover,
+.searchHit:focus-visible {
+  background: var(--tint-primary);
+}
+
+.searchHitTitle {
+  font-weight: var(--weight-medium);
+}
+
+.searchHitMeta {
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+}
+
+.searchNote {
+  margin: 0;
+  padding: var(--space-2);
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+}
+
+/* The term picker: a native select dressed as a pill. */
+.termPick {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.termIcon,
+.termChevron {
+  position: absolute;
+  width: 1.125rem;
+  height: 1.125rem;
+  color: var(--color-text-muted);
+  pointer-events: none;
+}
+
+.termIcon {
+  inset-inline-start: var(--space-3);
+}
+
+.termChevron {
+  inset-inline-end: var(--space-3);
+}
+
+.termSelect {
+  appearance: none;
+  max-width: 100%;
+  min-height: var(--control-height);
+  padding: 0 2.5rem;
+  border: 1px solid var(--line-soft);
+  border-radius: var(--radius-control);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font: inherit;
+  font-size: max(1rem, 16px);
+  font-weight: var(--weight-medium);
+  text-overflow: ellipsis;
+  cursor: pointer;
+  box-shadow: 0 2px 8px color-mix(in srgb, var(--color-text) 4%, transparent);
+}
+
+@media (min-width: 56rem) {
+  .withTabs .bar {
+    justify-content: space-between;
+  }
+
+  .searchToggle {
+    display: none;
+  }
+
+  .searchArea,
+  .searchArea[data-shown] {
+    order: 0;
+    flex: 0 1 30rem;
+    margin-inline-end: auto;
+  }
+
+  .searchField,
+  .searchArea[data-shown] .searchField {
+    display: flex;
+  }
+
+  .searchKey {
+    display: inline-block;
+  }
+
+  .searchInput {
+    padding-inline-end: 4.5rem;
+  }
 }

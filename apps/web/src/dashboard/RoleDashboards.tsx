@@ -14,6 +14,7 @@ import { nprShort } from "@/fees/ReadFees";
 import { t } from "@/i18n/messages";
 import { Facts } from "@/read/SidePanel";
 import { FigureTiles, OpenLink, Panel, ReadFailure, ReadHeader, ReadTable, StatusWord, TableSkeleton, readStyles, type Figure } from "@/read/ReadView";
+import { OVERVIEW_ART, type ArtCode } from "@/ui";
 import { loadMySheets, loadOwnResults } from "@/results/client";
 import { scoreText } from "@/results/model";
 import { useSession, type RoleClaim } from "@/session/SessionProvider";
@@ -64,10 +65,10 @@ export function DayList({ rows }: { rows: readonly DayRow[] }) {
   );
 }
 
-function Home({ title, subtitle, dayBs, view, onRetry, tiles, children }: { title: string; subtitle: string; dayBs: string | null; view: { status: string }; onRetry: () => void; tiles: number; children: React.ReactNode }) {
+function Home({ art, title, subtitle, dayBs, view, onRetry, tiles, children }: { art: ArtCode; title: string; subtitle: string; dayBs: string | null; view: { status: string }; onRetry: () => void; tiles: number; children: React.ReactNode }) {
   return (
     <div className={readStyles.page}>
-      <ReadHeader title={title} subtitle={subtitle} dayBs={dayBs} />
+      <ReadHeader title={title} subtitle={subtitle} dayBs={dayBs} art={art} />
       {view.status === "loading" ? <TableSkeleton rows={4} tiles={tiles} /> : null}
       {view.status === "failed" || view.status === "forbidden" ? <ReadFailure status={view.status} onRetry={onRetry} /> : null}
       {children}
@@ -164,7 +165,7 @@ export function TeacherDashboard() {
   if (!me) return null;
   const day = view.status === "ready" ? view.data : null;
   return (
-    <Home title={t(greetingKey(now), { name: me.name })} subtitle={`${term("role.teacher")} · ${t("portal.scopeAssigned")}`} dayBs={day?.todayBs ? bsLong(day.todayBs) : null} view={view} onRetry={() => void reload()} tiles={4}>
+    <Home art={OVERVIEW_ART.teacher} title={t(greetingKey(now), { name: me.name })} subtitle={`${term("role.teacher")} · ${t("portal.scopeAssigned")}`} dayBs={day?.todayBs ? bsLong(day.todayBs) : null} view={view} onRetry={() => void reload()} tiles={4}>
       {day ? (
         <>
           <FigureTiles figures={teachingFigures(day)} label={t("coord.figures")} />
@@ -319,7 +320,7 @@ export function StudentDashboard() {
   const day = view.status === "ready" ? view.data : null;
   const subtitle = day?.record ? [day.record.sid, day.record.className].filter(Boolean).join(" · ") : t("portal.scopeOwn");
   return (
-    <Home title={t(greetingKey(now), { name: me.name })} subtitle={subtitle} dayBs={null} view={view} onRetry={() => void reload()} tiles={4}>
+    <Home art={OVERVIEW_ART.student} title={t(greetingKey(now), { name: me.name })} subtitle={subtitle} dayBs={null} view={view} onRetry={() => void reload()} tiles={4}>
       {day ? (
         <>
           <FigureTiles figures={studyFigures(day)} label={t("home.student.figures")} />
@@ -407,7 +408,7 @@ export function AccountantDashboard() {
   const scope = scopeOf(claim, (key) => config?.sections.find((s) => s.key === key)?.name ?? key ?? "");
   const day = view.status === "ready" ? view.data : null;
   return (
-    <Home title={t(greetingKey(now), { name: me.name })} subtitle={`${term("role.accountant")} · ${scope}`} dayBs={null} view={view} onRetry={() => void reload()} tiles={4}>
+    <Home art={OVERVIEW_ART.accountant} title={t(greetingKey(now), { name: me.name })} subtitle={`${term("role.accountant")} · ${scope}`} dayBs={null} view={view} onRetry={() => void reload()} tiles={4}>
       {day ? (
         <>
           <FigureTiles figures={feesFigures(day)} label={t("home.accountant.figures")} />

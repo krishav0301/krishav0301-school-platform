@@ -25,7 +25,7 @@ import { formatNpr } from "@/fees/money";
 import { t, type MessageKey } from "@/i18n/messages";
 import { useSession } from "@/session/SessionProvider";
 import { useLoad } from "@/setup/useLoad";
-import { Button, Skeleton } from "@/ui";
+import { Button, HeroBand, OVERVIEW_ART, Skeleton } from "@/ui";
 
 import {
   attentionRows,
@@ -64,7 +64,7 @@ const Change = ({ percent }: { percent: number | null }) => {
 
 function Kpi({ href, icon, tone, label, value, foot }: { href: string; icon: LucideIcon; tone: Tone; label: MessageKey; value: string; foot: ReactNode }) {
   return (
-    <Link href={href} className={`${styles.card} ${styles.kpi}`}>
+    <Link href={href} className={`${styles.card} ${styles.kpi}`} data-tone={tone}>
       <Tile icon={icon} tone={tone} />
       <span className={styles.kpiBody}>
         <span className={styles.kpiLabel}>{t(label)}</span>
@@ -447,12 +447,14 @@ function Loading() {
 export function AdminDashboardView({ o, name, now }: { o: Overview; name: string; now: Date }) {
   return (
     <div className={styles.page}>
-      <header className={styles.greeting}>
-        <h1 className={styles.hello}>{t(greetingKey(now), { name })}</h1>
-        <p className={styles.today}>
-          <span>{bsLong(o.todayBs)}</span>
-        </p>
-      </header>
+      <HeroBand art={OVERVIEW_ART.admin}>
+        <header className={styles.greeting}>
+          <h1 className={styles.hello}>{t(greetingKey(now), { name })}</h1>
+          <p className={styles.today}>
+            <span>{bsLong(o.todayBs)}</span>
+          </p>
+        </header>
+      </HeroBand>
 
       <div className={styles.kpis}>
         <Kpi href="/portal/admissions" icon={Users} tone="primary" label="dashboard.kpi.students" value={o.students.total.toLocaleString("en-IN")} foot={<Change percent={o.students.changePercent} />} />

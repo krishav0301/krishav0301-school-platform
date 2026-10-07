@@ -86,3 +86,11 @@ export function themeToCss(theme: unknown): string {
   if (theme.dark === undefined) return rules;
   return `${rules}@media (prefers-color-scheme:dark){:root{${colorDeclarations(theme.dark, "dark")}color-scheme:dark;}}`;
 }
+
+/**
+ * The CSS for a person's own colour palette (D-127): only the colour variables, laid over the school's theme. Throws
+ * `InvalidThemeError` unless every colour is a plain hex colour, like a school's theme.
+ */
+export function paletteToCss(colors: unknown): string {
+  return `:root{${colorDeclarations(colors, "palette")}}`;
+}

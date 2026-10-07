@@ -9,7 +9,8 @@ import { RequestsPanel } from "@/approvals/RequestsPanel";
 import { relativeTime } from "@/dashboard/admin-model";
 import { t, type MessageKey } from "@/i18n/messages";
 import { useSession } from "@/session/SessionProvider";
-import { Button, Notice, RowMenu, Skeleton, buttonClass, type MenuAction } from "@/ui";
+import { readStyles } from "@/read/ReadView";
+import { Button, HeroBand, Notice, RowMenu, Skeleton, buttonClass, type MenuAction } from "@/ui";
 
 import { useAddressQuery } from "./address";
 import { archiveItem, loadContent, setPublished, type ContentPage, type ToggleResult } from "./client";
@@ -226,11 +227,16 @@ export function ContentList() {
     <div className={styles.page}>
       <div className={styles.top}>
         <div className={styles.topMain}>
-          <div className={styles.header}>
-            <div className={styles.headerText}>
-              <h1 className={styles.title}>{t("content.title")}</h1>
-              <p className={styles.intro}>{t("content.intro")}</p>
+          <HeroBand>
+            <div className={styles.header}>
+              <div className={styles.headerText}>
+                <h1 className={styles.title}>{t("content.title")}</h1>
+                <p className={styles.intro}>{t("content.intro")}</p>
+              </div>
             </div>
+          </HeroBand>
+          {/* The band holds words only (D-128): its action sits just below it. */}
+          <div className={readStyles.headerActions}>
             <Button className={styles.newButton} onClick={() => change(() => setDialog({ mode: "new", kind: "post" }))}>
               <Plus aria-hidden />
               {t("content.new")}

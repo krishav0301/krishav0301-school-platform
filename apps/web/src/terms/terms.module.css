@@ -219,8 +219,10 @@
   --tone-soft: color-mix(in srgb, var(--color-warn-soft) 60%, var(--color-surface));
 }
 
+/* Wraps with enlarged text on a narrow phone, so the menu button stays inside the card (D-126 check at 320 px, 200%). */
 .cardTop {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: var(--space-3);
 }
@@ -273,9 +275,11 @@
   font-size: var(--text-sm);
 }
 
+/* The term's counts wrap with enlarged text on a narrow phone (D-126 check at 320 px, 200%). */
 .counts {
   display: flex;
-  gap: var(--space-5);
+  flex-wrap: wrap;
+  gap: var(--space-3) var(--space-5);
   margin: auto 0 0;
   padding-top: var(--space-3);
   border-top: 1px solid color-mix(in srgb, var(--color-border) 60%, transparent);
