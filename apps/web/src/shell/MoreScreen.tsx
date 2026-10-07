@@ -25,7 +25,7 @@ export function MoreScreen({ items = NAV_ITEMS }: { items?: readonly NavItem[] }
       <ul className={styles.moreList}>
         {more.map((item) => (
           <li key={item.id}>
-            <Link href={item.href} className={styles.moreItem}>
+            <Link href={item.opensAt ?? item.href} className={styles.moreItem}>
               {t(item.labelKey)}
             </Link>
           </li>
