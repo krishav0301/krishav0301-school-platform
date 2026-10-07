@@ -14,6 +14,10 @@ export interface NavItem {
   id: string;
   labelKey: MessageKey;
   href: string;
+  /** Where the entry opens, when that is not its own address (the entry stays current on every page beneath `href`). */
+  opensAt?: string;
+  /** The label a Co-ordinator sees instead, when it is the only one of these roles they hold (D-131). */
+  coordinatorLabelKey?: MessageKey;
   /** Show only to these roles. Leave out to show to everyone signed in. */
   roles?: readonly string[];
   /** Show only if this school uses this module. An unknown module counts as off. */
@@ -31,7 +35,8 @@ export const MAX_TABS = 5;
 export const NAV_ITEMS: readonly NavItem[] = [
   { id: "dashboard", labelKey: "nav.dashboard", href: "/portal", icon: "overview" },
   // FUT point 19 (D-116): a class as one page, for the staff who work with classes. A teacher sees the classes they teach.
-  { id: "classes", labelKey: "nav.classes", href: "/portal/classes", roles: ["teacher", "coordinator", "admin", "super_admin"], icon: "classes" },
+  // D-130 (the PM): the Co-ordinator reaches the same page as Setup's Classes tab, so it is not in their menu.
+  { id: "classes", labelKey: "nav.classes", href: "/portal/classes", roles: ["teacher", "admin", "super_admin"], icon: "classes" },
   // Phase 2: the Admin edits the public website's content (D-040). Phase 3, slice 4: a Co-ordinator
   // drafts too, and sends a draft for approval instead of publishing it (D-061).
   { id: "content", labelKey: "nav.content", href: "/portal/content", roles: ["coordinator", "admin", "super_admin"], rarely: true, icon: "website" },
@@ -40,9 +45,9 @@ export const NAV_ITEMS: readonly NavItem[] = [
   // D-110: the Principal makes, opens and closes academic terms; the Co-ordinator reads them in Setup.
   { id: "terms", labelKey: "nav.terms", href: "/portal/terms", roles: ["admin", "super_admin"], rarely: true, icon: "terms" },
   // Phase 3: the academic structure. The Co-ordinator sets it up; the Admin can look (the API decides, D-025).
-  { id: "setup", labelKey: "nav.setup", href: "/portal/setup", roles: ["coordinator", "super_admin"], rarely: true, icon: "setup" },
+  { id: "setup", labelKey: "nav.setup", href: "/portal/setup", opensAt: "/portal/setup/programmes", roles: ["coordinator", "super_admin"], rarely: true, icon: "setup" },
   // Phase 3, slice 3a: the staff. Whoever may add someone (the API decides, D-025).
-  { id: "people", labelKey: "nav.people", href: "/portal/people", roles: ["admin", "coordinator", "super_admin"], rarely: true, icon: "people" },
+  { id: "people", labelKey: "nav.people", coordinatorLabelKey: "nav.teacher", href: "/portal/people", roles: ["admin", "coordinator", "super_admin"], rarely: true, icon: "people" },
   // Phase 3, slice 4: the Admin's inbox for a Co-ordinator's draft sent for approval (D-061).
   { id: "approvals", labelKey: "nav.approvals", href: "/portal/approvals", roles: ["admin", "super_admin"], icon: "approvals" },
   // Phase 4: applications, the review queue, walk-ins and the Students page. The Principal reads students here (D-118),
@@ -89,11 +94,14 @@ export function isCurrent(pathname: string, href: string): boolean {
 }
 
 export function visibleNav<R extends { role: string }>(items: readonly NavItem[], roles: readonly R[], modules: Readonly<Record<string, boolean>>): NavItem[] {
-  return items.filter((item) => {
-    if (item.roles && !roles.some((r) => item.roles!.includes(r.role))) return false;
-    if (item.module && modules[item.module] !== true) return false;
-    return true;
-  });
+  const onlyCoordinator = roles.some((r) => r.role === "coordinator") && !roles.some((r) => r.role === "admin" || r.role === "super_admin");
+  return items
+    .filter((item) => {
+      if (item.roles && !roles.some((r) => item.roles!.includes(r.role))) return false;
+      if (item.module && modules[item.module] !== true) return false;
+      return true;
+    })
+    .map((item) => (onlyCoordinator && item.coordinatorLabelKey ? { ...item, labelKey: item.coordinatorLabelKey } : item));
 }
 
 /** A menu of one entry has nothing to choose between, so it is not shown at all. */

@@ -140,7 +140,7 @@ describe("the More tab", () => {
     expect(html).toContain('href="/portal/more"');
     expect(html).toContain(">More<");
     // Setup and People are still in the markup, for the sidebar, but marked to hide on a phone.
-    expect(html).toContain('class="navLink overflow" href="/portal/setup"');
+    expect(html).toContain('class="navLink overflow" href="/portal/setup/programmes"');
     expect(html).toContain('class="navLink overflow" href="/portal/people"');
     expect(html).toContain('class="navLink overflow" href="/portal/content"');
     expect(html).toContain('class="navLink" aria-current="page" href="/portal/attendance"');
@@ -158,7 +158,7 @@ describe("the More tab", () => {
 
   it("the More list holds exactly the places that did not fit", () => {
     const html = inContext(<MoreScreen />, as("coordinator"));
-    expect(html).toContain('href="/portal/setup"');
+    expect(html).toContain('href="/portal/setup/programmes"');
     expect(html).toContain('href="/portal/people"');
     expect(html).not.toContain('href="/portal/attendance"');
   });

@@ -274,7 +274,7 @@ export const en = {
 
   // Setup: years, programmes, classes, terminals (Phase 3). {programme}, {level}, {section} and {terminal} are the school's own words.
   "setup.tabs": "Setup sections",
-  "setup.tab.years": "Academic terms",
+  "setup.tab.years": "Academic Terms",
   "setup.tab.programmes": "{programme}s",
   "setup.tab.classes": "Classes",
   "setup.tab.terminals": "Exam pattern",
@@ -530,6 +530,7 @@ export const en = {
 
   // People: staff accounts and the first password (Phase 3, slice 3a)
   "nav.people": "People",
+  "nav.teacher": "Teacher",
   "signIn.samePassword": "That is your temporary password. Choose a different one.",
   "signIn.newTitle": "Choose your own password",
   "signIn.newHelp": "You signed in with a temporary password. Choose a password only you know: at least 10 characters, not a common one, and without your email name or your school's name.",
@@ -557,6 +558,12 @@ export const en = {
   "access.admin.intro": "People who have administrative access to the school platform. Only the {admin} gives this access.",
   "access.admin.empty": "No administrative staff yet",
   "access.admin.emptyBody": "Add a {coordinator} or an {accountant} to give someone platform access.",
+  "teacher.title": "Teacher",
+  "teacher.intro": "The teachers of your school: add one, see what each teaches, and manage their account.",
+  "teacher.panelTitle": "Teachers",
+  "teacher.panelIntro": "Someone you add gets a one-time temporary password, which they change when they first sign in.",
+  "teacher.add": "Add Teacher",
+  "teacher.emptyBody": "Use Add Teacher to add the first one.",
   "access.teaching.title": "Teaching staff",
   "access.teaching.intro": "Teachers are added and managed by a {coordinator}. The {admin} can view the teaching staff here.",
   "access.teaching.empty": "No teaching staff yet",
@@ -2388,6 +2395,7 @@ export const en = {
   "terms.banner": "An active term determines which classes are open for attendance, classwork, results and other academic work. A level is in one active term at a time. Every class in a term follows the same exam pattern: if some classes need a different exam, create a separate term for them.",
   "terms.active.title": "Currently Active ({n})",
   "terms.active.intro": "These terms are running, and their classes are open for academic work.",
+  "terms.active.noneReadOnly": "No term is active right now. The Principal opens terms.",
   "terms.active.none": "No term is active right now. Open a draft term below to start one.",
   "terms.other.title": "Other Terms",
   "terms.other.intro": "Draft and closed academic terms.",

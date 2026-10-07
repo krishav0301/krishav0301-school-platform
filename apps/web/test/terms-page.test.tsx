@@ -118,6 +118,20 @@ describe("the page's sections", () => {
     expect(html).not.toContain("All Academic Terms");
   });
 
+  it("with no manage function (the Co-ordinator's Setup tab) the same boards show every term and offer nothing to change", () => {
+    const active = render(<ActiveTerms terms={mixed} today="2027-02-16" />);
+    const other = render(<OtherTerms terms={mixed} today="2027-02-16" />);
+    expect(active).toContain("B.E. Odd Semester");
+    expect(other).toContain("School 2024-25");
+    for (const html of [active, other]) {
+      expect(html).not.toContain("Manage ");
+      expect(html).not.toContain("Actions for ");
+      expect(html).not.toContain("View School");
+    }
+    expect(render(<ActiveTerms terms={[]} today="2027-02-16" />)).toContain("The Principal opens terms.");
+    expect(render(<ActiveTerms terms={[]} today="2027-02-16" manage={noop} />)).toContain("Open a draft term below");
+  });
+
   it("each status offers only what the platform can do: nothing is deleted or archived (closing is final)", () => {
     const labels = (status: Term["status"]) => termActions(term("x", "X", status), noop).map((a) => a.label);
     expect(labels("active")).toEqual(["Change levels…", "Fill in the next term…", "Close term…"]);

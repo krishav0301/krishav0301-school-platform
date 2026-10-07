@@ -1,3 +1,6 @@
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
+
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 
@@ -120,5 +123,20 @@ describe("inside a class", () => {
     const own = inContext(<ClassResults hub={hub({ viewer: { seesAll: false, attendance: false, isClassTeacher: false, staff: false }, mySubjects: [subject("o2", "Chemistry")] })} />);
     expect(own).toContain('href="/portal/results/sheet?class=c1&amp;subject=o2&amp;terminal=t1"');
     expect(own).not.toContain("English");
+  });
+});
+
+// The PM, 2026-10-07: the Co-ordinator's Setup > Classes tab is the same page the Principal reads.
+describe("Setup's Classes tab", () => {
+  const read = (...parts: string[]) => readFileSync(join(import.meta.dirname, "..", "src", ...parts), "utf8");
+  it("shows the Classes page itself, so the Co-ordinator and the Principal see one design", () => {
+    const page = read("app", "portal", "setup", "classes", "page.tsx");
+    expect(page).toContain('from "@/classes/ClassesScreen"');
+    expect(page).not.toContain('from "@/setup/ClassesScreen"');
+  });
+  it("keeps adding a class on that page, in a dialog, for those who manage the structure only", () => {
+    const screen = read("classes", "ClassesScreen.tsx");
+    expect(screen).toContain("canManage ? <AddClassDialog");
+    expect(read("classes", "AddClassDialog.tsx")).toContain("<AddDialog");
   });
 });

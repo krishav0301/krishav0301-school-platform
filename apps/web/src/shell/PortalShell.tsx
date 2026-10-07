@@ -122,7 +122,7 @@ export function PortalShell({ children, items = NAV_ITEMS }: { children: ReactNo
   );
 
   const choosesTerm = me.roles.some((r) => (TERM_ROLES as readonly string[]).includes(r.role));
-  const pages = menu.map((item) => ({ label: t(item.labelKey), href: item.href }));
+  const pages = menu.map((item) => ({ label: t(item.labelKey), href: item.opensAt ?? item.href }));
 
   return (
     <TermChoiceProvider enabled={choosesTerm}>
@@ -174,7 +174,7 @@ export function PortalShell({ children, items = NAV_ITEMS }: { children: ReactNo
                 return (
                   <Link
                     key={item.id}
-                    href={item.href}
+                    href={item.opensAt ?? item.href}
                     className={[styles.navLink, overflow.has(item.id) ? styles.overflow : ""].filter(Boolean).join(" ")}
                     aria-current={isCurrent(pathname, item.href) ? "page" : undefined}
                   >

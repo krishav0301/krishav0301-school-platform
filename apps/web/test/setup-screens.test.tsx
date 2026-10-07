@@ -68,10 +68,10 @@ describe("the sub-menu", () => {
     expect(html).toContain('aria-label="Setup sections"');
   });
 
-  it("puts Teaching after Curriculum, as a step of setup (D-114)", () => {
+  it("lists the tabs in the PM's order (D-130), Teaching still after Curriculum", () => {
     const html = inContext(<SetupTabs pathname="/portal/setup/teaching" />);
     const order = [...html.matchAll(/href="(\/portal\/setup[^"]*)"/g)].map((m) => m[1]);
-    expect(order).toEqual(["/portal/setup", "/portal/setup/programmes", "/portal/setup/classes", "/portal/setup/terminals", "/portal/setup/subjects", "/portal/setup/curriculum", "/portal/setup/teaching", "/portal/setup/promotion"]);
+    expect(order).toEqual(["/portal/setup/programmes", "/portal/setup", "/portal/setup/subjects", "/portal/setup/classes", "/portal/setup/curriculum", "/portal/setup/teaching", "/portal/setup/terminals", "/portal/setup/promotion"]);
     expect(html).toMatch(/aria-current="page"[^>]*>Teaching</);
   });
 

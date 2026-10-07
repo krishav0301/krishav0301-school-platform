@@ -33,7 +33,7 @@ import { ActiveTerms, OtherTerms, TermsBanner, type Manage, type TermStart } fro
 import styles from "./terms.module.css";
 
 /** Today's AD day in Nepal (UTC+5:45), "YYYY-MM-DD". */
-const nepalToday = () => new Date(Date.now() + 345 * 60_000).toISOString().slice(0, 10);
+export const nepalToday = () => new Date(Date.now() + 345 * 60_000).toISOString().slice(0, 10);
 
 const failText = (fail: Fail): string => (fail.reason === "rule" ? fail.message : t(FAIL_MESSAGE[fail.reason]));
 
