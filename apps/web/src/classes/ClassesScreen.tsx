@@ -14,7 +14,8 @@ import { canManageStructure } from "@/setup/model";
 import { useTermChoice } from "@/shell/TermChoice";
 import { useLoad } from "@/setup/useLoad";
 
-import { AddClassLink, ClassesBrowser } from "./ClassesBrowser";
+import { AddClassDialog } from "./AddClassDialog";
+import { ClassesBrowser } from "./ClassesBrowser";
 import { loadClassHub, loadClassHubList } from "./client";
 import { classPlace, classTabs, pickTab, type ClassHub, type ClassTab } from "./model";
 
@@ -33,7 +34,7 @@ export function ClassesScreen() {
   const { choice } = useTermChoice();
   return (
     <div className={readStyles.page}>
-      <ReadHeader title={t("classes.title")} subtitle={t("classes.subtitle")} actions={canManage ? <AddClassLink /> : undefined} />
+      <ReadHeader title={t("classes.title")} subtitle={t("classes.subtitle")} actions={canManage ? <AddClassDialog onAdded={() => void reload()} /> : undefined} />
       {view.status === "loading" ? <TableSkeleton rows={5} /> : null}
       {view.status === "failed" || view.status === "forbidden" ? <ReadFailure status={view.status} onRetry={() => void reload()} /> : null}
       {view.status === "ready" && choice && view.data.classes.length > 0 && !view.data.classes.some((c) => c.termId === choice) ? (

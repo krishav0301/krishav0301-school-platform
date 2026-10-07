@@ -1344,6 +1344,13 @@ The matrix lives in code (61 actions, 8 groups, from the reviewed `permission-ma
 - **Tested.** `art.test.tsx`: every ready code has its file, at most 80 KB; no file in the folder without its code; E3 and X1 in place. The 404 page was checked in the browser.
 - X1's drawing contains the number 404; the style rule says no text. Left as drawn.
 
+**D-130 The Co-ordinator's Setup tabs match the Principal's pages.** 2026-10-07, the PM: Academic Terms "same as what is seen in the admin page, just no option to add a new term"; the Classes tab inside Setup "the same as the admin page", UI only. **UI only; no permission changes.**
+- **Academic Terms (Setup, first tab).** Shows the Principal's board (banner, Currently Active cards, Other Terms table with search and filter, D-123) with no menus, no Manage buttons and no New term. It is the same `ActiveTerms` and `OtherTerms` components, given no `manage` function. With no active term it says the Principal opens terms.
+- **Classes (Setup, Classes tab).** Is now the Classes page itself (`/portal/classes`: course, then level, then sections, D-122, D-125), so the two cannot drift apart. The Co-ordinator keeps what they had: Add Class (now a dialog on that page, choosing the term first, replacing the link to the old Setup form), add a section, rename, Class Teacher, switch off. The Principal still sees it read-only. The old Setup classes list (`ClassesView`, `ClassesTable`) is no longer shown; its form pieces are reused.
+- **Menu.** Classes is removed from the Co-ordinator's side menu (the PM); they reach it as Setup's Classes tab. Teachers, the Principal and Support keep it. The address `/portal/classes` still opens for the Co-ordinator, so links from a class or a report do not break.
+- **Tested.** `terms-page.test.tsx`: the boards with no `manage` show every term and offer nothing to change. `classes-screens.test.tsx`: the Setup tab uses the Classes page, and Add Class is a dialog shown to managers only. Not checked in a browser: both pages need the API and a sign-in.
+- Not done: Delete for a class nothing is attached to was on the old Setup list (D-097) and is not on the grouped page; to be settled with the PM.
+
 ## Open items carried forward
 
 - ~~**Search and the term picker (D-126).**~~ Built, D-127. Still open: a Student looking back at an earlier term, and Results following the chosen term (both need the server to accept a term).

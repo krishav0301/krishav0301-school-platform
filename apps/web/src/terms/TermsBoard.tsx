@@ -75,7 +75,7 @@ export function ActiveTerms({ terms, today, manage }: { terms: readonly Term[]; 
         </h2>
         <p className={styles.meta}>{t("terms.active.intro")}</p>
       </div>
-      {active.length === 0 ? <p className={styles.meta}>{t("terms.active.none")}</p> : null}
+      {active.length === 0 ? <p className={styles.meta}>{t(manage ? "terms.active.none" : "terms.active.noneReadOnly")}</p> : null}
       <ul className={styles.cards}>
         {active.map((term, i) => (
           <li key={term.id} className={styles.card} data-tone={TONES[i % TONES.length]}>

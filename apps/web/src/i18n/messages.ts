@@ -2388,6 +2388,7 @@ export const en = {
   "terms.banner": "An active term determines which classes are open for attendance, classwork, results and other academic work. A level is in one active term at a time. Every class in a term follows the same exam pattern: if some classes need a different exam, create a separate term for them.",
   "terms.active.title": "Currently Active ({n})",
   "terms.active.intro": "These terms are running, and their classes are open for academic work.",
+  "terms.active.noneReadOnly": "No term is active right now. The Principal opens terms.",
   "terms.active.none": "No term is active right now. Open a draft term below to start one.",
   "terms.other.title": "Other Terms",
   "terms.other.intro": "Draft and closed academic terms.",

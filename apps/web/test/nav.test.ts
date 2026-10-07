@@ -37,8 +37,8 @@ describe("the real menu", () => {
     expect(seen("admin", "institution")).toEqual(["dashboard", "classes", "content", "programs", "terms", "people", "approvals", "admissions", "reports", "settings"]);
     expect(seen("super_admin", "institution")).toEqual(["dashboard", "classes", "content", "terms", "setup", "people", "approvals", "attendance", "classwork", "reports", "settings"]);
     // Reports too: the Co-ordinator holds the student and results reports (Co-ordinator FUT F-10).
-    expect(seen("coordinator", "institution")).toEqual(["dashboard", "classes", "content", "setup", "people", "admissions", "attendance", "classwork", "reports", "settings"]);
-    expect(seen("coordinator", "section")).toEqual(["dashboard", "classes", "content", "setup", "people", "admissions", "attendance", "classwork", "reports", "settings"]);
+    expect(seen("coordinator", "institution")).toEqual(["dashboard", "content", "setup", "people", "admissions", "attendance", "classwork", "reports", "settings"]);
+    expect(seen("coordinator", "section")).toEqual(["dashboard", "content", "setup", "people", "admissions", "attendance", "classwork", "reports", "settings"]);
     expect(seen("accountant", "institution")).toEqual(["dashboard", "admissions", "settings"]);
     expect(seen("teacher", "assigned")).toEqual(["dashboard", "classes", "attendance", "classwork", "settings"]);
     expect(seen("student", "own")).toEqual(["dashboard", "classwork", "settings"]);
@@ -72,7 +72,7 @@ describe("the real menu", () => {
       const { tabs, more } = splitNav(visibleNav(NAV_ITEMS, [{ role, scope }], { attendance: true }));
       return { tabs: tabs.map((i) => i.id), more: more.map((i) => i.id) };
     };
-    expect(split("coordinator", "institution")).toEqual({ tabs: ["dashboard", "classes", "admissions", "attendance"], more: ["content", "setup", "people", "classwork", "reports", "settings"] });
+    expect(split("coordinator", "institution")).toEqual({ tabs: ["dashboard", "admissions", "attendance", "classwork"], more: ["content", "setup", "people", "reports", "settings"] });
     expect(split("admin", "institution")).toEqual({ tabs: ["dashboard", "classes", "approvals", "admissions"], more: ["content", "programs", "terms", "people", "reports", "settings"] });
   });
 });

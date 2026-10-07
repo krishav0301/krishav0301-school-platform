@@ -1,6 +1,6 @@
 "use client";
 
-import { BookOpen, ChevronDown, Plus, UserRound, UsersRound } from "lucide-react";
+import { BookOpen, ChevronDown, UserRound, UsersRound } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useId, useState, type FormEvent } from "react";
@@ -18,7 +18,7 @@ import { useLoad } from "@/setup/useLoad";
 import { ClassSectionForm } from "@/setup/ClassesScreen";
 import { createClass, renameClass, setClassActive } from "@/setup/client";
 import { REASON_MESSAGE } from "@/setup/model";
-import { AddDialog, Button, Field, Notice, RowMenu, Select, buttonClass, type MenuAction } from "@/ui";
+import { AddDialog, Button, Field, Notice, RowMenu, Select, type MenuAction } from "@/ui";
 
 import styles from "./classes.module.css";
 import {
@@ -349,15 +349,5 @@ function SwitchOffPanel({ cls, onClose, onDone }: { cls: ClassHubItem; onClose: 
       {problem ? <Notice tone="bad">{problem}</Notice> : null}
       <p className={styles.muted}>{t("classes.off.body", { coordinator: term("role.coordinator") })}</p>
     </SidePanel>
-  );
-}
-
-/** "+ Add Class": the full form, with the term and level to choose, is Setup's (D-114). */
-export function AddClassLink() {
-  return (
-    <Link href="/portal/setup/classes" className={buttonClass()}>
-      <Plus aria-hidden />
-      {t("classes.add")}
-    </Link>
   );
 }
