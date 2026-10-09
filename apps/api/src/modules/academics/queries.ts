@@ -115,7 +115,12 @@ export const CLASS_FREE = (c: string) =>
 export const SECTION_FREE = (s: string) =>
   `(NOT EXISTS (SELECT 1 FROM programmes x WHERE x.section_id = ${s}.id) AND NOT EXISTS (SELECT 1 FROM role_assignments x WHERE x.section_id = ${s}.id)
     AND NOT EXISTS (SELECT 1 FROM staff_profiles x WHERE x.home_section_id = ${s}.id) AND NOT EXISTS (SELECT 1 FROM receipt_counters x WHERE x.section_id = ${s}.id)
-    AND NOT EXISTS (SELECT 1 FROM receipts x WHERE x.section_id = ${s}.id))`;
+    AND NOT EXISTS (SELECT 1 FROM receipts x WHERE x.section_id = ${s}.id)
+    AND NOT EXISTS (SELECT 1 FROM subjects x JOIN subject_offerings o ON o.subject_id = x.id WHERE x.section_id = ${s}.id))`;
+/** A wing's subjects that no level teaches: they go with an otherwise empty wing, since a subject belongs to its wing (D-114). */
+export const WING_SUBJECTS_UNUSED = (adminCheck: string) =>
+  `DELETE FROM subjects WHERE section_id = (SELECT id FROM sections WHERE key = ?1) AND NOT EXISTS (SELECT 1 FROM subject_offerings o WHERE o.subject_id = subjects.id)
+     AND ${adminCheck} AND (SELECT ${SECTION_FREE("s")} FROM sections s WHERE s.key = ?1) = 1`;
 
 /**
  * A section's receipt code is fixed once it has a code and has issued a receipt (D-102). A section from before codes,

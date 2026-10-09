@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { loadConfig } from "../src/core/config";
 import { listClasses, listProgrammes } from "../src/modules/academics/queries";
-import { addLevel, createProgramme, createSection, deleteClass, deleteLevel, deleteProgramme, deleteSection, updateSection } from "../src/modules/academics/service";
+import { addLevel, createProgramme, createSection, deleteClass, deleteLevel, deleteProgramme, deleteSection, createSubject, updateSection } from "../src/modules/academics/service";
 import { auditKey, db, person } from "./academics-helpers";
 import { classWith } from "./schoolday-helpers";
 
@@ -35,6 +35,34 @@ describe("deleting what nothing is attached to", () => {
     expect(await deleteSection(db, key, actor, sectionKey)).toEqual({ ok: true });
     expect(await sectionRow(sectionKey)).toBeNull();
     expect(await audited(sectionKey, "academics.section.deleted")).toBe(1);
+  });
+
+  it("a wing holding only subjects no level teaches is empty: it is deleted and they go with it (B-001)", async () => {
+    const actor = await admin();
+    const sectionKey = await newSection(actor);
+    const subject = await createSubject(db, key, (await person("coordinator", "institution")).publicId, { name: "English", sectionKey });
+    if (!subject.ok) throw new Error(`subject: ${JSON.stringify(subject)}`);
+    expect((await listProgrammes(db, "all")).sections.find((s) => s.key === sectionKey)!.canDelete).toBe(true);
+
+    expect(await deleteSection(db, key, actor, sectionKey)).toEqual({ ok: true });
+    expect(await sectionRow(sectionKey)).toBeNull();
+    expect(await db.prepare("SELECT COUNT(*) AS n FROM subjects WHERE public_id = ?1").bind(subject.publicId).first<{ n: number }>()).toEqual({ n: 0 });
+  });
+
+  it("a wing with a subject a level teaches is in use, and keeps the subject", async () => {
+    const actor = await admin();
+    const sectionKey = await newSection(actor);
+    const programme = await createProgramme(db, key, actor, { name: "BCA", sectionKey, affiliation: "TU" });
+    if (!programme.ok) throw new Error("programme");
+    const level = await addLevel(db, key, actor, programme.publicId, { name: "Year 1", usualMonths: 12 });
+    if (!level.ok) throw new Error("level");
+    const subject = await createSubject(db, key, (await person("coordinator", "institution")).publicId, { name: "Maths", sectionKey });
+    if (!subject.ok) throw new Error(`subject: ${JSON.stringify(subject)}`);
+    await db.prepare("INSERT INTO subject_offerings (public_id, level_id, subject_id) SELECT 'off-' || ?3, l.id, s.id FROM levels l, subjects s WHERE l.public_id = ?1 AND s.public_id = ?2").bind(level.publicId, subject.publicId, crypto.randomUUID()).run();
+    await deleteLevel(db, key, actor, level.publicId); // refused: the level has an offering
+    await deleteProgramme(db, key, actor, programme.publicId); // refused: it has a level
+    expect(await deleteSection(db, key, actor, sectionKey)).toEqual({ ok: false, reason: "in_use" });
+    expect(await db.prepare("SELECT COUNT(*) AS n FROM subjects WHERE public_id = ?1").bind(subject.publicId).first<{ n: number }>()).toEqual({ n: 1 });
   });
 
   it("works from the bottom up: a level, then its programme, then its section, each only once the one below is gone", async () => {
