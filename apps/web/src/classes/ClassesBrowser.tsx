@@ -206,7 +206,8 @@ export function SectionRow({ cls, canManage, onAct }: { cls: ClassHubItem; canMa
     { key: "students", label: t("classes.action.students"), onSelect: () => router.push(`${href}&tab=students`) },
     ...(canManage
       ? [
-          ...(cls.section ? [{ key: "rename", label: t("classes.menu.rename"), onSelect: () => onAct({ kind: "rename", cls }) }] : []),
+          // Offered for a section with no name too, so it can be named later (B-002).
+          { key: "rename", label: t("classes.menu.rename"), onSelect: () => onAct({ kind: "rename", cls }) },
           { key: "teacher", label: t("classes.menu.teacher"), onSelect: () => onAct({ kind: "teacher", cls }) },
           { key: "off", label: t("classes.menu.off"), onSelect: () => onAct({ kind: "off", cls }) },
         ]

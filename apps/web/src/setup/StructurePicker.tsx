@@ -8,7 +8,7 @@ import type { Programme } from "./model";
 import { coursesOf, levelsOf, settle, wingsOf, type KeepLevel, type StructureChoice } from "./structure-picker";
 import styles from "./setup.module.css";
 
-/** A step with one choice, said in its place rather than offered as a menu of one entry (D-030): "Wing: +2". */
+/** A step with one choice, said in its place rather than offered as a menu of one entry (D-030): "Wing: +2". Still used by the admissions form; the Curriculum picker keeps menus. */
 export function GivenStep({ label, value }: { label: string; value: string }) {
   return <p className={styles.pickerGiven}>{t("setup.picker.given", { label, value })}</p>;
 }
@@ -48,8 +48,8 @@ export function StructurePicker({
 
   return (
     <div className={styles.picker}>
-      {wings.length === 1 ? <GivenStep label={term("term.section")} value={wings[0]!.name} /> : null}
-      {wings.length > 1 ? (
+      {/* Wing, Department and Level stay menus even with one entry, so the screen does not change shape (PM, 2026-10-09). */}
+      {wings.length >= 1 ? (
         <Select
           label={term("term.section")}
           value={choice.sectionKey ?? ""}
@@ -58,8 +58,7 @@ export function StructurePicker({
           error={errorAt === "wing" ? error : undefined}
         />
       ) : null}
-      {courses.length === 1 ? <GivenStep label={term("term.programme")} value={courses[0]!.name} /> : null}
-      {courses.length > 1 ? (
+      {courses.length >= 1 ? (
         <Select
           label={term("term.programme")}
           value={choice.programmeId ?? ""}
@@ -68,8 +67,7 @@ export function StructurePicker({
           error={errorAt === "course" ? error : undefined}
         />
       ) : null}
-      {levels.length === 1 ? <GivenStep label={term("term.level")} value={levels[0]!.name} /> : null}
-      {levels.length > 1 ? (
+      {levels.length >= 1 ? (
         <Select
           label={term("term.level")}
           value={choice.levelId ?? ""}

@@ -53,11 +53,19 @@ describe("the picker", () => {
     expect(html).toContain(">+2<");
   });
 
-  it("states a single choice instead of offering a menu of one entry (D-030)", () => {
+  it("keeps the course a menu even with one entry (PM, 2026-10-09)", () => {
     const html = render(<StructurePicker programmes={programmes} value={{ sectionKey: "bachelors", programmeId: null, levelId: null }} onChange={() => {}} empty="None" />);
-    expect(html).toContain("BBS"); // the only course, said in a line
-    expect(html).not.toContain(">Course<");
+    expect(html).toMatch(/>Course<[\s\S]*<option[^>]*>BBS<\/option>/); // the only course, still in a menu
+    expect(html).not.toContain("Course: BBS");
     expect(html).toContain(">Level<");
+  });
+
+  it("keeps the wing and the level menus too when each has one entry (PM, 2026-10-09)", () => {
+    const one = [course("mba", "MBA Finance", ["masters", "Master's"], [level("q1", "Quarter 1", 3)])];
+    const html = render(<StructurePicker programmes={one} value={emptyChoice} onChange={() => {}} empty="None" />);
+    expect(html).toMatch(/>Wing<[\s\S]*<option[^>]*>Master&#x27;s<\/option>/);
+    expect(html).toMatch(/>Level<[\s\S]*<option[^>]*>Quarter 1<\/option>/);
+    expect(html).not.toMatch(/(Wing|Course|Level): /);
   });
 
   it("says when there is nothing to choose", () => {

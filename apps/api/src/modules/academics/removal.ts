@@ -1,5 +1,5 @@
 import { adminForProgrammes } from "./guard";
-import { LEVEL_FREE, PROGRAMME_FREE, SECTION_FREE } from "./queries";
+import { LEVEL_FREE, PROGRAMME_FREE, SECTION_FREE, WING_SUBJECTS_UNUSED } from "./queries";
 import { write, type Done } from "./write";
 
 /**
@@ -36,7 +36,11 @@ async function remove(db: D1Database, auditKey: string, actor: string, kind: Kin
     db,
     auditKey,
     { action: `academics.${kind}.deleted`, entityType: kind, entityPublicId: id, actorPublicId: actor, summary: `${label} "${current.name}" deleted`, before: { name: current.name } },
-    db.prepare(`DELETE FROM ${table} WHERE ${idColumn} = ?1 AND ${adminForProgrammes(2)} AND ${free(table)}`).bind(id, actor),
+    [
+      // A wing's unused subjects go with it, in the same batch (each re-checks the Admin and that the wing is free).
+      ...(kind === "section" ? [db.prepare(WING_SUBJECTS_UNUSED(adminForProgrammes(2))).bind(id, actor)] : []),
+      db.prepare(`DELETE FROM ${table} WHERE ${idColumn} = ?1 AND ${adminForProgrammes(2)} AND ${free(table)}`).bind(id, actor),
+    ],
   );
   if (outcome === "done") return { ok: true };
   if (outcome === "check_failed") return { ok: false, reason: "in_use" }; // a foreign key still points at it
