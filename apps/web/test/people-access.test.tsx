@@ -200,3 +200,28 @@ describe("Manage access", () => {
     expect(off).not.toContain(">New temporary password</button>");
   });
 });
+
+describe("a school without Fees (D-137, the PM 2026-10-11)", () => {
+  const withoutFees = (element: React.ReactNode) =>
+    renderToStaticMarkup(
+      <ConfigContext.Provider value={makeConfigValue("ready", { ...config, modules: { fees: false } })}>
+        <SessionContext.Provider value={admin}>{element}</SessionContext.Provider>
+      </ConfigContext.Provider>,
+    );
+
+  it("has no 'How access works' picture and no Accountants count, and says nothing about an Accountant at the top", () => {
+    const off = withoutFees(<PeopleAccess />);
+    expect(off).not.toContain("How access works");
+    expect(off).not.toContain("Accountants");
+    expect(off).toContain("Co-ordinators");
+    expect(off).toContain("Teaching staff");
+    expect(off).toContain('data-solo="true"');
+  });
+
+  it("with Fees on, the picture and the three counts are as before", () => {
+    const on = render(<PeopleAccess />);
+    expect(on).toContain("How access works");
+    expect(on).toContain("Accountants");
+    expect(on).not.toContain("data-solo");
+  });
+});
