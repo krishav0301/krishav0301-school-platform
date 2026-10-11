@@ -49,6 +49,7 @@ worker-configuration.d.ts
 .wrangler/
 .dev.vars
 wrangler.local.jsonc
+wrangler.*.jsonc
 
 # Claude Code local settings
 .claude/settings.local.json
