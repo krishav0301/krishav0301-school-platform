@@ -1,3 +1,4 @@
+import { leaks } from "./leaks";
 import { env } from "cloudflare:test";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
@@ -66,7 +67,7 @@ describe("giving a student a new PIN", () => {
     const { temporaryPassword } = (await (await issue(pupil.studentId, coordinator)).json()) as { temporaryPassword: string };
     const rows = (await db.prepare("SELECT summary, before_json, after_json FROM audit_events WHERE action = 'students.pin.issued' AND entity_public_id = ?1").bind(pupil.studentId).all<{ summary: string; before_json: string | null; after_json: string | null }>()).results;
     expect(rows).toHaveLength(1);
-    expect(JSON.stringify(rows)).not.toContain(temporaryPassword);
+    expect(leaks(JSON.stringify(rows), temporaryPassword)).toBe(false);
   });
 
   it("only a Co-ordinator whose wing reaches the student (or Support): not the Principal, an Accountant, a teacher, another wing or the student", async () => {

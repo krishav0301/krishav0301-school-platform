@@ -1,3 +1,4 @@
+import { leaks } from "./leaks";
 import { beforeAll, describe, expect, it } from "vitest";
 
 import { verifyAuditChain } from "../src/core/audit";
@@ -143,7 +144,7 @@ describe("the secrets", () => {
     const keys = new Set<string>();
     JSON.parse(text, (key, value) => (keys.add(key), value));
     expect([...keys].filter((key) => /hash|secret|temporary|^password/i.test(key))).toEqual([]);
-    expect(text).not.toContain(tea.temporaryPassword);
+    expect(leaks(text, tea.temporaryPassword)).toBe(false);
     const list = JSON.parse(text) as { staff: { id: string; mustChangePassword: boolean; homeSection: string | null }[] };
     expect(list.staff.find((s) => s.id === tea.id)).toMatchObject({ mustChangePassword: true, homeSection: "plus2" });
   });

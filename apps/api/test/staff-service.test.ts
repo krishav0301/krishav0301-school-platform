@@ -1,3 +1,4 @@
+import { leaks } from "./leaks";
 import { beforeAll, describe, expect, it } from "vitest";
 
 import { verifyAuditChain } from "../src/core/audit";
@@ -54,7 +55,7 @@ describe("createStaff (Co-ordinators and Accountants)", () => {
     const row = await db.prepare("SELECT email, full_name, is_active, must_change_password, password_hash FROM users WHERE public_id = ?1").bind(result.publicId).first<{ email: string; full_name: string; is_active: number; must_change_password: number; password_hash: string }>();
     expect(row).toMatchObject({ full_name: "Sita Sharma", is_active: 1, must_change_password: 1 });
     expect(row!.email).toBe(row!.email.toLowerCase());
-    expect(row!.password_hash).not.toContain(result.temporaryPassword);
+    expect(leaks(row!.password_hash, result.temporaryPassword)).toBe(false);
     expect(verifyPassword(result.temporaryPassword, row!.password_hash)).toBe(true);
 
     const role = await db.prepare("SELECT ra.role, ra.scope_type, ra.section_id FROM role_assignments ra JOIN users u ON u.id = ra.user_id WHERE u.public_id = ?1").bind(result.publicId).all();
@@ -67,7 +68,7 @@ describe("createStaff (Co-ordinators and Accountants)", () => {
   it("the temporary password is in no audit entry and no queued message", async () => {
     const result = ok(await createStaff(db, auditKey, admin.publicId, staffInput() as never), "staff");
     const everything = JSON.stringify((await db.prepare("SELECT * FROM audit_events").all()).results) + JSON.stringify((await db.prepare("SELECT * FROM outbox_events").all()).results);
-    expect(everything).not.toContain(result.temporaryPassword);
+    expect(leaks(everything, result.temporaryPassword)).toBe(false);
   });
 
   it("an Accountant may be limited to one section", async () => {
@@ -270,7 +271,7 @@ describe("a new temporary password", () => {
     expect(step).toMatchObject({ ok: true, passwordChange: "required" });
 
     const everything = JSON.stringify((await db.prepare("SELECT * FROM audit_events").all()).results);
-    expect(everything).not.toContain(result.temporaryPassword);
+    expect(leaks(everything, result.temporaryPassword)).toBe(false);
     expect(await auditActions(target.publicId)).toEqual(["accounts.user.created", "accounts.password.issued"]);
   });
 

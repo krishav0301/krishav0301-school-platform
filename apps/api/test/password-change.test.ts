@@ -1,3 +1,4 @@
+import { leaks } from "./leaks";
 import { env } from "cloudflare:test";
 import { beforeAll, describe, expect, it } from "vitest";
 
@@ -111,7 +112,7 @@ describe("choosing a new password", () => {
     expect(rows[0]).toMatchObject({ actor: publicId });
     const text = JSON.stringify(rows);
     expect(text).not.toContain(chosen);
-    expect(text).not.toContain(temporary);
+    expect(leaks(text, temporary)).toBe(false);
   });
 
   it("an Admin then gets the authenticator step, not a session", async () => {
