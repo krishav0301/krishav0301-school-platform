@@ -363,6 +363,7 @@ export const en = {
   "structure.deleteConfirm": "Delete {name}? This can't be undone.",
   "structure.deleteYes": "Yes, delete {name}",
   "structure.keep": "Keep it",
+  "setup.subjects.inUse": "This can't be deleted while a level teaches it. Archive it instead: nothing is lost.",
   "structure.sectionInUse": "This can't be deleted while it has {programme}s, staff or receipts linked to it. Switch it off instead: nothing is lost.",
   "structure.programmeInUse": "This can't be deleted while it has levels, classes or applications. Switch it off instead: nothing is lost.",
   "structure.levelInUse": "This can't be deleted while it has classes, subjects, fees or applications. Switch it off instead: nothing is lost.",

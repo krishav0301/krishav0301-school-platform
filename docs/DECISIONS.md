@@ -1394,6 +1394,8 @@ The matrix lives in code (61 actions, 8 groups, from the reviewed `permission-ma
 - **The form** is a plain list, one field on each line, with "(optional)" on the optional ones.
 - **Tests.** `admissions.test.ts` (name-only admit, numbered emails, typed email kept, bad values refused, duplicates, the public form still strict, fill in later and take away, the suggestion and who may ask), `migration-0034.test.ts`, `admissions-screens.test.tsx`.
 
+**D-136 Deleting a subject made by mistake (PM, 2026-10-10, R-002).** A subject can be deleted while no level teaches it: `DELETE /api/academics/subjects/{id}`, a whole-school Co-ordinator (like changing a subject), with Delete in the subject's Edit pop-up and an audit entry that keeps what it was (`academics.subject.deleted`). A subject with any offering on a level, even one switched off, is "in use" and can only be archived: marks, teaching and students hang off the offering. One more exception to "no hard deletes", like D-097. The Co-ordinator and "nothing uses it" are re-checked inside the delete itself. `subject-delete.test.ts`.
+
 ## Open items carried forward
 
 - ~~**Search and the term picker (D-126).**~~ Built, D-127. Still open: a Student looking back at an earlier term, and Results following the chosen term (both need the server to accept a term).
