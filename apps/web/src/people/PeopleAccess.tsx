@@ -35,21 +35,24 @@ type Flash = { tone: "ok" | "bad"; text: string };
  * paged on the server.
  */
 export function PeopleAccess() {
+  const { moduleEnabled } = useConfig();
+  // The explainer names the Accountant and the counts include them: for a school without Fees (D-137) there is none, so neither is shown.
+  const feesOn = moduleEnabled("fees");
   const [tab, setTab] = useState<PeopleGroup>("admin");
   const [counts, setCounts] = useState<PeoplePage["counts"] | null>(null);
   const tabsId = useId();
 
   return (
     <div className={styles.page}>
-      <div className={styles.top}>
+      <div className={styles.top} data-solo={feesOn ? undefined : true}>
         <div className={styles.topMain}>
           <HeroBand>
             <h1 className={styles.title}>{t("access.title")}</h1>
             <p className={styles.intro}>{t("access.intro")}</p>
           </HeroBand>
-          <Summary counts={counts} />
+          <Summary counts={counts} feesOn={feesOn} />
         </div>
-        <HowAccessWorks />
+        {feesOn ? <HowAccessWorks /> : null}
       </div>
 
       <Tabs id={tabsId} tab={tab} onTab={setTab} />
@@ -68,12 +71,12 @@ const SUMMARY: { key: keyof PeoplePage["counts"]; label: MessageKey; icon: Lucid
   { key: "accountants", label: "access.count.accountants", icon: Wallet, tone: "ok" },
 ];
 
-function Summary({ counts }: { counts: PeoplePage["counts"] | null }) {
+function Summary({ counts, feesOn }: { counts: PeoplePage["counts"] | null; feesOn: boolean }) {
   const { term } = useConfig();
   const words = roleWords(term);
   return (
     <ul className={styles.summary} aria-label={t("access.summary")}>
-      {SUMMARY.map(({ key, label, icon: Icon, tone }) => (
+      {SUMMARY.filter((card) => feesOn || card.key !== "accountants").map(({ key, label, icon: Icon, tone }) => (
         <li key={key} className={styles.summaryCard}>
           <span className={styles.tile} data-tone={tone} aria-hidden>
             <Icon />
@@ -310,7 +313,7 @@ export function addOpen(chosen: AddOpen, asked: "coordinator" | "accountant" | n
 /** The people the Principal gives access to, with what each may reach, their account and their last sign-in. */
 function AdminPanel({ onCounts }: { onCounts: (counts: PeoplePage["counts"]) => void }) {
   const { api } = useSession();
-  const { term } = useConfig();
+  const { term, moduleEnabled } = useConfig();
   const list = usePeople("admin", onCounts);
   // `?add=coordinator` or `?add=accountant` (the dashboard's quick actions) opens Add on its second step with that role.
   const search = useAddressQuery();
@@ -379,7 +382,7 @@ function AdminPanel({ onCounts }: { onCounts: (counts: PeoplePage["counts"]) => 
           label="people.role"
           value={list.filters.role}
           onChange={(v) => list.filterBy({ role: v as Filters["role"] })}
-          options={[{ value: "", label: t("content.filterAll") }, { value: "coordinator", label: term("role.coordinator") }, { value: "accountant", label: term("role.accountant") }]}
+          options={[{ value: "", label: t("content.filterAll") }, { value: "coordinator", label: term("role.coordinator") }, ...(moduleEnabled("fees") ? [{ value: "accountant", label: term("role.accountant") }] : [])]}
         />
         <FilterSelect
           label="content.filterState"

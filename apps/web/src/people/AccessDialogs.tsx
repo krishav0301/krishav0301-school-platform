@@ -138,7 +138,7 @@ function ScopeChoice({
  */
 export function AddPersonDialog({ sections, startRole, onClose, onCreated }: { sections: readonly Section[]; startRole?: "coordinator" | "accountant"; onClose: () => void; onCreated: () => void }) {
   const { api } = useSession();
-  const { term } = useConfig();
+  const { term, moduleEnabled } = useConfig();
   const [step, setStep] = useState<AddStep>(startRole ? "details" : "role");
   const [values, setValues] = useState<AddValues>(() => ({ ...emptyAdd(), role: startRole ?? null }));
   const [errors, setErrors] = useState<AddErrors>({});
@@ -199,7 +199,7 @@ export function AddPersonDialog({ sections, startRole, onClose, onCreated }: { s
       {step === "role" ? (
         <fieldset className={styles.roleCards}>
           <legend className="sr-only">{t("people.role")}</legend>
-          {(["coordinator", "accountant"] as const).map((r) => {
+          {(["coordinator", "accountant"] as const).filter((r) => r !== "accountant" || moduleEnabled("fees")).map((r) => {
             const card = ROLE_CARD[r];
             const Icon = card.icon;
             return (

@@ -10,13 +10,17 @@ import { useSession } from "@/session/SessionProvider";
 import { AccountView } from "@/fees/AccountView";
 import { loadStudentAccount } from "@/fees/client";
 import type { Account } from "@/fees/model";
-import { EmptyLine, OpenLink, Panel, ReadFailure, ReadHeader, ReadOnlyNote, StatusWord, TableSkeleton, readStyles } from "@/read/ReadView";
+import { EmptyLine, OpenLink, Panel, ReadFailure, ReadHeader, ReadOnlyNote, ReadTable, StatusWord, TableSkeleton, readStyles } from "@/read/ReadView";
+import { gateFailure, loadStudentResults } from "@/results/client";
+import { percentText, type OwnResults } from "@/results/model";
+import { resultName } from "@/results/OwnResultsScreen";
 import { useLoad } from "@/setup/useLoad";
 import { Notice } from "@/ui";
 
 import styles from "./admissions.module.css";
 import { loadStudent } from "./client";
 import { CorrectDetails } from "./CorrectDetails";
+import { NewPassword } from "./NewPassword";
 import type { StudentDetail } from "./model";
 
 /**
@@ -84,7 +88,7 @@ export function StudentDetails({ student, feesLink = false, actions }: { student
 
 export function StudentScreen() {
   const { api, me } = useSession();
-  const { term } = useConfig();
+  const { term, moduleEnabled } = useConfig();
   const search = useAddressQuery();
   const id = search === null ? null : new URLSearchParams(search).get("id");
   const load = useCallback(() => loadStudent(api, id ?? ""), [api, id]);
@@ -95,8 +99,10 @@ export function StudentScreen() {
   // The Co-ordinator (and Support) may correct details (students.personal.correct); the server checks the section again.
   const canCorrect = roles.some((r) => r === "coordinator" || r === "super_admin");
   // Only roles the matrix lets read fees get the quiet link to the account (D-104); the server checks again there.
-  const feesLink = roles.some((r) => r === "admin" || r === "accountant" || r === "super_admin");
+  const feesLink = moduleEnabled("fees") && roles.some((r) => r === "admin" || r === "accountant" || r === "super_admin");
   const reader = !roles.some((r) => r === "coordinator" || r === "super_admin");
+  // Staff who read results (the Principal, the Co-ordinator, Support) see the student's published results on the record (the PM, 2026-10-11).
+  const resultsLink = roles.some((r) => r === "admin" || r === "coordinator" || r === "super_admin");
   if (id === null && search !== null) return <Notice tone="bad">{t("admissions.student.missing")}</Notice>;
   if (view.status === "loading") return <TableSkeleton rows={6} />;
   if (view.status !== "ready") return <ReadFailure status={view.status} onRetry={() => void reload()} />;
@@ -108,16 +114,20 @@ export function StudentScreen() {
         feesLink={feesLink}
         actions={
           canCorrect ? (
-            <CorrectDetails
-              student={corrected ?? view.data}
-              onCorrected={(next) => {
-                setCorrected(next);
-                setSaved(true);
-              }}
-            />
+            <>
+              <CorrectDetails
+                student={corrected ?? view.data}
+                onCorrected={(next) => {
+                  setCorrected(next);
+                  setSaved(true);
+                }}
+              />
+              <NewPassword studentId={view.data.id} name={[(corrected ?? view.data).firstName, (corrected ?? view.data).lastName].filter(Boolean).join(" ")} />
+            </>
           ) : null
         }
       />
+      {resultsLink && id ? <RecordResults studentId={id} /> : null}
       {feesLink && id ? <RecordFees studentId={id} name={[(corrected ?? view.data).firstName, (corrected ?? view.data).lastName].join(" ")} /> : null}
       {reader ? <ReadOnlyNote>{t("admissions.record.readOnly", { coordinator: term("role.coordinator") })}</ReadOnlyNote> : null}
     </div>
@@ -140,6 +150,49 @@ function RecordFees({ studentId, name }: { studentId: string; name: string }) {
   if (view.status === "loading") return <TableSkeleton rows={3} tiles={4} />;
   if (view.status !== "ready") return <ReadFailure status={view.status} onRetry={() => void reload()} />;
   return <RecordFeesView account={view.data} studentId={studentId} name={name} />;
+}
+
+/** The student's published results on their record: each exam, then the final, with the marks card to open. */
+function RecordResults({ studentId }: { studentId: string }) {
+  const { api } = useSession();
+  const load = useCallback(async () => {
+    const result = await loadStudentResults(api, studentId);
+    return result.ok ? result : gateFailure(result.reason);
+  }, [api, studentId]);
+  const { view, reload } = useLoad<OwnResults>(load);
+  if (view.status === "loading") return <TableSkeleton rows={3} />;
+  if (view.status !== "ready") return <ReadFailure status={view.status} onRetry={() => void reload()} />;
+  return <RecordResultsView results={view.data} />;
+}
+
+/** Pure: the results section of a record, or the line that says none is published yet. */
+export function RecordResultsView({ results }: { results: OwnResults }) {
+  return (
+    <section className={readStyles.page} aria-labelledby="record-results">
+      <h2 id="record-results" className={readStyles.panelTitle}>
+        {t("admissions.record.results")}
+      </h2>
+      {results.results.length === 0 ? (
+        <EmptyLine>{t("admissions.record.resultsNone")}</EmptyLine>
+      ) : (
+        <ReadTable
+          caption={t("admissions.record.resultsCaption")}
+          rows={results.results}
+          rowKey={(r) => r.publicationId}
+          columns={[
+            { key: "exam", label: t("admissions.record.resultExam"), primary: true, cell: (r) => resultName(r) },
+            { key: "percent", label: t("admissions.record.resultPercent"), cell: (r) => percentText(r.card.body.percentHundredths) },
+            {
+              key: "result",
+              label: t("admissions.record.resultResult"),
+              cell: (r) => (r.card.body.kind === "final" ? (r.card.body.grade ?? t(r.card.body.passed ? "results.card.pass" : "results.card.fail")) : (r.card.body.grade ?? "—")),
+            },
+            { key: "card", label: t("admissions.record.resultCard"), align: "end", plain: true, cell: (r) => <OpenLink href={`/portal/results/card?id=${r.card.id}`} label={t("results.own.openCard")} text={t("admissions.record.resultCard")} /> },
+          ]}
+        />
+      )}
+    </section>
+  );
 }
 
 /** Pure: the fees section of a record, or the line that says there is no account yet. */

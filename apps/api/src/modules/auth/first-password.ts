@@ -10,7 +10,7 @@
 import { recordAudit } from "../../core/audit";
 import { hashPassword, passwordProblems, schoolNameWords, verifyPassword, type PasswordProblem } from "../../core/passwords";
 import { signChallenge, verifyChallenge } from "../../core/two-factor/challenge";
-import { requiresTwoFactor } from "../../core/two-factor/policy";
+import { ADMIN_TWO_FACTOR_SQL, requiresTwoFactor } from "../../core/two-factor/policy";
 import { issueAccessToken, newSession, toClaims, type PublicUser, type RoleRow, type Tokens } from "./service";
 
 export interface ChangeDeps {
@@ -49,7 +49,7 @@ export async function changeRequiredPassword(deps: ChangeDeps, input: ChangeInpu
   const challenge = await verifyChallenge(deps.sessionSecret, input.challenge, Math.floor(now.getTime() / 1000));
   if (!challenge || challenge.kind !== "password") return invalid;
 
-  const [userResult, roleResult, twoFactorResult, schoolResult] = await db.batch([
+  const [userResult, roleResult, twoFactorResult, schoolResult, adminTwoFactorResult] = await db.batch([
     db.prepare("SELECT id, public_id, email, password_hash, full_name, is_active, must_change_password FROM users WHERE public_id = ?1").bind(challenge.sub),
     db
       .prepare(
@@ -60,6 +60,7 @@ export async function changeRequiredPassword(deps: ChangeDeps, input: ChangeInpu
       .bind(challenge.sub),
     db.prepare("SELECT enabled_at FROM user_two_factor WHERE user_id = (SELECT id FROM users WHERE public_id = ?1)").bind(challenge.sub),
     db.prepare("SELECT name, short_name FROM school WHERE id = 1"),
+    db.prepare(ADMIN_TWO_FACTOR_SQL),
   ]);
 
   const user = userResult!.results[0] as unknown as UserRow | undefined;
@@ -94,7 +95,8 @@ export async function changeRequiredPassword(deps: ChangeDeps, input: ChangeInpu
   // The password is now theirs. Carry on as sign-in does: a second step if one is needed, otherwise the session.
   const roles = toClaims(roleResult!.results as unknown as RoleRow[]);
   const twoFactorEnabled = (twoFactorResult!.results[0] as { enabled_at: string | null } | undefined)?.enabled_at != null;
-  const nextStep = twoFactorEnabled ? "required" : requiresTwoFactor(roles) ? "setup" : null;
+  const adminRequired = (adminTwoFactorResult!.results[0] as { required: number }).required === 1;
+  const nextStep = twoFactorEnabled ? "required" : requiresTwoFactor(roles, adminRequired) ? "setup" : null;
   if (nextStep) return { ok: true, twoFactor: nextStep, challenge: await signChallenge(deps.sessionSecret, { sub: user.public_id, kind: nextStep === "required" ? "verify" : "setup" }) };
 
   const userAgent = input.userAgent?.slice(0, 300) ?? null;

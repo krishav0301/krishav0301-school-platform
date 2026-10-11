@@ -8,11 +8,15 @@ import {
   Calendar,
   CalendarCheck,
   ChevronRight,
+  ClipboardCheck,
   ExternalLink,
   FileText,
   Globe,
+  PenLine,
+  Trophy,
   UserPlus,
   UserRoundX,
+  Workflow,
   Users,
   UsersRound,
   type LucideIcon,
@@ -141,16 +145,54 @@ const TABS: { id: TabId; label: MessageKey }[] = [
   { id: "results", label: "dashboard.glance.results" },
 ];
 
-function Glance({ o }: { o: Overview }) {
-  const [tab, setTab] = useState<TabId>("attendance");
+/**
+ * What a school that runs the result system wants first (the PM, 2026-10-11): where the marks are. Shown in the slots a
+ * school leaves free by switching Fees or Attendance off; the other schools' dashboards are as they were.
+ */
+function ResultsKpis({ o }: { o: Overview }) {
+  const { sheets } = o.results;
+  const toSend = Math.max(sheets.expected - sheets.sent, 0);
+  return (
+    <>
+      <Kpi
+        href="/portal/results/sheets"
+        icon={ClipboardCheck}
+        tone="warn"
+        label="dashboard.kpi.marksWaiting"
+        value={String(sheets.underReview)}
+        foot={<span className={styles.muted}>{t(sheets.underReview > 0 ? "dashboard.kpi.marksWaitingFoot" : "dashboard.kpi.marksWaitingNone")}</span>}
+      />
+      <Kpi
+        href="/portal/results/sheets"
+        icon={Trophy}
+        tone="ok"
+        label="dashboard.kpi.resultsPublished"
+        value={String(o.results.publications)}
+        foot={<span className={styles.muted}>{o.results.lastPublishedAt ? t("dashboard.kpi.resultsPublishedFoot", { date: when(o.results.lastPublishedAt) }) : t("dashboard.kpi.resultsPublishedNone")}</span>}
+      />
+      <Kpi
+        href="/portal/results/sheets"
+        icon={PenLine}
+        tone="accent"
+        label="dashboard.kpi.marksToSend"
+        value={String(toSend)}
+        foot={<span className={styles.muted}>{sheets.expected === 0 ? t("dashboard.kpi.marksToSendNoExams") : toSend > 0 ? t("dashboard.kpi.marksToSendFoot", { total: String(sheets.expected) }) : t("dashboard.kpi.marksToSendNone")}</span>}
+      />
+    </>
+  );
+}
+
+function Glance({ o, feesOn, attendanceOn }: { o: Overview; feesOn: boolean; attendanceOn: boolean }) {
+  const tabs = TABS.filter((x) => (feesOn || x.id !== "fees") && (attendanceOn || x.id !== "attendance"));
+  const [tab, setTab] = useState<TabId>(tabs[0]!.id);
   const base = useId();
   const onKey = (event: KeyboardEvent) => {
-    const i = TABS.findIndex((x) => x.id === tab);
-    const next = event.key === "ArrowRight" ? (i + 1) % TABS.length : event.key === "ArrowLeft" ? (i + TABS.length - 1) % TABS.length : null;
+    const i = tabs.findIndex((x) => x.id === tab);
+    const next = event.key === "ArrowRight" ? (i + 1) % tabs.length : event.key === "ArrowLeft" ? (i + tabs.length - 1) % tabs.length : null;
     if (next === null) return;
     event.preventDefault();
-    setTab(TABS[next]!.id);
-    document.getElementById(`${base}-tab-${TABS[next]!.id}`)?.focus();
+    setTab(tabs[next]!.id);
+    document.getElementById(`${base}-tab-${tabs[next]!.id}`)?.focus();
   };
   return (
     <section className={`${styles.card} ${styles.glance}`} aria-labelledby={`${base}-title`}>
@@ -161,7 +203,7 @@ function Glance({ o }: { o: Overview }) {
         <span className={styles.muted}>{t("dashboard.glance.period")}</span>
       </div>
       <div role="tablist" className={styles.tabs} onKeyDown={onKey}>
-        {TABS.map((x) => (
+        {tabs.map((x) => (
           <button
             key={x.id}
             id={`${base}-tab-${x.id}`}
@@ -178,9 +220,9 @@ function Glance({ o }: { o: Overview }) {
         ))}
       </div>
       <div role="tabpanel" id={`${base}-panel`} aria-labelledby={`${base}-tab-${tab}`} className={styles.panel}>
-        {tab === "attendance" ? <AttendanceTab o={o} /> : null}
+        {tab === "attendance" && attendanceOn ? <AttendanceTab o={o} /> : null}
         {tab === "programmes" ? <ProgrammesTab o={o} /> : null}
-        {tab === "fees" ? <FeesTab o={o} /> : null}
+        {tab === "fees" && feesOn ? <FeesTab o={o} /> : null}
         {tab === "results" ? <ResultsTab o={o} /> : null}
       </div>
     </section>
@@ -294,8 +336,8 @@ function ResultsTab({ o }: { o: Overview }) {
 
 const ATTENTION_ICON: Record<string, LucideIcon> = { approvals: FileText, fees: Banknote, attendance: UserRoundX, website: Globe };
 
-function Attention({ o }: { o: Overview }) {
-  const rows = attentionRows(o);
+function Attention({ o, feesOn, attendanceOn }: { o: Overview; feesOn: boolean; attendanceOn: boolean }) {
+  const rows = attentionRows(o, feesOn, attendanceOn);
   return (
     <section className={`${styles.card} ${styles.attention}`} aria-labelledby="attention-title">
       <div className={styles.cardHead}>
@@ -343,16 +385,17 @@ const ACTIONS: { href: string; icon: LucideIcon; tone: Tone; title: MessageKey; 
   { href: "/portal/people?add=accountant", icon: UserPlus, tone: "ok", title: "dashboard.actions.accountant", detail: "dashboard.actions.accountantDetail" },
   { href: "/portal/content?new=post", icon: FileText, tone: "accent", title: "dashboard.actions.post", detail: "dashboard.actions.postDetail" },
   { href: "/portal/setup/programmes?add=1", icon: BookOpen, tone: "warn", title: "dashboard.actions.programme", detail: "dashboard.actions.programmeDetail" },
+  { href: "/portal/setup/map", icon: Workflow, tone: "primary", title: "dashboard.actions.overview", detail: "dashboard.actions.overviewDetail" },
 ];
 
-function QuickActions() {
+function QuickActions({ feesOn }: { feesOn: boolean }) {
   return (
     <section className={`${styles.card} ${styles.actionsCard}`} aria-labelledby="actions-title">
       <h2 id="actions-title" className={styles.cardTitle}>
         {t("dashboard.actions.title")}
       </h2>
       <ul className={styles.actions}>
-        {ACTIONS.map((a) => (
+        {ACTIONS.filter((a) => feesOn || !a.href.includes("add=accountant")).map((a) => (
           <li key={a.title}>
             <Link href={a.href} className={styles.action} data-tone={a.tone}>
               <a.icon aria-hidden strokeWidth={1.75} className={styles.actionIcon} />
@@ -444,7 +487,8 @@ function Loading() {
   );
 }
 
-export function AdminDashboardView({ o, name, now }: { o: Overview; name: string; now: Date }) {
+/** `feesOn`, `attendanceOn`: false for a school with that module switched off (D-137): nothing about it is shown. */
+export function AdminDashboardView({ o, name, now, feesOn = true, attendanceOn = true }: { o: Overview; name: string; now: Date; feesOn?: boolean; attendanceOn?: boolean }) {
   return (
     <div className={styles.page}>
       <HeroBand art={OVERVIEW_ART.admin}>
@@ -459,28 +503,31 @@ export function AdminDashboardView({ o, name, now }: { o: Overview; name: string
       <div className={styles.kpis}>
         <Kpi href="/portal/admissions" icon={Users} tone="primary" label="dashboard.kpi.students" value={o.students.total.toLocaleString("en-IN")} foot={<Change percent={o.students.changePercent} />} />
         <Kpi href="/portal/people" icon={UsersRound} tone="accent" label="dashboard.kpi.staff" value={o.staff.total.toLocaleString("en-IN")} foot={<Change percent={o.staff.changePercent} />} />
-        <Kpi
-          href="/portal/attendance"
-          icon={CalendarCheck}
-          tone="ok"
-          label="dashboard.kpi.attendance"
-          value={o.attendance.percent === null ? "–" : `${o.attendance.percent}%`}
-          foot={
-            <span className={styles.muted}>
-              {o.attendance.marked === 0 ? t("dashboard.kpi.notMarked") : t("dashboard.kpi.present", { present: o.attendance.present.toLocaleString("en-IN"), total: o.attendance.marked.toLocaleString("en-IN") })}
-            </span>
-          }
-        />
-        <Kpi href="/portal/fees/dues" icon={Banknote} tone="warn" label="dashboard.kpi.fees" value={t("dashboard.npr", { amount: compactNpr(o.fees.collectedPaisa) })} foot={<Change percent={o.fees.changePercent} />} />
+        {attendanceOn ? (
+          <Kpi
+            href="/portal/attendance"
+            icon={CalendarCheck}
+            tone="ok"
+            label="dashboard.kpi.attendance"
+            value={o.attendance.percent === null ? "–" : `${o.attendance.percent}%`}
+            foot={
+              <span className={styles.muted}>
+                {o.attendance.marked === 0 ? t("dashboard.kpi.notMarked") : t("dashboard.kpi.present", { present: o.attendance.present.toLocaleString("en-IN"), total: o.attendance.marked.toLocaleString("en-IN") })}
+              </span>
+            }
+          />
+        ) : null}
+        {feesOn && attendanceOn ? null : <ResultsKpis o={o} />}
+        {feesOn ? <Kpi href="/portal/fees/dues" icon={Banknote} tone="warn" label="dashboard.kpi.fees" value={t("dashboard.npr", { amount: compactNpr(o.fees.collectedPaisa) })} foot={<Change percent={o.fees.changePercent} />} /> : null}
       </div>
 
       <div className={styles.rowMain}>
-        <Glance o={o} />
-        <Attention o={o} />
+        <Glance o={o} feesOn={feesOn} attendanceOn={attendanceOn} />
+        <Attention o={o} feesOn={feesOn} attendanceOn={attendanceOn} />
       </div>
 
       <div className={styles.rowSecond}>
-        <QuickActions />
+        <QuickActions feesOn={feesOn} />
         <Website o={o} />
       </div>
 
@@ -491,7 +538,7 @@ export function AdminDashboardView({ o, name, now }: { o: Overview; name: string
 /** The Principal's dashboard (D-088): fetched once, again when the page comes back into view, and on retry. */
 export function AdminDashboard() {
   const { api, me } = useSession();
-  const { term } = useConfig();
+  const { term, moduleEnabled } = useConfig();
   const loadNow = useCallback(async (): Promise<{ ok: true; data: { overview: Overview; now: Date } } | { ok: false; reason: "failed" }> => {
     try {
       const { data } = await api.GET("/api/dashboard/overview");
@@ -522,5 +569,5 @@ export function AdminDashboard() {
     );
   }
   const isSupport = me?.roles.some((r) => r.role === "super_admin") && !me.roles.some((r) => r.role === "admin");
-  return <AdminDashboardView o={view.data.overview} now={view.data.now} name={isSupport ? t("portal.support") : term("role.admin")} />;
+  return <AdminDashboardView o={view.data.overview} now={view.data.now} name={isSupport ? t("portal.support") : term("role.admin")} feesOn={moduleEnabled("fees")} attendanceOn={moduleEnabled("attendance")} />;
 }

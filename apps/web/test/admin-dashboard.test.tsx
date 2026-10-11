@@ -38,7 +38,7 @@ const base: Overview = {
   },
   fees: { collectedPaisa: 284_000_000, changePercent: 12, chargedPaisa: 1_000_000, paidPaisa: 500_000, duePaisa: 500_000, overduePaisa: 100_000 },
   programmes: [{ id: "p1", name: "+2 Science", sectionName: "+2", active: true, levels: 2, classes: 2, students: 100, teachers: 9 }],
-  results: { publications: 0, lastPublishedAt: null, byProgramme: [] },
+  results: { publications: 0, lastPublishedAt: null, sheets: { expected: 0, sent: 0, underReview: 0 }, byProgramme: [] },
   attention: { approvals: { count: 4, kinds: [{ kind: "discount", count: 4 }] }, feeFollowUps: 12, anomalies: { count: 0, classes: [] }, websiteDrafts: 0 },
   website: { origin: "https://royalsoftech.example", live: 3, drafts: 1, waiting: 0, lastPublishedAt: "2026-09-12T10:47:00.000Z" },
 };
@@ -96,5 +96,103 @@ describe("the Principal's dashboard (D-088)", () => {
   it("carries no colour of its own", () => {
     expect(html).not.toMatch(/#[0-9a-fA-F]{3,8}\b/);
     expect(html).not.toMatch(/style="[^"]*(?:color|background)\s*:/);
+  });
+});
+
+describe("the Setup Overview quick action (the PM, 2026-10-11)", () => {
+  it("is there beside the other quick actions, and opens the setup overview", () => {
+    const html = render(base);
+    expect(html).toContain("Setup Overview");
+    expect(html).toContain("See how it all links");
+    expect(html).toContain("href=\"/portal/setup/map\"");
+  });
+});
+
+describe("with Fees switched off (D-137, the PM 2026-10-11)", () => {
+  const off = renderToStaticMarkup(
+    <ConfigContext.Provider value={makeConfigValue("ready", config)}>
+      <AdminDashboardView o={base} name="Principal" now={new Date("2026-09-30T08:00:00.000Z")} feesOn={false} />
+    </ConfigContext.Provider>,
+  );
+
+  it("the Principal sees nothing about fees: no figure, no tab, no attention row, no Accountant to add", () => {
+    expect(off).not.toContain("NPR 28.4 L");
+    expect(off).not.toContain("/portal/fees");
+    expect(off).not.toContain("add=accountant");
+    expect(off).not.toMatch(/follow-ups?|fees/i);
+    // The rest of the dashboard is untouched.
+    expect(off).toContain("1,248");
+    expect(off).toContain('href="/portal/approvals"');
+    expect(off).toContain("add=coordinator");
+  });
+
+  it("with fees on, the same dashboard still shows them", () => {
+    expect(render(base)).toContain("/portal/fees/dues");
+    expect(render(base)).toContain("add=accountant");
+  });
+});
+
+describe("with Attendance switched off too (a results-only school, the PM 2026-10-11)", () => {
+  const view = (feesOn: boolean, attendanceOn: boolean) =>
+    renderToStaticMarkup(
+      <ConfigContext.Provider value={makeConfigValue("ready", config)}>
+        <AdminDashboardView o={{ ...base, attention: { ...base.attention, anomalies: { count: 3, classes: [] } } }} name="Principal" now={new Date("2026-09-30T08:00:00.000Z")} feesOn={feesOn} attendanceOn={attendanceOn} />
+      </ConfigContext.Provider>,
+    );
+
+  it("no attendance figure, tab or attention row; the first tab is the next one; students, staff and results stay", () => {
+    const html = view(false, false);
+    expect(html).not.toContain("/portal/attendance");
+    expect(html).not.toContain("92%");
+    expect(html).not.toContain("1,148 of 1,248 present");
+    expect(html).not.toMatch(/Attendance/);
+    expect(html).toContain("1,248");
+    expect(html).toContain("Results");
+    expect(html).toMatch(/<button[^>]*aria-selected="true"[^>]*>[^<]*(Programme|Course|Department)/i); // it opens on the next tab, not on an empty Attendance
+  });
+
+  it("with attendance on, the figure, the tab and the attention row are there", () => {
+    const html = view(false, true);
+    expect(html).toContain("92%");
+    expect(html).toContain("/portal/attendance");
+  });
+});
+
+describe("the results figures for a school that runs the result system (the PM, 2026-10-11)", () => {
+  const withSheets = { ...base, results: { ...base.results, publications: 6, lastPublishedAt: "2026-09-29T10:00:00.000Z", sheets: { expected: 40, sent: 31, underReview: 5 } } };
+  const view = (o: Overview, feesOn: boolean, attendanceOn: boolean) =>
+    renderToStaticMarkup(
+      <ConfigContext.Provider value={makeConfigValue("ready", config)}>
+        <AdminDashboardView o={o} name="Principal" now={new Date("2026-09-30T08:00:00.000Z")} feesOn={feesOn} attendanceOn={attendanceOn} />
+      </ConfigContext.Provider>,
+    );
+
+  it("with fees and attendance off: what is waiting to be verified, what is published, and what is still to be sent", () => {
+    const html = view(withSheets, false, false);
+    expect(html).toContain("Waiting to be verified");
+    expect(html).toContain("mark sheets sent by teachers");
+    expect(html).toContain("Results published");
+    expect(html).toContain("class results, last on");
+    expect(html).toContain("Marks still to be sent");
+    expect(html).toContain("of 40 mark sheets");
+    expect(html).toContain(">9<"); // 40 expected, 31 sent
+    expect(html).toContain(">5<");
+    expect(html).toContain(">6<");
+    expect(html).toContain('href="/portal/results/sheets"');
+  });
+
+  it("says so when nothing is waiting, nothing is published and every sheet is sent", () => {
+    const html = view({ ...base, results: { ...base.results, sheets: { expected: 4, sent: 4, underReview: 0 } } }, false, false);
+    expect(html).toContain("Nothing waiting");
+    expect(html).toContain("Nothing published yet");
+    expect(html).toContain("Every mark sheet has been sent");
+    // With no exam set up, there is nothing to send: it says that, not that everything was sent.
+    expect(view(base, false, false)).toContain("No exams set up yet");
+  });
+
+  it("a school that keeps fees and attendance sees its dashboard as before, without these figures", () => {
+    const html = view(withSheets, true, true);
+    expect(html).not.toContain("Waiting to be verified");
+    expect(html).not.toContain("Marks still to be sent");
   });
 });

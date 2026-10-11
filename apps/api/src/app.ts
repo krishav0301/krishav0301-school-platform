@@ -1,6 +1,7 @@
 import { OpenAPIHono } from "@hono/zod-openapi";
 
 import { environmentGuard } from "./core/environment";
+import { moduleRequired } from "./core/module-guard";
 import { logUnhandledError, unhandledErrorResponse } from "./core/error-handler";
 import { sameOriginOnly } from "./core/same-origin";
 import type { AppEnv } from "./core/types";
@@ -36,6 +37,14 @@ export function createApp() {
 
   app.use("*", environmentGuard);
   app.use("/api/*", sameOriginOnly);
+  // A school that does not collect fees switches the module off: its whole address family is then "not found" (D-137).
+  app.use("/api/fees/*", moduleRequired("fees"));
+  // The same for the daily activity log (D-139).
+  app.use("/api/activity/*", moduleRequired("activity_log"));
+  // And for elective subjects (D-142): making groups, and every pick.
+  for (const path of ["/api/results/classes/:classId/electives", "/api/results/enrollments/:enrollmentId/electives/:groupId", "/api/academics/levels/:id/groups", "/api/academics/groups/:id"]) {
+    app.use(path, moduleRequired("electives"));
+  }
 
   // The composition root: each kind's handler is registered here, so the generic `approvals` engine
   // never imports a specific kind's module (D-061).

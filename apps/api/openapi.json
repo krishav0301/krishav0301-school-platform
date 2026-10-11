@@ -3010,6 +3010,9 @@
                   "string",
                   "null"
                 ]
+              },
+              "studentKeepsPin": {
+                "type": "boolean"
               }
             },
             "required": [
@@ -5590,6 +5593,17 @@
           "reason"
         ],
         "additionalProperties": false
+      },
+      "StudentPin": {
+        "type": "object",
+        "properties": {
+          "temporaryPassword": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "temporaryPassword"
+        ]
       },
       "PromotionBoard": {
         "type": "object",
@@ -10236,6 +10250,25 @@
                   "null"
                 ]
               },
+              "sheets": {
+                "type": "object",
+                "properties": {
+                  "expected": {
+                    "type": "integer"
+                  },
+                  "sent": {
+                    "type": "integer"
+                  },
+                  "underReview": {
+                    "type": "integer"
+                  }
+                },
+                "required": [
+                  "expected",
+                  "sent",
+                  "underReview"
+                ]
+              },
               "byProgramme": {
                 "type": "array",
                 "items": {
@@ -10280,6 +10313,7 @@
             "required": [
               "publications",
               "lastPublishedAt",
+              "sheets",
               "byProgramme"
             ]
           },
@@ -16714,6 +16748,78 @@
         }
       }
     },
+    "/api/students/{id}/pin": {
+      "post": {
+        "operationId": "issue_student_pin",
+        "tags": [
+          "students"
+        ],
+        "description": "A new 4-digit password for a student who has lost theirs: the Co-ordinator whose wing reaches the student, or Support. Their open sessions end. It is theirs to keep in a school that lets students keep it, otherwise temporary again. Shown here once and nowhere else, never cached.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{32}$"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The new password (never cached)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StudentPin"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdmissionsError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such item",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdmissionsError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "It conflicts with what is already there",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdmissionsError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "The change breaks a rule; nothing changed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdmissionsInvalid"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/promotions": {
       "get": {
         "operationId": "get_promotion_board",
@@ -20618,6 +20724,48 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/MarksCard"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such item, or not one the person may reach",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultsError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/results/students/{studentId}": {
+      "get": {
+        "operationId": "get_student_results",
+        "tags": [
+          "results"
+        ],
+        "description": "One student's published results as staff read them: each exam, then the final, newest first, each with its marks card. Only for staff whose wings reach one of the student's classes; a student in another wing is 404, the same as a missing one. Rechecks are not in it. Read only.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{32}$"
+            },
+            "required": true,
+            "name": "studentId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The student's published results",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OwnResults"
                 }
               }
             }

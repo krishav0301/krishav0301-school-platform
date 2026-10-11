@@ -150,7 +150,7 @@ describe("academic terms (D-110)", () => {
     expect(setup).toContain("The Principal makes, opens and closes terms");
     expect(setup).not.toContain("New term");
     const principal = inContext(<TermsScreen />, as("admin", "institution"));
-    expect(principal).toContain(">Academic terms<");
+    expect(principal).toContain(">Academic Term<");
     expect(principal).toMatch(/aria-busy="true"/);
   });
 });
@@ -396,7 +396,7 @@ describe("the classes screen", () => {
 // ---------------------------------------------------------------------------------------------
 describe("the pages", () => {
   it.each([
-    ["terms", SetupPage, "Academic terms"],
+    ["terms", SetupPage, "Academic Term"],
     ["promotion", PromotionPage, "Move students on"],
     ["programmes", ProgrammesPage, "Academic Structure"],
     ["classes", ClassesPage, "Classes"],

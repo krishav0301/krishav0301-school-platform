@@ -18,10 +18,12 @@ export interface NavItem {
   opensAt?: string;
   /** The label a Co-ordinator sees instead, when it is the only one of these roles they hold (D-131). */
   coordinatorLabelKey?: MessageKey;
+  /** The label the Principal sees instead, when Admin is the only one of these roles they hold (the PM, 2026-10-11). */
+  adminLabelKey?: MessageKey;
   /** Show only to these roles. Leave out to show to everyone signed in. */
   roles?: readonly string[];
-  /** Show only if this school uses this module. An unknown module counts as off. */
-  module?: string;
+  /** Show only if this school uses this module (or, given several, any one of them). An unknown module counts as off. */
+  module?: string | readonly string[];
   /** Visited now and then rather than daily (setup, staff, the website): the first to move into More on a phone. */
   rarely?: boolean;
   /** The entry's icon in the sidebar (D-088), by name; the shell maps it to a drawing. */
@@ -52,13 +54,13 @@ export const NAV_ITEMS: readonly NavItem[] = [
   { id: "approvals", labelKey: "nav.approvals", href: "/portal/approvals", roles: ["admin", "super_admin"], icon: "approvals" },
   // Phase 4: applications, the review queue, walk-ins and the Students page. The Principal reads students here (D-118),
   // with each student's fees on their record, since Fees left the Principal's menu (D-121). Not the Super Admin.
-  { id: "admissions", labelKey: "nav.admissions", href: "/portal/admissions", roles: ["coordinator", "accountant", "admin"], icon: "admissions" },
+  { id: "admissions", labelKey: "nav.admissions", adminLabelKey: "nav.students", href: "/portal/admissions", roles: ["coordinator", "accountant", "admin"], icon: "admissions" },
   // D-121 (the PM, 2026-10-06): the Principal reaches attendance, classwork and results through Classes, and fees
   // through a student's record, so these four are not in the Principal's menu. The pages still open by address.
   // Phase 5, slice 1: student attendance. The Class Teacher marks it; the Co-ordinator and the Admin look (D-069).
   { id: "attendance", labelKey: "nav.attendance", href: "/portal/attendance", roles: ["teacher", "coordinator", "super_admin"], module: "attendance", icon: "attendance" },
   // Phase 5, slice 3: the daily activity log; notes and homework join it in slice 4 (D-071).
-  { id: "classwork", labelKey: "nav.classwork", href: "/portal/classwork", roles: ["teacher", "student", "coordinator", "super_admin"], icon: "classwork" },
+  { id: "classwork", labelKey: "nav.classwork", href: "/portal/classwork", roles: ["teacher", "student", "coordinator", "super_admin"], module: ["activity_log", "homework", "notes"], icon: "classwork" },
   // Phase 6: fees. The Accountant works here, the Admin looks, a student sees their own; never the Co-ordinator (D-078).
   { id: "fees", labelKey: "nav.fees", href: "/portal/fees", roles: ["accountant", "super_admin", "student"], module: "fees", icon: "fees" },
   // Phase 7: results. The teacher enters marks, the Co-ordinator verifies and publishes, a student sees their own, the Admin reads (D-082).
@@ -94,14 +96,16 @@ export function isCurrent(pathname: string, href: string): boolean {
 }
 
 export function visibleNav<R extends { role: string }>(items: readonly NavItem[], roles: readonly R[], modules: Readonly<Record<string, boolean>>): NavItem[] {
+  // Only the Principal: not also a Co-ordinator or Support, who keep the full name.
+  const onlyAdmin = roles.some((r) => r.role === "admin") && !roles.some((r) => r.role === "coordinator" || r.role === "super_admin" || r.role === "accountant");
   const onlyCoordinator = roles.some((r) => r.role === "coordinator") && !roles.some((r) => r.role === "admin" || r.role === "super_admin");
   return items
     .filter((item) => {
       if (item.roles && !roles.some((r) => item.roles!.includes(r.role))) return false;
-      if (item.module && modules[item.module] !== true) return false;
+      if (item.module && !(typeof item.module === "string" ? [item.module] : item.module).some((m) => modules[m] === true)) return false;
       return true;
     })
-    .map((item) => (onlyCoordinator && item.coordinatorLabelKey ? { ...item, labelKey: item.coordinatorLabelKey } : item));
+    .map((item) => (onlyCoordinator && item.coordinatorLabelKey ? { ...item, labelKey: item.coordinatorLabelKey } : onlyAdmin && item.adminLabelKey ? { ...item, labelKey: item.adminLabelKey } : item));
 }
 
 /** A menu of one entry has nothing to choose between, so it is not shown at all. */

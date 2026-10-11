@@ -75,6 +75,9 @@ async function findDuplicateStudents(db: D1Database, phone: string, firstName: s
 
 // --- The student's sign-in email (the PM, 2026-10-10) -------------------------------------------------------
 
+/** 1 when this school lets students keep their 4-digit password (D-145): an SQL value for the statement around it. */
+const KEEPS_PIN = "COALESCE((SELECT student_keeps_pin FROM school WHERE id = 1), 0)";
+
 export const STUDENT_EMAIL_DOMAIN = "student.com";
 
 /** The part before the @: the first name in lower-case letters and digits, or "student" when it has none (a name in Devanagari). */
@@ -465,7 +468,7 @@ export async function approveApplication(
       db
         .prepare(
           `INSERT INTO users (public_id, email, password_hash, full_name, phone, must_change_password, temporary_password_expires_at)
-           SELECT ?1, st.email, ?3, TRIM(st.first_name || ' ' || st.last_name), NULLIF(st.phone, ''), 1, strftime('%Y-%m-%dT%H:%M:%fZ', 'now', '+1 day')
+           SELECT ?1, st.email, ?3, TRIM(st.first_name || ' ' || st.last_name), NULLIF(st.phone, ''), 1 - ${KEEPS_PIN}, CASE WHEN ${KEEPS_PIN} = 1 THEN NULL ELSE strftime('%Y-%m-%dT%H:%M:%fZ', 'now', '+1 day') END
              FROM students st WHERE st.public_id = ?2 AND changes() > 0`,
         )
         .bind(userPublicId, studentPublicId, hashPassword(temporaryPassword)),
@@ -544,6 +547,41 @@ const studentSection = (n: number): string =>
       JOIN academic_years ay ON ay.id = en.academic_year_id AND ay.status = 'active'
       JOIN classes cl ON cl.id = en.class_id JOIN levels lv ON lv.id = cl.level_id JOIN programmes pv ON pv.id = lv.programme_id
      WHERE st.public_id = ?${n})`;
+
+export type PinResult = { ok: true; temporaryPassword: string } | WriteFailure;
+
+/**
+ * A new 4-digit password for a student who has lost theirs (D-145, the PM 2026-10-11): the Co-ordinator whose wing reaches the
+ * student, or Support, re-checked inside the write. Their open sessions end, a lockout is cleared and the number of wrong
+ * tries starts again. In a school that lets students keep it, it is theirs to keep; otherwise it is temporary again (changed
+ * at first sign-in, expiring in a day). Shown once, never in the audit log.
+ */
+export async function issueStudentPin(db: D1Database, auditKey: string, actor: string, studentPublicId: string, now: Date = new Date()): Promise<PinResult> {
+  const found = await db
+    .prepare("SELECT st.user_id AS user_id, TRIM(st.first_name || ' ' || st.last_name) AS name FROM students st WHERE st.public_id = ?1")
+    .bind(studentPublicId)
+    .first<{ user_id: number | null; name: string }>();
+  if (!found || found.user_id === null) return { ok: false, reason: "not_found" };
+
+  const allowed = `${coordinatorForSection(2, `COALESCE(${studentSection(1)}, -1)`)}`;
+  const temporaryPassword = generateTemporaryPassword();
+  const outcome = await write(
+    db,
+    auditKey,
+    { action: "students.pin.issued", entityType: "student", entityPublicId: studentPublicId, actorPublicId: actor, summary: `A new password was issued to ${found.name}` },
+    [
+      db.prepare(`UPDATE sessions SET revoked_at = ?3, revoked_reason = 'password_issued' WHERE user_id = ?4 AND revoked_at IS NULL AND EXISTS (SELECT 1 WHERE ${allowed})`).bind(studentPublicId, actor, now.toISOString(), found.user_id),
+      db
+        .prepare(
+          `UPDATE users SET password_hash = ?3, must_change_password = 1 - ${KEEPS_PIN}, failed_login_count = 0, locked_until = NULL, temporary_password_failures = 0,
+                  temporary_password_expires_at = CASE WHEN ${KEEPS_PIN} = 1 THEN NULL ELSE strftime('%Y-%m-%dT%H:%M:%fZ', 'now', '+1 day') END
+            WHERE id = ?4 AND ${allowed}`,
+        )
+        .bind(studentPublicId, actor, hashPassword(temporaryPassword), found.user_id),
+    ],
+  );
+  return outcome === "done" ? { ok: true, temporaryPassword } : { ok: false, reason: "not_allowed" };
+}
 
 export type CorrectResult = { ok: true } | WriteFailure | Invalid;
 

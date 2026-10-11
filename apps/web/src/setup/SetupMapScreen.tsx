@@ -1,6 +1,7 @@
 "use client";
 
-import { ArrowRight, Users } from "lucide-react";
+import { ArrowRight, CornerDownRight, Users } from "lucide-react";
+import Link from "next/link";
 import { Fragment, useCallback } from "react";
 
 import { useConfig } from "@/config/ConfigProvider";
@@ -18,31 +19,54 @@ type Term = SetupMap["terms"][number];
 type Level = Term["wings"][number]["departments"][number]["levels"][number];
 type Section = Level["sections"][number];
 
+/** Where each box opens (the PM, 2026-10-11): the screen where that part of the setup is looked at or changed. */
+const GO = {
+  structure: "/portal/setup/programmes",
+  exam: "/portal/setup/terminals",
+  curriculum: "/portal/setup/curriculum",
+  teaching: "/portal/setup/teaching",
+  classPage: (id: string) => `/portal/classes/class?id=${id}`,
+  students: (id: string) => `/portal/classes/class?id=${id}&tab=students`,
+} as const;
+
 /** The arrow between two boxes: it points right where there is room and down where there is not. */
 function Arrow() {
   return <ArrowRight aria-hidden className={styles.arrow} />;
 }
 
-function Node({ kind, name, detail }: { kind: string; name: string; detail?: string }) {
+/** One box. With an `href` the whole box is a link, so a person can go from the picture to the screen behind it. */
+function Box({ href, label, children, ...rest }: { href?: string; label?: string; children: React.ReactNode } & { [key: `data-${string}`]: true | undefined }) {
+  return href ? (
+    <Link href={href} className={styles.node} aria-label={label} {...rest}>
+      {children}
+    </Link>
+  ) : (
+    <div className={styles.node} {...rest}>
+      {children}
+    </div>
+  );
+}
+
+function Node({ kind, name, detail, href }: { kind: string; name: string; detail?: string; href?: string }) {
   return (
-    <div className={styles.node}>
+    <Box href={href} label={href ? t("setup.map.open", { kind, name }) : undefined}>
       <span className={styles.kind}>{kind}</span>
       <span className={styles.name}>{name}</span>
       {detail ? <span className={styles.detail}>{detail}</span> : null}
-    </div>
+    </Box>
   );
 }
 
 /** The term's exam pattern, and the terminals it runs, as the first box of the chart (D-117). */
 export function ExamNode({ term }: { term: Term }) {
   const { exam } = term;
-  if (!exam) return <Node kind={t("setup.map.exam")} name={t("setup.map.noExam")} />;
+  if (!exam) return <Node kind={t("setup.map.exam")} name={t("setup.map.noExam")} href={GO.exam} />;
   const detail = [
     exam.graded ? t("setup.map.graded") : t("setup.map.notGraded"),
     t("setup.map.minimum", { theory: String(exam.theoryMinPercent), practical: String(exam.practicalMinPercent) }),
   ].join(" · ");
   return (
-    <div className={styles.node}>
+    <Box href={GO.exam} label={t("setup.map.open", { kind: t("setup.map.exam"), name: term.label })}>
       <span className={styles.kind}>{t("setup.map.exam")}</span>
       <span className={styles.name}>{t("setup.map.examOutOf")}</span>
       <span className={styles.detail}>{detail}</span>
@@ -59,17 +83,18 @@ export function ExamNode({ term }: { term: Term }) {
           ))}
         </ul>
       )}
-    </div>
+    </Box>
   );
 }
 
-/** One section of a level: its Class Teacher, its students, and who teaches each subject in it. */
+/** One section of a level: its Class Teacher, its students, and who teaches each subject in it. It opens the class. */
 function SectionNode({ section, level, name }: { section: Section; level: Level; name: string }) {
   const { term: word } = useConfig();
+  const kind = termWords(word).classSection;
   const teacherOf = new Map(section.teachers.map((x) => [x.subjectId, x.teacher]));
   return (
-    <div className={styles.node} data-section>
-      <span className={styles.kind}>{termWords(word).classSection}</span>
+    <Box href={GO.classPage(section.id)} label={t("setup.map.open", { kind, name })} data-section>
+      <span className={styles.kind}>{kind}</span>
       <span className={styles.name}>{name}</span>
       <span className={styles.detail}>{section.classTeacher ? t("setup.map.classTeacher", { name: section.classTeacher }) : t("setup.map.noClassTeacher")}</span>
       {level.subjects.length === 0 ? null : (
@@ -82,57 +107,62 @@ function SectionNode({ section, level, name }: { section: Section; level: Level;
           ))}
         </ul>
       )}
-    </div>
+    </Box>
   );
 }
 
-function Students({ n }: { n: number }) {
+function Students({ id, n }: { id: string; n: number }) {
   return (
-    <div className={styles.node} data-students>
+    <Box href={GO.students(id)} label={t("setup.map.openStudents", { n: String(n) })} data-students>
       <span className={styles.kind}>
         <Users aria-hidden className={styles.kindIcon} />
         {t("setup.map.students")}
       </span>
       <span className={styles.name}>{n}</span>
-    </div>
+    </Box>
   );
 }
 
-/** One level: its subjects, then each of its sections flowing on to its students. */
+/** One level: first the level and its subjects, then below them each section, flowing on to its students. */
 function LevelFlow({ level }: { level: Level }) {
   const { term: word } = useConfig();
   const words = termWords(word);
   return (
-    <li className={styles.flow}>
-      <Node kind={words.level} name={level.name} detail={level.subjects.length === 0 ? t("setup.map.noSubjects") : undefined} />
-      {level.subjects.length > 0 ? (
-        <>
-          <Arrow />
-          <div className={styles.node}>
-            <span className={styles.kind}>{t("setup.map.subjects")}</span>
-            <ul className={styles.chips}>
-              {level.subjects.map((s) => (
-                <li key={s.id} className={styles.chip}>
-                  {s.name}
-                  {s.practicalHundredths === null ? "" : ` · ${t("setup.map.withPractical")}`}
-                  {s.group ? ` · ${s.group}` : ""}
-                  {s.fullMarksHundredths === 10_000 ? "" : ` · ${formatHundredths(s.fullMarksHundredths)}`}
-                </li>
-              ))}
-            </ul>
-          </div>
-        </>
-      ) : null}
-      <Arrow />
+    <li className={styles.level}>
+      <div className={styles.flow}>
+        <Node kind={words.level} name={level.name} detail={level.subjects.length === 0 ? t("setup.map.noSubjects") : undefined} href={GO.curriculum} />
+        {level.subjects.length > 0 ? (
+          <>
+            <Arrow />
+            <Box href={GO.curriculum} label={t("setup.map.open", { kind: t("setup.map.subjects"), name: level.name })}>
+              <span className={styles.kind}>{t("setup.map.subjects")}</span>
+              <ul className={styles.chips}>
+                {level.subjects.map((s) => (
+                  <li key={s.id} className={styles.chip}>
+                    {s.name}
+                    {s.practicalHundredths === null ? "" : ` · ${t("setup.map.withPractical")}`}
+                    {s.group ? ` · ${s.group}` : ""}
+                    {s.fullMarksHundredths === 10_000 ? "" : ` · ${formatHundredths(s.fullMarksHundredths)}`}
+                  </li>
+                ))}
+              </ul>
+            </Box>
+          </>
+        ) : null}
+      </div>
       {level.sections.length === 0 ? (
-        <Node kind={words.classSection} name={t("setup.map.noSections")} />
+        <div className={styles.under}>
+          <CornerDownRight aria-hidden className={styles.arrow} />
+          <Node kind={words.classSection} name={t("setup.map.noSections")} />
+        </div>
       ) : (
         <ul className={styles.sections}>
           {level.sections.map((s) => (
             <li key={s.id} className={styles.sectionRow}>
+              <CornerDownRight aria-hidden className={styles.arrow} />
               <SectionNode section={s} level={level} name={s.label || t("setup.map.unnamedSection")} />
               <Arrow />
-              <Students n={s.students} />
+              <Students id={s.id} n={s.students} />
             </li>
           ))}
         </ul>
@@ -142,7 +172,7 @@ function LevelFlow({ level }: { level: Level }) {
 }
 
 /** The chart of one term: Term, then its Exam, then Wing, Department and Level flowing on to sections and students. */
-export function TermFlow({ term }: { term: Term }) {
+export function TermFlow({ term, termHref = "/portal/setup" }: { term: Term; termHref?: string }) {
   const { term: word } = useConfig();
   const words = termWords(word);
   return (
@@ -152,7 +182,7 @@ export function TermFlow({ term }: { term: Term }) {
         <StatusWord tone={term.status === "active" ? "ok" : "neutral"}>{t(term.status === "active" ? "setup.map.active" : "setup.map.draft")}</StatusWord>
       </div>
       <div className={styles.flow}>
-        <Node kind={t("setup.map.term")} name={term.label} />
+        <Node kind={t("setup.map.term")} name={term.label} href={termHref} />
         <Arrow />
         <ExamNode term={term} />
       </div>
@@ -164,9 +194,9 @@ export function TermFlow({ term }: { term: Term }) {
             {wing.departments.map((department) => (
               <Fragment key={department.id}>
                 <div className={styles.flow}>
-                  <Node kind={words.section} name={wing.name} />
+                  <Node kind={words.section} name={wing.name} href={GO.structure} />
                   <Arrow />
-                  <Node kind={words.programme} name={department.name} />
+                  <Node kind={words.programme} name={department.name} href={GO.structure} />
                 </div>
                 <ul className={styles.levels}>
                   {department.levels.map((level) => (
@@ -182,7 +212,8 @@ export function TermFlow({ term }: { term: Term }) {
   );
 }
 
-export function SetupMapView({ map }: { map: SetupMap }) {
+/** `termHref`: where the term's box opens, which differs by who is looking (the Principal's own Academic Term page, or Setup's). */
+export function SetupMapView({ map, termHref }: { map: SetupMap; termHref?: string }) {
   const { term } = useConfig();
   const words = termWords(term);
   if (map.terms.length === 0) return <p className={styles.empty}>{t("setup.map.noTerms")}</p>;
@@ -190,25 +221,27 @@ export function SetupMapView({ map }: { map: SetupMap }) {
     <div className={styles.chart}>
       <p className={styles.legend}>{t("setup.map.legend", words)}</p>
       {map.terms.map((x) => (
-        <TermFlow key={x.id} term={x} />
+        <TermFlow key={x.id} term={x} termHref={termHref} />
       ))}
     </div>
   );
 }
 
-/** The setup map (the PM, 2026-10-10): the whole setup of the chosen term, or of every open term, as a chart. */
+/** The setup overview (the PM, 2026-10-10): the whole setup of the chosen term, or of every open term, as a chart. */
 export function SetupMapScreen() {
-  const { api } = useSession();
+  const { api, me } = useSession();
   const { term } = useConfig();
   const words = termWords(term);
   const { choice } = useTermChoice();
   const load = useCallback(() => loadSetupMap(api, choice), [api, choice]);
   const { view, reload } = useLoad(load);
+  // The Principal makes and opens the terms on their own page; the Co-ordinator reads them in Setup.
+  const termHref = me?.roles.some((r) => r.role === "admin") && !me.roles.some((r) => r.role === "coordinator" || r.role === "super_admin") ? "/portal/terms" : "/portal/setup";
   return (
     <>
       <ReadHeader title={t("setup.map.title")} subtitle={t("setup.map.intro", words)} />
       <Gate view={view} onRetry={() => void reload()}>
-        {(map) => <SetupMapView map={map} />}
+        {(map) => <SetupMapView map={map} termHref={termHref} />}
       </Gate>
     </>
   );

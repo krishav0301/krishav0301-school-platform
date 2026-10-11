@@ -30,7 +30,7 @@ const sectionName = (sections: readonly Section[], key: string | null) => sectio
  * a log, and it is gone when the person leaves the screen or says they have noted it. There is no timer: a person who
  * needs longer to write it down is not hurried.
  */
-export function TemporaryPasswordNotice({ name, password, onDone }: { name: string; password: string; onDone: () => void }) {
+export function TemporaryPasswordNotice({ name, password, onDone, bodyKey }: { name: string; password: string; onDone: () => void; /** Other words under the password, when it is not a temporary one to be changed (D-145). */ bodyKey?: MessageKey }) {
   const heading = useId();
   return (
     <section role="status" aria-labelledby={heading} className={styles.secret}>
@@ -40,7 +40,7 @@ export function TemporaryPasswordNotice({ name, password, onDone }: { name: stri
       <p className={styles.password} aria-label={t("people.secret.label")}>
         {password}
       </p>
-      <p className={setupStyles.muted}>{t("people.secret.body", { name })}</p>
+      <p className={setupStyles.muted}>{t(bodyKey ?? "people.secret.body", { name })}</p>
       <div className={setupStyles.actions}>
         <CopyButton text={password} label={t("people.secret.copy")} copiedLabel={t("people.secret.copied")} />
         <Button className={styles.wrapLabel} onClick={onDone}>
@@ -209,8 +209,8 @@ export function StaffForm({
   showTitle?: boolean;
 }) {
   const { api } = useSession();
-  const { term } = useConfig();
-  const options = addableRoles(roles);
+  const { term, moduleEnabled } = useConfig();
+  const options = addableRoles(roles, moduleEnabled("fees"));
   const [role, setRole] = useState<AddableRole>(initialRole && options.includes(initialRole) ? initialRole : (options[0] ?? "teacher"));
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
@@ -311,10 +311,10 @@ export function StaffForm({
  */
 export function StaffScreen() {
   const { api, me } = useSession();
-  const { config } = useConfig();
+  const { config, moduleEnabled } = useConfig();
   const roles = me?.roles ?? [];
   const sections = config?.sections ?? [];
-  const options = addableRoles(roles);
+  const options = addableRoles(roles, moduleEnabled("fees"));
   // `?add=coordinator` (a dashboard quick action, D-089) opens the Add pop-up on that role, if this person may add it.
   const search = useAddressQuery();
   const asked = search === null ? null : new URLSearchParams(search).get("add");

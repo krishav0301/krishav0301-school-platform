@@ -1414,6 +1414,23 @@ export interface paths {
         patch: operations["correct_student"];
         trace?: never;
     };
+    "/api/students/{id}/pin": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description A new 4-digit password for a student who has lost theirs: the Co-ordinator whose wing reaches the student, or Support. Their open sessions end. It is theirs to keep in a school that lets students keep it, otherwise temporary again. Shown here once and nowhere else, never cached. */
+        post: operations["issue_student_pin"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/promotions": {
         parameters: {
             query?: never;
@@ -2506,6 +2523,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/results/students/{studentId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description One student's published results as staff read them: each exam, then the final, newest first, each with its marks card. Only for staff whose wings reach one of the student's classes; a student in another wing is 404, the same as a missing one. Rechecks are not in it. Read only. */
+        get: operations["get_student_results"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/results/classes/{classId}/terminals/{terminalId}/sheet": {
         parameters: {
             query?: never;
@@ -3424,6 +3458,7 @@ export interface components {
                 timezone: string;
                 region: string;
                 template: string | null;
+                studentKeepsPin?: boolean;
             };
             sections: {
                 key: string;
@@ -3969,6 +4004,9 @@ export interface components {
             guardianPhone?: string;
             previousSchool?: string | null;
             reason: string;
+        };
+        StudentPin: {
+            temporaryPassword: string;
         };
         PromotionBoard: {
             terms: {
@@ -4987,6 +5025,11 @@ export interface components {
             results: {
                 publications: number;
                 lastPublishedAt: string | null;
+                sheets: {
+                    expected: number;
+                    sent: number;
+                    underReview: number;
+                };
                 byProgramme: {
                     id: string;
                     name: string;
@@ -9481,6 +9524,64 @@ export interface operations {
             };
         };
     };
+    issue_student_pin: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The new password (never cached) */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StudentPin"];
+                };
+            };
+            /** @description Not allowed */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdmissionsError"];
+                };
+            };
+            /** @description No such item */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdmissionsError"];
+                };
+            };
+            /** @description It conflicts with what is already there */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdmissionsError"];
+                };
+            };
+            /** @description The change breaks a rule; nothing changed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdmissionsInvalid"];
+                };
+            };
+        };
+    };
     get_promotion_board: {
         parameters: {
             query?: {
@@ -12350,6 +12451,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["MarksCard"];
+                };
+            };
+            /** @description No such item, or not one the person may reach */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResultsError"];
+                };
+            };
+        };
+    };
+    get_student_results: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                studentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The student's published results */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OwnResults"];
                 };
             };
             /** @description No such item, or not one the person may reach */

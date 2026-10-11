@@ -48,6 +48,12 @@ describe("the tabs each person sees (the PM's rules)", () => {
   it("the Principal and the Co-ordinator: every tab", () => {
     expect(classTabs(hub({ viewer: { seesAll: true, attendance: true, isClassTeacher: false, staff: true } }))).toEqual(["students", "attendance", "classwork", "results"]);
   });
+  it("a results-only school (the PM, 2026-10-11): the Principal sees Students and Results, with no Attendance or Classwork tab", () => {
+    const principal = hub({ viewer: { seesAll: true, attendance: true, isClassTeacher: false, staff: true } });
+    expect(classTabs(principal, { attendance: false, classwork: false })).toEqual(["students", "results"]);
+    expect(classTabs(principal, { attendance: false, classwork: true })).toEqual(["students", "classwork", "results"]);
+    expect(classTabs(principal, { attendance: true, classwork: false })).toEqual(["students", "attendance", "results"]);
+  });
   it("a tab asked for in the address opens only if the person may see it", () => {
     expect(pickTab(["students", "results"], "attendance")).toBe("students");
     expect(pickTab(["students", "results"], "results")).toBe("results");

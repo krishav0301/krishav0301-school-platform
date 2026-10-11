@@ -184,3 +184,37 @@
   margin: 0;
   color: var(--color-text-muted);
 }
+
+/* A level: its own row of boxes, then its sections below it, each joined to its students (the PM, 2026-10-11). */
+.level {
+  display: grid;
+  gap: var(--space-3);
+  list-style: none;
+}
+
+.under {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+  padding-inline-start: var(--space-3);
+}
+
+.sections {
+  padding-inline-start: var(--space-3);
+}
+
+/* A box that opens the screen behind it. */
+a.node {
+  color: inherit;
+  text-decoration: none;
+}
+
+a.node:hover {
+  border-color: var(--color-primary);
+  box-shadow: var(--shadow-soft);
+}
+
+a.node:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}

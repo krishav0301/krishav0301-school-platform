@@ -28,7 +28,7 @@ import {
   SetPicksSchema,
   Top20Schema,
 } from "./schema";
-import { classSheet, classSheetCsv, ownResults, staffCard, top20 } from "./views";
+import { classSheet, classSheetCsv, ownResults, staffCard, studentResults, top20 } from "./views";
 
 const json = <T extends z.ZodType>(schema: T) => ({ "application/json": { schema } });
 const ErrorSchema = z.object({ error: z.string(), message: z.string().optional() }).openapi("ResultsError");
@@ -314,6 +314,27 @@ export function registerResults(app: App): void {
       const reach = staffReach(c.get("grant")!);
       const card = reach ? await staffCard(c.env.DB, reach, c.req.valid("param").cardId) : null;
       return card ? c.json(card, 200) : c.json({ error: "not_found" }, 404);
+    },
+  );
+
+  defineRoute(
+    app,
+    {
+      method: "get",
+      path: "/api/results/students/{studentId}",
+      operationId: "get_student_results",
+      tags: ["results"],
+      description:
+        "One student's published results as staff read them: each exam, then the final, newest first, each with its marks card. Only for staff whose wings reach one of the student's classes; a student in another wing is 404, the same as a missing one. Rechecks are not in it. Read only.",
+      access: VIEW,
+      request: { params: z.object({ studentId: PublicIdSchema }) },
+      responses: { 200: { description: "The student's published results", content: json(OwnResultsSchema) }, 404: failures[404] },
+    },
+    async (c) => {
+      c.header("Cache-Control", "no-store");
+      const reach = staffReach(c.get("grant")!);
+      const results = reach ? await studentResults(c.env.DB, reach, c.req.valid("param").studentId) : null;
+      return results ? c.json(results, 200) : c.json({ error: "not_found" }, 404);
     },
   );
 

@@ -59,9 +59,15 @@ export async function ownResults(db: D1Database, me: string): Promise<OwnResults
       )
       .bind(me),
   ]);
-  const checks = rechecks!.results as unknown as { id: string; publication_id: string; offering_id: string; subject_name: string; reason: string; status: "open" | "changed" | "unchanged"; requested_at: string; decision_reason: string | null }[];
+  return toOwnResults(cards!.results as unknown as ResultRow[], rechecks!.results as unknown as RecheckRow[]);
+}
+
+type ResultRow = CardRow & { publication_id: string; year_label: string; terminal_name: string | null };
+type RecheckRow = { id: string; publication_id: string; offering_id: string; subject_name: string; reason: string; status: "open" | "changed" | "unchanged"; requested_at: string; decision_reason: string | null };
+
+function toOwnResults(cards: readonly ResultRow[], checks: readonly RecheckRow[]): OwnResults {
   return {
-    results: (cards!.results as unknown as (CardRow & { publication_id: string; year_label: string; terminal_name: string | null })[]).map((r) => ({
+    results: cards.map((r) => ({
       publicationId: r.publication_id,
       yearLabel: r.year_label,
       kind: r.terminal_name === null ? ("final" as const) : ("terminal" as const),
@@ -72,6 +78,37 @@ export async function ownResults(db: D1Database, me: string): Promise<OwnResults
         .map((c) => ({ id: c.id, offeringId: c.offering_id, subjectName: c.subject_name, reason: c.reason, status: c.status, requestedAt: c.requested_at, decisionReason: c.decision_reason })),
     })),
   };
+}
+
+/**
+ * A student's published results as staff read them (the PM, 2026-10-11): the same list the student sees, newest first, each
+ * exam then the final, found by the student's id, for staff whose wings reach one of the student's classes. Null when there
+ * is no such student in reach (a student in another wing is as good as missing). Rechecks are not part of it: they have
+ * their own screen. Read only.
+ */
+export async function studentResults(db: D1Database, reach: Reach, studentId: string): Promise<OwnResults | null> {
+  const [visible, cards] = await db.batch([
+    db
+      .prepare(
+        `SELECT 1 AS found FROM students st JOIN enrollments en ON en.student_id = st.id JOIN classes cl ON cl.id = en.class_id ${CLASS_JOINS}
+          WHERE st.public_id = ?1 AND ${sectionInReach(2)} LIMIT 1`,
+      )
+      .bind(studentId, reach.institution, reach.sections),
+    db
+      .prepare(
+        `SELECT rp.public_id AS publication_id, ay.label AS year_label, t.name AS terminal_name,
+                mc.public_id AS card_id, mc.version, mc.body, mc.reason, mc.created_at, rp.published_at
+           FROM students st JOIN enrollments en ON en.student_id = st.id JOIN academic_years ay ON ay.id = en.academic_year_id
+           JOIN classes cl ON cl.id = en.class_id ${CLASS_JOINS}
+           JOIN marks_cards mc ON mc.enrollment_id = en.id AND ${LATEST}
+           JOIN result_publications rp ON rp.id = mc.publication_id LEFT JOIN terminals t ON t.id = rp.terminal_id
+          WHERE st.public_id = ?1 AND ${sectionInReach(2)}
+          ORDER BY ay.start_date DESC, ay.id DESC, rp.terminal_id IS NULL DESC, t.ordinal DESC`,
+      )
+      .bind(studentId, reach.institution, reach.sections),
+  ]);
+  if (visible!.results.length === 0) return null;
+  return toOwnResults(cards!.results as unknown as ResultRow[], []);
 }
 
 /** One card by id, for staff whose sections reach its class. Any version (a recheck keeps the old ones). */
@@ -266,6 +303,8 @@ export interface ResultsDashboard {
   publications: number;
   lastPublishedAt: string | null;
   byProgramme: { id: string; name: string; cards: number; passed: number; avgPercentHundredths: number | null }[];
+  /** Mark sheets of the open terms' active classes (the PM, 2026-10-11): expected, sent for review (or beyond), and waiting to be verified. */
+  sheets: { expected: number; sent: number; underReview: number };
 }
 
 /**
@@ -288,10 +327,24 @@ export function resultsDashboardPart(db: D1Database): DashboardPart<ResultsDashb
           WHERE mc.version = (SELECT MAX(m2.version) FROM marks_cards m2 WHERE m2.publication_id = mc.publication_id AND m2.enrollment_id = mc.enrollment_id)
           GROUP BY pv.id ORDER BY pv.ordering`,
       ),
+      // A sheet is expected for every switched-on subject of an active class's level, in each exam the term has; it counts as
+      // sent once it is under review, verified or published. A draft is still to be sent.
+      db.prepare(
+        `SELECT
+            (SELECT COUNT(*) FROM classes cl JOIN academic_years ay ON ay.id = cl.academic_year_id AND ay.status <> 'closed'
+               JOIN subject_offerings o ON o.level_id = cl.level_id AND o.is_active = 1
+               JOIN terminals t ON t.academic_year_id = cl.academic_year_id AND t.weight IS NOT NULL
+              WHERE cl.is_active = 1) AS expected,
+            (SELECT COUNT(*) FROM mark_sheets ms JOIN classes cl ON cl.id = ms.class_id JOIN academic_years ay ON ay.id = cl.academic_year_id AND ay.status <> 'closed'
+              WHERE ms.status IN ('under_review', 'verified', 'published')) AS sent,
+            (SELECT COUNT(*) FROM mark_sheets ms JOIN classes cl ON cl.id = ms.class_id JOIN academic_years ay ON ay.id = cl.academic_year_id AND ay.status <> 'closed'
+              WHERE ms.status = 'under_review') AS underReview`,
+      ),
     ],
-    read: ([totals, programmes]) => ({
+    read: ([totals, programmes, sheets]) => ({
       ...(rowsOf<{ publications: number; lastPublishedAt: string | null }>(totals)[0] ?? { publications: 0, lastPublishedAt: null }),
       byProgramme: rowsOf<ResultsDashboard["byProgramme"][number]>(programmes),
+      sheets: rowsOf<ResultsDashboard["sheets"]>(sheets)[0] ?? { expected: 0, sent: 0, underReview: 0 },
     }),
   };
 }

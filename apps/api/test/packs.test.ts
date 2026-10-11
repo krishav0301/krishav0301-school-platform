@@ -45,7 +45,7 @@ describe("pack format", () => {
     ["a bad section key", (p) => (p.sections = [{ key: "Plus 2!", name: "+2" }]), /sections\.0\.key/],
     ["two sections with the same key", (p) => (p.sections = [{ key: "plus2", name: "+2" }, { key: "plus2", name: "Other" }]), /unique/],
     ["a module that does not exist", (p) => (p.modules.hovercraft = true), /hovercraft: not a module/],
-    ["switching off a mandatory module", (p) => (p.modules.fees = false), /fees: cannot be switched off/],
+    ["switching off a mandatory module", (p) => (p.modules.audit = false), /audit: cannot be switched off/],
     ["switching off the audit log", (p) => (p.modules.audit = false), /audit: cannot be switched off/],
     ["renaming something that cannot be renamed", (p) => (p.terminology["role.super_admin"] = "Boss"), /not a term/],
     ["an empty school name", (p) => (p.school.name = ""), /school\.name/],
@@ -164,9 +164,9 @@ describe.each([
 
   it("mandatory modules are always on; optional ones follow the pack", async () => {
     const { modules } = (await loadConfig(getDb()))!;
-    for (const key of ["fees", "results", "audit", "approvals", "accounts"]) expect(modules[key], key).toBe(true);
+    for (const key of ["results", "audit", "approvals", "accounts"]) expect(modules[key], key).toBe(true);
     for (const [key, on] of Object.entries(pack.modules)) expect(modules[key], key).toBe(on);
-    for (const key of ["attendance", "teacher_attendance", "homework", "notes", "top20"]) {
+    for (const key of ["attendance", "teacher_attendance", "homework", "notes", "top20", "fees"]) {
       expect(modules[key], key).toBe(pack.modules[key] ?? true);
     }
   });

@@ -520,3 +520,36 @@ describe("a student entered with only a name (the PM, 2026-10-10)", () => {
     for (const who of [teacher, student, admin]) expect((await ask(first, who)).status).toBe(403);
   });
 });
+
+describe("a student's password at admission, by the school's setting (D-145, the PM 2026-10-11)", () => {
+  const setKeeps = (on: boolean) => db.prepare("UPDATE school SET student_keeps_pin = ?1 WHERE id = 1").bind(on ? 1 : 0).run();
+  const admit = async () => {
+    const body = { ...applicant(), classId };
+    const made = (await (await walkIn(body, coordinator)).json()) as { temporaryPassword: string };
+    return { email: body.email as string, password: made.temporaryPassword };
+  };
+  const stateOf = (email: string) => db.prepare("SELECT must_change_password AS must, temporary_password_expires_at AS expires FROM users WHERE email = ?1").bind(email).first<{ must: number; expires: string | null }>();
+
+  it("by default the password is temporary: it must be changed, and it expires", async () => {
+    await setKeeps(false);
+    const { email, password } = await admit();
+    const state = await stateOf(email);
+    expect(state!.must).toBe(1);
+    expect(state!.expires).not.toBeNull();
+    expect(await (await call("/api/auth/sign-in", { method: "POST", body: { email, password } })).json()).toMatchObject({ passwordChange: "required" });
+  });
+
+  it("in a school that lets students keep it, it is theirs from the start: no change forced, no expiry, a session at once", async () => {
+    await setKeeps(true);
+    try {
+      const { email, password } = await admit();
+      expect(password).toMatch(/^[0-9]{4}$/);
+      expect(await stateOf(email)).toEqual({ must: 0, expires: null });
+      const signIn = await call("/api/auth/sign-in", { method: "POST", body: { email, password } });
+      expect(signIn.status).toBe(200);
+      expect(await signIn.json()).toMatchObject({ user: { email }, roles: [{ role: "student", scope: "own" }] });
+    } finally {
+      await setKeeps(false);
+    }
+  });
+});

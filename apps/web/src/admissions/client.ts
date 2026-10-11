@@ -104,6 +104,17 @@ export async function suggestStudentEmail(api: ApiClient, firstName: string): Pr
   }
 }
 
+/** A new password for a student who has lost theirs (D-145): the Co-ordinator's. The password is in the answer, once. */
+export async function issueStudentPin(api: ApiClient, studentId: string): Promise<{ ok: true; password: string } | { ok: false; reason: "forbidden" | "not_found" | "failed" }> {
+  try {
+    const { data, response } = await api.POST("/api/students/{id}/pin", { params: { path: { id: studentId } } });
+    if (data) return { ok: true, password: data.temporaryPassword };
+    return { ok: false, reason: response.status === 403 ? "forbidden" : response.status === 404 ? "not_found" : "failed" };
+  } catch {
+    return { ok: false, reason: "failed" };
+  }
+}
+
 export async function registerForQueue(api: ApiClient, values: ApplicantForm, dob: string): Promise<RegisterOutcome> {
   try {
     const { data, response, error } = await api.POST("/api/admissions/register", { body: applicantBody(values, dob) });

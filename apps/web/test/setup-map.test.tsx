@@ -86,3 +86,26 @@ describe("the setup map", () => {
     expect(html).toMatch(/<svg[^>]*aria-hidden="true"/);
   });
 });
+
+describe("the boxes open the screens behind them (the PM, 2026-10-11)", () => {
+  it("the exam, the structure, the subjects and each class and its students are links", () => {
+    const html = render(<SetupMapView map={map} />);
+    expect(html).toContain('href="/portal/setup/terminals"'); // the exam
+    expect(html).toContain('href="/portal/setup/programmes"'); // wing and department
+    expect(html).toContain('href="/portal/setup/curriculum"'); // level and subjects
+    expect(html).toContain('href="/portal/classes/class?id=c1"'); // the section
+    expect(html).toContain('href="/portal/classes/class?id=c1&amp;tab=students"'); // its students
+    expect(html).toContain('aria-label="Open Section: Morning"');
+  });
+
+  it("the term's box goes to Setup for the Co-ordinator and to the Principal's Academic Term page for the Principal", () => {
+    expect(render(<SetupMapView map={map} />)).toContain('href="/portal/setup"');
+    expect(render(<SetupMapView map={map} termHref="/portal/terms" />)).toContain('href="/portal/terms"');
+  });
+
+  it("a level's sections sit below it, each with a down-and-across arrow, not at the end of its row", () => {
+    const html = render(<SetupMapView map={map} />);
+    expect(html).toContain("class=\"level\"");
+    expect(html).toContain("lucide-corner-down-right");
+  });
+});

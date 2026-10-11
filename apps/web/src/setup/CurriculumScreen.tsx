@@ -350,6 +350,7 @@ export function SubjectPanel({
   onSetGroup,
   onChanged,
 }: Omit<CurriculumViewProps, "canManage" | "onToggleGroup" | "onChanged"> & { offering: Offering; onClose: () => void; onChanged: () => void }) {
+  const { moduleEnabled } = useConfig();
   return (
     <SidePanel
       title={offering.subject.name}
@@ -377,13 +378,15 @@ export function SubjectPanel({
           { name: t("setup.read.credit"), value: offering.creditHundredths === null ? "—" : formatHundredths(offering.creditHundredths) },
         ]}
       />
-      <Select
-        label={t("setup.curriculum.groupOf", { name: offering.subject.name })}
-        value={offering.group?.id ?? ""}
-        disabled={busy !== null}
-        onChange={(event) => onSetGroup(offering, event.target.value || null)}
-        options={groupOptions(curriculum.groups, offering.group?.id ?? null)}
-      />
+      {moduleEnabled("electives") ? (
+        <Select
+          label={t("setup.curriculum.groupOf", { name: offering.subject.name })}
+          value={offering.group?.id ?? ""}
+          disabled={busy !== null}
+          onChange={(event) => onSetGroup(offering, event.target.value || null)}
+          options={groupOptions(curriculum.groups, offering.group?.id ?? null)}
+        />
+      ) : null}
       <PanelSection title={t("setup.curriculum.paper")}>
         <p className={readStyles.rowMeta}>{paperLine(offering)}</p>
         <PaperForm key={`${offering.id}-${offering.fullMarksHundredths}-${offering.practicalHundredths}`} offering={offering} onSaved={onChanged} />
@@ -398,7 +401,9 @@ export function SubjectPanel({
  * nothing is deleted. Someone who may not change it reads the Principal's table.
  */
 export function CurriculumView({ curriculum, canManage, busy, onToggleGroup, onToggleOffering, onSetGroup, onChanged = () => {}, notice }: CurriculumViewProps) {
-  const { term } = useConfig();
+  const { term, moduleEnabled } = useConfig();
+  // A school with no elective subjects (D-142) has no groups to make or to read.
+  const electivesOn = moduleEnabled("electives");
   const words = termWords(term);
   const [open, setOpen] = useState<string | null>(null);
   const { groups, offerings } = curriculum;
@@ -419,7 +424,7 @@ export function CurriculumView({ curriculum, canManage, busy, onToggleGroup, onT
               { key: "subject", label: t("setup.read.subject"), primary: true, cell: (o) => (o.subject.code ? t("setup.curriculum.subjectCode", { name: o.subject.name, code: o.subject.code }) : o.subject.name) },
               { key: "credit", label: t("setup.read.credit"), align: "end", cell: (o) => (o.creditHundredths === null ? "—" : formatHundredths(o.creditHundredths)) },
               { key: "marks", label: t("setup.curriculum.marks"), cell: marksSummary },
-              { key: "group", label: t("setup.read.elective"), cell: (o) => o.group?.name ?? t("setup.read.compulsory") },
+              ...(electivesOn ? [{ key: "group", label: t("setup.read.elective"), cell: (o: Offering) => o.group?.name ?? t("setup.read.compulsory") }] : []),
               { key: "status", label: t("attendance.class.status"), cell: (o) => (o.active ? <StatusWord tone="ok">{t("setup.read.inUse")}</StatusWord> : <StatusWord>{t("setup.curriculum.subjectOff")}</StatusWord>) },
               {
                 key: "edit",
@@ -437,55 +442,57 @@ export function CurriculumView({ curriculum, canManage, busy, onToggleGroup, onT
         )}
       </Panel>
 
-      <Panel
-        title={t("setup.curriculum.groups")}
-        labelledBy="curriculum-groups"
-        actions={
-          <AddDialog label={t("setup.curriculum.addGroup")} title={t("setup.curriculum.addGroup")} variant="secondary">
-            {(close) => (
-              <GroupForm
-                levelId={curriculum.level.id}
-                showTitle={false}
-                onAdded={() => {
-                  close();
-                  onChanged();
-                }}
-              />
-            )}
-          </AddDialog>
-        }
-      >
-        <p className={readStyles.rowMeta}>{t("setup.curriculum.groupsHint")}</p>
-        {groups.length === 0 ? (
-          <EmptyLine>{t("setup.curriculum.groupsEmpty")}</EmptyLine>
-        ) : (
-          <ul className={readStyles.rows}>
-            {groups.map((group) => {
-              const names = offerings.filter((o) => o.group?.id === group.id).map((o) => o.subject.name);
-              return (
-                <li key={group.id} className={readStyles.rowItem}>
-                  <div className={readStyles.rowHead}>
-                    <h3 className={readStyles.rowTitle}>{group.name}</h3>
-                    <span className={readStyles.cellWords}>
-                      {group.active ? null : <StatusWord>{t("setup.curriculum.groupOff")}</StatusWord>}
-                      <SwitchButton
-                        id={group.id}
-                        busy={busy}
-                        active={group.active}
-                        name={group.name}
-                        label="setup.curriculum.groupSwitchOffItem"
-                        labelOn="setup.curriculum.groupSwitchOnItem"
-                        onClick={() => onToggleGroup(group)}
-                      />
-                    </span>
-                  </div>
-                  <p className={readStyles.rowMeta}>{names.length > 0 ? t("setup.read.choose", { n: group.pickCount, names: names.join(", ") }) : t("setup.curriculum.groupPicks", { n: group.pickCount })}</p>
-                </li>
-              );
-            })}
-          </ul>
-        )}
-      </Panel>
+      {electivesOn ? (
+        <Panel
+          title={t("setup.curriculum.groups")}
+          labelledBy="curriculum-groups"
+          actions={
+            <AddDialog label={t("setup.curriculum.addGroup")} title={t("setup.curriculum.addGroup")} variant="secondary">
+              {(close) => (
+                <GroupForm
+                  levelId={curriculum.level.id}
+                  showTitle={false}
+                  onAdded={() => {
+                    close();
+                    onChanged();
+                  }}
+                />
+              )}
+            </AddDialog>
+          }
+        >
+          <p className={readStyles.rowMeta}>{t("setup.curriculum.groupsHint")}</p>
+          {groups.length === 0 ? (
+            <EmptyLine>{t("setup.curriculum.groupsEmpty")}</EmptyLine>
+          ) : (
+            <ul className={readStyles.rows}>
+              {groups.map((group) => {
+                const names = offerings.filter((o) => o.group?.id === group.id).map((o) => o.subject.name);
+                return (
+                  <li key={group.id} className={readStyles.rowItem}>
+                    <div className={readStyles.rowHead}>
+                      <h3 className={readStyles.rowTitle}>{group.name}</h3>
+                      <span className={readStyles.cellWords}>
+                        {group.active ? null : <StatusWord>{t("setup.curriculum.groupOff")}</StatusWord>}
+                        <SwitchButton
+                          id={group.id}
+                          busy={busy}
+                          active={group.active}
+                          name={group.name}
+                          label="setup.curriculum.groupSwitchOffItem"
+                          labelOn="setup.curriculum.groupSwitchOnItem"
+                          onClick={() => onToggleGroup(group)}
+                        />
+                      </span>
+                    </div>
+                    <p className={readStyles.rowMeta}>{names.length > 0 ? t("setup.read.choose", { n: group.pickCount, names: names.join(", ") }) : t("setup.curriculum.groupPicks", { n: group.pickCount })}</p>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </Panel>
+      ) : null}
 
       {opened ? (
         <SubjectPanel

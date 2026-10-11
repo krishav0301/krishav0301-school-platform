@@ -21,6 +21,7 @@ import { useSession, type RoleClaim } from "@/session/SessionProvider";
 import { useLoad } from "@/setup/useLoad";
 
 import { bsLong, greetingKey } from "./admin-model";
+import { nepalToday } from "./nepal-today";
 import { RoleBriefLinks } from "./RoleBrief";
 
 /**
@@ -90,7 +91,8 @@ export interface TeachingDay {
   todayBs: string | null;
   /** The classes this teacher is Class Teacher of, with today's register. */
   registers: { id: string; name: string; marked: boolean; absent: number }[] | null;
-  logs: { written: number; total: number };
+  /** Null when the school has no daily log (D-139). */
+  logs: { written: number; total: number } | null;
   toReview: number | null;
   drafts: number | null;
 }
@@ -101,7 +103,7 @@ export function teachingFigures(d: TeachingDay): Figure[] {
     const marked = d.registers.filter((r) => r.marked).length;
     figures.push({ key: "registers", icon: CalendarCheck, tone: marked < d.registers.length ? "warn" : "ok", value: ofTotal(marked, d.registers.length), label: t("home.teacher.figure.registers") });
   }
-  if (d.logs.total > 0) figures.push({ key: "logs", icon: PenLine, tone: d.logs.written < d.logs.total ? "warn" : "ok", value: ofTotal(d.logs.written, d.logs.total), label: t("home.teacher.figure.logs") });
+  if (d.logs && d.logs.total > 0) figures.push({ key: "logs", icon: PenLine, tone: d.logs.written < d.logs.total ? "warn" : "ok", value: ofTotal(d.logs.written, d.logs.total), label: t("home.teacher.figure.logs") });
   if (d.toReview !== null) figures.push({ key: "review", icon: NotebookPen, tone: d.toReview > 0 ? "warn" : "ok", value: String(d.toReview), label: t("home.teacher.figure.review") });
   if (d.drafts !== null) figures.push({ key: "drafts", icon: ClipboardCheck, tone: d.drafts > 0 ? "accent" : "ok", value: String(d.drafts), label: t("home.teacher.figure.drafts") });
   return figures;
@@ -119,7 +121,7 @@ export function teachingRows(d: TeachingDay): DayRow[] {
       action: r.marked ? t("dashboard.open") : t("dashboard.register.mark"),
     });
   }
-  if (d.logs.total > 0) {
+  if (d.logs && d.logs.total > 0) {
     rows.push({ key: "logs", title: t("coord.today.logs"), meta: t("home.teacher.logsMeta", { written: d.logs.written, total: d.logs.total }), todo: d.logs.written < d.logs.total, href: "/portal/classwork", action: d.logs.written < d.logs.total ? t("dashboard.activity.write") : t("dashboard.open") });
   }
   if (d.toReview !== null) {
@@ -137,22 +139,30 @@ function useTeachingDay() {
   const attendanceOn = moduleEnabled("attendance");
   const homeworkOn = moduleEnabled("homework");
   const resultsOn = moduleEnabled("results");
+  // A school with the daily log switched off (D-139) has no log to ask about: its address answers "not found".
+  const activityOn = moduleEnabled("activity_log");
   const loadNow = useCallback(async (): Promise<Loaded<TeachingDay>> => {
-    const [classes, activity, work, sheets] = await Promise.all([attendanceOn ? loadClasses(api) : null, loadMyToday(api), homeworkOn ? loadTeacherAssignments(api) : null, resultsOn ? loadMySheets(api) : null]);
-    if ((classes && !classes.ok) || !activity.ok || (work && !work.ok)) return failed;
+    const [classes, activity, work, sheets, clockBs] = await Promise.all([
+      attendanceOn ? loadClasses(api) : null,
+      activityOn ? loadMyToday(api) : null,
+      homeworkOn ? loadTeacherAssignments(api) : null,
+      resultsOn ? loadMySheets(api) : null,
+      attendanceOn || activityOn ? null : nepalToday(api),
+    ]);
+    if ((classes && !classes.ok) || (activity && !activity.ok) || (work && !work.ok)) return failed;
     const mine = classes?.ok ? classes.data.classes.filter((c) => c.mine) : [];
     return {
       ok: true,
       data: {
-        todayBs: classes?.ok ? classes.data.todayBs : activity.data.dateBs,
+        todayBs: classes?.ok ? classes.data.todayBs : activity?.ok ? activity.data.dateBs : clockBs,
         registers: mine.length > 0 ? mine.map((c) => ({ id: c.id, name: [c.programmeName, c.levelName, c.label].filter(Boolean).join(" · "), marked: c.markedToday, absent: c.absentToday })) : null,
-        logs: { written: activity.data.subjects.filter((s) => s.body !== null).length, total: activity.data.subjects.length },
+        logs: activity?.ok ? { written: activity.data.subjects.filter((s) => s.body !== null).length, total: activity.data.subjects.length } : null,
         toReview: work?.ok ? work.data.assignments.filter((a) => !a.withdrawn).reduce((sum, a) => sum + a.toReview + a.requests, 0) : null,
         // Mark sheets are a help here, not the page: if they cannot be read (no terminal yet), the line is left out.
         drafts: sheets?.ok && sheets.data.subjects.length > 0 ? sheets.data.subjects.flatMap((s) => s.sheets).filter((s) => s.status === "draft").length : null,
       },
     };
-  }, [api, attendanceOn, homeworkOn, resultsOn]);
+  }, [api, attendanceOn, homeworkOn, activityOn, resultsOn]);
   return useLoad<TeachingDay>(loadNow);
 }
 
@@ -285,22 +295,23 @@ export function StudentDashboard() {
   const homeworkOn = moduleEnabled("homework");
   const feesOn = moduleEnabled("fees");
   const resultsOn = moduleEnabled("results");
+  const activityOn = moduleEnabled("activity_log");
   const loadNow = useCallback(async (): Promise<Loaded<StudyDay>> => {
     const [record, cls, attendance, work, activity, fees, results] = await Promise.all([
       loadOwnStudent(api),
       loadOwnClass(api),
       attendanceOn ? loadOwn(api) : null,
       homeworkOn ? loadStudentAssignments(api) : null,
-      loadOwnActivity(api),
+      activityOn ? loadOwnActivity(api) : null,
       feesOn ? loadOwnAccount(api) : null,
       resultsOn ? loadOwnResults(api) : null,
     ]);
     // No enrollment this year means no attendance, fees or record yet: those parts are left out, not shown as errors.
     if (!record.ok && record.reason !== "not_found") return failed;
-    if ((work && !work.ok) || !activity.ok) return failed;
+    if ((work && !work.ok) || (activity && !activity.ok)) return failed;
     const open = work?.ok ? work.data.assignments.filter((a) => a.submission === null || a.submission.status === "resubmit_allowed").sort((a, b) => a.dueAt.localeCompare(b.dueAt)) : [];
     const latest = results?.ok ? results.data.results[0] : undefined;
-    const log = activity.data.days[0];
+    const log = activity?.ok ? activity.data.days[0] : undefined;
     return {
       ok: true,
       data: {
@@ -314,7 +325,7 @@ export function StudentDashboard() {
         result: latest ? { terminal: latest.terminalName ?? t("results.sheets.final"), score: latest.card.body.grade ?? scoreText(latest.card.body) } : null,
       },
     };
-  }, [api, attendanceOn, homeworkOn, feesOn, resultsOn]);
+  }, [api, attendanceOn, homeworkOn, feesOn, resultsOn, activityOn]);
   const { view, reload } = useLoad<StudyDay>(loadNow);
   if (!me) return null;
   const day = view.status === "ready" ? view.data : null;

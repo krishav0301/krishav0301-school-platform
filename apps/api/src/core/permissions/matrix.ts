@@ -132,6 +132,7 @@ export const MATRIX = [
   row(G.people, "admissions.walkin.register", "Register a walk-in (auto-approved)", 4, { COO: inst, SUP: all }),
   row(G.people, "admissions.student.register", "Register a student (goes to the review queue)", 4, { ACC: inst }),
   row(G.people, "admissions.student.email_suggestion", "Ask for the sign-in email a new student would get (name@student.com)", 4, { COO: inst, ACC: inst, SUP: all }),
+  row(G.people, "students.pin.issue", "Give a student a new 4-digit password (D-145)", 4, { COO: inst, SUP: all }),
   row(G.people, "admissions.review", "Review queue: approve, ask for changes, reject", 4, { COO: inst, SUP: all }),
   row(G.people, "students.promote", "Move students into the next term: promote, repeat, leaving, graduated (D-110)", 4, { COO: inst, SUP: all }),
   row(G.people, "students.search", "Search students", 4, { TEA: only(assigned, "sid+name", "sid+name (assigned)"), COO: inst, ACC: inst, ADM: inst, SUP: all }),
