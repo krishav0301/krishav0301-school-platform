@@ -156,8 +156,9 @@ export function terminalCard(head: ClassHead, pattern: PatternSnapshot, terminal
       class: classOf(head),
       terminal,
       graded: pattern.graded,
-      subjects: result.subjects,
-      passed: result.passed,
+      // Pass and fail appear on an exam's card only in a school that sets pass marks per subject.
+      subjects: result.subjects.map(({ passed, ...s }) => (passed === null ? s : { ...s, passed })),
+      ...(result.passed === null ? {} : { passed: result.passed }),
       percentHundredths: result.percentHundredths,
       grade: result.grade,
       outcome: result.outcome,
