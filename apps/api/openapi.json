@@ -10234,6 +10234,25 @@
                   "null"
                 ]
               },
+              "sheets": {
+                "type": "object",
+                "properties": {
+                  "expected": {
+                    "type": "integer"
+                  },
+                  "sent": {
+                    "type": "integer"
+                  },
+                  "underReview": {
+                    "type": "integer"
+                  }
+                },
+                "required": [
+                  "expected",
+                  "sent",
+                  "underReview"
+                ]
+              },
               "byProgramme": {
                 "type": "array",
                 "items": {
@@ -10278,6 +10297,7 @@
             "required": [
               "publications",
               "lastPublishedAt",
+              "sheets",
               "byProgramme"
             ]
           },

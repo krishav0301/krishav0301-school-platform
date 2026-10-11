@@ -38,7 +38,7 @@ const base: Overview = {
   },
   fees: { collectedPaisa: 284_000_000, changePercent: 12, chargedPaisa: 1_000_000, paidPaisa: 500_000, duePaisa: 500_000, overduePaisa: 100_000 },
   programmes: [{ id: "p1", name: "+2 Science", sectionName: "+2", active: true, levels: 2, classes: 2, students: 100, teachers: 9 }],
-  results: { publications: 0, lastPublishedAt: null, byProgramme: [] },
+  results: { publications: 0, lastPublishedAt: null, sheets: { expected: 0, sent: 0, underReview: 0 }, byProgramme: [] },
   attention: { approvals: { count: 4, kinds: [{ kind: "discount", count: 4 }] }, feeFollowUps: 12, anomalies: { count: 0, classes: [] }, websiteDrafts: 0 },
   website: { origin: "https://royalsoftech.example", live: 3, drafts: 1, waiting: 0, lastPublishedAt: "2026-09-12T10:47:00.000Z" },
 };
@@ -146,5 +146,44 @@ describe("with Attendance switched off too (a results-only school, the PM 2026-1
     const html = view(false, true);
     expect(html).toContain("92%");
     expect(html).toContain("/portal/attendance");
+  });
+});
+
+describe("the results figures for a school that runs the result system (the PM, 2026-10-11)", () => {
+  const withSheets = { ...base, results: { ...base.results, publications: 6, lastPublishedAt: "2026-09-29T10:00:00.000Z", sheets: { expected: 40, sent: 31, underReview: 5 } } };
+  const view = (o: Overview, feesOn: boolean, attendanceOn: boolean) =>
+    renderToStaticMarkup(
+      <ConfigContext.Provider value={makeConfigValue("ready", config)}>
+        <AdminDashboardView o={o} name="Principal" now={new Date("2026-09-30T08:00:00.000Z")} feesOn={feesOn} attendanceOn={attendanceOn} />
+      </ConfigContext.Provider>,
+    );
+
+  it("with fees and attendance off: what is waiting to be verified, what is published, and what is still to be sent", () => {
+    const html = view(withSheets, false, false);
+    expect(html).toContain("Waiting to be verified");
+    expect(html).toContain("mark sheets sent by teachers");
+    expect(html).toContain("Results published");
+    expect(html).toContain("class results, last on");
+    expect(html).toContain("Marks still to be sent");
+    expect(html).toContain("of 40 mark sheets");
+    expect(html).toContain(">9<"); // 40 expected, 31 sent
+    expect(html).toContain(">5<");
+    expect(html).toContain(">6<");
+    expect(html).toContain('href="/portal/results/sheets"');
+  });
+
+  it("says so when nothing is waiting, nothing is published and every sheet is sent", () => {
+    const html = view({ ...base, results: { ...base.results, sheets: { expected: 4, sent: 4, underReview: 0 } } }, false, false);
+    expect(html).toContain("Nothing waiting");
+    expect(html).toContain("Nothing published yet");
+    expect(html).toContain("Every mark sheet has been sent");
+    // With no exam set up, there is nothing to send: it says that, not that everything was sent.
+    expect(view(base, false, false)).toContain("No exams set up yet");
+  });
+
+  it("a school that keeps fees and attendance sees its dashboard as before, without these figures", () => {
+    const html = view(withSheets, true, true);
+    expect(html).not.toContain("Waiting to be verified");
+    expect(html).not.toContain("Marks still to be sent");
   });
 });

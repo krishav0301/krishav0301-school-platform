@@ -97,6 +97,7 @@ export async function dashboardOverview(db: D1Database, env: { SITE_ORIGIN?: str
     results: {
       publications: p.results.publications,
       lastPublishedAt: p.results.lastPublishedAt,
+      sheets: p.results.sheets,
       byProgramme: p.results.byProgramme.map((r) => ({ ...r, passPercent: r.cards > 0 ? Math.floor((r.passed * 100) / r.cards) : null })),
     },
     attention,

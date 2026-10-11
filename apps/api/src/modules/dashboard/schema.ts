@@ -44,6 +44,8 @@ export const DashboardOverviewSchema = z
     results: z.object({
       publications: z.number().int(),
       lastPublishedAt: z.string().nullable(),
+      /** Mark sheets of the open terms: expected, sent for review or beyond, and waiting to be verified. */
+      sheets: z.object({ expected: z.number().int(), sent: z.number().int(), underReview: z.number().int() }),
       byProgramme: z.array(
         z.object({
           id: z.string(),

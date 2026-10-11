@@ -8,9 +8,12 @@ import {
   Calendar,
   CalendarCheck,
   ChevronRight,
+  ClipboardCheck,
   ExternalLink,
   FileText,
   Globe,
+  PenLine,
+  Trophy,
   UserPlus,
   UserRoundX,
   Users,
@@ -140,6 +143,43 @@ const TABS: { id: TabId; label: MessageKey }[] = [
   { id: "fees", label: "dashboard.glance.fees" },
   { id: "results", label: "dashboard.glance.results" },
 ];
+
+/**
+ * What a school that runs the result system wants first (the PM, 2026-10-11): where the marks are. Shown in the slots a
+ * school leaves free by switching Fees or Attendance off; the other schools' dashboards are as they were.
+ */
+function ResultsKpis({ o }: { o: Overview }) {
+  const { sheets } = o.results;
+  const toSend = Math.max(sheets.expected - sheets.sent, 0);
+  return (
+    <>
+      <Kpi
+        href="/portal/results/sheets"
+        icon={ClipboardCheck}
+        tone="warn"
+        label="dashboard.kpi.marksWaiting"
+        value={String(sheets.underReview)}
+        foot={<span className={styles.muted}>{t(sheets.underReview > 0 ? "dashboard.kpi.marksWaitingFoot" : "dashboard.kpi.marksWaitingNone")}</span>}
+      />
+      <Kpi
+        href="/portal/results/sheets"
+        icon={Trophy}
+        tone="ok"
+        label="dashboard.kpi.resultsPublished"
+        value={String(o.results.publications)}
+        foot={<span className={styles.muted}>{o.results.lastPublishedAt ? t("dashboard.kpi.resultsPublishedFoot", { date: when(o.results.lastPublishedAt) }) : t("dashboard.kpi.resultsPublishedNone")}</span>}
+      />
+      <Kpi
+        href="/portal/results/sheets"
+        icon={PenLine}
+        tone="accent"
+        label="dashboard.kpi.marksToSend"
+        value={String(toSend)}
+        foot={<span className={styles.muted}>{sheets.expected === 0 ? t("dashboard.kpi.marksToSendNoExams") : toSend > 0 ? t("dashboard.kpi.marksToSendFoot", { total: String(sheets.expected) }) : t("dashboard.kpi.marksToSendNone")}</span>}
+      />
+    </>
+  );
+}
 
 function Glance({ o, feesOn, attendanceOn }: { o: Overview; feesOn: boolean; attendanceOn: boolean }) {
   const tabs = TABS.filter((x) => (feesOn || x.id !== "fees") && (attendanceOn || x.id !== "attendance"));
@@ -475,6 +515,7 @@ export function AdminDashboardView({ o, name, now, feesOn = true, attendanceOn =
             }
           />
         ) : null}
+        {feesOn && attendanceOn ? null : <ResultsKpis o={o} />}
         {feesOn ? <Kpi href="/portal/fees/dues" icon={Banknote} tone="warn" label="dashboard.kpi.fees" value={t("dashboard.npr", { amount: compactNpr(o.fees.collectedPaisa) })} foot={<Change percent={o.fees.changePercent} />} /> : null}
       </div>
 

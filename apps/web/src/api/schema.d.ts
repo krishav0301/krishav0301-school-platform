@@ -4967,6 +4967,11 @@ export interface components {
             results: {
                 publications: number;
                 lastPublishedAt: string | null;
+                sheets: {
+                    expected: number;
+                    sent: number;
+                    underReview: number;
+                };
                 byProgramme: {
                     id: string;
                     name: string;

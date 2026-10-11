@@ -266,6 +266,8 @@ export interface ResultsDashboard {
   publications: number;
   lastPublishedAt: string | null;
   byProgramme: { id: string; name: string; cards: number; passed: number; avgPercentHundredths: number | null }[];
+  /** Mark sheets of the open terms' active classes (the PM, 2026-10-11): expected, sent for review (or beyond), and waiting to be verified. */
+  sheets: { expected: number; sent: number; underReview: number };
 }
 
 /**
@@ -288,10 +290,24 @@ export function resultsDashboardPart(db: D1Database): DashboardPart<ResultsDashb
           WHERE mc.version = (SELECT MAX(m2.version) FROM marks_cards m2 WHERE m2.publication_id = mc.publication_id AND m2.enrollment_id = mc.enrollment_id)
           GROUP BY pv.id ORDER BY pv.ordering`,
       ),
+      // A sheet is expected for every switched-on subject of an active class's level, in each exam the term has; it counts as
+      // sent once it is under review, verified or published. A draft is still to be sent.
+      db.prepare(
+        `SELECT
+            (SELECT COUNT(*) FROM classes cl JOIN academic_years ay ON ay.id = cl.academic_year_id AND ay.status <> 'closed'
+               JOIN subject_offerings o ON o.level_id = cl.level_id AND o.is_active = 1
+               JOIN terminals t ON t.academic_year_id = cl.academic_year_id AND t.weight IS NOT NULL
+              WHERE cl.is_active = 1) AS expected,
+            (SELECT COUNT(*) FROM mark_sheets ms JOIN classes cl ON cl.id = ms.class_id JOIN academic_years ay ON ay.id = cl.academic_year_id AND ay.status <> 'closed'
+              WHERE ms.status IN ('under_review', 'verified', 'published')) AS sent,
+            (SELECT COUNT(*) FROM mark_sheets ms JOIN classes cl ON cl.id = ms.class_id JOIN academic_years ay ON ay.id = cl.academic_year_id AND ay.status <> 'closed'
+              WHERE ms.status = 'under_review') AS underReview`,
+      ),
     ],
-    read: ([totals, programmes]) => ({
+    read: ([totals, programmes, sheets]) => ({
       ...(rowsOf<{ publications: number; lastPublishedAt: string | null }>(totals)[0] ?? { publications: 0, lastPublishedAt: null }),
       byProgramme: rowsOf<ResultsDashboard["byProgramme"][number]>(programmes),
+      sheets: rowsOf<ResultsDashboard["sheets"]>(sheets)[0] ?? { expected: 0, sent: 0, underReview: 0 },
     }),
   };
 }
