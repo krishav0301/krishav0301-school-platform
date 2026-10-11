@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { parsePack } from "../src/core/config";
+import royalJson from "../../../packs/royal-softech/pack.json";
 import lahanJson from "../../../packs/lahan-manakamana/pack.json";
 
 /**
@@ -23,6 +24,11 @@ describe("the Lahan Manakamana school file", () => {
 
   it("lets the Principal sign in with an ID and a password only", () => {
     expect(pack.school.adminTwoFactor).toBe(false);
+  });
+
+  it("lets a student keep the 4-digit password given at admission and sign in with their email and it (D-145)", () => {
+    expect(pack.school.studentKeepsPin).toBe(true);
+    expect(parsePack(royalJson).school.studentKeepsPin).toBe(false); // every other school is as it was
   });
 
   it("says nothing of Royal Softech anywhere (D-008: one school's name or data never appears in another's)", () => {

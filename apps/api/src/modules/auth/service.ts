@@ -14,6 +14,8 @@ import { IDLE_DAYS, SESSION_DAYS } from "../../core/session-cookies";
 import { ACCESS_TTL_SECONDS, newRefreshToken, sha256Hex, signAccessToken, type RoleClaim } from "../../core/tokens";
 import { normaliseEmail } from "../accounts/service";
 
+/** Wrong tries for one email in a day (D-145): after this, that email is refused until the day is out. */
+export const EMAIL_DAILY_FAILURE_LIMIT = 20;
 export const EMAIL_FAILURE_LIMIT = 5;
 export const IP_FAILURE_LIMIT = 30;
 export const LOCKOUT_WINDOW_MINUTES = 15;
@@ -108,7 +110,7 @@ export async function signIn(deps: Deps, input: SignInInput, now: Date = new Dat
   const since = new Date(now.getTime() - LOCKOUT_WINDOW_MINUTES * MINUTE).toISOString();
   const userAgent = input.userAgent?.slice(0, 300) ?? null;
 
-  const [userResult, emailFailures, ipFailures, roleResult, twoFactorResult, adminTwoFactorResult] = await db.batch([
+  const [userResult, emailFailures, ipFailures, roleResult, twoFactorResult, adminTwoFactorResult, dayFailures] = await db.batch([
     db.prepare("SELECT id, public_id, email, password_hash, full_name, is_active, must_change_password, temporary_password_expires_at, temporary_password_failures FROM users WHERE email = ?1").bind(email),
     db.prepare("SELECT COUNT(*) AS n FROM sign_in_events WHERE success = 0 AND email_tried = ?1 AND at > ?2").bind(email, since),
     // Without an address we cannot count by address, so that limit is skipped, not shared.
@@ -125,11 +127,14 @@ export async function signIn(deps: Deps, input: SignInInput, now: Date = new Dat
       .bind(email),
     db.prepare("SELECT enabled_at FROM user_two_factor WHERE user_id = (SELECT id FROM users WHERE email = ?1)").bind(email),
     db.prepare(ADMIN_TWO_FACTOR_SQL),
+    // A 4-digit PIN (D-145) is guessed slowly, not quickly: 5 tries in 15 minutes would still allow hundreds a day.
+    db.prepare("SELECT COUNT(*) AS n FROM sign_in_events WHERE success = 0 AND email_tried = ?1 AND at > ?2").bind(email, new Date(now.getTime() - 24 * 60 * MINUTE).toISOString()),
   ]);
 
   const failuresForEmail = (emailFailures!.results[0] as { n: number }).n;
   const failuresForIp = input.ip ? (ipFailures!.results[0] as { n: number }).n : 0;
-  if (failuresForEmail >= EMAIL_FAILURE_LIMIT || failuresForIp >= IP_FAILURE_LIMIT) {
+  const failuresForDay = (dayFailures!.results[0] as { n: number }).n;
+  if (failuresForEmail >= EMAIL_FAILURE_LIMIT || failuresForIp >= IP_FAILURE_LIMIT || failuresForDay >= EMAIL_DAILY_FAILURE_LIMIT) {
     return { ok: false, reason: "throttled" }; // no hashing and no write
   }
 

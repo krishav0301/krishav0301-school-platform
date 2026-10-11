@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 
+import { useConfig } from "@/config/ConfigProvider";
 import { toAd } from "@/content/client";
 import { t } from "@/i18n/messages";
 import { TemporaryPasswordNotice } from "@/people/StaffScreen";
@@ -38,6 +39,7 @@ export function levelsFor(levels: readonly OpenLevel[], roles: readonly RoleClai
  */
 export function RegisterScreen({ canPlace }: { canPlace: boolean }) {
   const { api, me } = useSession();
+  const { config } = useConfig();
   const [levels, setLevels] = useState<Levels>({ status: "loading" });
   const [values, setValues] = useState<ApplicantForm>(emptyApplicantForm());
   const [errors, setErrors] = useState<ApplicantErrors>({});
@@ -138,7 +140,7 @@ export function RegisterScreen({ canPlace }: { canPlace: boolean }) {
               { name: t("admissions.record.sid"), value: <strong className={admissionsStyles.sid}>{admitted.sid}</strong> },
             ]}
           />
-          <TemporaryPasswordNotice name={admitted.name} password={admitted.password} onDone={again} />
+          <TemporaryPasswordNotice name={admitted.name} password={admitted.password} onDone={again} bodyKey={config?.school.studentKeepsPin ? "student.pin.secretKeep" : undefined} />
         </Panel>
       </div>
     );

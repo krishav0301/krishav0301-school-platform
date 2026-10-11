@@ -23,6 +23,7 @@ import {
   RequestChangesSchema,
   OwnClassSchema,
   StudentDetailSchema,
+  StudentPinSchema,
   StudentBrowseQuerySchema,
   StudentBrowseSchema,
   StudentListSchema,
@@ -32,7 +33,7 @@ import {
 import { browseStudents } from "./browse";
 import { getOwnClass } from "./own-class";
 import { moveStudents, promotionBoard } from "./promotion";
-import { applyForAdmission, approveApplication, correctStudent, registerStudent, registerWalkIn, reject, requestChanges, suggestEmail, verifyApplicationEmail, type WriteFailure } from "./service";
+import { applyForAdmission, approveApplication, correctStudent, issueStudentPin, registerStudent, registerWalkIn, reject, requestChanges, suggestEmail, verifyApplicationEmail, type WriteFailure } from "./service";
 
 const json = <T extends z.ZodType>(schema: T) => ({ "application/json": { schema } });
 const ErrorSchema = z.object({ error: z.string() }).openapi("AdmissionsError");
@@ -69,6 +70,7 @@ function fail(c: Context<AppEnv>, failure: WriteFailure | { ok: false; reason: s
 const APPLY_ACTION = { action: "admissions.apply" } as const;
 const WALKIN_ACTION = { action: "admissions.walkin.register" } as const;
 const REGISTER_ACTION = { action: "admissions.student.register" } as const;
+const PIN_ACTION = { action: "students.pin.issue" } as const;
 const REVIEW_ACTION = { action: "admissions.review" } as const;
 const SEARCH_ACTION = { action: "students.search" } as const;
 const VIEW_ACTION = { action: "students.personal.view" } as const;
@@ -414,6 +416,31 @@ export function registerAdmissions(app: App): void {
       const found = await getStudent(c.env.DB, allowedSections(grant), id);
       c.header("Cache-Control", "no-store");
       return c.json(found!, 200);
+    },
+  );
+
+  defineRoute(
+    app,
+    {
+      method: "post",
+      path: "/api/students/{id}/pin",
+      operationId: "issue_student_pin",
+      tags: ["students"],
+      description:
+        "A new 4-digit password for a student who has lost theirs: the Co-ordinator whose wing reaches the student, or Support. Their open sessions end. It is theirs to keep in a school that lets students keep it, otherwise temporary again. Shown here once and nowhere else, never cached.",
+      access: PIN_ACTION,
+      request: { params: IdParam },
+      responses: { 200: { description: "The new password (never cached)", content: json(StudentPinSchema) }, ...failures },
+    },
+    async (c) => {
+      const grant = c.get("grant")!;
+      const id = c.req.valid("param").id;
+      // A student in another wing reads as missing, the same as viewing.
+      if (!(await getStudent(c.env.DB, allowedSections(grant), id))) return fail(c, { ok: false, reason: "not_found" });
+      const result = await issueStudentPin(c.env.DB, c.env.AUDIT_HMAC_KEY, c.get("auth")!.userPublicId, id);
+      if (!result.ok) return fail(c, result);
+      c.header("Cache-Control", "no-store");
+      return c.json({ temporaryPassword: result.temporaryPassword }, 200);
     },
   );
 

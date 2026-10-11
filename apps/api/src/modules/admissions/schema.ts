@@ -203,6 +203,9 @@ export const CorrectStudentSchema = z
   .openapi("CorrectStudent");
 export type CorrectStudent = z.infer<typeof CorrectStudentSchema>;
 
+/** A new password for a student, shown once (D-145). */
+export const StudentPinSchema = z.object({ temporaryPassword: z.string() }).openapi("StudentPin");
+
 /** Returned once, on the request that creates the login, and nowhere else (D-059's rule for a temporary password: never emailed, never logged). */
 export const AdmittedSchema = z.object({ id: z.string(), sid: z.string(), temporaryPassword: z.string() }).openapi("Admitted");
 

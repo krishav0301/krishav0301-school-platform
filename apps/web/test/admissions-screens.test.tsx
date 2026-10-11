@@ -346,3 +346,20 @@ describe("a student's results on their record (the PM, 2026-10-11)", () => {
     expect(inContext(<RecordResultsView results={{ results: [] }} />)).toContain("No result has been published for this student yet.");
   });
 });
+
+import { TemporaryPasswordNotice } from "@/people/StaffScreen";
+import { NewPassword } from "@/admissions/NewPassword";
+
+describe("a student's password (D-145, the PM 2026-10-11)", () => {
+  it("in a school where it is theirs to keep, the words say so and not that it must be changed", () => {
+    const keep = inContext(<TemporaryPasswordNotice name="Sita" password="4821" onDone={noop} bodyKey="student.pin.secretKeep" />);
+    expect(keep).toContain("4821");
+    expect(keep).toContain("It is theirs to keep");
+    expect(keep).not.toContain("must choose their own password");
+    expect(inContext(<TemporaryPasswordNotice name="Sita" password="4821" onDone={noop} />)).toContain("must choose their own password");
+  });
+
+  it("the Co-ordinator's record has a button to give a new password", () => {
+    expect(inContext(<NewPassword studentId="s1" name="Sita Rai" />)).toContain("Give a new password");
+  });
+});

@@ -6,7 +6,8 @@
     "currency": "NPR",
     "timezone": "Asia/Kathmandu",
     "region": "nepal",
-    "adminTwoFactor": false
+    "adminTwoFactor": false,
+    "studentKeepsPin": true
   },
   "sections": [],
   "modules": {

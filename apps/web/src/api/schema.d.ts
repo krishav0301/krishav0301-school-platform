@@ -1414,6 +1414,23 @@ export interface paths {
         patch: operations["correct_student"];
         trace?: never;
     };
+    "/api/students/{id}/pin": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description A new 4-digit password for a student who has lost theirs: the Co-ordinator whose wing reaches the student, or Support. Their open sessions end. It is theirs to keep in a school that lets students keep it, otherwise temporary again. Shown here once and nowhere else, never cached. */
+        post: operations["issue_student_pin"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/promotions": {
         parameters: {
             query?: never;
@@ -3441,6 +3458,7 @@ export interface components {
                 timezone: string;
                 region: string;
                 template: string | null;
+                studentKeepsPin?: boolean;
             };
             sections: {
                 key: string;
@@ -3986,6 +4004,9 @@ export interface components {
             guardianPhone?: string;
             previousSchool?: string | null;
             reason: string;
+        };
+        StudentPin: {
+            temporaryPassword: string;
         };
         PromotionBoard: {
             terms: {
@@ -9463,6 +9484,64 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["StudentDetail"];
+                };
+            };
+            /** @description Not allowed */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdmissionsError"];
+                };
+            };
+            /** @description No such item */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdmissionsError"];
+                };
+            };
+            /** @description It conflicts with what is already there */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdmissionsError"];
+                };
+            };
+            /** @description The change breaks a rule; nothing changed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdmissionsInvalid"];
+                };
+            };
+        };
+    };
+    issue_student_pin: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The new password (never cached) */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StudentPin"];
                 };
             };
             /** @description Not allowed */

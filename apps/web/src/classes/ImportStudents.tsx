@@ -4,6 +4,7 @@ import { FileDown, FileUp } from "lucide-react";
 import { useMemo, useRef, useState, type ChangeEvent } from "react";
 
 import { registerWalkIn, suggestStudentEmail } from "@/admissions/client";
+import { useConfig } from "@/config/ConfigProvider";
 import { toAd } from "@/content/client";
 import { t, type MessageKey } from "@/i18n/messages";
 import { useSession } from "@/session/SessionProvider";
@@ -41,6 +42,7 @@ export function tally(results: readonly RowResult[]): { admitted: number; duplic
  */
 export function ImportStudents({ classId, levelId, className, onDone }: { classId: string; levelId: string; className: string; onDone: () => void }) {
   const { api } = useSession();
+  const { config } = useConfig();
   const input = useRef<HTMLInputElement>(null);
   const [rows, setRows] = useState<ImportRow[] | null>(null);
   const [ignored, setIgnored] = useState<string[]>([]);
@@ -94,7 +96,7 @@ export function ImportStudents({ classId, levelId, className, onDone }: { classI
         <Notice tone={count.problems + count.duplicates > 0 ? "bad" : "ok"}>{t("classes.import.result", { admitted: count.admitted, class: className })}</Notice>
         {count.admitted > 0 ? (
           <>
-            <p className={styles.importNote}>{t("classes.import.passwordsOnce")}</p>
+            <p className={styles.importNote}>{t(config?.school.studentKeepsPin ? "classes.import.passwordsOnceKeep" : "classes.import.passwordsOnce")}</p>
             <div>
               <Button onClick={() => save("sign-in-sheet.csv", loginsCsv(results))}>
                 <FileDown aria-hidden width={18} height={18} />

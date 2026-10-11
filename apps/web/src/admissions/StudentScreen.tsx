@@ -20,6 +20,7 @@ import { Notice } from "@/ui";
 import styles from "./admissions.module.css";
 import { loadStudent } from "./client";
 import { CorrectDetails } from "./CorrectDetails";
+import { NewPassword } from "./NewPassword";
 import type { StudentDetail } from "./model";
 
 /**
@@ -113,13 +114,16 @@ export function StudentScreen() {
         feesLink={feesLink}
         actions={
           canCorrect ? (
-            <CorrectDetails
-              student={corrected ?? view.data}
-              onCorrected={(next) => {
-                setCorrected(next);
-                setSaved(true);
-              }}
-            />
+            <>
+              <CorrectDetails
+                student={corrected ?? view.data}
+                onCorrected={(next) => {
+                  setCorrected(next);
+                  setSaved(true);
+                }}
+              />
+              <NewPassword studentId={view.data.id} name={[(corrected ?? view.data).firstName, (corrected ?? view.data).lastName].filter(Boolean).join(" ")} />
+            </>
           ) : null
         }
       />
