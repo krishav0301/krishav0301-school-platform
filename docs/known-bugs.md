@@ -7,6 +7,7 @@ Open bugs found in testing, not yet fixed. Move an entry to `DECISIONS.md` (with
 | B-001 | 2026-10-09 | Setup, Wings | An empty wing (no programmes or subjects) cannot be deleted. | Fixed 2026-10-09. Cause: a wing's subjects were not counted by the "can delete" check, so the Delete button showed but the database refused. Now a wing with only unused subjects deletes together with them; one with a taught subject stays blocked. Not yet committed. |
 | B-002 | 2026-10-09 | Sections | There is no option to edit a section once it is created; it cannot be re-edited. | Fixed 2026-10-09 for class sections (Morning, Evening): a section with no name had no Rename option in the Classes screen; it now does. Not yet committed. If you meant another screen, tell me. |
 | B-003 | 2026-10-09 | Setup, Subjects (Wing and Level pickers) | When a wing has only one Department, it is shown as plain text ("Department: English Boarding School") instead of a dropdown. It should stay a dropdown even with one choice. | Fixed 2026-10-09 in `StructurePicker.tsx` (Wing, Department and Level are all dropdowns now; the admissions form is unchanged). Not yet committed. |
+| B-004 | 2026-10-10 | Teacher, Results tab | The Results tab always opened on the default terminal instead of the one last used. | Fixed 2026-10-10: it opens on the terminal last picked or last opened (kept in this browser; falls back to the default if that terminal is gone). |
 
 ## Requests
 
