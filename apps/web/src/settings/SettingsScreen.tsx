@@ -151,7 +151,9 @@ export function PasswordCard() {
  */
 export function AppearanceCard() {
   const { config } = useConfig();
-  const [chosen, setChosen] = useState(() => (typeof window === "undefined" ? SCHOOL_PALETTE : readPalette()));
+  const { me } = useSession();
+  const userId = me?.id ?? "";
+  const [chosen, setChosen] = useState(() => (typeof window === "undefined" || !userId ? SCHOOL_PALETTE : readPalette(userId)));
   const school = (config?.theme as { light?: PaletteColors } | null | undefined)?.light;
   const options = [{ key: SCHOOL_PALETTE, name: "appearance.palette.school" as MessageKey, colors: school }, ...PALETTES];
   return (
@@ -168,7 +170,7 @@ export function AppearanceCard() {
               checked={chosen === o.key}
               className={styles.paletteInput}
               onChange={() => {
-                choosePalette(o.key);
+                choosePalette(userId, o.key);
                 setChosen(o.key);
               }}
             />

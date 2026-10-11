@@ -5506,6 +5506,7 @@ export interface operations {
                 };
                 content: {
                     "application/json": {
+                        id: string;
                         name: string;
                         roles: components["schemas"]["RoleClaim"][];
                     };

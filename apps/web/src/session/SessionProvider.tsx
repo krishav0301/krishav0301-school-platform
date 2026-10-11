@@ -11,6 +11,8 @@ import { createRefreshingFetch } from "./refreshing-fetch";
 
 export type RoleClaim = components["schemas"]["RoleClaim"];
 export interface Me {
+  /** The account's public id: what a per-person setting kept in this browser is filed under. */
+  id: string;
   name: string;
   roles: RoleClaim[];
 }
@@ -125,7 +127,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
         // An expired access cookie is renewed inside this call by the refreshing fetch.
         const { data } = await api.GET("/api/auth/me");
         if (!active) return;
-        setState((current) => (data ? { status: "signedIn", me: { name: data.name, roles: data.roles }, ended: false } : { status: "signedOut", me: null, ended: current.ended }));
+        setState((current) => (data ? { status: "signedIn", me: { id: data.id, name: data.name, roles: data.roles }, ended: false } : { status: "signedOut", me: null, ended: current.ended }));
       } catch {
         if (active) setState({ status: "signedOut", me: null, ended: false });
       }
@@ -141,7 +143,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       if (data && "passwordChange" in data) return { ok: true, passwordChange: data.passwordChange, challenge: data.challenge };
       if (data && "twoFactor" in data) return { ok: true, twoFactor: data.twoFactor, challenge: data.challenge };
       if (data) {
-        setState({ status: "signedIn", me: { name: data.user.fullName, roles: data.roles }, ended: false });
+        setState({ status: "signedIn", me: { id: data.user.id, name: data.user.fullName, roles: data.roles }, ended: false });
         return { ok: true };
       }
       if (response.status === 401) return { ok: false, reason: "invalid" };
@@ -156,7 +158,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     try {
       const { data, response, error } = await api.POST("/api/auth/2fa/verify", { body: { challenge, code } });
       if (data) {
-        setState({ status: "signedIn", me: { name: data.user.fullName, roles: data.roles }, ended: false });
+        setState({ status: "signedIn", me: { id: data.user.id, name: data.user.fullName, roles: data.roles }, ended: false });
         return { ok: true };
       }
       return { ok: false, reason: twoFactorFailure(response.status, error) };
@@ -179,7 +181,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   const enableTwoFactor = useCallback<SessionValue["enableTwoFactor"]>(async (challenge, code) => {
     try {
       const { data, response, error } = await api.POST("/api/auth/2fa/enable", { body: { challenge, code } });
-      if (data) return { ok: true, recoveryCodes: data.recoveryCodes, me: { name: data.user.fullName, roles: data.roles } };
+      if (data) return { ok: true, recoveryCodes: data.recoveryCodes, me: { id: data.user.id, name: data.user.fullName, roles: data.roles } };
       if (response.status === 409) return { ok: false, reason: "no_setup" };
       return { ok: false, reason: twoFactorFailure(response.status, error) };
     } catch {
@@ -192,7 +194,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       const { data, response, error } = await api.POST("/api/auth/password/change-required", { body: { challenge, password } });
       if (data && "twoFactor" in data) return { ok: true, twoFactor: data.twoFactor, challenge: data.challenge };
       if (data) {
-        setState({ status: "signedIn", me: { name: data.user.fullName, roles: data.roles }, ended: false });
+        setState({ status: "signedIn", me: { id: data.user.id, name: data.user.fullName, roles: data.roles }, ended: false });
         return { ok: true };
       }
       return { ok: false, ...passwordChangeFailure(response.status, error) };
