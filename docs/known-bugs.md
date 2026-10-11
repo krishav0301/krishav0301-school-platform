@@ -8,6 +8,7 @@ Open bugs found in testing, not yet fixed. Move an entry to `DECISIONS.md` (with
 | B-002 | 2026-10-09 | Sections | There is no option to edit a section once it is created; it cannot be re-edited. | Fixed 2026-10-09 for class sections (Morning, Evening): a section with no name had no Rename option in the Classes screen; it now does. Not yet committed. If you meant another screen, tell me. |
 | B-003 | 2026-10-09 | Setup, Subjects (Wing and Level pickers) | When a wing has only one Department, it is shown as plain text ("Department: English Boarding School") instead of a dropdown. It should stay a dropdown even with one choice. | Fixed 2026-10-09 in `StructurePicker.tsx` (Wing, Department and Level are all dropdowns now; the admissions form is unchanged). Not yet committed. |
 | B-004 | 2026-10-10 | Teacher, Results tab | The Results tab always opened on the default terminal instead of the one last used. | Fixed 2026-10-10: it opens on the terminal last picked or last opened (kept in this browser; falls back to the default if that terminal is gone). |
+| B-005 | 2026-10-10 | Results, Class sheets | After publishing the first terminal the class sheet could not be found: the screen listed only the classes and exams of the first active term, but several terms can be open. | Fixed 2026-10-10: it lists every open term (the class shows its term when more than one is open), offers the exams of the chosen class's own term, and follows the top-bar term picker. Not confirmed against the PM's data. |
 
 ## Requests
 
