@@ -1,10 +1,12 @@
 import { newPublicId } from "../../core/ids";
 import { coordinatorForSection, groupSection, levelSection, offeringSection } from "./guard";
 import {
+  CopyOfferingsSchema,
   CreateGroupSchema,
   CreateOfferingSchema,
   GroupChangesSchema,
   OfferingChangesSchema,
+  type CopyOfferingsInput,
   type GroupChanges,
   type GroupInput,
   type OfferingChanges,
@@ -264,5 +266,98 @@ export async function updateOffering(db: D1Database, auditKey: string, actor: st
   );
   if (outcome === "done") return { ok: true };
   if (outcome === "check_failed") return { ok: false, reason: "invalid", message: "That elective group is not available for this level" };
+  return { ok: false, reason: "not_allowed" };
+}
+
+// --- Copying a level's subjects ------------------------------------------------------------------------
+
+/** Both levels, the same programme, both on, a person who may act on its wing: the shared WHERE of the copy's statements. `lf` is the source, `lt` the target. */
+const COPY_FROM = `FROM levels lf
+         JOIN levels lt ON lt.programme_id = lf.programme_id AND lt.id <> lf.id
+         JOIN programmes p ON p.id = lf.programme_id`;
+const COPY_WHERE = `lf.public_id = ?1 AND lt.public_id = ?2 AND lf.is_active = 1 AND lt.is_active = 1 AND p.is_active = 1 AND ${coordinatorForSection(3, "p.section_id")}`;
+/** The source's switched-on subjects (not archived) that the target does not have yet. */
+const COPY_SUBJECTS = `JOIN subject_offerings o ON o.level_id = lf.id AND o.is_active = 1
+         JOIN subjects s ON s.id = o.subject_id AND s.is_archived = 0 AND s.section_id = p.section_id`;
+const NOT_YET_THERE = `NOT EXISTS (SELECT 1 FROM subject_offerings t WHERE t.level_id = lt.id AND t.subject_id = o.subject_id)`;
+
+export type Copied = { ok: true; copied: number } | Extract<Done, { ok: false }>;
+
+/**
+ * Gives a level the subjects of another level of the SAME programme (R-001, the PM 2026-10-09): each switched-on subject
+ * the level does not already have, with its credit hours, paper (full marks and practical) and elective group. A group
+ * the target lacks is made, by name. Nothing the target already has is changed, and the source is untouched. One
+ * all-or-nothing write with one audit entry; copying nothing writes nothing. Same permission as adding a subject.
+ */
+export async function copyOfferings(db: D1Database, auditKey: string, actor: string, input: CopyOfferingsInput): Promise<Copied> {
+  const parsed = CopyOfferingsSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, reason: "invalid", message: firstMessage(parsed.error) };
+  const { fromLevelId, toLevelId } = parsed.data;
+  if (fromLevelId === toLevelId) return { ok: false, reason: "invalid", message: "Choose another level to copy from" };
+
+  const [allowed, levels, toCopy] = await db.batch([
+    db.prepare(`SELECT ${coordinatorForSection(1, levelSection(2))} AS ok`).bind(actor, toLevelId),
+    db
+      .prepare(
+        `SELECT l.public_id AS id, l.programme_id AS programme, l.is_active AS level_active, p.is_active AS programme_active
+           FROM levels l JOIN programmes p ON p.id = l.programme_id WHERE l.public_id IN (?1, ?2)`,
+      )
+      .bind(fromLevelId, toLevelId),
+    db.prepare(`SELECT COUNT(*) AS n ${COPY_FROM} ${COPY_SUBJECTS} WHERE ${COPY_WHERE} AND ${NOT_YET_THERE}`).bind(fromLevelId, toLevelId, actor),
+  ]);
+  if ((allowed!.results[0] as { ok: number } | undefined)?.ok !== 1) {
+    // Nobody may act on a level that is not there; say so only to a person who could have.
+    return { ok: false, reason: "not_allowed" };
+  }
+  const rows = levels!.results as { id: string; programme: number; level_active: number; programme_active: number }[];
+  const from = rows.find((r) => r.id === fromLevelId);
+  const to = rows.find((r) => r.id === toLevelId);
+  if (!from || !to) return { ok: false, reason: "not_found" };
+  if (from.programme !== to.programme) return { ok: false, reason: "invalid", message: "Copy only between levels of the same programme" };
+  if (!from.level_active || !to.level_active || !from.programme_active) return { ok: false, reason: "invalid", message: "That level or its programme is switched off" };
+  const copied = (toCopy!.results[0] as { n: number }).n;
+  if (copied === 0) return { ok: true, copied: 0 };
+
+  const outcome = await write(
+    db,
+    auditKey,
+    {
+      action: "academics.offerings.copied",
+      entityType: "level",
+      entityPublicId: toLevelId,
+      actorPublicId: actor,
+      summary: `${copied} subject${copied === 1 ? "" : "s"} copied from another level`,
+      after: { fromLevelId, toLevelId, copied },
+    },
+    [
+      // Groups first (named after the source's), so the subjects can point at them. Only those a copied subject uses.
+      db
+        .prepare(
+          `INSERT INTO elective_groups (public_id, level_id, name, pick_count)
+           SELECT lower(hex(randomblob(16))), lt.id, g.name, g.pick_count
+             ${COPY_FROM}
+             JOIN elective_groups g ON g.level_id = lf.id
+            WHERE ${COPY_WHERE}
+              AND NOT EXISTS (SELECT 1 FROM elective_groups g2 WHERE g2.level_id = lt.id AND g2.name = g.name)
+              AND EXISTS (SELECT 1 FROM subject_offerings o JOIN subjects s ON s.id = o.subject_id AND s.is_archived = 0 AND s.section_id = p.section_id
+                           WHERE o.elective_group_id = g.id AND o.is_active = 1 AND ${NOT_YET_THERE})`,
+        )
+        .bind(fromLevelId, toLevelId, actor),
+      // The subjects. The last statement: it decides whether the audit entry is written.
+      db
+        .prepare(
+          `INSERT INTO subject_offerings (public_id, level_id, subject_id, credit_hundredths, elective_group_id, full_marks_hundredths, practical_hundredths)
+           SELECT lower(hex(randomblob(16))), lt.id, o.subject_id, o.credit_hundredths,
+                  (SELECT g2.id FROM elective_groups g2 JOIN elective_groups g ON g.id = o.elective_group_id WHERE g2.level_id = lt.id AND g2.name = g.name),
+                  o.full_marks_hundredths, o.practical_hundredths
+             ${COPY_FROM}
+             ${COPY_SUBJECTS}
+            WHERE ${COPY_WHERE} AND ${NOT_YET_THERE}`,
+        )
+        .bind(fromLevelId, toLevelId, actor),
+    ],
+  );
+  if (outcome === "done") return { ok: true, copied };
+  if (outcome === "duplicate") return { ok: false, reason: "conflict" }; // someone added one a moment ago
   return { ok: false, reason: "not_allowed" };
 }

@@ -780,6 +780,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/academics/offerings/copy": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Gives a level the switched-on subjects of another level of the same programme that it does not have yet, each with its credit hours, paper and elective group (a missing group is made by name). Nothing the level already has is changed. Answers how many were copied, which may be none. A level of another programme, or one that is switched off, is 422. */
+        post: operations["copy_offerings"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/academics/offerings/{id}": {
         parameters: {
             query?: never;
@@ -829,6 +846,23 @@ export interface paths {
         head?: never;
         /** @description Renames an elective group, changes how many are picked, or switches it off and on. */
         patch: operations["update_elective_group"];
+        trace?: never;
+    };
+    "/api/academics/setup-map": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Each open term (or the one named) with its exam pattern, and under it Wing, Department and Level; each level with its subjects and its sections, and each section with its Class Teacher, who teaches which subject and how many students it has. Only the wings the person reaches. */
+        get: operations["get_setup_map"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
     "/api/classes": {
@@ -3231,6 +3265,13 @@ export interface components {
             fullMarksHundredths?: number;
             practicalHundredths?: number | null;
         };
+        OfferingsCopied: {
+            copied: number;
+        };
+        CopyOfferings: {
+            fromLevelId: string;
+            toLevelId: string;
+        };
         OfferingChanges: {
             creditHundredths?: number | null;
             groupId?: string | null;
@@ -3246,6 +3287,53 @@ export interface components {
             name?: string;
             pickCount?: number;
             active?: boolean;
+        };
+        SetupMap: {
+            terms: {
+                id: string;
+                label: string;
+                /** @enum {string} */
+                status: "draft" | "active" | "closed";
+                exam: {
+                    graded: boolean;
+                    theoryMinPercent: number;
+                    practicalMinPercent: number;
+                    terminals: {
+                        name: string;
+                        weight: number | null;
+                        hasPractical: boolean;
+                    }[];
+                } | null;
+                wings: {
+                    key: string;
+                    name: string;
+                    departments: {
+                        id: string;
+                        name: string;
+                        levels: {
+                            id: string;
+                            name: string;
+                            subjects: {
+                                id: string;
+                                name: string;
+                                fullMarksHundredths: number;
+                                practicalHundredths: number | null;
+                                group: string | null;
+                            }[];
+                            sections: {
+                                id: string;
+                                label: string;
+                                students: number;
+                                classTeacher: string | null;
+                                teachers: {
+                                    subjectId: string;
+                                    teacher: string;
+                                }[];
+                            }[];
+                        }[];
+                    }[];
+                }[];
+            }[];
         };
         ClassHubList: {
             classes: {
@@ -7560,6 +7648,66 @@ export interface operations {
             };
         };
     };
+    copy_offerings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CopyOfferings"];
+            };
+        };
+        responses: {
+            /** @description Copied */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OfferingsCopied"];
+                };
+            };
+            /** @description Not allowed (for example, switched off since signing in, or another section's data) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AcademicsError"];
+                };
+            };
+            /** @description No such item */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AcademicsError"];
+                };
+            };
+            /** @description It conflicts with what is already there (a repeat, a closed year, another active year) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AcademicsError"];
+                };
+            };
+            /** @description The change breaks a rule; nothing changed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AcademicsInvalid"];
+                };
+            };
+        };
+    };
     update_offering: {
         parameters: {
             query?: never;
@@ -7742,6 +7890,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AcademicsInvalid"];
+                };
+            };
+        };
+    };
+    get_setup_map: {
+        parameters: {
+            query?: {
+                term?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The setup map */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SetupMap"];
+                };
+            };
+            /** @description No such open term */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AcademicsError"];
                 };
             };
         };

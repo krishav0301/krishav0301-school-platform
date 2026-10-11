@@ -7,13 +7,19 @@ import { firstMessage, write, type Done } from "./write";
 /**
  * Teaching (D-060): one teacher per subject in a class, and each class's Class Teacher. A section-scoped
  * Co-ordinator may only touch their own section's classes, and only pick their own section's teachers
- * (`teacherManageableBy`, shared with `accounts` since it is the same rule as who may manage a teacher).
+ * (`teacherManageableBy`, shared with `accounts` since it is the same rule as who may manage a teacher). Anyone, even
+ * institution-wide, picks only teachers whose home wing is the class's wing.
  */
 
 /** One round trip: may the actor act on this class, and (if a teacher is named) may they pick this teacher? */
 async function guarded(db: D1Database, actor: string, classId: string, teacherId: string | null): Promise<boolean> {
   const row = await db
-    .prepare(`SELECT (${coordinatorForSection(1, classSection(2))}) AND (?3 IS NULL OR ${teacherManageableBy(1, 3)}) AS ok`)
+    // A teacher is picked only for a class of their own wing: the one on their staff profile (the PM, 2026-10-10).
+    .prepare(
+      `SELECT (${coordinatorForSection(1, classSection(2))})
+          AND (?3 IS NULL OR (${teacherManageableBy(1, 3)}
+               AND (SELECT sp.home_section_id FROM staff_profiles sp JOIN users tw ON tw.id = sp.user_id WHERE tw.public_id = ?3) = ${classSection(2)})) AS ok`,
+    )
     .bind(actor, classId, teacherId)
     .first<{ ok: number }>();
   return row?.ok === 1;

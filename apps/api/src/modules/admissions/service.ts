@@ -429,8 +429,8 @@ export async function approveApplication(
         .bind(studentPublicId, applicationPublicId, at, input.classId),
       db
         .prepare(
-          `INSERT INTO users (public_id, email, password_hash, full_name, phone, must_change_password)
-           SELECT ?1, st.email, ?3, st.first_name || ' ' || st.last_name, st.phone, 1
+          `INSERT INTO users (public_id, email, password_hash, full_name, phone, must_change_password, temporary_password_expires_at)
+           SELECT ?1, st.email, ?3, st.first_name || ' ' || st.last_name, st.phone, 1, strftime('%Y-%m-%dT%H:%M:%fZ', 'now', '+1 day')
              FROM students st WHERE st.public_id = ?2 AND changes() > 0`,
         )
         .bind(userPublicId, studentPublicId, hashPassword(temporaryPassword)),

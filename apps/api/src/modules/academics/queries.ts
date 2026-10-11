@@ -402,9 +402,8 @@ interface TeachingTeacherRow {
 
 /**
  * One class's teaching, in one database round trip: its offerings with their current teacher (or none),
- * its Class Teacher, and the teachers this viewer may pick from (institution-wide sees every teacher;
- * section-scoped sees only their own section's, so the dropdown never offers a teacher the write would
- * then refuse). Null when the class does not exist or is outside the viewer's sections, same as a missing one.
+ * its Class Teacher, and the teachers this viewer may pick from (only those whose home wing is the class's wing, for
+ * everyone, so the dropdown never offers a teacher the write would then refuse). Null when the class does not exist or is outside the viewer's sections, same as a missing one.
  */
 export async function getTeaching(db: D1Database, sections: "all" | readonly string[], classId: string): Promise<Teaching | null> {
   const [classResult, assignmentResult, teacherResult] = await db.batch([
@@ -439,10 +438,10 @@ export async function getTeaching(db: D1Database, sections: "all" | readonly str
            JOIN classes c ON c.public_id = ?1
            JOIN levels l ON l.id = c.level_id JOIN programmes p ON p.id = l.programme_id
            LEFT JOIN staff_profiles sp ON sp.user_id = u.id
-          WHERE u.is_active = 1 AND (?2 = 1 OR sp.home_section_id = p.section_id)
+          WHERE u.is_active = 1 AND sp.home_section_id = p.section_id
           ORDER BY u.full_name COLLATE NOCASE`,
       )
-      .bind(classId, sections === "all" ? 1 : 0),
+      .bind(classId),
   ]);
 
   const cls = classResult!.results[0] as unknown as TeachingClassRow | undefined;

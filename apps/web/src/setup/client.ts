@@ -22,6 +22,8 @@ async function load<T>(run: () => Promise<{ data?: T; response: Response }>): Pr
 export const loadYears = (api: ApiClient) => load(() => api.GET("/api/academics/years"));
 export const loadProgrammes = (api: ApiClient) => load(() => api.GET("/api/academics/programmes"));
 export const loadClasses = (api: ApiClient, yearId: string) => load(() => api.GET("/api/academics/classes", { params: { query: { year: yearId } } }));
+/** The whole setup of one open term, or of every open one when `termId` is null (the PM, 2026-10-10). */
+export const loadSetupMap = (api: ApiClient, termId: string | null) => load(() => api.GET("/api/academics/setup-map", { params: { query: termId ? { term: termId } : {} } }));
 export const loadTerminals = (api: ApiClient, yearId: string) => load(() => api.GET("/api/academics/terminals", { params: { query: { year: yearId } } }));
 
 export type WriteResult = { ok: true } | { ok: false; reason: FailReason };
@@ -164,6 +166,12 @@ export const addOffering = async (
   api: ApiClient,
   body: { levelId: string; subjectId: string; creditHundredths: number | null; groupId: string | null; fullMarksHundredths: number; practicalHundredths: number | null },
 ): Promise<CreateResult> => created(await send(() => api.POST("/api/academics/offerings", { body })));
+
+/** Gives a level the subjects another level of the same programme has and it lacks (R-001). `copied` may be 0. */
+export const copyOfferings = async (api: ApiClient, fromLevelId: string, toLevelId: string): Promise<{ ok: true; copied: number } | { ok: false; reason: FailReason }> => {
+  const sent = await send(() => api.POST("/api/academics/offerings/copy", { body: { fromLevelId, toLevelId } }));
+  return sent.ok ? { ok: true, copied: (sent.data as { copied: number }).copied } : sent;
+};
 
 /** A subject's paper (D-117): its full marks, and the practical's share or none. */
 export const setOfferingPaper = async (api: ApiClient, id: string, body: { fullMarksHundredths: number; practicalHundredths: number | null }): Promise<WriteResult> =>
