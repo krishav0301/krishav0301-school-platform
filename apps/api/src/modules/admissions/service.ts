@@ -28,6 +28,7 @@ import {
   type ApproveInput,
   type RejectInput,
   type RequestChanges,
+  type StaffApplicant,
   type WalkInInput,
 } from "./schema";
 import { write } from "./write";
@@ -43,11 +44,11 @@ const firstMessage = (error: { issues: { message: string }[] }) => error.issues[
 
 // --- Duplicate check (D-006: phone, or name plus date of birth; advisory, never blocks) ------------
 
-async function findDuplicateFlags(db: D1Database, phone: string, firstName: string, lastName: string, dob: string): Promise<string[]> {
+async function findDuplicateFlags(db: D1Database, phone: string, firstName: string, lastName: string, dob: string | null): Promise<string[]> {
   const [byPhone, byNameDob] = await db.batch([
     db.prepare(
-      `SELECT 1 FROM students WHERE phone = ?1
-       UNION SELECT 1 FROM applications WHERE phone = ?1 AND status NOT IN ('rejected', 'expired') LIMIT 1`,
+      `SELECT 1 FROM students WHERE ?1 <> '' AND phone = ?1
+       UNION SELECT 1 FROM applications WHERE ?1 <> '' AND phone = ?1 AND status NOT IN ('rejected', 'expired') LIMIT 1`,
     ).bind(phone),
     db.prepare(
       `SELECT 1 FROM students WHERE first_name = ?1 COLLATE NOCASE AND last_name = ?2 COLLATE NOCASE AND dob_ad = ?3
@@ -61,16 +62,50 @@ async function findDuplicateFlags(db: D1Database, phone: string, firstName: stri
 }
 
 /** The students a new walk-in may already be (same phone, or same name and date of birth), named for the Co-ordinator. */
-async function findDuplicateStudents(db: D1Database, phone: string, firstName: string, lastName: string, dob: string): Promise<{ name: string; sid: string }[]> {
+async function findDuplicateStudents(db: D1Database, phone: string, firstName: string, lastName: string, dob: string | null): Promise<{ name: string; sid: string }[]> {
   const { results } = await db
     .prepare(
-      `SELECT first_name || ' ' || last_name AS name, sid FROM students
-        WHERE phone = ?1 OR (first_name = ?2 COLLATE NOCASE AND last_name = ?3 COLLATE NOCASE AND dob_ad = ?4)
+      `SELECT TRIM(first_name || ' ' || last_name) AS name, sid FROM students
+        WHERE (?1 <> '' AND phone = ?1) OR (first_name = ?2 COLLATE NOCASE AND last_name = ?3 COLLATE NOCASE AND dob_ad = ?4)
         ORDER BY sid LIMIT 5`,
     )
     .bind(phone, firstName, lastName, dob)
     .all<{ name: string; sid: string }>();
   return results;
+}
+
+// --- The student's sign-in email (the PM, 2026-10-10) -------------------------------------------------------
+
+export const STUDENT_EMAIL_DOMAIN = "student.com";
+
+/** The part before the @: the first name in lower-case letters and digits, or "student" when it has none (a name in Devanagari). */
+export function emailLocalPart(firstName: string): string {
+  return firstName.normalize("NFKD").toLowerCase().replace(/[^a-z0-9]/g, "") || "student";
+}
+
+/**
+ * An email for a student with none: `name@student.com`, and `name_1@student.com`, `name_2@...` when that is taken (by a
+ * login, a student or an application). It can be edited by hand. Two people asking at the same moment may be offered the
+ * same one; the second is then refused at admission as taken, never given a duplicate login.
+ */
+export async function suggestEmail(db: D1Database, firstName: string): Promise<string> {
+  const base = emailLocalPart(firstName);
+  const { results } = await db
+    .prepare(`SELECT email FROM users WHERE email LIKE ?1 UNION SELECT email FROM students WHERE email LIKE ?1 UNION SELECT email FROM applications WHERE email LIKE ?1`)
+    .bind(`${base}%@${STUDENT_EMAIL_DOMAIN}`)
+    .all<{ email: string | null }>();
+  const taken = new Set(results.map((r) => (r.email ?? "").toLowerCase()));
+  for (let n = 0; ; n++) {
+    const candidate = `${base}${n === 0 ? "" : `_${n}`}@${STUDENT_EMAIL_DOMAIN}`;
+    if (!taken.has(candidate)) return candidate;
+  }
+}
+
+/** The typed details with an email filled in when it was left out, so everything after sees one. */
+async function withEmail<T extends { firstName?: unknown; email?: unknown }>(db: D1Database, input: T): Promise<T> {
+  const blank = typeof input.email !== "string" || input.email.trim() === "";
+  if (!blank || typeof input.firstName !== "string" || input.firstName.trim() === "") return input;
+  return { ...input, email: await suggestEmail(db, input.firstName) };
 }
 
 // --- The public application --------------------------------------------------------------------------
@@ -190,13 +225,14 @@ export async function registerWalkIn(
   now: Date = new Date(),
 ): Promise<WalkInResult> {
   // ApplicantDetailsSchema is strict: classId is approve's, and confirmDuplicate this function's, not the applicant's.
-  const { classId, confirmDuplicate, ...applicantOnly } = input;
+  const { classId, confirmDuplicate, ...typed } = input;
+  const applicantOnly = await withEmail(db, typed);
   // The duplicate check stays advisory (D-006), but a walk-in is admitted at once, so the Co-ordinator sees who it may
   // already be and admits only on a second, deliberate "Admit anyway" (Co-ordinator FUT F-03).
   if (!confirmDuplicate) {
     const parsed = WalkInSchema.safeParse(applicantOnly);
     if (parsed.success) {
-      const matches = await findDuplicateStudents(db, parsed.data.phone, parsed.data.firstName, parsed.data.lastName, parsed.data.dob);
+      const matches = await findDuplicateStudents(db, parsed.data.phone ?? "", parsed.data.firstName, parsed.data.lastName ?? "", parsed.data.dob || null);
       if (matches.length > 0) return { ok: false, reason: "possible_duplicate", matches };
     }
   }
@@ -210,7 +246,7 @@ export async function registerWalkIn(
                          WHERE cl.public_id = ?1 AND lv.public_id = ?2 AND cl.is_active = 1 AND cy.status <> 'closed') AS class_ok,
                 EXISTS (SELECT 1 FROM users WHERE email = ?3) AS email_taken`,
       )
-      .bind(classId, parsedLevel.data.levelId, parsedLevel.data.email.trim().toLowerCase())
+      .bind(classId, parsedLevel.data.levelId, (parsedLevel.data.email ?? "").trim().toLowerCase())
       .first<{ class_ok: number; email_taken: number }>();
     if (ready?.class_ok !== 1) return { ok: false, reason: "invalid", message: CLASS_NOT_OPEN };
     if (ready.email_taken === 1) return { ok: false, reason: "invalid", message: EMAIL_TAKEN };
@@ -223,13 +259,13 @@ export async function registerWalkIn(
 
 /** The Accountant's registration: goes to the queue like a public applicant who has verified their email. */
 export async function registerStudent(db: D1Database, auditKey: string, actor: string, input: WalkInInput, now: Date = new Date()): Promise<RegisterResult> {
-  return registerApplication(db, auditKey, actor, "accountant", input, now);
+  return registerApplication(db, auditKey, actor, "accountant", await withEmail(db, input), now);
 }
 
 async function registerApplication(db: D1Database, auditKey: string, actor: string, kind: "walkin" | "accountant", input: WalkInInput, now: Date): Promise<RegisterResult> {
   const parsed = WalkInSchema.safeParse(input);
   if (!parsed.success) return { ok: false, reason: "invalid", message: firstMessage(parsed.error) };
-  const p: ApplicantDetails = parsed.data;
+  const p: StaffApplicant = parsed.data;
 
   const level = await db
     .prepare(`SELECT lv.id, lv.programme_id, pv.section_id FROM levels lv JOIN programmes pv ON pv.id = lv.programme_id WHERE lv.public_id = ?1 AND lv.is_active = 1 AND pv.is_active = 1`)
@@ -239,7 +275,7 @@ async function registerApplication(db: D1Database, auditKey: string, actor: stri
   const year = await openTermFor(db, level.id);
   if (!year) return { ok: false, reason: "not_found" };
 
-  const duplicateFlags = await findDuplicateFlags(db, p.phone, p.firstName, p.lastName, p.dob);
+  const duplicateFlags = await findDuplicateFlags(db, p.phone ?? "", p.firstName, p.lastName ?? "", p.dob || null);
   const publicId = newPublicId();
   const at = now.toISOString();
   // A literal, not user input: `level.section_id` was just read from the database, not the request.
@@ -253,8 +289,8 @@ async function registerApplication(db: D1Database, auditKey: string, actor: stri
       entityType: "application",
       entityPublicId: publicId,
       actorPublicId: actor,
-      summary: `${p.firstName} ${p.lastName} registered${kind === "walkin" ? " as a walk-in" : ""}`,
-      after: { firstName: p.firstName, lastName: p.lastName, levelId: p.levelId },
+      summary: `${`${p.firstName} ${p.lastName ?? ""}`.trim()} registered${kind === "walkin" ? " as a walk-in" : ""}`,
+      after: { firstName: p.firstName, lastName: p.lastName ?? "", levelId: p.levelId },
     },
     [
       db
@@ -267,8 +303,8 @@ async function registerApplication(db: D1Database, auditKey: string, actor: stri
              WHERE ${actorGuard}`,
         )
         .bind(
-          publicId, kind === "walkin" ? 1 : 0, p.firstName, p.middleName ?? null, p.lastName, p.dob, p.phone,
-          p.email.trim().toLowerCase(), p.guardianName, p.guardianPhone, p.previousSchool ?? null, p.referredBy ?? null,
+          publicId, kind === "walkin" ? 1 : 0, p.firstName, p.middleName ?? null, p.lastName ?? "", p.dob || null, p.phone ?? "",
+          (p.email ?? "").trim().toLowerCase(), p.guardianName ?? "", p.guardianPhone ?? "", p.previousSchool ?? null, p.referredBy ?? null,
           level.programme_id, level.id, year.id, at, JSON.stringify(duplicateFlags), actor,
         ),
     ],
@@ -430,7 +466,7 @@ export async function approveApplication(
       db
         .prepare(
           `INSERT INTO users (public_id, email, password_hash, full_name, phone, must_change_password, temporary_password_expires_at)
-           SELECT ?1, st.email, ?3, st.first_name || ' ' || st.last_name, st.phone, 1, strftime('%Y-%m-%dT%H:%M:%fZ', 'now', '+1 day')
+           SELECT ?1, st.email, ?3, TRIM(st.first_name || ' ' || st.last_name), NULLIF(st.phone, ''), 1, strftime('%Y-%m-%dT%H:%M:%fZ', 'now', '+1 day')
              FROM students st WHERE st.public_id = ?2 AND changes() > 0`,
         )
         .bind(userPublicId, studentPublicId, hashPassword(temporaryPassword)),
@@ -489,6 +525,9 @@ async function classifyApproveFailure(db: D1Database, actor: string, application
 
 // --- Correcting a student's personal details (Co-ordinator FUT F-06) ------------------------------------------
 
+/** The columns that hold empty text, never NULL, when a detail is not given. */
+const TEXT_NOT_NULL = new Set<keyof typeof STUDENT_COLUMNS>(["lastName", "guardianName", "guardianPhone"]);
+
 const STUDENT_COLUMNS: Record<Exclude<keyof CorrectStudent, "reason">, string> = {
   firstName: "first_name",
   middleName: "middle_name",
@@ -525,9 +564,11 @@ export async function correctStudent(db: D1Database, auditKey: string, actor: st
   if (!before) return { ok: false, reason: "not_found" };
   // Only fixed column names from the map above are written into the SQL; every value is bound.
   const sets = fields.map((k, i) => `${STUDENT_COLUMNS[k]} = ?${i + 3}`).join(", ");
-  const values = fields.map((k) => {
+  const values = fields.map((k, i) => {
     const v = changes[k];
-    return typeof v === "string" && v.trim() === "" ? null : (v ?? null);
+    // A detail taken away becomes empty text where the column may not be NULL (the name is joined into one text in many screens).
+    if (typeof v === "string" && v.trim() === "") return fields[i] !== undefined && TEXT_NOT_NULL.has(fields[i]!) ? "" : null;
+    return v ?? null;
   });
   const outcome = await write(
     db,

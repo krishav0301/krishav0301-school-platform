@@ -14,8 +14,8 @@ import { Button, Notice } from "@/ui";
 import { ApplicantFields } from "./ApplicantFields";
 import admissionsStyles from "./admissions.module.css";
 import { ClassPicker } from "./ClassPicker";
-import { loadOpenLevels, registerForQueue, registerWalkIn } from "./client";
-import { emptyApplicantForm, firstInvalid, validateApplicant, type ApplicantErrors, type ApplicantForm, type OpenLevel } from "./model";
+import { loadOpenLevels, registerForQueue, registerWalkIn, suggestStudentEmail } from "./client";
+import { emptyApplicantForm, firstInvalid, validateStaffApplicant, type ApplicantErrors, type ApplicantForm, type OpenLevel } from "./model";
 
 type Levels = { status: "loading" } | { status: "ready"; levels: OpenLevel[] } | { status: "failed" };
 type RoleClaim = { role: string; scope: string; section?: string };
@@ -50,6 +50,8 @@ export function RegisterScreen({ canPlace }: { canPlace: boolean }) {
   const firstNameRef = useRef<HTMLInputElement>(null);
   const dobRef = useRef<HTMLInputElement>(null);
   const levelRef = useRef<HTMLSelectElement>(null);
+  // Once the person types an email, it is theirs: the suggestion from the name no longer replaces it.
+  const [emailTyped, setEmailTyped] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -63,16 +65,24 @@ export function RegisterScreen({ canPlace }: { canPlace: boolean }) {
 
   // A field's message goes as soon as that field changes (F-01), and so does a duplicate warning about the old details.
   const set = <K extends keyof ApplicantForm>(name: K, value: ApplicantForm[K]) => {
+    if (name === "email") setEmailTyped(value !== "");
     setValues((current) => ({ ...current, [name]: value }));
     setErrors((current) => (current[name as keyof ApplicantErrors] ? { ...current, [name]: undefined } : current));
     setDuplicates(null);
     if (name === "levelId") setClassId("");
   };
 
+  // The sign-in email is made from the first name, and again if the name changes, until the person types their own.
+  async function suggest() {
+    if (emailTyped || !values.firstName.trim()) return;
+    const email = await suggestStudentEmail(api, values.firstName);
+    if (email) setValues((current) => (current.firstName === values.firstName ? { ...current, email } : current));
+  }
+
   async function submit(confirmDuplicate = false) {
     if (pending) return;
     setFailure(null);
-    const problems = validateApplicant(values);
+    const problems = validateStaffApplicant(values);
     if (canPlace && values.levelId && !classId) problems.levelId = problems.levelId ?? "admissions.error.classRequired";
     if (Object.keys(problems).length > 0) {
       setErrors(problems);
@@ -83,7 +93,8 @@ export function RegisterScreen({ canPlace }: { canPlace: boolean }) {
       return;
     }
     setPending(true);
-    const converted = await toAd(api, values.dobBs);
+    // The date of birth is optional: with none, none is sent.
+    const converted = values.dobBs.trim() ? await toAd(api, values.dobBs) : ({ ok: true, ad: "" } as const);
     if (!converted.ok) {
       setPending(false);
       setErrors({ dobBs: converted.error === "dateUnverified" ? "admissions.error.dobUnverified" : "admissions.error.dobInvalid" });
@@ -92,7 +103,7 @@ export function RegisterScreen({ canPlace }: { canPlace: boolean }) {
     if (canPlace) {
       const result = await registerWalkIn(api, values, converted.ad, classId, confirmDuplicate);
       setPending(false);
-      if (result.ok) return setAdmitted({ name: `${values.firstName} ${values.lastName}`, sid: result.sid, password: result.temporaryPassword });
+      if (result.ok) return setAdmitted({ name: `${values.firstName} ${values.lastName}`.trim(), sid: result.sid, password: result.temporaryPassword });
       if (result.reason === "duplicate") return setDuplicates(result.matches);
       if (result.reason === "invalid") setFailure(result.message);
       else if (result.reason === "forbidden") setFailure(t("content.forbidden"));
@@ -113,6 +124,7 @@ export function RegisterScreen({ canPlace }: { canPlace: boolean }) {
     setValues(emptyApplicantForm());
     setClassId("");
     setErrors({});
+    setEmailTyped(false);
   };
 
   if (admitted) {
@@ -156,15 +168,16 @@ export function RegisterScreen({ canPlace }: { canPlace: boolean }) {
       {levels.status === "ready" ? (
         <Panel>
           {failure ? <Notice tone="bad">{failure}</Notice> : null}
+          <p className={admissionsStyles.formNote}>{t("admissions.register.nameOnlyNote")}</p>
           <form
-            className={admissionsStyles.formGrid}
+            className={admissionsStyles.formList}
             noValidate
             onSubmit={(event) => {
               event.preventDefault();
               void submit();
             }}
           >
-            <ApplicantFields values={values} errors={errors} levels={choices} onChange={set} fieldRefs={{ firstName: firstNameRef, dobBs: dobRef, levelId: levelRef }} />
+            <ApplicantFields staff onFirstNameBlur={() => void suggest()} values={values} errors={errors} levels={choices} onChange={set} fieldRefs={{ firstName: firstNameRef, dobBs: dobRef, levelId: levelRef }} />
             {canPlace && values.levelId ? (
               <ClassPicker
                 levelId={values.levelId}

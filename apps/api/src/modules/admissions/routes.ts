@@ -32,7 +32,7 @@ import {
 import { browseStudents } from "./browse";
 import { getOwnClass } from "./own-class";
 import { moveStudents, promotionBoard } from "./promotion";
-import { applyForAdmission, approveApplication, correctStudent, registerStudent, registerWalkIn, reject, requestChanges, verifyApplicationEmail, type WriteFailure } from "./service";
+import { applyForAdmission, approveApplication, correctStudent, registerStudent, registerWalkIn, reject, requestChanges, suggestEmail, verifyApplicationEmail, type WriteFailure } from "./service";
 
 const json = <T extends z.ZodType>(schema: T) => ({ "application/json": { schema } });
 const ErrorSchema = z.object({ error: z.string() }).openapi("AdmissionsError");
@@ -174,6 +174,24 @@ export function registerAdmissions(app: App): void {
     async (c) => {
       const result = await registerStudent(c.env.DB, c.env.AUDIT_HMAC_KEY, c.get("auth")!.userPublicId, c.req.valid("json"));
       return result.ok ? c.json({ id: result.publicId }, 201) : fail(c, result);
+    },
+  );
+
+  defineRoute(
+    app,
+    {
+      method: "get",
+      path: "/api/admissions/email-suggestion",
+      operationId: "suggest_student_email",
+      tags: ["admissions"],
+      description: "The sign-in email a new student would get from their first name: name@student.com, or name_1@student.com and so on when that is taken. The person may change it by hand.",
+      access: { action: "admissions.student.email_suggestion" },
+      request: { query: z.object({ firstName: z.string().trim().min(1).max(60) }) },
+      responses: { 200: { description: "The suggestion", content: json(z.object({ email: z.string() }).openapi("EmailSuggestion")) } },
+    },
+    async (c) => {
+      c.header("Cache-Control", "no-store");
+      return c.json({ email: await suggestEmail(c.env.DB, c.req.valid("query").firstName) }, 200);
     },
   );
 

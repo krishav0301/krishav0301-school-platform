@@ -4744,31 +4744,23 @@
           },
           "lastName": {
             "type": "string",
-            "minLength": 1,
             "maxLength": 60
           },
           "dob": {
-            "type": "string",
-            "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+            "type": "string"
           },
           "phone": {
-            "type": "string",
-            "pattern": "^[0-9+\\-() ]{7,20}$"
+            "type": "string"
           },
           "email": {
-            "type": "string",
-            "minLength": 1,
-            "maxLength": 200,
-            "format": "email"
+            "type": "string"
           },
           "guardianName": {
             "type": "string",
-            "minLength": 1,
             "maxLength": 120
           },
           "guardianPhone": {
-            "type": "string",
-            "pattern": "^[0-9+\\-() ]{7,20}$"
+            "type": "string"
           },
           "previousSchool": {
             "type": "string",
@@ -4785,15 +4777,20 @@
         },
         "required": [
           "firstName",
-          "lastName",
-          "dob",
-          "phone",
-          "email",
-          "guardianName",
-          "guardianPhone",
           "levelId"
         ],
         "additionalProperties": false
+      },
+      "EmailSuggestion": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "email"
+        ]
       },
       "ApplicationQueue": {
         "type": "object",
@@ -4893,7 +4890,10 @@
                 ]
               },
               "dob": {
-                "type": "string"
+                "type": [
+                  "string",
+                  "null"
+                ]
               },
               "dobBs": {
                 "type": [
@@ -5431,7 +5431,10 @@
             "type": "string"
           },
           "dob": {
-            "type": "string"
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "dobBs": {
             "type": [
@@ -5548,28 +5551,27 @@
           },
           "lastName": {
             "type": "string",
-            "minLength": 1,
             "maxLength": 60
           },
           "dob": {
-            "type": "string",
+            "type": [
+              "string",
+              "null"
+            ],
             "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
           },
           "phone": {
             "type": [
               "string",
               "null"
-            ],
-            "pattern": "^[0-9+\\-() ]{7,20}$"
+            ]
           },
           "guardianName": {
             "type": "string",
-            "minLength": 1,
             "maxLength": 120
           },
           "guardianPhone": {
-            "type": "string",
-            "pattern": "^[0-9+\\-() ]{7,20}$"
+            "type": "string"
           },
           "previousSchool": {
             "type": [
@@ -15933,6 +15935,39 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/AdmissionsInvalid"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admissions/email-suggestion": {
+      "get": {
+        "operationId": "suggest_student_email",
+        "tags": [
+          "admissions"
+        ],
+        "description": "The sign-in email a new student would get from their first name: name@student.com, or name_1@student.com and so on when that is taken. The person may change it by hand.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 60
+            },
+            "required": true,
+            "name": "firstName",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The suggestion",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EmailSuggestion"
                 }
               }
             }

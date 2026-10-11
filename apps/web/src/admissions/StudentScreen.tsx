@@ -31,6 +31,7 @@ export function placeLine(place: NonNullable<StudentDetail["place"]>): string {
 
 export function StudentDetails({ student, feesLink = false, actions }: { student: StudentDetail; feesLink?: boolean; actions?: React.ReactNode }) {
   const name = [student.firstName, student.middleName, student.lastName].filter(Boolean).join(" ");
+  const given = (value: string | null | undefined) => (value && value.trim() ? value : t("admissions.notGiven"));
   const rows: [string, string][] = [
     [t("admissions.record.sid"), student.sid],
     // Where the student is, each part on its own line (PM, 2026-10-06): wing, course, level, the class's section, term.
@@ -43,12 +44,12 @@ export function StudentDetails({ student, feesLink = false, actions }: { student
           [t("admissions.record.term"), student.place.term],
         ] as [string, string][])
       : ([[t("admissions.record.class"), t("admissions.record.noClass")]] as [string, string][])),
-    [t("admissions.field.dob"), student.dobBs ? formatBsDate(student.dobBs) : student.dob],
-    [t("admissions.field.phone"), student.phone ?? "—"],
-    [t("admissions.field.email"), student.email ?? "—"],
-    [t("admissions.field.guardianName"), student.guardianName],
-    [t("admissions.field.guardianPhone"), student.guardianPhone],
-    [t("admissions.field.previousSchool"), student.previousSchool ?? "—"],
+    [t("admissions.field.dob"), student.dobBs ? formatBsDate(student.dobBs) : given(student.dob)],
+    [t("admissions.field.phone"), given(student.phone)],
+    [t("admissions.field.email"), given(student.email)],
+    [t("admissions.field.guardianName"), given(student.guardianName)],
+    [t("admissions.field.guardianPhone"), given(student.guardianPhone)],
+    [t("admissions.field.previousSchool"), given(student.previousSchool)],
   ];
   return (
     <>

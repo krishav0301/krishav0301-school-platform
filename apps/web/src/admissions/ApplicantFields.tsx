@@ -26,27 +26,33 @@ export function ApplicantFields({
   levels,
   onChange,
   fieldRefs,
+  staff = false,
+  onFirstNameBlur,
 }: {
   values: ApplicantForm;
   errors: ApplicantErrors;
   levels: readonly OpenLevel[];
   onChange: <K extends keyof ApplicantForm>(name: K, value: ApplicantForm[K]) => void;
   fieldRefs?: { firstName?: React.Ref<HTMLInputElement>; dobBs?: React.Ref<HTMLInputElement>; levelId?: React.Ref<HTMLSelectElement> };
+  /** A student typed in by staff (the PM, 2026-10-10): only the first name and the level are required, the rest says so, and the email is made from the name. */
+  staff?: boolean;
+  onFirstNameBlur?: () => void;
 }) {
+  const label = (text: string) => (staff ? `${text} ${t("admissions.field.optional")}` : text);
   const err = (field: keyof ApplicantErrors) => (errors[field] ? t(errors[field]!) : undefined);
 
   return (
     <>
-      <Field ref={fieldRefs?.firstName} label={t("admissions.field.firstName")} value={values.firstName} autoComplete="given-name" onChange={(e) => onChange("firstName", e.target.value)} error={err("firstName")} />
-      <Field label={t("admissions.field.middleName")} value={values.middleName} autoComplete="additional-name" onChange={(e) => onChange("middleName", e.target.value)} />
-      <Field label={t("admissions.field.lastName")} value={values.lastName} autoComplete="family-name" onChange={(e) => onChange("lastName", e.target.value)} error={err("lastName")} />
-      <BsDateField ref={fieldRefs?.dobBs} legend={t("admissions.field.dob")} value={values.dobBs} onChange={(text) => onChange("dobBs", text)} error={err("dobBs")} />
-      <Field label={t("admissions.field.phone")} value={values.phone} autoComplete="tel" inputMode="tel" onChange={(e) => onChange("phone", e.target.value)} error={err("phone")} />
-      <Field label={t("admissions.field.email")} type="email" value={values.email} autoComplete="email" onChange={(e) => onChange("email", e.target.value)} error={err("email")} />
-      <Field label={t("admissions.field.guardianName")} value={values.guardianName} onChange={(e) => onChange("guardianName", e.target.value)} error={err("guardianName")} />
-      <Field label={t("admissions.field.guardianPhone")} value={values.guardianPhone} inputMode="tel" onChange={(e) => onChange("guardianPhone", e.target.value)} error={err("guardianPhone")} />
-      <Field label={t("admissions.field.previousSchool")} hint={t("admissions.field.previousSchoolHint")} value={values.previousSchool} onChange={(e) => onChange("previousSchool", e.target.value)} />
-      <Field label={t("admissions.field.referredBy")} hint={t("admissions.field.referredByHint")} value={values.referredBy} onChange={(e) => onChange("referredBy", e.target.value)} />
+      <Field ref={fieldRefs?.firstName} label={t("admissions.field.firstName")} value={values.firstName} autoComplete="given-name" onChange={(e) => onChange("firstName", e.target.value)} onBlur={onFirstNameBlur} error={err("firstName")} />
+      <Field label={label(t("admissions.field.middleName"))} value={values.middleName} autoComplete="additional-name" onChange={(e) => onChange("middleName", e.target.value)} />
+      <Field label={label(t("admissions.field.lastName"))} value={values.lastName} autoComplete="family-name" onChange={(e) => onChange("lastName", e.target.value)} error={err("lastName")} />
+      <BsDateField ref={fieldRefs?.dobBs} legend={label(t("admissions.field.dob"))} value={values.dobBs} onChange={(text) => onChange("dobBs", text)} error={err("dobBs")} />
+      <Field label={label(t("admissions.field.phone"))} value={values.phone} autoComplete="tel" inputMode="tel" onChange={(e) => onChange("phone", e.target.value)} error={err("phone")} />
+      <Field label={t("admissions.field.email")} hint={staff ? t("admissions.field.emailAutoHint") : undefined} type="email" value={values.email} autoComplete="email" onChange={(e) => onChange("email", e.target.value)} error={err("email")} />
+      <Field label={label(t("admissions.field.guardianName"))} value={values.guardianName} onChange={(e) => onChange("guardianName", e.target.value)} error={err("guardianName")} />
+      <Field label={label(t("admissions.field.guardianPhone"))} value={values.guardianPhone} inputMode="tel" onChange={(e) => onChange("guardianPhone", e.target.value)} error={err("guardianPhone")} />
+      <Field label={label(t("admissions.field.previousSchool"))} hint={t("admissions.field.previousSchoolHint")} value={values.previousSchool} onChange={(e) => onChange("previousSchool", e.target.value)} />
+      <Field label={label(t("admissions.field.referredBy"))} hint={t("admissions.field.referredByHint")} value={values.referredBy} onChange={(e) => onChange("referredBy", e.target.value)} />
       <LevelFields levels={levels} levelId={values.levelId} onChange={(levelId) => onChange("levelId", levelId)} error={err("levelId")} levelRef={fieldRefs?.levelId} />
     </>
   );
