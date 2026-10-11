@@ -23,7 +23,6 @@ import {
   RejectSchema,
   RequestChangesSchema,
   WalkInSchema,
-  type ApplicantDetails,
   type ApplyInput,
   type ApproveInput,
   type RejectInput,
