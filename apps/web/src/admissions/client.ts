@@ -94,6 +94,16 @@ export async function registerWalkIn(api: ApiClient, values: ApplicantForm, dob:
   }
 }
 
+/** The sign-in email a new student would get from their first name (name@student.com, numbered when taken). Null when it cannot be asked. */
+export async function suggestStudentEmail(api: ApiClient, firstName: string): Promise<string | null> {
+  try {
+    const { data } = await api.GET("/api/admissions/email-suggestion", { params: { query: { firstName: firstName.trim() } } });
+    return data?.email ?? null;
+  } catch {
+    return null;
+  }
+}
+
 export async function registerForQueue(api: ApiClient, values: ApplicantForm, dob: string): Promise<RegisterOutcome> {
   try {
     const { data, response, error } = await api.POST("/api/admissions/register", { body: applicantBody(values, dob) });

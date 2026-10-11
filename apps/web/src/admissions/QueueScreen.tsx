@@ -185,10 +185,10 @@ function ReviewPanel({ application, onClose }: { application: ApplicationSummary
           <Facts
             rows={[
               { name: t("admissions.field.level"), value: appliedFor(detail) },
-              { name: t("admissions.field.dob"), value: detail.dobBs ? formatBsDate(detail.dobBs) : detail.dob },
-              { name: t("admissions.field.phone"), value: detail.phone },
+              { name: t("admissions.field.dob"), value: detail.dobBs ? formatBsDate(detail.dobBs) : (detail.dob ?? t("admissions.notGiven")) },
+              { name: t("admissions.field.phone"), value: detail.phone || t("admissions.notGiven") },
               { name: t("admissions.field.email"), value: detail.email },
-              { name: t("admissions.field.guardianName"), value: `${detail.guardianName} (${detail.guardianPhone})` },
+              { name: t("admissions.field.guardianName"), value: detail.guardianName ? `${detail.guardianName}${detail.guardianPhone ? ` (${detail.guardianPhone})` : ""}` : t("admissions.notGiven") },
               ...(detail.previousSchool ? [{ name: t("admissions.field.previousSchool"), value: detail.previousSchool }] : []),
               ...(detail.referredBy ? [{ name: t("admissions.field.referredBy"), value: detail.referredBy }] : []),
             ]}

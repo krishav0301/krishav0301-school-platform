@@ -153,6 +153,9 @@ export const createSubject = async (api: ApiClient, input: { name: string; code?
 export const updateSubject = async (api: ApiClient, id: string, input: { name: string; code: string; sectionKey: string }): Promise<WriteResult> =>
   done(await send(() => api.PATCH("/api/academics/subjects/{id}", { params: { path: { id } }, body: { name: input.name, code: input.code || null, sectionKey: input.sectionKey } })));
 
+/** Deletes a subject nothing uses (a level never taught it); one a level teaches is "in_use" (the PM, 2026-10-10). */
+export const deleteSubject = async (api: ApiClient, id: string): Promise<WriteResult> => done(await send(() => api.DELETE("/api/academics/subjects/{id}", { params: { path: { id } } })));
+
 export const setSubjectArchived = async (api: ApiClient, id: string, archived: boolean): Promise<WriteResult> =>
   done(await send(() => api.PATCH("/api/academics/subjects/{id}", { params: { path: { id } }, body: { archived } })));
 

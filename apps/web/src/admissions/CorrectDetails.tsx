@@ -75,14 +75,13 @@ function CorrectForm({ student, onDone }: { student: StudentDetail; onDone: (nex
     const changes: Record<string, unknown> = { ...changesOf(before, values) };
     const problems: typeof errors = {};
     if (!values.firstName.trim()) problems.firstName = t("admissions.error.required");
-    if (!values.lastName.trim()) problems.lastName = t("admissions.error.required");
-    if (!values.guardianName.trim()) problems.guardianName = t("admissions.error.required");
-    if (!values.guardianPhone.trim()) problems.guardianPhone = t("admissions.error.required");
-    if (values.dobBs !== before.dobBs && !isWholeBsDate(values.dobBs)) problems.dobBs = t("attendance.class.incompleteDay");
+    // Only the first name is required (the PM, 2026-10-10); the rest may be filled in, or taken away again.
+    if (values.dobBs.trim() && values.dobBs !== before.dobBs && !isWholeBsDate(values.dobBs)) problems.dobBs = t("attendance.class.incompleteDay");
     if (reason.trim().length < 3) problems.reason = t("admissions.correct.reasonRequired");
     if (Object.keys(problems).length > 0) return setErrors(problems);
     setBusy(true);
-    if (values.dobBs !== before.dobBs) {
+    if (values.dobBs !== before.dobBs && !values.dobBs.trim()) changes.dob = null;
+    else if (values.dobBs !== before.dobBs) {
       const converted = await toAd(api, values.dobBs.trim());
       if (!converted.ok) {
         setBusy(false);

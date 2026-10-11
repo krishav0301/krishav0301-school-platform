@@ -10,8 +10,9 @@ import { EmptyLine, ReadHeader, ReadOnlyNote, ReadTable, StatusWord } from "@/re
 import { useSession } from "@/session/SessionProvider";
 import { AddDialog, Button, Field, Notice, Select } from "@/ui";
 
-import { createSubject, loadSubjects, setSubjectArchived, updateSubject } from "./client";
+import { createSubject, deleteSubject, loadSubjects, setSubjectArchived, updateSubject } from "./client";
 import { REASON_MESSAGE, canManageInstitution, canManageStructure, manageableSections, type Subject } from "./model";
+import { DeleteControl } from "./ProgrammesScreen";
 import { ReadSetupHeader } from "./ReadSetup";
 import { Gate, useLoad } from "./useLoad";
 import styles from "./setup.module.css";
@@ -64,6 +65,7 @@ export function SubjectsBoard({
   busy,
   onToggle,
   onEdit,
+  onDelete,
   onAdded,
 }: {
   subjects: readonly Subject[];
@@ -78,6 +80,8 @@ export function SubjectsBoard({
   onToggle: (subject: Subject) => void;
   /** Saves a subject's name, code and wing (FUT point 17): a whole-school Co-ordinator's. True, or what went wrong. */
   onEdit?: (subject: Subject, input: { name: string; code: string; sectionKey: string }) => Promise<true | string>;
+  /** Deletes a subject no level teaches (the PM, 2026-10-10); true when it went. */
+  onDelete?: (subject: Subject) => Promise<boolean>;
   onAdded?: () => void;
 }) {
   const { term } = useConfig();
@@ -156,15 +160,20 @@ export function SubjectsBoard({
                                   {onEdit ? (
                                     <AddDialog label={t("structure.edit")} ariaLabel={t("structure.editItem", { name: subject.name })} title={t("structure.editTitle", { name: subject.name })} variant="quiet" plus={false}>
                                       {(close) => (
-                                        <SubjectEditForm
-                                          subject={subject}
-                                          wings={wings}
-                                          onSave={async (input) => {
-                                            const saved = await onEdit(subject, input);
-                                            if (saved === true) close();
-                                            return saved;
-                                          }}
-                                        />
+                                        <>
+                                          <SubjectEditForm
+                                            subject={subject}
+                                            wings={wings}
+                                            onSave={async (input) => {
+                                              const saved = await onEdit(subject, input);
+                                              if (saved === true) close();
+                                              return saved;
+                                            }}
+                                          />
+                                          {onDelete ? (
+                                            <DeleteControl name={subject.name} canDelete={!subject.inCurriculum} blocked="setup.subjects.inUse" onDelete={async () => (await onDelete(subject)) && (close(), true)} />
+                                          ) : null}
+                                        </>
                                       )}
                                     </AddDialog>
                                   ) : null}
@@ -358,6 +367,13 @@ export function SubjectsScreen() {
     return true;
   }
 
+  async function remove(subject: Subject): Promise<boolean> {
+    const result = await deleteSubject(api, subject.id);
+    setFlash(result.ok ? { tone: "ok", text: t("structure.done.deleted") } : { tone: "bad", text: t(REASON_MESSAGE[result.reason]) });
+    await reload();
+    return result.ok;
+  }
+
   const added = () => {
     setFlash({ tone: "ok", text: t("setup.done.added") });
     void reload();
@@ -408,7 +424,7 @@ export function SubjectsScreen() {
             canArchive={canArchive}
             busy={busy}
             onToggle={(s) => void toggle(s)}
-            {...(canArchive ? { onEdit: saveEdit } : {})}
+            {...(canArchive ? { onEdit: saveEdit, onDelete: remove } : {})}
             onAdded={added}
           />
         )}
