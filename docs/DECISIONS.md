@@ -1409,6 +1409,8 @@ The matrix lives in code (61 actions, 8 groups, from the reviewed `permission-ma
 - **OPEN, for the Co-ordinator's, the teacher's and the student's screens:** the Co-ordinator's overview ("Activity logs: n of m classes complete") and the teacher's and student's homes still mention the daily log when it is off. To be done with those roles.
 - **Tested:** `fees-switch.test.ts` (API: the family is not found while off), `nav.test.ts`, `classes-screens.test.tsx`, `fees-switch.test.tsx`.
 
+**D-140 The Principal's Students page and a student's results on their record (PM, 2026-10-11).** For the Principal the Admissions menu entry is only a student search, so it is called **Students** (the Co-ordinator, the Accountant and Support keep "Admissions": `adminLabelKey` on the menu entry, used only when Admin is the only one of those roles a person holds). A student's record now has a **Results** section for staff who read results (the Principal, the Co-ordinator, Support): each published exam and the final, newest first, with the percentage, the result (Pass or Fail, or the grade) and a link to the marks card; "No result has been published for this student yet" when none. New read `GET /api/results/students/{studentId}` (permission `results.view`, so the Accountant and a teacher get 403 and a student 404; a student in a wing the person does not reach is 404, as is a missing one; rechecks are not in it; read only). `student-results-staff.test.ts`, `admissions-screens.test.tsx`, `nav.test.ts`.
+
 ## Open items carried forward
 
 - ~~**Search and the term picker (D-126).**~~ Built, D-127. Still open: a Student looking back at an earlier term, and Results following the chosen term (both need the server to accept a term).

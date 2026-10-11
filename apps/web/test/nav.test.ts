@@ -183,3 +183,14 @@ describe("the Classwork entry follows the daily log, homework and notes (D-139, 
     expect(classwork({})).toBe(false);
   });
 });
+
+describe("the Principal's menu says Students where the others say Admissions (the PM, 2026-10-11)", () => {
+  const label = (roles: { role: string; scope: "institution" }[]) => visibleNav(NAV_ITEMS, roles, { activity_log: true }).find((i) => i.id === "admissions")?.labelKey;
+
+  it("the Principal alone sees Students; the Co-ordinator, the Accountant and a Principal who is also a Co-ordinator keep Admissions", () => {
+    expect(label([{ role: "admin", scope: "institution" }])).toBe("nav.students");
+    expect(label([{ role: "coordinator", scope: "institution" }])).toBe("nav.admissions");
+    expect(label([{ role: "accountant", scope: "institution" }])).toBe("nav.admissions");
+    expect(label([{ role: "admin", scope: "institution" }, { role: "coordinator", scope: "institution" }])).toBe("nav.admissions");
+  });
+});

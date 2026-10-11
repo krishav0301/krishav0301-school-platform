@@ -10,7 +10,7 @@ import { levelsFor } from "@/admissions/RegisterScreen";
 import { changesOf } from "@/admissions/CorrectDetails";
 import { RegisterScreen } from "@/admissions/RegisterScreen";
 import { StudentsScreen, StudentsTable } from "@/admissions/StudentsScreen";
-import { StudentDetails } from "@/admissions/StudentScreen";
+import { RecordResultsView, StudentDetails } from "@/admissions/StudentScreen";
 import AdmissionsPage from "@/app/portal/admissions/page";
 import RegisterPage from "@/app/portal/admissions/register/page";
 import OwnAttendancePage from "@/app/portal/attendance/mine/page";
@@ -310,5 +310,39 @@ describe("a student entered with only a name (the PM, 2026-10-10)", () => {
     expect(html).toContain(">Gita</h1>");
     expect(html).toContain("gita@student.com");
     expect((html.match(/>Not given</g) ?? []).length).toBe(5); // date of birth, phone, guardian name and phone, previous school
+  });
+});
+
+describe("a student's results on their record (the PM, 2026-10-11)", () => {
+  const terminal = (name: string, percent: number, grade: string | null) => ({
+    publicationId: `p-${name}`,
+    yearLabel: "2083",
+    kind: "terminal" as const,
+    terminalName: name,
+    rechecks: [],
+    card: { id: `c-${name}`, version: 1, publishedAt: "2026-09-29T10:00:00.000Z", publishedAtBs: null, reason: null, body: { kind: "terminal", percentHundredths: percent, graded: grade !== null, grade, terminal: { id: "t", name, weight: 40 }, student: { name: "Gita", sid: "2083-00013" }, subjects: [] } },
+  });
+  const final = (percent: number, passed: boolean) => ({
+    publicationId: "p-final",
+    yearLabel: "2083",
+    kind: "final" as const,
+    terminalName: null,
+    rechecks: [],
+    card: { id: "c-final", version: 1, publishedAt: "2026-09-30T10:00:00.000Z", publishedAtBs: null, reason: null, body: { kind: "final", percentHundredths: percent, passed, grade: null, student: { name: "Gita", sid: "2083-00013" }, subjects: [] } },
+  });
+
+  it("lists each published exam and the final with its percentage, its result and a link to the marks card", () => {
+    const html = inContext(<RecordResultsView results={{ results: [final(7850, true), terminal("First", 8200, "A")] } as never} />);
+    expect(html).toContain(">Results</h2>");
+    expect(html).toContain("78.50%");
+    expect(html).toContain("82.00%");
+    expect(html).toContain("Pass");
+    expect(html).toContain(">A<");
+    expect(html).toContain('href="/portal/results/card?id=c-final"');
+    expect(html).toContain('href="/portal/results/card?id=c-First"');
+  });
+
+  it("says plainly when nothing is published yet", () => {
+    expect(inContext(<RecordResultsView results={{ results: [] }} />)).toContain("No result has been published for this student yet.");
   });
 });
