@@ -6,6 +6,7 @@ import { useCallback, useState, type ReactNode } from "react";
 import { loadQueue } from "@/admissions/client";
 import { loadClasses, loadTeacherDay } from "@/attendance/client";
 import { loadActivityClasses } from "@/classwork/client";
+import { nepalToday } from "./nepal-today";
 import { useConfig } from "@/config/ConfigProvider";
 import { t, type MessageKey } from "@/i18n/messages";
 import { FigureTiles, OpenLink, Panel, ReadFailure, ReadHeader, StatusWord, TableSkeleton, readStyles, type Figure } from "@/read/ReadView";
@@ -121,17 +122,6 @@ export function SetupList({ checklist }: { checklist: Checklist }) {
       ))}
     </ul>
   );
-}
-
-/** Today in Bikram Sambat, from the clock, for a school with neither registers nor a daily log to ask (D-139). Null if it cannot be worked out. */
-async function nepalToday(api: ReturnType<typeof useSession>["api"]): Promise<string | null> {
-  try {
-    const ad = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Kathmandu" }).format(new Date());
-    const { data } = await api.GET("/api/dates/to-bs", { params: { query: { ad } } });
-    return data?.text ?? null;
-  } catch {
-    return null;
-  }
 }
 
 /** The figures and lists under the greeting. */

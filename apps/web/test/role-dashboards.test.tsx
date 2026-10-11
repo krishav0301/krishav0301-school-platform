@@ -59,6 +59,12 @@ describe("the Teacher's, Student's and Accountant's homes (D-107)", () => {
     expect(teachingFigures(subjectTeacher)).toHaveLength(1);
   });
 
+  it("a results-only school's teacher (no registers, no daily log, no homework) has just their marks to do", () => {
+    const day: TeachingDay = { todayBs: null, registers: null, logs: null, toReview: null, drafts: 3 };
+    expect(teachingRows(day).map((r) => r.key)).toEqual(["marks"]);
+    expect(teachingFigures(day).map((f) => f.value)).toEqual(["3"]);
+  });
+
   it("a student's studies: attendance, homework, fees and the latest result, each only when there is one", () => {
     const own = { yearLabel: "2083", threshold: 75, present: 30, absent: 12, percent: 71, below: true, absentDays: [] };
     const full = { record: null, cls: null, attendance: own, homework: { open: 2, nextDue: "22 Ashwin 2083" }, latestLog: "17 Ashwin 2083", fees: { duePaisa: 2_250_000, overduePaisa: 150_000, balancePaisa: 2_250_000, chargedPaisa: 4_250_000 }, result: { terminal: "First terminal", score: "3.20" } };
