@@ -99,6 +99,15 @@ describe("the Principal's dashboard (D-088)", () => {
   });
 });
 
+describe("the Setup Overview quick action (the PM, 2026-10-11)", () => {
+  it("is there beside the other quick actions, and opens the setup overview", () => {
+    const html = render(base);
+    expect(html).toContain("Setup Overview");
+    expect(html).toContain("See how it all links");
+    expect(html).toContain("href=\"/portal/setup/map\"");
+  });
+});
+
 describe("with Fees switched off (D-137, the PM 2026-10-11)", () => {
   const off = renderToStaticMarkup(
     <ConfigContext.Provider value={makeConfigValue("ready", config)}>

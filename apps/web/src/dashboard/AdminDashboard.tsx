@@ -16,6 +16,7 @@ import {
   Trophy,
   UserPlus,
   UserRoundX,
+  Workflow,
   Users,
   UsersRound,
   type LucideIcon,
@@ -384,6 +385,7 @@ const ACTIONS: { href: string; icon: LucideIcon; tone: Tone; title: MessageKey; 
   { href: "/portal/people?add=accountant", icon: UserPlus, tone: "ok", title: "dashboard.actions.accountant", detail: "dashboard.actions.accountantDetail" },
   { href: "/portal/content?new=post", icon: FileText, tone: "accent", title: "dashboard.actions.post", detail: "dashboard.actions.postDetail" },
   { href: "/portal/setup/programmes?add=1", icon: BookOpen, tone: "warn", title: "dashboard.actions.programme", detail: "dashboard.actions.programmeDetail" },
+  { href: "/portal/setup/map", icon: Workflow, tone: "primary", title: "dashboard.actions.overview", detail: "dashboard.actions.overviewDetail" },
 ];
 
 function QuickActions({ feesOn }: { feesOn: boolean }) {
