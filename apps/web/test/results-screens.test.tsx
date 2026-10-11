@@ -28,7 +28,7 @@ const config = (top20: boolean): PublicConfig => ({
     template: null,
   },
   sections: TEST_SECTIONS.royal,
-  modules: { results: true, top20 },
+  modules: { results: true, top20, electives: true },
   terms: {},
   theme: royal.theme as PublicConfig["theme"],
 });

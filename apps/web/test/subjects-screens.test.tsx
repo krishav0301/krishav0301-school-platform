@@ -18,7 +18,7 @@ vi.mock("next/navigation", () => ({ usePathname: () => "/portal/setup/subjects",
 const config: PublicConfig = {
   school: { name: royal.school.name, shortName: royal.school.shortName, currency: "NPR", timezone: "Asia/Kathmandu", region: "nepal", template: null },
   sections: TEST_SECTIONS.royal,
-  modules: {},
+  modules: { electives: true },
   terms: { "term.programme": "Programme", "term.level": "Level", "term.section": "Section", "term.terminal": "Exam", "role.coordinator": "Vice Principal" },
   theme: royal.theme as PublicConfig["theme"],
 };
@@ -304,5 +304,33 @@ describe("the pages", () => {
     expect(html).toContain(`>${title}</h1>`);
     expect(html).toContain('aria-label="Setup sections"');
     expect(html).toContain("Skip to main content");
+  });
+});
+
+describe("a school with no elective subjects (D-142, the PM 2026-10-11)", () => {
+  const curriculum: Curriculum = {
+    level: { id: "l1", name: "Grade 11", programmeId: "p1", programmeName: "+2 Science", sectionKey: "plus2" },
+    groups: [{ id: "g1", name: "Science option", pickCount: 1, active: true }],
+    offerings: [{ id: "o1", subject: subject("s1", "Biology", { code: "BIO" }), creditHundredths: 375, group: { id: "g1", name: "Science option" }, active: true, fullMarksHundredths: 10000, practicalHundredths: 2500 }],
+  };
+  const off = (node: React.ReactNode) =>
+    renderToStaticMarkup(
+      <ConfigContext.Provider value={makeConfigValue("ready", { ...config, modules: { electives: false } })}>
+        <SessionContext.Provider value={as("coordinator", "institution")}>{node}</SessionContext.Provider>
+      </ConfigContext.Provider>,
+    );
+
+  it("the Co-ordinator's curriculum has no Elective column and no elective groups to make or read", () => {
+    const html = off(<CurriculumView curriculum={curriculum} canManage busy={null} onToggleGroup={noop} onToggleOffering={noop} onSetGroup={noop} />);
+    expect(html).toContain("Biology");
+    expect(html).not.toContain("Elective");
+    expect(html).not.toContain("Science option");
+    expect(html).not.toContain("Add group");
+  });
+
+  it("the Principal's read of the curriculum has no Elective column either", () => {
+    const html = off(<CurriculumView curriculum={curriculum} canManage={false} busy={null} onToggleGroup={noop} onToggleOffering={noop} onSetGroup={noop} />);
+    expect(html).toContain("Biology");
+    expect(html).not.toContain("Elective");
   });
 });

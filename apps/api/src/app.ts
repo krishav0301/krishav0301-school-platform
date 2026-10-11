@@ -41,6 +41,10 @@ export function createApp() {
   app.use("/api/fees/*", moduleRequired("fees"));
   // The same for the daily activity log (D-139).
   app.use("/api/activity/*", moduleRequired("activity_log"));
+  // And for elective subjects (D-142): making groups, and every pick.
+  for (const path of ["/api/results/classes/:classId/electives", "/api/results/enrollments/:enrollmentId/electives/:groupId", "/api/academics/levels/:id/groups", "/api/academics/groups/:id"]) {
+    app.use(path, moduleRequired("electives"));
+  }
 
   // The composition root: each kind's handler is registered here, so the generic `approvals` engine
   // never imports a specific kind's module (D-061).

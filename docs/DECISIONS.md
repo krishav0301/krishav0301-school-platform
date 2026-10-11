@@ -1413,6 +1413,8 @@ The matrix lives in code (61 actions, 8 groups, from the reviewed `permission-ma
 
 **D-141 The setup map is the Setup Overview (PM, 2026-10-11).** Renamed Setup Overview (title, Setup tab, Reports entry; the Principal's dashboard has a quick action). Each box opens the screen behind it: the term (the Principal's Academic Term page, or Setup for the Co-ordinator), the exam (exam pattern), wing and department (Academic Structure), level and subjects (Curriculum), a section (its class page) and its students (the class page on Students). A level is its own row (level, then subjects), with its sections below it, each joined to its students, so an arrow no longer ends a line.
 
+**D-142 Elective subjects are switchable, and Top 20 stays off (PM, 2026-10-11).** A school with no optional subjects has no elective groups, picks or Electives tab, so `electives` joins the optional modules (on unless a pack says `"electives": false`): while it is off, making or changing a group and every pick answer "not found" (`moduleRequired` on those addresses), the Results tabs have no Electives, and the curriculum has no Elective column, no groups panel and no group choice on a subject (for the Co-ordinator and for the Principal's read). The first school also sets `"top20": false` (an existing switch). `fees-switch.test.ts`, `subjects-screens.test.tsx`, `results-screens.test.tsx`.
+
 ## Open items carried forward
 
 - ~~**Search and the term picker (D-126).**~~ Built, D-127. Still open: a Student looking back at an earlier term, and Results following the chosen term (both need the server to accept a term).

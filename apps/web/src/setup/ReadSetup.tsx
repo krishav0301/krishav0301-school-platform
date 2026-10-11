@@ -2,6 +2,7 @@
 
 import type { ReactNode } from "react";
 
+import { useConfig } from "@/config/ConfigProvider";
 import { t } from "@/i18n/messages";
 import { EmptyLine, Panel, ReadHeader, ReadTable, StatusWord, readStyles, type Column } from "@/read/ReadView";
 
@@ -73,6 +74,8 @@ export function TerminalsTable({ terminals, words }: { terminals: readonly Termi
 
 /** One level's curriculum, read: each subject with its credit hours, how it is marked, and its elective group in words. */
 export function CurriculumTable({ curriculum }: { curriculum: Curriculum }) {
+  const { moduleEnabled } = useConfig();
+  const electivesOn = moduleEnabled("electives");
   const offerings = curriculum.offerings.filter((o) => o.active);
   if (offerings.length === 0) return <EmptyLine>{t("setup.read.noSubjects")}</EmptyLine>;
   const groupLine = (groupId: string) => {
@@ -94,7 +97,7 @@ export function CurriculumTable({ curriculum }: { curriculum: Curriculum }) {
             label: t("setup.curriculum.marks"),
             cell: (o) => paperLine(o),
           },
-          { key: "group", label: t("setup.read.elective"), cell: (o) => (o.group ? groupLine(o.group.id) : t("setup.read.compulsory")) },
+          ...(electivesOn ? [{ key: "group", label: t("setup.read.elective"), cell: (o: (typeof offerings)[number]) => (o.group ? groupLine(o.group.id) : t("setup.read.compulsory")) }] : []),
         ]}
       />
     </Panel>

@@ -17,6 +17,7 @@ import { PortalShell } from "@/shell/PortalShell";
 export function ResultsTabs({ pathname }: { pathname: string }) {
   const { me } = useSession();
   const { moduleEnabled } = useConfig();
+  const electives = moduleEnabled("electives");
   const roles = me?.roles.map((r) => r.role) ?? [];
   const coordinator = roles.some((r) => r === "coordinator" || r === "super_admin");
   const admin = roles.includes("admin");
@@ -43,7 +44,7 @@ export function ResultsTabs({ pathname }: { pathname: string }) {
       label: t("results.tab.sheets"),
       current: here.startsWith("/portal/results/sheets") || here.startsWith("/portal/results/card"),
     },
-    ...(coordinator
+    ...(coordinator && electives
       ? [
           {
             href: "/portal/results/electives",

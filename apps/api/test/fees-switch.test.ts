@@ -88,3 +88,29 @@ describe("the daily activity log switch (D-139)", () => {
     expect((await call("/api/academics/years", { cookie: coordinator.cookie })).status).toBe(200);
   });
 });
+
+describe("the electives switch (D-142)", () => {
+  const setElectives = (enabled: boolean) => db.prepare("INSERT INTO module_switches (key, enabled) VALUES ('electives', ?1) ON CONFLICT (key) DO UPDATE SET enabled = excluded.enabled").bind(enabled ? 1 : 0).run();
+  afterAll(async () => {
+    await setElectives(true);
+  });
+
+  it("is optional and on unless a pack turns it off", () => {
+    expect(isMandatoryModule("electives")).toBe(false);
+    expect(resolveModules({}).electives).toBe(true);
+    expect(resolveModules({ electives: false }).electives).toBe(false);
+  });
+
+  it("with it off, making a group and every pick answer not found; the rest of results and the curriculum are not affected", async () => {
+    const none = "0".repeat(32);
+    await setElectives(false);
+    expect((await call(`/api/results/classes/${none}/electives`, { cookie: coordinator.cookie })).status).toBe(404);
+    expect((await call(`/api/results/enrollments/${none}/electives/${none}`, { method: "PUT", cookie: coordinator.cookie, body: {} })).status).toBe(404);
+    expect((await call(`/api/academics/levels/${none}/groups`, { method: "POST", cookie: coordinator.cookie, body: { name: "Option" } })).status).toBe(404);
+    expect((await call(`/api/academics/groups/${none}`, { method: "PATCH", cookie: coordinator.cookie, body: { active: false } })).status).toBe(404);
+    expect((await call("/api/results/review", { cookie: coordinator.cookie })).status).not.toBe(404);
+    expect((await call("/api/academics/years", { cookie: coordinator.cookie })).status).toBe(200);
+    await setElectives(true);
+    expect((await call("/api/academics/years", { cookie: coordinator.cookie })).status).toBe(200);
+  });
+});
