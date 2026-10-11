@@ -11,8 +11,9 @@ import { useLoad } from "@/setup/useLoad";
 import { Button, Notice, Table } from "@/ui";
 
 import { readLastTerminal, rememberTerminal } from "./last-terminal";
+import { MarksExcel } from "./MarksExcel";
 import { gateFailure, loadMySheets, loadSheet, saveMarks, submitSheet, type Sent } from "./client";
-import { STATUS_LABEL, className, formatMarks, markText, parseMark, partName, type MarkSheet, type MyMarkSheets, type SheetStatus } from "./model";
+import { STATUS_LABEL, className, formatMarks, markKey, markText, parseMark, partName, type MarkSheet, type MyMarkSheets, type SheetStatus } from "./model";
 import styles from "./results.module.css";
 
 export function sentText(sent: Sent): string | null {
@@ -123,7 +124,7 @@ export function MySheetsScreen() {
 }
 
 type Draft = Record<string, string>;
-const key = (enrollmentId: string, componentId: string) => `${enrollmentId}/${componentId}`;
+const key = markKey;
 
 /** The marks grid: students down, components across. Read-only unless `editable`. */
 export function SheetGrid({ sheet, draft, onChange, editable }: { sheet: MarkSheet; draft: Draft; onChange?: (k: string, value: string) => void; editable: boolean }) {
@@ -306,6 +307,7 @@ function SheetEditor({
       ) : (
         <Panel title={t("results.grid.title")} labelledBy="sheet-grid" actions={editable ? <span className={readStyles.rowMeta}>{missing > 0 ? t("results.grid.missing", { count: missing }) : t("results.grid.complete")}</span> : null}>
           {editable ? <p className={readStyles.rowMeta}>{t("results.grid.hint")}</p> : null}
+          {editable ? <MarksExcel sheet={sheet} onFill={(marks) => setDraft((d) => ({ ...d, ...marks }))} /> : null}
           <SheetGrid sheet={sheet} draft={draft} editable={editable} onChange={(k, value) => setDraft((d) => ({ ...d, [k]: value }))} />
           {editable ? (
             <div className={styles.actions}>

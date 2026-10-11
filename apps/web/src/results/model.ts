@@ -30,6 +30,9 @@ export const RECHECK_LABEL: Record<RecheckList["rechecks"][number]["status"], Me
   unchanged: "results.recheck.unchanged",
 };
 
+/** The key of one box in the marks grid: a student's enrolment and the part of the paper. */
+export const markKey = (enrollmentId: string, componentId: string): string => `${enrollmentId}/${componentId}`;
+
 /** A mark in whole hundredths, written the short way: 62.5, 70, 0.25. */
 export function formatMarks(hundredths: number): string {
   const whole = Math.trunc(hundredths / 100);

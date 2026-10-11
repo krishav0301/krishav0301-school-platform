@@ -7,8 +7,10 @@ import { ClassActivityScreen } from "@/classwork/ClassActivityScreen";
 import { useConfig } from "@/config/ConfigProvider";
 import { useAddressQuery } from "@/content/address";
 import { t, type MessageKey } from "@/i18n/messages";
+import { AddDialog } from "@/ui";
 import { EmptyLine, OpenLink, Panel, ReadFailure, ReadHeader, ReadTable, Segments, TableSkeleton, readStyles } from "@/read/ReadView";
 import { ClassSheetView } from "@/results/StaffScreens";
+import { ImportStudents } from "./ImportStudents";
 import { useSession } from "@/session/SessionProvider";
 import { canManageStructure } from "@/setup/model";
 import { useTermChoice } from "@/shell/TermChoice";
@@ -146,6 +148,8 @@ export function ClassPageScreen() {
   const tabs = classTabs(hub, { attendance: moduleEnabled("attendance"), classwork: moduleEnabled("activity_log") || moduleEnabled("homework") || moduleEnabled("notes") });
   const tab = pickTab(tabs, chosen ?? askedTab);
   const place = classPlace(hub.class);
+  // The Co-ordinator (and Support) admit students, so they may import a class list (the PM, 2026-10-11).
+  const canImport = (me?.roles ?? []).some((r) => r.role === "coordinator" || r.role === "super_admin");
   const canOpenRecord = (me?.roles ?? []).some((r) => r.role === "coordinator" || r.role === "admin" || r.role === "super_admin");
 
   return (
@@ -157,7 +161,15 @@ export function ClassPageScreen() {
       />
       <Segments label={t("classes.tabs")} value={tab} onChange={setChosen} options={tabs.map((k) => ({ key: k, label: t(TAB_LABEL[k]) }))} />
       {tab === "students" ? (
-        <Panel>
+        <Panel
+          actions={
+            canImport ? (
+              <AddDialog label={t("classes.import.open")} title={t("classes.import.title")} variant="secondary" plus={false}>
+                {() => <ImportStudents classId={hub.class.id} levelId={hub.class.levelId} className={place} onDone={() => void reload()} />}
+              </AddDialog>
+            ) : undefined
+          }
+        >
           <StudentsTable hub={hub} canOpenRecord={canOpenRecord} />
         </Panel>
       ) : null}

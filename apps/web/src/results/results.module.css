@@ -223,3 +223,14 @@ a.wrapLabel {
 .form > p {
   margin: 0;
 }
+
+/* Marks from Excel (the PM, 2026-10-11): the download and upload buttons above the grid, and what the upload found. */
+.excel {
+  display: grid;
+  gap: var(--space-3);
+  margin-block-end: var(--space-3);
+}
+
+.excelLine {
+  display: block;
+}
