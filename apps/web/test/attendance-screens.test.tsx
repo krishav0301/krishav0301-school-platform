@@ -22,7 +22,7 @@ vi.mock("next/navigation", () => ({ usePathname: () => "/portal/attendance", use
 const config: PublicConfig = {
   school: { name: royal.school.name, shortName: royal.school.shortName, currency: "NPR", timezone: "Asia/Kathmandu", region: "nepal", template: null },
   sections: TEST_SECTIONS.royal,
-  modules: { attendance: true, teacher_attendance: true },
+  modules: { attendance: true, teacher_attendance: true, activity_log: true },
   terms: {},
   theme: royal.theme as PublicConfig["theme"],
 };

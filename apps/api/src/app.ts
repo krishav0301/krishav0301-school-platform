@@ -39,6 +39,8 @@ export function createApp() {
   app.use("/api/*", sameOriginOnly);
   // A school that does not collect fees switches the module off: its whole address family is then "not found" (D-137).
   app.use("/api/fees/*", moduleRequired("fees"));
+  // The same for the daily activity log (D-139).
+  app.use("/api/activity/*", moduleRequired("activity_log"));
 
   // The composition root: each kind's handler is registered here, so the generic `approvals` engine
   // never imports a specific kind's module (D-061).

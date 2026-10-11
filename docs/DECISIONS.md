@@ -1393,6 +1393,10 @@ The matrix lives in code (61 actions, 8 groups, from the reviewed `permission-ma
 - **The risk, said plainly:** the Admin can create Co-ordinators and approve and publish content, so a guessed or reused password is worth more here than for other roles. What still protects the account: the sign-in lockout (5 wrong tries an email in 15 minutes, 30 an address), a password that may not contain the school's name and is checked against common ones, and a 30-day session limit. Advice for the school: a long passphrase kept only by the Principal, and a new one from Support if it leaks. The setting can be turned on again at any time by applying the pack with `adminTwoFactor: true`.
 - **Tested:** `admin-two-factor-switch.test.ts` (off: a session at once for an Admin, Support still asked; no school row keeps the rule on; the pack sets it) and the existing sign-in and two-factor tests.
 
+**D-139 The daily activity log is switchable, and the class page follows the modules (PM, 2026-10-11).** A results-only school has no daily log, so `activity_log` joins the optional modules (on unless a pack says `"activity_log": false`): `/api/activity/*` answers "not found" while it is off (the same guard as fees, `moduleRequired`). The Classwork menu entry and its Reports page need the daily log, homework or notes (any one); the Principal's class page has Students and Results always, and the Attendance and Classwork tabs only when the school uses them. A menu entry or a hub page can now name several modules (any one is enough).
+- **OPEN, for the Co-ordinator's, the teacher's and the student's screens:** the Co-ordinator's overview ("Activity logs: n of m classes complete") and the teacher's and student's homes still mention the daily log when it is off. To be done with those roles.
+- **Tested:** `fees-switch.test.ts` (API: the family is not found while off), `nav.test.ts`, `classes-screens.test.tsx`, `fees-switch.test.tsx`.
+
 ## Open items carried forward
 
 - ~~**Search and the term picker (D-126).**~~ Built, D-127. Still open: a Student looking back at an earlier term, and Results following the chosen term (both need the server to accept a term).

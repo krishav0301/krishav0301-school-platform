@@ -17,10 +17,11 @@ export const classPlace = (c: Pick<ClassHubItem, "wing" | "course" | "level" | "
  * Co-ordinator and the Principal; Classwork for staff and for a teacher who teaches a subject here (a teacher's classwork
  * is their own subjects only); Results always (every subject's published sheet, or a subject teacher's own marks). Pure.
  */
-export function classTabs(hub: Pick<ClassHub, "viewer" | "taughtSubjects">): ClassTab[] {
+/** `uses`: what the school has switched on (D-139); a school with no attendance or no classwork has no such tab. */
+export function classTabs(hub: Pick<ClassHub, "viewer" | "taughtSubjects">, uses: { attendance: boolean; classwork: boolean } = { attendance: true, classwork: true }): ClassTab[] {
   const tabs: ClassTab[] = ["students"];
-  if (hub.viewer.attendance) tabs.push("attendance");
-  if (hub.viewer.staff || hub.taughtSubjects.length > 0) tabs.push("classwork");
+  if (hub.viewer.attendance && uses.attendance) tabs.push("attendance");
+  if (uses.classwork && (hub.viewer.staff || hub.taughtSubjects.length > 0)) tabs.push("classwork");
   tabs.push("results");
   return tabs;
 }

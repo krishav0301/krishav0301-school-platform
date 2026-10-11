@@ -9,7 +9,8 @@ export const MANDATORY_MODULES = [
 ] as const;
 
 // Fees became switchable on 2026-10-11 (D-137): a school that only runs results has no Fees and no Accountant.
-export const OPTIONAL_MODULES = ["attendance", "teacher_attendance", "homework", "notes", "top20", "fees"] as const;
+// The daily activity log became switchable on 2026-10-11 (D-139): a school that only runs results has no daily log.
+export const OPTIONAL_MODULES = ["attendance", "teacher_attendance", "homework", "notes", "top20", "fees", "activity_log"] as const;
 
 export const ALL_MODULES: readonly string[] = [...MANDATORY_MODULES, ...OPTIONAL_MODULES];
 

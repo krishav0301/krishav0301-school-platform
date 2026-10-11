@@ -64,3 +64,27 @@ describe("the fees switch", () => {
     expect(again.ok).toBe(true);
   });
 });
+
+describe("the daily activity log switch (D-139)", () => {
+  const setLog = (enabled: boolean) => db.prepare("INSERT INTO module_switches (key, enabled) VALUES ('activity_log', ?1) ON CONFLICT (key) DO UPDATE SET enabled = excluded.enabled").bind(enabled ? 1 : 0).run();
+  afterAll(async () => {
+    await setLog(true);
+  });
+
+  it("is optional and on unless a pack turns it off", () => {
+    expect(isMandatoryModule("activity_log")).toBe(false);
+    expect(resolveModules({}).activity_log).toBe(true);
+    expect(resolveModules({ activity_log: false }).activity_log).toBe(false);
+  });
+
+  it("with it off, the whole /api/activity family answers not found; with it on, as before", async () => {
+    await setLog(true);
+    expect((await call("/api/activity/classes", { cookie: coordinator.cookie })).status).not.toBe(404);
+    await setLog(false);
+    for (const path of ["/api/activity/classes", "/api/activity/mine", "/api/activity/missing", "/api/activity/me"]) {
+      expect((await call(path, { cookie: coordinator.cookie })).status, path).toBe(404);
+    }
+    // The rest of the platform, including results, is not affected.
+    expect((await call("/api/academics/years", { cookie: coordinator.cookie })).status).toBe(200);
+  });
+});

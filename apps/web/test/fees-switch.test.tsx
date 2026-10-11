@@ -15,7 +15,7 @@ vi.mock("next/navigation", () => ({ usePathname: () => "/portal/reports", useRou
 const config = (fees: boolean, attendance = true): PublicConfig => ({
   school: { name: royal.school.name, shortName: royal.school.shortName, currency: "NPR", timezone: "Asia/Kathmandu", region: "nepal", template: null },
   sections: TEST_SECTIONS.royal,
-  modules: { fees, results: true, attendance, teacher_attendance: attendance, top20: attendance },
+  modules: { fees, results: true, attendance, teacher_attendance: attendance, top20: attendance, activity_log: attendance, homework: attendance, notes: attendance },
   terms: {},
   theme: royal.theme as PublicConfig["theme"],
 });
@@ -46,6 +46,9 @@ describe("with Fees switched off", () => {
     expect(html).toContain("/portal/results/sheets");
     expect(html).toContain("/portal/admissions/search");
     expect(reports(false, true)).toContain("/portal/attendance/teachers");
+    // Classwork needs the daily log, homework or notes: with all three off its page goes too.
+    expect(html).not.toContain("/portal/classwork");
+    expect(reports(false, true)).toContain("/portal/classwork");
   });
 
   it("nobody can add an Accountant: not the Admin, not Support", () => {

@@ -129,6 +129,7 @@ export function ClassResults({ hub }: { hub: Pick<ClassHub, "class" | "viewer" |
 /** One class (`?id=`, and `&tab=` to open on a tab). */
 export function ClassPageScreen() {
   const { api, me } = useSession();
+  const { moduleEnabled } = useConfig();
   const search = useAddressQuery();
   const id = search === null ? "" : (new URLSearchParams(search).get("id") ?? "");
   const askedTab = search === null ? null : new URLSearchParams(search).get("tab");
@@ -142,7 +143,7 @@ export function ClassPageScreen() {
   if (search === null || view.status === "loading") return <TableSkeleton rows={6} />;
   if (view.status !== "ready") return <ReadFailure status={view.status} onRetry={() => void reload()} />;
   const hub = view.data;
-  const tabs = classTabs(hub);
+  const tabs = classTabs(hub, { attendance: moduleEnabled("attendance"), classwork: moduleEnabled("activity_log") || moduleEnabled("homework") || moduleEnabled("notes") });
   const tab = pickTab(tabs, chosen ?? askedTab);
   const place = classPlace(hub.class);
   const canOpenRecord = (me?.roles ?? []).some((r) => r.role === "coordinator" || r.role === "admin" || r.role === "super_admin");

@@ -28,7 +28,7 @@ describe("isCurrent", () => {
 });
 
 describe("the real menu", () => {
-  const seen = (role: string, scope: "institution" | "section" | "own" | "assigned", modules: Record<string, boolean> = { attendance: true }) =>
+  const seen = (role: string, scope: "institution" | "section" | "own" | "assigned", modules: Record<string, boolean> = { attendance: true, activity_log: true }) =>
     visibleNav(NAV_ITEMS, [{ role, scope }], modules).map((i) => i.id);
 
   it("shows each role its own entries", () => {
@@ -46,7 +46,7 @@ describe("the real menu", () => {
   });
 
   it("fees are in the menu for the Accountant and the student; never the Co-ordinator or a teacher; the Principal reads them on a student's record (D-121)", () => {
-    const withFees = { attendance: true, fees: true };
+    const withFees = { attendance: true, activity_log: true, fees: true };
     expect(seen("accountant", "institution", withFees)).toEqual(["dashboard", "admissions", "fees", "settings"]);
     expect(seen("student", "own", withFees)).toEqual(["dashboard", "classwork", "fees", "settings"]);
     expect(seen("admin", "institution", withFees)).not.toContain("fees");
@@ -55,7 +55,7 @@ describe("the real menu", () => {
   });
 
   it("results are for the teacher, the student, the Co-ordinator and the Admin, never the Accountant", () => {
-    const withResults = { attendance: true, fees: true, results: true };
+    const withResults = { attendance: true, activity_log: true, fees: true, results: true };
     expect(seen("teacher", "assigned", withResults)).toEqual(["dashboard", "classes", "attendance", "classwork", "results", "settings"]);
     expect(seen("student", "own", withResults)).toEqual(["dashboard", "classwork", "fees", "results", "settings"]);
     expect(seen("coordinator", "institution", withResults)).toContain("results");
@@ -64,12 +64,12 @@ describe("the real menu", () => {
   });
 
   it("a school that switched attendance off does not see it in the menu", () => {
-    expect(seen("teacher", "assigned", { attendance: false })).toEqual(["dashboard", "classes", "classwork", "settings"]);
+    expect(seen("teacher", "assigned", { attendance: false, activity_log: true })).toEqual(["dashboard", "classes", "classwork", "settings"]);
   });
 
   it("on a phone the daily places stay tabs and the rarely visited ones move into More", () => {
     const split = (role: string, scope: "institution" | "section") => {
-      const { tabs, more } = splitNav(visibleNav(NAV_ITEMS, [{ role, scope }], { attendance: true }));
+      const { tabs, more } = splitNav(visibleNav(NAV_ITEMS, [{ role, scope }], { attendance: true, activity_log: true }));
       return { tabs: tabs.map((i) => i.id), more: more.map((i) => i.id) };
     };
     expect(split("coordinator", "institution")).toEqual({ tabs: ["dashboard", "admissions", "attendance", "classwork"], more: ["content", "setup", "people", "reports", "settings"] });
@@ -169,5 +169,17 @@ describe("the People entry's name (D-131)", () => {
     expect(names("coordinator")).toEqual(["nav.teacher"]);
     expect(names("admin")).toEqual(["nav.people"]);
     expect(names("super_admin")).toEqual(["nav.people"]);
+  });
+});
+
+describe("the Classwork entry follows the daily log, homework and notes (D-139, the PM 2026-10-11)", () => {
+  const classwork = (modules: Record<string, boolean>) => visibleNav(NAV_ITEMS, [{ role: "teacher", scope: "assigned" }], modules).some((i) => i.id === "classwork");
+
+  it("is there while any one of the three is on, and gone when all are off", () => {
+    expect(classwork({ activity_log: true })).toBe(true);
+    expect(classwork({ homework: true })).toBe(true);
+    expect(classwork({ notes: true })).toBe(true);
+    expect(classwork({ activity_log: false, homework: false, notes: false })).toBe(false);
+    expect(classwork({})).toBe(false);
   });
 });

@@ -34,19 +34,21 @@ import { termWords } from "@/setup/model";
 
 /** One place to look. Every entry is a page that already exists; the API decides what the person may see there (D-025). */
 interface Entry {
-  /** The module this page belongs to: it is left out while the module is off (D-137). */
-  module?: string;
+  /** The module this page belongs to (or any one of several): it is left out while they are off (D-137). */
+  module?: string | readonly string[];
   href: string;
   icon: LucideIcon;
   title: MessageKey;
   detail: MessageKey;
 }
 
+const isOn = (spec: string | readonly string[] | undefined, moduleEnabled: (key: string) => boolean): boolean => spec === undefined || (typeof spec === "string" ? [spec] : spec).some(moduleEnabled);
+
 /** Who a group is for: the Co-ordinator has no fees view and no oversight pages, so those groups are the Principal's. */
 const EVERYONE = ["admin", "coordinator", "super_admin"] as const;
 const PRINCIPAL = ["admin", "super_admin"] as const;
 
-export const REPORT_GROUPS: { title: MessageKey; roles: readonly string[]; /** The module this group belongs to: it is left out while the module is off (D-137). */ module?: string; entries: Entry[] }[] = [
+export const REPORT_GROUPS: { title: MessageKey; roles: readonly string[]; /** The module this group belongs to: it is left out while the module is off (D-137). */ module?: string | readonly string[]; entries: Entry[] }[] = [
   {
     title: "reports.group.setup",
     roles: EVERYONE,
@@ -67,7 +69,7 @@ export const REPORT_GROUPS: { title: MessageKey; roles: readonly string[]; /** T
       { href: "/portal/admissions/search", icon: Search, title: "reports.students", detail: "reports.studentsDetail" },
       { module: "attendance", href: "/portal/attendance", icon: CalendarDays, title: "reports.attendance", detail: "reports.attendanceDetail" },
       { module: "teacher_attendance", href: "/portal/attendance/teachers", icon: UserCheck, title: "reports.teacherAttendance", detail: "reports.teacherAttendanceDetail" },
-      { href: "/portal/classwork", icon: NotebookPen, title: "reports.classwork", detail: "reports.classworkDetail" },
+      { module: ["activity_log", "homework", "notes"], href: "/portal/classwork", icon: NotebookPen, title: "reports.classwork", detail: "reports.classworkDetail" },
     ],
   },
   {
@@ -105,8 +107,8 @@ export function ReportsScreen() {
   const { me } = useSession();
   const roles = me?.roles.map((r) => r.role) ?? [];
   const words = termWords(term);
-  const groups = REPORT_GROUPS.filter((group) => group.roles.some((r) => roles.includes(r)) && (group.module === undefined || moduleEnabled(group.module)))
-    .map((group) => ({ ...group, entries: group.entries.filter((entry) => entry.module === undefined || moduleEnabled(entry.module)) }))
+  const groups = REPORT_GROUPS.filter((group) => group.roles.some((r) => roles.includes(r)) && isOn(group.module, moduleEnabled))
+    .map((group) => ({ ...group, entries: group.entries.filter((entry) => isOn(entry.module, moduleEnabled)) }))
     .filter((group) => group.entries.length > 0);
   return (
     <div className={readStyles.page}>
