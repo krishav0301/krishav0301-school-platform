@@ -2359,6 +2359,35 @@
         ],
         "additionalProperties": false
       },
+      "OfferingsCopied": {
+        "type": "object",
+        "properties": {
+          "copied": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "copied"
+        ]
+      },
+      "CopyOfferings": {
+        "type": "object",
+        "properties": {
+          "fromLevelId": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{32}$"
+          },
+          "toLevelId": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{32}$"
+          }
+        },
+        "required": [
+          "fromLevelId",
+          "toLevelId"
+        ],
+        "additionalProperties": false
+      },
       "OfferingChanges": {
         "type": "object",
         "properties": {
@@ -2432,6 +2461,239 @@
           }
         },
         "additionalProperties": false
+      },
+      "SetupMap": {
+        "type": "object",
+        "properties": {
+          "terms": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "pattern": "^[0-9a-f]{32}$"
+                },
+                "label": {
+                  "type": "string"
+                },
+                "status": {
+                  "type": "string",
+                  "enum": [
+                    "draft",
+                    "active",
+                    "closed"
+                  ]
+                },
+                "exam": {
+                  "type": [
+                    "object",
+                    "null"
+                  ],
+                  "properties": {
+                    "graded": {
+                      "type": "boolean"
+                    },
+                    "theoryMinPercent": {
+                      "type": "integer"
+                    },
+                    "practicalMinPercent": {
+                      "type": "integer"
+                    },
+                    "terminals": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "name": {
+                            "type": "string"
+                          },
+                          "weight": {
+                            "type": [
+                              "number",
+                              "null"
+                            ]
+                          },
+                          "hasPractical": {
+                            "type": "boolean"
+                          }
+                        },
+                        "required": [
+                          "name",
+                          "weight",
+                          "hasPractical"
+                        ]
+                      }
+                    }
+                  },
+                  "required": [
+                    "graded",
+                    "theoryMinPercent",
+                    "practicalMinPercent",
+                    "terminals"
+                  ]
+                },
+                "wings": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "key": {
+                        "type": "string"
+                      },
+                      "name": {
+                        "type": "string"
+                      },
+                      "departments": {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "id": {
+                              "type": "string",
+                              "pattern": "^[0-9a-f]{32}$"
+                            },
+                            "name": {
+                              "type": "string"
+                            },
+                            "levels": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "id": {
+                                    "type": "string",
+                                    "pattern": "^[0-9a-f]{32}$"
+                                  },
+                                  "name": {
+                                    "type": "string"
+                                  },
+                                  "subjects": {
+                                    "type": "array",
+                                    "items": {
+                                      "type": "object",
+                                      "properties": {
+                                        "id": {
+                                          "type": "string",
+                                          "pattern": "^[0-9a-f]{32}$"
+                                        },
+                                        "name": {
+                                          "type": "string"
+                                        },
+                                        "fullMarksHundredths": {
+                                          "type": "integer"
+                                        },
+                                        "practicalHundredths": {
+                                          "type": [
+                                            "integer",
+                                            "null"
+                                          ]
+                                        },
+                                        "group": {
+                                          "type": [
+                                            "string",
+                                            "null"
+                                          ]
+                                        }
+                                      },
+                                      "required": [
+                                        "id",
+                                        "name",
+                                        "fullMarksHundredths",
+                                        "practicalHundredths",
+                                        "group"
+                                      ]
+                                    }
+                                  },
+                                  "sections": {
+                                    "type": "array",
+                                    "items": {
+                                      "type": "object",
+                                      "properties": {
+                                        "id": {
+                                          "type": "string",
+                                          "pattern": "^[0-9a-f]{32}$"
+                                        },
+                                        "label": {
+                                          "type": "string"
+                                        },
+                                        "students": {
+                                          "type": "integer"
+                                        },
+                                        "classTeacher": {
+                                          "type": [
+                                            "string",
+                                            "null"
+                                          ]
+                                        },
+                                        "teachers": {
+                                          "type": "array",
+                                          "items": {
+                                            "type": "object",
+                                            "properties": {
+                                              "subjectId": {
+                                                "type": "string",
+                                                "pattern": "^[0-9a-f]{32}$"
+                                              },
+                                              "teacher": {
+                                                "type": "string"
+                                              }
+                                            },
+                                            "required": [
+                                              "subjectId",
+                                              "teacher"
+                                            ]
+                                          }
+                                        }
+                                      },
+                                      "required": [
+                                        "id",
+                                        "label",
+                                        "students",
+                                        "classTeacher",
+                                        "teachers"
+                                      ]
+                                    }
+                                  }
+                                },
+                                "required": [
+                                  "id",
+                                  "name",
+                                  "subjects",
+                                  "sections"
+                                ]
+                              }
+                            }
+                          },
+                          "required": [
+                            "id",
+                            "name",
+                            "levels"
+                          ]
+                        }
+                      }
+                    },
+                    "required": [
+                      "key",
+                      "name",
+                      "departments"
+                    ]
+                  }
+                }
+              },
+              "required": [
+                "id",
+                "label",
+                "status",
+                "exam",
+                "wings"
+              ]
+            }
+          }
+        },
+        "required": [
+          "terms"
+        ]
       },
       "ClassHubList": {
         "type": "object",
@@ -13934,6 +14196,77 @@
         }
       }
     },
+    "/api/academics/offerings/copy": {
+      "post": {
+        "operationId": "copy_offerings",
+        "tags": [
+          "academics"
+        ],
+        "description": "Gives a level the switched-on subjects of another level of the same programme that it does not have yet, each with its credit hours, paper and elective group (a missing group is made by name). Nothing the level already has is changed. Answers how many were copied, which may be none. A level of another programme, or one that is switched off, is 422.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CopyOfferings"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Copied",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OfferingsCopied"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed (for example, switched off since signing in, or another section's data)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AcademicsError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such item",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AcademicsError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "It conflicts with what is already there (a repeat, a closed year, another active year)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AcademicsError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "The change breaks a rule; nothing changed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AcademicsInvalid"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/academics/offerings/{id}": {
       "patch": {
         "operationId": "update_offering",
@@ -14173,6 +14506,48 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/AcademicsInvalid"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/academics/setup-map": {
+      "get": {
+        "operationId": "get_setup_map",
+        "tags": [
+          "academics"
+        ],
+        "description": "Each open term (or the one named) with its exam pattern, and under it Wing, Department and Level; each level with its subjects and its sections, and each section with its Class Teacher, who teaches which subject and how many students it has. Only the wings the person reaches.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{32}$"
+            },
+            "required": false,
+            "name": "term",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The setup map",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SetupMap"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such open term",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AcademicsError"
                 }
               }
             }

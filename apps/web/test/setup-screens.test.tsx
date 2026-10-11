@@ -10,6 +10,7 @@ import { ConfigContext, makeConfigValue, type PublicConfig } from "@/config/Conf
 import { SetupTabs } from "@/setup/SetupLayout";
 import { ClassForm, ClassSectionForm, ClassesView } from "@/setup/ClassesScreen";
 import { AcademicStructureView, LengthForm, LevelForm, type Structure, type StructureActions } from "@/setup/ProgrammesScreen";
+import { CopyForm } from "@/setup/CurriculumScreen";
 import { YearsScreen } from "@/setup/YearsScreen";
 import { LevelPicker, TermsScreen, TermsTable, CloseCheckView } from "@/terms/TermsScreen";
 import type { Term } from "@/terms/model";
@@ -67,10 +68,10 @@ describe("the sub-menu", () => {
     expect(html).toContain('aria-label="Setup sections"');
   });
 
-  it("lists the tabs in the PM's order (D-130), Teaching still after Curriculum", () => {
+  it("lists the tabs in the PM's order (D-130), Teaching still after Curriculum, the setup map last", () => {
     const html = inContext(<SetupTabs pathname="/portal/setup/teaching" />);
     const order = [...html.matchAll(/href="(\/portal\/setup[^"]*)"/g)].map((m) => m[1]);
-    expect(order).toEqual(["/portal/setup/programmes", "/portal/setup", "/portal/setup/subjects", "/portal/setup/classes", "/portal/setup/curriculum", "/portal/setup/teaching", "/portal/setup/terminals", "/portal/setup/promotion"]);
+    expect(order).toEqual(["/portal/setup/programmes", "/portal/setup", "/portal/setup/subjects", "/portal/setup/classes", "/portal/setup/curriculum", "/portal/setup/teaching", "/portal/setup/terminals", "/portal/setup/promotion", "/portal/setup/map"]);
     expect(html).toMatch(/aria-current="page"[^>]*>Teaching</);
   });
 
@@ -349,6 +350,14 @@ describe("the classes screen", () => {
     expect(html).toContain(">Section (optional)<");
     expect(html).toContain('value="Morning"');
     expect(count(html, /<input/g)).toBe(1);
+  });
+
+  it("copying subjects asks only for the other level of the same programme to copy from (R-001)", () => {
+    const html = inContext(<CopyForm levelId="l2" from={[{ id: "l1", name: "Year 1" }]} onCopied={() => {}} />);
+    expect(html).toContain(">Copy from<");
+    expect(html).toContain(">Year 1</option>");
+    expect(html).toContain(">Copy subjects</button>");
+    expect(count(html, /<select/g)).toBe(1);
   });
 
   it("lists each class by programme, level and label, and marks one that is switched off", () => {

@@ -106,6 +106,10 @@ describe("a teacher's mark sheets (D-107)", () => {
 
   it("opens on the latest terminal the teacher has started; sent back comes first and says so", () => {
     expect(currentTerminal(mine)).toBe("t1");
+    // The terminal last worked in wins over the default (the PM, 2026-10-10), unless it no longer exists.
+    expect(currentTerminal(mine, "t2")).toBe("t2");
+    expect(currentTerminal(mine, "gone")).toBe("t1");
+    expect(currentTerminal(mine, null)).toBe("t1");
     const rows = sheetsOf(mine, "t1");
     expect(rows.map((r) => r.subjectName)).toEqual(["Computer Science", "English"]);
     expect(mySheetFigures(rows).map((f) => f.value)).toEqual(["1", "1", "0", "1"]);

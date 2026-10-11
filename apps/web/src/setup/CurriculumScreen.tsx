@@ -9,7 +9,7 @@ import { Facts, PanelSection, SidePanel } from "@/read/SidePanel";
 import { useSession } from "@/session/SessionProvider";
 import { AddDialog, Button, Checkbox, Field, Notice, Select } from "@/ui";
 
-import { addOffering, createGroup, loadCurriculum, loadProgrammes, loadSubjects, loadYears, setGroupActive, setOfferingActive, setOfferingGroup, setOfferingPaper, type Loaded } from "./client";
+import { addOffering, copyOfferings, createGroup, loadCurriculum, loadProgrammes, loadSubjects, loadYears, setGroupActive, setOfferingActive, setOfferingGroup, setOfferingPaper, type Loaded } from "./client";
 import {
   REASON_MESSAGE,
   canManageStructure,
@@ -503,6 +503,47 @@ export function CurriculumView({ curriculum, canManage, busy, onToggleGroup, onT
   );
 }
 
+/** Copy the subjects of another level of the same programme into this one (R-001). Says how many came over. */
+export function CopyForm({ levelId, from, onCopied }: { levelId: string; from: readonly { id: string; name: string }[]; onCopied: (copied: number) => void }) {
+  const { api } = useSession();
+  const { term } = useConfig();
+  const words = termWords(term);
+  const [sourceId, setSourceId] = useState("");
+  const [problem, setProblem] = useState<MessageKey | null>(null);
+  const [saving, setSaving] = useState(false);
+
+  async function submit(event: FormEvent) {
+    event.preventDefault();
+    if (saving) return;
+    setProblem(null);
+    if (!sourceId) {
+      setProblem("setup.error.copyFromRequired");
+      return;
+    }
+    setSaving(true);
+    const result = await copyOfferings(api, sourceId, levelId);
+    setSaving(false);
+    if (result.ok) onCopied(result.copied);
+    else setProblem(REASON_MESSAGE[result.reason]);
+  }
+
+  return (
+    <form onSubmit={submit} noValidate className={styles.form}>
+      {problem ? <Notice tone="bad">{t(problem, words)}</Notice> : null}
+      <Select
+        label={t("setup.curriculum.copyFrom")}
+        hint={t("setup.curriculum.copyHint", words)}
+        value={sourceId}
+        onChange={(event) => setSourceId(event.target.value)}
+        options={[{ value: "", label: t("setup.programmes.choose") }, ...from.map((l) => ({ value: l.id, label: l.name }))]}
+      />
+      <Button type="submit" loading={saving} loadingLabel={t("setup.working")}>
+        {t("setup.curriculum.copyButton")}
+      </Button>
+    </form>
+  );
+}
+
 // --- The screen --------------------------------------------------------------------------------------
 
 export function CurriculumScreen() {
@@ -547,6 +588,12 @@ export function CurriculumScreen() {
     setFlash({ tone: "ok", text: t("setup.done.added") });
     void curriculum.reload();
   };
+  // The other levels of this level's programme (Department) it can copy its subjects from (R-001).
+  const siblings = (all.find((p) => p.levels.some((l) => l.id === levelId))?.levels ?? []).filter((l) => l.active && l.id !== levelId).map((l) => ({ id: l.id, name: l.name }));
+  const copied = (n: number) => {
+    setFlash({ tone: "ok", text: n === 0 ? t("setup.curriculum.copyNothing", words) : n === 1 ? t("setup.curriculum.copyDoneOne") : t("setup.curriculum.copyDone", { n: String(n) }) });
+    void curriculum.reload();
+  };
   const onOff = (active: boolean): MessageKey => (active ? "setup.done.switchedOff" : "setup.done.switchedOn");
   const data = curriculum.view.status === "ready" ? curriculum.view.data : null;
   const notice = flash ? <Notice tone={flash.tone}>{flash.text}</Notice> : null;
@@ -559,6 +606,21 @@ export function CurriculumScreen() {
           subtitle={t("setup.curriculum.intro", words)}
           actions={
             data && subjects.view.status === "ready" ? (
+              <>
+                {siblings.length > 0 ? (
+                  <AddDialog label={t("setup.curriculum.copy", words)} title={t("setup.curriculum.copy", words)} variant="secondary" plus={false}>
+                    {(close) => (
+                      <CopyForm
+                        levelId={data.level.id}
+                        from={siblings}
+                        onCopied={(n) => {
+                          close();
+                          copied(n);
+                        }}
+                      />
+                    )}
+                  </AddDialog>
+                ) : null}
               <AddDialog label={t("setup.curriculum.addSubject", words)} title={t("setup.curriculum.addSubject", words)}>
                 {(close) => (
                   <OfferingForm
@@ -575,6 +637,7 @@ export function CurriculumScreen() {
                   />
                 )}
               </AddDialog>
+              </>
             ) : undefined
           }
         />

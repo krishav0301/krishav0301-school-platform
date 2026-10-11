@@ -6,6 +6,7 @@ export type Programme = components["schemas"]["Programme"];
 export type Level = components["schemas"]["Level"];
 export type SchoolClass = components["schemas"]["SchoolClass"];
 export type Terminal = components["schemas"]["Terminal"];
+export type SetupMap = components["schemas"]["SetupMap"];
 
 export interface RoleView {
   role: string;

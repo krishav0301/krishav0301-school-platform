@@ -115,7 +115,7 @@ describe("applying, verifying, and the review queue", () => {
     expect(approved.headers.get("Cache-Control")).toBe("no-store"); // a one-time secret in the body: never cached
     const { sid, studentId, temporaryPassword } = (await approved.json()) as { sid: string; studentId: string; temporaryPassword: string };
     expect(sid).toMatch(/^\d{4}-\d{5}$/);
-    expect(temporaryPassword).toMatch(/^[A-Z2-9]{4}-[A-Z2-9]{4}-[A-Z2-9]{4}-[A-Z2-9]{4}$/); // shown here, and nowhere else (D-059)
+    expect(temporaryPassword).toMatch(/^[0-9]{4}$/); // shown here, and nowhere else (D-059)
 
     // The new student can be found by search and by their own sign-in.
     const found = (await (await call(`/api/students?q=${encodeURIComponent(body.lastName)}`, { cookie: coordinator.cookie })).json()) as { students: { id: string; sid: string }[] };

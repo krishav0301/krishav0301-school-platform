@@ -12,6 +12,7 @@ import { Facts, PanelSection, SidePanel } from "@/read/SidePanel";
 import { useAddressQuery } from "@/content/address";
 import { t } from "@/i18n/messages";
 import { useSession } from "@/session/SessionProvider";
+import { useTermChoice } from "@/shell/TermChoice";
 import { loadClasses, loadTerminals, loadYears } from "@/setup/client";
 import { useLoad } from "@/setup/useLoad";
 import { Button, Checkbox, Field, Notice, Select, buttonClass } from "@/ui";
@@ -28,43 +29,32 @@ const FINAL = "final";
 const sheetName = (sheet: ClassSheet) => (sheet.terminal ? sheet.terminal.name : t("results.sheets.final"));
 
 interface Choices {
-  classes: { id: string; name: string }[];
-  terminals: { id: string; name: string }[];
+  /** Every active class of every open term, with the term it is in. */
+  classes: { id: string; name: string; termId: string; termLabel: string }[];
+  /** Each open term's exams in its pattern, then its final result (D-117); the same final id serves every term. */
+  terminals: { id: string; name: string; termId: string }[];
+  /** More than one open term: classes then carry their term's name. */
+  manyTerms: boolean;
 }
 
-/** This year's active classes and terminals, for the pickers. */
+/** The open terms' active classes and terminals, for the pickers. Several terms can be open at once (D-110). */
 async function loadChoices(api: Parameters<typeof loadYears>[0]) {
   const years = await loadYears(api);
   if (!years.ok) return gateFailure(years.reason);
-  const year = years.data.years.find((y) => y.status === "active");
-  if (!year)
-    return {
-      ok: true as const,
-      data: { classes: [], terminals: [] } satisfies Choices,
-    };
-  const [classes, terminals] = await Promise.all([loadClasses(api, year.id), loadTerminals(api, year.id)]);
-  if (!classes.ok) return gateFailure(classes.reason);
-  if (!terminals.ok) return gateFailure(terminals.reason);
-  return {
-    ok: true as const,
-    data: {
-      classes: classes.data.classes
-        .filter((c) => c.active)
-        .map((c) => ({
-          id: c.id,
-          name: className({
-            programmeName: c.programmeName,
-            levelName: c.levelName,
-            label: c.label,
-          }),
-        })),
-      // The term's exams in its pattern, then its final result (D-117).
-      terminals: [
-        ...terminals.data.terminals.filter((x) => x.weight !== null).map((x) => ({ id: x.id, name: x.name })),
-        ...(terminals.data.terminals.some((x) => x.weight !== null) ? [{ id: FINAL, name: t("results.sheets.final") }] : []),
-      ],
-    } satisfies Choices,
-  };
+  const open = years.data.years.filter((y) => y.status !== "closed");
+  const loaded = await Promise.all(open.map(async (y) => ({ year: y, classes: await loadClasses(api, y.id), terminals: await loadTerminals(api, y.id) })));
+  const choices: Choices = { classes: [], terminals: [], manyTerms: open.length > 1 };
+  for (const { year, classes, terminals } of loaded) {
+    if (!classes.ok) return gateFailure(classes.reason);
+    if (!terminals.ok) return gateFailure(terminals.reason);
+    for (const c of classes.data.classes.filter((x) => x.active)) {
+      choices.classes.push({ id: c.id, name: className({ programmeName: c.programmeName, levelName: c.levelName, label: c.label }), termId: year.id, termLabel: year.label });
+    }
+    const exams = terminals.data.terminals.filter((x) => x.weight !== null);
+    for (const x of exams) choices.terminals.push({ id: x.id, name: x.name, termId: year.id });
+    if (exams.length > 0) choices.terminals.push({ id: FINAL, name: t("results.sheets.final"), termId: year.id });
+  }
+  return { ok: true as const, data: choices };
 }
 
 function useQuery(): URLSearchParams {
@@ -83,10 +73,17 @@ export function ClassSheetsScreen() {
     classId?: string;
     terminalId?: string;
   }>({});
+  const { choice: termChoice } = useTermChoice();
   const classId = picked.classId ?? query.get("class") ?? "";
-  const terminalId = picked.terminalId ?? query.get("terminal") ?? "";
-  const setClassId = (value: string) => setPicked((p) => ({ ...p, classId: value }));
+  const setClassId = (value: string) => setPicked({ classId: value }); // a new class starts with no exam: its term may differ
   const setTerminalId = (value: string) => setPicked((p) => ({ ...p, terminalId: value }));
+  const choices = view.status === "ready" ? view.data : null;
+  // The exams of the chosen class's own term; the one asked for (by address or pick) only if that term runs it.
+  const termOfClass = choices?.classes.find((c) => c.id === classId)?.termId ?? null;
+  const exams = choices && termOfClass ? choices.terminals.filter((x) => x.termId === termOfClass) : [];
+  const asked = picked.terminalId ?? query.get("terminal") ?? "";
+  const terminalId = exams.some((x) => x.id === asked) ? asked : "";
+  const shown = choices ? choices.classes.filter((c) => !termChoice || c.termId === termChoice || c.id === classId) : [];
 
   return (
     <div className={readStyles.page}>
@@ -103,13 +100,13 @@ export function ClassSheetsScreen() {
                 label={t("results.sheets.class")}
                 value={classId}
                 onChange={(event) => setClassId(event.target.value)}
-                options={[{ value: "", label: t("results.choose") }, ...view.data.classes.map((c) => ({ value: c.id, label: c.name }))]}
+                options={[{ value: "", label: t("results.choose") }, ...shown.map((c) => ({ value: c.id, label: view.data.manyTerms ? `${c.name} · ${c.termLabel}` : c.name }))]}
               />
               <Select
                 label={t("results.terminal")}
                 value={terminalId}
                 onChange={(event) => setTerminalId(event.target.value)}
-                options={[{ value: "", label: t("results.choose") }, ...view.data.terminals.map((x) => ({ value: x.id, label: x.name }))]}
+                options={[{ value: "", label: t("results.choose") }, ...exams.map((x) => ({ value: x.id, label: x.name }))]}
               />
             </div>
             {classId && terminalId ? <ClassSheetView classId={classId} terminalId={terminalId} /> : <EmptyLine>{t("results.sheets.pick")}</EmptyLine>}

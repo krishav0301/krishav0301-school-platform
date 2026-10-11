@@ -518,3 +518,35 @@ export const ClassHubSchema = z
   })
   .openapi("ClassHub");
 export type ClassHub = z.infer<typeof ClassHubSchema>;
+
+/** Copy the subjects of one level into another level of the same programme (R-001). */
+export const CopyOfferingsSchema = z.strictObject({ fromLevelId: PublicIdSchema, toLevelId: PublicIdSchema }).openapi("CopyOfferings");
+export type CopyOfferingsInput = z.input<typeof CopyOfferingsSchema>;
+
+// --- The setup map (the PM, 2026-10-10) ---------------------------------------------------------------
+
+const MapSubjectShape = z.object({ id: PublicIdSchema, name: z.string(), fullMarksHundredths: z.number().int(), practicalHundredths: z.number().int().nullable(), group: z.string().nullable() });
+const MapSectionShape = z.object({
+  id: PublicIdSchema,
+  /** The section's name (Morning, A); empty for a class with none. */
+  label: z.string(),
+  students: z.number().int(),
+  classTeacher: z.string().nullable(),
+  /** Who teaches each subject in this section; a subject with nobody has no entry. */
+  teachers: z.array(z.object({ subjectId: PublicIdSchema, teacher: z.string() })),
+});
+const MapLevelShape = z.object({ id: PublicIdSchema, name: z.string(), subjects: z.array(MapSubjectShape), sections: z.array(MapSectionShape) });
+const MapDepartmentShape = z.object({ id: PublicIdSchema, name: z.string(), levels: z.array(MapLevelShape) });
+const MapWingShape = z.object({ key: z.string(), name: z.string(), departments: z.array(MapDepartmentShape) });
+const MapExamShape = z.object({
+  graded: z.boolean(),
+  theoryMinPercent: z.number().int(),
+  practicalMinPercent: z.number().int(),
+  terminals: z.array(z.object({ name: z.string(), weight: z.number().nullable(), hasPractical: z.boolean() })),
+});
+export const SetupMapSchema = z
+  .object({
+    terms: z.array(z.object({ id: PublicIdSchema, label: z.string(), status: z.enum(["draft", "active", "closed"]), exam: MapExamShape.nullable(), wings: z.array(MapWingShape) })),
+  })
+  .openapi("SetupMap");
+export type SetupMap = z.infer<typeof SetupMapSchema>;

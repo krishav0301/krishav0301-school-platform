@@ -6,6 +6,7 @@ import { sameOriginOnly } from "./core/same-origin";
 import type { AppEnv } from "./core/types";
 import { registerAcademics } from "./modules/academics/routes";
 import { registerClassHub } from "./modules/academics/class-hub-routes";
+import { registerSetupMap } from "./modules/academics/map-routes";
 import { registerSubjects } from "./modules/academics/subject-routes";
 import { registerAccounts } from "./modules/accounts/routes";
 import { registerStaff } from "./modules/accounts/staff-routes";
@@ -47,6 +48,7 @@ export function createApp() {
   registerStaff(app);
   registerAcademics(app);
   registerSubjects(app);
+  registerSetupMap(app);
   registerClassHub(app);
   registerConfig(app);
   registerContent(app);

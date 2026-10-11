@@ -5,6 +5,7 @@ import { defineRoute } from "../../core/routes";
 import type { App } from "../../core/types";
 import { getCurriculum, listSubjects } from "./queries";
 import {
+  CopyOfferingsSchema,
   CreateGroupSchema,
   CreateOfferingSchema,
   CreateSubjectSchema,
@@ -16,7 +17,7 @@ import {
   SubjectListSchema,
 } from "./schema";
 import { CreatedSchema, ErrorSchema, IdParam, OkSchema, fail, failures, json } from "./routes";
-import { createGroup, createOffering, createSubject, updateGroup, updateOffering, updateSubject } from "./service";
+import { copyOfferings, createGroup, createOffering, createSubject, updateGroup, updateOffering, updateSubject } from "./service";
 
 const LevelQuery = z.object({ level: PublicIdSchema });
 const VIEW_SUBJECTS = { action: "setup.subjects.view" } as const;
@@ -119,6 +120,25 @@ export function registerSubjects(app: App): void {
     async (c) => {
       const result = await createOffering(c.env.DB, c.env.AUDIT_HMAC_KEY, c.get("auth")!.userPublicId, c.req.valid("json"));
       return result.ok ? c.json({ id: result.publicId }, 201) : fail(c, result);
+    },
+  );
+
+  defineRoute(
+    app,
+    {
+      method: "post",
+      path: "/api/academics/offerings/copy",
+      operationId: "copy_offerings",
+      tags: ["academics"],
+      description:
+        "Gives a level the switched-on subjects of another level of the same programme that it does not have yet, each with its credit hours, paper and elective group (a missing group is made by name). Nothing the level already has is changed. Answers how many were copied, which may be none. A level of another programme, or one that is switched off, is 422.",
+      access: MANAGE_SUBJECTS,
+      request: { body: { required: true, content: json(CopyOfferingsSchema) } },
+      responses: { 200: { description: "Copied", content: json(z.object({ copied: z.number().int() }).openapi("OfferingsCopied")) }, ...failures },
+    },
+    async (c) => {
+      const result = await copyOfferings(c.env.DB, c.env.AUDIT_HMAC_KEY, c.get("auth")!.userPublicId, c.req.valid("json"));
+      return result.ok ? c.json({ copied: result.copied }, 200) : fail(c, result);
     },
   );
 

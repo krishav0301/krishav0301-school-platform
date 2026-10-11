@@ -1,7 +1,7 @@
 "use client";
 
 import { CircleCheck, Hourglass, PenLine, Undo2 } from "lucide-react";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { useAddressQuery } from "@/content/address";
 import { t } from "@/i18n/messages";
@@ -10,6 +10,7 @@ import { useSession } from "@/session/SessionProvider";
 import { useLoad } from "@/setup/useLoad";
 import { Button, Notice, Table } from "@/ui";
 
+import { readLastTerminal, rememberTerminal } from "./last-terminal";
 import { gateFailure, loadMySheets, loadSheet, saveMarks, submitSheet, type Sent } from "./client";
 import { STATUS_LABEL, className, formatMarks, markText, parseMark, partName, type MarkSheet, type MyMarkSheets, type SheetStatus } from "./model";
 import styles from "./results.module.css";
@@ -32,8 +33,9 @@ export function sheetsOf(mine: MyMarkSheets, terminalId: string): MySheet[] {
   return rows.sort((a, b) => rank(a) - rank(b));
 }
 
-/** The terminal to show first: the latest one the teacher has started, else the first. */
-export function currentTerminal(mine: MyMarkSheets): string {
+/** The terminal to show first: the one last worked in if it still exists, else the latest one the teacher has started, else the first. */
+export function currentTerminal(mine: MyMarkSheets, last: string | null = null): string {
+  if (last && mine.terminals.some((term) => term.id === last)) return last;
   const started = mine.terminals.filter((term) => mine.subjects.some((s) => s.sheets.some((x) => x.terminalId === term.id && x.status !== "not_started")));
   return (started[started.length - 1] ?? mine.terminals[0])?.id ?? "";
 }
@@ -90,7 +92,7 @@ export function MySheetsScreen() {
   const { view, reload } = useLoad<MyMarkSheets>(loadNow);
   const [picked, setPicked] = useState<string | null>(null);
   const mine = view.status === "ready" ? view.data : null;
-  const terminalId = mine ? (picked ?? currentTerminal(mine)) : "";
+  const terminalId = mine ? (picked ?? currentTerminal(mine, readLastTerminal())) : "";
   const terminalName = mine?.terminals.find((x) => x.id === terminalId)?.name ?? "";
   const rows = mine ? sheetsOf(mine, terminalId) : [];
   return (
@@ -105,7 +107,10 @@ export function MySheetsScreen() {
           </Panel>
         ) : (
           <>
-            {mine.terminals.length > 1 ? <Segments label={t("results.mine.terminals")} value={terminalId} options={mine.terminals.map((x) => ({ key: x.id, label: x.name }))} onChange={setPicked} /> : null}
+            {mine.terminals.length > 1 ? <Segments label={t("results.mine.terminals")} value={terminalId} options={mine.terminals.map((x) => ({ key: x.id, label: x.name }))} onChange={(id) => {
+                  rememberTerminal(id);
+                  setPicked(id);
+                }} /> : null}
             <FigureTiles figures={mySheetFigures(rows)} label={t("results.mine.figures", { terminal: terminalName })} />
             <Panel title={terminalName} labelledBy="my-sheets">
               <MySheetsTable rows={rows} terminalName={terminalName} />
@@ -189,6 +194,10 @@ export function MarkSheetScreen() {
   const search = useAddressQuery();
   const params = useMemo(() => new URLSearchParams(search ?? ""), [search]);
   const [classId, offeringId, terminalId] = [params.get("class") ?? "", params.get("subject") ?? "", params.get("terminal") ?? ""];
+  // Opening a sheet counts as working in its terminal: the Results tab opens there next time.
+  useEffect(() => {
+    if (terminalId) rememberTerminal(terminalId);
+  }, [terminalId]);
   const loadNow = useCallback(async () => {
     if (!classId || !offeringId || !terminalId) return gateFailure("failed");
     const result = await loadSheet(api, classId, offeringId, terminalId);

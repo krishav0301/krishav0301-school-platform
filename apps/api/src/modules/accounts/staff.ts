@@ -46,8 +46,8 @@ export async function createStaff(db: D1Database, auditKey: string, actor: strin
     [
       db
         .prepare(
-          `INSERT INTO users (public_id, email, password_hash, full_name, phone, must_change_password)
-           SELECT ?1, ?2, ?3, ?4, ?5, 1
+          `INSERT INTO users (public_id, email, password_hash, full_name, phone, must_change_password, temporary_password_expires_at)
+           SELECT ?1, ?2, ?3, ?4, ?5, 1, strftime('%Y-%m-%dT%H:%M:%fZ', 'now', '+1 day')
             WHERE ${actorMayCreateStaff(6)} AND ${allSwitchedOnSections(7)}`,
         )
         .bind(publicId, p.email, hashPassword(temporaryPassword), p.fullName, p.phone ?? null, actor, keysJson),
@@ -98,8 +98,8 @@ export async function createTeacher(db: D1Database, auditKey: string, actor: str
     [
       db
         .prepare(
-          `INSERT INTO users (public_id, email, password_hash, full_name, phone, must_change_password)
-           SELECT ?1, ?2, ?3, ?4, ?5, 1
+          `INSERT INTO users (public_id, email, password_hash, full_name, phone, must_change_password, temporary_password_expires_at)
+           SELECT ?1, ?2, ?3, ?4, ?5, 1, strftime('%Y-%m-%dT%H:%M:%fZ', 'now', '+1 day')
             WHERE ${actorMayCreateTeacher(6, 7)} AND EXISTS (SELECT 1 FROM sections WHERE key = ?7)`,
         )
         .bind(publicId, p.email, hashPassword(temporaryPassword), p.fullName, p.phone ?? null, actor, p.homeSectionKey),
@@ -301,7 +301,7 @@ export async function issueTemporaryPassword(db: D1Database, auditKey: string, a
         .bind(now.toISOString(), target, actor),
       db
         .prepare(
-          `UPDATE users SET password_hash = ?1, must_change_password = 1, failed_login_count = 0, locked_until = NULL
+          `UPDATE users SET password_hash = ?1, must_change_password = 1, failed_login_count = 0, locked_until = NULL, temporary_password_failures = 0, temporary_password_expires_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now', '+1 day')
             WHERE public_id = ?2 AND ${actorMayManage(3, 2)}`,
         )
         .bind(hashPassword(temporaryPassword), target, actor),

@@ -2,21 +2,21 @@
  * The one-time password given to a new person, or to someone who has forgotten theirs (D-059). It is a secret: the caller
  * shows it once and stores only its hash, and it must never reach the audit log, a log line or the outbox.
  *
- * 16 characters from an alphabet with no look-alikes (no 0, O, 1, I or L), written in four groups so it can be read out
- * and typed: XXXX-XXXX-XXXX-XXXX. That is about 79 bits, and the person must change it before they get a session.
+ * 4 digits (the PM, 2026-10-10), so it is easy to read out and type. That is only 10,000 possibilities, so it is limited
+ * instead of long: it stops working 24 hours after it is issued (`temporary_password_expires_at`, set where it is issued) and after 3 wrong tries
+ * (`TEMPORARY_PASSWORD_TRIES`), checked at sign-in; and the person must change it before they get a session.
  */
-export const TEMPORARY_PASSWORD_ALPHABET = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
+export const TEMPORARY_PASSWORD_TRIES = 3;
 
-const LENGTH = 16;
+const LENGTH = 4;
 
 export function generateTemporaryPassword(): string {
-  // A byte at or above this limit is skipped: taking `byte % 31` from all 256 values would make the first characters likelier.
-  const limit = 256 - (256 % TEMPORARY_PASSWORD_ALPHABET.length);
+  // A byte at or above 250 is skipped: taking `byte % 10` from all 256 values would make 0 to 5 likelier.
   let chosen = "";
   while (chosen.length < LENGTH) {
-    for (const byte of crypto.getRandomValues(new Uint8Array(32))) {
-      if (byte < limit && chosen.length < LENGTH) chosen += TEMPORARY_PASSWORD_ALPHABET[byte % TEMPORARY_PASSWORD_ALPHABET.length];
+    for (const byte of crypto.getRandomValues(new Uint8Array(16))) {
+      if (byte < 250 && chosen.length < LENGTH) chosen += String(byte % 10);
     }
   }
-  return chosen.match(/.{4}/g)!.join("-");
+  return chosen;
 }

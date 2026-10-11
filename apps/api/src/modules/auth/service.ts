@@ -9,6 +9,7 @@ import { newPublicId } from "../../core/ids";
 import { signChallenge } from "../../core/two-factor/challenge";
 import { requiresTwoFactor } from "../../core/two-factor/policy";
 import { hashPassword, needsRehash, verifyPassword } from "../../core/passwords";
+import { TEMPORARY_PASSWORD_TRIES } from "../../core/temporary-password";
 import { IDLE_DAYS, SESSION_DAYS } from "../../core/session-cookies";
 import { ACCESS_TTL_SECONDS, newRefreshToken, sha256Hex, signAccessToken, type RoleClaim } from "../../core/tokens";
 import { normaliseEmail } from "../accounts/service";
@@ -97,6 +98,8 @@ interface UserRow {
   full_name: string;
   is_active: number;
   must_change_password: number;
+  temporary_password_expires_at: string | null;
+  temporary_password_failures: number;
 }
 
 export async function signIn(deps: Deps, input: SignInInput, now: Date = new Date()): Promise<SignInResult> {
@@ -106,7 +109,7 @@ export async function signIn(deps: Deps, input: SignInInput, now: Date = new Dat
   const userAgent = input.userAgent?.slice(0, 300) ?? null;
 
   const [userResult, emailFailures, ipFailures, roleResult, twoFactorResult] = await db.batch([
-    db.prepare("SELECT id, public_id, email, password_hash, full_name, is_active, must_change_password FROM users WHERE email = ?1").bind(email),
+    db.prepare("SELECT id, public_id, email, password_hash, full_name, is_active, must_change_password, temporary_password_expires_at, temporary_password_failures FROM users WHERE email = ?1").bind(email),
     db.prepare("SELECT COUNT(*) AS n FROM sign_in_events WHERE success = 0 AND email_tried = ?1 AND at > ?2").bind(email, since),
     // Without an address we cannot count by address, so that limit is skipped, not shared.
     db.prepare("SELECT COUNT(*) AS n FROM sign_in_events WHERE success = 0 AND ip = ?1 AND at > ?2").bind(input.ip ?? "", since),
@@ -132,7 +135,13 @@ export async function signIn(deps: Deps, input: SignInInput, now: Date = new Dat
   const user = userResult!.results[0] as unknown as UserRow | undefined;
   const usable = user !== undefined && user.is_active === 1;
 
-  const passwordOk = usable ? verifyPassword(input.password, user.password_hash) : (verifyPassword(input.password, timingHash()), false);
+  // A 4-digit temporary password is easy to guess, so it is spent after 24 hours or 3 wrong tries; a new one is issued
+  // from People & Access. A spent one is refused without being checked, in the same time as any other wrong password.
+  const temporarySpent =
+    usable &&
+    user.must_change_password === 1 &&
+    ((user.temporary_password_expires_at !== null && user.temporary_password_expires_at < now.toISOString()) || user.temporary_password_failures >= TEMPORARY_PASSWORD_TRIES);
+  const passwordOk = usable && !temporarySpent ? verifyPassword(input.password, user.password_hash) : (verifyPassword(input.password, timingHash()), false);
 
   const recordEvent = (success: boolean, reason: string | null) =>
     db
@@ -140,7 +149,12 @@ export async function signIn(deps: Deps, input: SignInInput, now: Date = new Dat
       .bind(now.toISOString(), user?.id ?? null, email.slice(0, 254), success ? 1 : 0, reason, input.ip, userAgent);
 
   if (!usable || !passwordOk) {
-    await recordEvent(false, !user ? "unknown_user" : !usable ? "inactive" : "bad_password").run();
+    const failed = recordEvent(false, !user ? "unknown_user" : !usable ? "inactive" : temporarySpent ? "temporary_password_spent" : "bad_password");
+    if (usable && user.must_change_password === 1 && !temporarySpent) {
+      await db.batch([failed, db.prepare("UPDATE users SET temporary_password_failures = temporary_password_failures + 1 WHERE id = ?1").bind(user.id)]);
+    } else {
+      await failed.run();
+    }
     return { ok: false, reason: "invalid_credentials" };
   }
 

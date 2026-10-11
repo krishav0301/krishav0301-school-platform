@@ -13,6 +13,7 @@ import {
   ListChecks,
   NotebookPen,
   Presentation,
+  Workflow,
   ReceiptText,
   School,
   Search,
@@ -54,6 +55,7 @@ export const REPORT_GROUPS: { title: MessageKey; roles: readonly string[]; entri
       { href: "/portal/setup/subjects", icon: BookOpen, title: "reports.subjects", detail: "reports.subjectsDetail" },
       { href: "/portal/setup/curriculum", icon: ListChecks, title: "reports.curriculum", detail: "reports.curriculumDetail" },
       { href: "/portal/setup/teaching", icon: Presentation, title: "reports.teaching", detail: "reports.teachingDetail" },
+      { href: "/portal/setup/map", icon: Workflow, title: "reports.map", detail: "reports.mapDetail" },
     ],
   },
   {

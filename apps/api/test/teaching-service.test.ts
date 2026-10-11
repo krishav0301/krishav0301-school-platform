@@ -259,18 +259,30 @@ describe("getTeaching", () => {
     expect(await getTeaching(db, "all", newPublicId())).toBeNull();
   });
 
-  it("the teacher list is every teacher for an institution-wide viewer, and only the class's own section for a scoped one", async () => {
+  it("the teacher list is only the teachers of the class's own wing, whoever is looking (the PM, 2026-10-10)", async () => {
     const levelId = await newLevel("plus2");
     const classId = await newClass(await newYear(), levelId);
     const plus2Teacher = await newTeacher("plus2");
     const bachelorsTeacher = await newTeacher("bachelors");
+    const unlinked = await newTeacher(null);
 
-    const wide = await getTeaching(db, "all", classId);
-    expect(wide!.teachers.map((t) => t.id)).toEqual(expect.arrayContaining([plus2Teacher, bachelorsTeacher]));
+    for (const viewer of ["all", ["plus2"]] as const) {
+      const ids = (await getTeaching(db, viewer, classId))!.teachers.map((t) => t.id);
+      expect(ids).toContain(plus2Teacher);
+      expect(ids).not.toContain(bachelorsTeacher);
+      expect(ids).not.toContain(unlinked);
+    }
+  });
 
-    const scoped = await getTeaching(db, ["plus2"], classId);
-    const scopedIds = scoped!.teachers.map((t) => t.id);
-    expect(scopedIds).toContain(plus2Teacher);
-    expect(scopedIds).not.toContain(bachelorsTeacher);
+  it("a teacher of another wing, or of none, cannot be assigned even by an institution-wide Co-ordinator", async () => {
+    const levelId = await newLevel("plus2");
+    const classId = await newClass(await newYear(), levelId);
+    const offeringId = await newOffering(levelId);
+    const own = await newTeacher("plus2");
+    const other = await newTeacher("bachelors");
+    const unlinked = await newTeacher(null);
+    expect(await setAssignment(db, auditKey, coordinator.publicId, { classId, offeringId, teacherId: other })).toEqual({ ok: false, reason: "not_allowed" });
+    expect(await setAssignment(db, auditKey, coordinator.publicId, { classId, offeringId, teacherId: unlinked })).toEqual({ ok: false, reason: "not_allowed" });
+    expect(await setAssignment(db, auditKey, coordinator.publicId, { classId, offeringId, teacherId: own })).toEqual({ ok: true });
   });
 });

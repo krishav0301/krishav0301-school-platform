@@ -3,7 +3,7 @@ import { beforeAll, describe, expect, it } from "vitest";
 import { verifyAuditChain } from "../src/core/audit";
 import { auditKey, call, count, db, person, seedSections, type Person } from "./academics-helpers";
 
-const TEMP_FORMAT = /^[A-Z2-9]{4}(-[A-Z2-9]{4}){3}$/;
+const TEMP_FORMAT = /^[0-9]{4}$/; // four digits (the PM, 2026-10-10)
 
 let admin: Person, coordinator: Person, plus2Coordinator: Person, bachelorsCoordinator: Person, accountant: Person, teacher: Person, student: Person, superAdmin: Person;
 beforeAll(async () => {
