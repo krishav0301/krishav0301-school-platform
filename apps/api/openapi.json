@@ -20550,6 +20550,48 @@
         }
       }
     },
+    "/api/results/students/{studentId}": {
+      "get": {
+        "operationId": "get_student_results",
+        "tags": [
+          "results"
+        ],
+        "description": "One student's published results as staff read them: each exam, then the final, newest first, each with its marks card. Only for staff whose wings reach one of the student's classes; a student in another wing is 404, the same as a missing one. Rechecks are not in it. Read only.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{32}$"
+            },
+            "required": true,
+            "name": "studentId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The student's published results",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OwnResults"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such item, or not one the person may reach",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultsError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/results/classes/{classId}/terminals/{terminalId}/sheet": {
       "get": {
         "operationId": "get_class_result_sheet",

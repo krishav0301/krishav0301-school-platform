@@ -39,6 +39,8 @@ export const loadBoard = (api: ApiClient, terminalId?: string): Promise<Loaded<R
     }),
   );
 export const loadOwnResults = (api: ApiClient): Promise<Loaded<OwnResults>> => load(() => api.GET("/api/results/me"));
+/** A student's published results, for the staff who may open their record (the PM, 2026-10-11). */
+export const loadStudentResults = (api: ApiClient, studentId: string): Promise<Loaded<OwnResults>> => load(() => api.GET("/api/results/students/{studentId}", { params: { path: { studentId } } }));
 export const loadCard = (api: ApiClient, cardId: string): Promise<Loaded<MarksCard>> => load(() => api.GET("/api/results/cards/{cardId}", { params: { path: { cardId } } }));
 /** The Top 20 ranks the final result only (D-117). */
 export const loadTop20 = (api: ApiClient): Promise<Loaded<Top20>> => load(() => api.GET("/api/results/top20"));

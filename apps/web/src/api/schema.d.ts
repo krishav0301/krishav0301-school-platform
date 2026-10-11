@@ -2488,6 +2488,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/results/students/{studentId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description One student's published results as staff read them: each exam, then the final, newest first, each with its marks card. Only for staff whose wings reach one of the student's classes; a student in another wing is 404, the same as a missing one. Rechecks are not in it. Read only. */
+        get: operations["get_student_results"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/results/classes/{classId}/terminals/{terminalId}/sheet": {
         parameters: {
             query?: never;
@@ -12255,6 +12272,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["MarksCard"];
+                };
+            };
+            /** @description No such item, or not one the person may reach */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResultsError"];
+                };
+            };
+        };
+    };
+    get_student_results: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                studentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The student's published results */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OwnResults"];
                 };
             };
             /** @description No such item, or not one the person may reach */
