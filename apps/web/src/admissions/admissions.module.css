@@ -165,3 +165,12 @@
   padding: 0;
   border: 0;
 }
+
+/* The staff form as a plain list (the PM, 2026-10-10): one field on each line, top to bottom, at any width. */
+.formList {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-items: start;
+  gap: var(--space-4);
+  max-width: 36rem;
+}

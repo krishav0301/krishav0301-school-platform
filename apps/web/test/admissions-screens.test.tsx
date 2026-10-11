@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 
@@ -16,7 +17,7 @@ import OwnAttendancePage from "@/app/portal/attendance/mine/page";
 import ReviewSheetPage from "@/app/portal/results/review/page";
 import { RoleGate } from "@/shell/RoleGate";
 import { choiceForLevel, levelSteps } from "@/admissions/level-steps";
-import { emptyApplicantForm, validateApplicant, type ApplicationSummary, type OpenLevel } from "@/admissions/model";
+import { emptyApplicantForm, validateApplicant, validateStaffApplicant, type ApplicationSummary, type OpenLevel } from "@/admissions/model";
 import { ConfigContext, makeConfigValue, type PublicConfig } from "@/config/ConfigProvider";
 import { SessionContext } from "@/session/SessionProvider";
 import { fakeSession } from "./session";
@@ -267,5 +268,47 @@ describe("a student's record from the Students page (admin FUT F-09)", () => {
     const found = inContext(<StudentsTable students={[{ id: "s1", sid: "2083-00012", firstName: "Rishav", lastName: "Kumar", status: "graduated", guardianPhone: "9811111111", rollNo: null, class: null, term: null }]} />, as("admin"));
     expect(found).toContain('href="/portal/admissions/student?id=s1"');
     expect(found).toContain(">Graduated<");
+  });
+});
+
+describe("a student entered with only a name (the PM, 2026-10-10)", () => {
+  it("needs only the first name and the level: the rest is checked only when it is filled in", () => {
+    expect(Object.keys(validateStaffApplicant(emptyApplicantForm())).sort()).toEqual(["firstName", "levelId"]);
+    expect(validateStaffApplicant({ ...emptyApplicantForm(), firstName: "Sita", levelId: "l1" })).toEqual({});
+    const bad = validateStaffApplicant({ ...emptyApplicantForm(), firstName: "Sita", levelId: "l1", phone: "12", email: "nope", guardianPhone: "abc" });
+    expect(Object.keys(bad).sort()).toEqual(["email", "guardianPhone", "phone"]);
+    // The public form keeps asking for everything.
+    expect(Object.keys(validateApplicant(emptyApplicantForm())).length).toBe(8);
+  });
+
+  it("the staff fields say which are optional, and explain the made email; the public form does not", () => {
+    const staff = inContext(<ApplicantFields staff values={emptyApplicantForm()} errors={{}} levels={levels} onChange={noop} />);
+    expect(staff).toContain("Last name (optional)");
+    expect(staff).toContain("Guardian");
+    expect(staff).toContain("(optional)");
+    expect(staff).toContain("Made from the first name.");
+    expect(staff).not.toContain("First name (optional)");
+    const publicForm = inContext(<ApplicantFields values={emptyApplicantForm()} errors={{}} levels={levels} onChange={noop} />);
+    expect(publicForm).not.toContain("(optional)");
+    expect(publicForm).not.toContain("Made from the first name.");
+  });
+
+  it("the register page is a plain list, one field on each line, with the note that only a name is needed", () => {
+    const html = inContext(<RegisterScreen canPlace />, as("coordinator"));
+    expect(html).not.toContain("formGrid"); // a loading page here, so look at the stylesheet name instead
+    expect(readFileSync("src/admissions/RegisterScreen.tsx", "utf8")).toContain("admissionsStyles.formList");
+    expect(readFileSync("src/admissions/admissions.module.css", "utf8")).toMatch(/\.formList\s*{[^}]*grid-template-columns:\s*minmax\(0, 1fr\)/);
+  });
+
+  it("the record says Not given for what was left out, not a blank or a dash", () => {
+    const html = inContext(
+      <StudentDetails
+        student={{ id: "s1", sid: "2083-00013", firstName: "Gita", middleName: null, lastName: "", dob: null, dobBs: null, phone: "", email: "gita@student.com", guardianName: "", guardianPhone: "", previousSchool: null, status: "active", className: null, place: null, createdAt: "2026-09-01T00:00:00Z" }}
+      />,
+      as("coordinator"),
+    );
+    expect(html).toContain(">Gita</h1>");
+    expect(html).toContain("gita@student.com");
+    expect((html.match(/>Not given</g) ?? []).length).toBe(5); // date of birth, phone, guardian name and phone, previous school
   });
 });

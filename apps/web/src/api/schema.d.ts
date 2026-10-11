@@ -756,7 +756,8 @@ export interface paths {
         get?: never;
         put?: never;
         post?: never;
-        delete?: never;
+        /** @description Deletes a subject made by mistake, while no level teaches it (the PM, 2026-10-10). One a level teaches, even switched off, is refused with 409 "in_use": archive it instead, which keeps its history. Needs a whole-school Co-ordinator, like changing a subject. */
+        delete: operations["delete_subject"];
         options?: never;
         head?: never;
         /** @description Renames a subject, changes or removes its code, or archives and restores it. This changes the word every section uses, so it needs a whole-school Co-ordinator. */
@@ -1219,6 +1220,23 @@ export interface paths {
         put?: never;
         /** @description The Accountant registers a student. Goes to the Co-ordinator's review queue like a public applicant who has verified their email. */
         post: operations["register_student"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admissions/email-suggestion": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description The sign-in email a new student would get from their first name: name@student.com, or name_1@student.com and so on when that is taken. The person may change it by hand. */
+        get: operations["suggest_student_email"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -3773,16 +3791,18 @@ export interface components {
         WalkInInput: {
             firstName: string;
             middleName?: string;
-            lastName: string;
-            dob: string;
-            phone: string;
-            /** Format: email */
-            email: string;
-            guardianName: string;
-            guardianPhone: string;
+            lastName?: string;
+            dob?: string;
+            phone?: string;
+            email?: string;
+            guardianName?: string;
+            guardianPhone?: string;
             previousSchool?: string;
             referredBy?: string;
             levelId: string;
+        };
+        EmailSuggestion: {
+            email: string;
         };
         ApplicationQueue: {
             applications: components["schemas"]["ApplicationSummary"][];
@@ -3805,7 +3825,7 @@ export interface components {
         ApplicationStatus: "email_unverified" | "pending_review" | "needs_changes" | "approved" | "rejected" | "expired";
         ApplicationDetail: components["schemas"]["ApplicationSummary"] & {
             middleName: string | null;
-            dob: string;
+            dob: string | null;
             dobBs: string | null;
             phone: string;
             email: string;
@@ -3920,7 +3940,7 @@ export interface components {
             firstName: string;
             middleName: string | null;
             lastName: string;
-            dob: string;
+            dob: string | null;
             dobBs: string | null;
             phone: string | null;
             email: string | null;
@@ -3943,7 +3963,7 @@ export interface components {
             firstName?: string;
             middleName?: string | null;
             lastName?: string;
-            dob?: string;
+            dob?: string | null;
             phone?: string | null;
             guardianName?: string;
             guardianPhone?: string;
@@ -7526,6 +7546,64 @@ export interface operations {
             };
         };
     };
+    delete_subject: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Deleted */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AcademicsOk"];
+                };
+            };
+            /** @description Not allowed (for example, switched off since signing in, or another section's data) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AcademicsError"];
+                };
+            };
+            /** @description No such item */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AcademicsError"];
+                };
+            };
+            /** @description It conflicts with what is already there (a repeat, a closed year, another active year) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AcademicsError"];
+                };
+            };
+            /** @description The change breaks a rule; nothing changed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AcademicsInvalid"];
+                };
+            };
+        };
+    };
     update_subject: {
         parameters: {
             query?: never;
@@ -8922,6 +9000,28 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AdmissionsInvalid"];
+                };
+            };
+        };
+    };
+    suggest_student_email: {
+        parameters: {
+            query: {
+                firstName: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The suggestion */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EmailSuggestion"];
                 };
             };
         };

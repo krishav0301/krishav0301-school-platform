@@ -17,7 +17,7 @@ import {
   SubjectListSchema,
 } from "./schema";
 import { CreatedSchema, ErrorSchema, IdParam, OkSchema, fail, failures, json } from "./routes";
-import { copyOfferings, createGroup, createOffering, createSubject, updateGroup, updateOffering, updateSubject } from "./service";
+import { copyOfferings, createGroup, createOffering, createSubject, deleteSubject, updateGroup, updateOffering, updateSubject } from "./service";
 
 const LevelQuery = z.object({ level: PublicIdSchema });
 const VIEW_SUBJECTS = { action: "setup.subjects.view" } as const;
@@ -99,6 +99,24 @@ export function registerSubjects(app: App): void {
     },
     async (c) => {
       const result = await updateSubject(c.env.DB, c.env.AUDIT_HMAC_KEY, c.get("auth")!.userPublicId, c.req.valid("param").id, c.req.valid("json"));
+      return result.ok ? c.json({ ok: true as const }, 200) : fail(c, result);
+    },
+  );
+
+  defineRoute(
+    app,
+    {
+      method: "delete",
+      path: "/api/academics/subjects/{id}",
+      operationId: "delete_subject",
+      tags: ["academics"],
+      description: "Deletes a subject made by mistake, while no level teaches it (the PM, 2026-10-10). One a level teaches, even switched off, is refused with 409 \"in_use\": archive it instead, which keeps its history. Needs a whole-school Co-ordinator, like changing a subject.",
+      access: MANAGE_SUBJECTS,
+      request: { params: IdParam },
+      responses: { 200: { description: "Deleted", content: json(OkSchema) }, ...failures },
+    },
+    async (c) => {
+      const result = await deleteSubject(c.env.DB, c.env.AUDIT_HMAC_KEY, c.get("auth")!.userPublicId, c.req.valid("param").id);
       return result.ok ? c.json({ ok: true as const }, 200) : fail(c, result);
     },
   );

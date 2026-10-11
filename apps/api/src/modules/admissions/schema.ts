@@ -41,8 +41,33 @@ export const ApplySchema = ApplicantDetailsSchema.extend({
 }).openapi("ApplyInput");
 export type ApplyInput = z.infer<typeof ApplySchema>;
 
-export const WalkInSchema = ApplicantDetailsSchema.openapi("WalkInInput");
-export type WalkInInput = z.infer<typeof WalkInSchema>;
+const PHONE = /^[0-9+\-() ]{7,20}$/;
+/** Text that may be left empty; when given it must pass `ok`. Used for the details a student can be entered without. */
+const orEmpty = (ok: (value: string) => boolean, message: string) => z.string().trim().refine((value) => value === "" || ok(value), message).optional();
+
+/**
+ * A student a staff member types in (the walk-in, or the Accountant's registration; the PM, 2026-10-10): only the first
+ * name and the level are required, so the first load of students is quick. Everything else may be left out and given
+ * later (the screens say "Not given"). The email is the student's sign-in: when it is left out, one is made from the
+ * first name (`suggestEmail`). The public form keeps every field required, in `ApplicantDetailsSchema`.
+ */
+export const WalkInSchema = z
+  .strictObject({
+    firstName: Name,
+    middleName: Name.optional(),
+    lastName: z.string().trim().max(60, "Keep it to 60 characters").optional(),
+    dob: orEmpty((v) => CalendarDaySchema.safeParse(v).success, "Use the form YYYY-MM-DD, a day that exists"),
+    phone: orEmpty((v) => PHONE.test(v), "That does not look like a phone number"),
+    email: orEmpty((v) => Email.safeParse(v).success, "That does not look like an email address"),
+    guardianName: z.string().trim().max(120, "Keep it to 120 characters").optional(),
+    guardianPhone: orEmpty((v) => PHONE.test(v), "That does not look like a phone number"),
+    previousSchool: z.string().trim().max(120).optional(),
+    referredBy: z.string().trim().max(120).optional(),
+    levelId: PublicIdSchema,
+  })
+  .openapi("WalkInInput");
+export type WalkInInput = z.input<typeof WalkInSchema>;
+export type StaffApplicant = z.output<typeof WalkInSchema>;
 
 export const VerifyEmailSchema = z.strictObject({ token: z.string().trim().regex(/^[A-Za-z0-9_-]{16,200}$/, "That is not a valid token") }).openapi("VerifyEmailInput");
 
@@ -84,7 +109,7 @@ export type ApplicationQueue = z.infer<typeof ApplicationQueueSchema>;
 
 export const ApplicationDetailSchema = ApplicationSummarySchema.extend({
   middleName: z.string().nullable(),
-  dob: z.string(),
+  dob: z.string().nullable(),
   dobBs: z.string().nullable(),
   phone: z.string(),
   email: z.string(),
@@ -123,7 +148,7 @@ export const StudentDetailSchema = z
     firstName: z.string(),
     middleName: z.string().nullable(),
     lastName: z.string(),
-    dob: z.string(),
+    dob: z.string().nullable(),
     dobBs: z.string().nullable(),
     phone: z.string().nullable(),
     email: z.string().nullable(),
@@ -166,11 +191,11 @@ export const CorrectStudentSchema = z
   .strictObject({
     firstName: Name.optional(),
     middleName: Name.nullable().optional(),
-    lastName: Name.optional(),
-    dob: CalendarDaySchema.optional(),
-    phone: Phone.nullable().optional(),
-    guardianName: z.string().trim().min(1, "Give the guardian's name").max(120, "Keep it to 120 characters").optional(),
-    guardianPhone: Phone.optional(),
+    lastName: z.string().trim().max(60, "Keep it to 60 characters").optional(),
+    dob: CalendarDaySchema.nullable().optional(),
+    phone: orEmpty((v) => PHONE.test(v), "That does not look like a phone number").nullable(),
+    guardianName: z.string().trim().max(120, "Keep it to 120 characters").optional(),
+    guardianPhone: orEmpty((v) => PHONE.test(v), "That does not look like a phone number"),
     previousSchool: z.string().trim().max(120).nullable().optional(),
     reason: z.string().trim().min(3, "Say why the details are being corrected").max(300, "Keep the reason to 300 characters"),
   })

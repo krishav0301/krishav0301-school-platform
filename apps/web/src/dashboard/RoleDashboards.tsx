@@ -194,7 +194,7 @@ export function TeachingPanel() {
 // ---------------------------------------------------------------- Student
 
 export interface StudyDay {
-  record: { sid: string; className: string | null; dobBs: string | null; dob: string; guardianName: string } | null;
+  record: { sid: string; className: string | null; dobBs: string | null; dob: string | null; guardianName: string } | null;
   /** Their class this term (FUT point 18); null when they have none in an open term. */
   cls: OwnClass | null;
   attendance: OwnAttendance | null;
@@ -334,8 +334,8 @@ export function StudentDashboard() {
                 rows={[
                   { name: t("admissions.record.sid"), value: day.record.sid },
                   { name: t("admissions.record.class"), value: day.record.className ?? t("admissions.record.noClass") },
-                  { name: t("admissions.field.dob"), value: day.record.dobBs ? formatBsDate(day.record.dobBs) : day.record.dob },
-                  { name: t("admissions.field.guardianName"), value: day.record.guardianName },
+                  { name: t("admissions.field.dob"), value: day.record.dobBs ? formatBsDate(day.record.dobBs) : (day.record.dob ?? t("admissions.notGiven")) },
+                  { name: t("admissions.field.guardianName"), value: day.record.guardianName || t("admissions.notGiven") },
                 ]}
               />
             </Panel>

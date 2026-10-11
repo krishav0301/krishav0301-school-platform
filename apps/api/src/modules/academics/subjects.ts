@@ -116,3 +116,38 @@ export async function updateSubject(db: D1Database, auditKey: string, actor: str
   if (outcome === "duplicate") return { ok: false, reason: "conflict" };
   return { ok: false, reason: "not_allowed" };
 }
+
+/**
+ * Deletes a subject made by mistake (the PM, 2026-10-10), only while no level teaches it: marks, teaching and students all
+ * hang off a level's offering of it, so a subject with any offering (even one switched off) is in use and is archived
+ * instead. One more exception to "no hard deletes", like D-097. The Co-ordinator and "nothing uses it" are re-checked
+ * inside the delete itself, so a level that takes the subject a moment earlier makes it fail, never leaves an offering
+ * pointing nowhere; the foreign key refuses it too. The audit entry keeps what was deleted.
+ */
+export async function deleteSubject(db: D1Database, auditKey: string, actor: string, publicId: string): Promise<Done> {
+  const { allowed, subject } = await inspectSubject(db, publicId, actor);
+  if (!allowed) return { ok: false, reason: "not_allowed" };
+  if (!subject) return { ok: false, reason: "not_found" };
+  if (subject.in_curriculum === 1) return { ok: false, reason: "in_use" };
+
+  const outcome = await write(
+    db,
+    auditKey,
+    {
+      action: "academics.subject.deleted",
+      entityType: "subject",
+      entityPublicId: publicId,
+      actorPublicId: actor,
+      summary: `Subject "${subject.name}" deleted`,
+      before: { name: subject.name, code: subject.code, sectionKey: subject.section_key },
+    },
+    db
+      .prepare(`DELETE FROM subjects WHERE public_id = ?1 AND ${coordinatorForInstitution(2)} AND NOT EXISTS (SELECT 1 FROM subject_offerings o WHERE o.subject_id = subjects.id)`)
+      .bind(publicId, actor),
+  );
+  if (outcome === "done") return { ok: true };
+  if (outcome === "check_failed") return { ok: false, reason: "in_use" }; // a level took it a moment ago
+  const again = await inspectSubject(db, publicId, actor);
+  if (!again.subject) return { ok: false, reason: "not_found" };
+  return { ok: false, reason: again.subject.in_curriculum === 1 ? "in_use" : "not_allowed" };
+}

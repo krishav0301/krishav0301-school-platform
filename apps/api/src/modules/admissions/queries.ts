@@ -73,7 +73,7 @@ export async function listQueue(db: D1Database, sections: "all" | readonly strin
 
 interface DetailRow extends QueueRow {
   middle_name: string | null;
-  dob_ad: string;
+  dob_ad: string | null;
   phone: string;
   email: string;
   guardian_name: string;
@@ -101,7 +101,7 @@ export async function getApplication(db: D1Database, sections: "all" | readonly 
     ...toSummary(row),
     middleName: row.middle_name,
     dob: row.dob_ad,
-    dobBs: adToBsText(row.dob_ad),
+    dobBs: row.dob_ad === null ? null : adToBsText(row.dob_ad),
     phone: row.phone,
     email: row.email,
     guardianName: row.guardian_name,
@@ -158,7 +158,7 @@ interface StudentDetailRow {
   first_name: string;
   middle_name: string | null;
   last_name: string;
-  dob_ad: string;
+  dob_ad: string | null;
   phone: string | null;
   email: string | null;
   guardian_name: string;
@@ -200,7 +200,7 @@ async function studentDetailFrom(db: D1Database, where: string, param: string): 
     middleName: row.middle_name,
     lastName: row.last_name,
     dob: row.dob_ad,
-    dobBs: adToBsText(row.dob_ad),
+    dobBs: row.dob_ad === null ? null : adToBsText(row.dob_ad),
     phone: row.phone,
     email: row.email,
     guardianName: row.guardian_name,

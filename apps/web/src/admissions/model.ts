@@ -54,6 +54,20 @@ export function validateApplicant(values: ApplicantForm): ApplicantErrors {
   return errors;
 }
 
+/**
+ * What a staff-entered student needs (the PM, 2026-10-10): the first name and the level; anything else is checked only if
+ * it is filled in. The public form keeps `validateApplicant`.
+ */
+export function validateStaffApplicant(values: ApplicantForm): ApplicantErrors {
+  const errors: ApplicantErrors = {};
+  if (!values.firstName.trim()) errors.firstName = "admissions.error.required";
+  if (values.phone.trim() && !/^[0-9+\-() ]{7,20}$/.test(values.phone.trim())) errors.phone = "admissions.error.phone";
+  if (values.email.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(values.email.trim())) errors.email = "admissions.error.email";
+  if (values.guardianPhone.trim() && !/^[0-9+\-() ]{7,20}$/.test(values.guardianPhone.trim())) errors.guardianPhone = "admissions.error.phone";
+  if (!values.levelId) errors.levelId = "admissions.error.required";
+  return errors;
+}
+
 export const firstInvalid = (errors: ApplicantErrors): ApplicantField | null => (Object.keys(errors)[0] as ApplicantField | undefined) ?? null;
 
 export const STATUS_LABEL: Record<ApplicationStatus, MessageKey> = {

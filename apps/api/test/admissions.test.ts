@@ -417,3 +417,106 @@ describe("correcting a student's personal details (Co-ordinator FUT F-06)", () =
     expect(row?.first_name).toBe("Plus");
   });
 });
+
+// ---------------------------------------------------------------------------------------------
+describe("a student entered with only a name (the PM, 2026-10-10)", () => {
+  const nameOnly = (firstName: string) => ({ firstName, levelId, classId });
+  const studentRow = (sid: string) => db.prepare("SELECT first_name, last_name, dob_ad, phone, email, guardian_name, guardian_phone FROM students WHERE sid = ?1").bind(sid).first<Record<string, string | null>>();
+
+  it("is admitted with a first name and a class: every other detail empty, and an email made from the name", async () => {
+    const first = `Qa${uniq("x")}`;
+    const response = await walkIn(nameOnly(first), coordinator);
+    expect(response.status).toBe(201);
+    const { sid, temporaryPassword } = (await response.json()) as { sid: string; temporaryPassword: string };
+    expect(temporaryPassword).toMatch(/^[0-9]{4}$/);
+    expect(await studentRow(sid)).toEqual({
+      first_name: first,
+      last_name: "",
+      dob_ad: null,
+      phone: "",
+      email: `${first.toLowerCase()}@student.com`,
+      guardian_name: "",
+      guardian_phone: "",
+    });
+    // The login works with the made email and is named by the first name alone, with no stray space.
+    expect(await db.prepare("SELECT full_name FROM users WHERE email = ?1").bind(`${first.toLowerCase()}@student.com`).first()).toEqual({ full_name: first });
+    const signIn = await call("/api/auth/sign-in", { method: "POST", body: { email: `${first.toLowerCase()}@student.com`, password: temporaryPassword } });
+    expect((await signIn.json()) as { passwordChange?: string }).toMatchObject({ passwordChange: "required" });
+  });
+
+  it("numbers the email when the name is taken: name_1, then name_2", async () => {
+    const first = `Qb${uniq("x")}`;
+    const emails: string[] = [];
+    for (let i = 0; i < 3; i++) {
+      const sid = ((await (await walkIn({ ...nameOnly(first), confirmDuplicate: true }, coordinator)).json()) as { sid: string }).sid;
+      emails.push((await studentRow(sid))!.email!);
+    }
+    const base = first.toLowerCase();
+    expect(emails).toEqual([`${base}@student.com`, `${base}_1@student.com`, `${base}_2@student.com`]);
+  });
+
+  it("keeps an email that was typed, and still refuses a bad one or one already signing someone in", async () => {
+    const typed = `typed.${uniq("e")}@example.com`;
+    const ok = await walkIn({ ...nameOnly(`Qc${uniq("x")}`), email: typed }, coordinator);
+    expect(ok.status).toBe(201);
+    expect(await db.prepare("SELECT 1 AS n FROM users WHERE email = ?1").bind(typed).first()).not.toBeNull();
+    expect((await walkIn({ ...nameOnly(`Qd${uniq("x")}`), email: "not an email" }, coordinator)).status).toBe(400);
+    expect((await walkIn({ ...nameOnly(`Qe${uniq("x")}`), email: typed }, coordinator)).status).toBeGreaterThanOrEqual(400);
+  });
+
+  it("a detail that is given must still be valid: a bad phone, date or email is refused, but an empty one is fine", async () => {
+    const f = () => `Qf${uniq("x")}`;
+    expect((await walkIn({ ...nameOnly(f()), phone: "12" }, coordinator)).status).toBe(400);
+    expect((await walkIn({ ...nameOnly(f()), dob: "2008-02-31" }, coordinator)).status).toBe(400);
+    expect((await walkIn({ ...nameOnly(f()), guardianPhone: "abc" }, coordinator)).status).toBe(400);
+    expect((await walkIn({ ...nameOnly(f()), phone: "", dob: "", lastName: "", guardianName: "", guardianPhone: "", email: "" }, coordinator)).status).toBe(201);
+    // The name and the class are the two that stay required.
+    expect((await walkIn({ levelId, classId, firstName: "" }, coordinator)).status).toBe(400);
+    expect((await walkIn({ firstName: f(), classId }, coordinator)).status).toBe(400);
+  });
+
+  it("a blank phone or date of birth never makes two students look like duplicates", async () => {
+    const one = await walkIn(nameOnly(`Qg${uniq("x")}`), coordinator);
+    const two = await walkIn(nameOnly(`Qh${uniq("x")}`), coordinator);
+    expect(one.status).toBe(201);
+    expect(two.status).toBe(201); // not 409 possible_duplicate
+  });
+
+  it("an Accountant's registration needs only a name and a level too, and goes to the queue", async () => {
+    const response = await register({ firstName: `Qi${uniq("x")}`, levelId }, accountant);
+    expect(response.status).toBe(201);
+    const id = ((await response.json()) as { id: string }).id;
+    const d = (await (await detail(id, coordinator)).json()) as { dob: string | null; dobBs: string | null; lastName: string; email: string };
+    expect(d).toMatchObject({ dob: null, dobBs: null, lastName: "" });
+    expect(d.email).toMatch(/@student\.com$/);
+  });
+
+  it("the public form still needs every detail", async () => {
+    const { lastName, ...withoutLastName } = applyBody();
+    expect(lastName).toBeDefined();
+    expect((await apply(withoutLastName)).status).toBe(400);
+    const { dob, ...withoutDob } = applyBody();
+    expect(dob).toBeDefined();
+    expect((await apply(withoutDob)).status).toBe(400);
+  });
+
+  it("the details left out can be given later, and taken away again, as a correction with a reason", async () => {
+    const sid = ((await (await walkIn(nameOnly(`Qj${uniq("x")}`), coordinator)).json()) as { sid: string }).sid;
+    const studentId = (await db.prepare("SELECT public_id FROM students WHERE sid = ?1").bind(sid).first<{ public_id: string }>())!.public_id;
+    const fix = (body: Record<string, unknown>) => call(`/api/students/${studentId}`, { method: "PATCH", body: { ...body, reason: "Filled in from the form" }, cookie: coordinator.cookie });
+    expect((await fix({ lastName: "Rai", dob: "2008-05-14", guardianName: "Hari Rai", guardianPhone: "9800000002" })).status).toBe(200);
+    expect(await studentRow(sid)).toMatchObject({ last_name: "Rai", dob_ad: "2008-05-14", guardian_name: "Hari Rai", guardian_phone: "9800000002" });
+    expect((await fix({ lastName: "", dob: null, guardianPhone: "" })).status).toBe(200);
+    expect(await studentRow(sid)).toMatchObject({ last_name: "", dob_ad: null, guardian_phone: "" });
+  });
+
+  it("the sign-in email suggestion is name@student.com, numbered when taken, and only for who registers students", async () => {
+    const first = `Qk${uniq("x")}`;
+    const ask = (name: string, who: Person) => call(`/api/admissions/email-suggestion?firstName=${encodeURIComponent(name)}`, { cookie: who.cookie });
+    expect(await (await ask(first, coordinator)).json()).toEqual({ email: `${first.toLowerCase()}@student.com` });
+    await walkIn(nameOnly(first), coordinator);
+    expect(await (await ask(first, accountant)).json()).toEqual({ email: `${first.toLowerCase()}_1@student.com` });
+    expect(await (await ask("सीता", coordinator)).json()).toEqual({ email: "student@student.com" }); // no letters: a plain word
+    for (const who of [teacher, student, admin]) expect((await ask(first, who)).status).toBe(403);
+  });
+});
