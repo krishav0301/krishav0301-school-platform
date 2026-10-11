@@ -65,14 +65,14 @@ export function relativeTime(iso: string, now: Date): string {
 }
 
 /** The attention rows, in the reference design's order; a row with nothing waiting is left out. */
-export function attentionRows(o: Overview, feesOn = true): { id: "approvals" | "fees" | "attendance" | "website"; count: number; title: MessageKey; detail: MessageKey; href: string; tone: "bad" | "warn" | "primary" | "accent" }[] {
+export function attentionRows(o: Overview, feesOn = true, attendanceOn = true): { id: "approvals" | "fees" | "attendance" | "website"; count: number; title: MessageKey; detail: MessageKey; href: string; tone: "bad" | "warn" | "primary" | "accent" }[] {
   const rows = [
     { id: "approvals" as const, count: o.attention.approvals.count, title: "dashboard.attention.approvals" as MessageKey, detail: "dashboard.attention.approvalsDetail" as MessageKey, href: "/portal/approvals", tone: "bad" as const },
     { id: "fees" as const, count: o.attention.feeFollowUps, title: "dashboard.attention.fees" as MessageKey, detail: "dashboard.attention.feesDetail" as MessageKey, href: "/portal/fees/dues", tone: "warn" as const },
     { id: "attendance" as const, count: o.attention.anomalies.count, title: "dashboard.attention.anomalies" as MessageKey, detail: "dashboard.attention.anomaliesDetail" as MessageKey, href: "/portal/attendance", tone: "primary" as const },
     { id: "website" as const, count: o.attention.websiteDrafts, title: "dashboard.attention.drafts" as MessageKey, detail: "dashboard.attention.draftsDetail" as MessageKey, href: "/portal/content", tone: "accent" as const },
   ];
-  return rows.filter((r) => r.count > 0 && (feesOn || r.id !== "fees"));
+  return rows.filter((r) => r.count > 0 && (feesOn || r.id !== "fees") && (attendanceOn || r.id !== "attendance"));
 }
 
 /** Points for the attendance line, inside a box `width` × `height` with `pad` on every side; 40% to 100% on the y axis. */

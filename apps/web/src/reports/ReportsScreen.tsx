@@ -34,6 +34,8 @@ import { termWords } from "@/setup/model";
 
 /** One place to look. Every entry is a page that already exists; the API decides what the person may see there (D-025). */
 interface Entry {
+  /** The module this page belongs to: it is left out while the module is off (D-137). */
+  module?: string;
   href: string;
   icon: LucideIcon;
   title: MessageKey;
@@ -63,8 +65,8 @@ export const REPORT_GROUPS: { title: MessageKey; roles: readonly string[]; /** T
     roles: EVERYONE,
     entries: [
       { href: "/portal/admissions/search", icon: Search, title: "reports.students", detail: "reports.studentsDetail" },
-      { href: "/portal/attendance", icon: CalendarDays, title: "reports.attendance", detail: "reports.attendanceDetail" },
-      { href: "/portal/attendance/teachers", icon: UserCheck, title: "reports.teacherAttendance", detail: "reports.teacherAttendanceDetail" },
+      { module: "attendance", href: "/portal/attendance", icon: CalendarDays, title: "reports.attendance", detail: "reports.attendanceDetail" },
+      { module: "teacher_attendance", href: "/portal/attendance/teachers", icon: UserCheck, title: "reports.teacherAttendance", detail: "reports.teacherAttendanceDetail" },
       { href: "/portal/classwork", icon: NotebookPen, title: "reports.classwork", detail: "reports.classworkDetail" },
     ],
   },
@@ -84,7 +86,7 @@ export const REPORT_GROUPS: { title: MessageKey; roles: readonly string[]; /** T
     entries: [
       { href: "/portal/results/rechecks", icon: FilePen, title: "reports.changes", detail: "reports.changesDetail" },
       { href: "/portal/results/sheets", icon: FileSpreadsheet, title: "reports.sheets", detail: "reports.sheetsDetail" },
-      { href: "/portal/results/top20", icon: Trophy, title: "reports.top20", detail: "reports.top20Detail" },
+      { module: "top20", href: "/portal/results/top20", icon: Trophy, title: "reports.top20", detail: "reports.top20Detail" },
     ],
   },
   {
@@ -103,7 +105,9 @@ export function ReportsScreen() {
   const { me } = useSession();
   const roles = me?.roles.map((r) => r.role) ?? [];
   const words = termWords(term);
-  const groups = REPORT_GROUPS.filter((group) => group.roles.some((r) => roles.includes(r)) && (group.module === undefined || moduleEnabled(group.module)));
+  const groups = REPORT_GROUPS.filter((group) => group.roles.some((r) => roles.includes(r)) && (group.module === undefined || moduleEnabled(group.module)))
+    .map((group) => ({ ...group, entries: group.entries.filter((entry) => entry.module === undefined || moduleEnabled(entry.module)) }))
+    .filter((group) => group.entries.length > 0);
   return (
     <div className={readStyles.page}>
       <ReadHeader title={t("reports.title")} subtitle={t("reports.intro")} />

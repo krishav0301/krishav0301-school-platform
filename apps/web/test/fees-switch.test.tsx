@@ -12,17 +12,17 @@ import { TEST_SECTIONS } from "./sections";
 vi.mock("next/navigation", () => ({ usePathname: () => "/portal/reports", useRouter: () => ({ replace: vi.fn(), push: vi.fn() }) }));
 
 // Fees can be switched off for a school that only runs results (D-137, the PM 2026-10-11).
-const config = (fees: boolean): PublicConfig => ({
+const config = (fees: boolean, attendance = true): PublicConfig => ({
   school: { name: royal.school.name, shortName: royal.school.shortName, currency: "NPR", timezone: "Asia/Kathmandu", region: "nepal", template: null },
   sections: TEST_SECTIONS.royal,
-  modules: { fees, results: true },
+  modules: { fees, results: true, attendance, teacher_attendance: attendance, top20: attendance },
   terms: {},
   theme: royal.theme as PublicConfig["theme"],
 });
 const principal = fakeSession({ status: "signedIn", me: { name: "Principal", roles: [{ role: "admin", scope: "institution" }] } });
-const reports = (fees: boolean) =>
+const reports = (fees: boolean, attendance = true) =>
   renderToStaticMarkup(
-    <ConfigContext.Provider value={makeConfigValue("ready", config(fees))}>
+    <ConfigContext.Provider value={makeConfigValue("ready", config(fees, attendance))}>
       <SessionContext.Provider value={principal}>
         <ReportsScreen />
       </SessionContext.Provider>
@@ -37,6 +37,15 @@ describe("with Fees switched off", () => {
     const on = reports(true);
     expect(on).toContain("/portal/fees/dues");
     expect(on).toContain("/portal/fees/structures");
+  });
+
+  it("with attendance and Top 20 off, the Reports hub leaves out their pages too, and keeps the rest", () => {
+    const html = reports(false, false);
+    expect(html).not.toContain("/portal/attendance");
+    expect(html).not.toContain("/portal/results/top20");
+    expect(html).toContain("/portal/results/sheets");
+    expect(html).toContain("/portal/admissions/search");
+    expect(reports(false, true)).toContain("/portal/attendance/teachers");
   });
 
   it("nobody can add an Accountant: not the Admin, not Support", () => {

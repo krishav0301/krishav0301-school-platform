@@ -141,9 +141,9 @@ const TABS: { id: TabId; label: MessageKey }[] = [
   { id: "results", label: "dashboard.glance.results" },
 ];
 
-function Glance({ o, feesOn }: { o: Overview; feesOn: boolean }) {
-  const tabs = TABS.filter((x) => feesOn || x.id !== "fees");
-  const [tab, setTab] = useState<TabId>("attendance");
+function Glance({ o, feesOn, attendanceOn }: { o: Overview; feesOn: boolean; attendanceOn: boolean }) {
+  const tabs = TABS.filter((x) => (feesOn || x.id !== "fees") && (attendanceOn || x.id !== "attendance"));
+  const [tab, setTab] = useState<TabId>(tabs[0]!.id);
   const base = useId();
   const onKey = (event: KeyboardEvent) => {
     const i = tabs.findIndex((x) => x.id === tab);
@@ -179,7 +179,7 @@ function Glance({ o, feesOn }: { o: Overview; feesOn: boolean }) {
         ))}
       </div>
       <div role="tabpanel" id={`${base}-panel`} aria-labelledby={`${base}-tab-${tab}`} className={styles.panel}>
-        {tab === "attendance" ? <AttendanceTab o={o} /> : null}
+        {tab === "attendance" && attendanceOn ? <AttendanceTab o={o} /> : null}
         {tab === "programmes" ? <ProgrammesTab o={o} /> : null}
         {tab === "fees" && feesOn ? <FeesTab o={o} /> : null}
         {tab === "results" ? <ResultsTab o={o} /> : null}
@@ -295,8 +295,8 @@ function ResultsTab({ o }: { o: Overview }) {
 
 const ATTENTION_ICON: Record<string, LucideIcon> = { approvals: FileText, fees: Banknote, attendance: UserRoundX, website: Globe };
 
-function Attention({ o, feesOn }: { o: Overview; feesOn: boolean }) {
-  const rows = attentionRows(o, feesOn);
+function Attention({ o, feesOn, attendanceOn }: { o: Overview; feesOn: boolean; attendanceOn: boolean }) {
+  const rows = attentionRows(o, feesOn, attendanceOn);
   return (
     <section className={`${styles.card} ${styles.attention}`} aria-labelledby="attention-title">
       <div className={styles.cardHead}>
@@ -445,8 +445,8 @@ function Loading() {
   );
 }
 
-/** `feesOn`: false for a school with Fees switched off (D-137): nothing about fees is shown. */
-export function AdminDashboardView({ o, name, now, feesOn = true }: { o: Overview; name: string; now: Date; feesOn?: boolean }) {
+/** `feesOn`, `attendanceOn`: false for a school with that module switched off (D-137): nothing about it is shown. */
+export function AdminDashboardView({ o, name, now, feesOn = true, attendanceOn = true }: { o: Overview; name: string; now: Date; feesOn?: boolean; attendanceOn?: boolean }) {
   return (
     <div className={styles.page}>
       <HeroBand art={OVERVIEW_ART.admin}>
@@ -461,24 +461,26 @@ export function AdminDashboardView({ o, name, now, feesOn = true }: { o: Overvie
       <div className={styles.kpis}>
         <Kpi href="/portal/admissions" icon={Users} tone="primary" label="dashboard.kpi.students" value={o.students.total.toLocaleString("en-IN")} foot={<Change percent={o.students.changePercent} />} />
         <Kpi href="/portal/people" icon={UsersRound} tone="accent" label="dashboard.kpi.staff" value={o.staff.total.toLocaleString("en-IN")} foot={<Change percent={o.staff.changePercent} />} />
-        <Kpi
-          href="/portal/attendance"
-          icon={CalendarCheck}
-          tone="ok"
-          label="dashboard.kpi.attendance"
-          value={o.attendance.percent === null ? "–" : `${o.attendance.percent}%`}
-          foot={
-            <span className={styles.muted}>
-              {o.attendance.marked === 0 ? t("dashboard.kpi.notMarked") : t("dashboard.kpi.present", { present: o.attendance.present.toLocaleString("en-IN"), total: o.attendance.marked.toLocaleString("en-IN") })}
-            </span>
-          }
-        />
+        {attendanceOn ? (
+          <Kpi
+            href="/portal/attendance"
+            icon={CalendarCheck}
+            tone="ok"
+            label="dashboard.kpi.attendance"
+            value={o.attendance.percent === null ? "–" : `${o.attendance.percent}%`}
+            foot={
+              <span className={styles.muted}>
+                {o.attendance.marked === 0 ? t("dashboard.kpi.notMarked") : t("dashboard.kpi.present", { present: o.attendance.present.toLocaleString("en-IN"), total: o.attendance.marked.toLocaleString("en-IN") })}
+              </span>
+            }
+          />
+        ) : null}
         {feesOn ? <Kpi href="/portal/fees/dues" icon={Banknote} tone="warn" label="dashboard.kpi.fees" value={t("dashboard.npr", { amount: compactNpr(o.fees.collectedPaisa) })} foot={<Change percent={o.fees.changePercent} />} /> : null}
       </div>
 
       <div className={styles.rowMain}>
-        <Glance o={o} feesOn={feesOn} />
-        <Attention o={o} feesOn={feesOn} />
+        <Glance o={o} feesOn={feesOn} attendanceOn={attendanceOn} />
+        <Attention o={o} feesOn={feesOn} attendanceOn={attendanceOn} />
       </div>
 
       <div className={styles.rowSecond}>
@@ -524,5 +526,5 @@ export function AdminDashboard() {
     );
   }
   const isSupport = me?.roles.some((r) => r.role === "super_admin") && !me.roles.some((r) => r.role === "admin");
-  return <AdminDashboardView o={view.data.overview} now={view.data.now} name={isSupport ? t("portal.support") : term("role.admin")} feesOn={moduleEnabled("fees")} />;
+  return <AdminDashboardView o={view.data.overview} now={view.data.now} name={isSupport ? t("portal.support") : term("role.admin")} feesOn={moduleEnabled("fees")} attendanceOn={moduleEnabled("attendance")} />;
 }

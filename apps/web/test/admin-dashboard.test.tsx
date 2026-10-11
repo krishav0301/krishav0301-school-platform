@@ -122,3 +122,29 @@ describe("with Fees switched off (D-137, the PM 2026-10-11)", () => {
     expect(render(base)).toContain("add=accountant");
   });
 });
+
+describe("with Attendance switched off too (a results-only school, the PM 2026-10-11)", () => {
+  const view = (feesOn: boolean, attendanceOn: boolean) =>
+    renderToStaticMarkup(
+      <ConfigContext.Provider value={makeConfigValue("ready", config)}>
+        <AdminDashboardView o={{ ...base, attention: { ...base.attention, anomalies: { count: 3, classes: [] } } }} name="Principal" now={new Date("2026-09-30T08:00:00.000Z")} feesOn={feesOn} attendanceOn={attendanceOn} />
+      </ConfigContext.Provider>,
+    );
+
+  it("no attendance figure, tab or attention row; the first tab is the next one; students, staff and results stay", () => {
+    const html = view(false, false);
+    expect(html).not.toContain("/portal/attendance");
+    expect(html).not.toContain("92%");
+    expect(html).not.toContain("1,148 of 1,248 present");
+    expect(html).not.toMatch(/Attendance/);
+    expect(html).toContain("1,248");
+    expect(html).toContain("Results");
+    expect(html).toMatch(/<button[^>]*aria-selected="true"[^>]*>[^<]*(Programme|Course|Department)/i); // it opens on the next tab, not on an empty Attendance
+  });
+
+  it("with attendance on, the figure, the tab and the attention row are there", () => {
+    const html = view(false, true);
+    expect(html).toContain("92%");
+    expect(html).toContain("/portal/attendance");
+  });
+});
