@@ -310,7 +310,7 @@ export function addOpen(chosen: AddOpen, asked: "coordinator" | "accountant" | n
 /** The people the Principal gives access to, with what each may reach, their account and their last sign-in. */
 function AdminPanel({ onCounts }: { onCounts: (counts: PeoplePage["counts"]) => void }) {
   const { api } = useSession();
-  const { term } = useConfig();
+  const { term, moduleEnabled } = useConfig();
   const list = usePeople("admin", onCounts);
   // `?add=coordinator` or `?add=accountant` (the dashboard's quick actions) opens Add on its second step with that role.
   const search = useAddressQuery();
@@ -379,7 +379,7 @@ function AdminPanel({ onCounts }: { onCounts: (counts: PeoplePage["counts"]) => 
           label="people.role"
           value={list.filters.role}
           onChange={(v) => list.filterBy({ role: v as Filters["role"] })}
-          options={[{ value: "", label: t("content.filterAll") }, { value: "coordinator", label: term("role.coordinator") }, { value: "accountant", label: term("role.accountant") }]}
+          options={[{ value: "", label: t("content.filterAll") }, { value: "coordinator", label: term("role.coordinator") }, ...(moduleEnabled("fees") ? [{ value: "accountant", label: term("role.accountant") }] : [])]}
         />
         <FilterSelect
           label="content.filterState"

@@ -1,6 +1,7 @@
 import { OpenAPIHono } from "@hono/zod-openapi";
 
 import { environmentGuard } from "./core/environment";
+import { moduleRequired } from "./core/module-guard";
 import { logUnhandledError, unhandledErrorResponse } from "./core/error-handler";
 import { sameOriginOnly } from "./core/same-origin";
 import type { AppEnv } from "./core/types";
@@ -36,6 +37,8 @@ export function createApp() {
 
   app.use("*", environmentGuard);
   app.use("/api/*", sameOriginOnly);
+  // A school that does not collect fees switches the module off: its whole address family is then "not found" (D-137).
+  app.use("/api/fees/*", moduleRequired("fees"));
 
   // The composition root: each kind's handler is registered here, so the generic `approvals` engine
   // never imports a specific kind's module (D-061).

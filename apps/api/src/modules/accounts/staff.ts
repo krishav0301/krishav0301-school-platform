@@ -26,6 +26,10 @@ export async function createStaff(db: D1Database, auditKey: string, actor: strin
   const parsed = CreateStaffSchema.safeParse(input);
   if (!parsed.success) return { ok: false, reason: "invalid", message: firstMessage(parsed.error) };
   const p = parsed.data;
+  // A school with Fees switched off (D-137) has no Accountant to add.
+  if (p.role === "accountant" && (await db.prepare("SELECT 1 AS off FROM module_switches WHERE key = 'fees' AND enabled = 0").first())) {
+    return { ok: false, reason: "invalid", message: "Fees are switched off for this school, so there is no Accountant" };
+  }
   const sectionKeys = p.sectionKeys ?? (p.sectionKey ? [p.sectionKey] : []);
   const scope = sectionKeys.length > 0 ? "section" : "institution";
   const keysJson = JSON.stringify(sectionKeys);

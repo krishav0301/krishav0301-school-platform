@@ -141,16 +141,17 @@ const TABS: { id: TabId; label: MessageKey }[] = [
   { id: "results", label: "dashboard.glance.results" },
 ];
 
-function Glance({ o }: { o: Overview }) {
+function Glance({ o, feesOn }: { o: Overview; feesOn: boolean }) {
+  const tabs = TABS.filter((x) => feesOn || x.id !== "fees");
   const [tab, setTab] = useState<TabId>("attendance");
   const base = useId();
   const onKey = (event: KeyboardEvent) => {
-    const i = TABS.findIndex((x) => x.id === tab);
-    const next = event.key === "ArrowRight" ? (i + 1) % TABS.length : event.key === "ArrowLeft" ? (i + TABS.length - 1) % TABS.length : null;
+    const i = tabs.findIndex((x) => x.id === tab);
+    const next = event.key === "ArrowRight" ? (i + 1) % tabs.length : event.key === "ArrowLeft" ? (i + tabs.length - 1) % tabs.length : null;
     if (next === null) return;
     event.preventDefault();
-    setTab(TABS[next]!.id);
-    document.getElementById(`${base}-tab-${TABS[next]!.id}`)?.focus();
+    setTab(tabs[next]!.id);
+    document.getElementById(`${base}-tab-${tabs[next]!.id}`)?.focus();
   };
   return (
     <section className={`${styles.card} ${styles.glance}`} aria-labelledby={`${base}-title`}>
@@ -161,7 +162,7 @@ function Glance({ o }: { o: Overview }) {
         <span className={styles.muted}>{t("dashboard.glance.period")}</span>
       </div>
       <div role="tablist" className={styles.tabs} onKeyDown={onKey}>
-        {TABS.map((x) => (
+        {tabs.map((x) => (
           <button
             key={x.id}
             id={`${base}-tab-${x.id}`}
@@ -180,7 +181,7 @@ function Glance({ o }: { o: Overview }) {
       <div role="tabpanel" id={`${base}-panel`} aria-labelledby={`${base}-tab-${tab}`} className={styles.panel}>
         {tab === "attendance" ? <AttendanceTab o={o} /> : null}
         {tab === "programmes" ? <ProgrammesTab o={o} /> : null}
-        {tab === "fees" ? <FeesTab o={o} /> : null}
+        {tab === "fees" && feesOn ? <FeesTab o={o} /> : null}
         {tab === "results" ? <ResultsTab o={o} /> : null}
       </div>
     </section>
@@ -294,8 +295,8 @@ function ResultsTab({ o }: { o: Overview }) {
 
 const ATTENTION_ICON: Record<string, LucideIcon> = { approvals: FileText, fees: Banknote, attendance: UserRoundX, website: Globe };
 
-function Attention({ o }: { o: Overview }) {
-  const rows = attentionRows(o);
+function Attention({ o, feesOn }: { o: Overview; feesOn: boolean }) {
+  const rows = attentionRows(o, feesOn);
   return (
     <section className={`${styles.card} ${styles.attention}`} aria-labelledby="attention-title">
       <div className={styles.cardHead}>
@@ -345,14 +346,14 @@ const ACTIONS: { href: string; icon: LucideIcon; tone: Tone; title: MessageKey; 
   { href: "/portal/setup/programmes?add=1", icon: BookOpen, tone: "warn", title: "dashboard.actions.programme", detail: "dashboard.actions.programmeDetail" },
 ];
 
-function QuickActions() {
+function QuickActions({ feesOn }: { feesOn: boolean }) {
   return (
     <section className={`${styles.card} ${styles.actionsCard}`} aria-labelledby="actions-title">
       <h2 id="actions-title" className={styles.cardTitle}>
         {t("dashboard.actions.title")}
       </h2>
       <ul className={styles.actions}>
-        {ACTIONS.map((a) => (
+        {ACTIONS.filter((a) => feesOn || !a.href.includes("add=accountant")).map((a) => (
           <li key={a.title}>
             <Link href={a.href} className={styles.action} data-tone={a.tone}>
               <a.icon aria-hidden strokeWidth={1.75} className={styles.actionIcon} />
@@ -444,7 +445,8 @@ function Loading() {
   );
 }
 
-export function AdminDashboardView({ o, name, now }: { o: Overview; name: string; now: Date }) {
+/** `feesOn`: false for a school with Fees switched off (D-137): nothing about fees is shown. */
+export function AdminDashboardView({ o, name, now, feesOn = true }: { o: Overview; name: string; now: Date; feesOn?: boolean }) {
   return (
     <div className={styles.page}>
       <HeroBand art={OVERVIEW_ART.admin}>
@@ -471,16 +473,16 @@ export function AdminDashboardView({ o, name, now }: { o: Overview; name: string
             </span>
           }
         />
-        <Kpi href="/portal/fees/dues" icon={Banknote} tone="warn" label="dashboard.kpi.fees" value={t("dashboard.npr", { amount: compactNpr(o.fees.collectedPaisa) })} foot={<Change percent={o.fees.changePercent} />} />
+        {feesOn ? <Kpi href="/portal/fees/dues" icon={Banknote} tone="warn" label="dashboard.kpi.fees" value={t("dashboard.npr", { amount: compactNpr(o.fees.collectedPaisa) })} foot={<Change percent={o.fees.changePercent} />} /> : null}
       </div>
 
       <div className={styles.rowMain}>
-        <Glance o={o} />
-        <Attention o={o} />
+        <Glance o={o} feesOn={feesOn} />
+        <Attention o={o} feesOn={feesOn} />
       </div>
 
       <div className={styles.rowSecond}>
-        <QuickActions />
+        <QuickActions feesOn={feesOn} />
         <Website o={o} />
       </div>
 
@@ -491,7 +493,7 @@ export function AdminDashboardView({ o, name, now }: { o: Overview; name: string
 /** The Principal's dashboard (D-088): fetched once, again when the page comes back into view, and on retry. */
 export function AdminDashboard() {
   const { api, me } = useSession();
-  const { term } = useConfig();
+  const { term, moduleEnabled } = useConfig();
   const loadNow = useCallback(async (): Promise<{ ok: true; data: { overview: Overview; now: Date } } | { ok: false; reason: "failed" }> => {
     try {
       const { data } = await api.GET("/api/dashboard/overview");
@@ -522,5 +524,5 @@ export function AdminDashboard() {
     );
   }
   const isSupport = me?.roles.some((r) => r.role === "super_admin") && !me.roles.some((r) => r.role === "admin");
-  return <AdminDashboardView o={view.data.overview} now={view.data.now} name={isSupport ? t("portal.support") : term("role.admin")} />;
+  return <AdminDashboardView o={view.data.overview} now={view.data.now} name={isSupport ? t("portal.support") : term("role.admin")} feesOn={moduleEnabled("fees")} />;
 }

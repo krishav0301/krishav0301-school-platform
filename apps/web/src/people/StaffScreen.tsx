@@ -209,8 +209,8 @@ export function StaffForm({
   showTitle?: boolean;
 }) {
   const { api } = useSession();
-  const { term } = useConfig();
-  const options = addableRoles(roles);
+  const { term, moduleEnabled } = useConfig();
+  const options = addableRoles(roles, moduleEnabled("fees"));
   const [role, setRole] = useState<AddableRole>(initialRole && options.includes(initialRole) ? initialRole : (options[0] ?? "teacher"));
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
@@ -311,10 +311,10 @@ export function StaffForm({
  */
 export function StaffScreen() {
   const { api, me } = useSession();
-  const { config } = useConfig();
+  const { config, moduleEnabled } = useConfig();
   const roles = me?.roles ?? [];
   const sections = config?.sections ?? [];
-  const options = addableRoles(roles);
+  const options = addableRoles(roles, moduleEnabled("fees"));
   // `?add=coordinator` (a dashboard quick action, D-089) opens the Add pop-up on that role, if this person may add it.
   const search = useAddressQuery();
   const asked = search === null ? null : new URLSearchParams(search).get("add");

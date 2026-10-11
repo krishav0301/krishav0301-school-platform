@@ -83,7 +83,7 @@ export function StudentDetails({ student, feesLink = false, actions }: { student
 
 export function StudentScreen() {
   const { api, me } = useSession();
-  const { term } = useConfig();
+  const { term, moduleEnabled } = useConfig();
   const search = useAddressQuery();
   const id = search === null ? null : new URLSearchParams(search).get("id");
   const load = useCallback(() => loadStudent(api, id ?? ""), [api, id]);
@@ -94,7 +94,7 @@ export function StudentScreen() {
   // The Co-ordinator (and Support) may correct details (students.personal.correct); the server checks the section again.
   const canCorrect = roles.some((r) => r === "coordinator" || r === "super_admin");
   // Only roles the matrix lets read fees get the quiet link to the account (D-104); the server checks again there.
-  const feesLink = roles.some((r) => r === "admin" || r === "accountant" || r === "super_admin");
+  const feesLink = moduleEnabled("fees") && roles.some((r) => r === "admin" || r === "accountant" || r === "super_admin");
   const reader = !roles.some((r) => r === "coordinator" || r === "super_admin");
   if (id === null && search !== null) return <Notice tone="bad">{t("admissions.student.missing")}</Notice>;
   if (view.status === "loading") return <TableSkeleton rows={6} />;

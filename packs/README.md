@@ -22,7 +22,7 @@ packs/
 |---|---|
 | `school` | name, short name, currency, timezone, region pack, template key |
 | `sections` | the parts of the institution that scope roles (for Royal Softech: +2 and Bachelor's) |
-| `modules` | optional modules to switch on or off. Unlisted ones stay on. Mandatory modules (ledger, approvals, audit, results and others) cannot be switched off |
+| `modules` | optional modules to switch on or off. Unlisted ones stay on. Mandatory modules (approvals, audit, results and others) cannot be switched off. Fees can (D-137): a school that does not collect fees says `"fees": false` |
 | `terminology` | renamed words, such as `role.coordinator` |
 | `theme` | colours for light and optional dark, font from a self-hosted list, corner radii |
 | `site` | the words of the six fixed public pages: home, programmes, admission, scholarships, facilities, contact |

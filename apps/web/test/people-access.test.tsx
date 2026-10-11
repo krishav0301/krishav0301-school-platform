@@ -19,7 +19,7 @@ vi.mock("next/navigation", () => ({ usePathname: () => "/portal/people", useRout
 const config: PublicConfig = {
   school: { name: royal.school.name, shortName: royal.school.shortName, currency: "NPR", timezone: "Asia/Kathmandu", region: "nepal", template: null },
   sections: TEST_SECTIONS.royal,
-  modules: {},
+  modules: { fees: true },
   terms: { "role.admin": "Principal", "role.coordinator": "Co-ordinator", "role.accountant": "Accountant", "role.teacher": "Teacher" },
   theme: royal.theme as PublicConfig["theme"],
 };

@@ -9,12 +9,15 @@ export type AddableRole = "coordinator" | "accountant" | "teacher";
  * What a person may add: the Admin adds Co-ordinators and Accountants, a Co-ordinator adds teachers, the Super Admin all three.
  * Only tidiness: the API decides what a person may actually do (D-025).
  */
-export function addableRoles(roles: readonly RoleView[]): AddableRole[] {
-  if (roles.some((r) => r.role === "super_admin")) return ["coordinator", "accountant", "teacher"];
+export function addableRoles(roles: readonly RoleView[], feesOn = true): AddableRole[] {
   const out: AddableRole[] = [];
-  if (roles.some((r) => r.role === "admin")) out.push("coordinator", "accountant");
-  if (roles.some((r) => r.role === "coordinator")) out.push("teacher");
-  return out;
+  if (roles.some((r) => r.role === "super_admin")) out.push("coordinator", "accountant", "teacher");
+  else {
+    if (roles.some((r) => r.role === "admin")) out.push("coordinator", "accountant");
+    if (roles.some((r) => r.role === "coordinator")) out.push("teacher");
+  }
+  // A school with Fees switched off (D-137) has no Accountant.
+  return feesOn ? out : out.filter((r) => r !== "accountant");
 }
 
 export const canManagePeople = (roles: readonly RoleView[]): boolean => addableRoles(roles).length > 0;

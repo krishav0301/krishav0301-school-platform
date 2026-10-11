@@ -98,3 +98,27 @@ describe("the Principal's dashboard (D-088)", () => {
     expect(html).not.toMatch(/style="[^"]*(?:color|background)\s*:/);
   });
 });
+
+describe("with Fees switched off (D-137, the PM 2026-10-11)", () => {
+  const off = renderToStaticMarkup(
+    <ConfigContext.Provider value={makeConfigValue("ready", config)}>
+      <AdminDashboardView o={base} name="Principal" now={new Date("2026-09-30T08:00:00.000Z")} feesOn={false} />
+    </ConfigContext.Provider>,
+  );
+
+  it("the Principal sees nothing about fees: no figure, no tab, no attention row, no Accountant to add", () => {
+    expect(off).not.toContain("NPR 28.4 L");
+    expect(off).not.toContain("/portal/fees");
+    expect(off).not.toContain("add=accountant");
+    expect(off).not.toMatch(/follow-ups?|fees/i);
+    // The rest of the dashboard is untouched.
+    expect(off).toContain("1,248");
+    expect(off).toContain('href="/portal/approvals"');
+    expect(off).toContain("add=coordinator");
+  });
+
+  it("with fees on, the same dashboard still shows them", () => {
+    expect(render(base)).toContain("/portal/fees/dues");
+    expect(render(base)).toContain("add=accountant");
+  });
+});

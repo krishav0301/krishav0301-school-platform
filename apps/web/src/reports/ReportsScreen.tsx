@@ -44,7 +44,7 @@ interface Entry {
 const EVERYONE = ["admin", "coordinator", "super_admin"] as const;
 const PRINCIPAL = ["admin", "super_admin"] as const;
 
-export const REPORT_GROUPS: { title: MessageKey; roles: readonly string[]; entries: Entry[] }[] = [
+export const REPORT_GROUPS: { title: MessageKey; roles: readonly string[]; /** The module this group belongs to: it is left out while the module is off (D-137). */ module?: string; entries: Entry[] }[] = [
   {
     title: "reports.group.setup",
     roles: EVERYONE,
@@ -71,6 +71,7 @@ export const REPORT_GROUPS: { title: MessageKey; roles: readonly string[]; entri
   {
     title: "reports.group.money",
     roles: PRINCIPAL,
+    module: "fees",
     entries: [
       { href: "/portal/fees", icon: UserSearch, title: "reports.feeAccounts", detail: "reports.feeAccountsDetail" },
       { href: "/portal/fees/structures", icon: ReceiptText, title: "reports.structures", detail: "reports.structuresDetail" },
@@ -98,11 +99,11 @@ export const REPORT_GROUPS: { title: MessageKey; roles: readonly string[]; entri
 
 /** Reports (D-091, redesigned in D-104): everything the Principal reads but does not change, grouped, one tap from here. No figures: a calm directory. */
 export function ReportsScreen() {
-  const { term } = useConfig();
+  const { term, moduleEnabled } = useConfig();
   const { me } = useSession();
   const roles = me?.roles.map((r) => r.role) ?? [];
   const words = termWords(term);
-  const groups = REPORT_GROUPS.filter((group) => group.roles.some((r) => roles.includes(r)));
+  const groups = REPORT_GROUPS.filter((group) => group.roles.some((r) => roles.includes(r)) && (group.module === undefined || moduleEnabled(group.module)));
   return (
     <div className={readStyles.page}>
       <ReadHeader title={t("reports.title")} subtitle={t("reports.intro")} />

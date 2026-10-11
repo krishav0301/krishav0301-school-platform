@@ -82,7 +82,8 @@ describe("GET /api/config/public", () => {
     expect(body.school.name).toBe("Sample Basic School");
     expect(body.terms["role.coordinator"]).toBe("Vice Principal");
     expect(body.modules.notes).toBe(false);
-    expect(body.modules.fees).toBe(true); // mandatory, whatever a pack says
+    expect(body.modules.fees).toBe(true); // on unless a pack says "fees": false (D-137)
+    expect(body.modules.results).toBe(true); // mandatory, whatever a pack says
     expect(body.theme.font).toBe("noto-sans");
     expect(body.theme.dark).toBeUndefined();
 
