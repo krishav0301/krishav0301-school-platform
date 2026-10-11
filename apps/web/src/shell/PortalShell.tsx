@@ -10,7 +10,7 @@ import { APPROVALS_CHANGED } from "@/approvals/client";
 import { useConfig } from "@/config/ConfigProvider";
 import { t } from "@/i18n/messages";
 import { useSession } from "@/session/SessionProvider";
-import { readPalette, showPalette } from "@/theme/personal";
+import { showPalette, showPersonalPalette } from "@/theme/personal";
 import { Illustration, Skeleton, Spinner } from "@/ui";
 
 import { GlobalSearch } from "./GlobalSearch";
@@ -90,10 +90,11 @@ export function PortalShell({ children, items = NAV_ITEMS }: { children: ReactNo
   }, [status, router]);
 
   // The person's own colours (D-127) inside the portal only; leaving it restores the school's.
+  const userId = me?.id;
   useEffect(() => {
-    showPalette(readPalette());
+    if (userId) showPersonalPalette(userId);
     return () => showPalette(null);
-  }, []);
+  }, [userId]);
 
   if (status !== "signedIn" || !me) {
     return (

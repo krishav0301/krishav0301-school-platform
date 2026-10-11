@@ -260,7 +260,7 @@ describe("who am I", () => {
     const response = await me(jar);
 
     expect(response.status).toBe(200);
-    expect(await response.json()).toEqual({ name: "Test Person", roles: [{ role: "coordinator", scope: "institution" }] });
+    expect(await response.json()).toEqual({ id: expect.any(String), name: "Test Person", roles: [{ role: "coordinator", scope: "institution" }] });
   });
 
   it("is refused with no cookie", async () => {

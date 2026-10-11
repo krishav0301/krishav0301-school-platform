@@ -21,7 +21,7 @@ const config: PublicConfig = {
   terms: {},
   theme: royal.theme as PublicConfig["theme"],
 };
-const session = fakeSession({ status: "signedIn", me: { name: "Sita", roles: [{ role: "coordinator", scope: "institution" }] } });
+const session = fakeSession({ status: "signedIn", me: { id: "user-1", name: "Sita", roles: [{ role: "coordinator", scope: "institution" }] } });
 const render = (node: React.ReactNode) =>
   renderToStaticMarkup(
     <ConfigContext.Provider value={makeConfigValue("ready", config)}>

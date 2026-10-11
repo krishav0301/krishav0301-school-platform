@@ -1,6 +1,6 @@
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { checkContrast } from "../../api/src/core/theme"; // the server's own readability rules
 import { ConfigContext, makeConfigValue, type PublicConfig } from "@/config/ConfigProvider";
@@ -9,7 +9,7 @@ import { SessionContext } from "@/session/SessionProvider";
 import { AppearanceCard } from "@/settings/SettingsScreen";
 import { InvalidThemeError, paletteToCss } from "@/theme/css";
 import { PALETTES, SCHOOL_PALETTE } from "@/theme/palettes";
-import { PALETTE_BOOT_SCRIPT, paletteCss } from "@/theme/personal";
+import { choosePalette, PALETTE_BOOT_SCRIPT, paletteCss, readPalette } from "@/theme/personal";
 import royal from "../../../packs/royal-softech/pack.json";
 import { fakeSession } from "./session";
 import { TEST_SECTIONS } from "./sections";
@@ -67,7 +67,7 @@ describe("Appearance in Settings", () => {
     createElement(
       ConfigContext.Provider,
       { value: makeConfigValue("ready", config) },
-      createElement(SessionContext.Provider, { value: fakeSession({ status: "signedIn", me: { name: "Asha", roles: [{ role: "student", scope: "own" }] } }) }, createElement(AppearanceCard)),
+      createElement(SessionContext.Provider, { value: fakeSession({ status: "signedIn", me: { id: "user-1", name: "Asha", roles: [{ role: "student", scope: "own" }] } }) }, createElement(AppearanceCard)),
     ),
   );
 
@@ -80,5 +80,29 @@ describe("Appearance in Settings", () => {
 
   it("starts on the school's own colours", () => {
     expect(html).toMatch(/<input[^>]*checked=""[^>]*value="school"|<input[^>]*value="school"[^>]*checked=""/);
+  });
+});
+
+describe("A palette belongs to the account, not the browser", () => {
+  const store = new Map<string, string>();
+  beforeEach(() => {
+    store.clear();
+    vi.stubGlobal("localStorage", { getItem: (k: string) => store.get(k) ?? null, setItem: (k: string, v: string) => void store.set(k, v), removeItem: (k: string) => void store.delete(k) });
+    vi.stubGlobal("document", { getElementById: () => ({ textContent: "" }) });
+  });
+  afterEach(() => vi.unstubAllGlobals());
+
+  it("what one account chooses is not what another account sees on the same computer", () => {
+    choosePalette("user-a", "sage");
+    expect(readPalette("user-a")).toBe("sage");
+    expect(readPalette("user-b")).toBe(SCHOOL_PALETTE);
+  });
+
+  it("choosing the school's own colours clears only that account's choice", () => {
+    choosePalette("user-a", "sage");
+    choosePalette("user-b", "terracotta");
+    choosePalette("user-a", SCHOOL_PALETTE);
+    expect(readPalette("user-a")).toBe(SCHOOL_PALETTE);
+    expect(readPalette("user-b")).toBe("terracotta");
   });
 });

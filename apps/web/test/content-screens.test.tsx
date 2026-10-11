@@ -28,7 +28,7 @@ const config: PublicConfig = {
   terms: {},
   theme: royal.theme as PublicConfig["theme"],
 };
-const admin = fakeSession({ status: "signedIn", me: { name: "Asha", roles: [{ role: "admin", scope: "institution" }] } });
+const admin = fakeSession({ status: "signedIn", me: { id: "user-1", name: "Asha", roles: [{ role: "admin", scope: "institution" }] } });
 
 const inContext = (element: React.ReactNode) =>
   renderToStaticMarkup(
@@ -44,7 +44,7 @@ const editor = (over: Partial<Parameters<typeof ContentEditor>[0]> = {}, values:
 // ---------------------------------------------------------------------------------------------
 describe("the Co-ordinator's form (Co-ordinator FUT F-08)", () => {
   it("offers Send for approval, never Publish", () => {
-    const coordinator = fakeSession({ status: "signedIn", me: { name: "Sita", roles: [{ role: "coordinator", scope: "institution" }] } });
+    const coordinator = fakeSession({ status: "signedIn", me: { id: "user-1", name: "Sita", roles: [{ role: "coordinator", scope: "institution" }] } });
     const html = renderToStaticMarkup(
       <ConfigContext.Provider value={makeConfigValue("ready", config)}>
         <SessionContext.Provider value={coordinator}>

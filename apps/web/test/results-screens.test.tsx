@@ -35,7 +35,7 @@ const config = (top20: boolean): PublicConfig => ({
 const as = (role: string, scope: "institution" | "own" | "assigned" = "institution") =>
   fakeSession({
     status: "signedIn",
-    me: { name: "Asha", roles: [{ role, scope }] },
+    me: { id: "user-1", name: "Asha", roles: [{ role, scope }] },
   });
 const inContext = (element: React.ReactNode, session = as("coordinator"), top20 = true) =>
   renderToStaticMarkup(

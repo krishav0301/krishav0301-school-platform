@@ -334,13 +334,13 @@ export function registerAuth(app: App): void {
       description: "Who is signed in, from the signed access cookie. No database read.",
       access: { authenticated: true },
       responses: {
-        200: { description: "The signed-in user", content: json(z.object({ name: z.string(), roles: z.array(RoleClaimSchema) })) },
+        200: { description: "The signed-in user", content: json(z.object({ id: z.string(), name: z.string(), roles: z.array(RoleClaimSchema) })) },
         401: { description: "Not signed in, or the access cookie expired", content: json(ErrorSchema) },
       },
     },
     async (c) => {
       const auth = c.get("auth")!;
-      return c.json({ name: auth.name, roles: auth.roles }, 200);
+      return c.json({ id: auth.userPublicId, name: auth.name, roles: auth.roles }, 200);
     },
   );
 

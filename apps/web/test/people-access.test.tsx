@@ -23,7 +23,7 @@ const config: PublicConfig = {
   terms: { "role.admin": "Principal", "role.coordinator": "Co-ordinator", "role.accountant": "Accountant", "role.teacher": "Teacher" },
   theme: royal.theme as PublicConfig["theme"],
 };
-const admin = fakeSession({ status: "signedIn", me: { name: "Asha", roles: [{ role: "admin", scope: "institution" }] } });
+const admin = fakeSession({ status: "signedIn", me: { id: "user-1", name: "Asha", roles: [{ role: "admin", scope: "institution" }] } });
 const render = (element: React.ReactNode) =>
   renderToStaticMarkup(
     <ConfigContext.Provider value={makeConfigValue("ready", config)}>
