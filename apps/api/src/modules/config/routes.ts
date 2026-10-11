@@ -21,6 +21,8 @@ const PublicConfigSchema = z
       template: z.string().nullable(),
       /** A student keeps the 4-digit password given at admission (D-145). */
       studentKeepsPin: z.boolean().optional(),
+      /** Each subject has its own pass marks (the first school's file). */
+      passMarksPerSubject: z.boolean().optional(),
     }),
     sections: z.array(z.object({ key: z.string(), name: z.string() })),
     /** Every module and whether this school uses it. */

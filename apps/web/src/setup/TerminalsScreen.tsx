@@ -347,7 +347,7 @@ export function PatternPanel({
   onApply: (settings: Settings, save: boolean) => void;
 }) {
   const { me } = useSession();
-  const { term: words } = useConfig();
+  const { term: words, config } = useConfig();
   const [settings, setSettings] = useState<Settings>(draft.settings);
   const [attempted, setAttempted] = useState(false);
   const bad = settingsProblem(settings);
@@ -411,7 +411,7 @@ export function PatternPanel({
               <Field label={t("setup.pattern.practicalMin")} inputMode="numeric" maxLength={3} autoComplete="off" value={settings.practicalMin} onChange={(event) => setSettings((s) => ({ ...s, practicalMin: event.target.value }))} />
             </div>
             {attempted && bad === "minimum" ? <Notice tone="bad">{t("setup.pattern.error.minimum")}</Notice> : null}
-            <p className={readStyles.rowMeta}>{t("setup.pattern.minimumHint")}</p>
+            <p className={readStyles.rowMeta}>{t(config?.school.passMarksPerSubject ? "setup.pattern.minimumPerSubject" : "setup.pattern.minimumHint")}</p>
             {settings.graded ? (
               <fieldset className={setupStyles.levels}>
                 <legend className={setupStyles.formTitle}>{t("setup.pattern.bands")}</legend>

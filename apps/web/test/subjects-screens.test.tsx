@@ -184,8 +184,10 @@ describe("the curriculum screen", () => {
     active: true,
     fullMarksHundredths: 10000,
     practicalHundredths: 2500,
+    passTheoryHundredths: null,
+    passPracticalHundredths: null,
   };
-  const english: Offering = { id: "o2", subject: subject("s2", "English"), creditHundredths: null, group: null, active: false, fullMarksHundredths: 10000, practicalHundredths: null };
+  const english: Offering = { id: "o2", subject: subject("s2", "English"), creditHundredths: null, group: null, active: false, fullMarksHundredths: 10000, practicalHundredths: null, passTheoryHundredths: null, passPracticalHundredths: null };
   const curriculum: Curriculum = {
     level: { id: "l1", name: "Grade 11", programmeId: "p1", programmeName: "+2 Science", sectionKey: "plus2" },
     groups: [{ id: "g1", name: "Science option", pickCount: 1, active: true }, { id: "g2", name: "Old option", pickCount: 2, active: false }],
@@ -280,11 +282,11 @@ describe("the curriculum screen", () => {
   });
 
   it("reads a paper: whole hundredths, the practical only when ticked, and less than the full marks", () => {
-    expect(readPaper({ full: "100", hasPractical: true, practical: "25" })).toEqual({ ok: true, fullMarksHundredths: 10000, practicalHundredths: 2500 });
-    expect(readPaper({ full: "75", hasPractical: false, practical: "99" })).toEqual({ ok: true, fullMarksHundredths: 7500, practicalHundredths: null });
-    expect(readPaper({ full: "100", hasPractical: true, practical: "100" })).toMatchObject({ ok: false, errors: { practical: "setup.error.practicalInvalid" } });
-    expect(readPaper({ full: "0", hasPractical: false, practical: "" })).toMatchObject({ ok: false, errors: { full: "setup.error.fullMarksInvalid" } });
-    expect(readPaper({ full: "100", hasPractical: true, practical: "" })).toMatchObject({ ok: false, errors: { practical: "setup.error.practicalInvalid" } });
+    expect(readPaper({ full: "100", hasPractical: true, practical: "25", passTheory: "", passPractical: "" })).toEqual({ ok: true, fullMarksHundredths: 10000, practicalHundredths: 2500 });
+    expect(readPaper({ full: "75", hasPractical: false, practical: "99", passTheory: "", passPractical: "" })).toEqual({ ok: true, fullMarksHundredths: 7500, practicalHundredths: null });
+    expect(readPaper({ full: "100", hasPractical: true, practical: "100", passTheory: "", passPractical: "" })).toMatchObject({ ok: false, errors: { practical: "setup.error.practicalInvalid" } });
+    expect(readPaper({ full: "0", hasPractical: false, practical: "", passTheory: "", passPractical: "" })).toMatchObject({ ok: false, errors: { full: "setup.error.fullMarksInvalid" } });
+    expect(readPaper({ full: "100", hasPractical: true, practical: "", passTheory: "", passPractical: "" })).toMatchObject({ ok: false, errors: { practical: "setup.error.practicalInvalid" } });
   });
 
   it("the offering form says so when there is nothing left to add", () => {
@@ -311,7 +313,7 @@ describe("a school with no elective subjects (D-142, the PM 2026-10-11)", () => 
   const curriculum: Curriculum = {
     level: { id: "l1", name: "Grade 11", programmeId: "p1", programmeName: "+2 Science", sectionKey: "plus2" },
     groups: [{ id: "g1", name: "Science option", pickCount: 1, active: true }],
-    offerings: [{ id: "o1", subject: subject("s1", "Biology", { code: "BIO" }), creditHundredths: 375, group: { id: "g1", name: "Science option" }, active: true, fullMarksHundredths: 10000, practicalHundredths: 2500 }],
+    offerings: [{ id: "o1", subject: subject("s1", "Biology", { code: "BIO" }), creditHundredths: 375, group: { id: "g1", name: "Science option" }, active: true, fullMarksHundredths: 10000, practicalHundredths: 2500, passTheoryHundredths: null, passPracticalHundredths: null }],
   };
   const off = (node: React.ReactNode) =>
     renderToStaticMarkup(

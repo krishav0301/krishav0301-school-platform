@@ -135,6 +135,8 @@ export const PatternSnapshotSchema = z.object({
   theoryMinPercent: z.number().int(),
   practicalMinPercent: z.number().int(),
   gradeBands: z.array(z.object({ grade: z.string(), from: z.number().int() })).nullable(),
+  /** Each subject had its own pass marks, not the two percentages above (the first school). Absent on older cards. */
+  perSubject: z.boolean().optional(),
   terminals: z.array(z.object({ id: z.string(), name: z.string(), weight: z.number().int() })),
 });
 export type PatternSnapshot = z.infer<typeof PatternSnapshotSchema>;
@@ -157,10 +159,14 @@ export const TerminalCardBodySchema = z.object({
       percentHundredths: z.number().int(),
       scaledHundredths: z.number().int(),
       grade: z.string().nullable(),
+      /** Whether the subject reached its pass marks in this terminal; null for a school without pass marks per subject. */
+      passed: z.boolean().nullable().optional(),
     }),
   ),
   percentHundredths: z.number().int(),
   grade: z.string().nullable(),
+  /** Whether every subject passed this terminal; null for a school without pass marks per subject. */
+  passed: z.boolean().nullable().optional(),
   outcome: z.string(),
 });
 

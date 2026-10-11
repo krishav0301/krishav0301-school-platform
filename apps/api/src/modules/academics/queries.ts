@@ -320,6 +320,8 @@ interface CurriculumRow {
   group_name: string | null;
   full_marks_hundredths: number;
   practical_hundredths: number | null;
+  pass_theory_hundredths: number | null;
+  pass_practical_hundredths: number | null;
 }
 
 /**
@@ -345,7 +347,7 @@ export async function getCurriculum(db: D1Database, sections: "all" | readonly s
       .prepare(
         `SELECT o.public_id AS offering_id, o.credit_hundredths, o.is_active AS offering_active,
                 s.public_id AS subject_id, s.name AS subject_name, s.code AS subject_code, s.is_archived, ws.key AS subject_section,
-                g.public_id AS group_id, g.name AS group_name, o.full_marks_hundredths, o.practical_hundredths
+                g.public_id AS group_id, g.name AS group_name, o.full_marks_hundredths, o.practical_hundredths, o.pass_theory_hundredths, o.pass_practical_hundredths
            FROM subject_offerings o
            JOIN levels l ON l.id = o.level_id
            JOIN subjects s ON s.id = o.subject_id
@@ -368,6 +370,8 @@ export async function getCurriculum(db: D1Database, sections: "all" | readonly s
     active: r.offering_active === 1,
     fullMarksHundredths: r.full_marks_hundredths,
     practicalHundredths: r.practical_hundredths,
+    passTheoryHundredths: r.pass_theory_hundredths,
+    passPracticalHundredths: r.pass_practical_hundredths,
   }));
 
   return {

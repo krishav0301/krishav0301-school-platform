@@ -2247,6 +2247,18 @@
               "integer",
               "null"
             ]
+          },
+          "passTheoryHundredths": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "passPracticalHundredths": {
+            "type": [
+              "integer",
+              "null"
+            ]
           }
         },
         "required": [
@@ -2256,7 +2268,9 @@
           "group",
           "active",
           "fullMarksHundredths",
-          "practicalHundredths"
+          "practicalHundredths",
+          "passTheoryHundredths",
+          "passPracticalHundredths"
         ]
       },
       "CreateSubject": {
@@ -2351,6 +2365,22 @@
               "null"
             ],
             "minimum": 100
+          },
+          "passTheoryHundredths": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": 0,
+            "maximum": 100000
+          },
+          "passPracticalHundredths": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": 0,
+            "maximum": 100000
           }
         },
         "required": [
@@ -2420,6 +2450,22 @@
               "null"
             ],
             "minimum": 100
+          },
+          "passTheoryHundredths": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": 0,
+            "maximum": 100000
+          },
+          "passPracticalHundredths": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": 0,
+            "maximum": 100000
           }
         },
         "additionalProperties": false
@@ -3012,6 +3058,9 @@
                 ]
               },
               "studentKeepsPin": {
+                "type": "boolean"
+              },
+              "passMarksPerSubject": {
                 "type": "boolean"
               }
             },
@@ -9293,6 +9342,12 @@
                             "string",
                             "null"
                           ]
+                        },
+                        "passed": {
+                          "type": [
+                            "boolean",
+                            "null"
+                          ]
                         }
                       },
                       "required": [
@@ -9314,6 +9369,12 @@
                   "grade": {
                     "type": [
                       "string",
+                      "null"
+                    ]
+                  },
+                  "passed": {
+                    "type": [
+                      "boolean",
                       "null"
                     ]
                   },
@@ -9423,6 +9484,9 @@
                             "from"
                           ]
                         }
+                      },
+                      "perSubject": {
+                        "type": "boolean"
                       },
                       "terminals": {
                         "type": "array",

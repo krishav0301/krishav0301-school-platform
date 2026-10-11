@@ -9,6 +9,9 @@
  * but each must reach its minimum %, the practical counted only over the terminals that held it; the student must
  * pass every subject. Grade = No: the percentage and Pass / Fail. Grade = Yes: letters from the school's ranges; a
  * failed subject is NG and so is the overall. No credits and no GPA (OPEN: both may come later).
+ * Pass marks per subject (the PM, 2026-10-11, the first school): when `perSubject` is set, each paper carries its own pass
+ * marks (theory, and practical) and they replace the two percentages: a terminal then says Pass or Fail too, and the final
+ * compares the weighted marks with the weighted pass marks. A part with no pass mark has no minimum.
  * OPEN (stated default): an absence counts zero. The overall percentage is the average of the subjects' percentages.
  */
 
@@ -24,6 +27,8 @@ export interface PatternRules {
   practicalMinPercent: number;
   /** Highest first, when graded; null otherwise. */
   gradeBands: GradeBand[] | null;
+  /** Each subject has its own pass marks, on its papers (the first school's pack). Off: the two percentages above. */
+  perSubject?: boolean;
 }
 
 export interface PartMarks {
@@ -42,6 +47,9 @@ export interface Paper {
   theory: PartMarks;
   /** Null when this terminal's paper has no practical. */
   practical: PartMarks | null;
+  /** This paper's pass marks in its own marks (whole hundredths); null: no minimum. Used when `perSubject`. */
+  theoryPassHundredths?: number | null;
+  practicalPassHundredths?: number | null;
 }
 
 export interface SubjectPapers {
@@ -65,6 +73,8 @@ const ratio = (a: Frac, b: Frac): Frac => ({ n: a.n * b.d, d: a.d * b.n });
 const shareAtLeast = (a: Frac, percent: number): boolean => a.n * 100n >= BigInt(percent) * a.d;
 /** The fraction (in percent) is at least `percent`. */
 const percentAtLeast = (a: Frac, percent: number): boolean => a.n >= BigInt(percent) * a.d;
+/** a is at least b. */
+const atLeast = (a: Frac, b: Frac): boolean => a.n * b.d >= b.n * a.d;
 /** Whole hundredths, rounded half up (every value here is non-negative). */
 const hundredths = (a: Frac, scale = 100n): number => Number((2n * a.n * scale + a.d) / (2n * a.d));
 
@@ -92,22 +102,31 @@ export interface TerminalSubject {
   scaledHundredths: number;
   /** A letter when graded and at or above the lowest band; null otherwise. */
   grade: string | null;
-  /** A terminal never passes or fails anyone: always null. */
-  passed: null;
+  /** Null unless the school sets pass marks per subject: then whether this subject reached them on this paper. */
+  passed: boolean | null;
 }
 
 export interface TerminalResult {
   subjects: TerminalSubject[];
   percentHundredths: number;
   grade: string | null;
-  passed: null;
-  /** The headline: the letter when graded, else the percentage. */
+  /** Null unless pass marks are per subject: then whether every subject passed this terminal. */
+  passed: boolean | null;
+  /** The headline: the letter when graded, else the percentage (with pass marks per subject: the letter or NG, else Pass or Fail). */
   outcome: string;
 }
 
-/** One student's result in one terminal, for information only. Each subject has exactly one paper. */
+/** Whether a paper reached its own pass marks (whole hundredths each; absence is zero). Only meaningful when `perSubject`. */
+function paperPassed(p: Paper, subject: string): boolean {
+  const theory = p.theoryPassHundredths ?? 0;
+  const practical = p.practicalPassHundredths ?? 0;
+  return obtained(p.theory, subject) >= theory && (p.practical === null || obtained(p.practical, subject) >= practical);
+}
+
+/** One student's result in one terminal. Each subject has exactly one paper. Passes or fails someone only with pass marks per subject. */
 export function terminalResult(rules: PatternRules, subjects: { offeringId: string; name: string; paper: Paper }[] | SubjectPapers[]): TerminalResult {
   if (subjects.length === 0) throw new Error("There are no subjects to grade.");
+  const perSubject = rules.perSubject === true;
   let total = frac(0);
   const graded = subjects.map((s): TerminalSubject => {
     const p = "paper" in s ? s.paper : s.papers[0]!;
@@ -115,6 +134,7 @@ export function terminalResult(rules: PatternRules, subjects: { offeringId: stri
     const full = fullOf(p);
     const percent = frac(got * 100, full);
     total = add(total, percent);
+    const passed = perSubject ? paperPassed(p, s.name) : null;
     return {
       offeringId: s.offeringId,
       name: s.name,
@@ -124,14 +144,19 @@ export function terminalResult(rules: PatternRules, subjects: { offeringId: stri
       fullHundredths: full,
       percentHundredths: hundredths(percent),
       scaledHundredths: hundredths(frac(got * p.weight, full)),
-      grade: rules.graded ? letterFor(rules.gradeBands, percent) : null,
-      passed: null,
+      grade: rules.graded ? (passed === false ? "NG" : letterFor(rules.gradeBands, percent)) : null,
+      passed,
     };
   });
   const overall = ratio(total, frac(subjects.length));
   const percentHundredths = hundredths(overall);
-  const grade = rules.graded ? letterFor(rules.gradeBands, overall) : null;
-  return { subjects: graded, percentHundredths, grade, passed: null, outcome: grade ?? `${(percentHundredths / 100).toFixed(2)}%` };
+  if (!perSubject) {
+    const grade = rules.graded ? letterFor(rules.gradeBands, overall) : null;
+    return { subjects: graded, percentHundredths, grade, passed: null, outcome: grade ?? `${(percentHundredths / 100).toFixed(2)}%` };
+  }
+  const passed = graded.every((s) => s.passed === true);
+  const grade = rules.graded ? (passed ? (letterFor(rules.gradeBands, overall) ?? "NG") : "NG") : null;
+  return { subjects: graded, percentHundredths, grade, passed, outcome: grade ?? (passed ? "Pass" : "Fail") };
 }
 
 // --- The final result ------------------------------------------------------------------------------------------
@@ -171,6 +196,8 @@ export function finalResult(rules: PatternRules, subjects: SubjectPapers[]): Fin
     let theoryMax = frac(0);
     let practicalGot = frac(0);
     let practicalMax = frac(0);
+    let theoryPass = frac(0);
+    let practicalPass = frac(0);
     const terminals = s.papers.map((p) => {
       const full = fullOf(p);
       const t = obtained(p.theory, s.name);
@@ -179,7 +206,9 @@ export function finalResult(rules: PatternRules, subjects: SubjectPapers[]): Fin
       final = add(final, scaled);
       theoryGot = add(theoryGot, frac(t * p.weight, full));
       theoryMax = add(theoryMax, frac(p.theory.maxHundredths * p.weight, full));
+      theoryPass = add(theoryPass, frac((p.theoryPassHundredths ?? 0) * p.weight, full));
       if (p.practical) {
+        practicalPass = add(practicalPass, frac((p.practicalPassHundredths ?? 0) * p.weight, full));
         practicalGot = add(practicalGot, frac(pr * p.weight, full));
         practicalMax = add(practicalMax, frac(p.practical.maxHundredths * p.weight, full));
       }
@@ -187,7 +216,9 @@ export function finalResult(rules: PatternRules, subjects: SubjectPapers[]): Fin
     });
     const theoryShare = ratio(theoryGot, theoryMax);
     const practicalShare = isZero(practicalMax) ? null : ratio(practicalGot, practicalMax);
-    const passed = shareAtLeast(theoryShare, rules.theoryMinPercent) && (practicalShare === null || shareAtLeast(practicalShare, rules.practicalMinPercent));
+    const passed = rules.perSubject
+      ? atLeast(theoryGot, theoryPass) && (isZero(practicalMax) || atLeast(practicalGot, practicalPass))
+      : shareAtLeast(theoryShare, rules.theoryMinPercent) && (practicalShare === null || shareAtLeast(practicalShare, rules.practicalMinPercent));
     total = add(total, final);
     return {
       offeringId: s.offeringId,

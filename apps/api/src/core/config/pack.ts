@@ -26,6 +26,8 @@ export const PackSchema = z.strictObject({
     adminTwoFactor: z.boolean().default(true),
     /** Whether a student keeps the 4-digit password given at admission instead of changing it (D-145). Off unless the school says so. */
     studentKeepsPin: z.boolean().default(false),
+    /** Whether each subject has its own pass marks, for theory and practical, instead of the exam pattern's two percentages. Off unless the school says so. */
+    passMarksPerSubject: z.boolean().default(false),
   }),
   /**
    * Sections the pack adds. A school's own pack lists none (D-095): the Admin makes them on the Programs screen. Demo
@@ -107,12 +109,13 @@ export function packOperations(pack: Pack): Operation[] {
   const ops: Operation[] = [];
 
   ops.push({
-    sql: `INSERT INTO school (id, name, short_name, currency, timezone, template_key, region_pack, admin_two_factor, student_keeps_pin)
-          VALUES (1, ?, ?, ?, ?, ?, ?, ?, ?)
+    sql: `INSERT INTO school (id, name, short_name, currency, timezone, template_key, region_pack, admin_two_factor, student_keeps_pin, pass_marks_per_subject)
+          VALUES (1, ?, ?, ?, ?, ?, ?, ?, ?, ?)
           ON CONFLICT (id) DO UPDATE SET name = excluded.name, short_name = excluded.short_name,
             currency = excluded.currency, timezone = excluded.timezone,
-            template_key = excluded.template_key, region_pack = excluded.region_pack, admin_two_factor = excluded.admin_two_factor, student_keeps_pin = excluded.student_keeps_pin`,
-    params: [pack.school.name, pack.school.shortName, pack.school.currency, pack.school.timezone, pack.school.template ?? null, pack.school.region, pack.school.adminTwoFactor ? 1 : 0, pack.school.studentKeepsPin ? 1 : 0],
+            template_key = excluded.template_key, region_pack = excluded.region_pack, admin_two_factor = excluded.admin_two_factor, student_keeps_pin = excluded.student_keeps_pin,
+            pass_marks_per_subject = excluded.pass_marks_per_subject`,
+    params: [pack.school.name, pack.school.shortName, pack.school.currency, pack.school.timezone, pack.school.template ?? null, pack.school.region, pack.school.adminTwoFactor ? 1 : 0, pack.school.studentKeepsPin ? 1 : 0, pack.school.passMarksPerSubject ? 1 : 0],
   });
 
   pack.sections.forEach((section, index) =>

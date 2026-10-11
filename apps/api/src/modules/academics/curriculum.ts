@@ -6,6 +6,7 @@ import {
   CreateOfferingSchema,
   GroupChangesSchema,
   OfferingChangesSchema,
+  passMarksFit,
   type CopyOfferingsInput,
   type GroupChanges,
   type GroupInput,
@@ -134,7 +135,11 @@ export async function createOffering(db: D1Database, auditKey: string, actor: st
     groupId: parsed.data.groupId ?? null,
     fullMarksHundredths: parsed.data.fullMarksHundredths ?? 10_000,
     practicalHundredths: parsed.data.practicalHundredths ?? null,
+    passTheoryHundredths: parsed.data.passTheoryHundredths ?? null,
+    passPracticalHundredths: parsed.data.passPracticalHundredths ?? null,
   };
+  const passProblem = passMarksFit(o);
+  if (passProblem) return { ok: false, reason: "invalid", message: passProblem };
 
   const publicId = newPublicId();
   const outcome = await write(
@@ -150,8 +155,8 @@ export async function createOffering(db: D1Database, auditKey: string, actor: st
     },
     db
       .prepare(
-        `INSERT INTO subject_offerings (public_id, level_id, subject_id, credit_hundredths, elective_group_id, full_marks_hundredths, practical_hundredths)
-         SELECT ?1, l.id, s.id, ?4, (SELECT g.id FROM elective_groups g WHERE g.public_id = ?5), ?7, ?8
+        `INSERT INTO subject_offerings (public_id, level_id, subject_id, credit_hundredths, elective_group_id, full_marks_hundredths, practical_hundredths, pass_theory_hundredths, pass_practical_hundredths)
+         SELECT ?1, l.id, s.id, ?4, (SELECT g.id FROM elective_groups g WHERE g.public_id = ?5), ?7, ?8, ?9, ?10
            FROM levels l
            JOIN programmes p ON p.id = l.programme_id
            CROSS JOIN subjects s
@@ -161,7 +166,7 @@ export async function createOffering(db: D1Database, auditKey: string, actor: st
             AND (?5 IS NULL OR EXISTS (SELECT 1 FROM elective_groups g2 WHERE g2.public_id = ?5 AND g2.level_id = l.id AND g2.is_active = 1))
             AND ${coordinatorForSection(6, "p.section_id")}`,
       )
-      .bind(publicId, o.levelId, o.subjectId, o.creditHundredths, o.groupId, actor, o.fullMarksHundredths, o.practicalHundredths),
+      .bind(publicId, o.levelId, o.subjectId, o.creditHundredths, o.groupId, actor, o.fullMarksHundredths, o.practicalHundredths, o.passTheoryHundredths, o.passPracticalHundredths),
   );
 
   if (outcome === "done") return { ok: true, publicId };
@@ -208,7 +213,8 @@ export async function updateOffering(db: D1Database, auditKey: string, actor: st
     publicId,
     db
       .prepare(
-        `SELECT o.credit_hundredths AS credit, o.is_active AS active, l.public_id AS level, g.public_id AS grp, o.full_marks_hundredths AS full_marks, o.practical_hundredths AS practical
+        `SELECT o.credit_hundredths AS credit, o.is_active AS active, l.public_id AS level, g.public_id AS grp, o.full_marks_hundredths AS full_marks, o.practical_hundredths AS practical,
+                o.pass_theory_hundredths AS pass_theory, o.pass_practical_hundredths AS pass_practical
            FROM subject_offerings o JOIN levels l ON l.id = o.level_id LEFT JOIN elective_groups g ON g.id = o.elective_group_id
           WHERE o.public_id = ?1`,
       )
@@ -225,6 +231,8 @@ export async function updateOffering(db: D1Database, auditKey: string, actor: st
     active: row.active === 1,
     fullMarksHundredths: row.full_marks as number,
     practicalHundredths: row.practical as number | null,
+    passTheoryHundredths: row.pass_theory as number | null,
+    passPracticalHundredths: row.pass_practical as number | null,
   };
   const after = {
     creditHundredths: c.creditHundredths === undefined ? before.creditHundredths : c.creditHundredths,
@@ -232,11 +240,16 @@ export async function updateOffering(db: D1Database, auditKey: string, actor: st
     active: c.active ?? before.active,
     fullMarksHundredths: c.fullMarksHundredths ?? before.fullMarksHundredths,
     practicalHundredths: c.practicalHundredths === undefined ? before.practicalHundredths : c.practicalHundredths,
+    passTheoryHundredths: c.passTheoryHundredths === undefined ? before.passTheoryHundredths : c.passTheoryHundredths,
+    // Taking the practical away takes its pass mark with it.
+    passPracticalHundredths: c.practicalHundredths === null ? null : c.passPracticalHundredths === undefined ? before.passPracticalHundredths : c.passPracticalHundredths,
   };
   if (JSON.stringify(after) === JSON.stringify(before)) return { ok: true };
   if (after.practicalHundredths !== null && after.practicalHundredths >= after.fullMarksHundredths) {
     return { ok: false, reason: "invalid", message: "The practical must be less than the full marks" };
   }
+  const passProblem = passMarksFit(after);
+  if (passProblem) return { ok: false, reason: "invalid", message: passProblem };
   if (after.groupId !== null && after.groupId !== before.groupId && (!newGroup || newGroup.level !== row.level || newGroup.active === 0)) {
     return { ok: false, reason: "invalid", message: "That elective group is not available for this level" };
   }
@@ -257,12 +270,12 @@ export async function updateOffering(db: D1Database, auditKey: string, actor: st
       .prepare(
         `UPDATE subject_offerings
             SET credit_hundredths = ?2, elective_group_id = (SELECT g.id FROM elective_groups g WHERE g.public_id = ?3), is_active = ?4,
-                full_marks_hundredths = ?6, practical_hundredths = ?7
+                full_marks_hundredths = ?6, practical_hundredths = ?7, pass_theory_hundredths = ?8, pass_practical_hundredths = ?9
           WHERE public_id = ?1
             AND (?3 IS NULL OR EXISTS (SELECT 1 FROM elective_groups g2 WHERE g2.public_id = ?3 AND g2.level_id = subject_offerings.level_id))
             AND ${coordinatorForSection(5, offeringSection(1))}`,
       )
-      .bind(publicId, after.creditHundredths, after.groupId, after.active ? 1 : 0, actor, after.fullMarksHundredths, after.practicalHundredths),
+      .bind(publicId, after.creditHundredths, after.groupId, after.active ? 1 : 0, actor, after.fullMarksHundredths, after.practicalHundredths, after.passTheoryHundredths, after.passPracticalHundredths),
   );
   if (outcome === "done") return { ok: true };
   if (outcome === "check_failed") return { ok: false, reason: "invalid", message: "That elective group is not available for this level" };
@@ -346,10 +359,10 @@ export async function copyOfferings(db: D1Database, auditKey: string, actor: str
       // The subjects. The last statement: it decides whether the audit entry is written.
       db
         .prepare(
-          `INSERT INTO subject_offerings (public_id, level_id, subject_id, credit_hundredths, elective_group_id, full_marks_hundredths, practical_hundredths)
+          `INSERT INTO subject_offerings (public_id, level_id, subject_id, credit_hundredths, elective_group_id, full_marks_hundredths, practical_hundredths, pass_theory_hundredths, pass_practical_hundredths)
            SELECT lower(hex(randomblob(16))), lt.id, o.subject_id, o.credit_hundredths,
                   (SELECT g2.id FROM elective_groups g2 JOIN elective_groups g ON g.id = o.elective_group_id WHERE g2.level_id = lt.id AND g2.name = g.name),
-                  o.full_marks_hundredths, o.practical_hundredths
+                  o.full_marks_hundredths, o.practical_hundredths, o.pass_theory_hundredths, o.pass_practical_hundredths
              ${COPY_FROM}
              ${COPY_SUBJECTS}
             WHERE ${COPY_WHERE} AND ${NOT_YET_THERE}`,

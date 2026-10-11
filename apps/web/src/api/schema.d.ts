@@ -3297,6 +3297,8 @@ export interface components {
             active: boolean;
             fullMarksHundredths: number;
             practicalHundredths: number | null;
+            passTheoryHundredths: number | null;
+            passPracticalHundredths: number | null;
         };
         CreateSubject: {
             name: string;
@@ -3316,6 +3318,8 @@ export interface components {
             groupId?: string | null;
             fullMarksHundredths?: number;
             practicalHundredths?: number | null;
+            passTheoryHundredths?: number | null;
+            passPracticalHundredths?: number | null;
         };
         OfferingsCopied: {
             copied: number;
@@ -3330,6 +3334,8 @@ export interface components {
             active?: boolean;
             fullMarksHundredths?: number;
             practicalHundredths?: number | null;
+            passTheoryHundredths?: number | null;
+            passPracticalHundredths?: number | null;
         };
         CreateGroup: {
             name: string;
@@ -3459,6 +3465,7 @@ export interface components {
                 region: string;
                 template: string | null;
                 studentKeepsPin?: boolean;
+                passMarksPerSubject?: boolean;
             };
             sections: {
                 key: string;
@@ -4821,9 +4828,11 @@ export interface components {
                     percentHundredths: number;
                     scaledHundredths: number;
                     grade: string | null;
+                    passed?: boolean | null;
                 }[];
                 percentHundredths: number;
                 grade: string | null;
+                passed?: boolean | null;
                 outcome: string;
             } | {
                 /** @enum {string} */
@@ -4848,6 +4857,7 @@ export interface components {
                         grade: string;
                         from: number;
                     }[] | null;
+                    perSubject?: boolean;
                     terminals: {
                         id: string;
                         name: string;

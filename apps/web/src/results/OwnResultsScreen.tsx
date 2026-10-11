@@ -43,6 +43,8 @@ export function resultFigures(r: Result): Figure[] {
     return [
       { key: "score", icon: Award, tone: "accent", value: percentText(b.percentHundredths), label: t("results.card.percentLabel") },
       ...(b.graded ? [{ key: "grade", icon: BookOpen, tone: "ok" as const, value: b.grade ?? "—", label: t("results.own.grade") }] : []),
+      // A school with pass marks per subject: each exam is passed or failed too.
+      ...(b.passed == null ? [] : [{ key: "result", icon: b.passed ? CircleCheck : CircleAlert, tone: b.passed ? ("ok" as const) : ("bad" as const), value: b.grade ?? t(b.passed ? "results.card.pass" : "results.card.fail"), label: t("results.card.result") }]),
       { key: "weight", icon: CircleCheck, tone: "warn" as const, value: t("results.own.weightValue", { weight: b.terminal.weight }), label: t("results.own.weight") },
     ];
   }
@@ -68,6 +70,9 @@ export function SubjectsTable({ result }: { result: Result }) {
           { key: "paper", label: t("results.card.marks"), cell: (s) => paperText(s) },
           { key: "percent", label: t("results.own.percent"), align: "end", cell: (s) => <span className={readStyles.number}>{percentText(s.percentHundredths)}</span> },
           ...(b.graded ? [{ key: "grade", label: t("results.own.grade"), align: "end" as const, cell: (s: TerminalCard["subjects"][number]) => s.grade ?? "—" }] : []),
+          ...(b.passed == null
+            ? []
+            : [{ key: "status", label: t("attendance.class.status"), cell: (s: TerminalCard["subjects"][number]) => (s.passed ? <StatusWord tone="ok">{t("results.own.passed")}</StatusWord> : <StatusWord tone="bad">{b.graded ? t("results.own.ng") : t("results.card.failed")}</StatusWord>) }]),
         ]}
       />
     );
@@ -254,7 +259,7 @@ export function MarksCardScreen() {
               </dd>
               <dt>{t("results.card.percentLabel")}</dt>
               <dd className={styles.score}>{percentText(b.percentHundredths)}</dd>
-              {b.kind === "final" ? (
+              {b.kind === "final" || b.passed != null ? (
                 <>
                   <dt>{t("results.card.result")}</dt>
                   <dd>{b.grade ?? t(b.passed ? "results.card.pass" : "results.card.fail")}</dd>
@@ -266,7 +271,7 @@ export function MarksCardScreen() {
                 </>
               ) : null}
             </dl>
-            {b.kind === "terminal" ? <p className={styles.meta}>{t("results.card.forInformation", { weight: b.terminal.weight })}</p> : null}
+            {b.kind === "terminal" ? <p className={styles.meta}>{t(b.passed == null ? "results.card.forInformation" : "results.card.forInformationPassMarks", { weight: b.terminal.weight })}</p> : null}
             <ul className={styles.list} aria-label={t("results.card.subjects")}>
               {b.kind === "terminal"
                 ? b.subjects.map((s) => (
@@ -279,6 +284,7 @@ export function MarksCardScreen() {
                       <span className={styles.state}>
                         <span className={styles.number}>{percentText(s.percentHundredths)}</span>
                         {s.grade ? <span>{s.grade}</span> : null}
+                        {s.passed === false ? <StatusWord tone="bad">{b.graded ? t("results.own.ng") : t("results.card.failed")}</StatusWord> : null}
                       </span>
                     </li>
                   ))

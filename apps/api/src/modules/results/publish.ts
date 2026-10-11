@@ -2,6 +2,7 @@ import { recordAudit } from "../../core/audit";
 import { newPublicId } from "../../core/ids";
 import { finalResult, terminalResult, type FinalResult, type Paper, type PatternRules, type SubjectPapers, type TerminalResult } from "./grading";
 import { CLASS_JOINS, NAMING_COLUMNS, coordinatorFor, naming, readyToPublish, takes } from "./guard";
+import { PASS_PRACTICAL, PASS_THEORY } from "./sheets";
 import type { FinalCardBody, PatternSnapshot, TerminalCardBody } from "./schema";
 
 /**
@@ -25,6 +26,9 @@ interface MarkRow {
   weight: number;
   theory_max: number;
   practical_max: number | null;
+  /** The paper's pass marks (a school that sets them per subject); null: no minimum. */
+  theory_pass: number | null;
+  practical_pass: number | null;
   has_sheet: number;
   theory_value: number | null;
   theory_absent: number | null;
@@ -51,6 +55,8 @@ export function marksQuery(db: D1Database, classId: string, terminalId: string |
               o.public_id AS offering_id, sb.name AS subject_name, t.public_id AS terminal_id, t.name AS terminal_name, t.weight,
               COALESCE(ms.theory_max_hundredths, CASE WHEN t.has_practical = 1 AND o.practical_hundredths IS NOT NULL THEN o.full_marks_hundredths - o.practical_hundredths ELSE o.full_marks_hundredths END) AS theory_max,
               CASE WHEN ms.id IS NOT NULL THEN ms.practical_max_hundredths WHEN t.has_practical = 1 THEN o.practical_hundredths END AS practical_max,
+              CASE WHEN ms.id IS NOT NULL THEN ms.pass_theory_hundredths ELSE ${PASS_THEORY} END AS theory_pass,
+              CASE WHEN ms.id IS NOT NULL THEN ms.pass_practical_hundredths ELSE ${PASS_PRACTICAL} END AS practical_pass,
               ms.id IS NOT NULL AS has_sheet,
               mt.value_hundredths AS theory_value, mt.absent AS theory_absent, mp.value_hundredths AS practical_value, mp.absent AS practical_absent
          FROM classes cl JOIN terminals t ON t.academic_year_id = cl.academic_year_id AND t.weight IS NOT NULL AND (?2 IS NULL OR t.public_id = ?2)
@@ -90,6 +96,8 @@ export function groupPapers(rows: MarkRow[], missingIsAbsent: boolean): StudentP
       weight: r.weight,
       theory: part(r.theory_max, r.theory_value, r.theory_absent),
       practical: r.practical_max === null ? null : part(r.practical_max, r.practical_value, r.practical_absent),
+      theoryPassHundredths: r.theory_pass,
+      practicalPassHundredths: r.practical_pass,
     };
     subject.papers.push(paper);
   }
@@ -106,6 +114,7 @@ export interface ClassHead {
   year_label: string;
   year_status: string;
   graded: number | null;
+  per_subject: number | null;
   theory_min_percent: number | null;
   practical_min_percent: number | null;
   grade_bands: string | null;
@@ -113,7 +122,7 @@ export interface ClassHead {
 }
 
 export const HEAD_COLUMNS = `cl.public_id AS class_id, ${NAMING_COLUMNS}, s.name AS section_name, ay.label AS year_label, ay.status AS year_status,
-  ep.graded, ep.theory_min_percent, ep.practical_min_percent, ep.grade_bands,
+  ep.graded, (SELECT pass_marks_per_subject FROM school WHERE id = 1) AS per_subject, ep.theory_min_percent, ep.practical_min_percent, ep.grade_bands,
   (SELECT json_group_array(json_object('id', x.public_id, 'name', x.name, 'weight', x.weight)) FROM (SELECT * FROM terminals WHERE academic_year_id = ay.id AND weight IS NOT NULL ORDER BY ordinal) x) AS terminals`;
 
 /** The joins `HEAD_COLUMNS` needs after `classes cl ${CLASS_JOINS}`. */
@@ -127,11 +136,12 @@ export function patternOf(head: ClassHead): PatternSnapshot | null {
     theoryMinPercent: head.theory_min_percent!,
     practicalMinPercent: head.practical_min_percent!,
     gradeBands: head.grade_bands === null ? null : (JSON.parse(head.grade_bands) as { grade: string; from: number }[]),
+    perSubject: head.per_subject === 1,
     terminals: JSON.parse(head.terminals) as { id: string; name: string; weight: number }[],
   };
 }
 
-const rulesOf = (p: PatternSnapshot): PatternRules => ({ graded: p.graded, theoryMinPercent: p.theoryMinPercent, practicalMinPercent: p.practicalMinPercent, gradeBands: p.gradeBands });
+const rulesOf = (p: PatternSnapshot): PatternRules => ({ graded: p.graded, theoryMinPercent: p.theoryMinPercent, practicalMinPercent: p.practicalMinPercent, gradeBands: p.gradeBands, perSubject: p.perSubject === true });
 
 const studentOf = (s: StudentPapers) => ({ name: s.name, sid: s.sid, rollNo: s.rollNo });
 const classOf = (head: ClassHead) => ({ ...naming(head), sectionName: head.section_name, yearLabel: head.year_label });
@@ -146,7 +156,8 @@ export function terminalCard(head: ClassHead, pattern: PatternSnapshot, terminal
       class: classOf(head),
       terminal,
       graded: pattern.graded,
-      subjects: result.subjects.map(({ passed: _passed, ...s }) => s),
+      subjects: result.subjects,
+      passed: result.passed,
       percentHundredths: result.percentHundredths,
       grade: result.grade,
       outcome: result.outcome,
@@ -224,7 +235,7 @@ export async function publishClass(db: D1Database, auditKey: string, me: string,
       false,
     )) {
       const { result, body } = terminalCard(head, pattern, { name: head.terminal_name, weight: head.weight }, student);
-      terminalCards.push({ e: student.enrollmentId, id: newPublicId(), p: result.percentHundredths, s: null, o: result.outcome, b: JSON.stringify(body) });
+      terminalCards.push({ e: student.enrollmentId, id: newPublicId(), p: result.percentHundredths, s: result.passed === null ? null : result.passed ? 1 : 0, o: result.outcome, b: JSON.stringify(body) });
     }
     if (isLast) {
       for (const student of groupPapers(rows, true)) {

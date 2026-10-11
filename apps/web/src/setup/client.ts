@@ -167,7 +167,7 @@ export const setGroupActive = async (api: ApiClient, id: string, active: boolean
 
 export const addOffering = async (
   api: ApiClient,
-  body: { levelId: string; subjectId: string; creditHundredths: number | null; groupId: string | null; fullMarksHundredths: number; practicalHundredths: number | null },
+  body: { levelId: string; subjectId: string; creditHundredths: number | null; groupId: string | null; fullMarksHundredths: number; practicalHundredths: number | null; passTheoryHundredths?: number | null; passPracticalHundredths?: number | null },
 ): Promise<CreateResult> => created(await send(() => api.POST("/api/academics/offerings", { body })));
 
 /** Gives a level the subjects another level of the same programme has and it lacks (R-001). `copied` may be 0. */
@@ -177,7 +177,7 @@ export const copyOfferings = async (api: ApiClient, fromLevelId: string, toLevel
 };
 
 /** A subject's paper (D-117): its full marks, and the practical's share or none. */
-export const setOfferingPaper = async (api: ApiClient, id: string, body: { fullMarksHundredths: number; practicalHundredths: number | null }): Promise<WriteResult> =>
+export const setOfferingPaper = async (api: ApiClient, id: string, body: { fullMarksHundredths: number; practicalHundredths: number | null; passTheoryHundredths?: number | null; passPracticalHundredths?: number | null }): Promise<WriteResult> =>
   done(await send(() => api.PATCH("/api/academics/offerings/{id}", { params: { path: { id } }, body })));
 
 export const setOfferingGroup = async (api: ApiClient, id: string, groupId: string | null): Promise<WriteResult> =>

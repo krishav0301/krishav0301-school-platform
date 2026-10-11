@@ -274,6 +274,19 @@ describe("a student's results on the exam pattern (D-117)", () => {
     ]);
   });
 
+  it("with pass marks per subject, an exam also says Pass or Fail, and names the subject that is below its pass marks", () => {
+    const body = { ...terminal.card.body, passed: false, grade: "NG", subjects: terminal.card.body.subjects.map((s) => ({ ...s, passed: false, grade: "NG" })) };
+    const marked = { ...terminal, card: { ...terminal.card, body } } as typeof terminal;
+    expect(resultFigures(marked).map((f) => [f.key, f.value])).toEqual([
+      ["score", "60.00%"],
+      ["grade", "NG"],
+      ["result", "NG"],
+      ["weight", "30%"],
+    ]);
+    const html = inContext(<SubjectsTable result={marked} />, as("student", "own"));
+    expect(html).toContain("NG");
+  });
+
   it("the final's figures: its percentage, the result, and the subjects passed", () => {
     expect(resultFigures(final).map((f) => [f.key, f.value])).toEqual([
       ["score", "61.50%"],
