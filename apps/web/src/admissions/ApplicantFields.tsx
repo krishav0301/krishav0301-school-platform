@@ -51,8 +51,8 @@ export function ApplicantFields({
       <Field label={t("admissions.field.email")} hint={staff ? t("admissions.field.emailAutoHint") : undefined} type="email" value={values.email} autoComplete="email" onChange={(e) => onChange("email", e.target.value)} error={err("email")} />
       <Field label={label(t("admissions.field.guardianName"))} value={values.guardianName} onChange={(e) => onChange("guardianName", e.target.value)} error={err("guardianName")} />
       <Field label={label(t("admissions.field.guardianPhone"))} value={values.guardianPhone} inputMode="tel" onChange={(e) => onChange("guardianPhone", e.target.value)} error={err("guardianPhone")} />
-      <Field label={label(t("admissions.field.previousSchool"))} hint={t("admissions.field.previousSchoolHint")} value={values.previousSchool} onChange={(e) => onChange("previousSchool", e.target.value)} />
-      <Field label={label(t("admissions.field.referredBy"))} hint={t("admissions.field.referredByHint")} value={values.referredBy} onChange={(e) => onChange("referredBy", e.target.value)} />
+      <Field label={label(t("admissions.field.previousSchool"))} hint={staff ? undefined : t("admissions.field.previousSchoolHint")} value={values.previousSchool} onChange={(e) => onChange("previousSchool", e.target.value)} />
+      <Field label={label(t("admissions.field.referredBy"))} hint={staff ? undefined : t("admissions.field.referredByHint")} value={values.referredBy} onChange={(e) => onChange("referredBy", e.target.value)} />
       <LevelFields levels={levels} levelId={values.levelId} onChange={(levelId) => onChange("levelId", levelId)} error={err("levelId")} levelRef={fieldRefs?.levelId} />
     </>
   );
