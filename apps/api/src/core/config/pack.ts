@@ -22,6 +22,8 @@ export const PackSchema = z.strictObject({
     timezone: z.string().min(3).max(60).default("Asia/Kathmandu"),
     region: z.string().min(2).max(30).default("nepal"),
     template: z.string().min(1).max(60).optional(),
+    /** Whether the school's Admin must use an authenticator app (D-138). On unless the school says otherwise; Support always does. */
+    adminTwoFactor: z.boolean().default(true),
   }),
   /**
    * Sections the pack adds. A school's own pack lists none (D-095): the Admin makes them on the Programs screen. Demo
@@ -103,12 +105,12 @@ export function packOperations(pack: Pack): Operation[] {
   const ops: Operation[] = [];
 
   ops.push({
-    sql: `INSERT INTO school (id, name, short_name, currency, timezone, template_key, region_pack)
-          VALUES (1, ?, ?, ?, ?, ?, ?)
+    sql: `INSERT INTO school (id, name, short_name, currency, timezone, template_key, region_pack, admin_two_factor)
+          VALUES (1, ?, ?, ?, ?, ?, ?, ?)
           ON CONFLICT (id) DO UPDATE SET name = excluded.name, short_name = excluded.short_name,
             currency = excluded.currency, timezone = excluded.timezone,
-            template_key = excluded.template_key, region_pack = excluded.region_pack`,
-    params: [pack.school.name, pack.school.shortName, pack.school.currency, pack.school.timezone, pack.school.template ?? null, pack.school.region],
+            template_key = excluded.template_key, region_pack = excluded.region_pack, admin_two_factor = excluded.admin_two_factor`,
+    params: [pack.school.name, pack.school.shortName, pack.school.currency, pack.school.timezone, pack.school.template ?? null, pack.school.region, pack.school.adminTwoFactor ? 1 : 0],
   });
 
   pack.sections.forEach((section, index) =>

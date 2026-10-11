@@ -7,7 +7,7 @@
  */
 import { newPublicId } from "../../core/ids";
 import { signChallenge } from "../../core/two-factor/challenge";
-import { requiresTwoFactor } from "../../core/two-factor/policy";
+import { ADMIN_TWO_FACTOR_SQL, requiresTwoFactor } from "../../core/two-factor/policy";
 import { hashPassword, needsRehash, verifyPassword } from "../../core/passwords";
 import { TEMPORARY_PASSWORD_TRIES } from "../../core/temporary-password";
 import { IDLE_DAYS, SESSION_DAYS } from "../../core/session-cookies";
@@ -108,7 +108,7 @@ export async function signIn(deps: Deps, input: SignInInput, now: Date = new Dat
   const since = new Date(now.getTime() - LOCKOUT_WINDOW_MINUTES * MINUTE).toISOString();
   const userAgent = input.userAgent?.slice(0, 300) ?? null;
 
-  const [userResult, emailFailures, ipFailures, roleResult, twoFactorResult] = await db.batch([
+  const [userResult, emailFailures, ipFailures, roleResult, twoFactorResult, adminTwoFactorResult] = await db.batch([
     db.prepare("SELECT id, public_id, email, password_hash, full_name, is_active, must_change_password, temporary_password_expires_at, temporary_password_failures FROM users WHERE email = ?1").bind(email),
     db.prepare("SELECT COUNT(*) AS n FROM sign_in_events WHERE success = 0 AND email_tried = ?1 AND at > ?2").bind(email, since),
     // Without an address we cannot count by address, so that limit is skipped, not shared.
@@ -124,6 +124,7 @@ export async function signIn(deps: Deps, input: SignInInput, now: Date = new Dat
       )
       .bind(email),
     db.prepare("SELECT enabled_at FROM user_two_factor WHERE user_id = (SELECT id FROM users WHERE email = ?1)").bind(email),
+    db.prepare(ADMIN_TWO_FACTOR_SQL),
   ]);
 
   const failuresForEmail = (emailFailures!.results[0] as { n: number }).n;
@@ -170,7 +171,8 @@ export async function signIn(deps: Deps, input: SignInInput, now: Date = new Dat
 
   // The password is right. If a second step is needed, no session yet: hand back a challenge instead.
   const twoFactorEnabled = (twoFactorResult!.results[0] as { enabled_at: string | null } | undefined)?.enabled_at != null;
-  const nextStep = twoFactorEnabled ? "required" : requiresTwoFactor(roles) ? "setup" : null;
+  const adminRequired = (adminTwoFactorResult!.results[0] as { required: number }).required === 1;
+  const nextStep = twoFactorEnabled ? "required" : requiresTwoFactor(roles, adminRequired) ? "setup" : null;
   if (nextStep) {
     const pending = [recordEvent(true, `password_ok_two_factor_${nextStep}`)];
     // The password is in hand, so a hash made with weaker settings is replaced with today's.
