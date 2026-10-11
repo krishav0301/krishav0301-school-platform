@@ -109,7 +109,9 @@ export function ReportsScreen() {
   const words = termWords(term);
   const groups = REPORT_GROUPS.filter((group) => group.roles.some((r) => roles.includes(r)) && isOn(group.module, moduleEnabled))
     .map((group) => ({ ...group, entries: group.entries.filter((entry) => isOn(entry.module, moduleEnabled)) }))
-    .filter((group) => group.entries.length > 0);
+    .filter((group) => group.entries.length > 0)
+    // A school with no attendance and no classwork has only students here, so the group says so (the PM, 2026-10-11).
+    .map((group) => (group.title === "reports.group.students" && group.entries.every((entry) => entry.module === undefined) ? { ...group, title: "reports.group.studentsOnly" as MessageKey } : group));
   return (
     <div className={readStyles.page}>
       <ReadHeader title={t("reports.title")} subtitle={t("reports.intro")} />

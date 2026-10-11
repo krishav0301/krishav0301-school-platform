@@ -1580,6 +1580,7 @@ export const en = {
   "reports.intro": "Everything about the school you can look at, in one place.",
   "reports.group.setup": "School setup",
   "reports.group.students": "Students and attendance",
+  "reports.group.studentsOnly": "Students",
   "reports.group.money": "Fees",
   "reports.group.results": "Results",
   "reports.years": "Academic Term",

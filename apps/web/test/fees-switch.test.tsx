@@ -46,6 +46,10 @@ describe("with Fees switched off", () => {
     expect(html).toContain("/portal/results/sheets");
     expect(html).toContain("/portal/admissions/search");
     expect(reports(false, true)).toContain("/portal/attendance/teachers");
+    // With nothing but students left in the group, it is called Students, not "Students and attendance".
+    expect(html).toContain(">Students</h2>");
+    expect(html).not.toContain("Students and attendance");
+    expect(reports(false, true)).toContain("Students and attendance");
     // Classwork needs the daily log, homework or notes: with all three off its page goes too.
     expect(html).not.toContain("/portal/classwork");
     expect(reports(false, true)).toContain("/portal/classwork");
