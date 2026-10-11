@@ -24,7 +24,7 @@ const config: PublicConfig = {
 };
 
 const as = (role: string, scope: "institution" | "section", section?: string) =>
-  fakeSession({ status: "signedIn", me: { name: "Sita", roles: [{ role, scope, ...(section ? { section } : {}) }] } });
+  fakeSession({ status: "signedIn", me: { id: "user-1", name: "Sita", roles: [{ role, scope, ...(section ? { section } : {}) }] } });
 const inContext = (element: React.ReactNode, session = as("coordinator", "institution")) =>
   renderToStaticMarkup(
     <ConfigContext.Provider value={makeConfigValue("ready", config)}>

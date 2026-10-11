@@ -26,7 +26,7 @@ const configFor = (pack: PackJson, modules: Record<string, boolean> = {}): Publi
 const render = (node: React.ReactNode, pack: PackJson = royal, roles: { role: string; scope: "institution" | "own" | "assigned" }[] = [{ role: "coordinator", scope: "institution" }], modules: Record<string, boolean> = {}) =>
   renderToStaticMarkup(
     <ConfigContext.Provider value={makeConfigValue("ready", configFor(pack, modules))}>
-      <SessionContext.Provider value={fakeSession({ status: "signedIn", me: { name: "Sita", roles } })}>{node}</SessionContext.Provider>
+      <SessionContext.Provider value={fakeSession({ status: "signedIn", me: { id: "user-1", name: "Sita", roles } })}>{node}</SessionContext.Provider>
     </ConfigContext.Provider>,
   );
 

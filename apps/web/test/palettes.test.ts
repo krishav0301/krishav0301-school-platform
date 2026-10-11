@@ -67,7 +67,7 @@ describe("Appearance in Settings", () => {
     createElement(
       ConfigContext.Provider,
       { value: makeConfigValue("ready", config) },
-      createElement(SessionContext.Provider, { value: fakeSession({ status: "signedIn", me: { name: "Asha", roles: [{ role: "student", scope: "own" }] } }) }, createElement(AppearanceCard)),
+      createElement(SessionContext.Provider, { value: fakeSession({ status: "signedIn", me: { id: "user-1", name: "Asha", roles: [{ role: "student", scope: "own" }] } }) }, createElement(AppearanceCard)),
     ),
   );
 

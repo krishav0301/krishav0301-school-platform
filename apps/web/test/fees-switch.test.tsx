@@ -19,7 +19,7 @@ const config = (fees: boolean, attendance = true): PublicConfig => ({
   terms: {},
   theme: royal.theme as PublicConfig["theme"],
 });
-const principal = fakeSession({ status: "signedIn", me: { name: "Principal", roles: [{ role: "admin", scope: "institution" }] } });
+const principal = fakeSession({ status: "signedIn", me: { id: "user-1", name: "Principal", roles: [{ role: "admin", scope: "institution" }] } });
 const reports = (fees: boolean, attendance = true) =>
   renderToStaticMarkup(
     <ConfigContext.Provider value={makeConfigValue("ready", config(fees, attendance))}>

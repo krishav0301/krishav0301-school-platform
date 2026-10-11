@@ -23,7 +23,7 @@ describe("hasSessionHint: reads the hint cookie the server sets at sign-in", () 
 
 describe("settleWithoutHint: a visitor with no hint is signed out at once, with no request to ask", () => {
   const checking: SessionState = { status: "checking", me: null, ended: false };
-  const signedIn: SessionState = { status: "signedIn", me: { name: "Asha", roles: [] }, ended: false };
+  const signedIn: SessionState = { status: "signedIn", me: { id: "user-1", name: "Asha", roles: [] }, ended: false };
   const signedOut: SessionState = { status: "signedOut", me: null, ended: true };
 
   it("no hint while still checking: signed out, with nothing to say about a session having ended", () => {

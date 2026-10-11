@@ -19,7 +19,7 @@ const config: PublicConfig = {
   terms: { "role.student": "Student", "role.teacher": "Teacher", "role.coordinator": "Co-ordinator", "role.accountant": "Accountant", "role.admin": "Admin", "term.terminal": "Terminal", "term.programme": "Programme", "term.level": "Level", "term.section": "Section" },
   theme: royalJson.theme as PublicConfig["theme"],
 };
-const me: Me = { name: "Sita Sharma", roles: [{ role: "coordinator", scope: "institution" }] };
+const me: Me = { id: "user-1", name: "Sita Sharma", roles: [{ role: "coordinator", scope: "institution" }] };
 
 function shell(path: string, options: { signedIn?: boolean; showSignIn?: boolean } = {}) {
   here.path = path;

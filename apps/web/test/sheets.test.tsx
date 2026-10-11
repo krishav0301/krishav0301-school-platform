@@ -328,7 +328,7 @@ describe("the import dialog", () => {
   it("opens on what it will do, the template, the file, and no preview yet", () => {
     const html = renderToStaticMarkup(
       <ConfigContext.Provider value={makeConfigValue("ready", config)}>
-        <SessionContext.Provider value={fakeSession({ status: "signedIn", me: { name: "Asha", roles: [{ role: "coordinator", scope: "institution" }] } })}>
+        <SessionContext.Provider value={fakeSession({ status: "signedIn", me: { id: "user-1", name: "Asha", roles: [{ role: "coordinator", scope: "institution" }] } })}>
           <ImportStudents classId="c1" levelId="l1" className="Science · Grade 11" onDone={() => {}} />
         </SessionContext.Provider>
       </ConfigContext.Provider>,

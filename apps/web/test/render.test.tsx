@@ -58,7 +58,7 @@ function page(element: React.ReactNode, pack: PackJson, session: SessionValue) {
 /** The structure of a page with its words removed: tags and attributes only. */
 const skeleton = (html: string) => html.replace(/>[^<]+</g, "><").replace(/(?:aria-label|aria-labelledby|for|id|href)="[^"]*"/g, "");
 
-const coordinator: Me = { name: "Sita Sharma", roles: [{ role: "coordinator", scope: "institution" }] };
+const coordinator: Me = { id: "user-1", name: "Sita Sharma", roles: [{ role: "coordinator", scope: "institution" }] };
 
 describe("the portal shell", () => {
   const royalHtml = page(<PortalPage />, royal, signedIn(coordinator));
@@ -70,7 +70,7 @@ describe("the portal shell", () => {
       <h1>x</h1>
     </PortalShell>,
     royal,
-    signedIn({ name: "Asha Rai", roles: [{ role: "student", scope: "own" }] }),
+    signedIn({ id: "user-1", name: "Asha Rai", roles: [{ role: "student", scope: "own" }] }),
   );
 
   const withMenu = page(
@@ -128,12 +128,12 @@ describe("the portal shell", () => {
   });
 
   it("shows a section-scoped role with the section's name", () => {
-    const html = page(<PortalPage />, royal, signedIn({ name: "Ram", roles: [{ role: "accountant", scope: "section", section: "bachelors" }] }));
+    const html = page(<PortalPage />, royal, signedIn({ id: "user-1", name: "Ram", roles: [{ role: "accountant", scope: "section", section: "bachelors" }] }));
     expect(html).toContain("Bachelor&#x27;s only");
   });
 
   it("names the build team as Support in the account menu, never Super Admin (D-088: Support sees the Principal's dashboard)", () => {
-    const html = page(<PortalPage />, royal, signedIn({ name: "Ram", roles: [{ role: "super_admin", scope: "institution" }] }));
+    const html = page(<PortalPage />, royal, signedIn({ id: "user-1", name: "Ram", roles: [{ role: "super_admin", scope: "institution" }] }));
     expect(html).toContain("Support");
     expect(html).not.toContain("Super Admin");
   });

@@ -18,7 +18,7 @@ const config = { school: { name: "School" }, sections: [], modules: {}, terms: {
 const inContext = (node: React.ReactNode) =>
   renderToStaticMarkup(
     <ConfigContext.Provider value={makeConfigValue("ready", config)}>
-      <SessionContext.Provider value={fakeSession({ status: "signedIn", me: { name: "Someone", roles: [{ role: "teacher", scope: "assigned" }] } })}>{node}</SessionContext.Provider>
+      <SessionContext.Provider value={fakeSession({ status: "signedIn", me: { id: "user-1", name: "Someone", roles: [{ role: "teacher", scope: "assigned" }] } })}>{node}</SessionContext.Provider>
     </ConfigContext.Provider>,
   );
 

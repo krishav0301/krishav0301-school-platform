@@ -27,7 +27,7 @@ const config: PublicConfig = {
   theme: royal.theme as PublicConfig["theme"],
 };
 
-const as = (role: string, scope: "institution" | "section" | "own" | "assigned" = "institution") => fakeSession({ status: "signedIn", me: { name: "Asha", roles: [{ role, scope }] } });
+const as = (role: string, scope: "institution" | "section" | "own" | "assigned" = "institution") => fakeSession({ status: "signedIn", me: { id: "user-1", name: "Asha", roles: [{ role, scope }] } });
 const inContext = (element: React.ReactNode, session = as("teacher", "assigned")) =>
   renderToStaticMarkup(
     <ConfigContext.Provider value={makeConfigValue("ready", config)}>
