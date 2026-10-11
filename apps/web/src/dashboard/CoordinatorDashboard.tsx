@@ -123,6 +123,17 @@ export function SetupList({ checklist }: { checklist: Checklist }) {
   );
 }
 
+/** Today in Bikram Sambat, from the clock, for a school with neither registers nor a daily log to ask (D-139). Null if it cannot be worked out. */
+async function nepalToday(api: ReturnType<typeof useSession>["api"]): Promise<string | null> {
+  try {
+    const ad = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Kathmandu" }).format(new Date());
+    const { data } = await api.GET("/api/dates/to-bs", { params: { query: { ad } } });
+    return data?.text ?? null;
+  } catch {
+    return null;
+  }
+}
+
 /** The figures and lists under the greeting. */
 export function CoordinatorDayView({ day, extra }: { day: SchoolDay; extra?: ReactNode }) {
   return (
@@ -146,34 +157,37 @@ export function CoordinatorDashboard({ extra }: { extra?: ReactNode } = {}) {
   const { config, term } = useConfig();
   const attendanceOn = config?.modules.attendance === true;
   const teachersOn = config?.modules.teacher_attendance === true;
+  // A school with the daily log switched off (D-139) has no log to ask about: its address answers "not found".
+  const activityOn = config?.modules.activity_log === true;
   const resultsOn = config?.modules.results !== false;
   const [now] = useState(() => new Date());
 
   const loadNow = useCallback(async (): Promise<{ ok: true; data: SchoolDay } | { ok: false; reason: "failed" | "forbidden" }> => {
-    const [queue, checklist, classes, teachers, activity, board] = await Promise.all([
+    const [queue, checklist, classes, teachers, activity, board, clockBs] = await Promise.all([
       loadQueue(api),
       loadChecklist(api),
       attendanceOn ? loadClasses(api) : null,
       teachersOn ? loadTeacherDay(api) : null,
-      loadActivityClasses(api),
+      activityOn ? loadActivityClasses(api) : null,
       resultsOn ? loadBoard(api) : null,
+      attendanceOn || activityOn ? null : nepalToday(api),
     ]);
-    if (!queue.ok || !checklist.ok || (classes && !classes.ok) || (teachers && !teachers.ok) || !activity.ok) return { ok: false, reason: "failed" };
-    const staffed = activity.data.classes.filter((c) => c.expected > 0);
+    if (!queue.ok || !checklist.ok || (classes && !classes.ok) || (teachers && !teachers.ok) || (activity && !activity.ok)) return { ok: false, reason: "failed" };
+    const staffed = activity?.ok ? activity.data.classes.filter((c) => c.expected > 0) : [];
     return {
       ok: true,
       data: {
-        todayBs: classes?.ok ? classes.data.todayBs : activity.data.dateBs,
+        todayBs: classes?.ok ? classes.data.todayBs : activity?.ok ? activity.data.dateBs : clockBs,
         waiting: queue.data.filter((a) => a.status === "pending_review").length,
         registers: classes?.ok ? { marked: classes.data.classes.filter((c) => c.markedToday).length, total: classes.data.classes.length } : null,
         teachersSaved: teachers?.ok && teachers.data.teachers.length > 0 ? teachers.data.marked : null,
-        logs: { complete: staffed.filter((c) => c.written >= c.expected).length, total: staffed.length },
+        logs: activity?.ok ? { complete: staffed.filter((c) => c.written >= c.expected).length, total: staffed.length } : null,
         // The board is a help, not the page: if it cannot be read (no terminal yet), the line is simply left out.
         toVerify: board?.ok ? board.data.classes.flatMap((c) => c.subjects).filter((s) => s.status === "under_review").length : null,
         checklist: checklist.data,
       },
     };
-  }, [api, attendanceOn, teachersOn, resultsOn]);
+  }, [api, attendanceOn, teachersOn, activityOn, resultsOn]);
   const { view, reload } = useLoad<SchoolDay>(loadNow);
 
   if (!me) return null;
