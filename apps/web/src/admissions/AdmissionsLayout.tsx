@@ -22,6 +22,7 @@ export function AdmissionsTabs({ pathname }: { pathname: string }) {
   const tabs = [
     ...(isCoordinator ? [{ href: "/portal/admissions", label: t("admissions.tab.queue") }] : []),
     ...(mayRegister ? [{ href: "/portal/admissions/register", label: t(isCoordinator ? "admissions.tab.walkIn" : "admissions.tab.register") }] : []),
+    ...(isCoordinator ? [{ href: "/portal/admissions/import", label: t("admissions.tab.import") }] : []),
     { href: "/portal/admissions/search", label: t("admissions.tab.search") },
   ];
   if (tabs.length < 2) return null;
