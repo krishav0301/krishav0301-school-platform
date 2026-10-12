@@ -1,7 +1,6 @@
 "use client";
 
 import { ChevronDown, Maximize2, Minus, Plus, RotateCcw } from "lucide-react";
-import Link from "next/link";
 import { useCallback, useMemo, useRef, useState } from "react";
 
 import { t } from "@/i18n/messages";
@@ -59,7 +58,7 @@ export function MetaLine({ parts }: { parts: readonly string[] }) {
 
 /**
  * One box of the chart: a tinted card with the kind's icon, its kind, name and counts; pressing it shows its details, its
- * arrow opens or closes what is inside, and its three dots hold what else can be done. A dashed box leads to adding one.
+ * arrow opens or closes what is inside, and its three dots hold what else can be done.
  */
 export function FlowNode({
   node,
@@ -81,15 +80,7 @@ export function FlowNode({
   onToggle: () => void;
 }) {
   const Icon = ICONS[node.kind];
-  const title = nodeTitle(node, words);
-  if (node.payload.kind === "add") {
-    return (
-      <Link href={node.payload.href} className={styles.addNode} data-node-id={node.id}>
-        <Icon aria-hidden />
-        {title}
-      </Link>
-    );
-  }
+  const title = nodeTitle(node);
   const status = node.payload.kind === "term" ? node.payload.term.status : null;
   const names = node.payload.kind === "subjects" ? node.payload.level.subjects.map((s) => s.name) : [];
   const chips = subjectChips(names);

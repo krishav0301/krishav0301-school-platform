@@ -22,6 +22,8 @@ export interface Reach {
 
 const GO = {
   programmes: "/portal/setup/programmes",
+  addCourse: "/portal/setup/programmes?add=1",
+  classes: "/portal/classes",
   exam: "/portal/setup/terminals",
   curriculum: "/portal/setup/curriculum",
   teaching: "/portal/setup/teaching",
@@ -46,7 +48,7 @@ export function StructureDetail({ node, words, reach, termHref, canFocus, onFocu
   const p = node.payload;
   return (
     <SidePanel
-      title={nodeTitle(node, words)}
+      title={nodeTitle(node)}
       subtitle={`${kindWord(node.kind, words)} · ${metaLine(node)}`}
       lead={
         <span className={styles.nodeIcon} data-kind={node.kind} aria-hidden>
@@ -97,6 +99,7 @@ export function StructureDetail({ node, words, reach, termHref, canFocus, onFocu
           {reach.programmes ? (
             <div className={styles.actions}>
               <Action href={GO.programmes}>{t("structure.action.programmes")}</Action>
+              <Action href={GO.addCourse}>{t("structure.add", { kind: words.programme })}</Action>
             </div>
           ) : null}
         </>
@@ -144,6 +147,7 @@ export function StructureDetail({ node, words, reach, termHref, canFocus, onFocu
           {reach.structure ? (
             <div className={styles.actions}>
               <Action href={GO.curriculum}>{t("structure.action.curriculum")}</Action>
+              <Action href={GO.classes}>{t("structure.add", { kind: words.classSection })}</Action>
             </div>
           ) : null}
         </>

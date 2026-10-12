@@ -183,3 +183,22 @@ describe("a box's details", () => {
     expect(level).toContain("Morning");
   });
 });
+
+describe("what the panel offers to add (D-157)", () => {
+  const panel = (id: string, role: string) =>
+    render(<StructureDetail node={findNode(tree, id)!} words={words} reach={{ structure: role === "coordinator", programmes: role === "admin" }} termHref="/portal/setup" canFocus={false} onFocus={() => {}} onClose={() => {}} />, role);
+
+  it("a wing offers to add a course to the Principal, and a class offers to add a section to the Co-ordinator, in the school's words", () => {
+    expect(panel("wing:plus2", "admin")).toContain('href="/portal/setup/programmes?add=1"');
+    expect(panel("wing:plus2", "admin")).toContain("Add Course");
+    expect(panel("wing:plus2", "coordinator")).not.toContain("add=1");
+    expect(panel("level:l1", "coordinator")).toContain("Add Section");
+    expect(panel("level:l1", "admin")).not.toContain("Add Section");
+  });
+
+  it("the chart has no empty box to press: every box has a name", () => {
+    const html = render(<StructureFlowView root={tree} open={openingPath(tree, "level:l1")} selectedId={null} words={words} actionsFor={() => []} onSelect={() => {}} onToggle={() => {}} />);
+    expect(html).not.toContain("Add Course");
+    expect(html).not.toMatch(/border: ?1.5px dashed/);
+  });
+});

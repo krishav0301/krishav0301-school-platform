@@ -64,11 +64,7 @@ export function StructureExplorer({ map, termHref }: { map: SetupMap; termHref: 
   const term = map.terms.find((x) => x.id === termChoice) ?? map.terms[0]!;
   const roles = me?.roles ?? [];
   const reach = { structure: canManageStructure(roles), programmes: canManageProgrammes(roles) };
-  // A dashed "add" box leads to the screen that adds one, and is drawn only for a person who may.
-  const tree = useMemo(
-    () => buildTree(term, t("setup.map.unnamedSection"), { ...(reach.programmes ? { course: "/portal/setup/programmes?add=1" } : {}), ...(reach.structure ? { section: "/portal/classes" } : {}) }),
-    [term, reach.programmes, reach.structure],
-  );
+  const tree = useMemo(() => buildTree(term, t("setup.map.unnamedSection")), [term]);
   const [viewChoice, setViewChoice] = useState<View>("flow");
   const view: View = narrow ? "list" : viewChoice;
   const [open, setOpen] = useState<ReadonlySet<string>>(() => new Set([tree.id]));
@@ -115,7 +111,6 @@ export function StructureExplorer({ map, termHref }: { map: SetupMap; termHref: 
 
   // What a box's three dots offer: its details, the focus on a branch, and the class and its students for a section.
   const actionsFor = (node: StructNode): MenuAction[] => {
-    if (node.kind === "add") return [];
     const list: MenuAction[] = [{ key: "details", label: t("structure.menu.details"), onSelect: () => select(node.id) }];
     if (node.kind === "wing" || node.kind === "course" || node.kind === "level") list.push({ key: "focus", label: t("structure.focus"), onSelect: () => focusOn(node.id) });
     if (node.payload.kind === "section") {
@@ -203,10 +198,10 @@ export function StructureExplorer({ map, termHref }: { map: SetupMap; termHref: 
             <Fragment key={n.id}>
               <li>
                 {i === here.length - 1 ? (
-                  <span aria-current="location">{nodeTitle(n, words)}</span>
+                  <span aria-current="location">{nodeTitle(n)}</span>
                 ) : (
                   <button type="button" className={styles.crumb} onClick={() => crumb(n.id)}>
-                    {nodeTitle(n, words)}
+                    {nodeTitle(n)}
                   </button>
                 )}
               </li>
@@ -230,7 +225,7 @@ export function StructureExplorer({ map, termHref }: { map: SetupMap; termHref: 
         <StructureListView root={root} open={open} selectedId={selectedId} words={words} onSelect={select} onToggle={toggle} />
       )}
 
-      {detailOpen && selected && selected.kind !== "add" ? (
+      {detailOpen && selected ? (
         <StructureDetail
           key={selected.id}
           node={selected}

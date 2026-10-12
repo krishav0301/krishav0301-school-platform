@@ -1,4 +1,4 @@
-import { BookOpen, Building2, CalendarRange, GraduationCap, Library, Plus, Users, type LucideIcon } from "lucide-react";
+import { BookOpen, Building2, CalendarRange, GraduationCap, Library, Users, type LucideIcon } from "lucide-react";
 
 import { t } from "@/i18n/messages";
 
@@ -8,7 +8,7 @@ import type { NodeKind, StructNode } from "./model";
 export type Words = ReturnType<typeof termWords>;
 
 /** One small, meaningful icon for each kind of box. */
-export const ICONS: Record<NodeKind, LucideIcon> = { term: CalendarRange, wing: Building2, course: BookOpen, level: GraduationCap, subjects: Library, section: Users, add: Plus };
+export const ICONS: Record<NodeKind, LucideIcon> = { term: CalendarRange, wing: Building2, course: BookOpen, level: GraduationCap, subjects: Library, section: Users };
 
 const many = (n: number, one: Parameters<typeof t>[0], more: Parameters<typeof t>[0]) => t(n === 1 ? one : more, { n });
 
@@ -27,15 +27,12 @@ export function kindWord(kind: NodeKind, words: Words): string {
       return t("setup.map.subjects");
     case "section":
       return words.classSection;
-    case "add":
-      return "";
   }
 }
 
-/** A box's name: its own, "Subjects" for the subjects, and "Add course" for a dashed add box. */
-export function nodeTitle(node: StructNode, words: Words): string {
+/** A box's name: its own, and "Subjects" for the subjects. */
+export function nodeTitle(node: StructNode): string {
   if (node.kind === "subjects") return t("setup.map.subjects");
-  if (node.payload.kind === "add") return t("structure.add", { kind: kindWord(node.payload.what, words) });
   return node.name;
 }
 
@@ -65,8 +62,6 @@ export function metaParts(node: StructNode): string[] {
       return node.payload.kind === "subjects" ? [many(node.payload.level.subjects.length, "structure.count.subjectsOne", "structure.count.subjectsMany")] : [];
     case "section":
       return node.payload.kind === "section" ? [students, node.payload.section.classTeacher ? t("setup.map.classTeacher", { name: node.payload.section.classTeacher }) : t("setup.map.noClassTeacher")] : [];
-    case "add":
-      return [];
   }
 }
 

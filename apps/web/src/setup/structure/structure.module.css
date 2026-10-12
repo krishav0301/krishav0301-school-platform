@@ -121,9 +121,7 @@
 }
 
 .settings:focus-visible,
-.action:focus-visible,
-.addNode:focus-visible,
-.rowAdd:focus-visible {
+.action:focus-visible {
   outline: var(--focus-ring);
   outline-offset: 2px;
 }
@@ -245,7 +243,7 @@
   padding: 0 var(--space-1);
   border: 0;
   background: transparent;
-  color: var(--color-primary-text, var(--color-primary));
+  color: var(--color-primary);
   font: inherit;
   text-decoration: underline;
   cursor: pointer;
@@ -615,41 +613,6 @@
   }
 }
 
-/* A dashed box at the end of a branch: it goes to where one is added. */
-.addNode,
-.rowAdd {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: var(--space-2);
-  color: var(--color-primary-text, var(--color-primary));
-  text-decoration: none;
-}
-
-.addNode {
-  height: 100%;
-  border: 1.5px dashed color-mix(in srgb, var(--color-primary) 45%, var(--color-border));
-  border-radius: var(--radius-card);
-  background: color-mix(in srgb, var(--color-primary) 3%, var(--color-surface));
-}
-
-.addNode:hover,
-.rowAdd:hover {
-  background: color-mix(in srgb, var(--color-primary) 8%, var(--color-surface));
-}
-
-.addNode svg,
-.rowAdd svg {
-  width: 1.125rem;
-  height: 1.125rem;
-}
-
-.rowAdd {
-  justify-content: flex-start;
-  flex: 1;
-  min-height: var(--control-height);
-}
-
 /* --- The list ---------------------------------------------------------------------------------------------------- */
 
 .tree,
@@ -730,7 +693,7 @@
   border: 1px solid var(--color-border);
   border-radius: var(--radius-control);
   background: var(--color-surface);
-  color: var(--color-primary-text, var(--color-primary));
+  color: var(--color-primary);
   text-decoration: none;
 }
 
