@@ -191,6 +191,14 @@ describe("the public shell and sign-in page", () => {
     expect(html.match(/type="submit"/g)).toHaveLength(1);
   });
 
+  it("shows the students' picture, as a decorative image of a fixed size that is loaded lazily", () => {
+    const img = html.match(/<img[^>]*sign-in-students.webp[^>]*>/)![0];
+    expect(img).toContain('alt=""');
+    expect(img).toContain('width="800"');
+    expect(img).toContain('height="614"');
+    expect(img).toContain('loading="lazy"');
+  });
+
   it("offers sign-in only: no way to create an account, and no choice of role", () => {
     expect(html.match(/sign ?up|register|create (an )?account|new account|join/i)).toBeNull();
     expect(html).not.toMatch(/\b(student|teacher|parent)\b.*<select|<select/i);

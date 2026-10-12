@@ -19,7 +19,6 @@ const NewPasswordStep = dynamic(() => import("@/session/NewPasswordStep").then((
 const CodeStep = dynamic(() => import("@/two-factor/steps").then((m) => m.CodeStep), { ssr: false });
 const SetupStep = dynamic(() => import("@/two-factor/steps").then((m) => m.SetupStep), { ssr: false });
 const RecoveryCodesStep = dynamic(() => import("@/two-factor/steps").then((m) => m.RecoveryCodesStep), { ssr: false });
-const StudentsArt = dynamic(() => import("./SignInArt").then((m) => m.StudentsArt), { ssr: false });
 const BookCapArt = dynamic(() => import("./SignInArt").then((m) => m.BookCapArt), { ssr: false });
 
 const FAILURE_MESSAGE: Record<Extract<SignInResult, { ok: false }>["reason"], MessageKey> = {
@@ -250,7 +249,10 @@ export function SignInFlow() {
           </Link>
         </p>
         <p className={styles.brandLine}>{t("signIn.brandLine")}</p>
-        <StudentsArt className={styles.art} />
+        {/* Drawn for the school: two students in uniform. Decorative, so no text; the size is given so nothing moves when it loads, and it is not fetched on a phone, where it is hidden. */}
+        {/* The pictures are static files from the site itself, already sized (D-126), so the image component adds nothing. */}
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src="/illustrations/sign-in-students.webp" width={800} height={614} alt="" className={styles.art} loading="lazy" decoding="async" />
       </div>
       <div className={styles.formSide}>{form}</div>
     </div>
