@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from "vitest";
 
 import ApprovalsPage from "@/app/portal/approvals/page";
 import { ApprovalsList, DetailBody, InboxScreen } from "@/approvals/InboxScreen";
-import type { ApprovalSummary, MyApproval } from "@/approvals/model";
+import { kindsFor, type ApprovalSummary, type MyApproval } from "@/approvals/model";
 import { RequestsView } from "@/approvals/RequestsPanel";
 import { ContentList } from "@/content/ContentList";
 import { ConfigContext, makeConfigValue, type PublicConfig } from "@/config/ConfigProvider";
@@ -103,8 +103,10 @@ describe("the approvals inbox (D-102)", () => {
     expect(html).toMatch(/role="status"[^>]*aria-busy="true"/);
     expect(html).toContain(">Approvals</h1>");
     expect(html).toContain("You cannot approve your own request.");
-    expect(html).toContain('aria-pressed="true"'); // All, chosen
     expect(html).toContain(">Newest first<");
+    // This school collects no fees (modules: {}), so there are no fee kinds to filter by, and one kind needs no filter.
+    expect(html).not.toContain("Fee structure");
+    expect(html).not.toContain('aria-pressed="true"');
   });
 
   it("the page has the portal around it", () => {
@@ -192,5 +194,27 @@ describe("the content list's role-based actions", () => {
     const html = inContext(<ContentList />, as("admin"));
     expect(html).toMatch(/role="status"[^>]*aria-busy="true"/);
     expect(html).toContain(">Website Content</h1>");
+  });
+});
+
+describe("the filters follow whether the school collects fees (D-137)", () => {
+  const withFees = (element: React.ReactNode) =>
+    renderToStaticMarkup(
+      <ConfigContext.Provider value={makeConfigValue("ready", { ...config, modules: { fees: true } })}>
+        <SessionContext.Provider value={as("admin")}>{element}</SessionContext.Provider>
+      </ConfigContext.Provider>,
+    );
+
+  it("a school with fees on sees All and each of the five kinds", () => {
+    const html = withFees(<InboxScreen />);
+    for (const label of ["Fee structure", "Discount", "Reversal", "Refund", "Website"]) expect(html).toContain(label);
+    expect(html).toContain('aria-pressed="true"');
+  });
+
+  it("a school with fees off offers the website's requests only, and no filter bar", () => {
+    expect(kindsFor(false)).toEqual(["website_content"]);
+    expect(kindsFor(true)).toHaveLength(5);
+    const html = inContext(<InboxScreen />);
+    for (const label of ["Fee structure", "Discount", "Reversal", "Refund"]) expect(html).not.toContain(label);
   });
 });
