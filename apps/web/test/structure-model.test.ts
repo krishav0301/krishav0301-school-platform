@@ -141,24 +141,16 @@ function allIds(): string[] {
   return ids;
 }
 
-describe("the dashed add boxes and the size of each box", () => {
-  it("draws an add box at the end of a wing's courses and of a class's sections only where a link is given", () => {
-    const withAdd = buildTree(term, "Section", { course: "/portal/setup/programmes?add=1", section: "/portal/classes" });
-    expect(findNode(withAdd, "wing:school")!.children.map((c) => c.kind)).toEqual(["course", "course", "add"]);
-    expect(findNode(withAdd, "level:l9")!.children.map((c) => c.kind)).toEqual(["subjects", "section", "section", "add"]);
-    expect(findNode(withAdd, "wing:school")!.children.at(-1)!.payload).toMatchObject({ kind: "add", href: "/portal/setup/programmes?add=1", what: "course" });
-    expect(allKinds(tree)).not.toContain("add"); // no link, no box
+describe("the size of each box", () => {
+  it("draws only the school's own boxes: no empty box to press at the end of a branch", () => {
+    const kinds = (n: { kind: string; children: unknown[] }): string[] => [n.kind, ...(n.children as { kind: string; children: unknown[] }[]).flatMap(kinds)];
+    expect(new Set(kinds(tree))).toEqual(new Set(["term", "wing", "course", "level", "subjects", "section"]));
+    const everything = layoutTree(tree, allIdsOf(tree));
+    expect(everything.boxes.size).toBe(kinds(tree).length);
   });
 
-  it("an add box adds nothing to the counts and is never found by a search", () => {
-    const withAdd = buildTree(term, "Section", { course: "/x", section: "/y" });
-    expect(withAdd.counts).toEqual(tree.counts);
-    expect(searchTree(withAdd, "add")).toEqual([]);
-  });
-
-  it("each kind has one size, every box of a row sits at the same height, and rows never overlap", () => {
-    const withAdd = buildTree(term, "Section", { course: "/x", section: "/y" });
-    const l = layoutTree(withAdd, openingPath(withAdd, "level:l9"));
+  it("each kind has one size, rows are as tall as their tallest box, and rows never overlap", () => {
+    const l = layoutTree(tree, openingPath(tree, "level:l9"));
     const rows = new Map<number, number[]>();
     for (const b of l.boxes.values()) rows.set(b.y, [...(rows.get(b.y) ?? []), b.h]);
     const tops = [...rows.keys()].sort((a, b) => a - b);
@@ -166,9 +158,12 @@ describe("the dashed add boxes and the size of each box", () => {
       if (i > 0) expect(top).toBeGreaterThanOrEqual(tops[i - 1]! + Math.max(...rows.get(tops[i - 1]!)!));
     });
     expect(l.height).toBeGreaterThan(Math.max(...[...l.boxes.values()].map((b) => b.y + b.h)));
+    expect(sizeOf(findNode(tree, "wing:school")!).w).toBeGreaterThanOrEqual(300);
   });
 });
 
-function allKinds(root: { kind: string; children: unknown[] }): string[] {
-  return [root.kind, ...(root.children as { kind: string; children: unknown[] }[]).flatMap(allKinds)];
+function allIdsOf(root: { id: string; children: unknown[] }): Set<string> {
+  const ids = new Set<string>([root.id]);
+  for (const c of root.children as { id: string; children: unknown[] }[]) allIdsOf(c).forEach((x) => ids.add(x));
+  return ids;
 }

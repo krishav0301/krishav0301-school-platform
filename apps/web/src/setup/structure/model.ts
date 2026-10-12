@@ -11,7 +11,7 @@ type Course = Wing["departments"][number];
 type Level = Course["levels"][number];
 type Section = Level["sections"][number];
 
-export type NodeKind = "term" | "wing" | "course" | "level" | "subjects" | "section" | "add";
+export type NodeKind = "term" | "wing" | "course" | "level" | "subjects" | "section";
 
 export interface Counts {
   courses: number;
@@ -26,15 +26,7 @@ export type Payload =
   | { kind: "course"; course: Course }
   | { kind: "level"; level: Level }
   | { kind: "subjects"; level: Level }
-  | { kind: "section"; section: Section; level: Level }
-  /** A dashed "add" box at the end of a branch: it goes to the screen that adds one. Drawn only where that is allowed. */
-  | { kind: "add"; href: string; what: "course" | "section" };
-
-/** Where the dashed add boxes lead; a missing one is not drawn. */
-export interface AddLinks {
-  course?: string;
-  section?: string;
-}
+  | { kind: "section"; section: Section; level: Level };
 
 export interface StructNode {
   id: string;
@@ -52,7 +44,7 @@ const addCounts = (a: Counts, b: Counts): Counts => ({ courses: a.courses + b.co
 export const termId = (id: string) => `term:${id}`;
 
 /** The whole tree of one term. Every count is added up from the sections below it. */
-export function buildTree(term: Term, unnamedSection = "Section", add: AddLinks = {}): StructNode {
+export function buildTree(term: Term, unnamedSection = "Section"): StructNode {
   const root = termId(term.id);
   const sectionNode = (s: Section, level: Level, parentId: string): StructNode => ({
     id: `section:${s.id}`,
@@ -68,14 +60,13 @@ export function buildTree(term: Term, unnamedSection = "Section", add: AddLinks 
     const sections = level.sections.map((s) => sectionNode(s, level, id));
     const subjects: StructNode[] =
       level.subjects.length === 0 ? [] : [{ id: `subjects:${level.id}`, kind: "subjects", name: "", parentId: id, counts: none, children: [], payload: { kind: "subjects", level } }];
-    const addSection: StructNode[] = add.section ? [{ id: `add:${id}`, kind: "add", name: "", parentId: id, counts: none, children: [], payload: { kind: "add", href: add.section, what: "section" } }] : [];
     return {
       id,
       kind: "level",
       name: level.name,
       parentId,
       counts: sections.reduce((sum, s) => addCounts(sum, s.counts), { ...none, classes: 1 }),
-      children: [...subjects, ...sections, ...addSection],
+      children: [...subjects, ...sections],
       payload: { kind: "level", level },
     };
   };
@@ -87,8 +78,7 @@ export function buildTree(term: Term, unnamedSection = "Section", add: AddLinks 
   const wingNode = (wing: Wing): StructNode => {
     const id = `wing:${wing.key}`;
     const courses = wing.departments.map((d) => courseNode(d, id));
-    const addCourse: StructNode[] = add.course ? [{ id: `add:${id}`, kind: "add", name: "", parentId: id, counts: none, children: [], payload: { kind: "add", href: add.course, what: "course" } }] : [];
-    return { id, kind: "wing", name: wing.name, parentId: root, counts: courses.reduce((sum, c) => addCounts(sum, c.counts), { ...none }), children: [...courses, ...addCourse], payload: { kind: "wing", wing } };
+    return { id, kind: "wing", name: wing.name, parentId: root, counts: courses.reduce((sum, c) => addCounts(sum, c.counts), { ...none }), children: courses, payload: { kind: "wing", wing } };
   };
   const wings = term.wings.map(wingNode);
   return { id: root, kind: "term", name: term.label, parentId: null, counts: wings.reduce((sum, w) => addCounts(sum, w.counts), { ...none }), children: wings, payload: { kind: "term", term } };
@@ -140,7 +130,7 @@ export function searchTree(root: StructNode, query: string, limit = 12): Hit[] {
       .filter((n) => n.kind !== "term")
       .map((n) => n.name)
       .join(" / ");
-    if (node.kind !== "subjects" && node.kind !== "add" && node.name.toLowerCase().includes(q)) hits.push({ id: node.id, label: node.name, kind: node.kind, place });
+    if (node.kind !== "subjects" && node.name.toLowerCase().includes(q)) hits.push({ id: node.id, label: node.name, kind: node.kind, place });
     if (node.kind === "subjects" && node.payload.kind === "subjects") {
       for (const s of node.payload.level.subjects) if (s.name.toLowerCase().includes(q)) hits.push({ id: node.id, label: s.name, kind: "subjects", place });
     }
@@ -177,7 +167,6 @@ const SIZES: Record<NodeKind, { w: number; h: number }> = {
   level: { w: 280, h: 120 },
   subjects: { w: 340, h: 156 },
   section: { w: 320, h: 120 },
-  add: { w: 220, h: 72 },
 };
 export const NODE_W = SIZES.level.w;
 export const sizeOf = (node: StructNode): { w: number; h: number } => SIZES[node.kind];
