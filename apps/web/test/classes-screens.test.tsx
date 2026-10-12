@@ -132,6 +132,36 @@ describe("inside a class", () => {
   });
 });
 
+// The PM, 2026-10-12: the class page's Results tab is grouped by exam, in the design of the Classes page.
+describe("the class's Results tab, grouped by exam", () => {
+  const exams = [
+    { id: "t1", name: "First Term", published: true },
+    { id: "t2", name: "Second Terminal", published: true },
+    { id: "t3", name: "Third Terminal", published: false },
+  ];
+  const teacher = { seesAll: false, attendance: false, isClassTeacher: false, staff: false };
+
+  it("a subject teacher sees a card for each exam, the first open with their subjects, the rest closed", () => {
+    const html = inContext(<ClassResults hub={hub({ viewer: teacher, terminals: exams, mySubjects: [subject("o2", "Chemistry"), subject("o3", "Physics")] })} />);
+    expect(html.match(/<h2[^>]*>(First Term|Second Terminal|Third Terminal)</g)).toHaveLength(3);
+    expect(html.match(/aria-expanded="true"/g)).toHaveLength(1);
+    expect(html.match(/aria-expanded="false"/g)).toHaveLength(2);
+    expect(html).toContain('aria-label="Hide First Term"');
+    expect(html).toContain('aria-label="Show Second Terminal"');
+    // The open card holds each of their subjects once, linked to this exam's sheet; the exam is the card's, not a column.
+    expect(html).toContain('href="/portal/results/sheet?class=c1&amp;subject=o2&amp;terminal=t1"');
+    expect(html).toContain('href="/portal/results/sheet?class=c1&amp;subject=o3&amp;terminal=t1"');
+    expect(html).not.toContain("terminal=t2");
+    expect(html).not.toContain(">Exam<");
+  });
+
+  it("whoever sees the whole class gets a card for each published exam only", () => {
+    const html = inContext(<ClassResults hub={hub({ terminals: exams })} />);
+    expect(html.match(/<h2[^>]*>(First Term|Second Terminal|Third Terminal)</g)).toEqual(expect.arrayContaining([expect.stringContaining("First Term"), expect.stringContaining("Second Terminal")]));
+    expect(html).not.toContain("Third Terminal");
+  });
+});
+
 // The PM, 2026-10-07: the Co-ordinator's Setup > Classes tab is the same page the Principal reads.
 describe("Setup's Classes tab", () => {
   const read = (...parts: string[]) => readFileSync(join(import.meta.dirname, "..", "src", ...parts), "utf8");
