@@ -74,6 +74,9 @@ describe("the sub-menu", () => {
     const order = [...html.matchAll(/href="(\/portal\/setup[^"]*)"/g)].map((m) => m[1]);
     expect(order).toEqual(["/portal/setup/map", "/portal/setup/programmes", "/portal/setup", "/portal/setup/subjects", "/portal/setup/classes", "/portal/setup/curriculum", "/portal/setup/teaching", "/portal/setup/terminals", "/portal/setup/promotion"]);
     expect(html).toMatch(/aria-current="page"[^>]*>Teaching</);
+    // The Principal sees the overview and Programs only (D-150).
+    const principal = inContext(<SetupTabs pathname="/portal/setup/map" principal />);
+    expect([...principal.matchAll(/href="(\/portal\/setup[^"]*)"/g)].map((m) => m[1])).toEqual(["/portal/setup/map", "/portal/setup/programmes"]);
   });
 
   it("a trailing slash in the address still marks the right one", () => {

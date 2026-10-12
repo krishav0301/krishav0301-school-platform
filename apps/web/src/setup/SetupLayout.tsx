@@ -13,7 +13,7 @@ import { termWords } from "./model";
 import styles from "./setup.module.css";
 
 /** The setup screens, in the order the PM chose (D-130, and the overview first, D-150): the overview, departments, terms, subjects, classes, curriculum, teaching, exam pattern, move students. Exactly one is marked current; a trailing slash in the address makes no difference. */
-export function SetupTabs({ pathname }: { pathname: string }) {
+export function SetupTabs({ pathname, principal = false }: { pathname: string; principal?: boolean }) {
   const { term } = useConfig();
   const words = termWords(term);
   const here = pathname.length > 1 ? pathname.replace(/\/$/, "") : pathname;
@@ -28,11 +28,13 @@ export function SetupTabs({ pathname }: { pathname: string }) {
     { href: "/portal/setup/terminals", label: t("setup.tab.terminals", words) },
     { href: "/portal/setup/promotion", label: t("setup.tab.promotion") },
   ];
+  // The Principal's Setup is the overview and Programs (D-087, D-091, D-150): the rest they read from Reports.
+  const shown = principal ? tabs.filter((tab) => tab.href === "/portal/setup/map" || tab.href === "/portal/setup/programmes") : tabs;
 
   return (
     <nav aria-label={t("setup.tabs")}>
       <ul className={styles.tabs}>
-        {tabs.map((tab) => (
+        {shown.map((tab) => (
           <li key={tab.href}>
             <Link href={tab.href} className={styles.tab} aria-current={here === tab.href ? "page" : undefined}>
               {tab.label}
@@ -48,12 +50,12 @@ export function SetupTabs({ pathname }: { pathname: string }) {
 export function SetupLayout({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const { me } = useSession();
-  // The Principal (Admin) manages programmes only (D-087); the rest of setup they read from Reports (D-091), so no tabs.
+  // The Principal (Admin) manages programmes only (D-087); the rest of setup they read from Reports (D-091); their tabs are the overview and Programs.
   const programmesOnly = me?.roles.some((r) => r.role === "admin") && !me.roles.some((r) => r.role === "coordinator" || r.role === "super_admin");
   return (
     <PortalShell>
       <div className={styles.page}>
-        {programmesOnly ? null : <SetupTabs pathname={pathname} />}
+        <SetupTabs pathname={pathname} principal={programmesOnly} />
         {children}
       </div>
     </PortalShell>

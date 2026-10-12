@@ -43,7 +43,7 @@ export const NAV_ITEMS: readonly NavItem[] = [
   // drafts too, and sends a draft for approval instead of publishing it (D-061).
   { id: "content", labelKey: "nav.content", href: "/portal/content", roles: ["coordinator", "admin", "super_admin"], rarely: true, icon: "website" },
   // D-087/D-088: programmes are the Admin's alone, so the Admin's Setup is just "Programs".
-  { id: "programs", labelKey: "nav.programs", href: "/portal/setup/programmes", roles: ["admin"], rarely: true, icon: "programs" },
+  { id: "programs", labelKey: "nav.programs", href: "/portal/setup", opensAt: "/portal/setup/map", roles: ["admin"], rarely: true, icon: "programs" },
   // D-110: the Principal makes, opens and closes academic terms; the Co-ordinator reads them in Setup.
   { id: "terms", labelKey: "nav.terms", href: "/portal/terms", roles: ["admin", "super_admin"], rarely: true, icon: "terms" },
   // Phase 3: the academic structure. The Co-ordinator sets it up; the Admin can look (the API decides, D-025).
