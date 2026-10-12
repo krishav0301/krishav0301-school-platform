@@ -12,12 +12,13 @@ import { PortalShell } from "@/shell/PortalShell";
 import { termWords } from "./model";
 import styles from "./setup.module.css";
 
-/** The setup screens, in the order the PM chose (D-130): departments, terms, subjects, classes, curriculum, teaching, exam pattern, move students. Exactly one is marked current; a trailing slash in the address makes no difference. */
+/** The setup screens, in the order the PM chose (D-130, and the overview first, D-150): the overview, departments, terms, subjects, classes, curriculum, teaching, exam pattern, move students. Exactly one is marked current; a trailing slash in the address makes no difference. */
 export function SetupTabs({ pathname }: { pathname: string }) {
   const { term } = useConfig();
   const words = termWords(term);
   const here = pathname.length > 1 ? pathname.replace(/\/$/, "") : pathname;
   const tabs = [
+    { href: "/portal/setup/map", label: t("setup.tab.map") },
     { href: "/portal/setup/programmes", label: t("setup.tab.programmes", words) },
     { href: "/portal/setup", label: t("setup.tab.years") },
     { href: "/portal/setup/subjects", label: t("setup.tab.subjects") },
@@ -26,7 +27,6 @@ export function SetupTabs({ pathname }: { pathname: string }) {
     { href: "/portal/setup/teaching", label: t("setup.tab.teaching") },
     { href: "/portal/setup/terminals", label: t("setup.tab.terminals", words) },
     { href: "/portal/setup/promotion", label: t("setup.tab.promotion") },
-    { href: "/portal/setup/map", label: t("setup.tab.map") },
   ];
 
   return (

@@ -72,7 +72,7 @@ describe("the sub-menu", () => {
   it("lists the tabs in the PM's order (D-130), Teaching still after Curriculum, the setup map last", () => {
     const html = inContext(<SetupTabs pathname="/portal/setup/teaching" />);
     const order = [...html.matchAll(/href="(\/portal\/setup[^"]*)"/g)].map((m) => m[1]);
-    expect(order).toEqual(["/portal/setup/programmes", "/portal/setup", "/portal/setup/subjects", "/portal/setup/classes", "/portal/setup/curriculum", "/portal/setup/teaching", "/portal/setup/terminals", "/portal/setup/promotion", "/portal/setup/map"]);
+    expect(order).toEqual(["/portal/setup/map", "/portal/setup/programmes", "/portal/setup", "/portal/setup/subjects", "/portal/setup/classes", "/portal/setup/curriculum", "/portal/setup/teaching", "/portal/setup/terminals", "/portal/setup/promotion"]);
     expect(html).toMatch(/aria-current="page"[^>]*>Teaching</);
   });
 

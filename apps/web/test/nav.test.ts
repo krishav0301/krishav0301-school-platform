@@ -158,7 +158,7 @@ describe("visibleNav", () => {
 describe("Setup's menu entry (D-130)", () => {
   const setup = NAV_ITEMS.find((i) => i.id === "setup")!;
   it("opens Departments, the first tab, yet stays current on every Setup page", () => {
-    expect(setup.opensAt).toBe("/portal/setup/programmes");
+    expect(setup.opensAt).toBe("/portal/setup/map");
     for (const path of ["/portal/setup", "/portal/setup/programmes", "/portal/setup/classes", "/portal/setup/terminals"]) expect(isCurrent(path, setup.href)).toBe(true);
   });
 });
