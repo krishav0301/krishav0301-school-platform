@@ -182,11 +182,30 @@ describe("the public shell and sign-in page", () => {
     expect(password.toLowerCase()).toContain('autocomplete="current-password"');
   });
 
-  it("has one heading that names the school, one submit button, and says where the login comes from", () => {
+  it("has one heading, \"Sign in\", with the school's name beside it, and one submit button (D-165)", () => {
     expect(html.match(/<h1/g)).toHaveLength(1);
-    expect(html).toMatch(/<h1[^>]*>Sign in to Royal Softech College<\/h1>/);
+    expect(html).toMatch(/<h1[^>]*>Sign in<\/h1>/);
+    expect(html).toContain("Royal Softech College"); // the school, on the left
+    expect(html).toContain("Sign in to access your school portal.");
+    expect(html).toContain("Welcome back! Please sign in to continue.");
     expect(html.match(/type="submit"/g)).toHaveLength(1);
-    expect(html).toContain("Use the email and password your school gave you.");
+  });
+
+  it("offers sign-in only: no way to create an account, and no choice of role", () => {
+    expect(html.match(/sign ?up|register|create (an )?account|new account|join/i)).toBeNull();
+    expect(html).not.toMatch(/\b(student|teacher|parent)\b.*<select|<select/i);
+    expect(html).not.toContain('href="/apply"');
+  });
+
+  it("has the placeholders, the icons, Remember me, a Forgot password? link and a Sign in button with an arrow", () => {
+    expect(html).toContain('placeholder="Enter your school email"');
+    expect(html).toContain('placeholder="Enter your password"');
+    expect(html).toContain("lucide-mail");
+    expect(html).toContain("lucide-lock");
+    expect(html).toContain("lucide-arrow-right");
+    expect(html).toMatch(/<input[^>]*type="checkbox"[^>]*>/);
+    expect(html).toContain("Remember me");
+    expect(html).toMatch(/<a[^>]*href="\/reset-password"[^>]*>Forgot password\?<\/a>/);
   });
 
   it("has exactly one prominent button per view: the form's, with no second Sign in in the header", () => {
@@ -200,11 +219,10 @@ describe("the public shell and sign-in page", () => {
   });
 
   it("the password can be shown or hidden with a real button that reports its state", () => {
-    const toggle = html.match(/<button[^>]*aria-pressed[^>]*>[^<]*<\/button>/)![0];
+    const toggle = html.match(/<button[^>]*aria-pressed[^>]*>/)![0];
     expect(toggle).toContain('type="button"');
     expect(toggle).toContain('aria-pressed="false"');
-    expect(toggle).toContain('aria-label="Show password"');
-    expect(toggle).toContain(">Show<"); // the visible text is part of the accessible name
+    expect(toggle).toContain('aria-label="Show password"'); // an icon only, so it carries its name
     expect(html).toMatch(/<input[^>]*type="password"[^>]*name="password"|<input[^>]*name="password"[^>]*type="password"/);
   });
 

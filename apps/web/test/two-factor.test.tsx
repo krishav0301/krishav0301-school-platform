@@ -151,7 +151,7 @@ describe("the recovery codes step", () => {
 describe("the sign-in page", () => {
   it("still opens on the password step; the second step appears only after the password is right", () => {
     const html = render(<SignInPage />);
-    expect(html).toMatch(/<h1[^>]*>Sign in to Royal Softech College<\/h1>/);
+    expect(html).toMatch(/<h1[^>]*>Sign in<\/h1>/);
     expect(html).not.toContain("Enter your code");
     expect(html).not.toContain("recovery");
   });
