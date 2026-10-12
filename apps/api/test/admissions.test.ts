@@ -455,6 +455,27 @@ describe("a student entered with only a name (the PM, 2026-10-10)", () => {
     expect(emails).toEqual([`${base}@student.com`, `${base}_1@student.com`, `${base}_2@student.com`]);
   });
 
+  it("makes the email from the first and last name, numbered only when both are taken, and ignores a middle name", async () => {
+    const first = `Qf${uniq("x")}`;
+    const base = first.toLowerCase();
+    const emails: string[] = [];
+    for (const last of ["Sah", "Sah", "Yadav"]) {
+      const sid = ((await (await walkIn({ ...nameOnly(first), lastName: last, middleName: "Kumar", confirmDuplicate: true }, coordinator)).json()) as { sid: string }).sid;
+      emails.push((await studentRow(sid))!.email!);
+    }
+    expect(emails).toEqual([`${base}.sah@student.com`, `${base}.sah_1@student.com`, `${base}.yadav@student.com`]);
+  });
+
+  it("the suggestion takes an optional last name; one with no Latin letters, or none, gives the first name alone", async () => {
+    const first = `Qg${uniq("x")}`;
+    const ask = (query: string) => call(`/api/admissions/email-suggestion?${query}`, { cookie: coordinator.cookie });
+    const base = first.toLowerCase();
+    expect(await (await ask(`firstName=${first}&lastName=Sah%20Turha`)).json()).toEqual({ email: `${base}.sahturha@student.com` });
+    expect(await (await ask(`firstName=${first}&lastName=${encodeURIComponent("साह")}`)).json()).toEqual({ email: `${base}@student.com` });
+    expect(await (await ask(`firstName=${first}`)).json()).toEqual({ email: `${base}@student.com` });
+    expect(await (await ask(`firstName=${encodeURIComponent("सीता")}&lastName=Sah`)).json()).toEqual({ email: "student@student.com" });
+  });
+
   it("keeps an email that was typed, and still refuses a bad one or one already signing someone in", async () => {
     const typed = `typed.${uniq("e")}@example.com`;
     const ok = await walkIn({ ...nameOnly(`Qc${uniq("x")}`), email: typed }, coordinator);

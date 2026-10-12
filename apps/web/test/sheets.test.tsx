@@ -253,7 +253,7 @@ describe("admitting a class list", () => {
     return {
       sent,
       toAd: async (bs) => (bs === "2065-02-31" ? { ok: false, error: "dateInvalid" } : { ok: true, ad: "2008-05-14" }),
-      suggestEmail: async (firstName) => `${firstName.toLowerCase()}@student.com`,
+      suggestEmail: async (firstName, lastName) => `${[firstName, lastName].filter(Boolean).join(".").toLowerCase()}@student.com`,
       walkIn: async (values, ad, confirm) => {
         sent.push({ firstName: values.firstName, email: values.email, ad, confirm });
         return { ok: true, sid: `2083-${String(++n).padStart(5, "0")}`, temporaryPassword: "4821" };
@@ -267,10 +267,10 @@ describe("admitting a class list", () => {
     const results = await admitRows(d, rowsOf([["First name", "Last name", "Date of birth"], ["Sita", "Rai", "2065-01-19"], ["Hari", "", ""]]));
     expect(results.map((r) => [r.status, r.name])).toEqual([["admitted", "Sita Rai"], ["admitted", "Hari"]]);
     expect(d.sent).toEqual([
-      { firstName: "Sita", email: "sita@student.com", ad: "2008-05-14", confirm: false },
+      { firstName: "Sita", email: "sita.rai@student.com", ad: "2008-05-14", confirm: false },
       { firstName: "Hari", email: "hari@student.com", ad: "", confirm: false },
     ]);
-    expect(parseCsv(loginsCsv(results))[1]).toEqual(["2083-00001", "Sita Rai", "sita@student.com", "4821"]);
+    expect(parseCsv(loginsCsv(results))[1]).toEqual(["2083-00001", "Sita Rai", "sita.rai@student.com", "4821"]);
   });
 
   it("keeps an email that was in the sheet, and does not ask for one", async () => {

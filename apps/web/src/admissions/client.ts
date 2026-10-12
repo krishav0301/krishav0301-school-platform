@@ -94,10 +94,10 @@ export async function registerWalkIn(api: ApiClient, values: ApplicantForm, dob:
   }
 }
 
-/** The sign-in email a new student would get from their first name (name@student.com, numbered when taken). Null when it cannot be asked. */
-export async function suggestStudentEmail(api: ApiClient, firstName: string): Promise<string | null> {
+/** The sign-in email a new student would get from their first and last name (first.last@student.com, numbered when taken). Null when it cannot be asked. */
+export async function suggestStudentEmail(api: ApiClient, firstName: string, lastName = ""): Promise<string | null> {
   try {
-    const { data } = await api.GET("/api/admissions/email-suggestion", { params: { query: { firstName: firstName.trim() } } });
+    const { data } = await api.GET("/api/admissions/email-suggestion", { params: { query: { firstName: firstName.trim(), lastName: lastName.trim() || undefined } } });
     return data?.email ?? null;
   } catch {
     return null;
