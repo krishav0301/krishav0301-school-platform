@@ -1,0 +1,518 @@
+/* The Academic Structure (D-157): a chart you open one branch at a time, and the same as a list. Theme tokens only. */
+
+.explorer {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.muted {
+  margin: 0;
+  color: var(--color-text-muted);
+  overflow-wrap: anywhere;
+}
+
+.missing {
+  color: var(--color-warn);
+}
+
+/* Each kind of box has one restrained accent: a small tile and a thin edge, never a coloured background. */
+.node[data-kind="term"],
+.nodeIcon[data-kind="term"],
+.row[data-kind="term"] {
+  --kind: var(--color-accent);
+}
+
+.node[data-kind="wing"],
+.nodeIcon[data-kind="wing"],
+.row[data-kind="wing"] {
+  --kind: var(--color-primary);
+}
+
+.node[data-kind="course"],
+.nodeIcon[data-kind="course"],
+.row[data-kind="course"] {
+  --kind: var(--color-warn);
+}
+
+.node[data-kind="level"],
+.nodeIcon[data-kind="level"],
+.row[data-kind="level"] {
+  --kind: var(--color-ok);
+}
+
+.node[data-kind="subjects"],
+.nodeIcon[data-kind="subjects"],
+.row[data-kind="subjects"] {
+  --kind: var(--color-accent);
+}
+
+.node[data-kind="section"],
+.nodeIcon[data-kind="section"],
+.row[data-kind="section"] {
+  --kind: var(--color-primary);
+}
+
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--space-3) var(--space-4);
+}
+
+.settings {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: var(--control-height);
+  padding: 0 var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-control);
+  background: var(--color-surface);
+  color: var(--color-text);
+  text-decoration: none;
+}
+
+.settings svg,
+.search svg {
+  width: 1.125rem;
+  height: 1.125rem;
+}
+
+.settings:focus-visible,
+.action:focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: 2px;
+}
+
+/* --- Search ------------------------------------------------------------------------------------------------------ */
+
+.searchArea {
+  position: relative;
+}
+
+.search {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: var(--control-height);
+  padding: 0 var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-control);
+  background: var(--color-surface);
+}
+
+.search input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  background: transparent;
+  color: var(--color-text);
+  font: inherit;
+}
+
+.search input:focus-visible {
+  outline: none;
+}
+
+.search:focus-within {
+  outline: var(--focus-ring);
+  outline-offset: 2px;
+}
+
+.results {
+  position: absolute;
+  z-index: 5;
+  inset-inline: 0;
+  max-height: 22rem;
+  margin: var(--space-1) 0 0;
+  padding: var(--space-1);
+  overflow: auto;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-card);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-card);
+  list-style: none;
+}
+
+.result {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  width: 100%;
+  min-height: var(--control-height);
+  padding: var(--space-2) var(--space-3);
+  border: 0;
+  border-radius: var(--radius-control);
+  background: transparent;
+  color: var(--color-text);
+  font: inherit;
+  text-align: start;
+  cursor: pointer;
+}
+
+.result:hover,
+.result:focus-visible {
+  background: color-mix(in srgb, var(--color-primary) 8%, transparent);
+}
+
+.result:focus-visible {
+  outline: var(--focus-ring);
+}
+
+.result svg {
+  flex: none;
+  width: 1.25rem;
+  height: 1.25rem;
+  color: var(--color-text-muted);
+}
+
+.resultName,
+.nodeMeta {
+  display: block;
+}
+
+/* --- Where you are ------------------------------------------------------------------------------------------------- */
+
+.crumbs {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-1) var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: var(--text-sm);
+}
+
+.crumbs li:not(:last-child):not(.crumbBack)::after {
+  content: "/";
+  margin-inline-start: var(--space-2);
+  color: var(--color-text-muted);
+}
+
+.crumb {
+  min-height: var(--control-height);
+  padding: 0 var(--space-1);
+  border: 0;
+  background: transparent;
+  color: var(--color-primary-text, var(--color-primary));
+  font: inherit;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.crumb:focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: 2px;
+}
+
+/* --- The chart --------------------------------------------------------------------------------------------------- */
+
+.flow {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.controls {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  align-self: flex-end;
+}
+
+.control {
+  display: inline-grid;
+  place-items: center;
+  width: var(--control-height);
+  height: var(--control-height);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-control);
+  background: var(--color-surface);
+  color: var(--color-text);
+  cursor: pointer;
+}
+
+.control:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.control:focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: 2px;
+}
+
+.control svg {
+  width: 1.125rem;
+  height: 1.125rem;
+}
+
+.zoomLevel {
+  min-width: 3.5rem;
+  text-align: center;
+  font-size: var(--text-sm);
+  font-variant-numeric: tabular-nums;
+}
+
+.viewport {
+  overflow: auto;
+  max-height: 70vh;
+  border: 1px solid color-mix(in srgb, var(--color-border) 70%, transparent);
+  border-radius: var(--radius-card);
+  background: color-mix(in srgb, var(--color-text) 2%, var(--color-surface));
+}
+
+.viewport:focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: 2px;
+}
+
+.canvas {
+  position: relative;
+  transform-origin: top left;
+}
+
+.edges {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.edges path {
+  fill: none;
+  stroke: color-mix(in srgb, var(--color-text) 25%, transparent);
+  stroke-width: 1.5;
+}
+
+.slot {
+  position: absolute;
+}
+
+.hint {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+}
+
+/* A box: white, a thin edge and a soft shadow, the kind's accent on the tile and on the selected edge. */
+.node {
+  position: relative;
+  display: flex;
+  height: 100%;
+  border: 1px solid color-mix(in srgb, var(--color-border) 80%, transparent);
+  border-radius: var(--radius-card);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-card);
+}
+
+.node[data-selected] {
+  border-color: var(--kind);
+  box-shadow: 0 0 0 1px var(--kind), var(--shadow-card);
+}
+
+.nodeMain {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: var(--space-3);
+  min-width: 0;
+  padding: var(--space-3);
+  border: 0;
+  border-radius: inherit;
+  background: transparent;
+  color: var(--color-text);
+  font: inherit;
+  text-align: start;
+  cursor: pointer;
+}
+
+.nodeMain:hover {
+  background: color-mix(in srgb, var(--kind) 5%, transparent);
+}
+
+.nodeMain:focus-visible,
+.nodeToggle:focus-visible,
+.rowMain:focus-visible,
+.rowToggle:focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: -2px;
+}
+
+.nodeIcon {
+  display: inline-grid;
+  flex: none;
+  place-items: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: var(--radius-control);
+  background: color-mix(in srgb, var(--kind, var(--color-primary)) 14%, var(--color-surface));
+  color: var(--kind, var(--color-primary));
+}
+
+.nodeIcon svg {
+  width: 1.25rem;
+  height: 1.25rem;
+}
+
+.nodeText {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.nodeKind {
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+}
+
+.nodeName {
+  font-weight: var(--weight-bold);
+  line-height: var(--leading-tight);
+  overflow-wrap: anywhere;
+}
+
+.nodeMeta {
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+}
+
+.nodeToggle {
+  display: inline-grid;
+  flex: none;
+  place-items: center;
+  align-self: center;
+  width: var(--control-height);
+  height: var(--control-height);
+  margin-inline-end: var(--space-1);
+  border: 0;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--color-text) 6%, transparent);
+  color: var(--color-text);
+  cursor: pointer;
+}
+
+.nodeToggle svg,
+.rowToggle svg {
+  width: 1.125rem;
+  height: 1.125rem;
+  transition: transform 160ms ease;
+}
+
+.nodeToggle svg[data-open="true"],
+.rowToggle svg[data-open="true"] {
+  transform: rotate(180deg);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nodeToggle svg,
+  .rowToggle svg {
+    transition: none;
+  }
+}
+
+/* --- The list ---------------------------------------------------------------------------------------------------- */
+
+.tree,
+.tree ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.tree {
+  overflow: hidden;
+  border: 1px solid color-mix(in srgb, var(--color-border) 70%, transparent);
+  border-radius: var(--radius-card);
+  background: var(--color-surface);
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  border-top: 1px solid color-mix(in srgb, var(--color-border) 50%, transparent);
+}
+
+.row[data-selected] {
+  background: color-mix(in srgb, var(--kind) 8%, transparent);
+}
+
+.rowToggle {
+  display: inline-grid;
+  flex: none;
+  place-items: center;
+  width: var(--control-height);
+  height: var(--control-height);
+  border: 0;
+  background: transparent;
+  color: var(--color-text);
+  cursor: pointer;
+}
+
+.rowMain {
+  display: flex;
+  flex: 1;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-1) var(--space-3);
+  min-width: 0;
+  min-height: var(--control-height);
+  padding: var(--space-2) var(--space-3) var(--space-2) 0;
+  border: 0;
+  background: transparent;
+  color: var(--color-text);
+  font: inherit;
+  text-align: start;
+  cursor: pointer;
+}
+
+.rowName {
+  flex: 1 1 12rem;
+  min-width: 0;
+  font-weight: var(--weight-bold);
+  overflow-wrap: anywhere;
+}
+
+/* --- The panel ------------------------------------------------------------------------------------------------------ */
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-top: var(--space-4);
+}
+
+.action {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--control-height);
+  padding: 0 var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-control);
+  background: var(--color-surface);
+  color: var(--color-primary-text, var(--color-primary));
+  text-decoration: none;
+}
+
+.plainList {
+  margin: 0;
+  padding-inline-start: var(--space-5);
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.chips li {
+  padding: var(--space-1) var(--space-3);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--color-text) 6%, transparent);
+  font-size: var(--text-sm);
+}
