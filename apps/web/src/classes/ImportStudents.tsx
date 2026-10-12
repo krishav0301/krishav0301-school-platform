@@ -3,7 +3,7 @@
 import { FileDown, FileUp } from "lucide-react";
 import { useMemo, useRef, useState, type ChangeEvent } from "react";
 
-import { registerWalkIn, suggestStudentEmail } from "@/admissions/client";
+import { approveApplication, browseStudents, issueStudentPin, loadApplication, loadQueue, registerWalkIn, suggestStudentEmail } from "@/admissions/client";
 import { useConfig } from "@/config/ConfigProvider";
 import { toAd } from "@/content/client";
 import { t, type MessageKey } from "@/i18n/messages";
@@ -49,15 +49,57 @@ export function ImportStudents({ classId, levelId, className, onDone }: { classI
   const [failure, setFailure] = useState<MessageKey | null>(null);
   const [progress, setProgress] = useState<{ done: number; total: number } | null>(null);
   const [results, setResults] = useState<RowResult[] | null>(null);
+  // What has been admitted so far in this run, and whether the server is being waited for: the sign-in sheet can be saved at any point.
+  const [live, setLive] = useState<RowResult[]>([]);
+  const [waiting, setWaiting] = useState<{ attempt: number; of: number } | null>(null);
 
   const deps = useMemo<AdmitDeps>(
     () => ({
       toAd: (bs) => toAd(api, bs),
       suggestEmail: (firstName, lastName) => suggestStudentEmail(api, firstName, lastName),
       walkIn: (values, ad, confirm) => registerWalkIn(api, values, ad, classId, confirm),
+      recovery: {
+        // What a try that got no answer may have left: the application waiting in the queue (found by name and its own sign-in email)...
+        pendingApplications: async (values) => {
+          const queue = await loadQueue(api);
+          if (!queue.ok) return null;
+          const same = (a: string, b: string) => a.trim().toLowerCase() === b.trim().toLowerCase();
+          const named = queue.data.filter((a) => a.status === "pending_review" && a.walkIn && a.levelId === levelId && same(a.firstName, values.firstName) && same(a.lastName, values.lastName));
+          const ids: string[] = [];
+          for (const a of named) {
+            const detail = await loadApplication(api, a.id);
+            if (detail.ok && same(detail.data.email, values.email)) ids.push(a.id);
+          }
+          return ids;
+        },
+        approve: (id) => approveApplication(api, id, classId, null),
+        // ...or the student it admitted before the answer was lost.
+        studentsNamed: async (values) => {
+          const found = await browseStudents(api, { class: classId, status: "all", q: [values.firstName, values.lastName].filter(Boolean).join(" "), pageSize: 50 });
+          if (!found.ok) return null;
+          const same = (a: string, b: string) => a.trim().toLowerCase() === b.trim().toLowerCase();
+          return found.data.students.filter((x) => same(x.firstName, values.firstName) && same(x.lastName, values.lastName)).map((x) => ({ id: x.id, sid: x.sid }));
+        },
+        newPassword: async (studentId) => {
+          const pin = await issueStudentPin(api, studentId);
+          return pin.ok ? pin.password : null;
+        },
+      },
     }),
-    [api, classId],
+    [api, classId, levelId],
   );
+
+  // The students already in the class, so the run never mistakes one of them for a student it admitted itself.
+  async function classSids(): Promise<Set<string>> {
+    const sids = new Set<string>();
+    for (let page = 1; page <= 20; page++) {
+      const found = await browseStudents(api, { class: classId, status: "all", pageSize: 50, page });
+      if (!found.ok) break;
+      found.data.students.forEach((x) => sids.add(x.sid));
+      if (found.data.students.length < 50) break;
+    }
+    return sids;
+  }
 
   async function chosen(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
@@ -78,8 +120,24 @@ export function ImportStudents({ classId, levelId, className, onDone }: { classI
 
   async function run(which: readonly ImportRow[], confirmDuplicate: boolean) {
     setProgress({ done: 0, total: which.length });
-    const done = await admitRows(deps, which, { confirmDuplicate, onProgress: (d, total) => setProgress({ done: d, total }) });
+    setLive([]);
+    setWaiting(null);
+    const known = await classSids();
+    const done = await admitRows(deps, which, {
+      confirmDuplicate,
+      known,
+      pauseMs: 600,
+      onProgress: (d, total) => {
+        setProgress({ done: d, total });
+        setWaiting(null);
+      },
+      onWait: ({ attempt, of }) => setWaiting({ attempt, of }),
+      onResult: (r) => setLive((before) => [...before, r]),
+    });
     setProgress(null);
+    setWaiting(null);
+    // Once everything is in, the sign-in sheet is saved straight away; the button below saves it again.
+    if (done.some((r) => r.status === "admitted")) save("sign-in-sheet.csv", loginsCsv(done));
     // What was admitted before stays; the rows just tried are replaced by what they came to.
     setResults((before) => [...(before ?? []).filter((r) => !done.some((d) => d.line === r.line)), ...done].sort((a, b) => a.line - b.line));
     onDone();
@@ -182,6 +240,13 @@ export function ImportStudents({ classId, levelId, className, onDone }: { classI
             </table>
           </div>
           <div>
+            {progress !== null && waiting ? <Notice tone="ok">{t("classes.import.waiting", { attempt: waiting.attempt, of: waiting.of })}</Notice> : null}
+            {progress !== null && live.some((r) => r.status === "admitted") ? (
+              <Button variant="secondary" onClick={() => save("sign-in-sheet.csv", loginsCsv(live))}>
+                <FileDown aria-hidden width={18} height={18} />
+                {t("classes.import.saveSoFar")}
+              </Button>
+            ) : null}
             <Button disabled={ready.length === 0 || progress !== null} loading={progress !== null} loadingLabel={t("classes.import.running", { done: progress?.done ?? 0, total: progress?.total ?? 0 })} onClick={() => void run(rows, false)}>
               {t("classes.import.admit", { count: ready.length })}
             </Button>
