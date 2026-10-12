@@ -186,14 +186,14 @@ export function registerAdmissions(app: App): void {
       path: "/api/admissions/email-suggestion",
       operationId: "suggest_student_email",
       tags: ["admissions"],
-      description: "The sign-in email a new student would get from their first name: name@student.com, or name_1@student.com and so on when that is taken. The person may change it by hand.",
+      description: "The sign-in email a new student would get from their first and last name: first.last@student.com (first@student.com with no last name), or first.last_1@student.com and so on when that is taken. The person may change it by hand.",
       access: { action: "admissions.student.email_suggestion" },
-      request: { query: z.object({ firstName: z.string().trim().min(1).max(60) }) },
+      request: { query: z.object({ firstName: z.string().trim().min(1).max(60), lastName: z.string().trim().max(60).optional() }) },
       responses: { 200: { description: "The suggestion", content: json(z.object({ email: z.string() }).openapi("EmailSuggestion")) } },
     },
     async (c) => {
       c.header("Cache-Control", "no-store");
-      return c.json({ email: await suggestEmail(c.env.DB, c.req.valid("query").firstName) }, 200);
+      return c.json({ email: await suggestEmail(c.env.DB, c.req.valid("query").firstName, c.req.valid("query").lastName ?? "") }, 200);
     },
   );
 

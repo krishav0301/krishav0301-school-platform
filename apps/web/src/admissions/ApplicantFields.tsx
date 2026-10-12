@@ -45,7 +45,7 @@ export function ApplicantFields({
     <>
       <Field ref={fieldRefs?.firstName} label={t("admissions.field.firstName")} value={values.firstName} autoComplete="given-name" onChange={(e) => onChange("firstName", e.target.value)} onBlur={onFirstNameBlur} error={err("firstName")} />
       <Field label={label(t("admissions.field.middleName"))} value={values.middleName} autoComplete="additional-name" onChange={(e) => onChange("middleName", e.target.value)} />
-      <Field label={label(t("admissions.field.lastName"))} value={values.lastName} autoComplete="family-name" onChange={(e) => onChange("lastName", e.target.value)} error={err("lastName")} />
+      <Field label={label(t("admissions.field.lastName"))} value={values.lastName} autoComplete="family-name" onChange={(e) => onChange("lastName", e.target.value)} onBlur={onFirstNameBlur} error={err("lastName")} />
       <BsDateField ref={fieldRefs?.dobBs} legend={label(t("admissions.field.dob"))} value={values.dobBs} onChange={(text) => onChange("dobBs", text)} error={err("dobBs")} />
       <Field label={label(t("admissions.field.phone"))} value={values.phone} autoComplete="tel" inputMode="tel" onChange={(e) => onChange("phone", e.target.value)} error={err("phone")} />
       <Field label={t("admissions.field.email")} hint={staff ? t("admissions.field.emailAutoHint") : undefined} type="email" value={values.email} autoComplete="email" onChange={(e) => onChange("email", e.target.value)} error={err("email")} />

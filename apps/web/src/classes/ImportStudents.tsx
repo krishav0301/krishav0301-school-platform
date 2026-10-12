@@ -53,7 +53,7 @@ export function ImportStudents({ classId, levelId, className, onDone }: { classI
   const deps = useMemo<AdmitDeps>(
     () => ({
       toAd: (bs) => toAd(api, bs),
-      suggestEmail: (firstName) => suggestStudentEmail(api, firstName),
+      suggestEmail: (firstName, lastName) => suggestStudentEmail(api, firstName, lastName),
       walkIn: (values, ad, confirm) => registerWalkIn(api, values, ad, classId, confirm),
     }),
     [api, classId],

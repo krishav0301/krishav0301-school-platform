@@ -68,7 +68,7 @@ Phase is the build phase where the action first exists. The action id in code fo
 | Submit an application (anonymous, rate limited) (`admissions.apply`) | public | — | — | — | — | — | 4 |
 | Register a walk-in (auto-approved) (`admissions.walkin.register`) | — | — | inst | — | — | ✓ | 4 |
 | Register a student (goes to the review queue) (`admissions.student.register`) | — | — | — | inst | — | — | 4 |
-| Ask for the sign-in email a new student would get (name@student.com) (`admissions.student.email_suggestion`) | — | — | inst | inst | — | ✓ | 4 |
+| Ask for the sign-in email a new student would get (first.last@student.com) (`admissions.student.email_suggestion`) | — | — | inst | inst | — | ✓ | 4 |
 | Give a student a new 4-digit password (D-145) (`students.pin.issue`) | — | — | inst | — | — | ✓ | 4 |
 | Review queue: approve, ask for changes, reject (`admissions.review`) | — | — | inst | — | — | ✓ | 4 |
 | Move students into the next term: promote, repeat, leaving, graduated (D-110) (`students.promote`) | — | — | inst | — | — | ✓ | 4 |

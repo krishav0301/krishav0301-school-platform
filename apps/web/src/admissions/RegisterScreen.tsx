@@ -74,11 +74,11 @@ export function RegisterScreen({ canPlace }: { canPlace: boolean }) {
     if (name === "levelId") setClassId("");
   };
 
-  // The sign-in email is made from the first name, and again if the name changes, until the person types their own.
+  // The sign-in email is made from the first and last name, and again if either changes, until the person types their own.
   async function suggest() {
     if (emailTyped || !values.firstName.trim()) return;
-    const email = await suggestStudentEmail(api, values.firstName);
-    if (email) setValues((current) => (current.firstName === values.firstName ? { ...current, email } : current));
+    const email = await suggestStudentEmail(api, values.firstName, values.lastName);
+    if (email) setValues((current) => (current.firstName === values.firstName && current.lastName === values.lastName ? { ...current, email } : current));
   }
 
   async function submit(confirmDuplicate = false) {
