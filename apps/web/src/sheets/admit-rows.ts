@@ -40,6 +40,10 @@ export interface AdmitDeps {
 
 /** How long to wait after each busy answer: it grows, then stays at half a minute. Nine tries in all, about two and a half minutes. */
 export const WAITS_MS: readonly number[] = [2000, 4000, 8000, 15000, 30000, 30000, 30000, 30000];
+/** The extra pause between students after a busy answer: it doubles from 1.5 s up to 8 s, and goes after five clean ones in a row. */
+export const SLOW_FIRST_MS = 1500;
+export const SLOW_MAX_MS = 8000;
+export const CLEAN_TO_EASE = 5;
 /** The waits between the tries of one approval inside a recovery. */
 const APPROVE_WAITS_MS: readonly number[] = [2000, 4000, 8000, 15000];
 
@@ -55,7 +59,9 @@ export interface AdmitOptions {
   onWait?: (info: { line: number; attempt: number; of: number }) => void;
   /** Each student's result as soon as it is known, so the sign-in sheet can be saved before the end. */
   onResult?: (result: RowResult) => void;
-  /** A pause after each student, to be gentle with the server. */
+  /** After a reload: the student the stopped import was on may have got in, so look for them before sending anyone (D-161). */
+  checkFirst?: boolean;
+  /** A pause after each student, to be gentle with the server. It stretches after a busy answer and eases back (D-160). */
   pauseMs?: number;
   /** Student IDs that were in the class before the run: never taken for a student the run itself admitted. */
   known?: ReadonlySet<string>;
@@ -75,6 +81,8 @@ export async function admitRows(deps: AdmitDeps, rows: readonly ImportRow[], opt
   const wait = deps.wait ?? sleep;
   const taken = new Set(opts.known ?? []);
   const results: RowResult[] = [];
+  let slow = 0; // the extra pause between students while the server has been busy
+  let clean = 0; // students in a row that went in on the first try
   const push = (result: RowResult) => {
     results.push(result);
     if (result.status === "admitted") taken.add(result.sid);
@@ -110,6 +118,7 @@ export async function admitRows(deps: AdmitDeps, rows: readonly ImportRow[], opt
 
   for (const [index, row] of rows.entries()) {
     opts.onProgress?.(index, rows.length);
+    const verifyFirst = index === 0 && opts.checkFirst === true;
     const name = nameOf(row.values);
     const problem = firstProblem(row);
     if (problem) {
@@ -129,7 +138,7 @@ export async function admitRows(deps: AdmitDeps, rows: readonly ImportRow[], opt
     const values = { ...row.values, email: row.values.email || (await deps.suggestEmail(row.values.firstName, row.values.lastName)) || "" };
 
     let finished: RowResult | null = null;
-    let unsure = false; // what the last try left could not be looked at: wait and look again, do not send again
+    let unsure = verifyFirst; // what the last try left could not be looked at: wait and look again, do not send again
     for (let attempt = 0; finished === null; attempt++) {
       const outcome: Awaited<ReturnType<AdmitDeps["walkIn"]>> = unsure ? { ok: false, reason: "failed" } : await deps.walkIn(values, ad, opts.confirmDuplicate === true);
       if (outcome.ok) finished = { line: row.line, name, status: "admitted", sid: outcome.sid, email: values.email, password: outcome.temporaryPassword };
@@ -137,6 +146,10 @@ export async function admitRows(deps: AdmitDeps, rows: readonly ImportRow[], opt
       else if (outcome.reason !== "failed") finished = { line: row.line, name, status: "problem", message: outcome.reason === "invalid" ? outcome.message : t("content.forbidden") };
       else if (attempt >= WAITS_MS.length) finished = { line: row.line, name, status: "problem", message: t("classes.import.gaveUp") };
       else {
+        if (!(verifyFirst && attempt === 0)) {
+          slow = Math.min(SLOW_MAX_MS, Math.max(slow * 2, SLOW_FIRST_MS));
+          clean = -1; // this student did not go in on the first try
+        }
         opts.onWait?.({ line: row.line, attempt: attempt + 1, of: WAITS_MS.length });
         await wait(WAITS_MS[attempt]!);
         const found = await recover(values, row.line, name);
@@ -145,7 +158,12 @@ export async function admitRows(deps: AdmitDeps, rows: readonly ImportRow[], opt
       }
     }
     push(finished);
-    if (opts.pauseMs) await wait(opts.pauseMs);
+    clean = clean < 0 ? 0 : clean + 1;
+    if (clean >= CLEAN_TO_EASE) {
+      slow = 0;
+      clean = 0;
+    }
+    if (opts.pauseMs) await wait(opts.pauseMs + slow);
   }
   opts.onProgress?.(rows.length, rows.length);
   return results;

@@ -165,6 +165,34 @@ describe("admitting a class list when the server is busy", () => {
     expect(waits).toEqual([600, 600]);
   });
 
+  it("stretches the pause between students after a busy answer, and eases back after five clean ones", async () => {
+    // one busy answer on the 2nd student, then seven that go straight in
+    const { deps, waits } = setup([reply(admitted(1)), reply(busy), reply(admitted(2)), ...Array.from({ length: 6 }, (_, i) => reply(admitted(3 + i)))]);
+    await admitRows(deps, rowsOf(Array.from({ length: 8 }, (_, i) => [`S${i}`, "Rai"] as [string, string])), { pauseMs: 1000 });
+    const pauses = waits.filter((w) => w === 1000 || w === 2500); // the base pause, and the base plus the 1.5 s stretch
+    expect(pauses).toEqual([1000, 1000 + 1500 /* the 2nd, which was busy */, 1000 + 1500, 1000 + 1500, 1000 + 1500, 1000 + 1500, 1000, 1000]);
+  });
+
+  it("after a reload, looks for the student the stopped import was on before sending anyone", async () => {
+    const { deps, calls } = setup([reply(admitted(9))], {
+      pendingApplications: async () => [],
+      studentsNamed: async () => [{ id: "stu-1", sid: "2083-00040" }],
+      newPassword: async () => "7777",
+    });
+    const results = await admitRows(deps, rowsOf([["Sita", "Rai"], ["Hari", "Rai"]]), { checkFirst: true });
+    // Sita was already in: she gets a new password and is not sent; Hari, the next, is sent as usual.
+    expect(results[0]).toMatchObject({ status: "admitted", sid: "2083-00040", password: "7777" });
+    expect(results[1]).toMatchObject({ status: "admitted" });
+    expect(calls).toEqual(["walkIn Hari"]);
+  });
+
+  it("after a reload, sends the first student only when nothing of them is found", async () => {
+    const { deps, calls } = setup([reply(admitted(1))], { pendingApplications: async () => [], studentsNamed: async () => [] });
+    const [result] = await admitRows(deps, rowsOf([["Sita", "Rai"]]), { checkFirst: true });
+    expect(result).toMatchObject({ status: "admitted" });
+    expect(calls).toEqual(["walkIn Sita"]);
+  });
+
   it("hands each result over as it comes, so the sign-in sheet can be saved before the end", async () => {
     const { deps } = setup([reply(admitted(1)), reply(admitted(2))]);
     const seen: string[] = [];

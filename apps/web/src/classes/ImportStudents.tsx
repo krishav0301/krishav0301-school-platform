@@ -59,6 +59,29 @@ export function ImportRunning({ job }: { job: ImportJob }) {
   );
 }
 
+/** An import that a reload or a closed tab stopped: what it had done is kept; it can be continued, or let go. Pure apart from its buttons. */
+export function ImportInterrupted({ job, onResume, onDiscard }: { job: ImportJob; onResume: () => void; onDiscard: () => void }) {
+  const done = job.results ?? [];
+  return (
+    <div className={styles.importBox}>
+      <Notice tone="bad">{t("classes.import.interrupted", { done: done.length, total: job.total })}</Notice>
+      <p className={styles.importNote}>{t("classes.import.interruptedNote")}</p>
+      <div className={styles.importActions}>
+        <Button onClick={onResume}>{t("classes.import.resume")}</Button>
+        {done.some((r) => r.status === "admitted") ? (
+          <Button variant="secondary" onClick={() => saveFile("sign-in-sheet.csv", loginsCsv(done))}>
+            <FileDown aria-hidden width={18} height={18} />
+            {t("classes.import.saveSoFar")}
+          </Button>
+        ) : null}
+        <Button variant="secondary" onClick={onDiscard}>
+          {t("classes.import.discard")}
+        </Button>
+      </div>
+    </div>
+  );
+}
+
 /** What the import came to: how many were admitted, the sign-in sheet, the possible duplicates and the rows left out. Pure apart from its buttons. */
 export function ImportResults({ job, results, onAdmitAnyway, onDone }: { job: ImportJob; results: readonly RowResult[]; onAdmitAnyway: () => void; onDone: () => void }) {
   const { config } = useConfig();
@@ -122,7 +145,7 @@ export function ImportResults({ job, results, onAdmitAnyway, onDone }: { job: Im
  * The import itself lives beside the page (D-155): closing this window does not stop it, and the top bar brings it back.
  */
 export function ImportStudents({ classId, levelId, className }: { classId: string; levelId: string; className: string }) {
-  const { job, start, dismiss } = useImportJob();
+  const { job, start, resume, dismiss } = useImportJob();
   const input = useRef<HTMLInputElement>(null);
   const [rows, setRows] = useState<ImportRow[] | null>(null);
   const [ignored, setIgnored] = useState<string[]>([]);
@@ -146,6 +169,7 @@ export function ImportStudents({ classId, levelId, className }: { classId: strin
 
   // This class's import, running or done: shown in place of the file chooser until the person says Done.
   const mine = job && job.classId === classId ? job : null;
+  if (mine?.interrupted) return <ImportInterrupted job={mine} onResume={() => void resume()} onDiscard={dismiss} />;
   if (mine?.running) return <ImportRunning job={mine} />;
   if (mine?.results) {
     const waiting = mine.rows.filter((r) => mine.results!.some((x) => x.line === r.line && x.status === "duplicate"));
