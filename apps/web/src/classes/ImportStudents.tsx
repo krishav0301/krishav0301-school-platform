@@ -30,6 +30,22 @@ function save(name: string, csv: string) {
   URL.revokeObjectURL(url);
 }
 
+/** A small bar while the students are being added: "20 of 40 students done", filled to that share. It grows by transform only. Pure. */
+export function ImportProgressBar({ done, total }: { done: number; total: number }) {
+  const share = total > 0 ? Math.min(1, Math.max(0, done / total)) : 0;
+  const label = t("classes.import.progress", { done, total });
+  return (
+    <div className={styles.progress}>
+      <p className={styles.importNote} aria-live="polite">
+        {label}
+      </p>
+      <div className={styles.progressTrack} role="progressbar" aria-label={label} aria-valuemin={0} aria-valuemax={total} aria-valuenow={done}>
+        <div className={styles.progressFill} style={{ transform: `scaleX(${share})` }} />
+      </div>
+    </div>
+  );
+}
+
 /** How many of each kind, for the line over the results. Pure. */
 export function tally(results: readonly RowResult[]): { admitted: number; duplicates: number; problems: number } {
   return { admitted: results.filter((r) => r.status === "admitted").length, duplicates: results.filter((r) => r.status === "duplicate").length, problems: results.filter((r) => r.status === "problem").length };
@@ -240,6 +256,7 @@ export function ImportStudents({ classId, levelId, className, onDone }: { classI
             </table>
           </div>
           <div>
+            {progress !== null ? <ImportProgressBar done={progress.done} total={progress.total} /> : null}
             {progress !== null && waiting ? <Notice tone="ok">{t("classes.import.waiting", { attempt: waiting.attempt, of: waiting.of })}</Notice> : null}
             {progress !== null && live.some((r) => r.status === "admitted") ? (
               <Button variant="secondary" onClick={() => save("sign-in-sheet.csv", loginsCsv(live))}>

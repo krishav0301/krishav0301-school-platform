@@ -351,3 +351,23 @@ describe("the import dialog", () => {
     ).toEqual({ admitted: 1, duplicates: 1, problems: 2 });
   });
 });
+
+// The PM, 2026-10-12: a small bar while the students are being added, "20 of 40 done".
+import { ImportProgressBar } from "@/classes/ImportStudents";
+
+describe("the import's progress bar", () => {
+  it("says how many of the students are done and fills to that share", () => {
+    const html = renderToStaticMarkup(<ImportProgressBar done={20} total={40} />);
+    expect(html).toContain("20 of 40 students done");
+    expect(html).toContain('role="progressbar"');
+    expect(html).toContain('aria-valuenow="20"');
+    expect(html).toContain('aria-valuemax="40"');
+    expect(html).toContain("scaleX(0.5)");
+  });
+  it("starts empty, ends full, and never goes past either end or divides by nothing", () => {
+    expect(renderToStaticMarkup(<ImportProgressBar done={0} total={40} />)).toContain("scaleX(0)");
+    expect(renderToStaticMarkup(<ImportProgressBar done={40} total={40} />)).toContain("scaleX(1)");
+    expect(renderToStaticMarkup(<ImportProgressBar done={5} total={0} />)).toContain("scaleX(0)");
+    expect(renderToStaticMarkup(<ImportProgressBar done={50} total={40} />)).toContain("scaleX(1)");
+  });
+});

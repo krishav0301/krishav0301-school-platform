@@ -1437,6 +1437,8 @@ The matrix lives in code (61 actions, 8 groups, from the reviewed `permission-ma
 
 **D-150 Setup Overview is the first Setup tab, and where Setup opens (PM, 2026-10-12).** The overview of what is set up and what is next was the last of the nine Setup tabs. It is now the first (Setup Overview, Departments or Courses, Academic Term, Subjects, Classes, Curriculum, Teaching, Exam pattern, Move students), and the Setup menu entry opens on it (`opensAt` `/portal/setup/map`), for every role that has the Setup tabs: the Co-ordinator and Support. **The Principal gets it too:** their Academic Structure menu entry now opens on the overview (it shares the address `/portal/setup` with the Co-ordinator's Setup entry, never shown together), and their Setup has two tabs, Setup Overview and Programs (D-087, D-091: the rest they read from Reports); this reads the overview, which they could already open from Reports, and changes no permission. Tests: `setup-screens.test.tsx` (the order), `nav.test.ts`, `attendance-screens.test.tsx` (the menu links).
 
+**D-154 The import shows a progress bar (PM, 2026-10-12).** While a class list is being added, a small bar and the line "20 of 40 students done" show how far it is, above the waiting notice and the "sign-in sheet so far" button (D-151). It is a plain bar that grows by transform only (no animation with reduced motion), with a progress-bar role for screen readers. Web only. Test: `sheets.test.tsx`.
+
 ## Open items carried forward
 
 - ~~**Search and the term picker (D-126).**~~ Built, D-127. Still open: a Student looking back at an earlier term, and Results following the chosen term (both need the server to accept a term).

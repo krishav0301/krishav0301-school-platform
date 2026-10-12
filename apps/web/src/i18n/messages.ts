@@ -2555,6 +2555,7 @@ export const en = {
   "classes.import.ready": "Ready",
   "classes.import.admit": "Admit {count} students",
   "classes.import.running": "Admitting {done} of {total}...",
+  "classes.import.progress": "{done} of {total} students done",
   "classes.import.waiting": "The server is busy. Waiting a moment, then trying again (try {attempt} of {of})...",
   "classes.import.gaveUp": "The server stayed busy, so this student was not admitted. Import this row again in a few minutes.",
   "classes.import.saveSoFar": "Download the sign-in sheet so far",
