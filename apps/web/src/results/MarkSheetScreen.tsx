@@ -12,6 +12,7 @@ import { Button, Notice, Table } from "@/ui";
 
 import { readLastTerminal, rememberTerminal } from "./last-terminal";
 import { MarksExcel } from "./MarksExcel";
+import { MySheetGroups } from "./MySheetGroups";
 import { gateFailure, loadMySheets, loadSheet, saveMarks, submitSheet, type Sent } from "./client";
 import { STATUS_LABEL, className, formatMarks, markKey, markText, parseMark, partName, type MarkSheet, type MyMarkSheets, type SheetStatus } from "./model";
 import styles from "./results.module.css";
@@ -23,12 +24,12 @@ export function sentText(sent: Sent): string | null {
   return t("results.failed");
 }
 
-type MySheet = { classId: string; offeringId: string; subjectName: string; className: string; terminalId: string; status: SheetStatus; sentBack: boolean };
+export type MySheet = { classId: string; offeringId: string; subjectName: string; className: string; levelName: string; place: string; terminalId: string; status: SheetStatus; sentBack: boolean };
 
 /** Every sheet of one terminal, the ones that need the teacher first (sent back, then started, then not started). Pure. */
 export function sheetsOf(mine: MyMarkSheets, terminalId: string): MySheet[] {
   const rows = mine.subjects.flatMap((s) =>
-    s.sheets.filter((x) => x.terminalId === terminalId).map((x) => ({ classId: s.classId, offeringId: s.offeringId, subjectName: s.subjectName, className: className(s), terminalId, status: x.status, sentBack: x.status === "draft" && x.note !== null })),
+    s.sheets.filter((x) => x.terminalId === terminalId).map((x) => ({ classId: s.classId, offeringId: s.offeringId, subjectName: s.subjectName, className: className(s), levelName: s.levelName, place: [s.programmeName, s.label].filter(Boolean).join(" · "), terminalId, status: x.status, sentBack: x.status === "draft" && x.note !== null })),
   );
   const rank = (r: MySheet) => (r.sentBack ? 0 : r.status === "draft" ? 1 : r.status === "not_started" ? 2 : 3);
   return rows.sort((a, b) => rank(a) - rank(b));
@@ -53,17 +54,17 @@ export function mySheetFigures(rows: readonly MySheet[]): Figure[] {
 
 const sheetTone = (r: MySheet): "ok" | "bad" | "warn" | undefined => (r.sentBack ? "bad" : r.status === "draft" || r.status === "not_started" ? "warn" : r.status === "under_review" ? undefined : "ok");
 
-/** One terminal's sheets: subject, class, status in words, and the sheet to open. Pure. */
-export function MySheetsTable({ rows, terminalName }: { rows: readonly MySheet[]; terminalName: string }) {
+/** One terminal's sheets: subject, class, status in words, and the sheet to open. Inside a class card the class column is left out. Pure. */
+export function MySheetsTable({ rows, terminalName, showClass = true, classCaption }: { rows: readonly MySheet[]; terminalName: string; showClass?: boolean; classCaption?: string }) {
   if (rows.length === 0) return <EmptyLine>{t("results.mine.empty")}</EmptyLine>;
   return (
     <ReadTable
-      caption={t("results.mine.caption", { terminal: terminalName })}
+      caption={classCaption ? t("results.mine.captionClass", { class: classCaption, terminal: terminalName }) : t("results.mine.caption", { terminal: terminalName })}
       rows={rows}
       rowKey={(r) => `${r.classId}-${r.offeringId}`}
       columns={[
         { key: "subject", label: t("results.mine.subject"), primary: true, cell: (r) => r.subjectName },
-        { key: "class", label: t("attendance.col.class"), cell: (r) => r.className },
+        ...(showClass ? [{ key: "class", label: t("attendance.col.class"), cell: (r: MySheet) => r.className }] : []),
         { key: "status", label: t("attendance.class.status"), cell: (r) => <StatusWord tone={sheetTone(r)}>{t(r.sentBack ? "results.status.sentBack" : STATUS_LABEL[r.status])}</StatusWord> },
         {
           key: "open",
@@ -113,9 +114,7 @@ export function MySheetsScreen() {
                   setPicked(id);
                 }} /> : null}
             <FigureTiles figures={mySheetFigures(rows)} label={t("results.mine.figures", { terminal: terminalName })} />
-            <Panel title={terminalName} labelledBy="my-sheets">
-              <MySheetsTable rows={rows} terminalName={terminalName} />
-            </Panel>
+            <MySheetGroups rows={rows} terminalName={terminalName} />
           </>
         )
       ) : null}
