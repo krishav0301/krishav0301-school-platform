@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowRight, BellRing, CalendarDays, ChevronLeft, ChevronRight, Clock, ExternalLink, FileCheck2, FilePen, Plus, Search, type LucideIcon } from "lucide-react";
+import { BellRing, ChevronLeft, ChevronRight, Clock, FileCheck2, FilePen, Plus, Search, type LucideIcon } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { sendForApproval } from "@/approvals/client";
@@ -9,6 +9,7 @@ import { RequestsPanel } from "@/approvals/RequestsPanel";
 import { relativeTime } from "@/dashboard/admin-model";
 import { t, type MessageKey } from "@/i18n/messages";
 import { useSession } from "@/session/SessionProvider";
+import { FilterSelect } from "@/people/ListParts";
 import { readStyles } from "@/read/ReadView";
 import { Button, HeroBand, Notice, RowMenu, Skeleton, buttonClass, type MenuAction } from "@/ui";
 
@@ -244,7 +245,6 @@ export function ContentList() {
           </div>
           <Summary counts={ready?.counts ?? null} />
         </div>
-        <SiteCard site={ready?.site ?? null} loading={view.status === "loading" && !ready} />
       </div>
 
       {shownFlash ? (
@@ -272,18 +272,8 @@ export function ContentList() {
           {t("content.title")}
         </h2>
         <div className={styles.filterBar}>
-          <div role="group" aria-label={t("content.filterKind")} className={styles.segmented}>
-            <SegmentButton on={kind === ""} onClick={() => filterBy(() => setKind(""))} label={t("content.filterAll")} />
-            {KINDS.map((k) => (
-              <SegmentButton key={k} on={kind === k} onClick={() => filterBy(() => setKind(k))} label={t(KIND_LABEL[k])} />
-            ))}
-          </div>
-          <div role="group" aria-label={t("content.filterState")} className={styles.segmented}>
-            <SegmentButton on={group === ""} onClick={() => filterBy(() => setGroup(""))} label={t("content.filterAll")} />
-            {GROUPS.map((g) => (
-              <SegmentButton key={g} on={group === g} onClick={() => filterBy(() => setGroup(g))} label={t(GROUP_LABEL[g])} />
-            ))}
-          </div>
+          <FilterSelect label="content.filterKind" value={kind} options={[{ value: "", label: t("content.filterAll") }, ...KINDS.map((k) => ({ value: k, label: t(KIND_LABEL[k]) }))]} onChange={(next) => filterBy(() => setKind(next as typeof kind))} />
+          <FilterSelect label="content.filterState" value={group} options={[{ value: "", label: t("content.filterAll") }, ...GROUPS.map((g) => ({ value: g, label: t(GROUP_LABEL[g]) }))]} onChange={(next) => filterBy(() => setGroup(next as typeof group))} />
           <label className={styles.searchBox}>
             <Search aria-hidden />
             <span className="sr-only">{t("content.searchLabel")}</span>
@@ -369,14 +359,6 @@ export function ContentList() {
   );
 }
 
-function SegmentButton({ on, onClick, label }: { on: boolean; onClick: () => void; label: string }) {
-  return (
-    <button type="button" className={styles.segment} aria-pressed={on} onClick={onClick}>
-      {label}
-    </button>
-  );
-}
-
 const SUMMARY: { key: "published" | "drafts" | "scheduled" | "urgent"; label: MessageKey; note: MessageKey; icon: LucideIcon; tone: string }[] = [
   { key: "published", label: "content.summary.published", note: "content.stateNote.showing", icon: FileCheck2, tone: "ok" },
   { key: "drafts", label: "content.summary.drafts", note: "content.stateNote.hidden", icon: FilePen, tone: "accent" },
@@ -404,56 +386,6 @@ function Summary({ counts }: { counts: ContentPage["counts"] | null }) {
         </li>
       ))}
     </ul>
-  );
-}
-
-const lastUpdated = (iso: string) =>
-  new Intl.DateTimeFormat("en-GB", { timeZone: "Asia/Kathmandu", day: "numeric", month: "short", year: "numeric", hour: "numeric", minute: "2-digit", hour12: true }).format(new Date(iso));
-
-/** The public website: its address, whether this deployment is the real one, and when anything was last published. */
-function SiteCard({ site, loading }: { site: ContentPage["site"] | null; loading: boolean }) {
-  const host = site?.address ? site.address.replace(/^https?:\/\//, "") : null;
-  return (
-    <section className={styles.siteCard} aria-labelledby="site-card-title">
-      <h2 id="site-card-title" className={styles.cardTitle}>
-        {t("content.site.title")}
-      </h2>
-      {loading || !site ? (
-        <div className={styles.siteLoading} aria-hidden>
-          <Skeleton width="40%" />
-          <Skeleton width="70%" />
-          <Skeleton width="55%" />
-        </div>
-      ) : (
-        <>
-          <div className={styles.siteState}>
-            <span className={styles.siteDot} data-live={site.live} aria-hidden />
-            <div>
-              <p className={styles.siteStatus}>{t(site.live ? "content.site.live" : "content.site.test")}</p>
-              {site.address && host ? (
-                <a href={site.address} className={styles.siteLink} target="_blank" rel="noreferrer">
-                  {host}
-                  <ExternalLink aria-hidden />
-                </a>
-              ) : null}
-            </div>
-          </div>
-          <div className={styles.siteFoot}>
-            <p className={styles.siteFact}>
-              <CalendarDays aria-hidden />
-              <span>
-                <span className={styles.muted}>{t("content.site.lastUpdated")}</span>
-                <span>{site.lastPublishedAt ? lastUpdated(site.lastPublishedAt) : t("content.site.never")}</span>
-              </span>
-            </p>
-            <a href={site.address ?? "/"} className={buttonClass({ variant: "secondary" })} target="_blank" rel="noreferrer">
-              {t("content.site.view")}
-              <ArrowRight aria-hidden className={styles.inlineIcon} />
-            </a>
-          </div>
-        </>
-      )}
-    </section>
   );
 }
 
