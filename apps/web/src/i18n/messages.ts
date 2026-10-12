@@ -2616,7 +2616,7 @@ export const en = {
   "shell.import.done": "Import for {class} is done. Open it",
   "shell.import.open": "Open the student import for {class}",
   "classes.import.waiting": "The server is busy. Waiting a moment, then trying again...",
-  "classes.import.gaveUp": "The server stayed busy, so this student was not admitted. Import this row again in a few minutes.",
+  "classes.import.gaveUp": "The server stayed busy, so this student may not have been admitted. Look in the class list, and import this row again only if they are missing.",
   "classes.import.saveSoFar": "Download the sign-in sheet so far",
   "classes.import.result": "{admitted} students admitted to {class}.",
   "classes.import.passwordsOnce": "Each student has a sign-in and a temporary password. The passwords are shown only now: download the sign-in sheet, and hand them out.",

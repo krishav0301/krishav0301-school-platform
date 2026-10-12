@@ -112,6 +112,39 @@ describe("admitting a class list when the server is busy", () => {
     expect(results.map((r) => (r.status === "admitted" ? r.sid : r.status))).toEqual(["2083-00005", "2083-00006"]);
   });
 
+  it("does not send a student again while it cannot tell what the last try left: it waits and looks again", async () => {
+    let looks = 0;
+    const { deps, calls, waits } = setup([reply(busy), reply(admitted(1))], {
+      pendingApplications: async () => (++looks < 3 ? null : []), // the queue cannot be read twice, then it can: nothing is waiting
+      studentsNamed: async () => [],
+    });
+    const [result] = await admitRows(deps, rowsOf([["Sita", "Rai"]]));
+    expect(result).toMatchObject({ status: "admitted" });
+    expect(looks).toBe(3);
+    expect(calls).toEqual(["walkIn Sita", "walkIn Sita"]); // sent again only once the lookup said nothing was left
+    expect(waits).toEqual([2000, 4000, 8000]);
+  });
+
+  it("finishes the waiting application once the lookup works again, rather than saving the student twice", async () => {
+    let looks = 0;
+    const approved: string[] = [];
+    const { deps, calls } = setup([reply(busy)], {
+      pendingApplications: async () => (++looks < 2 ? null : ["app-1"]),
+      approve: async (id) => (approved.push(id), { ok: true, sid: "2083-00009", temporaryPassword: "1111" }),
+    });
+    const [result] = await admitRows(deps, rowsOf([["Sita", "Rai"]]));
+    expect(result).toMatchObject({ status: "admitted", sid: "2083-00009" });
+    expect(approved).toEqual(["app-1"]);
+    expect(calls).toEqual(["walkIn Sita"]);
+  });
+
+  it("says the student may not be in, and sends nothing more, when the lookup never works", async () => {
+    const { deps, calls } = setup([reply(busy)], { pendingApplications: async () => null });
+    const [result] = await admitRows(deps, rowsOf([["Sita", "Rai"]]));
+    expect(result).toMatchObject({ status: "problem" });
+    expect(calls).toEqual(["walkIn Sita"]);
+  });
+
   it("gives up on a student after the last try, says so, and goes on with the rest", async () => {
     const { deps, waits } = setup([reply(busy), reply(busy), reply(busy), reply(busy), reply(busy), reply(busy), reply(busy), reply(busy), reply(busy), reply(admitted(1))]);
     const results = await admitRows(deps, rowsOf([["Sita", "Rai"], ["Hari", "Rai"]]));

@@ -81,12 +81,15 @@ export async function admitRows(deps: AdmitDeps, rows: readonly ImportRow[], opt
     opts.onResult?.(result);
   };
 
-  // What a failed try may have left, finished: null when there is nothing to finish.
-  async function recover(values: ApplicantForm, line: number, name: string): Promise<Done | null> {
+  // What a failed try may have left, finished: null when there is certainly nothing to finish, and "unknown" when it could not
+  // be looked at (the busy server refused that too): then nothing is sent again, or a second copy would be made (D-159).
+  async function recover(values: ApplicantForm, line: number, name: string): Promise<Done | "unknown" | null> {
     const rec = deps.recovery;
     if (!rec) return null;
     const admitted = (sid: string, password: string): Done => ({ line, name, status: "admitted", sid, email: values.email, password });
-    for (const id of (await rec.pendingApplications(values)) ?? []) {
+    const pending = await rec.pendingApplications(values);
+    if (pending === null) return "unknown";
+    for (const id of pending) {
       for (let attempt = 0; ; attempt++) {
         const approved = await rec.approve(id);
         if (approved.ok) return admitted(approved.sid, approved.temporaryPassword);
@@ -95,7 +98,9 @@ export async function admitRows(deps: AdmitDeps, rows: readonly ImportRow[], opt
         await wait(APPROVE_WAITS_MS[attempt]!);
       }
     }
-    const fresh = ((await rec.studentsNamed(values)) ?? []).filter((s) => !taken.has(s.sid));
+    const students = await rec.studentsNamed(values);
+    if (students === null) return "unknown";
+    const fresh = students.filter((s) => !taken.has(s.sid));
     if (fresh.length > 0) {
       const password = await rec.newPassword(fresh[0]!.id);
       if (password) return admitted(fresh[0]!.sid, password);
@@ -124,8 +129,9 @@ export async function admitRows(deps: AdmitDeps, rows: readonly ImportRow[], opt
     const values = { ...row.values, email: row.values.email || (await deps.suggestEmail(row.values.firstName, row.values.lastName)) || "" };
 
     let finished: RowResult | null = null;
+    let unsure = false; // what the last try left could not be looked at: wait and look again, do not send again
     for (let attempt = 0; finished === null; attempt++) {
-      const outcome = await deps.walkIn(values, ad, opts.confirmDuplicate === true);
+      const outcome: Awaited<ReturnType<AdmitDeps["walkIn"]>> = unsure ? { ok: false, reason: "failed" } : await deps.walkIn(values, ad, opts.confirmDuplicate === true);
       if (outcome.ok) finished = { line: row.line, name, status: "admitted", sid: outcome.sid, email: values.email, password: outcome.temporaryPassword };
       else if (outcome.reason === "duplicate") finished = { line: row.line, name, status: "duplicate", matches: outcome.matches };
       else if (outcome.reason !== "failed") finished = { line: row.line, name, status: "problem", message: outcome.reason === "invalid" ? outcome.message : t("content.forbidden") };
@@ -133,7 +139,9 @@ export async function admitRows(deps: AdmitDeps, rows: readonly ImportRow[], opt
       else {
         opts.onWait?.({ line: row.line, attempt: attempt + 1, of: WAITS_MS.length });
         await wait(WAITS_MS[attempt]!);
-        finished = await recover(values, row.line, name);
+        const found = await recover(values, row.line, name);
+        unsure = found === "unknown";
+        finished = found === "unknown" ? null : found;
       }
     }
     push(finished);
