@@ -151,18 +151,21 @@ describe("the Website Content page (D-098, after the PM's reference)", () => {
     expect(count(html, /class="[^"]*\bprimary\b[^"]*"/g)).toBe(1);
   });
 
-  it("offers every type and every status as a group of buttons, All pressed in each, and a labelled search", () => {
-    for (const group of ["Type", "Status"]) expect(html).toMatch(new RegExp(`role="group" aria-label="${group}"`));
+  it("offers every type and every status in two drop-down menus, All chosen in each, and a labelled search (the PM, 2026-10-12)", () => {
+    for (const group of ["Type", "Status"]) expect(html).toMatch(new RegExp(`<label[^>]*>${group}</label><select`));
     for (const word of ["News", "Notice", "Holiday", "Event", "Vacancy", "Information", "Routine", "Published", "Draft", "Scheduled", "Archived"]) {
-      expect(html, word).toMatch(new RegExp(`aria-pressed="false"[^>]*>${word}</button>`));
+      expect(html, word).toMatch(new RegExp(`<option value="[a-z]+">${word}</option>`));
     }
-    expect(count(html, /aria-pressed="true"[^>]*>All<\/button>/g)).toBe(2);
+    expect(count(html, /<option value="" selected="">All<\/option>/g)).toBe(2);
+    expect(html).not.toContain('aria-pressed="true"'); // no row of buttons any more
     expect(html).toContain('type="search"');
     expect(html).toContain("Search content");
   });
 
-  it("shows the four figures, the public website card and the rows as shapes while it loads, announced politely", () => {
-    for (const word of ["Published", "Drafts", "Scheduled", "Urgent", "On website", "Not visible", "Will be published", "Needs attention", "Public website"]) expect(html, word).toContain(word);
+  it("shows the four figures and the rows as shapes while it loads, announced politely, and no public website card", () => {
+    for (const word of ["Published", "Drafts", "Scheduled", "Urgent", "On website", "Not visible", "Will be published", "Needs attention"]) expect(html, word).toContain(word);
+    expect(html).not.toContain("Public website");
+    expect(html).not.toContain("View website");
     expect(html).toContain('role="status"');
     expect(html).toContain('aria-busy="true"');
     expect(html).toContain("Loading content");

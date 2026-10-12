@@ -19,19 +19,12 @@
   height: 1.125rem;
 }
 
-/* --- Top: title, figures and the public website ------------------------------------------- */
+/* --- Top: title and figures ------------------------------------------- */
 
 .top {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
   gap: var(--space-4);
-}
-
-@media (min-width: 72rem) {
-  .top {
-    grid-template-columns: minmax(0, 1fr) minmax(18rem, 22rem);
-    align-items: stretch;
-  }
 }
 
 .topMain {
@@ -91,7 +84,6 @@
 }
 
 .summaryCard,
-.siteCard,
 .listCard {
   border: 1px solid color-mix(in srgb, var(--color-border) 70%, transparent);
   border-radius: var(--radius-card);
@@ -209,16 +201,7 @@
   background: var(--tone, var(--color-text-muted));
 }
 
-/* The public website card. */
-.siteCard {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-4);
-  padding: min(var(--space-5), 5vw);
-}
-
 /* Rem padding grows with enlarged text; capped by screen width so a narrow phone keeps room for the label. */
-.siteFoot a,
 .rowButton {
   padding-inline: min(var(--space-5), 4vw);
 }
@@ -228,82 +211,6 @@
   font-family: var(--font-heading);
   font-size: var(--text-xl);
   font-weight: var(--weight-bold);
-}
-
-.siteLoading {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-3);
-}
-
-.siteState {
-  display: flex;
-  align-items: flex-start;
-  gap: var(--space-3);
-}
-
-.siteDot {
-  flex: none;
-  width: 0.75rem;
-  height: 0.75rem;
-  margin-top: 0.45rem;
-  border-radius: 50%;
-  background: var(--color-warn);
-  box-shadow: 0 0 0 4px var(--color-warn-soft);
-}
-
-.siteDot[data-live="true"] {
-  background: var(--color-ok);
-  box-shadow: 0 0 0 4px var(--color-ok-soft);
-}
-
-.siteStatus {
-  margin: 0;
-  font-weight: var(--weight-bold);
-}
-
-.siteLink {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-1);
-  min-height: var(--control-height);
-  color: var(--color-primary);
-  overflow-wrap: anywhere;
-}
-
-.siteLink svg {
-  flex: none;
-  width: 1rem;
-  height: 1rem;
-}
-
-.siteFoot {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-3);
-  margin-top: auto;
-}
-
-.siteFact {
-  display: flex;
-  align-items: flex-start;
-  gap: var(--space-2);
-  margin: 0;
-  font-size: var(--text-sm);
-}
-
-.siteFact > span {
-  display: flex;
-  flex-direction: column;
-}
-
-.siteFact svg {
-  flex: none;
-  width: 1.25rem;
-  height: 1.25rem;
-  color: var(--color-text-muted);
 }
 
 .flash {
@@ -327,51 +234,8 @@
 .filterBar {
   display: flex;
   flex-wrap: wrap;
-  align-items: center;
+  align-items: flex-end;
   gap: var(--space-3);
-}
-
-/* A row of filter buttons joined into one control; it wraps rather than scrolling sideways. */
-.segmented {
-  display: flex;
-  flex-wrap: wrap;
-  max-width: 100%;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-control);
-  overflow: hidden;
-}
-
-.segment {
-  min-height: var(--control-height);
-  padding: 0 var(--space-4);
-  border: 0;
-  border-right: 1px solid var(--color-border);
-  background: var(--color-surface);
-  color: var(--color-text);
-  font: inherit;
-  font-size: var(--text-sm);
-  cursor: pointer;
-}
-
-.segment:last-child {
-  border-right: 0;
-}
-
-.segment:hover {
-  background: color-mix(in srgb, var(--color-text) 4%, var(--color-surface));
-}
-
-.segment[aria-pressed="true"] {
-  background: color-mix(in srgb, var(--color-primary) 10%, var(--color-surface));
-  color: var(--color-primary);
-  font-weight: var(--weight-medium);
-  box-shadow: inset 0 0 0 1px var(--color-primary);
-}
-
-.segment:focus-visible {
-  position: relative;
-  outline: var(--focus-ring);
-  outline-offset: -3px;
 }
 
 .searchBox {
@@ -1088,4 +952,9 @@
 .summaryCard:has([data-tone="bad"]) {
   --card-tone: var(--color-bad);
   --card-tint: var(--tint-bad);
+}
+
+/* Rem padding grows with enlarged text; capped by screen width so a narrow phone keeps room for the label. */
+.rowButton {
+  padding-inline: min(var(--space-5), 4vw);
 }
