@@ -123,7 +123,7 @@ describe("keeping a level's subjects, end to end", () => {
     expect(response.status).toBe(200);
     const curriculum = (await response.json()) as Curriculum;
     expect(curriculum.level).toMatchObject({ id: levelId, name: "Grade 11" });
-    expect(curriculum.groups).toEqual([{ id: groupId, name: "Science option", pickCount: 1, active: true }]);
+    expect(curriculum.groups).toEqual([{ id: groupId, name: "Science option", pickCount: 1, active: true, canDelete: false }]);
     expect(curriculum.offerings).toHaveLength(2);
     const bioRow = curriculum.offerings.find((o) => o.id === bioId)!;
     expect(bioRow).toMatchObject({ creditHundredths: 375, group: { id: groupId, name: "Science option" }, active: true });
