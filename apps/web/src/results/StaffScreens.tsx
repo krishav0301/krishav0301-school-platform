@@ -180,7 +180,7 @@ export function SheetTable({ sheet }: { sheet: ClassSheet }) {
 }
 
 /** One published sheet. `exportable`: offer the CSV, which needs the reports permission (not a Class Teacher's, FUT point 19). */
-export function ClassSheetView({ classId, terminalId, exportable = true }: { classId: string; terminalId: string; exportable?: boolean }) {
+export function ClassSheetView({ classId, terminalId, exportable = true, bare = false }: { classId: string; terminalId: string; exportable?: boolean; bare?: boolean }) {
   const { api } = useSession();
   const [missing, setMissing] = useState(false);
   const isFinal = terminalId === FINAL;
@@ -196,7 +196,7 @@ export function ClassSheetView({ classId, terminalId, exportable = true }: { cla
   const sheet = view.data;
   return (
     <Panel
-      title={t("results.sheets.caption", { name: className(sheet), terminal: sheetName(sheet) })}
+      title={bare ? undefined : t("results.sheets.caption", { name: className(sheet), terminal: sheetName(sheet) })}
       labelledBy="sheet-heading"
       actions={
         exportable ? (

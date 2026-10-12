@@ -10,6 +10,7 @@ import { t, type MessageKey } from "@/i18n/messages";
 import { AddDialog } from "@/ui";
 import { EmptyLine, OpenLink, Panel, ReadFailure, ReadHeader, ReadTable, Segments, TableSkeleton, readStyles } from "@/read/ReadView";
 import { ClassSheetView } from "@/results/StaffScreens";
+import { MyMarksByExam, TerminalCards } from "./TerminalGroups";
 import { ImportStudents } from "./ImportStudents";
 import { useSession } from "@/session/SessionProvider";
 import { canManageStructure } from "@/setup/model";
@@ -93,39 +94,11 @@ export function ClassResults({ hub }: { hub: Pick<ClassHub, "class" | "viewer" |
   if (hub.viewer.seesAll) {
     const published = hub.terminals.filter((x) => x.published);
     if (published.length === 0) return <EmptyLine>{t("classes.nothingPublished", { coordinator: term("role.coordinator") })}</EmptyLine>;
-    return (
-      <>
-        {published.map((x) => (
-          <ClassSheetView key={x.id} classId={hub.class.id} terminalId={x.id} exportable={hub.viewer.staff} />
-        ))}
-      </>
-    );
+    // A card for each published exam, the class's sheet for it inside.
+    return <TerminalCards terminals={published} body={(x) => <ClassSheetView classId={hub.class.id} terminalId={x.id} exportable={hub.viewer.staff} bare />} />;
   }
   if (hub.mySubjects.length === 0) return <EmptyLine>{t("classes.noSubjects")}</EmptyLine>;
-  return (
-    <ReadTable
-      caption={t("classes.yourMarks")}
-      rows={hub.mySubjects.flatMap((s) => hub.terminals.map((x) => ({ key: `${s.offeringId}-${x.id}`, subject: s, terminal: x })))}
-      rowKey={(r) => r.key}
-      columns={[
-        { key: "subject", label: t("classes.col.subject"), primary: true, cell: (r) => r.subject.name },
-        { key: "exam", label: t("classes.col.exam"), cell: (r) => r.terminal.name },
-        {
-          key: "open",
-          label: t("classes.col.open"),
-          align: "end",
-          plain: true,
-          cell: (r) => (
-            <OpenLink
-              href={`/portal/results/sheet?class=${hub.class.id}&subject=${r.subject.offeringId}&terminal=${r.terminal.id}`}
-              label={t("classes.marksNamed", { subject: r.subject.name, exam: r.terminal.name })}
-              text={t("classes.open")}
-            />
-          ),
-        },
-      ]}
-    />
-  );
+  return <MyMarksByExam hub={hub} />;
 }
 
 /** One class (`?id=`, and `&tab=` to open on a tab). */
