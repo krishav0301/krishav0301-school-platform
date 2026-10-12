@@ -2139,6 +2139,7 @@ export const en = {
   "results.sheets.class": "Class",
   "results.sheets.notPublished": "This class has not been published for this exam yet.",
   "results.sheets.caption": "{name}, {terminal}",
+  "results.sheets.belowPass": "(below pass marks)",
   "results.sheets.rank": "Rank",
   "results.sheets.corrected": "Corrected",
   "results.sheets.export": "Download for Excel (CSV)",

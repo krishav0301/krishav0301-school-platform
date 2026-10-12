@@ -281,7 +281,10 @@ const hundredths = (n: number | null) => (n === null ? "" : (n / 100).toFixed(2)
 /** The whole-class sheet as CSV (Excel opens it). OPEN: a native .xlsx needs a library, which needs the PM. */
 export function classSheetCsv(sheet: ClassSheet): string {
   const isFinal = sheet.terminal === null;
-  const lines = [[...(isFinal ? ["Rank"] : []), "SID", "Student", ...sheet.subjects.map((s) => s.name), "Percentage", "Result"].map(cell).join(",")];
+  // A CSV holds no colour. A school with pass marks per subject (the screen shows those marks in red) gets a column naming the subjects below their pass marks.
+  const marksBelow = sheet.students.some((s) => s.subjects.some((x) => x?.passed != null));
+  const below = (s: ClassSheet["students"][number]) => s.subjects.flatMap((x, i) => (x?.passed === false ? [sheet.subjects[i]!.name] : [])).join("; ");
+  const lines = [[...(isFinal ? ["Rank"] : []), "SID", "Student", ...sheet.subjects.map((s) => s.name), "Percentage", "Result", ...(marksBelow ? ["Below pass marks"] : [])].map(cell).join(",")];
   for (const s of sheet.students) {
     lines.push(
       [
@@ -291,6 +294,7 @@ export function classSheetCsv(sheet: ClassSheet): string {
         ...s.subjects.map((x) => (x === null ? "" : sheet.graded && x.grade !== null ? `${hundredths(x.percentHundredths)} (${x.grade})` : hundredths(x.percentHundredths))),
         hundredths(s.percentHundredths),
         s.outcome,
+        ...(marksBelow ? [below(s)] : []),
       ]
         .map(cell)
         .join(","),

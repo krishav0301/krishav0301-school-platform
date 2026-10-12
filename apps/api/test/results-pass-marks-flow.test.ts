@@ -83,6 +83,11 @@ describe("a school with pass marks per subject", () => {
     const flags = sheet.students.map((st) => st.subjects.map((x) => x?.passed).join(","));
     expect(flags.filter((f) => f === "true,true")).toHaveLength(1); // pupil 0 only
     expect(flags.filter((f) => f.includes("false"))).toHaveLength(2);
+    // The CSV cannot be coloured: it names the subjects below their pass marks in a column of its own.
+    const csv = await (await call(`/api/results/classes/${fixture.classId}/final/sheet.csv`, { cookie: coordinator.cookie })).text();
+    expect(csv.split("\r\n")[0]).toContain('"Below pass marks"');
+    expect(csv).toContain(art.name); // pupil 1 is below Art's pass marks
+    expect(csv).toContain(`"${maths.name}"`);
     const second = (await cardsOf(fixture, 1)).find((c) => c.kind === "final")!.card.body.subjects;
     expect(second.map((s) => s.passed)).toEqual(expect.arrayContaining([true, false]));
     const third = (await cardsOf(fixture, 2)).find((c) => c.kind === "terminal")!.card.body.subjects;
