@@ -7,8 +7,8 @@ import { firstProblem, type ImportRow, type RowResult } from "./student-import";
 export interface AdmitDeps {
   /** A Nepali date as an English one; `ok: false` when it is not a real day. */
   toAd: (bs: string) => Promise<{ ok: true; ad: string } | { ok: false; error: "dateUnverified" | "dateInvalid" | "failed" }>;
-  /** The sign-in email a first name would get (name@student.com, numbered when taken); null when it cannot be asked. */
-  suggestEmail: (firstName: string) => Promise<string | null>;
+  /** The sign-in email a first and last name would get (first.last@student.com, numbered when taken); null when it cannot be asked. */
+  suggestEmail: (firstName: string, lastName: string) => Promise<string | null>;
   walkIn: (values: ApplicantForm, ad: string, confirmDuplicate: boolean) => Promise<
     | { ok: true; sid: string; temporaryPassword: string }
     | { ok: false; reason: "duplicate"; matches: { name: string; sid: string }[] }
@@ -45,7 +45,7 @@ export async function admitRows(deps: AdmitDeps, rows: readonly ImportRow[], opt
       ad = converted.ad;
     }
     // The email is made here, so the sign-in sheet can say it: the server would make the same one.
-    const values = { ...row.values, email: row.values.email || (await deps.suggestEmail(row.values.firstName)) || "" };
+    const values = { ...row.values, email: row.values.email || (await deps.suggestEmail(row.values.firstName, row.values.lastName)) || "" };
     const outcome = await deps.walkIn(values, ad, opts.confirmDuplicate === true);
     if (outcome.ok) results.push({ line: row.line, name, status: "admitted", sid: outcome.sid, email: values.email, password: outcome.temporaryPassword });
     else if (outcome.reason === "duplicate") results.push({ line: row.line, name, status: "duplicate", matches: outcome.matches });

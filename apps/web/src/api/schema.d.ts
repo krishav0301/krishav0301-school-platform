@@ -1237,7 +1237,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** @description The sign-in email a new student would get from their first name: name@student.com, or name_1@student.com and so on when that is taken. The person may change it by hand. */
+        /** @description The sign-in email a new student would get from their first and last name: first.last@student.com (first@student.com with no last name), or first.last_1@student.com and so on when that is taken. The person may change it by hand. */
         get: operations["suggest_student_email"];
         put?: never;
         post?: never;
@@ -9303,6 +9303,7 @@ export interface operations {
         parameters: {
             query: {
                 firstName: string;
+                lastName?: string;
             };
             header?: never;
             path?: never;

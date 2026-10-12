@@ -80,18 +80,27 @@ const KEEPS_PIN = "COALESCE((SELECT student_keeps_pin FROM school WHERE id = 1),
 
 export const STUDENT_EMAIL_DOMAIN = "student.com";
 
-/** The part before the @: the first name in lower-case letters and digits, or "student" when it has none (a name in Devanagari). */
-export function emailLocalPart(firstName: string): string {
-  return firstName.normalize("NFKD").toLowerCase().replace(/[^a-z0-9]/g, "") || "student";
+const lettersOf = (name: string): string => name.normalize("NFKD").toLowerCase().replace(/[^a-z0-9]/g, "");
+
+/**
+ * The part before the @: `first.last` in lower-case letters and digits (the PM, 2026-10-12: the first name alone gave
+ * `amit_3` and the like). With no last name, or one with no Latin letters, it is the first name alone; with no Latin
+ * letters in the first name either (a name in Devanagari), "student". A middle name is not used.
+ */
+export function emailLocalPart(firstName: string, lastName = ""): string {
+  const first = lettersOf(firstName);
+  const last = lettersOf(lastName);
+  if (first === "") return "student";
+  return last === "" ? first : `${first}.${last}`;
 }
 
 /**
- * An email for a student with none: `name@student.com`, and `name_1@student.com`, `name_2@...` when that is taken (by a
- * login, a student or an application). It can be edited by hand. Two people asking at the same moment may be offered the
+ * An email for a student with none: `first.last@student.com` (`first@student.com` with no last name), and `first.last_1@...`,
+ * `_2` when that is taken (by a login, a student or an application). It can be edited by hand. Two people asking at the same moment may be offered the
  * same one; the second is then refused at admission as taken, never given a duplicate login.
  */
-export async function suggestEmail(db: D1Database, firstName: string): Promise<string> {
-  const base = emailLocalPart(firstName);
+export async function suggestEmail(db: D1Database, firstName: string, lastName = ""): Promise<string> {
+  const base = emailLocalPart(firstName, lastName);
   const { results } = await db
     .prepare(`SELECT email FROM users WHERE email LIKE ?1 UNION SELECT email FROM students WHERE email LIKE ?1 UNION SELECT email FROM applications WHERE email LIKE ?1`)
     .bind(`${base}%@${STUDENT_EMAIL_DOMAIN}`)
@@ -104,10 +113,10 @@ export async function suggestEmail(db: D1Database, firstName: string): Promise<s
 }
 
 /** The typed details with an email filled in when it was left out, so everything after sees one. */
-async function withEmail<T extends { firstName?: unknown; email?: unknown }>(db: D1Database, input: T): Promise<T> {
+async function withEmail<T extends { firstName?: unknown; lastName?: unknown; email?: unknown }>(db: D1Database, input: T): Promise<T> {
   const blank = typeof input.email !== "string" || input.email.trim() === "";
   if (!blank || typeof input.firstName !== "string" || input.firstName.trim() === "") return input;
-  return { ...input, email: await suggestEmail(db, input.firstName) };
+  return { ...input, email: await suggestEmail(db, input.firstName, typeof input.lastName === "string" ? input.lastName : "") };
 }
 
 // --- The public application --------------------------------------------------------------------------

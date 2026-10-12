@@ -16422,7 +16422,7 @@
         "tags": [
           "admissions"
         ],
-        "description": "The sign-in email a new student would get from their first name: name@student.com, or name_1@student.com and so on when that is taken. The person may change it by hand.",
+        "description": "The sign-in email a new student would get from their first and last name: first.last@student.com (first@student.com with no last name), or first.last_1@student.com and so on when that is taken. The person may change it by hand.",
         "parameters": [
           {
             "schema": {
@@ -16432,6 +16432,15 @@
             },
             "required": true,
             "name": "firstName",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "maxLength": 60
+            },
+            "required": false,
+            "name": "lastName",
             "in": "query"
           }
         ],
