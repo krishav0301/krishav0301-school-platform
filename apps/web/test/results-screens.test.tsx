@@ -7,7 +7,7 @@ import { formatMarks, markText, parseMark, scoreText, type MarkSheet } from "@/r
 import { ResultsHome } from "@/results/ResultsHome";
 import { ResultsTabs } from "@/results/ResultsTabs";
 import { SubjectsTable, Top20Table, resultFigures, resultName } from "@/results/OwnResultsScreen";
-import { RecheckList, SheetTable } from "@/results/StaffScreens";
+import { ElectivesScreen, RecheckList, SheetTable } from "@/results/StaffScreens";
 import { SessionContext } from "@/session/SessionProvider";
 import { fakeSession } from "./session";
 import royal from "../../../packs/royal-softech/pack.json";
@@ -43,6 +43,22 @@ const inContext = (element: React.ReactNode, session = as("coordinator"), top20 
       <SessionContext.Provider value={session}>{element}</SessionContext.Provider>
     </ConfigContext.Provider>,
   );
+
+describe("a school without elective subjects (D-142)", () => {
+  it("says so on the elective picks page instead of asking for picks, even if its address is typed", () => {
+    const off = { ...config(true), modules: { results: true, top20: true, electives: false } };
+    const html = renderToStaticMarkup(
+      <ConfigContext.Provider value={makeConfigValue("ready", off)}>
+        <SessionContext.Provider value={as("coordinator")}>
+          <ElectivesScreen />
+        </SessionContext.Provider>
+      </ConfigContext.Provider>,
+    );
+    expect(html).toContain("Elective subjects are not used at this school.");
+    expect(html).not.toContain("<select");
+    expect(html).not.toContain("<table");
+  });
+});
 
 describe("marks as typed and shown", () => {
   it("reads a number with up to two decimals, AB for absent, or blank; nothing else", () => {

@@ -2181,6 +2181,7 @@ export const en = {
   "results.rechecks.reasonSame": "Required. The student sees it.",
   "results.rechecks.saveChanged": "Save the corrected marks",
   "results.rechecks.saveSame": "No change",
+  "results.electives.off": "Elective subjects are not used at this school.",
   "results.electives.title": "Electives",
   "results.electives.figures": "This class's electives",
   "results.electives.figure.students": "Students",
