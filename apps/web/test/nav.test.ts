@@ -150,15 +150,25 @@ describe("visibleNav", () => {
   it("the real list starts with the dashboard, has unique ids and hrefs, and every href is under /portal", () => {
     expect(NAV_ITEMS[0]!.id).toBe("dashboard");
     expect(new Set(NAV_ITEMS.map((i) => i.id)).size).toBe(NAV_ITEMS.length);
-    expect(new Set(NAV_ITEMS.map((i) => i.href)).size).toBe(NAV_ITEMS.length);
+    // One address per entry for whoever sees the menu: the Principal's and the Co-ordinator's Setup entries share /portal/setup (D-150) but never appear together.
+    for (const role of ROLES) {
+      const own = visibleNav(NAV_ITEMS, [{ role }], Object.fromEntries(NAV_ITEMS.flatMap((i) => (typeof i.module === "string" ? [i.module] : i.module ?? [])).map((m) => [m, true])));
+      expect(new Set(own.map((i) => i.href)).size).toBe(own.length);
+    }
     for (const item of NAV_ITEMS) expect(item.href.startsWith("/portal")).toBe(true);
   });
 });
 
 describe("Setup's menu entry (D-130)", () => {
   const setup = NAV_ITEMS.find((i) => i.id === "setup")!;
-  it("opens Departments, the first tab, yet stays current on every Setup page", () => {
-    expect(setup.opensAt).toBe("/portal/setup/programmes");
+  it("the Principal's Academic Structure entry opens on the overview and stays current on its Setup pages (D-150)", () => {
+    const entry = NAV_ITEMS.find((n) => n.id === "programs")!;
+    expect(entry.opensAt).toBe("/portal/setup/map");
+    for (const path of ["/portal/setup/map", "/portal/setup/programmes"]) expect(isCurrent(path, entry.href)).toBe(true);
+  });
+
+  it("opens the overview, the first tab, yet stays current on every Setup page", () => {
+    expect(setup.opensAt).toBe("/portal/setup/map");
     for (const path of ["/portal/setup", "/portal/setup/programmes", "/portal/setup/classes", "/portal/setup/terminals"]) expect(isCurrent(path, setup.href)).toBe(true);
   });
 });
