@@ -192,7 +192,7 @@ describe("the public shell and sign-in page", () => {
   });
 
   it("shows the students' picture, as a decorative image of a fixed size that is loaded lazily", () => {
-    const img = html.match(/<img[^>]*sign-in-students.webp[^>]*>/)![0];
+    const img = html.match(/<img[^>]*sign-in\/students\.webp[^>]*>/)![0];
     expect(img).toContain('alt=""');
     expect(img).toContain('width="800"');
     expect(img).toContain('height="614"');

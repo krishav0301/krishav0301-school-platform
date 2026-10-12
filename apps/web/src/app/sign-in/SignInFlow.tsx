@@ -252,7 +252,7 @@ export function SignInFlow() {
         {/* Drawn for the school: two students in uniform. Decorative, so no text; the size is given so nothing moves when it loads, and it is not fetched on a phone, where it is hidden. */}
         {/* The pictures are static files from the site itself, already sized (D-126), so the image component adds nothing. */}
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/illustrations/sign-in-students.webp" width={800} height={614} alt="" className={styles.art} loading="lazy" decoding="async" />
+        <img src="/sign-in/students.webp" width={800} height={614} alt="" className={styles.art} loading="lazy" decoding="async" />
       </div>
       <div className={styles.formSide}>{form}</div>
     </div>
