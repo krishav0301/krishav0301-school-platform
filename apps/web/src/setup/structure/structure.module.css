@@ -1,0 +1,756 @@
+/* The Academic Structure (D-157): a chart you open one branch at a time, and the same as a list. Theme tokens only. */
+
+.explorer {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.muted {
+  margin: 0;
+  color: var(--color-text-muted);
+  overflow-wrap: anywhere;
+}
+
+.missing {
+  color: var(--color-warn);
+}
+
+/* --- The heading and what sits beside it -------------------------------------------------------------------------- */
+
+.head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-4);
+}
+
+.headText {
+  flex: 1 1 22rem;
+  min-width: 0;
+}
+
+.title {
+  margin: 0;
+  font-family: var(--font-heading);
+  font-size: var(--text-3xl, 2.25rem);
+  line-height: var(--leading-tight);
+}
+
+.intro {
+  margin: var(--space-1) 0 0;
+  color: var(--color-text-muted);
+}
+
+.headTools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.termCard {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-height: 3.25rem;
+  padding: var(--space-1) var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-card);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-card);
+  cursor: pointer;
+}
+
+.termCard:focus-within {
+  outline: var(--focus-ring);
+  outline-offset: 2px;
+}
+
+.termIcon {
+  display: inline-grid;
+  place-items: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: var(--radius-control);
+  background: color-mix(in srgb, var(--color-accent) 14%, var(--color-surface));
+  color: var(--color-accent);
+}
+
+.termIcon svg,
+.settings svg,
+.search svg,
+.termChevron {
+  width: 1.125rem;
+  height: 1.125rem;
+}
+
+.termName,
+.termSelect {
+  font: inherit;
+  font-weight: var(--weight-bold);
+}
+
+.termSelect {
+  min-width: 6rem;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--color-text);
+  cursor: pointer;
+  appearance: none;
+}
+
+.termSelect:focus-visible {
+  outline: none;
+}
+
+.settings {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: 3.25rem;
+  padding: 0 var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-card);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-card);
+  color: var(--color-text);
+  text-decoration: none;
+}
+
+.settings:focus-visible,
+.action:focus-visible,
+.addNode:focus-visible,
+.rowAdd:focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: 2px;
+}
+
+/* --- Search ------------------------------------------------------------------------------------------------------ */
+
+.searchArea {
+  position: relative;
+}
+
+.search {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: var(--control-height);
+  padding: 0 var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-control);
+  background: var(--color-surface);
+}
+
+.search input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  background: transparent;
+  color: var(--color-text);
+  font: inherit;
+}
+
+.search input:focus-visible {
+  outline: none;
+}
+
+.search:focus-within {
+  outline: var(--focus-ring);
+  outline-offset: 2px;
+}
+
+.results {
+  position: absolute;
+  z-index: 6;
+  inset-inline: 0;
+  max-height: 22rem;
+  margin: var(--space-1) 0 0;
+  padding: var(--space-1);
+  overflow: auto;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-card);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-card);
+  list-style: none;
+}
+
+.result {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  width: 100%;
+  min-height: var(--control-height);
+  padding: var(--space-2) var(--space-3);
+  border: 0;
+  border-radius: var(--radius-control);
+  background: transparent;
+  color: var(--color-text);
+  font: inherit;
+  text-align: start;
+  cursor: pointer;
+}
+
+.result:hover,
+.result:focus-visible {
+  background: color-mix(in srgb, var(--color-primary) 8%, transparent);
+}
+
+.result:focus-visible {
+  outline: var(--focus-ring);
+}
+
+.result svg {
+  flex: none;
+  width: 1.25rem;
+  height: 1.25rem;
+  color: var(--color-text-muted);
+}
+
+.resultName,
+.resultPlace {
+  display: block;
+}
+
+.resultPlace,
+.nodeKindText {
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+}
+
+/* --- Where you are ------------------------------------------------------------------------------------------------- */
+
+.crumbs {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-1) var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: var(--text-sm);
+}
+
+.crumbs li:not(:last-child):not(.crumbBack)::after {
+  content: "/";
+  margin-inline-start: var(--space-2);
+  color: var(--color-text-muted);
+}
+
+.crumb {
+  min-height: var(--control-height);
+  padding: 0 var(--space-1);
+  border: 0;
+  background: transparent;
+  color: var(--color-primary-text, var(--color-primary));
+  font: inherit;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.crumb:focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: 2px;
+}
+
+/* --- The chart --------------------------------------------------------------------------------------------------- */
+
+.flow {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+/* The zoom and the small map sit over the top right of the chart, as on a map. */
+.tools {
+  position: absolute;
+  z-index: 3;
+  top: var(--space-3);
+  right: calc(var(--space-3) + 0.75rem);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: var(--space-2);
+}
+
+.controls {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: var(--space-1);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-control);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-card);
+}
+
+.control {
+  display: inline-grid;
+  place-items: center;
+  width: var(--control-height);
+  height: var(--control-height);
+  border: 0;
+  border-radius: var(--radius-control);
+  background: transparent;
+  color: var(--color-text);
+  cursor: pointer;
+}
+
+.control:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--color-text) 6%, transparent);
+}
+
+.control:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.control:focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: 2px;
+}
+
+.control svg {
+  width: 1.125rem;
+  height: 1.125rem;
+}
+
+.zoomLevel {
+  min-width: 3.25rem;
+  text-align: center;
+  font-size: var(--text-sm);
+  font-variant-numeric: tabular-nums;
+}
+
+.minimap {
+  display: block;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-control);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-card);
+  cursor: pointer;
+}
+
+.minimapBox {
+  fill: color-mix(in srgb, var(--color-primary) 35%, transparent);
+}
+
+.minimapView {
+  fill: color-mix(in srgb, var(--color-primary) 8%, transparent);
+  stroke: var(--color-primary);
+  stroke-width: 1.5;
+}
+
+.viewport {
+  overflow: auto;
+  max-height: 75vh;
+  min-height: 24rem;
+  border: 1px solid color-mix(in srgb, var(--color-border) 70%, transparent);
+  border-radius: var(--radius-card);
+  background-color: var(--color-surface);
+  background-image: radial-gradient(color-mix(in srgb, var(--color-text) 14%, transparent) 1px, transparent 1px);
+  background-size: 22px 22px;
+}
+
+.viewport:focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: 2px;
+}
+
+.canvas {
+  position: relative;
+  transform-origin: top left;
+}
+
+.edges {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.edges path {
+  fill: none;
+  stroke: color-mix(in srgb, var(--color-text) 30%, transparent);
+  stroke-width: 1.5;
+}
+
+.slot {
+  position: absolute;
+}
+
+.hint {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+}
+
+/* Each kind has an accent; the card is a faint tint of it with a thin edge, so the chart reads by colour without shouting. */
+.node[data-kind="term"],
+.nodeIcon[data-kind="term"],
+.row[data-kind="term"] {
+  --kind: var(--color-accent);
+}
+
+.node[data-kind="wing"],
+.nodeIcon[data-kind="wing"],
+.row[data-kind="wing"] {
+  --kind: var(--color-primary);
+}
+
+.node[data-kind="course"],
+.nodeIcon[data-kind="course"],
+.row[data-kind="course"] {
+  --kind: var(--color-warn);
+}
+
+.node[data-kind="level"],
+.nodeIcon[data-kind="level"],
+.row[data-kind="level"] {
+  --kind: var(--color-ok);
+}
+
+.node[data-kind="subjects"],
+.nodeIcon[data-kind="subjects"],
+.row[data-kind="subjects"] {
+  --kind: var(--color-accent);
+}
+
+.node[data-kind="section"],
+.nodeIcon[data-kind="section"],
+.row[data-kind="section"] {
+  --kind: var(--color-primary);
+}
+
+/* A wing takes a colour of its own, so wings side by side can be told apart. */
+.node[data-tone="bad"] {
+  --kind: var(--color-bad);
+}
+
+.node[data-tone="primary"] {
+  --kind: var(--color-primary);
+}
+
+.node[data-tone="ok"] {
+  --kind: var(--color-ok);
+}
+
+.node[data-tone="accent"] {
+  --kind: var(--color-accent);
+}
+
+.node[data-tone="warn"] {
+  --kind: var(--color-warn);
+}
+
+.node {
+  position: relative;
+  display: flex;
+  height: 100%;
+  overflow: hidden;
+  border: 1px solid color-mix(in srgb, var(--kind) 38%, var(--color-border));
+  border-radius: var(--radius-card);
+  background: color-mix(in srgb, var(--kind) 7%, var(--color-surface));
+  box-shadow: var(--shadow-card);
+}
+
+.node[data-selected] {
+  border-color: var(--kind);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--kind) 45%, transparent), var(--shadow-card);
+}
+
+.nodeMain {
+  display: flex;
+  flex: 1;
+  align-items: flex-start;
+  gap: var(--space-3);
+  min-width: 0;
+  padding: var(--space-3);
+  border: 0;
+  background: transparent;
+  color: var(--color-text);
+  font: inherit;
+  text-align: start;
+  cursor: pointer;
+}
+
+.nodeMain:hover {
+  background: color-mix(in srgb, var(--kind) 6%, transparent);
+}
+
+.nodeMain:focus-visible,
+.nodeToggle:focus-visible,
+.rowMain:focus-visible,
+.rowToggle:focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: -2px;
+}
+
+.nodeIcon {
+  display: inline-grid;
+  flex: none;
+  place-items: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  border-radius: var(--radius-control);
+  background: color-mix(in srgb, var(--kind, var(--color-primary)) 16%, var(--color-surface));
+  color: var(--kind, var(--color-primary));
+}
+
+.nodeIcon svg {
+  width: 1.375rem;
+  height: 1.375rem;
+}
+
+.nodeText {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  flex: 1;
+}
+
+.nodeKind {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+}
+
+/* The text is cut to two lines, so it never leaves its box; the full name is in the box's panel and its tooltip. */
+.nodeName {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  font-size: var(--text-lg);
+  font-weight: var(--weight-bold);
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+}
+
+.nodeMeta {
+  display: flex;
+  flex-wrap: wrap;
+  max-height: 2.6em;
+  overflow: hidden;
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+  line-height: 1.3;
+}
+
+.metaPart {
+  white-space: nowrap;
+}
+
+.metaPart + .metaPart::before {
+  content: "|";
+  margin-inline: var(--space-2);
+  color: color-mix(in srgb, var(--color-text) 25%, transparent);
+}
+
+.metaPart[data-missing] {
+  color: var(--color-warn);
+}
+
+.subjectChips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+  max-height: 4.25rem;
+  margin-top: var(--space-1);
+  overflow: hidden;
+}
+
+.subjectChip {
+  padding: 1px var(--space-2);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--kind) 14%, var(--color-surface));
+  color: var(--color-text);
+  font-size: var(--text-sm);
+  white-space: nowrap;
+}
+
+.nodeSide {
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-1) var(--space-1) var(--space-2);
+}
+
+.nodeToggle {
+  display: inline-grid;
+  place-items: center;
+  width: 2rem;
+  height: 2rem;
+  border: 0;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--color-text) 6%, transparent);
+  color: var(--color-text);
+  cursor: pointer;
+}
+
+.nodeToggle svg,
+.rowToggle svg {
+  width: 1.125rem;
+  height: 1.125rem;
+  transition: transform 160ms ease;
+}
+
+.nodeToggle svg[data-open="true"],
+.rowToggle svg[data-open="true"] {
+  transform: rotate(180deg);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nodeToggle svg,
+  .rowToggle svg {
+    transition: none;
+  }
+}
+
+/* A dashed box at the end of a branch: it goes to where one is added. */
+.addNode,
+.rowAdd {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  color: var(--color-primary-text, var(--color-primary));
+  text-decoration: none;
+}
+
+.addNode {
+  height: 100%;
+  border: 1.5px dashed color-mix(in srgb, var(--color-primary) 45%, var(--color-border));
+  border-radius: var(--radius-card);
+  background: color-mix(in srgb, var(--color-primary) 3%, var(--color-surface));
+}
+
+.addNode:hover,
+.rowAdd:hover {
+  background: color-mix(in srgb, var(--color-primary) 8%, var(--color-surface));
+}
+
+.addNode svg,
+.rowAdd svg {
+  width: 1.125rem;
+  height: 1.125rem;
+}
+
+.rowAdd {
+  justify-content: flex-start;
+  flex: 1;
+  min-height: var(--control-height);
+}
+
+/* --- The list ---------------------------------------------------------------------------------------------------- */
+
+.tree,
+.tree ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.tree {
+  overflow: hidden;
+  border: 1px solid color-mix(in srgb, var(--color-border) 70%, transparent);
+  border-radius: var(--radius-card);
+  background: var(--color-surface);
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  border-top: 1px solid color-mix(in srgb, var(--color-border) 50%, transparent);
+}
+
+.row[data-selected] {
+  background: color-mix(in srgb, var(--kind) 8%, transparent);
+}
+
+.rowToggle {
+  display: inline-grid;
+  flex: none;
+  place-items: center;
+  width: var(--control-height);
+  height: var(--control-height);
+  border: 0;
+  background: transparent;
+  color: var(--color-text);
+  cursor: pointer;
+}
+
+.rowMain {
+  display: flex;
+  flex: 1;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-1) var(--space-3);
+  min-width: 0;
+  min-height: var(--control-height);
+  padding: var(--space-2) var(--space-3) var(--space-2) 0;
+  border: 0;
+  background: transparent;
+  color: var(--color-text);
+  font: inherit;
+  text-align: start;
+  cursor: pointer;
+}
+
+.rowName {
+  flex: 1 1 12rem;
+  min-width: 0;
+  font-weight: var(--weight-bold);
+  overflow-wrap: anywhere;
+}
+
+/* --- The panel ------------------------------------------------------------------------------------------------------ */
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-top: var(--space-4);
+}
+
+.action {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--control-height);
+  padding: 0 var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-control);
+  background: var(--color-surface);
+  color: var(--color-primary-text, var(--color-primary));
+  text-decoration: none;
+}
+
+.plainList {
+  margin: 0;
+  padding-inline-start: var(--space-5);
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.chips li {
+  padding: var(--space-1) var(--space-3);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--color-text) 6%, transparent);
+  font-size: var(--text-sm);
+}
