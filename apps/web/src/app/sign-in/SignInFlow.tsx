@@ -2,6 +2,7 @@
 
 import { ArrowRight, Eye, EyeOff, Lock, Mail } from "lucide-react";
 import dynamic from "next/dynamic";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useId, useRef, useState, type FormEvent } from "react";
 
@@ -243,7 +244,11 @@ export function SignInFlow() {
   return (
     <div className={styles.layout}>
       <div className={styles.brand}>
-        <p className={styles.brandName}>{config?.school.name}</p>
+        <p className={styles.brandName}>
+          <Link href="/" className={styles.brandLink}>
+            {config?.school.name}
+          </Link>
+        </p>
         <p className={styles.brandLine}>{t("signIn.brandLine")}</p>
         <StudentsArt className={styles.art} />
       </div>

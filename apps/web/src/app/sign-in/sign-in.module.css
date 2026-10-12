@@ -83,6 +83,21 @@
   }
 }
 
+/* The school's name takes a visitor to the school's public site, as a logo does; it looks like plain text. */
+.brandLink {
+  color: inherit;
+  text-decoration: none;
+}
+
+.brandLink:hover {
+  text-decoration: underline;
+}
+
+.brandLink:focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: 4px;
+}
+
 .brandLine {
   margin: 0;
   max-width: 28ch;
