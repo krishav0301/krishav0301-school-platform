@@ -1,8 +1,8 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 
-import { ImportResults, ImportRunning } from "@/classes/ImportStudents";
-import { ImportJobContext, jobReducer, mergeResults, type ImportJob, type ImportJobValue } from "@/classes/import-job";
+import { ImportInterrupted, ImportResults, ImportRunning } from "@/classes/ImportStudents";
+import { ImportJobContext, jobReducer, mergeResults, remainingRows, restoreJob, serializeJob, type ImportJob, type ImportJobValue } from "@/classes/import-job";
 import { ConfigContext, makeConfigValue, type PublicConfig } from "@/config/ConfigProvider";
 import { ImportChip, chipView } from "@/shell/ImportChip";
 import type { RowResult } from "@/sheets/student-import";
@@ -14,7 +14,7 @@ vi.mock("next/navigation", () => ({ usePathname: () => "/portal", useRouter: () 
 // The class import beside the page (the PM, 2026-10-12): it keeps running when its window is closed, shows as a chip in the
 // top bar with its progress, and the window opens again where it was.
 
-const start = { classId: "c8", levelId: "l8", className: "General · Class 8 · Section A", rows: [], total: 40, results: null };
+const start = { userId: "u1", classId: "c8", levelId: "l8", className: "General · Class 8 · Section A", rows: [], total: 40, offset: 0, results: null };
 const admitted = (line: number): RowResult => ({ line, name: `Student ${line}`, status: "admitted", sid: `2083-${String(line).padStart(5, "0")}`, email: `s${line}@student.com`, password: "1234" });
 
 describe("the import job's state", () => {
@@ -46,7 +46,7 @@ describe("the import job's state", () => {
   });
 });
 
-const running: ImportJob = { ...start, rows: [], total: 40, done: 20, waiting: null, live: [admitted(2)], results: null, running: true };
+const running: ImportJob = { ...start, rows: [], total: 40, done: 20, waiting: null, live: [admitted(2)], results: null, running: true, interrupted: false };
 const finished: ImportJob = { ...running, done: 40, running: false, results: [admitted(2)] };
 const config: PublicConfig = {
   school: { name: royal.school.name, shortName: royal.school.shortName, currency: "NPR", timezone: "Asia/Kathmandu", region: "nepal", template: null },
@@ -56,7 +56,7 @@ const config: PublicConfig = {
   theme: royal.theme as PublicConfig["theme"],
 };
 const withJob = (job: ImportJob | null, element: React.ReactNode) => {
-  const value: ImportJobValue = { job, start: () => true, dismiss: () => {}, finished: 0 };
+  const value: ImportJobValue = { job, start: () => true, resume: () => true, dismiss: () => {}, finished: 0 };
   return renderToStaticMarkup(
     <ConfigContext.Provider value={makeConfigValue("ready", config)}>
       <ImportJobContext.Provider value={value}>{element}</ImportJobContext.Provider>
@@ -111,7 +111,7 @@ describe("the import page in Admissions (D-156)", () => {
     renderToStaticMarkup(
       <ConfigContext.Provider value={makeConfigValue("ready", config)}>
         <SessionContext.Provider value={coordinator}>
-          <ImportJobContext.Provider value={{ job, start: () => true, dismiss: () => {}, finished: 0 }}>
+          <ImportJobContext.Provider value={{ job, start: () => true, resume: () => true, dismiss: () => {}, finished: 0 }}>
             <ImportScreen />
           </ImportJobContext.Provider>
         </SessionContext.Provider>
@@ -122,5 +122,57 @@ describe("the import page in Admissions (D-156)", () => {
     const html = page(null);
     expect(html).toContain("Import students from Excel");
     expect(html).toContain("Choose the class, download the template");
+  });
+});
+
+describe("an import that a reload stopped (D-161)", () => {
+  const rowOf = (line: number) => ({ line, values: { firstName: `S${line}` }, errors: {} }) as unknown as ImportJob["rows"][number];
+  const half: ImportJob = { ...running, rows: [2, 3, 4, 5].map(rowOf), total: 4, done: 2, live: [admitted(4)], results: [admitted(2), admitted(3)], running: true };
+
+  it("keeps what each student came to, passwords too, so the sign-in sheet can still be made", () => {
+    const back = restoreJob(serializeJob(half));
+    expect(back).toMatchObject({ userId: "u1", classId: "c8", total: 4, running: false, interrupted: true });
+    // the live ones of the running pass are kept with the earlier ones, in the order of the sheet
+    expect(back!.results!.map((r) => r.line)).toEqual([2, 3, 4]);
+    expect(back!.results!.every((r) => r.status === "admitted" && r.password === "1234")).toBe(true);
+    expect(back!.done).toBe(3);
+    expect(back!.live).toEqual([]);
+  });
+
+  it("is not called interrupted when it had finished: its results wait to be closed", () => {
+    const done: ImportJob = { ...half, running: false, results: [admitted(2), admitted(3), admitted(4), admitted(5)], live: [] };
+    expect(restoreJob(serializeJob(done))).toMatchObject({ interrupted: false, running: false });
+  });
+
+  it("knows what is left: the rows no result covers", () => {
+    expect(remainingRows({ rows: half.rows, results: [admitted(2), admitted(3), admitted(4)] }).map((r) => r.line)).toEqual([5]);
+    expect(remainingRows({ rows: half.rows, results: null })).toHaveLength(4);
+  });
+
+  it("restores nothing from nothing, or from text that is not a kept import", () => {
+    expect(restoreJob(null)).toBeNull();
+    expect(restoreJob("not json")).toBeNull();
+    expect(restoreJob(JSON.stringify({ classId: "c" }))).toBeNull();
+  });
+
+  it("a continued pass counts on from where it was, not from nothing", () => {
+    let job = jobReducer(null, { type: "start", job: { ...start, rows: half.rows, total: 4, offset: 3, results: [admitted(2), admitted(3), admitted(4)] } });
+    expect(job).toMatchObject({ done: 3, running: true, interrupted: false });
+    job = jobReducer(job, { type: "progress", done: 0, total: 4 });
+    expect(job!.done).toBe(3);
+    job = jobReducer(job, { type: "progress", done: 1, total: 4 });
+    expect(job!.done).toBe(4);
+  });
+
+  it("the window says how far it got, offers to continue, to save the sheet so far, or to close it; the chip says it was stopped", () => {
+    const stopped = restoreJob(serializeJob(half))!;
+    const html = withJob(stopped, <ImportInterrupted job={stopped} onResume={() => {}} onDiscard={() => {}} />);
+    expect(html).toContain("The import was stopped before it finished: 3 of 4 students are done.");
+    expect(html).toContain("Continue the import");
+    expect(html).toContain("Download the sign-in sheet so far");
+    expect(html).toContain("Close it");
+    const chip = withJob(stopped, <ImportChip />);
+    expect(chip).toContain("was stopped: 3 of 4");
+    expect(chip).toContain("scaleX(0.75)");
   });
 });

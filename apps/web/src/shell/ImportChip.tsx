@@ -9,6 +9,7 @@ import styles from "./shell.module.css";
 
 /** What the chip says, and how far its bar is. Pure. */
 export function chipView(job: ImportJob): { text: string; share: number } {
+  if (job.interrupted) return { text: t("shell.import.stopped", { class: job.className, done: job.done, total: job.total }), share: job.total > 0 ? Math.min(1, job.done / job.total) : 0 };
   return job.running
     ? { text: t("shell.import.running", { class: job.className, done: job.done, total: job.total }), share: job.total > 0 ? Math.min(1, job.done / job.total) : 0 }
     : { text: t("shell.import.done", { class: job.className }), share: 1 };
