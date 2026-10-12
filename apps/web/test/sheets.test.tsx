@@ -329,7 +329,7 @@ describe("the import dialog", () => {
     const html = renderToStaticMarkup(
       <ConfigContext.Provider value={makeConfigValue("ready", config)}>
         <SessionContext.Provider value={fakeSession({ status: "signedIn", me: { id: "user-1", name: "Asha", roles: [{ role: "coordinator", scope: "institution" }] } })}>
-          <ImportStudents classId="c1" levelId="l1" className="Science · Grade 11" onDone={() => {}} />
+          <ImportStudents classId="c1" levelId="l1" className="Science · Grade 11" />
         </SessionContext.Provider>
       </ConfigContext.Provider>,
     );
