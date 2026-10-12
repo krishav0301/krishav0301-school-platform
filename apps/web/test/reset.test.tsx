@@ -90,9 +90,26 @@ describe("the reset pages", () => {
     expect(html).not.toContain("ORDdmB6_GNZ89IYiP");
   });
 
-  it("the sign-in page offers 'Forgot password?' as a plain link beside Remember me, so it does not compete with Sign in", () => {
+  it("the sign-in page's 'Forgot password?' opens no other screen: it is a button that says who to ask (the PM, 2026-10-12)", () => {
     const html = inContext(<SignInPage />);
-    expect(html).toMatch(/<a[^>]*href="\/reset-password"[^>]*>Forgot password\?<\/a>/);
+    expect(html).toMatch(/<button[^>]*aria-expanded="false"[^>]*aria-controls="[^"]+"[^>]*>Forgot password\?<\/button>/);
+    expect(html).not.toContain('href="/reset-password"');
     expect(html.match(/class="button primary/g)).toHaveLength(1);
+    // The help is shown only when asked for.
+    expect(html).not.toContain("Passwords are given out by the school");
+  });
+});
+
+describe("who to ask for a new password (the PM, 2026-10-12, D-166)", () => {
+  it("says to ask the Co-ordinator, who asks the Principal, who asks the Super Admin, in the school's own words, and points to no screen", async () => {
+    const { ForgotHelp } = await import("@/app/sign-in/SignInFlow");
+    const words = { ...config, terms: { "role.coordinator": "Co-ordinator", "role.admin": "Principal" } };
+    const html = renderToStaticMarkup(<ConfigContext.Provider value={makeConfigValue("ready", words)}><ForgotHelp id="help" /></ConfigContext.Provider>);
+    expect(html).toContain("Passwords are given out by the school, so ask:");
+    expect(html).toContain("Students, teachers and accountants: your Co-ordinator.");
+    expect(html).toContain("Co-ordinators: the Principal.");
+    expect(html).toContain("The Principal: the Super Admin.");
+    expect(html).not.toContain("<a ");
+    expect(html).not.toContain("reset-password");
   });
 });

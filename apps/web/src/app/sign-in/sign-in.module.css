@@ -83,6 +83,21 @@
   }
 }
 
+/* The school's name takes a visitor to the school's public site, as a logo does; it looks like plain text. */
+.brandLink {
+  color: inherit;
+  text-decoration: none;
+}
+
+.brandLink:hover {
+  text-decoration: underline;
+}
+
+.brandLink:focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: 4px;
+}
+
 .brandLine {
   margin: 0;
   max-width: 28ch;
@@ -98,7 +113,8 @@
 @media (min-width: 56rem) {
   .brand .art {
     display: block;
-    width: min(100%, 23rem);
+    width: min(100%, 28rem);
+    height: auto;
     margin-top: var(--space-4);
   }
 }
@@ -252,9 +268,31 @@
   display: inline-flex;
   align-items: center;
   min-height: var(--control-height);
+  padding: 0;
+  border: 0;
+  background: transparent;
   color: var(--color-primary);
+  font: inherit;
   font-weight: var(--weight-medium);
-  text-decoration: none;
+  cursor: pointer;
+}
+
+/* Who to ask for a new password: shown under the button, not a page of its own. */
+.note {
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-control);
+  background: color-mix(in srgb, var(--color-primary) 6%, var(--color-surface));
+  font-size: var(--text-sm);
+}
+
+.note p {
+  margin: 0 0 var(--space-1);
+  font-weight: var(--weight-medium);
+}
+
+.note ul {
+  margin: 0;
+  padding-inline-start: var(--space-4);
 }
 
 .forgot:hover {

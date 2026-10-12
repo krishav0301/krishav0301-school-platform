@@ -19,7 +19,6 @@ const NewPasswordStep = dynamic(() => import("@/session/NewPasswordStep").then((
 const CodeStep = dynamic(() => import("@/two-factor/steps").then((m) => m.CodeStep), { ssr: false });
 const SetupStep = dynamic(() => import("@/two-factor/steps").then((m) => m.SetupStep), { ssr: false });
 const RecoveryCodesStep = dynamic(() => import("@/two-factor/steps").then((m) => m.RecoveryCodesStep), { ssr: false });
-const StudentsArt = dynamic(() => import("./SignInArt").then((m) => m.StudentsArt), { ssr: false });
 const BookCapArt = dynamic(() => import("./SignInArt").then((m) => m.BookCapArt), { ssr: false });
 
 const FAILURE_MESSAGE: Record<Extract<SignInResult, { ok: false }>["reason"], MessageKey> = {
@@ -87,12 +86,29 @@ function IconField({
   );
 }
 
+/** Who to ask for a new password, from the person with the least reach up: nothing here opens another screen (D-166). */
+export function ForgotHelp({ id }: { id: string }) {
+  const { term } = useConfig();
+  return (
+    <div id={id} className={styles.note} role="status">
+      <p>{t("signIn.forgotLead")}</p>
+      <ul>
+        <li>{t("signIn.forgotStudent", { coordinator: term("role.coordinator") })}</li>
+        <li>{t("signIn.forgotCoordinator", { coordinator: term("role.coordinator"), admin: term("role.admin") })}</li>
+        <li>{t("signIn.forgotAdmin", { admin: term("role.admin") })}</li>
+      </ul>
+    </div>
+  );
+}
+
 function CredentialsStep({ notice, onSecondStep }: { notice?: MessageKey; onSecondStep: (step: "code" | "setup" | "password", challenge: string) => void }) {
   const { signIn, endedUnexpectedly } = useSession();
   const [email, setEmail] = useState(rememberedEmail);
   const [password, setPassword] = useState("");
   const [keepEmail, setKeepEmail] = useState(() => rememberedEmail() !== "");
   const [visible, setVisible] = useState(false);
+  const [helpOpen, setHelpOpen] = useState(false);
+  const helpId = useId();
   const [submitting, setSubmitting] = useState(false);
   const [problem, setProblem] = useState<MessageKey | null>(null);
   const passwordInput = useRef<HTMLInputElement>(null);
@@ -180,10 +196,11 @@ function CredentialsStep({ notice, onSecondStep }: { notice?: MessageKey; onSeco
         />
         <div className={styles.options}>
           <Checkbox label={t("signIn.remember")} checked={keepEmail} onChange={(event) => setKeepEmail(event.target.checked)} />
-          <Link href="/reset-password" className={styles.forgot}>
+          <button type="button" className={styles.forgot} aria-expanded={helpOpen} aria-controls={helpId} onClick={() => setHelpOpen((open) => !open)}>
             {t("signIn.forgotShort")}
-          </Link>
+          </button>
         </div>
+        {helpOpen ? <ForgotHelp id={helpId} /> : null}
         <Button type="submit" fullWidth loading={submitting} loadingLabel={t("signIn.submitting")}>
           {t("signIn.submit")}
           <ArrowRight aria-hidden className={styles.submitIcon} />
@@ -226,9 +243,16 @@ export function SignInFlow() {
   return (
     <div className={styles.layout}>
       <div className={styles.brand}>
-        <p className={styles.brandName}>{config?.school.name}</p>
+        <p className={styles.brandName}>
+          <Link href="/" className={styles.brandLink}>
+            {config?.school.name}
+          </Link>
+        </p>
         <p className={styles.brandLine}>{t("signIn.brandLine")}</p>
-        <StudentsArt className={styles.art} />
+        {/* Drawn for the school: two students in uniform. Decorative, so no text; the size is given so nothing moves when it loads, and it is not fetched on a phone, where it is hidden. */}
+        {/* The pictures are static files from the site itself, already sized (D-126), so the image component adds nothing. */}
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src="/sign-in/students.webp" width={800} height={614} alt="" className={styles.art} loading="lazy" decoding="async" />
       </div>
       <div className={styles.formSide}>{form}</div>
     </div>
