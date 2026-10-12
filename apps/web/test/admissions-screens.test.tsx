@@ -219,11 +219,15 @@ describe("AdmissionsTabs", () => {
     expect(coordinatorHtml).toContain("Queue");
     expect(coordinatorHtml).toMatch(/aria-current="page"[^>]*>Queue</);
     expect(coordinatorHtml).toContain("Walk-in");
+    // The Co-ordinator can import a class list from Excel here (D-156); the Accountant, who cannot admit, is not offered it.
+    expect(coordinatorHtml).toContain('href="/portal/admissions/import"');
+    expect(coordinatorHtml).toContain("Import from Excel");
 
     const accountantHtml = inContext(<AdmissionsTabs pathname="/portal/admissions/register" />, as("accountant"));
     expect(accountantHtml).not.toContain("Queue");
     expect(accountantHtml).toContain("Register");
     expect(accountantHtml).toContain("Students");
+    expect(accountantHtml).not.toContain("Import from Excel");
   });
 
   it("offers the Principal no Register form: Students is their only reach, and a menu of one is not shown (admin FUT F-08)", () => {

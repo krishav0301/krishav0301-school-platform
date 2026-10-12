@@ -63,7 +63,7 @@ export function ApplicantFields({
  * one choice is said, not offered (D-030). Only the level is the form's value; the wing and course are how it is found.
  * The error, and the focus after a failed send, go to the first step still to choose.
  */
-function LevelFields({ levels, levelId, onChange, error, levelRef }: { levels: readonly OpenLevel[]; levelId: string; onChange: (levelId: string) => void; error?: string; levelRef?: React.Ref<HTMLSelectElement> }) {
+export function LevelFields({ levels, levelId, onChange, error, levelRef }: { levels: readonly OpenLevel[]; levelId: string; onChange: (levelId: string) => void; error?: string; levelRef?: React.Ref<HTMLSelectElement> }) {
   const { term } = useConfig();
   const [wanted, setWanted] = useState<LevelChoice>(() => choiceForLevel(levels, levelId));
   const steps = levelSteps(levels, levelId ? { ...wanted, ...choiceForLevel(levels, levelId) } : wanted);

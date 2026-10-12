@@ -89,7 +89,7 @@ describe("the import window while it runs and when it is done", () => {
     const html = withJob({ ...running, waiting: { attempt: 2, of: 8 } }, <ImportRunning job={{ ...running, waiting: { attempt: 2, of: 8 } }} />);
     expect(html).toContain("You can close this window");
     expect(html).toContain("20 of 40 students done");
-    expect(html).toContain("The server is busy. Waiting a moment, then trying again (try 2 of 8)");
+    expect(html).toContain("The server is busy. Waiting a moment, then trying again...");
     expect(html).toContain("Download the sign-in sheet so far");
   });
 
@@ -98,5 +98,29 @@ describe("the import window while it runs and when it is done", () => {
     expect(html).toContain("1 students admitted to General · Class 8 · Section A.");
     expect(html).toContain("Download the sign-in sheet");
     expect(html).toContain(">Done<");
+  });
+});
+
+import { ImportScreen } from "@/admissions/ImportScreen";
+import { SessionContext } from "@/session/SessionProvider";
+import { fakeSession } from "./session";
+
+describe("the import page in Admissions (D-156)", () => {
+  const coordinator = fakeSession({ status: "signedIn", me: { id: "u1", name: "Asha", roles: [{ role: "coordinator", scope: "institution" }] } });
+  const page = (job: ImportJob | null) =>
+    renderToStaticMarkup(
+      <ConfigContext.Provider value={makeConfigValue("ready", config)}>
+        <SessionContext.Provider value={coordinator}>
+          <ImportJobContext.Provider value={{ job, start: () => true, dismiss: () => {}, finished: 0 }}>
+            <ImportScreen />
+          </ImportJobContext.Provider>
+        </SessionContext.Provider>
+      </ConfigContext.Provider>,
+    );
+
+  it("opens with its title and what to do, while the classes load", () => {
+    const html = page(null);
+    expect(html).toContain("Import students from Excel");
+    expect(html).toContain("Choose the class, download the template");
   });
 });

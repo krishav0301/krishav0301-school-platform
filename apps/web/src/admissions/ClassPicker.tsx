@@ -15,7 +15,7 @@ import { Notice, Select } from "@/ui";
  * (D-063). A level is in only one open term (D-110), so that term is the only place to look; with several terms open,
  * the first one is not it (D-114, FUT point 15).
  */
-export function ClassPicker({ levelId, value, onChange }: { levelId: string; value: string; onChange: (id: string) => void }) {
+export function ClassPicker({ levelId, value, onChange }: { levelId: string; value: string; onChange: (id: string, name?: string) => void }) {
   const { api } = useSession();
   const loadNow = useCallback(async () => {
     const years = await loadYears(api);
@@ -33,7 +33,7 @@ export function ClassPicker({ levelId, value, onChange }: { levelId: string; val
         return options.length === 0 ? (
           <Notice tone="bad">{t("admissions.decide.noClasses")}</Notice>
         ) : (
-          <Select label={t("admissions.decide.classId")} value={value} onChange={(e) => onChange(e.target.value)} options={[{ value: "", label: t("admissions.field.levelChoose") }, ...options]} />
+          <Select label={t("admissions.decide.classId")} value={value} onChange={(e) => onChange(e.target.value, options.find((o) => o.value === e.target.value)?.label)} options={[{ value: "", label: t("admissions.field.levelChoose") }, ...options]} />
         );
       }}
     </Gate>
