@@ -1,5 +1,6 @@
 import { newPublicId } from "../../core/ids";
 import { coordinatorForSection, groupSection, levelSection, offeringSection } from "./guard";
+import { GROUP_FREE, OFFERING_FREE } from "./queries";
 import {
   CopyOfferingsSchema,
   CreateGroupSchema,
@@ -373,4 +374,63 @@ export async function copyOfferings(db: D1Database, auditKey: string, actor: str
   if (outcome === "done") return { ok: true, copied };
   if (outcome === "duplicate") return { ok: false, reason: "conflict" }; // someone added one a moment ago
   return { ok: false, reason: "not_allowed" };
+}
+
+// --- Deleting what was set up by mistake (the PM, 2026-10-12) -----------------------------------------
+
+/**
+ * Deletes a subject from a level, while nothing uses it: no teacher assigned, no note, homework, daily log, elective pick
+ * or mark sheet. One that is used is switched off instead, which keeps its history. The Co-ordinator and "nothing uses it"
+ * are re-checked inside the delete; the foreign keys refuse the rest. The audit entry keeps what was deleted.
+ */
+export async function deleteOffering(db: D1Database, auditKey: string, actor: string, publicId: string): Promise<Done> {
+  const look = () =>
+    db
+      .prepare(
+        `SELECT sb.name, l.name AS level_name, ${OFFERING_FREE("o")} AS free, ${coordinatorForSection(2, offeringSection(1))} AS allowed
+           FROM subject_offerings o JOIN subjects sb ON sb.id = o.subject_id JOIN levels l ON l.id = o.level_id WHERE o.public_id = ?1`,
+      )
+      .bind(publicId, actor)
+      .first<{ name: string; level_name: string; free: number; allowed: number }>();
+  const row = await look();
+  if (!row) return { ok: false, reason: "not_found" };
+  if (row.allowed !== 1) return { ok: false, reason: "not_allowed" };
+  if (row.free !== 1) return { ok: false, reason: "in_use" };
+
+  const outcome = await write(
+    db,
+    auditKey,
+    { action: "academics.offering.deleted", entityType: "subject_offering", entityPublicId: publicId, actorPublicId: actor, summary: `Subject "${row.name}" removed from ${row.level_name}`, before: { subject: row.name, level: row.level_name } },
+    db.prepare(`DELETE FROM subject_offerings WHERE public_id = ?1 AND ${coordinatorForSection(2, offeringSection(1))} AND ${OFFERING_FREE("subject_offerings")}`).bind(publicId, actor),
+  );
+  if (outcome === "done") return { ok: true };
+  if (outcome === "check_failed") return { ok: false, reason: "in_use" };
+  const again = await look();
+  if (!again) return { ok: false, reason: "not_found" };
+  return { ok: false, reason: again.free !== 1 ? "in_use" : "not_allowed" };
+}
+
+/** Deletes an elective group with no subject in it. A group that still holds subjects is refused: move or delete them first. */
+export async function deleteGroup(db: D1Database, auditKey: string, actor: string, publicId: string): Promise<Done> {
+  const look = () =>
+    db
+      .prepare(`SELECT g.name, ${GROUP_FREE("g")} AS free, ${coordinatorForSection(2, groupSection(1))} AS allowed FROM elective_groups g WHERE g.public_id = ?1`)
+      .bind(publicId, actor)
+      .first<{ name: string; free: number; allowed: number }>();
+  const row = await look();
+  if (!row) return { ok: false, reason: "not_found" };
+  if (row.allowed !== 1) return { ok: false, reason: "not_allowed" };
+  if (row.free !== 1) return { ok: false, reason: "in_use" };
+
+  const outcome = await write(
+    db,
+    auditKey,
+    { action: "academics.group.deleted", entityType: "elective_group", entityPublicId: publicId, actorPublicId: actor, summary: `Elective group "${row.name}" deleted`, before: { name: row.name } },
+    db.prepare(`DELETE FROM elective_groups WHERE public_id = ?1 AND ${coordinatorForSection(2, groupSection(1))} AND ${GROUP_FREE("elective_groups")}`).bind(publicId, actor),
+  );
+  if (outcome === "done") return { ok: true };
+  if (outcome === "check_failed") return { ok: false, reason: "in_use" };
+  const again = await look();
+  if (!again) return { ok: false, reason: "not_found" };
+  return { ok: false, reason: again.free !== 1 ? "in_use" : "not_allowed" };
 }

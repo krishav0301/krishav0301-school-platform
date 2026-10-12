@@ -186,11 +186,12 @@ describe("the curriculum screen", () => {
     practicalHundredths: 2500,
     passTheoryHundredths: null,
     passPracticalHundredths: null,
+    canDelete: true,
   };
-  const english: Offering = { id: "o2", subject: subject("s2", "English"), creditHundredths: null, group: null, active: false, fullMarksHundredths: 10000, practicalHundredths: null, passTheoryHundredths: null, passPracticalHundredths: null };
+  const english: Offering = { id: "o2", subject: subject("s2", "English"), creditHundredths: null, group: null, active: false, fullMarksHundredths: 10000, practicalHundredths: null, passTheoryHundredths: null, passPracticalHundredths: null, canDelete: false };
   const curriculum: Curriculum = {
     level: { id: "l1", name: "Grade 11", programmeId: "p1", programmeName: "+2 Science", sectionKey: "plus2" },
-    groups: [{ id: "g1", name: "Science option", pickCount: 1, active: true }, { id: "g2", name: "Old option", pickCount: 2, active: false }],
+    groups: [{ id: "g1", name: "Science option", pickCount: 1, active: true, canDelete: false }, { id: "g2", name: "Old option", pickCount: 2, active: false, canDelete: true }],
     offerings: [biology, english],
   };
   const view = (canManage: boolean, data: Curriculum = curriculum) =>
@@ -220,6 +221,15 @@ describe("the curriculum screen", () => {
     expect(count(html, />Switched off</g)).toBeGreaterThanOrEqual(2); // English, and the old group
     expect(html).toContain('aria-label="Edit Biology"');
     expect(html).toContain('aria-label="Edit English"');
+  });
+
+  it("an elective group nothing is in offers Delete; one with a subject says why it cannot (the PM, 2026-10-12)", () => {
+    const html = inContext(<CurriculumView curriculum={curriculum} canManage busy={null} onToggleGroup={noop} onToggleOffering={noop} onSetGroup={noop} onDeleteGroup={async () => true} />);
+    expect(html).toContain('aria-label="Delete Old option"'); // empty
+    expect(html).not.toContain('aria-label="Delete Science option"'); // Biology is in it
+    expect(html).toContain("Move the subjects out first, or switch it off.");
+    // Without the handler (a reader, or a screen that does not delete) there is no Delete at all.
+    expect(view(true)).not.toContain("Delete Old option");
   });
 
   it("the elective groups, each with what it offers in words and its switch, and Add as a second, quieter button", () => {
@@ -312,8 +322,8 @@ describe("the pages", () => {
 describe("a school with no elective subjects (D-142, the PM 2026-10-11)", () => {
   const curriculum: Curriculum = {
     level: { id: "l1", name: "Grade 11", programmeId: "p1", programmeName: "+2 Science", sectionKey: "plus2" },
-    groups: [{ id: "g1", name: "Science option", pickCount: 1, active: true }],
-    offerings: [{ id: "o1", subject: subject("s1", "Biology", { code: "BIO" }), creditHundredths: 375, group: { id: "g1", name: "Science option" }, active: true, fullMarksHundredths: 10000, practicalHundredths: 2500, passTheoryHundredths: null, passPracticalHundredths: null }],
+    groups: [{ id: "g1", name: "Science option", pickCount: 1, active: true, canDelete: false }],
+    offerings: [{ id: "o1", subject: subject("s1", "Biology", { code: "BIO" }), creditHundredths: 375, group: { id: "g1", name: "Science option" }, active: true, fullMarksHundredths: 10000, practicalHundredths: 2500, passTheoryHundredths: null, passPracticalHundredths: null, canDelete: false }],
   };
   const off = (node: React.ReactNode) =>
     renderToStaticMarkup(

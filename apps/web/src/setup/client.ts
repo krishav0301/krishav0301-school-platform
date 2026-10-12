@@ -77,6 +77,15 @@ export const deleteProgramme = async (api: ApiClient, id: string): Promise<Write
   done(await send(() => api.DELETE("/api/academics/programmes/{id}", { params: { path: { id } } })));
 export const deleteClass = async (api: ApiClient, id: string): Promise<WriteResult> =>
   done(await send(() => api.DELETE("/api/academics/classes/{id}", { params: { path: { id } } })));
+/** Deletes what was set up by mistake while nothing uses it (the PM, 2026-10-12); anything in use comes back as "in_use" (or "locked"). */
+export const deleteYear = async (api: ApiClient, id: string): Promise<WriteResult> =>
+  done(await send(() => api.DELETE("/api/academics/years/{id}", { params: { path: { id } } })));
+export const deleteExamPattern = async (api: ApiClient, id: string): Promise<WriteResult> =>
+  done(await send(() => api.DELETE("/api/academics/years/{id}/exam-pattern", { params: { path: { id } } })));
+export const deleteOffering = async (api: ApiClient, id: string): Promise<WriteResult> =>
+  done(await send(() => api.DELETE("/api/academics/offerings/{id}", { params: { path: { id } } })));
+export const deleteGroup = async (api: ApiClient, id: string): Promise<WriteResult> =>
+  done(await send(() => api.DELETE("/api/academics/groups/{id}", { params: { path: { id } } })));
 export const deleteLevel = async (api: ApiClient, id: string): Promise<WriteResult> =>
   done(await send(() => api.DELETE("/api/academics/levels/{id}", { params: { path: { id } } })));
 

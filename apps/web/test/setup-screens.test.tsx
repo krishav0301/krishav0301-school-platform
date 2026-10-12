@@ -54,6 +54,7 @@ const year = (id: string, label: string, status: Year["status"], levels: Term["l
   levels,
   classes: 2,
   students: 40,
+  canDelete: false,
 });
 const noop = () => {};
 

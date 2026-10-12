@@ -48,6 +48,7 @@ const saved = (over: Partial<ExamPattern> = {}): ExamPattern => ({
   pattern: { graded: false, theoryMinPercent: 35, practicalMinPercent: 40, gradeBands: null },
   terminals: three.map((x, i) => ({ id: x.id!, yearId: "y", name: x.name, ordinal: i + 1, weight: x.weight, hasPractical: x.hasPractical })),
   locked: false,
+  canDelete: true,
   ...over,
 });
 const empty = (): ExamPattern => saved({ pattern: null, terminals: [] });

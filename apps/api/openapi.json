@@ -946,6 +946,9 @@
           },
           "students": {
             "type": "integer"
+          },
+          "canDelete": {
+            "type": "boolean"
           }
         },
         "required": [
@@ -961,7 +964,8 @@
           "status",
           "levels",
           "classes",
-          "students"
+          "students",
+          "canDelete"
         ]
       },
       "TermLevel": {
@@ -1790,13 +1794,17 @@
           },
           "locked": {
             "type": "boolean"
+          },
+          "canDelete": {
+            "type": "boolean"
           }
         },
         "required": [
           "term",
           "pattern",
           "terminals",
-          "locked"
+          "locked",
+          "canDelete"
         ]
       },
       "ExamPatternInput": {
@@ -2194,13 +2202,17 @@
           },
           "active": {
             "type": "boolean"
+          },
+          "canDelete": {
+            "type": "boolean"
           }
         },
         "required": [
           "id",
           "name",
           "pickCount",
-          "active"
+          "active",
+          "canDelete"
         ]
       },
       "CurriculumOffering": {
@@ -2259,6 +2271,9 @@
               "integer",
               "null"
             ]
+          },
+          "canDelete": {
+            "type": "boolean"
           }
         },
         "required": [
@@ -2270,7 +2285,8 @@
           "fullMarksHundredths",
           "practicalHundredths",
           "passTheoryHundredths",
-          "passPracticalHundredths"
+          "passPracticalHundredths",
+          "canDelete"
         ]
       },
       "CreateSubject": {
@@ -12662,6 +12678,76 @@
             }
           }
         }
+      },
+      "delete": {
+        "operationId": "delete_year",
+        "tags": [
+          "academics"
+        ],
+        "description": "Deletes a term that nothing is attached to. One with anything attached is refused with 409 \"in_use\": switch it off instead, which keeps its history.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{32}$"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Deleted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AcademicsOk"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed (for example, switched off since signing in, or another section's data)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AcademicsError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such item",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AcademicsError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "It conflicts with what is already there (a repeat, a closed year, another active year)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AcademicsError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "The change breaks a rule; nothing changed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AcademicsInvalid"
+                }
+              }
+            }
+          }
+        }
       }
     },
     "/api/academics/years/{id}/activate": {
@@ -13590,13 +13676,13 @@
         }
       }
     },
-    "/api/academics/programmes/{id}/levels": {
-      "post": {
-        "operationId": "add_level",
+    "/api/academics/years/{id}/exam-pattern": {
+      "delete": {
+        "operationId": "delete_exam_pattern",
         "tags": [
           "academics"
         ],
-        "description": "Adds a level (Grade 11, Year 1) to a programme, numbered after the last one.",
+        "description": "Deletes a exam pattern, with its exams, that nothing is attached to. One with anything attached is refused with 409 \"in_use\": switch it off instead, which keeps its history.",
         "parameters": [
           {
             "schema": {
@@ -13608,23 +13694,13 @@
             "in": "path"
           }
         ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CreateLevel"
-              }
-            }
-          }
-        },
         "responses": {
-          "201": {
-            "description": "Added",
+          "200": {
+            "description": "Deleted",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/AcademicsCreated"
+                  "$ref": "#/components/schemas/AcademicsOk"
                 }
               }
             }
@@ -13670,9 +13746,7 @@
             }
           }
         }
-      }
-    },
-    "/api/academics/years/{id}/exam-pattern": {
+      },
       "get": {
         "operationId": "get_exam_pattern",
         "tags": [
@@ -13747,6 +13821,88 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/AcademicsOk"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed (for example, switched off since signing in, or another section's data)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AcademicsError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such item",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AcademicsError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "It conflicts with what is already there (a repeat, a closed year, another active year)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AcademicsError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "The change breaks a rule; nothing changed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AcademicsInvalid"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/academics/programmes/{id}/levels": {
+      "post": {
+        "operationId": "add_level",
+        "tags": [
+          "academics"
+        ],
+        "description": "Adds a level (Grade 11, Year 1) to a programme, numbered after the last one.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{32}$"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateLevel"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Added",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AcademicsCreated"
                 }
               }
             }
@@ -14527,6 +14683,76 @@
             }
           }
         }
+      },
+      "delete": {
+        "operationId": "delete_offering",
+        "tags": [
+          "academics"
+        ],
+        "description": "Deletes a subject from a level made by mistake, while nothing uses it. One that is used is refused with 409 \"in_use\": switch it off instead, which keeps its history.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{32}$"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Deleted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AcademicsOk"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed (for example, switched off since signing in, or another section's data)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AcademicsError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such item",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AcademicsError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "It conflicts with what is already there (a repeat, a closed year, another active year)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AcademicsError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "The change breaks a rule; nothing changed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AcademicsInvalid"
+                }
+              }
+            }
+          }
+        }
       }
     },
     "/api/academics/levels/{id}/groups": {
@@ -14642,6 +14868,76 @@
         "responses": {
           "200": {
             "description": "Saved",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AcademicsOk"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed (for example, switched off since signing in, or another section's data)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AcademicsError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such item",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AcademicsError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "It conflicts with what is already there (a repeat, a closed year, another active year)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AcademicsError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "The change breaks a rule; nothing changed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AcademicsInvalid"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "operationId": "delete_elective_group",
+        "tags": [
+          "academics"
+        ],
+        "description": "Deletes a elective group made by mistake, while nothing uses it. One that is used is refused with 409 \"in_use\": switch it off instead, which keeps its history.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{32}$"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Deleted",
             "content": {
               "application/json": {
                 "schema": {

@@ -9,7 +9,7 @@ import { Facts, PanelSection, SidePanel } from "@/read/SidePanel";
 import { useSession } from "@/session/SessionProvider";
 import { AddDialog, Button, Checkbox, Field, Notice, Select } from "@/ui";
 
-import { addOffering, copyOfferings, createGroup, loadCurriculum, loadProgrammes, loadSubjects, loadYears, setGroupActive, setOfferingActive, setOfferingGroup, setOfferingPaper, type Loaded } from "./client";
+import { addOffering, copyOfferings, createGroup, deleteGroup, deleteOffering, loadCurriculum, loadProgrammes, loadSubjects, loadYears, setGroupActive, setOfferingActive, setOfferingGroup, setOfferingPaper, type Loaded } from "./client";
 import {
   REASON_MESSAGE,
   canManageStructure,
@@ -26,6 +26,7 @@ import {
   type Subject,
 } from "./model";
 import { CurriculumTable, ReadSetupHeader, midSentence } from "./ReadSetup";
+import { DeleteControl } from "./ProgrammesScreen";
 import { StructurePicker } from "./StructurePicker";
 import { choiceOf, levelsOf, openTermLevelIds, settle, type KeepLevel, type StructureChoice } from "./structure-picker";
 import { Gate, useLoad } from "./useLoad";
@@ -384,6 +385,9 @@ export interface CurriculumViewProps {
   onToggleGroup: (group: Group) => void;
   onToggleOffering: (offering: Offering) => void;
   onSetGroup: (offering: Offering, groupId: string | null) => void;
+  /** Delete what was made by mistake, while nothing uses it; true when it is gone. */
+  onDeleteOffering?: (offering: Offering) => Promise<boolean>;
+  onDeleteGroup?: (group: Group) => Promise<boolean>;
   /** Called after a group is added or a paper saved, so the screen can reload. */
   onChanged?: () => void;
   /** What the last change said, shown where the person is working (the open subject's panel, or the page). */
@@ -411,8 +415,9 @@ export function SubjectPanel({
   onClose,
   onToggleOffering,
   onSetGroup,
+  onDeleteOffering,
   onChanged,
-}: Omit<CurriculumViewProps, "canManage" | "onToggleGroup" | "onChanged"> & { offering: Offering; onClose: () => void; onChanged: () => void }) {
+}: Omit<CurriculumViewProps, "canManage" | "onToggleGroup" | "onChanged" | "onDeleteGroup"> & { offering: Offering; onClose: () => void; onChanged: () => void }) {
   const { moduleEnabled, config } = useConfig();
   return (
     <SidePanel
@@ -454,6 +459,7 @@ export function SubjectPanel({
         <p className={readStyles.rowMeta}>{[paperLine(offering), config?.school.passMarksPerSubject ? passLine(offering) : null].filter(Boolean).join(" · ")}</p>
         <PaperForm key={`${offering.id}-${offering.fullMarksHundredths}-${offering.practicalHundredths}-${offering.passTheoryHundredths}-${offering.passPracticalHundredths}`} offering={offering} onSaved={onChanged} />
       </PanelSection>
+      {onDeleteOffering ? <DeleteControl name={offering.subject.name} canDelete={offering.canDelete} blocked="setup.curriculum.offeringInUse" onDelete={() => onDeleteOffering(offering)} /> : null}
     </SidePanel>
   );
 }
@@ -463,7 +469,7 @@ export function SubjectPanel({
  * side panel for its elective group and its paper; the elective groups below. Switching off keeps the history;
  * nothing is deleted. Someone who may not change it reads the Principal's table.
  */
-export function CurriculumView({ curriculum, canManage, busy, onToggleGroup, onToggleOffering, onSetGroup, onChanged = () => {}, notice }: CurriculumViewProps) {
+export function CurriculumView({ curriculum, canManage, busy, onToggleGroup, onToggleOffering, onSetGroup, onDeleteOffering, onDeleteGroup, onChanged = () => {}, notice }: CurriculumViewProps) {
   const { term, moduleEnabled } = useConfig();
   // A school with no elective subjects (D-142) has no groups to make or to read.
   const electivesOn = moduleEnabled("electives");
@@ -549,6 +555,7 @@ export function CurriculumView({ curriculum, canManage, busy, onToggleGroup, onT
                       </span>
                     </div>
                     <p className={readStyles.rowMeta}>{names.length > 0 ? t("setup.read.choose", { n: group.pickCount, names: names.join(", ") }) : t("setup.curriculum.groupPicks", { n: group.pickCount })}</p>
+                    {onDeleteGroup ? <DeleteControl name={group.name} canDelete={group.canDelete} blocked="setup.curriculum.groupInUse" onDelete={() => onDeleteGroup(group)} /> : null}
                   </li>
                 );
               })}
@@ -566,6 +573,7 @@ export function CurriculumView({ curriculum, canManage, busy, onToggleGroup, onT
           onClose={() => setOpen(null)}
           onToggleOffering={onToggleOffering}
           onSetGroup={onSetGroup}
+          onDeleteOffering={onDeleteOffering}
           onChanged={onChanged}
         />
       ) : null}
@@ -653,6 +661,12 @@ export function CurriculumScreen() {
     setBusy(null);
     setFlash(result.ok ? { tone: "ok", text: t(done) } : { tone: "bad", text: t(REASON_MESSAGE[result.reason]) });
     await curriculum.reload();
+  }
+  async function remove(action: () => Promise<{ ok: true } | { ok: false; reason: FailReason }>): Promise<boolean> {
+    const result = await action();
+    setFlash(result.ok ? { tone: "ok", text: t("structure.done.deleted") } : { tone: "bad", text: t(REASON_MESSAGE[result.reason]) });
+    await curriculum.reload();
+    return result.ok;
   }
   const added = () => {
     setFlash({ tone: "ok", text: t("setup.done.added") });
@@ -751,6 +765,8 @@ export function CurriculumScreen() {
                 onToggleGroup={(g) => void run(g.id, () => setGroupActive(api, g.id, !g.active), onOff(g.active))}
                 onToggleOffering={(o) => void run(o.id, () => setOfferingActive(api, o.id, !o.active), onOff(o.active))}
                 onSetGroup={(o, groupId) => void run(o.id, () => setOfferingGroup(api, o.id, groupId), "setup.done.changed")}
+                onDeleteOffering={(o) => remove(() => deleteOffering(api, o.id))}
+                onDeleteGroup={(g) => remove(() => deleteGroup(api, g.id))}
               />
             )
           }

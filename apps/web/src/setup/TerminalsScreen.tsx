@@ -12,7 +12,7 @@ import { useRememberedTerm } from "@/shell/TermChoice";
 import { AddDialog, Button, Field, Notice, RowMenu, Select } from "@/ui";
 
 import { YearPicker } from "./ClassesScreen";
-import { loadExamPattern, loadYears, saveExamPattern, type Loaded } from "./client";
+import { deleteExamPattern, loadExamPattern, loadYears, saveExamPattern, type Loaded } from "./client";
 import {
   MAX_EXAMS,
   TOTAL_WEIGHT,
@@ -38,6 +38,7 @@ import {
 } from "./exam-pattern-model";
 import styles from "./exam-pattern.module.css";
 import { REASON_MESSAGE, canManageInstitution, startYearId, termWords, type ExamPattern } from "./model";
+import { DeleteControl } from "./ProgrammesScreen";
 import { ReadSetupHeader, midSentence } from "./ReadSetup";
 import { Gate, useLoad } from "./useLoad";
 import setupStyles from "./setup.module.css";
@@ -516,6 +517,19 @@ export function PatternBoard({ saved, canManage, onSaved }: { saved: ExamPattern
           <ExamsTable exams={draft.exams} savedIds={savedIds} editable={editable.editable} onEdit={setEditing} onRemove={(i) => setDraft((d) => ({ ...d, exams: withoutExam(d.exams, i) }))} />
         )}
       </Panel>
+      {canManage && saved.pattern !== null && saved.term.status !== "closed" ? (
+        <DeleteControl
+          name={t("pattern.deleteName", { term: saved.term.label })}
+          canDelete={saved.canDelete}
+          blocked="setup.pattern.inUse"
+          onDelete={async () => {
+            const result = await deleteExamPattern(api, saved.term.id);
+            if (result.ok) onSaved();
+            else setProblem(t(REASON_MESSAGE[result.reason]));
+            return result.ok;
+          }}
+        />
+      ) : null}
       <div className={styles.important}>
         <CircleAlert aria-hidden strokeWidth={1.75} />
         <div>

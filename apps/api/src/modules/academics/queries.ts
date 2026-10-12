@@ -16,6 +16,7 @@ interface YearRow {
   status: "draft" | "active" | "closed";
   classes: number;
   students: number;
+  can_delete: number;
 }
 
 interface TermLevelRow {
@@ -44,7 +45,8 @@ export async function listYears(db: D1Database): Promise<AcademicYearList> {
     db.prepare(
       `SELECT ay.public_id, ay.bs_year, ay.code, ay.label, ay.start_date, ay.end_date, ay.status,
               (SELECT COUNT(*) FROM classes c WHERE c.academic_year_id = ay.id AND c.is_active = 1) AS classes,
-              (SELECT COUNT(*) FROM enrollments e WHERE e.academic_year_id = ay.id AND e.status = 'active') AS students
+              (SELECT COUNT(*) FROM enrollments e WHERE e.academic_year_id = ay.id AND e.status = 'active') AS students,
+              ${TERM_FREE("ay")} AS can_delete
          FROM academic_years ay ORDER BY ay.status = 'closed', ay.start_date DESC, ay.id DESC`,
     ),
     db.prepare(
@@ -74,6 +76,7 @@ export async function listYears(db: D1Database): Promise<AcademicYearList> {
       levels: byTerm.get(y.public_id) ?? [],
       classes: y.classes,
       students: y.students,
+      canDelete: y.can_delete === 1,
     })),
   };
 }
@@ -112,6 +115,18 @@ export const CLASS_FREE = (c: string) =>
     AND NOT EXISTS (SELECT 1 FROM activity_log x WHERE x.class_id = ${c}.id) AND NOT EXISTS (SELECT 1 FROM class_notes x WHERE x.class_id = ${c}.id)
     AND NOT EXISTS (SELECT 1 FROM assignments x WHERE x.class_id = ${c}.id) AND NOT EXISTS (SELECT 1 FROM mark_sheets x WHERE x.class_id = ${c}.id)
     AND NOT EXISTS (SELECT 1 FROM result_publications x WHERE x.class_id = ${c}.id))`;
+/** A subject on a level that no teacher, note, homework, daily log, pick or mark sheet uses (the PM, 2026-10-12). Same rule as above: the foreign keys refuse the rest. */
+export const OFFERING_FREE = (o: string) =>
+  `(NOT EXISTS (SELECT 1 FROM teacher_assignments x WHERE x.offering_id = ${o}.id) AND NOT EXISTS (SELECT 1 FROM activity_log x WHERE x.offering_id = ${o}.id)
+    AND NOT EXISTS (SELECT 1 FROM class_notes x WHERE x.offering_id = ${o}.id) AND NOT EXISTS (SELECT 1 FROM assignments x WHERE x.offering_id = ${o}.id)
+    AND NOT EXISTS (SELECT 1 FROM elective_picks x WHERE x.offering_id = ${o}.id) AND NOT EXISTS (SELECT 1 FROM mark_sheets x WHERE x.offering_id = ${o}.id))`;
+/** An elective group with no subject in it. */
+export const GROUP_FREE = (g: string) => `NOT EXISTS (SELECT 1 FROM subject_offerings x WHERE x.elective_group_id = ${g}.id)`;
+/** A term nobody has used: no class, student, application, fee structure or receipt in it (and so no marks or results). Its own exam pattern, exams and levels go with it. */
+export const TERM_FREE = (t: string) =>
+  `(${t}.status <> 'closed' AND NOT EXISTS (SELECT 1 FROM classes x WHERE x.academic_year_id = ${t}.id) AND NOT EXISTS (SELECT 1 FROM enrollments x WHERE x.academic_year_id = ${t}.id)
+    AND NOT EXISTS (SELECT 1 FROM applications x WHERE x.academic_year_id = ${t}.id) AND NOT EXISTS (SELECT 1 FROM fee_structures x WHERE x.academic_year_id = ${t}.id)
+    AND NOT EXISTS (SELECT 1 FROM receipt_counters x WHERE x.academic_year_id = ${t}.id) AND NOT EXISTS (SELECT 1 FROM receipts x WHERE x.academic_year_id = ${t}.id))`;
 export const SECTION_FREE = (s: string) =>
   `(NOT EXISTS (SELECT 1 FROM programmes x WHERE x.section_id = ${s}.id) AND NOT EXISTS (SELECT 1 FROM role_assignments x WHERE x.section_id = ${s}.id)
     AND NOT EXISTS (SELECT 1 FROM staff_profiles x WHERE x.home_section_id = ${s}.id) AND NOT EXISTS (SELECT 1 FROM receipt_counters x WHERE x.section_id = ${s}.id)
@@ -322,6 +337,7 @@ interface CurriculumRow {
   practical_hundredths: number | null;
   pass_theory_hundredths: number | null;
   pass_practical_hundredths: number | null;
+  can_delete: number;
 }
 
 /**
@@ -339,7 +355,7 @@ export async function getCurriculum(db: D1Database, sections: "all" | readonly s
       .bind(levelId, sectionFilter(sections)),
     db
       .prepare(
-        `SELECT g.public_id, g.name, g.pick_count, g.is_active
+        `SELECT g.public_id, g.name, g.pick_count, g.is_active, ${GROUP_FREE("g")} AS can_delete
            FROM elective_groups g JOIN levels l ON l.id = g.level_id WHERE l.public_id = ?1 ORDER BY g.id`,
       )
       .bind(levelId),
@@ -347,7 +363,8 @@ export async function getCurriculum(db: D1Database, sections: "all" | readonly s
       .prepare(
         `SELECT o.public_id AS offering_id, o.credit_hundredths, o.is_active AS offering_active,
                 s.public_id AS subject_id, s.name AS subject_name, s.code AS subject_code, s.is_archived, ws.key AS subject_section,
-                g.public_id AS group_id, g.name AS group_name, o.full_marks_hundredths, o.practical_hundredths, o.pass_theory_hundredths, o.pass_practical_hundredths
+                g.public_id AS group_id, g.name AS group_name, o.full_marks_hundredths, o.practical_hundredths, o.pass_theory_hundredths, o.pass_practical_hundredths,
+                ${OFFERING_FREE("o")} AS can_delete
            FROM subject_offerings o
            JOIN levels l ON l.id = o.level_id
            JOIN subjects s ON s.id = o.subject_id
@@ -372,15 +389,17 @@ export async function getCurriculum(db: D1Database, sections: "all" | readonly s
     practicalHundredths: r.practical_hundredths,
     passTheoryHundredths: r.pass_theory_hundredths,
     passPracticalHundredths: r.pass_practical_hundredths,
+    canDelete: r.can_delete === 1,
   }));
 
   return {
     level: { id: level.public_id, name: level.name, programmeId: level.programme_id, programmeName: level.programme_name, sectionKey: level.section_key },
-    groups: (groupResult!.results as { public_id: string; name: string; pick_count: number; is_active: number }[]).map((g) => ({
+    groups: (groupResult!.results as { public_id: string; name: string; pick_count: number; is_active: number; can_delete: number }[]).map((g) => ({
       id: g.public_id,
       name: g.name,
       pickCount: g.pick_count,
       active: g.is_active === 1,
+      canDelete: g.can_delete === 1,
     })),
     offerings,
   };

@@ -444,7 +444,8 @@ export interface paths {
         get?: never;
         put?: never;
         post?: never;
-        delete?: never;
+        /** @description Deletes a term that nothing is attached to. One with anything attached is refused with 409 "in_use": switch it off instead, which keeps its history. */
+        delete: operations["delete_year"];
         options?: never;
         head?: never;
         /** @description Changes a term. Name, receipt code and days only while it is a draft (409 `not_draft`); the levels, as the whole new set, while it is open. A level with classes in the term cannot be taken out (422). The receipt code is fixed once a receipt carries it (409 `code_locked`). */
@@ -608,23 +609,6 @@ export interface paths {
         patch: operations["update_class"];
         trace?: never;
     };
-    "/api/academics/programmes/{id}/levels": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** @description Adds a level (Grade 11, Year 1) to a programme, numbered after the last one. */
-        post: operations["add_level"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/academics/years/{id}/exam-pattern": {
         parameters: {
             query?: never;
@@ -637,6 +621,24 @@ export interface paths {
         /** @description Creates or replaces a term's exam pattern: Grade system yes or no, the minimum % for theory and practical, the grade ranges when graded, and the terminals in order with weights adding up to 100 and whether each holds the practical. Refused (409 `locked`) once marks have been entered in the term. */
         put: operations["save_exam_pattern"];
         post?: never;
+        /** @description Deletes a exam pattern, with its exams, that nothing is attached to. One with anything attached is refused with 409 "in_use": switch it off instead, which keeps its history. */
+        delete: operations["delete_exam_pattern"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/academics/programmes/{id}/levels": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Adds a level (Grade 11, Year 1) to a programme, numbered after the last one. */
+        post: operations["add_level"];
         delete?: never;
         options?: never;
         head?: never;
@@ -808,7 +810,8 @@ export interface paths {
         get?: never;
         put?: never;
         post?: never;
-        delete?: never;
+        /** @description Deletes a subject from a level made by mistake, while nothing uses it. One that is used is refused with 409 "in_use": switch it off instead, which keeps its history. */
+        delete: operations["delete_offering"];
         options?: never;
         head?: never;
         /** @description Changes the paper (full marks; the practical's share, null for none: applies to mark sheets made from now on), credit hours (null takes them away), the elective group (null takes the subject out of its group), or switches the subject off and on for the level. */
@@ -842,7 +845,8 @@ export interface paths {
         get?: never;
         put?: never;
         post?: never;
-        delete?: never;
+        /** @description Deletes a elective group made by mistake, while nothing uses it. One that is used is refused with 409 "in_use": switch it off instead, which keeps its history. */
+        delete: operations["delete_elective_group"];
         options?: never;
         head?: never;
         /** @description Renames an elective group, changes how many are picked, or switches it off and on. */
@@ -3006,6 +3010,7 @@ export interface components {
             levels: components["schemas"]["TermLevel"][];
             classes: number;
             students: number;
+            canDelete: boolean;
         };
         TermLevel: {
             id: string;
@@ -3200,6 +3205,7 @@ export interface components {
             } | null;
             terminals: components["schemas"]["Terminal"][];
             locked: boolean;
+            canDelete: boolean;
         };
         ExamPatternInput: {
             graded: boolean;
@@ -3285,6 +3291,7 @@ export interface components {
             name: string;
             pickCount: number;
             active: boolean;
+            canDelete: boolean;
         };
         CurriculumOffering: {
             id: string;
@@ -3299,6 +3306,7 @@ export interface components {
             practicalHundredths: number | null;
             passTheoryHundredths: number | null;
             passPracticalHundredths: number | null;
+            canDelete: boolean;
         };
         CreateSubject: {
             name: string;
@@ -6375,6 +6383,64 @@ export interface operations {
             };
         };
     };
+    delete_year: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Deleted */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AcademicsOk"];
+                };
+            };
+            /** @description Not allowed (for example, switched off since signing in, or another section's data) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AcademicsError"];
+                };
+            };
+            /** @description No such item */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AcademicsError"];
+                };
+            };
+            /** @description It conflicts with what is already there (a repeat, a closed year, another active year) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AcademicsError"];
+                };
+            };
+            /** @description The change breaks a rule; nothing changed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AcademicsInvalid"];
+                };
+            };
+        };
+    };
     update_academic_year: {
         parameters: {
             query?: never;
@@ -7160,68 +7226,6 @@ export interface operations {
             };
         };
     };
-    add_level: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["CreateLevel"];
-            };
-        };
-        responses: {
-            /** @description Added */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["AcademicsCreated"];
-                };
-            };
-            /** @description Not allowed (for example, switched off since signing in, or another section's data) */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["AcademicsError"];
-                };
-            };
-            /** @description No such item */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["AcademicsError"];
-                };
-            };
-            /** @description It conflicts with what is already there (a repeat, a closed year, another active year) */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["AcademicsError"];
-                };
-            };
-            /** @description The change breaks a rule; nothing changed */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["AcademicsInvalid"];
-                };
-            };
-        };
-    };
     get_exam_pattern: {
         parameters: {
             query?: never;
@@ -7275,6 +7279,126 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AcademicsOk"];
+                };
+            };
+            /** @description Not allowed (for example, switched off since signing in, or another section's data) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AcademicsError"];
+                };
+            };
+            /** @description No such item */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AcademicsError"];
+                };
+            };
+            /** @description It conflicts with what is already there (a repeat, a closed year, another active year) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AcademicsError"];
+                };
+            };
+            /** @description The change breaks a rule; nothing changed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AcademicsInvalid"];
+                };
+            };
+        };
+    };
+    delete_exam_pattern: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Deleted */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AcademicsOk"];
+                };
+            };
+            /** @description Not allowed (for example, switched off since signing in, or another section's data) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AcademicsError"];
+                };
+            };
+            /** @description No such item */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AcademicsError"];
+                };
+            };
+            /** @description It conflicts with what is already there (a repeat, a closed year, another active year) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AcademicsError"];
+                };
+            };
+            /** @description The change breaks a rule; nothing changed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AcademicsInvalid"];
+                };
+            };
+        };
+    };
+    add_level: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateLevel"];
+            };
+        };
+        responses: {
+            /** @description Added */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AcademicsCreated"];
                 };
             };
             /** @description Not allowed (for example, switched off since signing in, or another section's data) */
@@ -7841,6 +7965,64 @@ export interface operations {
             };
         };
     };
+    delete_offering: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Deleted */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AcademicsOk"];
+                };
+            };
+            /** @description Not allowed (for example, switched off since signing in, or another section's data) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AcademicsError"];
+                };
+            };
+            /** @description No such item */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AcademicsError"];
+                };
+            };
+            /** @description It conflicts with what is already there (a repeat, a closed year, another active year) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AcademicsError"];
+                };
+            };
+            /** @description The change breaks a rule; nothing changed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AcademicsInvalid"];
+                };
+            };
+        };
+    };
     update_offering: {
         parameters: {
             query?: never;
@@ -7925,6 +8107,64 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AcademicsCreated"];
+                };
+            };
+            /** @description Not allowed (for example, switched off since signing in, or another section's data) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AcademicsError"];
+                };
+            };
+            /** @description No such item */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AcademicsError"];
+                };
+            };
+            /** @description It conflicts with what is already there (a repeat, a closed year, another active year) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AcademicsError"];
+                };
+            };
+            /** @description The change breaks a rule; nothing changed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AcademicsInvalid"];
+                };
+            };
+        };
+    };
+    delete_elective_group: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Deleted */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AcademicsOk"];
                 };
             };
             /** @description Not allowed (for example, switched off since signing in, or another section's data) */

@@ -46,6 +46,8 @@ import {
   setClassTeacher,
   updateClass,
   deleteClass,
+  deleteExamPattern,
+  deleteYear,
   deleteLevel,
   deleteProgramme,
   deleteSection,
@@ -347,7 +349,7 @@ export function registerAcademics(app: App): void {
   );
 
   // --- Deleting what nothing is attached to (D-097) -----------------------------------------------------------
-  const removal = (path: string, operationId: string, what: string, param: z.ZodObject, run: (c: Context<AppEnv>, id: string, actor: string) => Promise<Done>, access: typeof MANAGE | typeof MANAGE_PROGRAMMES = MANAGE_PROGRAMMES) =>
+  const removal = (path: string, operationId: string, what: string, param: z.ZodObject, run: (c: Context<AppEnv>, id: string, actor: string) => Promise<Done>, access: typeof MANAGE | typeof MANAGE_PROGRAMMES | typeof MANAGE_TERMS = MANAGE_PROGRAMMES) =>
     defineRoute(
       app,
       {
@@ -371,6 +373,9 @@ export function registerAcademics(app: App): void {
   removal("/api/academics/levels/{id}", "delete_level", "level", IdParam, (c, id, actor) => deleteLevel(c.env.DB, c.env.AUDIT_HMAC_KEY, actor, id));
   // A class is the Co-ordinator's, like the rest of the year's setup (`setup.structure.manage`).
   removal("/api/academics/classes/{id}", "delete_class", "class", IdParam, (c, id, actor) => deleteClass(c.env.DB, c.env.AUDIT_HMAC_KEY, actor, id), MANAGE);
+  // A term and a term's exam pattern, while nothing uses them (the PM, 2026-10-12).
+  removal("/api/academics/years/{id}", "delete_year", "term", IdParam, (c, id, actor) => deleteYear(c.env.DB, c.env.AUDIT_HMAC_KEY, actor, id), MANAGE_TERMS);
+  removal("/api/academics/years/{id}/exam-pattern", "delete_exam_pattern", "exam pattern, with its exams,", IdParam, (c, id, actor) => deleteExamPattern(c.env.DB, c.env.AUDIT_HMAC_KEY, actor, id), MANAGE);
 
   // --- Programmes and levels ---------------------------------------------------------------------------
   defineRoute(
