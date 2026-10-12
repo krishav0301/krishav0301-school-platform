@@ -158,7 +158,7 @@ export function SheetTable({ sheet }: { sheet: ClassSheet }) {
               </th>
               {x.subjects.map((v, i) => (
                 <td key={sheet.subjects[i]!.offeringId} data-align="center">
-                  {v === null ? "–" : sheet.graded && v.grade ? `${hundredthsText(v.percentHundredths)} (${v.grade})` : hundredthsText(v.percentHundredths)}
+                  {v === null ? "–" : <span className={v.passed === false ? readStyles.below : undefined}>{sheet.graded && v.grade ? `${hundredthsText(v.percentHundredths)} (${v.grade})` : hundredthsText(v.percentHundredths)}</span>}
                 </td>
               ))}
               <td data-align="end">{scoreText(x)}</td>

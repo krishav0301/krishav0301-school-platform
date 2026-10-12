@@ -78,6 +78,11 @@ describe("a school with pass marks per subject", () => {
       expect(final.passed, `final ${pupil}`).toBe(expected);
       expect(final.outcome).toBe(expected ? "Pass" : "Fail");
     }
+    // The class sheet flags the failing subject cells (the screen turns their digits red).
+    const sheet = (await (await call(`/api/results/classes/${fixture.classId}/final/sheet`, { cookie: coordinator.cookie })).json()) as { subjects: { offeringId: string }[]; students: { subjects: ({ passed: boolean | null } | null)[] }[] };
+    const flags = sheet.students.map((st) => st.subjects.map((x) => x?.passed).join(","));
+    expect(flags.filter((f) => f === "true,true")).toHaveLength(1); // pupil 0 only
+    expect(flags.filter((f) => f.includes("false"))).toHaveLength(2);
     const second = (await cardsOf(fixture, 1)).find((c) => c.kind === "final")!.card.body.subjects;
     expect(second.map((s) => s.passed)).toEqual(expect.arrayContaining([true, false]));
     const third = (await cardsOf(fixture, 2)).find((c) => c.kind === "terminal")!.card.body.subjects;

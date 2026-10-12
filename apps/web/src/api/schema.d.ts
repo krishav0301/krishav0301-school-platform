@@ -4916,6 +4916,7 @@ export interface components {
                     offeringId: string;
                     grade: string | null;
                     percentHundredths: number;
+                    passed?: boolean | null;
                 } | null)[];
             }[];
         };

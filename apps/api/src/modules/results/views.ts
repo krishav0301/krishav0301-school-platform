@@ -261,10 +261,10 @@ export async function classSheet(db: D1Database, reach: Reach, classId: string, 
       subjects: subjects.map((s) => {
         if (r.card.kind === "final") {
           const got = r.card.subjects.find((x) => x.offeringId === s.offeringId);
-          return got ? { offeringId: got.offeringId, grade: got.grade, percentHundredths: got.finalHundredths } : null;
+          return got ? { offeringId: got.offeringId, grade: got.grade, percentHundredths: got.finalHundredths, passed: r.card.pattern.perSubject ? got.passed : null } : null;
         }
         const got = r.card.subjects.find((x) => x.offeringId === s.offeringId);
-        return got ? { offeringId: got.offeringId, grade: got.grade, percentHundredths: got.percentHundredths } : null;
+        return got ? { offeringId: got.offeringId, grade: got.grade, percentHundredths: got.percentHundredths, passed: got.passed ?? null } : null;
       }),
     })),
   };

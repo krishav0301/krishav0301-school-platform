@@ -9752,6 +9752,12 @@
                       },
                       "percentHundredths": {
                         "type": "integer"
+                      },
+                      "passed": {
+                        "type": [
+                          "boolean",
+                          "null"
+                        ]
                       }
                     },
                     "required": [

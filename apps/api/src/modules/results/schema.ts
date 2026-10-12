@@ -276,7 +276,15 @@ export const ClassSheetSchema = z
         passed: z.boolean().nullable(),
         outcome: z.string(),
         version: z.number().int(),
-        subjects: z.array(z.object({ offeringId: z.string(), grade: z.string().nullable(), percentHundredths: z.number().int() }).nullable()),
+        subjects: z.array(
+          z.object({
+            offeringId: z.string(),
+            grade: z.string().nullable(),
+            percentHundredths: z.number().int(),
+            /** False when the subject is below its pass marks (a school that sets them per subject); null otherwise. */
+            passed: z.boolean().nullable().optional(),
+          }).nullable(),
+        ),
       }),
     ),
   })

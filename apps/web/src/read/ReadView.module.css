@@ -396,6 +396,12 @@
   max-width: 100%;
 }
 
+/* A mark below its pass marks: the digits in the status red, and heavier, so it does not rest on colour alone. */
+.below {
+  color: var(--color-bad);
+  font-weight: 600;
+}
+
 .status[data-tone="ok"] {
   background: var(--color-ok-soft);
   color: var(--color-ok);
