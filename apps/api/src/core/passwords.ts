@@ -8,7 +8,9 @@
  * Stored form: scrypt$N$r$p$salt$hash, so parameters can be raised later and old hashes upgraded
  * at the next sign-in (`needsRehash`).
  */
+import { hmac } from "@noble/hashes/hmac.js";
 import { scrypt } from "@noble/hashes/scrypt.js";
+import { sha256 } from "@noble/hashes/sha2.js";
 
 import { constantTimeEqual, fromBase64Url, toBase64Url } from "./encoding";
 
@@ -59,8 +61,57 @@ function parse(stored: string): Parsed | null {
   }
 }
 
-/** True only for the right password. Never throws on a bad stored value. */
-export function verifyPassword(password: string, stored: string): boolean {
+// --- A student's 4-digit password (D-164) -----------------------------------------------------------------------------
+//
+// scrypt takes about a third of a second of processing, more than one request may use on the free plan, so making or
+// checking a student's password failed at random ("Worker exceeded resource limits"). A 4-digit password has only 10,000
+// possibilities, so no hash makes it hard to guess if someone holds the stored value; what protects it is that the stored
+// value alone is not enough, and the lockout. So it is stored as an HMAC-SHA256 with a per-password salt and a key held by
+// the server (a secret, never in the database): light to compute, and useless to anyone who copies only the database.
+
+const PIN_PREFIX = "pin1$";
+const encoder = new TextEncoder();
+
+/** The key for 4-digit passwords: made from a server secret, and different from every other use of that secret. */
+const pinKey = (secret: string): Uint8Array => hmac(sha256, encoder.encode(secret), encoder.encode("student-pin-v1"));
+
+const pinMac = (password: string, salt: Uint8Array, secret: string): Uint8Array => {
+  const text = encoder.encode(normalise(password));
+  const message = new Uint8Array(salt.length + text.length);
+  message.set(salt, 0);
+  message.set(text, salt.length);
+  return hmac(sha256, pinKey(secret), message);
+};
+
+/** True for a value made by `hashPin`. */
+export const isPinHash = (stored: string): boolean => stored.startsWith(PIN_PREFIX);
+
+/** The light hash for a student's 4-digit password: `pin1$salt$mac`. */
+export function hashPin(password: string, secret: string): string {
+  const salt = crypto.getRandomValues(new Uint8Array(SALT_LENGTH));
+  return `${PIN_PREFIX}${toBase64Url(salt)}$${toBase64Url(pinMac(password, salt, secret))}`;
+}
+
+function verifyPin(password: string, stored: string, secret: string | undefined): boolean {
+  if (!secret) return false;
+  const parts = stored.split("$");
+  if (parts.length !== 3) return false;
+  try {
+    const salt = fromBase64Url(parts[1]!);
+    const mac = fromBase64Url(parts[2]!);
+    if (salt.length < 8 || mac.length !== 32) return false;
+    return constantTimeEqual(pinMac(password, salt, secret), mac);
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * True only for the right password. Never throws on a bad stored value. A 4-digit password's light hash needs the server's
+ * secret to be checked (`pinSecret`); without it that kind of value never matches.
+ */
+export function verifyPassword(password: string, stored: string, pinSecret?: string): boolean {
+  if (isPinHash(stored)) return verifyPin(password, stored, pinSecret);
   const parsed = parse(stored);
   if (!parsed) return false;
   const key = scrypt(normalise(password), parsed.salt, { N: parsed.n, r: parsed.r, p: parsed.p, dkLen: KEY_LENGTH });
@@ -69,6 +120,7 @@ export function verifyPassword(password: string, stored: string): boolean {
 
 /** True when the stored hash was made with weaker settings than today's. */
 export function needsRehash(stored: string): boolean {
+  if (isPinHash(stored)) return false; // the light hash is the chosen one for a 4-digit password, not a weaker version of the strong one
   const parsed = parse(stored);
   return !parsed || parsed.n < N || parsed.r < R || parsed.p < P;
 }

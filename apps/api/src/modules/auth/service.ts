@@ -8,7 +8,7 @@
 import { newPublicId } from "../../core/ids";
 import { signChallenge } from "../../core/two-factor/challenge";
 import { ADMIN_TWO_FACTOR_SQL, requiresTwoFactor } from "../../core/two-factor/policy";
-import { hashPassword, needsRehash, verifyPassword } from "../../core/passwords";
+import { hashPassword, hashPin, isPinHash, needsRehash, verifyPassword } from "../../core/passwords";
 import { TEMPORARY_PASSWORD_TRIES } from "../../core/temporary-password";
 import { IDLE_DAYS, SESSION_DAYS } from "../../core/session-cookies";
 import { ACCESS_TTL_SECONDS, newRefreshToken, sha256Hex, signAccessToken, type RoleClaim } from "../../core/tokens";
@@ -28,6 +28,8 @@ const DAY = 24 * 60 * MINUTE;
 export interface Deps {
   db: D1Database;
   sessionSecret: string;
+  /** The server secret a student's 4-digit password hash is keyed with (D-164). Without it such a password never checks. */
+  dataKey?: string;
 }
 
 export interface PublicUser {
@@ -52,9 +54,17 @@ export interface RoleRow {
 export const toClaims = (rows: RoleRow[]): RoleClaim[] =>
   rows.map((r) => ({ role: r.role, scope: r.scope_type, ...(r.section_key ? { section: r.section_key } : {}) }));
 
-// Checked against when the email is unknown, so an unknown email takes as long as a wrong password.
+// Checked against when the email is unknown, so an unknown email takes as long as a wrong password. A student's email
+// (the school's student address) is checked against the light hash, as a real student's is, so the time does not say
+// whether such an address belongs to a student (D-164).
 let dummyHash: string | undefined;
-const timingHash = (): string => (dummyHash ??= hashPassword("this-is-not-anybody's-password"));
+let dummyPin: string | undefined;
+const timingHash = (email: string, dataKey: string | undefined): string =>
+  dataKey && email.endsWith("@student.com") ? (dummyPin ??= hashPin("0000", dataKey)) : (dummyHash ??= hashPassword("this-is-not-anybody's-password"));
+
+/** A student who signed in with a 4-digit password on a strong hash gets the light one, so every later sign-in is light too. */
+const wantsLightHash = (stored: string, password: string, roles: readonly { role: string }[]): boolean =>
+  !isPinHash(stored) && /^[0-9]{4}$/.test(password) && roles.length > 0 && roles.every((r) => r.role === "student");
 
 export async function issueAccessToken(deps: Deps, user: PublicUser, sessionId: string, roles: RoleClaim[], now: Date): Promise<string> {
   const iat = Math.floor(now.getTime() / 1000);
@@ -147,7 +157,7 @@ export async function signIn(deps: Deps, input: SignInInput, now: Date = new Dat
     usable &&
     user.must_change_password === 1 &&
     ((user.temporary_password_expires_at !== null && user.temporary_password_expires_at < now.toISOString()) || user.temporary_password_failures >= TEMPORARY_PASSWORD_TRIES);
-  const passwordOk = usable && !temporarySpent ? verifyPassword(input.password, user.password_hash) : (verifyPassword(input.password, timingHash()), false);
+  const passwordOk = usable && !temporarySpent ? verifyPassword(input.password, user.password_hash, deps.dataKey) : (verifyPassword(input.password, timingHash(email, deps.dataKey), deps.dataKey), false);
 
   const recordEvent = (success: boolean, reason: string | null) =>
     db
@@ -181,7 +191,8 @@ export async function signIn(deps: Deps, input: SignInInput, now: Date = new Dat
   if (nextStep) {
     const pending = [recordEvent(true, `password_ok_two_factor_${nextStep}`)];
     // The password is in hand, so a hash made with weaker settings is replaced with today's.
-    if (needsRehash(user.password_hash)) pending.push(db.prepare("UPDATE users SET password_hash = ?1 WHERE id = ?2").bind(hashPassword(input.password), user.id));
+    if (deps.dataKey && wantsLightHash(user.password_hash, input.password, roles)) pending.push(db.prepare("UPDATE users SET password_hash = ?1 WHERE id = ?2").bind(hashPin(input.password, deps.dataKey), user.id));
+    else if (needsRehash(user.password_hash)) pending.push(db.prepare("UPDATE users SET password_hash = ?1 WHERE id = ?2").bind(hashPassword(input.password), user.id));
     await db.batch(pending);
     const challenge = await signChallenge(deps.sessionSecret, { sub: user.public_id, kind: nextStep === "required" ? "verify" : "setup" });
     return { ok: true, twoFactor: nextStep, challenge };
@@ -194,7 +205,9 @@ export async function signIn(deps: Deps, input: SignInInput, now: Date = new Dat
     db.prepare("UPDATE users SET last_login_at = ?1, failed_login_count = 0 WHERE id = ?2").bind(now.toISOString(), user.id),
   ];
   // A hash made with weaker settings is replaced with today's, now that we hold the password.
-  if (needsRehash(user.password_hash)) {
+  if (deps.dataKey && wantsLightHash(user.password_hash, input.password, roles)) {
+    statements.push(db.prepare("UPDATE users SET password_hash = ?1 WHERE id = ?2").bind(hashPin(input.password, deps.dataKey), user.id));
+  } else if (needsRehash(user.password_hash)) {
     statements.push(db.prepare("UPDATE users SET password_hash = ?1 WHERE id = ?2").bind(hashPassword(input.password), user.id));
   }
   await db.batch(statements);

@@ -14,7 +14,7 @@ export type OwnPasswordResult =
   | { ok: false; reason: "weak_password"; problems: PasswordProblem[] };
 
 export async function changeOwnPassword(
-  deps: { db: D1Database; auditKey: string },
+  deps: { db: D1Database; auditKey: string; dataKey?: string },
   input: { userPublicId: string; sessionPublicId: string; currentPassword: string; newPassword: string; ip: string | null; userAgent: string | null },
   now: Date = new Date(),
 ): Promise<OwnPasswordResult> {
@@ -34,7 +34,7 @@ export async function changeOwnPassword(
   if (!user) return { ok: false, reason: "not_found" };
   if (user.failures >= EMAIL_FAILURE_LIMIT) return { ok: false, reason: "throttled" }; // nothing hashed, nothing written
 
-  if (!verifyPassword(input.currentPassword, user.password_hash)) {
+  if (!verifyPassword(input.currentPassword, user.password_hash, deps.dataKey)) {
     await db
       .prepare("INSERT INTO sign_in_events (at, user_id, email_tried, success, reason, ip, user_agent) VALUES (?1, ?2, ?3, 0, 'wrong_current_password', ?4, ?5)")
       .bind(now.toISOString(), user.id, user.email, input.ip, input.userAgent?.slice(0, 300) ?? null)
@@ -45,7 +45,7 @@ export async function changeOwnPassword(
   const school = schoolResult!.results[0] as { name: string; short_name: string } | undefined;
   const problems = passwordProblems(input.newPassword, user.email, school ? schoolNameWords([school.name, school.short_name]) : []);
   if (problems.length > 0) return { ok: false, reason: "weak_password", problems };
-  if (verifyPassword(input.newPassword, user.password_hash)) return { ok: false, reason: "same_password" };
+  if (verifyPassword(input.newPassword, user.password_hash, deps.dataKey)) return { ok: false, reason: "same_password" };
 
   const nowIso = now.toISOString();
   await recordAudit(

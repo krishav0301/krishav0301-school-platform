@@ -437,7 +437,7 @@ export function registerAdmissions(app: App): void {
       const id = c.req.valid("param").id;
       // A student in another wing reads as missing, the same as viewing.
       if (!(await getStudent(c.env.DB, allowedSections(grant), id))) return fail(c, { ok: false, reason: "not_found" });
-      const result = await issueStudentPin(c.env.DB, c.env.AUDIT_HMAC_KEY, c.get("auth")!.userPublicId, id);
+      const result = await issueStudentPin(c.env.DB, c.env.AUDIT_HMAC_KEY, c.env.DATA_KEY, c.get("auth")!.userPublicId, id);
       if (!result.ok) return fail(c, result);
       c.header("Cache-Control", "no-store");
       return c.json({ temporaryPassword: result.temporaryPassword }, 200);
