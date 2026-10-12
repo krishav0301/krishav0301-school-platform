@@ -32,6 +32,45 @@ afterAll(async () => {
   await setKeeps(false);
 });
 
+describe("a student's 4-digit password is stored as the light, keyed hash (D-164)", () => {
+  const hashOf = (publicId: string) => db.prepare("SELECT password_hash FROM users WHERE public_id = ?1").bind(publicId).first<{ password_hash: string }>().then((r) => r!.password_hash);
+
+  it("a new PIN is stored as pin1$..., checks at sign-in, and the PIN itself is nowhere in the stored value", async () => {
+    await setKeeps(true);
+    const pupil = (await classWith("plus2", 1)).pupils[0]!;
+    const { temporaryPassword } = (await (await issue(pupil.studentId, coordinator)).json()) as { temporaryPassword: string };
+    const stored = await hashOf(pupil.person.publicId);
+    expect(stored.startsWith("pin1$")).toBe(true);
+    expect(stored).not.toContain(temporaryPassword);
+    expect((await signIn(await emailOf(pupil.person.publicId), temporaryPassword)).status).toBe(200);
+    expect((await signIn(await emailOf(pupil.person.publicId), "0000" === temporaryPassword ? "1111" : "0000")).status).toBe(401);
+  });
+
+  it("a student whose 4-digit password is still on the strong hash is moved to the light one at their next sign-in, and it keeps working", async () => {
+    await setKeeps(true);
+    const pupil = (await classWith("plus2", 1)).pupils[0]!;
+    const email = await emailOf(pupil.person.publicId);
+    const { hashPassword } = await import("../src/core/passwords");
+    await db.prepare("UPDATE users SET password_hash = ?1, must_change_password = 0 WHERE public_id = ?2").bind(hashPassword("3827"), pupil.person.publicId).run();
+    expect((await hashOf(pupil.person.publicId)).startsWith("scrypt$")).toBe(true);
+    expect((await signIn(email, "3827")).status).toBe(200);
+    expect((await hashOf(pupil.person.publicId)).startsWith("pin1$")).toBe(true);
+    expect((await signIn(email, "3827")).status).toBe(200);
+    expect((await signIn(email, "3828")).status).toBe(401);
+  });
+
+  it("a student's own longer password is never made the light hash", async () => {
+    await setKeeps(true);
+    const pupil = (await classWith("plus2", 1)).pupils[0]!;
+    const email = await emailOf(pupil.person.publicId);
+    const { hashPassword } = await import("../src/core/passwords");
+    const strong = hashPassword("a-student-chosen-long-passphrase");
+    await db.prepare("UPDATE users SET password_hash = ?1, must_change_password = 0 WHERE public_id = ?2").bind(strong, pupil.person.publicId).run();
+    expect((await signIn(email, "a-student-chosen-long-passphrase")).status).toBe(200);
+    expect(await hashOf(pupil.person.publicId)).toBe(strong);
+  });
+});
+
 describe("giving a student a new PIN", () => {
   it("gives a 4-digit PIN once, the old one stops working, open sessions end, and the new one signs in", async () => {
     await setKeeps(true);
