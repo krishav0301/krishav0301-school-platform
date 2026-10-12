@@ -14,6 +14,7 @@ import { showPalette, showPersonalPalette } from "@/theme/personal";
 import { Illustration, Skeleton, Spinner } from "@/ui";
 
 import { GlobalSearch } from "./GlobalSearch";
+import { ImportChip } from "./ImportChip";
 import { MORE_HREF, NAV_ITEMS, isCurrent, showsMenu, splitNav, visibleNav, type NavIcon, type NavItem } from "./nav";
 import { TERM_ROLES, TermChoiceProvider, TermPicker } from "./TermChoice";
 import styles from "./shell.module.css";
@@ -137,6 +138,7 @@ export function PortalShell({ children, items = NAV_ITEMS }: { children: ReactNo
           {/* Search and the term picker (D-127), between the school's name and the account. */}
           <div className={styles.tools}>
             <GlobalSearch pages={pages} />
+            <ImportChip />
             <TermPicker />
           </div>
           <details className={styles.account}>
