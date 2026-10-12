@@ -14,7 +14,7 @@ import { Button, HeroBand, Illustration, Notice, Select, Skeleton, TextArea } fr
 import styles from "./approvals.module.css";
 import { approve, decline, loadInbox, loadReview, withdraw } from "./client";
 import {
-  KINDS,
+  kindsFor,
   KIND_FILTER_LABEL,
   cardLines,
   confirmSubject,
@@ -576,7 +576,9 @@ function ReviewDrawer({ request, onClose }: { request: ApprovalSummary; onClose:
 
 export function InboxScreen() {
   const { api } = useSession();
-  const { term } = useConfig();
+  const { term, moduleEnabled } = useConfig();
+  // A school that does not collect fees (D-137) has no fee requests to filter by; with one kind left there is nothing to filter.
+  const kinds = kindsFor(moduleEnabled("fees"));
   const loadNow = useCallback(() => loadInbox(api), [api]);
   const { view, reload } = useLoad(loadNow);
   const [kind, setKind] = useState<ApprovalKind | null>(null);
@@ -603,16 +605,20 @@ export function InboxScreen() {
       </HeroBand>
 
       <div className={styles.toolbar}>
-        <div className={styles.filters} role="group" aria-label={t("approvals.filter.label")}>
-          <button type="button" className={styles.filter} aria-pressed={kind === null} onClick={() => setKind(null)}>
-            {t("approvals.filter.all", { count: requests.length })}
-          </button>
-          {KINDS.map((k) => (
-            <button key={k} type="button" className={styles.filter} aria-pressed={kind === k} onClick={() => setKind(k)}>
-              {t("approvals.filter.withCount", { label: t(KIND_FILTER_LABEL[k]), count: counts[k] })}
+        {kinds.length > 1 ? (
+          <div className={styles.filters} role="group" aria-label={t("approvals.filter.label")}>
+            <button type="button" className={styles.filter} aria-pressed={kind === null} onClick={() => setKind(null)}>
+              {t("approvals.filter.all", { count: requests.length })}
             </button>
-          ))}
-        </div>
+            {kinds.map((k) => (
+              <button key={k} type="button" className={styles.filter} aria-pressed={kind === k} onClick={() => setKind(k)}>
+                {t("approvals.filter.withCount", { label: t(KIND_FILTER_LABEL[k]), count: counts[k] })}
+              </button>
+            ))}
+          </div>
+        ) : (
+          <span />
+        )}
         <div className={styles.sort}>
           <Select
             label={t("approvals.sort.label")}

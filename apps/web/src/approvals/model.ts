@@ -12,6 +12,9 @@ export type ApprovalKind = ApprovalSummary["kind"];
 /** The five kinds, in the order the filters show them (CLAUDE.md section 6: there are exactly five). */
 export const KINDS: readonly ApprovalKind[] = ["website_content", "fee_structure", "discount", "reversal", "refund"];
 
+/** The kinds a school can be asked about: the four fee kinds only where the school collects fees (D-137); otherwise only the website's. Pure. */
+export const kindsFor = (feesOn: boolean): readonly ApprovalKind[] => (feesOn ? KINDS : ["website_content"]);
+
 /** Words for every kind of request (D-061; the four fee kinds since Phase 6, named here since D-084). */
 export const KIND_LABEL: Record<ApprovalKind, MessageKey> = {
   website_content: "approvals.kind.websiteContent",
