@@ -1,17 +1,18 @@
 "use client";
 
-import { Search, Settings } from "lucide-react";
+import { CalendarRange, ChevronDown, Search, Settings } from "lucide-react";
 import Link from "next/link";
-import { Fragment, useMemo, useState, useSyncExternalStore } from "react";
+import { useRouter } from "next/navigation";
+import { Fragment, useId, useMemo, useState, useSyncExternalStore } from "react";
 
 import { useConfig } from "@/config/ConfigProvider";
 import { t } from "@/i18n/messages";
 import { Segments, StatusWord } from "@/read/ReadView";
 import { useSession } from "@/session/SessionProvider";
-import { Button, Select } from "@/ui";
+import { Button, type MenuAction } from "@/ui";
 
 import { canManageProgrammes, canManageStructure, termWords, type SetupMap } from "../model";
-import { buildTree, closing, findNode, openingPath, pathTo, searchTree, type Hit } from "./model";
+import { buildTree, closing, findNode, openingPath, pathTo, searchTree, type Hit, type StructNode } from "./model";
 import { ICONS, kindWord, nodeTitle } from "./parts";
 import { StructureDetail } from "./StructureDetail";
 import { StructureFlowView } from "./StructureFlowView";
@@ -33,6 +34,20 @@ function useNarrow(): boolean {
   );
 }
 
+/** The page's title and what it is for. */
+export function StructureHeading({ children }: { children?: React.ReactNode }) {
+  const { term: word } = useConfig();
+  return (
+    <header className={styles.head}>
+      <div className={styles.headText}>
+        <h1 className={styles.title}>{t("setup.map.title")}</h1>
+        <p className={styles.intro}>{t("setup.map.intro", termWords(word))}</p>
+      </div>
+      {children ? <div className={styles.headTools}>{children}</div> : null}
+    </header>
+  );
+}
+
 /**
  * The Academic Structure (the PM, 2026-10-12, D-157): the school as a tree you open one branch at a time, as a chart or as
  * a list, with a way to search it, a path to where you are, focus on one wing or course, and a panel for the details of a
@@ -41,11 +56,19 @@ function useNarrow(): boolean {
 export function StructureExplorer({ map, termHref }: { map: SetupMap; termHref: string }) {
   const { term: word } = useConfig();
   const { me } = useSession();
+  const router = useRouter();
   const words = termWords(word);
   const narrow = useNarrow();
+  const termSelect = useId();
   const [termChoice, setTermChoice] = useState<string | null>(null);
   const term = map.terms.find((x) => x.id === termChoice) ?? map.terms[0]!;
-  const tree = useMemo(() => buildTree(term, t("setup.map.unnamedSection")), [term]);
+  const roles = me?.roles ?? [];
+  const reach = { structure: canManageStructure(roles), programmes: canManageProgrammes(roles) };
+  // A dashed "add" box leads to the screen that adds one, and is drawn only for a person who may.
+  const tree = useMemo(
+    () => buildTree(term, t("setup.map.unnamedSection"), { ...(reach.programmes ? { course: "/portal/setup/programmes?add=1" } : {}), ...(reach.structure ? { section: "/portal/classes" } : {}) }),
+    [term, reach.programmes, reach.structure],
+  );
   const [viewChoice, setViewChoice] = useState<View>("flow");
   const view: View = narrow ? "list" : viewChoice;
   const [open, setOpen] = useState<ReadonlySet<string>>(() => new Set([tree.id]));
@@ -54,8 +77,6 @@ export function StructureExplorer({ map, termHref }: { map: SetupMap; termHref: 
   const [focusId, setFocusId] = useState<string | null>(null);
   const [query, setQuery] = useState("");
 
-  const roles = me?.roles ?? [];
-  const reach = { structure: canManageStructure(roles), programmes: canManageProgrammes(roles) };
   const root = (focusId ? findNode(tree, focusId) : null) ?? tree;
   const selected = selectedId ? findNode(tree, selectedId) : null;
   const hits = searchTree(tree, query);
@@ -92,6 +113,19 @@ export function StructureExplorer({ map, termHref }: { map: SetupMap; termHref: 
     setQuery("");
   };
 
+  // What a box's three dots offer: its details, the focus on a branch, and the class and its students for a section.
+  const actionsFor = (node: StructNode): MenuAction[] => {
+    if (node.kind === "add") return [];
+    const list: MenuAction[] = [{ key: "details", label: t("structure.menu.details"), onSelect: () => select(node.id) }];
+    if (node.kind === "wing" || node.kind === "course" || node.kind === "level") list.push({ key: "focus", label: t("structure.focus"), onSelect: () => focusOn(node.id) });
+    if (node.payload.kind === "section") {
+      const id = node.payload.section.id;
+      list.push({ key: "class", label: t("structure.action.class"), onSelect: () => router.push(`/portal/classes/class?id=${id}`) });
+      list.push({ key: "students", label: t("structure.action.students", { n: node.payload.section.students }), onSelect: () => router.push(`/portal/classes/class?id=${id}&tab=students`) });
+    }
+    return list;
+  };
+
   // Where you are: the way from the term to what is chosen (or to what is in focus), each step a way back to it.
   const here = pathTo(tree, selectedId ?? focusId ?? tree.id);
   const crumb = (id: string) => {
@@ -103,17 +137,36 @@ export function StructureExplorer({ map, termHref }: { map: SetupMap; termHref: 
 
   return (
     <div className={styles.explorer}>
-      <div className={styles.toolbar}>
-        {map.terms.length > 1 ? (
-          <Select label={t("structure.term")} value={term.id} onChange={(e) => chooseTerm(e.target.value)} options={map.terms.map((x) => ({ value: x.id, label: x.label }))} />
-        ) : null}
-        <StatusWord tone={term.status === "active" ? "ok" : "neutral"}>{t(term.status === "active" ? "setup.map.active" : "setup.map.draft")}</StatusWord>
+      <StructureHeading>
+        <label className={styles.termCard} htmlFor={termSelect}>
+          <span className={styles.termIcon} aria-hidden>
+            <CalendarRange />
+          </span>
+          {map.terms.length > 1 ? (
+            <>
+              <span className="sr-only">{t("structure.term")}</span>
+              <select id={termSelect} className={styles.termSelect} value={term.id} onChange={(e) => chooseTerm(e.target.value)}>
+                {map.terms.map((x) => (
+                  <option key={x.id} value={x.id}>
+                    {x.label}
+                  </option>
+                ))}
+              </select>
+            </>
+          ) : (
+            <span className={styles.termName} id={termSelect}>
+              {term.label}
+            </span>
+          )}
+          <StatusWord tone={term.status === "active" ? "ok" : "neutral"}>{t(term.status === "active" ? "setup.map.active" : "setup.map.draft")}</StatusWord>
+          {map.terms.length > 1 ? <ChevronDown aria-hidden className={styles.termChevron} /> : null}
+        </label>
         <Link href={termHref} className={styles.settings}>
           <Settings aria-hidden />
           {t("structure.settings")}
         </Link>
         {narrow ? null : <Segments label={t("structure.view")} value={view} onChange={setViewChoice} options={[{ key: "flow", label: t("structure.view.flow") }, { key: "list", label: t("structure.view.list") }]} />}
-      </div>
+      </StructureHeading>
 
       <div className={styles.searchArea}>
         <label className={styles.search}>
@@ -132,9 +185,9 @@ export function StructureExplorer({ map, termHref }: { map: SetupMap; termHref: 
                     <Icon aria-hidden />
                     <span>
                       <span className={styles.resultName}>
-                        {h.label} <span className={styles.nodeKind}>{kindWord(h.kind, words)}</span>
+                        {h.label} <span className={styles.nodeKindText}>{kindWord(h.kind, words)}</span>
                       </span>
-                      {h.place ? <span className={styles.nodeMeta}>{h.place}</span> : null}
+                      {h.place ? <span className={styles.resultPlace}>{h.place}</span> : null}
                     </span>
                   </button>
                 </li>
@@ -150,10 +203,10 @@ export function StructureExplorer({ map, termHref }: { map: SetupMap; termHref: 
             <Fragment key={n.id}>
               <li>
                 {i === here.length - 1 ? (
-                  <span aria-current="location">{nodeTitle(n)}</span>
+                  <span aria-current="location">{nodeTitle(n, words)}</span>
                 ) : (
                   <button type="button" className={styles.crumb} onClick={() => crumb(n.id)}>
-                    {nodeTitle(n)}
+                    {nodeTitle(n, words)}
                   </button>
                 )}
               </li>
@@ -172,12 +225,12 @@ export function StructureExplorer({ map, termHref }: { map: SetupMap; termHref: 
       {tree.children.length === 0 ? (
         <p className={styles.muted}>{t("setup.map.noLevels", words)}</p>
       ) : view === "flow" ? (
-        <StructureFlowView root={root} open={open} selectedId={selectedId} words={words} onSelect={select} onToggle={toggle} />
+        <StructureFlowView root={root} open={open} selectedId={selectedId} words={words} actionsFor={actionsFor} onSelect={select} onToggle={toggle} />
       ) : (
         <StructureListView root={root} open={open} selectedId={selectedId} words={words} onSelect={select} onToggle={toggle} />
       )}
 
-      {detailOpen && selected ? (
+      {detailOpen && selected && selected.kind !== "add" ? (
         <StructureDetail
           key={selected.id}
           node={selected}

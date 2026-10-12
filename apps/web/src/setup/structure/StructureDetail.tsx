@@ -46,7 +46,7 @@ export function StructureDetail({ node, words, reach, termHref, canFocus, onFocu
   const p = node.payload;
   return (
     <SidePanel
-      title={nodeTitle(node)}
+      title={nodeTitle(node, words)}
       subtitle={`${kindWord(node.kind, words)} · ${metaLine(node)}`}
       lead={
         <span className={styles.nodeIcon} data-kind={node.kind} aria-hidden>

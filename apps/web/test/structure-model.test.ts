@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import type { SetupMap } from "@/setup/model";
-import { GAP_X, NODE_W, buildTree, closing, findNode, layoutTree, openingPath, pathTo, searchTree } from "@/setup/structure/model";
+import { GAP_X, buildTree, closing, findNode, layoutTree, openingPath, pathTo, searchTree, sizeOf } from "@/setup/structure/model";
 
 // The Academic Structure as a tree (the PM, 2026-10-12): uneven on purpose, two wings, courses with one and with many
 // levels, a level with no sections, a section with no name, and a big class.
@@ -121,7 +121,7 @@ describe("laying the picture out", () => {
     const narrow = layoutTree(tree, new Set(["term:t1"])).width;
     const wide = layoutTree(tree, openingPath(tree, "level:l12")).width;
     expect(wide).toBeGreaterThanOrEqual(narrow);
-    expect(layoutTree(tree, openingPath(tree, "level:l12")).boxes.get("level:l12")!.w).toBe(NODE_W);
+    expect(layoutTree(tree, openingPath(tree, "level:l12")).boxes.get("level:l12")!.w).toBe(sizeOf(findNode(tree, "level:l12")!).w);
   });
 
   it("draws one box for each of the open nodes and one connector for each but the root", () => {
@@ -139,4 +139,36 @@ function allIds(): string[] {
   };
   walk(tree as never);
   return ids;
+}
+
+describe("the dashed add boxes and the size of each box", () => {
+  it("draws an add box at the end of a wing's courses and of a class's sections only where a link is given", () => {
+    const withAdd = buildTree(term, "Section", { course: "/portal/setup/programmes?add=1", section: "/portal/classes" });
+    expect(findNode(withAdd, "wing:school")!.children.map((c) => c.kind)).toEqual(["course", "course", "add"]);
+    expect(findNode(withAdd, "level:l9")!.children.map((c) => c.kind)).toEqual(["subjects", "section", "section", "add"]);
+    expect(findNode(withAdd, "wing:school")!.children.at(-1)!.payload).toMatchObject({ kind: "add", href: "/portal/setup/programmes?add=1", what: "course" });
+    expect(allKinds(tree)).not.toContain("add"); // no link, no box
+  });
+
+  it("an add box adds nothing to the counts and is never found by a search", () => {
+    const withAdd = buildTree(term, "Section", { course: "/x", section: "/y" });
+    expect(withAdd.counts).toEqual(tree.counts);
+    expect(searchTree(withAdd, "add")).toEqual([]);
+  });
+
+  it("each kind has one size, every box of a row sits at the same height, and rows never overlap", () => {
+    const withAdd = buildTree(term, "Section", { course: "/x", section: "/y" });
+    const l = layoutTree(withAdd, openingPath(withAdd, "level:l9"));
+    const rows = new Map<number, number[]>();
+    for (const b of l.boxes.values()) rows.set(b.y, [...(rows.get(b.y) ?? []), b.h]);
+    const tops = [...rows.keys()].sort((a, b) => a - b);
+    tops.forEach((top, i) => {
+      if (i > 0) expect(top).toBeGreaterThanOrEqual(tops[i - 1]! + Math.max(...rows.get(tops[i - 1]!)!));
+    });
+    expect(l.height).toBeGreaterThan(Math.max(...[...l.boxes.values()].map((b) => b.y + b.h)));
+  });
+});
+
+function allKinds(root: { kind: string; children: unknown[] }): string[] {
+  return [root.kind, ...(root.children as { kind: string; children: unknown[] }[]).flatMap(allKinds)];
 }

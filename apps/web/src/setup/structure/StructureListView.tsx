@@ -5,6 +5,8 @@ import { ChevronDown } from "lucide-react";
 import { t } from "@/i18n/messages";
 
 import type { StructNode } from "./model";
+import Link from "next/link";
+
 import { ICONS, kindWord, metaLine, nodeTitle, type Words } from "./parts";
 import styles from "./structure.module.css";
 
@@ -23,7 +25,20 @@ export function StructureListView({ root, open, selectedId, words, onSelect, onT
 function ListRow({ node, depth, open, selectedId, words, onSelect, onToggle }: { node: StructNode; depth: number; open: ReadonlySet<string>; selectedId: string | null; words: Words; onSelect: (id: string) => void; onToggle: (id: string) => void }) {
   const Icon = ICONS[node.kind];
   const isOpen = open.has(node.id);
-  const title = nodeTitle(node);
+  const title = nodeTitle(node, words);
+  if (node.payload.kind === "add") {
+    return (
+      <li role="none" data-node-id={node.id}>
+        <div className={styles.row} style={{ paddingInlineStart: `calc(var(--space-3) + ${depth} * var(--space-5))` }}>
+          <span className={styles.rowToggle} aria-hidden />
+          <Link href={node.payload.href} className={styles.rowAdd}>
+            <Icon aria-hidden />
+            {title}
+          </Link>
+        </div>
+      </li>
+    );
+  }
   return (
     <li role="treeitem" aria-expanded={node.children.length > 0 ? isOpen : undefined} aria-selected={node.id === selectedId} data-node-id={node.id}>
       <div className={styles.row} data-kind={node.kind} data-selected={node.id === selectedId || undefined} style={{ paddingInlineStart: `calc(var(--space-3) + ${depth} * var(--space-5))` }}>

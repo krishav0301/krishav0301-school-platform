@@ -87,7 +87,8 @@ describe("the Academic Structure page", () => {
     const html = render(<SetupMapView map={map} />);
     expect(html).toContain("Academic term");
     expect(html).toContain("BS 2083 Shrawan");
-    expect(html).toContain("1 course · 2 classes · 2 sections · 32 students");
+    expect(html).toContain("Academic Structure");
+    for (const part of ["1 course", "2 classes", "2 sections", "32 students"]) expect(html).toContain(part);
   });
 
   it("has a search, the path to where you are, and a way to Settings", () => {
@@ -100,7 +101,7 @@ describe("the Academic Structure page", () => {
 
 describe("the chart", () => {
   const flow = (open: Set<string>, selectedId: string | null = null) =>
-    render(<StructureFlowView root={tree} open={open} selectedId={selectedId} words={words} onSelect={() => {}} onToggle={() => {}} />);
+    render(<StructureFlowView root={tree} open={open} selectedId={selectedId} words={words} actionsFor={() => []} onSelect={() => {}} onToggle={() => {}} />);
 
   it("draws only what is open, with a connector for each box inside another", () => {
     const shut = flow(new Set(["term:t1"]));

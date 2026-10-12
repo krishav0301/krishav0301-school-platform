@@ -11,7 +11,7 @@ type Course = Wing["departments"][number];
 type Level = Course["levels"][number];
 type Section = Level["sections"][number];
 
-export type NodeKind = "term" | "wing" | "course" | "level" | "subjects" | "section";
+export type NodeKind = "term" | "wing" | "course" | "level" | "subjects" | "section" | "add";
 
 export interface Counts {
   courses: number;
@@ -26,7 +26,15 @@ export type Payload =
   | { kind: "course"; course: Course }
   | { kind: "level"; level: Level }
   | { kind: "subjects"; level: Level }
-  | { kind: "section"; section: Section; level: Level };
+  | { kind: "section"; section: Section; level: Level }
+  /** A dashed "add" box at the end of a branch: it goes to the screen that adds one. Drawn only where that is allowed. */
+  | { kind: "add"; href: string; what: "course" | "section" };
+
+/** Where the dashed add boxes lead; a missing one is not drawn. */
+export interface AddLinks {
+  course?: string;
+  section?: string;
+}
 
 export interface StructNode {
   id: string;
@@ -39,12 +47,12 @@ export interface StructNode {
 }
 
 const none: Counts = { courses: 0, classes: 0, sections: 0, students: 0 };
-const add = (a: Counts, b: Counts): Counts => ({ courses: a.courses + b.courses, classes: a.classes + b.classes, sections: a.sections + b.sections, students: a.students + b.students });
+const addCounts = (a: Counts, b: Counts): Counts => ({ courses: a.courses + b.courses, classes: a.classes + b.classes, sections: a.sections + b.sections, students: a.students + b.students });
 
 export const termId = (id: string) => `term:${id}`;
 
 /** The whole tree of one term. Every count is added up from the sections below it. */
-export function buildTree(term: Term, unnamedSection = "Section"): StructNode {
+export function buildTree(term: Term, unnamedSection = "Section", add: AddLinks = {}): StructNode {
   const root = termId(term.id);
   const sectionNode = (s: Section, level: Level, parentId: string): StructNode => ({
     id: `section:${s.id}`,
@@ -60,28 +68,30 @@ export function buildTree(term: Term, unnamedSection = "Section"): StructNode {
     const sections = level.sections.map((s) => sectionNode(s, level, id));
     const subjects: StructNode[] =
       level.subjects.length === 0 ? [] : [{ id: `subjects:${level.id}`, kind: "subjects", name: "", parentId: id, counts: none, children: [], payload: { kind: "subjects", level } }];
+    const addSection: StructNode[] = add.section ? [{ id: `add:${id}`, kind: "add", name: "", parentId: id, counts: none, children: [], payload: { kind: "add", href: add.section, what: "section" } }] : [];
     return {
       id,
       kind: "level",
       name: level.name,
       parentId,
-      counts: sections.reduce((sum, s) => add(sum, s.counts), { ...none, classes: 1 }),
-      children: [...subjects, ...sections],
+      counts: sections.reduce((sum, s) => addCounts(sum, s.counts), { ...none, classes: 1 }),
+      children: [...subjects, ...sections, ...addSection],
       payload: { kind: "level", level },
     };
   };
   const courseNode = (course: Course, parentId: string): StructNode => {
     const id = `course:${course.id}`;
     const levels = course.levels.map((l) => levelNode(l, id));
-    return { id, kind: "course", name: course.name, parentId, counts: levels.reduce((sum, l) => add(sum, l.counts), { ...none, courses: 1 }), children: levels, payload: { kind: "course", course } };
+    return { id, kind: "course", name: course.name, parentId, counts: levels.reduce((sum, l) => addCounts(sum, l.counts), { ...none, courses: 1 }), children: levels, payload: { kind: "course", course } };
   };
   const wingNode = (wing: Wing): StructNode => {
     const id = `wing:${wing.key}`;
     const courses = wing.departments.map((d) => courseNode(d, id));
-    return { id, kind: "wing", name: wing.name, parentId: root, counts: courses.reduce((sum, c) => add(sum, c.counts), { ...none }), children: courses, payload: { kind: "wing", wing } };
+    const addCourse: StructNode[] = add.course ? [{ id: `add:${id}`, kind: "add", name: "", parentId: id, counts: none, children: [], payload: { kind: "add", href: add.course, what: "course" } }] : [];
+    return { id, kind: "wing", name: wing.name, parentId: root, counts: courses.reduce((sum, c) => addCounts(sum, c.counts), { ...none }), children: [...courses, ...addCourse], payload: { kind: "wing", wing } };
   };
   const wings = term.wings.map(wingNode);
-  return { id: root, kind: "term", name: term.label, parentId: null, counts: wings.reduce((sum, w) => add(sum, w.counts), { ...none }), children: wings, payload: { kind: "term", term } };
+  return { id: root, kind: "term", name: term.label, parentId: null, counts: wings.reduce((sum, w) => addCounts(sum, w.counts), { ...none }), children: wings, payload: { kind: "term", term } };
 }
 
 /** Every node, parents before their children. */
@@ -130,7 +140,7 @@ export function searchTree(root: StructNode, query: string, limit = 12): Hit[] {
       .filter((n) => n.kind !== "term")
       .map((n) => n.name)
       .join(" / ");
-    if (node.kind !== "subjects" && node.name.toLowerCase().includes(q)) hits.push({ id: node.id, label: node.name, kind: node.kind, place });
+    if (node.kind !== "subjects" && node.kind !== "add" && node.name.toLowerCase().includes(q)) hits.push({ id: node.id, label: node.name, kind: node.kind, place });
     if (node.kind === "subjects" && node.payload.kind === "subjects") {
       for (const s of node.payload.level.subjects) if (s.name.toLowerCase().includes(q)) hits.push({ id: node.id, label: s.name, kind: "subjects", place });
     }
@@ -155,35 +165,49 @@ export interface Layout {
   height: number;
 }
 
-export const NODE_W = 232;
-export const NODE_H = 92;
-export const GAP_X = 24;
-export const GAP_Y = 56;
-export const MARGIN = 24;
+export const GAP_X = 28;
+export const GAP_Y = 64;
+export const MARGIN = 28;
+
+/** How big each kind of box is. The text inside is cut to fit (two lines of name, two of counts), so a box never grows. */
+const SIZES: Record<NodeKind, { w: number; h: number }> = {
+  term: { w: 560, h: 120 },
+  wing: { w: 340, h: 120 },
+  course: { w: 320, h: 120 },
+  level: { w: 280, h: 120 },
+  subjects: { w: 340, h: 156 },
+  section: { w: 320, h: 120 },
+  add: { w: 220, h: 72 },
+};
+export const NODE_W = SIZES.level.w;
+export const sizeOf = (node: StructNode): { w: number; h: number } => SIZES[node.kind];
 
 /**
- * Where each node goes, top down: a node sits centred over its open children, and a branch is as wide as the nodes under
- * it, so nothing overlaps and an open branch makes room only for itself. A closed node shows no children. Pure.
+ * Where each node goes, top down: a node sits centred over its open children, and a branch is as wide as the boxes under
+ * it, so nothing overlaps and an open branch makes room only for itself. Each depth is one row, as tall as its tallest box.
+ * A closed node shows no children. Pure.
  */
 export function layoutTree(root: StructNode, open: ReadonlySet<string>): Layout {
   const boxes = new Map<string, Box>();
   const edges: Layout["edges"] = [];
   const kids = (n: StructNode) => (open.has(n.id) ? n.children : []);
   const widths = new Map<string, number>();
-  const widthOf = (n: StructNode): number => {
-    const own = kids(n).reduce((sum, c, i) => sum + widthOf(c) + (i > 0 ? GAP_X : 0), 0);
-    const w = Math.max(NODE_W, own);
+  const rows: number[] = [];
+  const measure = (n: StructNode, depth: number): number => {
+    rows[depth] = Math.max(rows[depth] ?? 0, sizeOf(n).h);
+    const own = kids(n).reduce((sum, c, i) => sum + measure(c, depth + 1) + (i > 0 ? GAP_X : 0), 0);
+    const w = Math.max(sizeOf(n).w, own);
     widths.set(n.id, w);
     return w;
   };
-  widthOf(root);
-  let height = 0;
+  measure(root, 0);
+  const rowTop = (depth: number) => MARGIN + rows.slice(0, depth).reduce((sum, h) => sum + h + GAP_Y, 0);
   const place = (n: StructNode, left: number, depth: number) => {
     const w = widths.get(n.id)!;
-    const y = MARGIN + depth * (NODE_H + GAP_Y);
-    boxes.set(n.id, { x: left + (w - NODE_W) / 2, y, w: NODE_W, h: NODE_H });
-    height = Math.max(height, y + NODE_H + MARGIN);
-    let cursor = left + (w - kids(n).reduce((sum, c, i) => sum + widths.get(c.id)! + (i > 0 ? GAP_X : 0), 0)) / 2;
+    const size = sizeOf(n);
+    boxes.set(n.id, { x: left + (w - size.w) / 2, y: rowTop(depth), w: size.w, h: size.h });
+    const used = kids(n).reduce((sum, c, i) => sum + widths.get(c.id)! + (i > 0 ? GAP_X : 0), 0);
+    let cursor = left + (w - used) / 2;
     for (const c of kids(n)) {
       edges.push({ from: n.id, to: c.id });
       place(c, cursor, depth + 1);
@@ -191,5 +215,5 @@ export function layoutTree(root: StructNode, open: ReadonlySet<string>): Layout 
     }
   };
   place(root, MARGIN, 0);
-  return { boxes, edges, width: widths.get(root.id)! + MARGIN * 2, height };
+  return { boxes, edges, width: widths.get(root.id)! + MARGIN * 2, height: rowTop(rows.length) - GAP_Y + MARGIN };
 }
