@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 import { ClassAttendanceScreen } from "@/attendance/ClassAttendanceScreen";
 import { ClassActivityScreen } from "@/classwork/ClassActivityScreen";
@@ -12,6 +12,7 @@ import { EmptyLine, OpenLink, Panel, ReadFailure, ReadHeader, ReadTable, Segment
 import { ClassSheetView } from "@/results/StaffScreens";
 import { MyMarksByExam, TerminalCards } from "./TerminalGroups";
 import { ImportStudents } from "./ImportStudents";
+import { useImportJob } from "./import-job";
 import { useSession } from "@/session/SessionProvider";
 import { canManageStructure } from "@/setup/model";
 import { useTermChoice } from "@/shell/TermChoice";
@@ -114,6 +115,21 @@ export function ClassPageScreen() {
     return loadClassHub(api, id);
   }, [api, id]);
   const { view, reload } = useLoad(loadNow);
+  // The import runs beside the page (D-155): the top bar's chip comes here with `&import=<a new number>`, which opens its window
+  // on the Students tab (each press has a new number, so pressing it again opens it again); the list is read again when it ends.
+  const { finished } = useImportJob();
+  const importNonce = search === null ? 0 : Number(new URLSearchParams(search).get("import") ?? 0) || 0;
+  const [seenNonce, setSeenNonce] = useState(0);
+  const [importSignal, setImportSignal] = useState(0);
+  if (importNonce > seenNonce) {
+    setSeenNonce(importNonce);
+    setImportSignal(importNonce);
+    setChosen("students");
+  }
+  useEffect(() => {
+    if (finished > 0) void reload();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [finished]);
 
   if (search === null || view.status === "loading") return <TableSkeleton rows={6} />;
   if (view.status !== "ready") return <ReadFailure status={view.status} onRetry={() => void reload()} />;
@@ -137,8 +153,8 @@ export function ClassPageScreen() {
         <Panel
           actions={
             canImport ? (
-              <AddDialog label={t("classes.import.open")} title={t("classes.import.title")} variant="secondary" plus={false}>
-                {() => <ImportStudents classId={hub.class.id} levelId={hub.class.levelId} className={place} onDone={() => void reload()} />}
+              <AddDialog label={t("classes.import.open")} title={t("classes.import.title")} variant="secondary" plus={false} openSignal={importSignal}>
+                {() => <ImportStudents classId={hub.class.id} levelId={hub.class.levelId} className={place} />}
               </AddDialog>
             ) : undefined
           }

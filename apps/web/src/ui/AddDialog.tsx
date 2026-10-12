@@ -24,6 +24,7 @@ export function AddDialog({
   label,
   title,
   openNow = false,
+  openSignal = 0,
   variant = "primary",
   plus = true,
   icon,
@@ -34,6 +35,8 @@ export function AddDialog({
   label: string;
   title: string;
   openNow?: boolean;
+  /** Opens the dialog again whenever this number grows (the import's chip in the top bar asks for it). */
+  openSignal?: number;
   /** One prominent button per view (D-030): a second Add on the same page is `secondary`, a Rename is `quiet`. */
   variant?: "primary" | "secondary" | "quiet";
   /** The plus sign says "adds"; a dialog that changes something already there leaves it out. */
@@ -54,6 +57,14 @@ export function AddDialog({
   // Asked for by the address, it shows until the person closes it once.
   const [dismissed, setDismissed] = useState(false);
   const shown = open || (openNow && !dismissed);
+  const seenSignal = useRef(0);
+  useEffect(() => {
+    if (openSignal > seenSignal.current) {
+      seenSignal.current = openSignal;
+      setOpened((n) => n + 1);
+      setOpen(true);
+    }
+  }, [openSignal]);
 
   useEffect(() => {
     const dialog = ref.current;
