@@ -12,7 +12,7 @@
  * changes nothing at all, not just the last step (the lesson of D-061's two real bugs).
  */
 import { newPublicId } from "../../core/ids";
-import { hashPassword } from "../../core/passwords";
+import { hashPin } from "../../core/passwords";
 import { generateTemporaryPassword } from "../../core/temporary-password";
 import { newRefreshToken, sha256Hex } from "../../core/tokens";
 import { queueEmail } from "../../core/notifications";
@@ -480,7 +480,7 @@ export async function approveApplication(
            SELECT ?1, st.email, ?3, TRIM(st.first_name || ' ' || st.last_name), NULLIF(st.phone, ''), 1 - ${KEEPS_PIN}, CASE WHEN ${KEEPS_PIN} = 1 THEN NULL ELSE strftime('%Y-%m-%dT%H:%M:%fZ', 'now', '+1 day') END
              FROM students st WHERE st.public_id = ?2 AND changes() > 0`,
         )
-        .bind(userPublicId, studentPublicId, hashPassword(temporaryPassword)),
+        .bind(userPublicId, studentPublicId, hashPin(temporaryPassword, dataKey)),
       db.prepare(`INSERT INTO role_assignments (user_id, role, scope_type, section_id) SELECT u.id, 'student', 'own', NULL FROM users u WHERE u.public_id = ?1 AND changes() > 0`).bind(userPublicId),
       db.prepare(`UPDATE students SET user_id = (SELECT id FROM users WHERE public_id = ?1) WHERE public_id = ?2 AND changes() > 0`).bind(userPublicId, studentPublicId),
       db
@@ -565,7 +565,7 @@ export type PinResult = { ok: true; temporaryPassword: string } | WriteFailure;
  * tries starts again. In a school that lets students keep it, it is theirs to keep; otherwise it is temporary again (changed
  * at first sign-in, expiring in a day). Shown once, never in the audit log.
  */
-export async function issueStudentPin(db: D1Database, auditKey: string, actor: string, studentPublicId: string, now: Date = new Date()): Promise<PinResult> {
+export async function issueStudentPin(db: D1Database, auditKey: string, dataKey: string, actor: string, studentPublicId: string, now: Date = new Date()): Promise<PinResult> {
   const found = await db
     .prepare("SELECT st.user_id AS user_id, TRIM(st.first_name || ' ' || st.last_name) AS name FROM students st WHERE st.public_id = ?1")
     .bind(studentPublicId)
@@ -586,7 +586,7 @@ export async function issueStudentPin(db: D1Database, auditKey: string, actor: s
                   temporary_password_expires_at = CASE WHEN ${KEEPS_PIN} = 1 THEN NULL ELSE strftime('%Y-%m-%dT%H:%M:%fZ', 'now', '+1 day') END
             WHERE id = ?4 AND ${allowed}`,
         )
-        .bind(studentPublicId, actor, hashPassword(temporaryPassword), found.user_id),
+        .bind(studentPublicId, actor, hashPin(temporaryPassword, dataKey), found.user_id),
     ],
   );
   return outcome === "done" ? { ok: true, temporaryPassword } : { ok: false, reason: "not_allowed" };

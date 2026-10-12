@@ -105,7 +105,7 @@ export function registerAuth(app: App): void {
     async (c) => {
       const body = c.req.valid("json");
       const result = await signIn(
-        { db: c.env.DB, sessionSecret: c.env.SESSION_SECRET },
+        { db: c.env.DB, sessionSecret: c.env.SESSION_SECRET, dataKey: c.env.DATA_KEY },
         {
           email: body.email,
           password: body.password,
@@ -367,7 +367,7 @@ export function registerAuth(app: App): void {
     async (c) => {
       const body = c.req.valid("json");
       const result = await changeRequiredPassword(
-        { db: c.env.DB, sessionSecret: c.env.SESSION_SECRET, auditKey: c.env.AUDIT_HMAC_KEY },
+        { db: c.env.DB, sessionSecret: c.env.SESSION_SECRET, auditKey: c.env.AUDIT_HMAC_KEY, dataKey: c.env.DATA_KEY },
         { challenge: body.challenge, password: body.password, ip: c.req.header("CF-Connecting-IP") ?? null, userAgent: c.req.header("User-Agent") ?? null },
       );
 
@@ -408,7 +408,7 @@ export function registerAuth(app: App): void {
       const auth = c.get("auth")!;
       const body = c.req.valid("json");
       const result = await changeOwnPassword(
-        { db: c.env.DB, auditKey: c.env.AUDIT_HMAC_KEY },
+        { db: c.env.DB, auditKey: c.env.AUDIT_HMAC_KEY, dataKey: c.env.DATA_KEY },
         {
           userPublicId: auth.userPublicId,
           sessionPublicId: auth.sessionPublicId,

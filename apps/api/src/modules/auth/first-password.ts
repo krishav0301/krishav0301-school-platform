@@ -17,6 +17,8 @@ export interface ChangeDeps {
   db: D1Database;
   sessionSecret: string;
   auditKey: string;
+  /** For checking a student's 4-digit password against the one being replaced (D-164). */
+  dataKey?: string;
 }
 
 export interface ChangeInput {
@@ -71,7 +73,7 @@ export async function changeRequiredPassword(deps: ChangeDeps, input: ChangeInpu
   const school = schoolResult!.results[0] as { name: string; short_name: string } | undefined;
   const problems = passwordProblems(input.password, user.email, school ? schoolNameWords([school.name, school.short_name]) : []);
   if (problems.length > 0) return { ok: false, reason: "weak_password", problems };
-  if (verifyPassword(input.password, user.password_hash)) return { ok: false, reason: "same_password" };
+  if (verifyPassword(input.password, user.password_hash, deps.dataKey)) return { ok: false, reason: "same_password" };
 
   const { applied } = await recordAudit(
     db,
