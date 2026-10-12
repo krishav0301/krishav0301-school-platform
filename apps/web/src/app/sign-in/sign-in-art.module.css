@@ -1,0 +1,117 @@
+/* The sign-in pictures (D-165): every colour comes from the school's theme. */
+
+.students {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.blob {
+  fill: color-mix(in srgb, var(--color-primary) 10%, var(--color-surface));
+}
+
+.skin {
+  fill: color-mix(in srgb, var(--color-warn) 26%, var(--color-surface));
+}
+
+.hair {
+  fill: color-mix(in srgb, var(--color-text) 85%, var(--color-warn));
+}
+
+.blazer {
+  fill: color-mix(in srgb, var(--color-primary) 88%, var(--color-text));
+}
+
+.shirt {
+  fill: var(--color-surface);
+}
+
+.tie {
+  fill: color-mix(in srgb, var(--color-text) 80%, var(--color-primary));
+}
+
+.bag {
+  fill: color-mix(in srgb, var(--color-text) 75%, var(--color-primary));
+}
+
+.strap {
+  fill: none;
+  stroke: color-mix(in srgb, var(--color-text) 75%, var(--color-primary));
+  stroke-width: 8;
+  stroke-linecap: round;
+}
+
+.ink {
+  fill: var(--color-text);
+}
+
+.smile {
+  fill: none;
+  stroke: var(--color-text);
+  stroke-width: 3.5;
+  stroke-linecap: round;
+}
+
+.cheek {
+  fill: color-mix(in srgb, var(--color-bad) 22%, var(--color-surface));
+}
+
+.bookA {
+  fill: color-mix(in srgb, var(--color-primary) 55%, var(--color-surface));
+}
+
+.bookB {
+  fill: color-mix(in srgb, var(--color-primary) 30%, var(--color-surface));
+  stroke: color-mix(in srgb, var(--color-primary) 55%, var(--color-surface));
+  stroke-width: 2;
+}
+
+.arm {
+  fill: none;
+  stroke: color-mix(in srgb, var(--color-primary) 88%, var(--color-text));
+  stroke-width: 22;
+  stroke-linecap: round;
+}
+
+.bookCap {
+  display: block;
+  width: min(10rem, 100%);
+  height: auto;
+  margin-inline: auto;
+}
+
+.glow {
+  fill: color-mix(in srgb, var(--color-primary) 12%, var(--color-surface));
+}
+
+.page {
+  fill: var(--color-surface);
+  stroke: color-mix(in srgb, var(--color-primary) 70%, var(--color-text));
+  stroke-width: 3;
+  stroke-linejoin: round;
+}
+
+.pageEdge {
+  fill: none;
+  stroke: color-mix(in srgb, var(--color-primary) 70%, var(--color-text));
+  stroke-width: 3;
+}
+
+.cap {
+  fill: color-mix(in srgb, var(--color-primary) 85%, var(--color-text));
+}
+
+.capBase {
+  fill: color-mix(in srgb, var(--color-primary) 70%, var(--color-text));
+}
+
+.tassel {
+  fill: none;
+  stroke: var(--color-warn);
+  stroke-width: 3;
+  stroke-linecap: round;
+}
+
+.tasselEnd {
+  fill: var(--color-warn);
+}

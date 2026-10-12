@@ -1,29 +1,149 @@
-.center {
+/* The sign-in page (D-165): the school's name and two students on the left, a white card on the right; one column on a phone. Theme tokens only. */
+
+.stage {
+  position: relative;
   display: flex;
-  justify-content: center;
+  min-height: 100dvh;
+  overflow: hidden;
+  background: linear-gradient(160deg, var(--color-surface) 0%, color-mix(in srgb, var(--color-primary) 7%, var(--color-surface)) 100%);
 }
 
-/* The form card and the loading placeholder share one width, so nothing jumps when it arrives. */
-.center > * {
+/* Soft shapes behind everything: decoration only, never under text that matters. */
+.stage::before,
+.stage::after {
+  content: "";
+  position: absolute;
+  z-index: 0;
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+.stage::before {
+  top: -14rem;
+  right: -10rem;
+  width: 36rem;
+  height: 30rem;
+  background: color-mix(in srgb, var(--color-primary) 9%, transparent);
+}
+
+.stage::after {
+  bottom: -16rem;
+  left: -12rem;
+  width: 34rem;
+  height: 28rem;
+  background: color-mix(in srgb, var(--color-accent) 9%, transparent);
+}
+
+.layout {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-5);
+  align-content: center;
   width: 100%;
-  max-width: 26rem;
+  max-width: 78rem;
+  margin: 0 auto;
+  padding: var(--space-5) min(var(--space-5), 5vw);
+}
+
+@media (min-width: 56rem) {
+  .layout {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 28rem);
+    align-items: center;
+    gap: var(--space-7);
+    padding-block: var(--space-6);
+  }
+}
+
+/* --- The school --------------------------------------------------------------------------------------------------- */
+
+.brand {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+.brandName {
+  margin: 0;
+  max-width: 18ch;
+  font-family: var(--font-heading);
+  font-size: clamp(1.5rem, 1rem + 2.4vw, 3rem);
+  font-weight: var(--weight-bold);
+  line-height: 1.1;
+  text-wrap: balance;
+  color: var(--color-text);
+}
+
+@media (min-width: 56rem) {
+  .brandName {
+    max-width: 17ch;
+    font-size: clamp(2rem, 0.75rem + 2.6vw, 3.25rem);
+  }
+}
+
+.brandLine {
+  margin: 0;
+  max-width: 28ch;
+  color: var(--color-text-muted);
+  font-size: var(--text-lg);
+}
+
+/* The two students are for a wide screen; a phone gets the name and the form. */
+.brand .art {
+  display: none;
+}
+
+@media (min-width: 56rem) {
+  .brand .art {
+    display: block;
+    width: min(100%, 23rem);
+    margin-top: var(--space-4);
+  }
+}
+
+/* --- The card ------------------------------------------------------------------------------------------------------ */
+
+.formSide {
+  display: flex;
+  justify-content: center;
+  min-width: 0;
+}
+
+/* The card and the other steps share one width, so nothing jumps when one replaces the other. */
+.formSide > * {
+  width: 100%;
+  max-width: 28rem;
 }
 
 .card {
-  gap: var(--space-5);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  padding: min(var(--space-6), 7vw);
+  border: 1px solid color-mix(in srgb, var(--color-border) 60%, transparent);
+  border-radius: calc(var(--radius-card) * 1.5);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-card);
 }
 
 .heading {
   display: flex;
   flex-direction: column;
   gap: var(--space-1);
+  text-align: center;
 }
 
 .title {
-  font-size: var(--text-2xl);
+  margin: 0;
+  font-family: var(--font-heading);
+  font-size: var(--text-3xl);
+  line-height: var(--leading-tight);
 }
 
 .help {
+  margin: 0;
   color: var(--color-text-muted);
 }
 
@@ -33,8 +153,120 @@
   gap: var(--space-4);
 }
 
-/* A four-word link may take two lines at 320 px with text at 200%, rather than push the page sideways (admin FUT F-16). */
-.wrapLink {
-  white-space: normal;
-  text-align: center;
+/* --- A field with its icon -------------------------------------------------------------------------------------- */
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.label {
+  font-weight: var(--weight-medium);
+}
+
+.control {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: 3.25rem;
+  padding: 0 var(--space-2) 0 var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-control);
+  background: var(--color-surface);
+}
+
+.control:focus-within {
+  border-color: var(--color-primary);
+  outline: var(--focus-ring);
+  outline-offset: 2px;
+}
+
+.control[data-invalid="true"] {
+  border-color: var(--color-bad);
+}
+
+.icon {
+  flex: none;
+  width: 1.25rem;
+  height: 1.25rem;
+  color: var(--color-text-muted);
+}
+
+.input {
+  flex: 1;
+  min-width: 0;
+  min-height: 3rem;
+  border: 0;
+  background: transparent;
+  color: var(--color-text);
+  font: inherit;
+}
+
+.input:focus-visible {
+  outline: none;
+}
+
+.input::placeholder {
+  color: var(--color-text-muted);
+}
+
+.eye {
+  display: inline-grid;
+  flex: none;
+  place-items: center;
+  width: var(--control-height);
+  height: var(--control-height);
+  border: 0;
+  border-radius: var(--radius-control);
+  background: transparent;
+  color: var(--color-text-muted);
+  cursor: pointer;
+}
+
+.eye:hover {
+  color: var(--color-text);
+}
+
+.eye:focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: -2px;
+}
+
+.eye svg {
+  width: 1.25rem;
+  height: 1.25rem;
+}
+
+/* --- Remember me, and the way back to a lost password ---------------------------------------------------------------- */
+
+.options {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2) var(--space-4);
+}
+
+.forgot {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--control-height);
+  color: var(--color-primary);
+  font-weight: var(--weight-medium);
+  text-decoration: none;
+}
+
+.forgot:hover {
+  text-decoration: underline;
+}
+
+.forgot:focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: 2px;
+}
+
+.submitIcon {
+  width: 1.25rem;
+  height: 1.25rem;
 }

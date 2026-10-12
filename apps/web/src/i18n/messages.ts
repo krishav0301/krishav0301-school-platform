@@ -27,8 +27,13 @@ export const en = {
 
 
   // Sign in
-  "signIn.title": "Sign in to {school}",
-  "signIn.help": "Use the email and password your school gave you.",
+  "signIn.heading": "Sign in",
+  "signIn.welcome": "Welcome back! Please sign in to continue.",
+  "signIn.brandLine": "Sign in to access your school portal.",
+  "signIn.emailPlaceholder": "Enter your school email",
+  "signIn.passwordPlaceholder": "Enter your password",
+  "signIn.remember": "Remember me",
+  "signIn.forgotShort": "Forgot password?",
   "signIn.email": "Email",
   "signIn.password": "Password",
   "signIn.show": "Show",
@@ -44,7 +49,6 @@ export const en = {
   "signIn.unexpected": "Something went wrong. Please try again.",
   "signIn.required": "Enter your email and password.",
 
-  "signIn.forgot": "Forgot your password?",
 
   // Two-step sign-in
   "twoFactor.codeTitle": "Enter your code",
