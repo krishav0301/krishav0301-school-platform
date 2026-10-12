@@ -3,16 +3,16 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useReducer, useRef, useState, type ReactNode } from "react";
 
 import { useSession } from "@/session/SessionProvider";
-import { admitRows } from "@/sheets/admit-rows";
 import { saveFile } from "@/sheets/download";
-import { loginsCsv, type ImportRow, type RowResult } from "@/sheets/student-import";
-
-import { classSids, makeAdmitDeps } from "./import-deps";
+import type { ImportRow, RowResult } from "@/sheets/student-import";
 
 /**
  * The class import as something that lives beside the page (the PM, 2026-10-12, D-155): it keeps running when its pop-up is
  * closed or the person goes to another page of the portal, shows in the top bar with its progress, and opens again where it
  * was. One at a time. A reload or closing the tab still stops it, and the browser asks first.
+ *
+ * This file is in every page of the site (the provider sits at the root), so it imports nothing heavy: the code that admits
+ * students is loaded only when an import starts, which keeps the public pages inside their page-weight budget.
  */
 export interface ImportJob {
   classId: string;
@@ -112,6 +112,7 @@ export function ImportJobProvider({ children }: { children: ReactNode }) {
       dispatch({ type: "start", job: { classId: args.classId, levelId: args.levelId, className: args.className, rows: args.rows, total: args.rows.length, results: args.previous ?? null } });
       void (async () => {
         try {
+          const [{ admitRows }, { classSids, makeAdmitDeps }, { loginsCsv }] = await Promise.all([import("@/sheets/admit-rows"), import("./import-deps"), import("@/sheets/student-import")]);
           const known = await classSids(api, args.classId);
           const pass = await admitRows(makeAdmitDeps(api, args.classId, args.levelId), args.rows, {
             confirmDuplicate: args.confirmDuplicate,
@@ -125,6 +126,9 @@ export function ImportJobProvider({ children }: { children: ReactNode }) {
           dispatch({ type: "finish", results });
           // Once everything is in, the sign-in sheet is saved straight away; the pop-up has a button for it again.
           if (pass.some((r) => r.status === "admitted")) saveFile("sign-in-sheet.csv", loginsCsv(results));
+        } catch {
+          // The code for admitting students could not be loaded (no connection): the import ends with nothing added.
+          dispatch({ type: "finish", results: args.previous ?? [] });
         } finally {
           running.current = false;
           setFinished((n) => n + 1);
