@@ -2,7 +2,6 @@
 
 import { ArrowRight, Eye, EyeOff, Lock, Mail } from "lucide-react";
 import dynamic from "next/dynamic";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useId, useRef, useState, type FormEvent } from "react";
 
@@ -87,12 +86,29 @@ function IconField({
   );
 }
 
+/** Who to ask for a new password, from the person with the least reach up: nothing here opens another screen (D-166). */
+export function ForgotHelp({ id }: { id: string }) {
+  const { term } = useConfig();
+  return (
+    <div id={id} className={styles.note} role="status">
+      <p>{t("signIn.forgotLead")}</p>
+      <ul>
+        <li>{t("signIn.forgotStudent", { coordinator: term("role.coordinator") })}</li>
+        <li>{t("signIn.forgotCoordinator", { coordinator: term("role.coordinator"), admin: term("role.admin") })}</li>
+        <li>{t("signIn.forgotAdmin", { admin: term("role.admin") })}</li>
+      </ul>
+    </div>
+  );
+}
+
 function CredentialsStep({ notice, onSecondStep }: { notice?: MessageKey; onSecondStep: (step: "code" | "setup" | "password", challenge: string) => void }) {
   const { signIn, endedUnexpectedly } = useSession();
   const [email, setEmail] = useState(rememberedEmail);
   const [password, setPassword] = useState("");
   const [keepEmail, setKeepEmail] = useState(() => rememberedEmail() !== "");
   const [visible, setVisible] = useState(false);
+  const [helpOpen, setHelpOpen] = useState(false);
+  const helpId = useId();
   const [submitting, setSubmitting] = useState(false);
   const [problem, setProblem] = useState<MessageKey | null>(null);
   const passwordInput = useRef<HTMLInputElement>(null);
@@ -180,10 +196,11 @@ function CredentialsStep({ notice, onSecondStep }: { notice?: MessageKey; onSeco
         />
         <div className={styles.options}>
           <Checkbox label={t("signIn.remember")} checked={keepEmail} onChange={(event) => setKeepEmail(event.target.checked)} />
-          <Link href="/reset-password" className={styles.forgot}>
+          <button type="button" className={styles.forgot} aria-expanded={helpOpen} aria-controls={helpId} onClick={() => setHelpOpen((open) => !open)}>
             {t("signIn.forgotShort")}
-          </Link>
+          </button>
         </div>
+        {helpOpen ? <ForgotHelp id={helpId} /> : null}
         <Button type="submit" fullWidth loading={submitting} loadingLabel={t("signIn.submitting")}>
           {t("signIn.submit")}
           <ArrowRight aria-hidden className={styles.submitIcon} />

@@ -205,7 +205,9 @@ describe("the public shell and sign-in page", () => {
     expect(html).toContain("lucide-arrow-right");
     expect(html).toMatch(/<input[^>]*type="checkbox"[^>]*>/);
     expect(html).toContain("Remember me");
-    expect(html).toMatch(/<a[^>]*href="\/reset-password"[^>]*>Forgot password\?<\/a>/);
+    // Forgot password? is a button that shows who to ask, not a link to another screen.
+    expect(html).toMatch(/<button[^>]*aria-expanded="false"[^>]*>Forgot password\?<\/button>/);
+    expect(html).not.toContain('href="/reset-password"');
   });
 
   it("has exactly one prominent button per view: the form's, with no second Sign in in the header", () => {
