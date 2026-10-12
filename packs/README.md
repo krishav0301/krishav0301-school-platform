@@ -20,7 +20,7 @@ packs/
 
 | Field | Meaning |
 |---|---|
-| `school` | name, short name, currency, timezone, region pack, template key |
+| `school` | name, short name, currency, timezone, region pack, template key; settings: `adminTwoFactor` (D-138), `studentKeepsPin` (D-145), `passMarksPerSubject` (D-147: each subject has its own pass marks) |
 | `sections` | the parts of the institution that scope roles (for Royal Softech: +2 and Bachelor's) |
 | `modules` | optional modules to switch on or off. Unlisted ones stay on. Mandatory modules (approvals, audit, results and others) cannot be switched off. Fees can (D-137): a school that does not collect fees says `"fees": false` |
 | `terminology` | renamed words, such as `role.coordinator` |

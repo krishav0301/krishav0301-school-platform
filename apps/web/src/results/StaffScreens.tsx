@@ -158,7 +158,10 @@ export function SheetTable({ sheet }: { sheet: ClassSheet }) {
               </th>
               {x.subjects.map((v, i) => (
                 <td key={sheet.subjects[i]!.offeringId} data-align="center">
-                  {v === null ? "–" : sheet.graded && v.grade ? `${hundredthsText(v.percentHundredths)} (${v.grade})` : hundredthsText(v.percentHundredths)}
+                  {v === null ? "–" : <span className={v.passed === false ? readStyles.below : undefined}>
+                      {sheet.graded && v.grade ? `${hundredthsText(v.percentHundredths)} (${v.grade})` : hundredthsText(v.percentHundredths)}
+                      {v.passed === false ? <span className="sr-only"> {t("results.sheets.belowPass")}</span> : null}
+                    </span>}
                 </td>
               ))}
               <td data-align="end">{scoreText(x)}</td>
@@ -397,8 +400,24 @@ export function electiveFigures(data: ClassElectives): Figure[] {
   ];
 }
 
-/** Elective picks (D-056), redesigned in D-106: for a class (the first open straight away), each student's subject from each elective group. */
+/**
+ * Elective picks (D-056), redesigned in D-106. A school without elective subjects (D-142, the PM 2026-10-12 for the first
+ * school) has no tab for it; if the address is typed anyway it says so, rather than asking a server that answers "not found".
+ */
 export function ElectivesScreen() {
+  const { moduleEnabled } = useConfig();
+  if (!moduleEnabled("electives")) {
+    return (
+      <div className={readStyles.page}>
+        <ReadHeader title={t("results.electives.title")} subtitle={t("results.electives.off")} />
+      </div>
+    );
+  }
+  return <ElectivesBoard />;
+}
+
+/** For a class (the first open straight away), each student's subject from each elective group. */
+function ElectivesBoard() {
   const { api } = useSession();
   const loadNow = useCallback(() => loadChoices(api), [api]);
   const { view, reload } = useLoad<Choices>(loadNow);

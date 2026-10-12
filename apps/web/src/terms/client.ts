@@ -105,6 +105,12 @@ export async function updateTerm(api: ApiClient, id: string, values: TermFormVal
   return sent.ok ? { ok: true } : sent;
 }
 
+/** Deletes a term nobody has used (the PM, 2026-10-12); a used one comes back as a conflict. */
+export const deleteTerm = async (api: ApiClient, id: string): Promise<Done> => {
+  const sent = await send(() => api.DELETE("/api/academics/years/{id}", { params: { path: { id } } }));
+  return sent.ok ? { ok: true } : sent;
+};
+
 export const openTerm = async (api: ApiClient, id: string): Promise<Done> => {
   const sent = await send(() => api.POST("/api/academics/years/{id}/activate", { params: { path: { id } } }));
   return sent.ok ? { ok: true } : sent;

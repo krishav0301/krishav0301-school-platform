@@ -9,12 +9,13 @@ import { Facts, PanelSection, SidePanel } from "@/read/SidePanel";
 import { useSession } from "@/session/SessionProvider";
 import { AddDialog, Button, Checkbox, Field, Notice, Select } from "@/ui";
 
-import { addOffering, copyOfferings, createGroup, loadCurriculum, loadProgrammes, loadSubjects, loadYears, setGroupActive, setOfferingActive, setOfferingGroup, setOfferingPaper, type Loaded } from "./client";
+import { addOffering, copyOfferings, createGroup, deleteGroup, deleteOffering, loadCurriculum, loadProgrammes, loadSubjects, loadYears, setGroupActive, setOfferingActive, setOfferingGroup, setOfferingPaper, type Loaded } from "./client";
 import {
   REASON_MESSAGE,
   canManageStructure,
   formatHundredths,
   paperLine,
+  passLine,
   parseHundredths,
   subjectChoices,
   termWords,
@@ -25,6 +26,7 @@ import {
   type Subject,
 } from "./model";
 import { CurriculumTable, ReadSetupHeader, midSentence } from "./ReadSetup";
+import { DeleteControl } from "./ProgrammesScreen";
 import { StructurePicker } from "./StructurePicker";
 import { choiceOf, levelsOf, openTermLevelIds, settle, type KeepLevel, type StructureChoice } from "./structure-picker";
 import { Gate, useLoad } from "./useLoad";
@@ -113,25 +115,54 @@ export interface PaperValues {
   full: string;
   hasPractical: boolean;
   practical: string;
+  /** The pass marks, in marks of the paper; blank: no minimum. Only a school that sets pass marks per subject shows them. */
+  passTheory: string;
+  passPractical: string;
 }
-export const paperValues = (o?: { fullMarksHundredths: number; practicalHundredths: number | null }): PaperValues => ({
+export const paperValues = (o?: { fullMarksHundredths: number; practicalHundredths: number | null; passTheoryHundredths?: number | null; passPracticalHundredths?: number | null }): PaperValues => ({
   full: o ? formatHundredths(o.fullMarksHundredths) : "100",
   hasPractical: (o?.practicalHundredths ?? null) !== null,
   practical: o?.practicalHundredths != null ? formatHundredths(o.practicalHundredths) : "",
+  passTheory: o?.passTheoryHundredths != null ? formatHundredths(o.passTheoryHundredths) : "",
+  passPractical: o?.passPracticalHundredths != null ? formatHundredths(o.passPracticalHundredths) : "",
 });
 
-/** The paper as whole hundredths, or which box is wrong. */
-export function readPaper(v: PaperValues): { ok: true; fullMarksHundredths: number; practicalHundredths: number | null } | { ok: false; errors: { full?: MessageKey; practical?: MessageKey } } {
+type PaperErrors = { full?: MessageKey; practical?: MessageKey; passTheory?: MessageKey; passPractical?: MessageKey };
+
+/**
+ * The paper as whole hundredths, or which box is wrong. With `perSubject` (the school sets pass marks on each subject) the
+ * pass marks are read too: a blank box is no minimum, and each must fit inside its part of the paper. Without it they are
+ * left out, so a school that does not use them never sends them.
+ */
+export function readPaper(
+  v: PaperValues,
+  perSubject = false,
+): { ok: true; fullMarksHundredths: number; practicalHundredths: number | null; passTheoryHundredths?: number | null; passPracticalHundredths?: number | null } | { ok: false; errors: PaperErrors } {
   const full = parseHundredths(v.full);
   const practical = v.hasPractical ? parseHundredths(v.practical) : null;
-  const errors: { full?: MessageKey; practical?: MessageKey } = {};
+  const errors: PaperErrors = {};
   if (full === null || full < 100 || full > 100000) errors.full = "setup.error.fullMarksInvalid";
   if (v.hasPractical && (practical === null || practical < 100 || (full !== null && practical >= full))) errors.practical = "setup.error.practicalInvalid";
-  if (errors.full || errors.practical) return { ok: false, errors };
-  return { ok: true, fullMarksHundredths: full!, practicalHundredths: practical };
+  let passTheory: number | null = null;
+  let passPractical: number | null = null;
+  if (perSubject) {
+    if (v.passTheory.trim()) {
+      passTheory = parseHundredths(v.passTheory);
+      const theoryMarks = full === null ? null : full - (practical ?? 0);
+      if (passTheory === null || (theoryMarks !== null && passTheory > theoryMarks)) errors.passTheory = "setup.error.passTheoryInvalid";
+    }
+    if (v.hasPractical && v.passPractical.trim()) {
+      passPractical = parseHundredths(v.passPractical);
+      if (passPractical === null || (practical !== null && passPractical > practical)) errors.passPractical = "setup.error.passPracticalInvalid";
+    }
+  }
+  if (errors.full || errors.practical || errors.passTheory || errors.passPractical) return { ok: false, errors };
+  return { ok: true, fullMarksHundredths: full!, practicalHundredths: practical, ...(perSubject ? { passTheoryHundredths: passTheory, passPracticalHundredths: passPractical } : {}) };
 }
 
-function PaperFields({ values, errors, onChange, disabled }: { values: PaperValues; errors: { full?: MessageKey; practical?: MessageKey }; onChange: (next: PaperValues) => void; disabled?: boolean }) {
+function PaperFields({ values, errors, onChange, disabled }: { values: PaperValues; errors: PaperErrors; onChange: (next: PaperValues) => void; disabled?: boolean }) {
+  const { config } = useConfig();
+  const perSubject = config?.school.passMarksPerSubject === true;
   return (
     <>
       <Field
@@ -162,6 +193,32 @@ function PaperFields({ values, errors, onChange, disabled }: { values: PaperValu
           onChange={(event) => onChange({ ...values, practical: event.target.value })}
           error={errors.practical ? t(errors.practical) : undefined}
         />
+      ) : null}
+      {perSubject ? (
+        <>
+          <Field
+            label={t("setup.curriculum.passTheory")}
+            hint={t("setup.curriculum.passTheoryHint")}
+            inputMode="decimal"
+            autoComplete="off"
+            value={values.passTheory}
+            disabled={disabled}
+            onChange={(event) => onChange({ ...values, passTheory: event.target.value })}
+            error={errors.passTheory ? t(errors.passTheory) : undefined}
+          />
+          {values.hasPractical ? (
+            <Field
+              label={t("setup.curriculum.passPractical")}
+              hint={t("setup.curriculum.passPracticalHint")}
+              inputMode="decimal"
+              autoComplete="off"
+              value={values.passPractical}
+              disabled={disabled}
+              onChange={(event) => onChange({ ...values, passPractical: event.target.value })}
+              error={errors.passPractical ? t(errors.passPractical) : undefined}
+            />
+          ) : null}
+        </>
       ) : null}
     </>
   );
@@ -194,9 +251,10 @@ export function OfferingForm({
   const [credit, setCredit] = useState("");
   const [groupId, setGroupId] = useState("");
   const [paper, setPaper] = useState<PaperValues>(paperValues());
-  const [errors, setErrors] = useState<{ subject?: MessageKey; credit?: MessageKey; full?: MessageKey; practical?: MessageKey }>({});
+  const [errors, setErrors] = useState<PaperErrors & { subject?: MessageKey; credit?: MessageKey }>({});
   const [problem, setProblem] = useState<MessageKey | null>(null);
   const [saving, setSaving] = useState(false);
+  const perSubject = useConfig().config?.school.passMarksPerSubject === true;
 
   if (choices.length === 0) return <p className={styles.muted}>{t("setup.curriculum.noSubjectsLeft", words)}</p>;
 
@@ -208,13 +266,13 @@ export function OfferingForm({
     const found: typeof errors = {};
     if (!subjectId) found.subject = "setup.error.subjectRequired";
     if (credit.trim() && (hundredths === null || hundredths < 1 || hundredths > 10000)) found.credit = "setup.error.creditInvalid";
-    const read = readPaper(paper);
+    const read = readPaper(paper, perSubject);
     if (!read.ok) Object.assign(found, read.errors);
     setErrors(found);
     if (Object.keys(found).length > 0 || !read.ok) return;
 
     setSaving(true);
-    const result = await addOffering(api, { levelId, subjectId, creditHundredths: hundredths, groupId: groupId || null, fullMarksHundredths: read.fullMarksHundredths, practicalHundredths: read.practicalHundredths });
+    const result = await addOffering(api, { levelId, subjectId, creditHundredths: hundredths, groupId: groupId || null, fullMarksHundredths: read.fullMarksHundredths, practicalHundredths: read.practicalHundredths, passTheoryHundredths: read.passTheoryHundredths, passPracticalHundredths: read.passPracticalHundredths });
     setSaving(false);
     if (result.ok) {
       setSubjectId("");
@@ -258,7 +316,7 @@ export function OfferingForm({
         errors={errors}
         onChange={(next) => {
           setPaper(next);
-          setErrors((e) => ({ ...e, full: undefined, practical: undefined }));
+          setErrors((e) => ({ ...e, full: undefined, practical: undefined, passTheory: undefined, passPractical: undefined }));
         }}
       />
       {groups.some((g) => g.active) ? <Select label={t("setup.curriculum.group")} value={groupId} onChange={(event) => setGroupId(event.target.value)} options={groupOptions(groups, null)} /> : null}
@@ -273,21 +331,27 @@ export function OfferingForm({
 export function PaperForm({ offering, onSaved }: { offering: Offering; onSaved: () => void }) {
   const { api } = useSession();
   const [values, setValues] = useState<PaperValues>(paperValues(offering));
-  const [errors, setErrors] = useState<{ full?: MessageKey; practical?: MessageKey }>({});
+  const [errors, setErrors] = useState<PaperErrors>({});
   const [problem, setProblem] = useState<MessageKey | null>(null);
   const [saving, setSaving] = useState(false);
+  const perSubject = useConfig().config?.school.passMarksPerSubject === true;
 
   async function submit(event: FormEvent) {
     event.preventDefault();
     if (saving) return;
     setProblem(null);
-    const read = readPaper(values);
+    const read = readPaper(values, perSubject);
     if (!read.ok) {
       setErrors(read.errors);
       return;
     }
     setSaving(true);
-    const result = await setOfferingPaper(api, offering.id, { fullMarksHundredths: read.fullMarksHundredths, practicalHundredths: read.practicalHundredths });
+    const result = await setOfferingPaper(api, offering.id, {
+      fullMarksHundredths: read.fullMarksHundredths,
+      practicalHundredths: read.practicalHundredths,
+      passTheoryHundredths: read.passTheoryHundredths,
+      passPracticalHundredths: read.passPracticalHundredths,
+    });
     setSaving(false);
     if (result.ok) onSaved();
     else setProblem(REASON_MESSAGE[result.reason]);
@@ -321,6 +385,9 @@ export interface CurriculumViewProps {
   onToggleGroup: (group: Group) => void;
   onToggleOffering: (offering: Offering) => void;
   onSetGroup: (offering: Offering, groupId: string | null) => void;
+  /** Delete what was made by mistake, while nothing uses it; true when it is gone. */
+  onDeleteOffering?: (offering: Offering) => Promise<boolean>;
+  onDeleteGroup?: (group: Group) => Promise<boolean>;
   /** Called after a group is added or a paper saved, so the screen can reload. */
   onChanged?: () => void;
   /** What the last change said, shown where the person is working (the open subject's panel, or the page). */
@@ -348,9 +415,10 @@ export function SubjectPanel({
   onClose,
   onToggleOffering,
   onSetGroup,
+  onDeleteOffering,
   onChanged,
-}: Omit<CurriculumViewProps, "canManage" | "onToggleGroup" | "onChanged"> & { offering: Offering; onClose: () => void; onChanged: () => void }) {
-  const { moduleEnabled } = useConfig();
+}: Omit<CurriculumViewProps, "canManage" | "onToggleGroup" | "onChanged" | "onDeleteGroup"> & { offering: Offering; onClose: () => void; onChanged: () => void }) {
+  const { moduleEnabled, config } = useConfig();
   return (
     <SidePanel
       title={offering.subject.name}
@@ -388,9 +456,10 @@ export function SubjectPanel({
         />
       ) : null}
       <PanelSection title={t("setup.curriculum.paper")}>
-        <p className={readStyles.rowMeta}>{paperLine(offering)}</p>
-        <PaperForm key={`${offering.id}-${offering.fullMarksHundredths}-${offering.practicalHundredths}`} offering={offering} onSaved={onChanged} />
+        <p className={readStyles.rowMeta}>{[paperLine(offering), config?.school.passMarksPerSubject ? passLine(offering) : null].filter(Boolean).join(" · ")}</p>
+        <PaperForm key={`${offering.id}-${offering.fullMarksHundredths}-${offering.practicalHundredths}-${offering.passTheoryHundredths}-${offering.passPracticalHundredths}`} offering={offering} onSaved={onChanged} />
       </PanelSection>
+      {onDeleteOffering ? <DeleteControl name={offering.subject.name} canDelete={offering.canDelete} blocked="setup.curriculum.offeringInUse" onDelete={() => onDeleteOffering(offering)} /> : null}
     </SidePanel>
   );
 }
@@ -400,7 +469,7 @@ export function SubjectPanel({
  * side panel for its elective group and its paper; the elective groups below. Switching off keeps the history;
  * nothing is deleted. Someone who may not change it reads the Principal's table.
  */
-export function CurriculumView({ curriculum, canManage, busy, onToggleGroup, onToggleOffering, onSetGroup, onChanged = () => {}, notice }: CurriculumViewProps) {
+export function CurriculumView({ curriculum, canManage, busy, onToggleGroup, onToggleOffering, onSetGroup, onDeleteOffering, onDeleteGroup, onChanged = () => {}, notice }: CurriculumViewProps) {
   const { term, moduleEnabled } = useConfig();
   // A school with no elective subjects (D-142) has no groups to make or to read.
   const electivesOn = moduleEnabled("electives");
@@ -486,6 +555,7 @@ export function CurriculumView({ curriculum, canManage, busy, onToggleGroup, onT
                       </span>
                     </div>
                     <p className={readStyles.rowMeta}>{names.length > 0 ? t("setup.read.choose", { n: group.pickCount, names: names.join(", ") }) : t("setup.curriculum.groupPicks", { n: group.pickCount })}</p>
+                    {onDeleteGroup ? <DeleteControl name={group.name} canDelete={group.canDelete} blocked="setup.curriculum.groupInUse" onDelete={() => onDeleteGroup(group)} /> : null}
                   </li>
                 );
               })}
@@ -503,6 +573,7 @@ export function CurriculumView({ curriculum, canManage, busy, onToggleGroup, onT
           onClose={() => setOpen(null)}
           onToggleOffering={onToggleOffering}
           onSetGroup={onSetGroup}
+          onDeleteOffering={onDeleteOffering}
           onChanged={onChanged}
         />
       ) : null}
@@ -590,6 +661,12 @@ export function CurriculumScreen() {
     setBusy(null);
     setFlash(result.ok ? { tone: "ok", text: t(done) } : { tone: "bad", text: t(REASON_MESSAGE[result.reason]) });
     await curriculum.reload();
+  }
+  async function remove(action: () => Promise<{ ok: true } | { ok: false; reason: FailReason }>): Promise<boolean> {
+    const result = await action();
+    setFlash(result.ok ? { tone: "ok", text: t("structure.done.deleted") } : { tone: "bad", text: t(REASON_MESSAGE[result.reason]) });
+    await curriculum.reload();
+    return result.ok;
   }
   const added = () => {
     setFlash({ tone: "ok", text: t("setup.done.added") });
@@ -688,6 +765,8 @@ export function CurriculumScreen() {
                 onToggleGroup={(g) => void run(g.id, () => setGroupActive(api, g.id, !g.active), onOff(g.active))}
                 onToggleOffering={(o) => void run(o.id, () => setOfferingActive(api, o.id, !o.active), onOff(o.active))}
                 onSetGroup={(o, groupId) => void run(o.id, () => setOfferingGroup(api, o.id, groupId), "setup.done.changed")}
+                onDeleteOffering={(o) => remove(() => deleteOffering(api, o.id))}
+                onDeleteGroup={(g) => remove(() => deleteGroup(api, g.id))}
               />
             )
           }

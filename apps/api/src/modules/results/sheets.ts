@@ -37,6 +37,12 @@ export function paperParts(r: { sheet_theory_max: number | null; sheet_practical
 /** The same choice in SQL, for making a sheet: `o` the subject on its level, `t` the terminal. */
 const THEORY_MAX = `CASE WHEN t.has_practical = 1 AND o.practical_hundredths IS NOT NULL THEN o.full_marks_hundredths - o.practical_hundredths ELSE o.full_marks_hundredths END`;
 const PRACTICAL_MAX = `CASE WHEN t.has_practical = 1 THEN o.practical_hundredths END`;
+/**
+ * The subject's pass marks, as the sheet keeps them (a school that sets them per subject). A terminal without the practical
+ * counts the practical's pass mark with the theory's, because its theory paper then carries the practical's marks too.
+ */
+export const PASS_THEORY = `CASE WHEN t.has_practical = 0 AND o.practical_hundredths IS NOT NULL THEN COALESCE(o.pass_theory_hundredths, 0) + COALESCE(o.pass_practical_hundredths, 0) ELSE o.pass_theory_hundredths END`;
+export const PASS_PRACTICAL = `CASE WHEN t.has_practical = 1 THEN o.pass_practical_hundredths END`;
 
 /** The teacher's subjects this year, each with its sheet's state per terminal. */
 export async function mySheets(db: D1Database, me: string): Promise<MyMarkSheets> {
@@ -184,8 +190,8 @@ export async function saveMarks(db: D1Database, auditKey: string, me: string, cl
                  WHERE cl.public_id = ?1 AND ${teaches(4, "cl.id", "o.id")}`;
   const openSheet = db
     .prepare(
-      `INSERT INTO mark_sheets (public_id, class_id, offering_id, terminal_id, theory_max_hundredths, practical_max_hundredths, created_at, updated_at)
-       SELECT ?5, cl.id, o.id, t.id, ${THEORY_MAX}, ${PRACTICAL_MAX}, ?6, ?6 ${place}
+      `INSERT INTO mark_sheets (public_id, class_id, offering_id, terminal_id, theory_max_hundredths, practical_max_hundredths, pass_theory_hundredths, pass_practical_hundredths, created_at, updated_at)
+       SELECT ?5, cl.id, o.id, t.id, ${THEORY_MAX}, ${PRACTICAL_MAX}, ${PASS_THEORY}, ${PASS_PRACTICAL}, ?6, ?6 ${place}
        ON CONFLICT (class_id, offering_id, terminal_id) DO NOTHING`,
     )
     .bind(classId, offeringId, terminalId, me, newPublicId(), at);

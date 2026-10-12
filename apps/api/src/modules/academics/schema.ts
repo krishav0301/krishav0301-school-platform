@@ -180,6 +180,8 @@ export const AcademicYearSchema = z
     levels: z.array(TermLevelSchema),
     classes: z.number().int(),
     students: z.number().int(),
+    /** Nobody has used it (no class, student, application, fee or receipt), so it can be deleted. */
+    canDelete: z.boolean(),
   })
   .openapi("AcademicYear");
 export const AcademicYearListSchema = z.object({ years: z.array(AcademicYearSchema) }).openapi("AcademicYearList");
@@ -315,6 +317,8 @@ export const ExamPatternSchema = z
     terminals: z.array(TerminalSchema),
     /** Marks have been entered in this term, so the pattern can no longer change. */
     locked: z.boolean(),
+    /** The pattern exists, its term is not closed and no mark has been entered: it can be deleted. */
+    canDelete: z.boolean(),
   })
   .openapi("ExamPattern");
 export type ExamPattern = z.infer<typeof ExamPatternSchema>;
@@ -351,9 +355,20 @@ const Credit = z.number().int("Credit hours are whole hundredths").min(1, "Credi
 /** Marks in whole hundredths: 7500 means 75. A paper's full marks; the practical's share of them. */
 const FullMarks = z.number().int("Marks are whole hundredths").min(100, "Full marks are at least 1").max(100000, "Full marks are at most 1000");
 const PracticalMarks = z.number().int("Marks are whole hundredths").min(100, "The practical is at least 1 mark");
+/** A pass mark in whole hundredths of a mark (zero is allowed: no minimum worth the name). Only a school that sets pass marks per subject shows it. */
+const PassMarks = z.number().int("Marks are whole hundredths").min(0, "A pass mark cannot be below zero").max(100000, "A pass mark is at most 1000");
 
 const practicalFits = (b: { fullMarksHundredths?: number; practicalHundredths?: number | null }) =>
   b.practicalHundredths === null || b.practicalHundredths === undefined || b.practicalHundredths < (b.fullMarksHundredths ?? 10_000);
+
+/** The pass marks of a paper must fit inside it: theory's inside the theory share, the practical's inside the practical (and only with a practical). */
+export const passMarksFit = (b: { fullMarksHundredths: number; practicalHundredths: number | null; passTheoryHundredths: number | null; passPracticalHundredths: number | null }): string | null => {
+  const theory = b.fullMarksHundredths - (b.practicalHundredths ?? 0);
+  if (b.passTheoryHundredths !== null && b.passTheoryHundredths > theory) return "The theory pass mark cannot be more than the theory marks";
+  if (b.passPracticalHundredths !== null && b.practicalHundredths === null) return "This subject has no practical to set a pass mark for";
+  if (b.passPracticalHundredths !== null && b.practicalHundredths !== null && b.passPracticalHundredths > b.practicalHundredths) return "The practical pass mark cannot be more than the practical marks";
+  return null;
+};
 
 export const CreateOfferingSchema = z
   .strictObject({
@@ -365,6 +380,9 @@ export const CreateOfferingSchema = z
     fullMarksHundredths: FullMarks.optional(),
     /** "This subject has a practical": the practical's share of the full marks (75/25 is 2500). Null or absent: none. */
     practicalHundredths: PracticalMarks.nullable().optional(),
+    /** Pass marks in the paper's own marks, for a school that sets them per subject. Null or absent: no minimum. */
+    passTheoryHundredths: PassMarks.nullable().optional(),
+    passPracticalHundredths: PassMarks.nullable().optional(),
   })
   .refine(practicalFits, { message: "The practical must be less than the full marks", path: ["practicalHundredths"] })
   .openapi("CreateOffering");
@@ -375,7 +393,7 @@ export type OfferingInput = z.input<typeof CreateOfferingSchema>;
  * `practicalHundredths: null` takes the practical away. The full marks and the practical are checked together by the service.
  */
 export const OfferingChangesSchema = z
-  .strictObject({ creditHundredths: Credit.nullable(), groupId: PublicIdSchema.nullable(), active: z.boolean(), fullMarksHundredths: FullMarks, practicalHundredths: PracticalMarks.nullable() })
+  .strictObject({ creditHundredths: Credit.nullable(), groupId: PublicIdSchema.nullable(), active: z.boolean(), fullMarksHundredths: FullMarks, practicalHundredths: PracticalMarks.nullable(), passTheoryHundredths: PassMarks.nullable(), passPracticalHundredths: PassMarks.nullable() })
   .partial()
   .openapi("OfferingChanges");
 export type OfferingChanges = z.infer<typeof OfferingChangesSchema>;
@@ -409,10 +427,15 @@ export const CurriculumOfferingSchema = z
     fullMarksHundredths: z.number().int(),
     /** The practical's share of the full marks; null when the subject has no practical. */
     practicalHundredths: z.number().int().nullable(),
+    /** The pass marks in the paper's own marks (a school that sets them per subject); null when none. */
+    passTheoryHundredths: z.number().int().nullable(),
+    passPracticalHundredths: z.number().int().nullable(),
+    /** Nothing uses it yet (no teacher, note, homework, pick or mark sheet), so it can be deleted. */
+    canDelete: z.boolean(),
   })
   .openapi("CurriculumOffering");
 
-export const CurriculumGroupSchema = z.object({ id: z.string(), name: z.string(), pickCount: z.number().int(), active: z.boolean() }).openapi("CurriculumGroup");
+export const CurriculumGroupSchema = z.object({ id: z.string(), name: z.string(), pickCount: z.number().int(), active: z.boolean(), canDelete: z.boolean() }).openapi("CurriculumGroup");
 
 /** One level's elective groups and subjects (each with its paper), in one answer. */
 export const CurriculumSchema = z

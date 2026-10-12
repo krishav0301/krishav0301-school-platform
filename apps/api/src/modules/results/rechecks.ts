@@ -242,7 +242,7 @@ export async function decideRecheck(db: D1Database, auditKey: string, me: string
       .bind(recheckId, me, JSON.stringify(d.marks.map((m) => ({ c: m.componentId, v: m.valueHundredths, a: m.absent ? 1 : 0 }))), at);
     // Each new card only if this decision closed the recheck (the same batch, so a lost race writes nothing).
     const decided = `EXISTS (SELECT 1 FROM rechecks WHERE public_id = ?13 AND status = 'changed' AND decided_at = ?12)`;
-    const card = (publicationId: string, version: number, made: { result: { percentHundredths: number; outcome: string; passed?: boolean }; body: unknown }) =>
+    const card = (publicationId: string, version: number, made: { result: { percentHundredths: number; outcome: string; passed?: boolean | null }; body: unknown }) =>
       db
         .prepare(
           `INSERT INTO marks_cards (public_id, publication_id, enrollment_id, version, percent_hundredths, passed, outcome, body, reason, created_by_user_id, created_at)
@@ -256,7 +256,7 @@ export async function decideRecheck(db: D1Database, auditKey: string, me: string
           found.enrollment_id,
           version,
           made.result.percentHundredths,
-          made.result.passed === undefined ? null : made.result.passed ? 1 : 0,
+          made.result.passed == null ? null : made.result.passed ? 1 : 0,
           made.result.outcome,
           JSON.stringify(made.body),
           d.reason,

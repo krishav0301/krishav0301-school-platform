@@ -53,6 +53,7 @@ export async function getExamPattern(db: D1Database, yearId: string): Promise<Ex
           },
     terminals: (terminals!.results as unknown as TerminalRow[]).map(toTerminal),
     locked: h.locked === 1,
+    canDelete: h.pattern_id !== null && h.status !== "closed" && h.locked !== 1,
   };
 }
 
@@ -124,4 +125,44 @@ export async function saveExamPattern(db: D1Database, auditKey: string, actor: s
   const after = await db.prepare(`SELECT ${coordinatorForInstitution(1)} AS ok`).bind(actor).first<{ ok: number }>();
   if (after?.ok !== 1) return { ok: false, reason: "not_allowed" };
   return { ok: false, reason: "locked" };
+}
+
+/**
+ * Deletes a term's exam pattern with its exams (the PM, 2026-10-12), for a pattern made by mistake: only while its term is
+ * not closed and no mark has been entered, the same lock that stops it being changed. The term then has no pattern, as it
+ * began, and the Co-ordinator can make another. One batch, every statement re-checking the actor and the lock; the audit
+ * entry keeps what was deleted.
+ */
+export async function deleteExamPattern(db: D1Database, auditKey: string, actor: string, yearId: string): Promise<Done> {
+  const allowed = await db.prepare(`SELECT ${coordinatorForInstitution(1)} AS ok`).bind(actor).first<{ ok: number }>();
+  if (allowed?.ok !== 1) return { ok: false, reason: "not_allowed" };
+  const current = await getExamPattern(db, yearId);
+  if (!current || !current.pattern) return { ok: false, reason: "not_found" };
+  if (current.term.status === "closed") return { ok: false, reason: "year_closed" };
+  if (current.locked) return { ok: false, reason: "locked" };
+
+  const may = `ay.public_id = ?1 AND ay.status <> 'closed' AND NOT ${LOCKED("ay")} AND ${coordinatorForInstitution(2)}`;
+  const outcome = await write(
+    db,
+    auditKey,
+    {
+      action: "academics.exam_pattern.deleted",
+      entityType: "academic_year",
+      entityPublicId: yearId,
+      actorPublicId: actor,
+      summary: `Exam pattern deleted for ${current.term.label}`,
+      before: { ...current.pattern, terminals: current.terminals.map((t) => ({ name: t.name, weight: t.weight, hasPractical: t.hasPractical })) },
+    },
+    [
+      db.prepare(`DELETE FROM terminals WHERE academic_year_id = (SELECT ay.id FROM academic_years ay WHERE ${may})`).bind(yearId, actor),
+      // The last statement: it decides whether the audit entry is written.
+      db.prepare(`DELETE FROM exam_patterns WHERE academic_year_id = (SELECT ay.id FROM academic_years ay WHERE ${may})`).bind(yearId, actor),
+    ],
+  );
+  if (outcome === "done") return { ok: true };
+  if (outcome === "year_closed") return { ok: false, reason: "year_closed" };
+  if (outcome === "locked") return { ok: false, reason: "locked" };
+  const again = await getExamPattern(db, yearId);
+  if (!again || !again.pattern) return { ok: false, reason: "not_found" };
+  return { ok: false, reason: again.locked ? "locked" : "not_allowed" };
 }

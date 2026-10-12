@@ -97,6 +97,15 @@ export const paperLine = (o: { fullMarksHundredths: number; practicalHundredths:
         practical: formatHundredths(o.practicalHundredths),
       });
 
+/** A subject's pass marks in a line ("Pass: theory 32, practical 8"), or null when it has none set (a school that sets them per subject). */
+export const passLine = (o: { passTheoryHundredths?: number | null; passPracticalHundredths?: number | null }): string | null => {
+  const theory = o.passTheoryHundredths ?? null;
+  const practical = o.passPracticalHundredths ?? null;
+  if (theory === null && practical === null) return null;
+  if (practical === null) return t("setup.curriculum.passLineTheory", { theory: formatHundredths(theory!) });
+  return t("setup.curriculum.passLine", { theory: formatHundredths(theory ?? 0), practical: formatHundredths(practical) });
+};
+
 /**
  * Whole hundredths from what a person typed: "3" is 300, "3.5" is 350, "3.75" is 375. Null when it is not a plain number
  * with at most two decimals ("3.756", "-1", "1e2", "3,5" and an empty box are all null). Credit hours and maximum marks

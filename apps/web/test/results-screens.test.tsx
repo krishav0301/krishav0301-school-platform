@@ -7,7 +7,7 @@ import { formatMarks, markText, parseMark, scoreText, type MarkSheet } from "@/r
 import { ResultsHome } from "@/results/ResultsHome";
 import { ResultsTabs } from "@/results/ResultsTabs";
 import { SubjectsTable, Top20Table, resultFigures, resultName } from "@/results/OwnResultsScreen";
-import { RecheckList, SheetTable } from "@/results/StaffScreens";
+import { ElectivesScreen, RecheckList, SheetTable } from "@/results/StaffScreens";
 import { SessionContext } from "@/session/SessionProvider";
 import { fakeSession } from "./session";
 import royal from "../../../packs/royal-softech/pack.json";
@@ -43,6 +43,22 @@ const inContext = (element: React.ReactNode, session = as("coordinator"), top20 
       <SessionContext.Provider value={session}>{element}</SessionContext.Provider>
     </ConfigContext.Provider>,
   );
+
+describe("a school without elective subjects (D-142)", () => {
+  it("says so on the elective picks page instead of asking for picks, even if its address is typed", () => {
+    const off = { ...config(true), modules: { results: true, top20: true, electives: false } };
+    const html = renderToStaticMarkup(
+      <ConfigContext.Provider value={makeConfigValue("ready", off)}>
+        <SessionContext.Provider value={as("coordinator")}>
+          <ElectivesScreen />
+        </SessionContext.Provider>
+      </ConfigContext.Provider>,
+    );
+    expect(html).toContain("Elective subjects are not used at this school.");
+    expect(html).not.toContain("<select");
+    expect(html).not.toContain("<table");
+  });
+});
 
 describe("marks as typed and shown", () => {
   it("reads a number with up to two decimals, AB for absent, or blank; nothing else", () => {
@@ -272,6 +288,19 @@ describe("a student's results on the exam pattern (D-117)", () => {
       ["grade", "B"],
       ["weight", "30%"],
     ]);
+  });
+
+  it("with pass marks per subject, an exam also says Pass or Fail, and names the subject that is below its pass marks", () => {
+    const body = { ...terminal.card.body, passed: false, grade: "NG", subjects: terminal.card.body.subjects.map((s) => ({ ...s, passed: false, grade: "NG" })) };
+    const marked = { ...terminal, card: { ...terminal.card, body } } as typeof terminal;
+    expect(resultFigures(marked).map((f) => [f.key, f.value])).toEqual([
+      ["score", "60.00%"],
+      ["grade", "NG"],
+      ["result", "NG"],
+      ["weight", "30%"],
+    ]);
+    const html = inContext(<SubjectsTable result={marked} />, as("student", "own"));
+    expect(html).toContain("NG");
   });
 
   it("the final's figures: its percentage, the result, and the subjects passed", () => {

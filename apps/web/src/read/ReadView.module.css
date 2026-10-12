@@ -396,6 +396,20 @@
   max-width: 100%;
 }
 
+/*
+ * A mark below its pass marks: the digits in the status red on its soft tint (the pair the contrast check guarantees, 4.5:1),
+ * heavier and underlined, and named for screen readers, so it does not rest on colour alone.
+ */
+.below {
+  display: inline-block;
+  padding: 0 var(--space-1);
+  border-radius: 999px;
+  background: var(--color-bad-soft);
+  color: var(--color-bad);
+  font-weight: 600;
+  text-decoration: underline;
+}
+
 .status[data-tone="ok"] {
   background: var(--color-ok-soft);
   color: var(--color-ok);

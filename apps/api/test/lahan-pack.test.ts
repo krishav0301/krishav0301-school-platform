@@ -31,6 +31,11 @@ describe("the Lahan Manakamana school file", () => {
     expect(parsePack(royalJson).school.studentKeepsPin).toBe(false); // every other school is as it was
   });
 
+  it("gives each subject its own pass marks, and no other school does", () => {
+    expect(pack.school.passMarksPerSubject).toBe(true);
+    expect(parsePack(royalJson).school.passMarksPerSubject).toBe(false);
+  });
+
   it("says nothing of Royal Softech anywhere (D-008: one school's name or data never appears in another's)", () => {
     expect(JSON.stringify(lahanJson)).not.toMatch(/royal|softech/i);
   });

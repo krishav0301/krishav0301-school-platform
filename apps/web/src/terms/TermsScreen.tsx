@@ -9,10 +9,11 @@ import { Facts, PanelSection, SidePanel } from "@/read/SidePanel";
 import { useConfig } from "@/config/ConfigProvider";
 import { useSession } from "@/session/SessionProvider";
 import { coursesOf, levelsOf, settle, wingsOf, type KeepLevel } from "@/setup/structure-picker";
+import { DeleteControl } from "@/setup/ProgrammesScreen";
 import { useLoad } from "@/setup/useLoad";
 import { AddDialog, Button, Checkbox, Field, Notice, Select } from "@/ui";
 
-import { FAIL_MESSAGE, closeTerm, createTerm, loadCloseCheck, loadNextTerm, loadProgrammes, loadTerms, openTerm, updateTerm, type Fail, type FormResult } from "./client";
+import { FAIL_MESSAGE, closeTerm, createTerm, deleteTerm, loadCloseCheck, loadNextTerm, loadProgrammes, loadTerms, openTerm, updateTerm, type Fail, type FormResult } from "./client";
 import {
   TERM_STATUS,
   emptyTermForm,
@@ -401,6 +402,19 @@ function TermPanel({ term, programmes, terms, start = "view", onClose, onDone }:
               {misfitLevels(term).length > 0 ? <Notice>{t("terms.misfit", { levels: misfitLevels(term).map((l) => `${l.programmeName} · ${l.name}`).join(", "), months: term.months ?? 0 })}</Notice> : null}
             </PanelSection>
             <p className={styles.meta}>{t(term.status === "draft" ? "terms.hint.draft" : term.status === "active" ? "terms.hint.active" : "terms.hint.closed")}</p>
+            {term.status === "closed" ? null : (
+              <DeleteControl
+                name={term.label}
+                canDelete={term.canDelete}
+                blocked="setup.years.inUse"
+                onDelete={async () => {
+                  const result = await deleteTerm(api, term.id);
+                  if (result.ok) onDone(t("terms.done.deleted", { name: term.label }));
+                  else setProblem(failText(result));
+                  return result.ok;
+                }}
+              />
+            )}
           </>
         ) : null}
         {step.kind === "edit" ? (

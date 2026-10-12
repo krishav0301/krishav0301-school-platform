@@ -17,7 +17,7 @@ import {
   SubjectListSchema,
 } from "./schema";
 import { CreatedSchema, ErrorSchema, IdParam, OkSchema, fail, failures, json } from "./routes";
-import { copyOfferings, createGroup, createOffering, createSubject, deleteSubject, updateGroup, updateOffering, updateSubject } from "./service";
+import { copyOfferings, createGroup, createOffering, createSubject, deleteGroup, deleteOffering, deleteSubject, updateGroup, updateOffering, updateSubject } from "./service";
 
 const LevelQuery = z.object({ level: PublicIdSchema });
 const VIEW_SUBJECTS = { action: "setup.subjects.view" } as const;
@@ -214,5 +214,29 @@ export function registerSubjects(app: App): void {
       return result.ok ? c.json({ ok: true as const }, 200) : fail(c, result);
     },
   );
+
+  // --- Deleting what nothing uses (the PM, 2026-10-12) -----------------------------------------------------
+  for (const [path, operationId, what, run] of [
+    ["/api/academics/offerings/{id}", "delete_offering", "subject from a level", deleteOffering],
+    ["/api/academics/groups/{id}", "delete_elective_group", "elective group", deleteGroup],
+  ] as const) {
+    defineRoute(
+      app,
+      {
+        method: "delete",
+        path,
+        operationId,
+        tags: ["academics"],
+        description: `Deletes a ${what} made by mistake, while nothing uses it. One that is used is refused with 409 "in_use": switch it off instead, which keeps its history.`,
+        access: MANAGE_SUBJECTS,
+        request: { params: IdParam },
+        responses: { 200: { description: "Deleted", content: json(OkSchema) }, ...failures },
+      },
+      async (c) => {
+        const result = await run(c.env.DB, c.env.AUDIT_HMAC_KEY, c.get("auth")!.userPublicId, c.req.valid("param").id);
+        return result.ok ? c.json({ ok: true as const }, 200) : fail(c, result);
+      },
+    );
+  }
 }
 

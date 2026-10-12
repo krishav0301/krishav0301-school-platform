@@ -21,6 +21,7 @@ const term = (id: string, label: string, status: Term["status"], over: Partial<T
   levels: [],
   classes: 0,
   students: 0,
+  canDelete: false,
   ...over,
 });
 

@@ -1,6 +1,7 @@
 import { adToBs, adToBsText, bsToAd, BS_MONTH_NAMES, daysInMonth } from "../../core/dates";
 import { newPublicId } from "../../core/ids";
 import { adminForProgrammes } from "./guard";
+import { TERM_FREE } from "./queries";
 import { lengthProblem, termLengthMonths } from "./term-length";
 import { YearChangesSchema, YearInputSchema, type CloseCheck, type NextTerm, type YearChanges, type YearInput } from "./schema";
 import { firstMessage, write, type Created, type Done, type Outcome } from "./write";
@@ -441,4 +442,42 @@ export async function proposeNextTerm(db: D1Database, publicId: string): Promise
       takenBy: l.taken_by,
     })),
   };
+}
+
+/**
+ * Deletes a term nobody has used (the PM, 2026-10-12): no class, student, application, fee structure or receipt in it, and
+ * not closed. Its own levels, exams and exam pattern go with it, in the same batch. A term anyone has used is closed, never
+ * deleted. Only the Principal (or Support). Each statement re-checks the actor and that nothing uses the term.
+ */
+export async function deleteYear(db: D1Database, auditKey: string, actor: string, publicId: string): Promise<Done> {
+  const look = () =>
+    db
+      .prepare(`SELECT ay.label, ay.status, ${TERM_FREE("ay")} AS free, ${adminForProgrammes(2)} AS allowed FROM academic_years ay WHERE ay.public_id = ?1`)
+      .bind(publicId, actor)
+      .first<{ label: string; status: string; free: number; allowed: number }>();
+  const row = await look();
+  if (!row) return { ok: false, reason: "not_found" };
+  if (row.allowed !== 1) return { ok: false, reason: "not_allowed" };
+  if (row.status === "closed") return { ok: false, reason: "year_closed" };
+  if (row.free !== 1) return { ok: false, reason: "in_use" };
+
+  const ofTerm = `(SELECT ay.id FROM academic_years ay WHERE ay.public_id = ?1 AND ${adminForProgrammes(2)} AND ${TERM_FREE("ay")})`;
+  const outcome = await write(
+    db,
+    auditKey,
+    { action: "academics.year.deleted", entityType: "academic_year", entityPublicId: publicId, actorPublicId: actor, summary: `Term "${row.label}" deleted`, before: { label: row.label, status: row.status } },
+    [
+      db.prepare(`DELETE FROM terminals WHERE academic_year_id = ${ofTerm}`).bind(publicId, actor),
+      db.prepare(`DELETE FROM exam_patterns WHERE academic_year_id = ${ofTerm}`).bind(publicId, actor),
+      db.prepare(`DELETE FROM term_levels WHERE academic_year_id = ${ofTerm}`).bind(publicId, actor),
+      // The last statement: it decides whether the audit entry is written.
+      db.prepare(`DELETE FROM academic_years WHERE public_id = ?1 AND ${adminForProgrammes(2)} AND ${TERM_FREE("academic_years")}`).bind(publicId, actor),
+    ],
+  );
+  if (outcome === "done") return { ok: true };
+  if (outcome === "year_closed") return { ok: false, reason: "year_closed" };
+  if (outcome === "check_failed") return { ok: false, reason: "in_use" };
+  const again = await look();
+  if (!again) return { ok: false, reason: "not_found" };
+  return { ok: false, reason: again.free !== 1 ? "in_use" : "not_allowed" };
 }
