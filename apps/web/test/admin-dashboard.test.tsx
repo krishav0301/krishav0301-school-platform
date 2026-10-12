@@ -167,27 +167,23 @@ describe("the results figures for a school that runs the result system (the PM, 
       </ConfigContext.Provider>,
     );
 
-  it("with fees and attendance off: what is waiting to be verified, what is published, and what is still to be sent", () => {
+  it("with fees and attendance off: two figures, what is waiting to be verified (with its line) and what is published", () => {
     const html = view(withSheets, false, false);
     expect(html).toContain("Waiting to be verified");
-    expect(html).toContain("mark sheets sent by teachers");
+    expect(html).toContain("Marks submitted by teachers, not yet verified by the Co-ordinator");
     expect(html).toContain("Results published");
     expect(html).toContain("class results, last on");
-    expect(html).toContain("Marks still to be sent");
-    expect(html).toContain("of 40 mark sheets");
-    expect(html).toContain(">9<"); // 40 expected, 31 sent
     expect(html).toContain(">5<");
     expect(html).toContain(">6<");
     expect(html).toContain('href="/portal/results/sheets"');
+    // The third figure (marks still to be sent) is gone (the PM, 2026-10-12).
+    expect(html).not.toContain("Marks still to be sent");
   });
 
-  it("says so when nothing is waiting, nothing is published and every sheet is sent", () => {
+  it("says so when nothing is published, and keeps the waiting line", () => {
     const html = view({ ...base, results: { ...base.results, sheets: { expected: 4, sent: 4, underReview: 0 } } }, false, false);
-    expect(html).toContain("Nothing waiting");
     expect(html).toContain("Nothing published yet");
-    expect(html).toContain("Every mark sheet has been sent");
-    // With no exam set up, there is nothing to send: it says that, not that everything was sent.
-    expect(view(base, false, false)).toContain("No exams set up yet");
+    expect(html).toContain("Marks submitted by teachers, not yet verified by the Co-ordinator");
   });
 
   it("a school that keeps fees and attendance sees its dashboard as before, without these figures", () => {
