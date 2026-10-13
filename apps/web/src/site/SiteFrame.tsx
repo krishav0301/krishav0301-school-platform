@@ -1,11 +1,12 @@
 "use client";
 
+import Link from "next/link";
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 
 import { createApiClient } from "@/api/client";
 import { usePageTitle } from "@/config/page-title";
 import { t } from "@/i18n/messages";
-import { Button, HeroBand, Notice, Skeleton } from "@/ui";
+import { Button, HeroBand, Notice, Skeleton, buttonClass } from "@/ui";
 
 import { loadSite } from "./client";
 import type { SiteContent } from "./model";
@@ -41,7 +42,7 @@ export function useSite(): { view: SiteView; retry: () => void } {
  * The heading of a public page and what stands in for its words while they load, fail or do not exist yet.
  * Drawn from a `view` so every state can be checked without a network.
  */
-export function SiteFrameView({ title, view, onRetry, children }: { title: string; view: SiteView; onRetry: () => void; children: (site: SiteContent) => ReactNode }) {
+export function SiteFrameView({ title, view, onRetry, classicOnly = false, children }: { title: string; view: SiteView; onRetry: () => void; /** A page only a classic school has (Programmes, Admission, ...): a school with the one-page layout says it is not available. A page every school has, such as the privacy notice, is left alone. */ classicOnly?: boolean; children: (site: SiteContent) => ReactNode }) {
   return (
     <>
       <HeroBand>
@@ -72,17 +73,26 @@ export function SiteFrameView({ title, view, onRetry, children }: { title: strin
 
       {view.status === "notReady" ? <Notice title={t("site.notReadyTitle")}>{t("site.notReadyBody")}</Notice> : null}
 
-      {view.status === "ready" ? children(view.site) : null}
+      {/* A school with the one-page layout has no separate pages (D-167): its words are on the front page. */}
+      {view.status === "ready" && classicOnly && view.site.layout === "scroll" ? (
+        <Notice title={t("scroll.unavailable")}>
+          <Link href="/" className={buttonClass({ variant: "secondary" })}>
+            {t("scroll.backHome")}
+          </Link>
+        </Notice>
+      ) : null}
+
+      {view.status === "ready" && !(classicOnly && view.site.layout === "scroll") ? children(view.site) : null}
     </>
   );
 }
 
 /** A public page: its heading and tab title, and its words once they arrive. */
-export function SiteFrame({ title, children }: { title: string; children: (site: SiteContent) => ReactNode }) {
+export function SiteFrame({ title, classicOnly = false, children }: { title: string; classicOnly?: boolean; children: (site: SiteContent) => ReactNode }) {
   usePageTitle(title);
   const { view, retry } = useSite();
   return (
-    <SiteFrameView title={title} view={view} onRetry={retry}>
+    <SiteFrameView title={title} view={view} onRetry={retry} classicOnly={classicOnly}>
       {children}
     </SiteFrameView>
   );

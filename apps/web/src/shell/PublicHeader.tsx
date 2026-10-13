@@ -5,11 +5,11 @@ import { usePathname } from "next/navigation";
 import { useEffect, useId, useRef, useState, type ReactNode, type RefObject } from "react";
 
 import { useConfig } from "@/config/ConfigProvider";
-import { t } from "@/i18n/messages";
+import { t, type MessageKey } from "@/i18n/messages";
 import { useSession } from "@/session/SessionProvider";
 import { Skeleton, buttonClass } from "@/ui";
 
-import { SITE_LINKS, isHere } from "./site-links";
+import { SITE_LINKS, isHere, siteLinksFor } from "./site-links";
 import styles from "./shell.module.css";
 
 /**
@@ -28,6 +28,7 @@ export function PublicHeaderView({
   buttonRef,
   onToggle,
   onNavigate,
+  links = SITE_LINKS,
 }: {
   brand: ReactNode;
   signedIn: boolean;
@@ -38,6 +39,8 @@ export function PublicHeaderView({
   buttonRef: RefObject<HTMLButtonElement | null>;
   onToggle: () => void;
   onNavigate: () => void;
+  /** The page links to offer. None (a school with the one-page layout, or before the school is known): no Menu and no list. */
+  links?: readonly { href: string; labelKey: MessageKey }[];
 }) {
   return (
     <header className={styles.header}>
@@ -46,11 +49,13 @@ export function PublicHeaderView({
           {brand}
         </Link>
         <div className={styles.actions}>
-          <span className={styles.menuSlot}>
-            <button type="button" ref={buttonRef} className={buttonClass({ variant: "quiet" })} aria-expanded={open} aria-controls={panelId} onClick={onToggle}>
-              {t("site.menu")}
-            </button>
-          </span>
+          {links.length > 0 ? (
+            <span className={styles.menuSlot}>
+              <button type="button" ref={buttonRef} className={buttonClass({ variant: "quiet" })} aria-expanded={open} aria-controls={panelId} onClick={onToggle}>
+                {t("site.menu")}
+              </button>
+            </span>
+          ) : null}
           {signedIn ? (
             <Link href="/portal" className={buttonClass({ variant: "secondary" })}>
               {t("nav.dashboard")}
@@ -62,9 +67,10 @@ export function PublicHeaderView({
           ) : null}
         </div>
       </div>
+      {links.length > 0 ? (
       <nav id={panelId} aria-label={t("site.navLabel")} className={styles.siteNav} data-open={open}>
         <ul className={styles.siteLinks}>
-          {SITE_LINKS.map((link) => (
+          {links.map((link) => (
             <li key={link.href}>
               <Link href={link.href} className={styles.siteLink} aria-current={isHere(pathname, link.href) ? "page" : undefined} onClick={onNavigate}>
                 {t(link.labelKey)}
@@ -73,6 +79,7 @@ export function PublicHeaderView({
           ))}
         </ul>
       </nav>
+      ) : null}
     </header>
   );
 }
@@ -113,6 +120,7 @@ export function PublicHeader({ showSignIn }: { showSignIn: boolean }) {
       buttonRef={buttonRef}
       onToggle={() => setOpenAt(open ? null : page)}
       onNavigate={() => setOpenAt(null)}
+      links={siteLinksFor(config)}
     />
   );
 }

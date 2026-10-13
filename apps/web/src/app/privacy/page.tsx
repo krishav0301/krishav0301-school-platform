@@ -10,7 +10,7 @@ import { SiteFrame } from "@/site/SiteFrame";
 function Privacy() {
   const { config } = useConfig();
   if (!config) return null;
-  return <SiteFrame title={t("privacy.title")}>{(site) => <PrivacyView schoolName={config.school.name} site={site} />}</SiteFrame>;
+  return <SiteFrame title={t("privacy.title")}>{(site) => <PrivacyView schoolName={config.school.name} site={site} collectsEmail={config.school.publicApplyNeedsLink !== false} />}</SiteFrame>;
 }
 
 /** What the school collects through this site, why, and how it is protected. Open to everyone, no sign-in. */

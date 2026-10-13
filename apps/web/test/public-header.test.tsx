@@ -21,10 +21,11 @@ const config: PublicConfig = {
 };
 const me: Me = { id: "user-1", name: "Sita Sharma", roles: [{ role: "coordinator", scope: "institution" }] };
 
-function shell(path: string, options: { signedIn?: boolean; showSignIn?: boolean } = {}) {
+function shell(path: string, options: { signedIn?: boolean; showSignIn?: boolean; layout?: "classic" | "scroll"; unknownSchool?: boolean } = {}) {
   here.path = path;
+  const used: PublicConfig = options.layout ? { ...config, school: { ...config.school, publicLayout: options.layout } } : config;
   return renderToStaticMarkup(
-    <ConfigContext.Provider value={makeConfigValue("ready", config)}>
+    <ConfigContext.Provider value={options.unknownSchool ? makeConfigValue("loading", null) : makeConfigValue("ready", used)}>
       <SessionContext.Provider value={options.signedIn ? fakeSession({ status: "signedIn", me }) : fakeSession()}>
         <PublicShell showSignIn={options.showSignIn}>
           <h1>x</h1>
@@ -126,5 +127,37 @@ describe("the whole shell", () => {
     const html = shell("/programmes");
     expect(html).not.toMatch(/#[0-9a-fA-F]{3,8}\b/);
     expect(html).not.toMatch(/style="[^"]*(?:color|background)\s*:\s*(?!var\()/);
+  });
+});
+
+describe("for a school with the one-page layout (PM, 2026-10-13)", () => {
+  const html = shell("/notices", { layout: "scroll" });
+
+  it("has no menu of pages at all: not in the header, not in the footer, and no Menu button", () => {
+    for (const label of LABELS) expect(html, label).not.toContain(`>${label}</a>`);
+    for (const href of HREFS) expect(html, href).not.toContain(`href="${href}"`);
+    expect(html).not.toContain(">Menu<");
+    expect(html).not.toMatch(/aria-label="Site pages"/);
+    expect(html).not.toMatch(/aria-label="Footer"/);
+  });
+
+  it("is only the school's name (a link to the front page), Sign in, the page, and a footer with the privacy notice", () => {
+    expect(header(html)).toMatch(/<a[^>]*href="\/"[^>]*>Royal Softech<\/a>/);
+    expect(header(html)).toContain('href="/sign-in"');
+    expect([...footer(html).matchAll(/<a[^>]*href="([^"]+)"/g)].map((m) => m[1])).toEqual(["/privacy"]);
+    expect(footer(html)).toContain("Royal Softech College");
+  });
+
+  it("is the same on the privacy page", () => {
+    const privacy = shell("/privacy", { layout: "scroll" });
+    for (const href of HREFS) expect(privacy, href).not.toContain(`href="${href}"`);
+  });
+});
+
+describe("before the school is known", () => {
+  it("shows no menu of pages either, so a school with the one-page layout never flashes the old one", () => {
+    const html = shell("/notices", { unknownSchool: true });
+    for (const href of HREFS) expect(html, href).not.toContain(`href="${href}"`);
+    expect(html).not.toContain(">Menu<");
   });
 });

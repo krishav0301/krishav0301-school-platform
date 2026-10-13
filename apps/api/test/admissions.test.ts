@@ -1,8 +1,8 @@
-import { beforeAll, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { verifyAuditChain } from "../src/core/audit";
 import { bsToAd, daysInMonth } from "../src/core/dates";
-import { expireStaleApplications } from "../src/modules/admissions/service";
+import { expireStaleApplications, ipLimitKey, NO_EMAIL_DAILY_LIMIT, phoneKey } from "../src/modules/admissions/service";
 import { auditKey, call, count, db, person, seedSections, type Person, programmesAdmin } from "./academics-helpers";
 
 let coordinator: Person, plus2Coordinator: Person, bachelorsCoordinator: Person, admin: Person, accountant: Person, teacher: Person, student: Person, superAdmin: Person;
@@ -572,5 +572,148 @@ describe("a student's password at admission, by the school's setting (D-145, the
     } finally {
       await setKeeps(false);
     }
+  });
+});
+
+// ---------------------------------------------------------------------------------------------
+/** A school that takes applications without an email link (D-168): no email field, the backend makes one, the queue gets it at once. */
+const setVerifies = (on: boolean) => db.prepare("UPDATE school SET public_apply_verifies_email = ?1 WHERE id = 1").bind(on ? 1 : 0).run();
+const noEmailBody = (over: Record<string, unknown> = {}) => {
+  const { email: _email, ...rest } = applyBody(over);
+  return rest;
+};
+const rowOf = (publicId: string) =>
+  db.prepare("SELECT status, email, email_verified_at, verification_token_hash FROM applications WHERE public_id = ?1").bind(publicId).first<{ status: string; email: string; email_verified_at: string | null; verification_token_hash: string | null }>();
+
+describe("a school that takes applications without an email link (D-168)", () => {
+  beforeAll(() => setVerifies(false));
+  afterAll(() => setVerifies(true));
+
+  it("stores a no-email application as pending_review with a made-up email, and sends no email", async () => {
+    const mailBefore = await count("SELECT COUNT(*) AS n FROM dev_mailbox");
+    const res = await apply(noEmailBody({ firstName: "Anita", lastName: "Solo" }));
+    expect(res.status).toBe(201);
+    const { id } = (await res.json()) as { id: string };
+    expect(await rowOf(id)).toMatchObject({ status: "pending_review", email: "anita.solo@student.com", email_verified_at: null, verification_token_hash: null });
+    expect(await count("SELECT COUNT(*) AS n FROM dev_mailbox")).toBe(mailBefore);
+    const inQueue = (await (await queue(coordinator)).json()) as { applications: { id: string; status: string }[] };
+    expect(inQueue.applications.find((a) => a.id === id)).toMatchObject({ status: "pending_review" });
+  });
+
+  it("gives a second applicant with the same name a numbered email", async () => {
+    await apply(noEmailBody({ firstName: "Anita", lastName: "Twin" }));
+    const second = await apply(noEmailBody({ firstName: "Anita", lastName: "Twin" }));
+    const { id } = (await second.json()) as { id: string };
+    expect((await rowOf(id))!.email).toBe("anita.twin_1@student.com");
+  });
+
+  it("a retried submission token is the same application, with no new row", async () => {
+    const body = noEmailBody();
+    const first = (await (await apply(body)).json()) as { id: string };
+    const second = (await (await apply(body)).json()) as { id: string };
+    expect(second.id).toBe(first.id);
+    expect(await count("SELECT COUNT(*) AS n FROM applications WHERE public_id = ?1", first.id)).toBe(1);
+  });
+
+  it("limits one phone number to three applications in the window, and writes nothing for the fourth", async () => {
+    const phone = "9811111111";
+    for (let i = 0; i < 3; i++) expect((await apply(noEmailBody({ phone }), `198.51.100.${i + 1}`)).status).toBe(201);
+    const before = await count("SELECT COUNT(*) AS n FROM applications");
+    expect((await apply(noEmailBody({ phone }), "198.51.100.9")).status).toBe(429);
+    expect(await count("SELECT COUNT(*) AS n FROM applications")).toBe(before);
+  });
+
+  it("counts one phone number written in different ways as one", async () => {
+    const forms = ["98 22222222", "98-22222222", "(982) 2222222", "9822222222"];
+    for (let i = 0; i < 3; i++) expect((await apply(noEmailBody({ phone: forms[i] }), `198.51.101.${i + 1}`)).status).toBe(201);
+    expect((await apply(noEmailBody({ phone: forms[3] }), "198.51.101.9")).status).toBe(429);
+  });
+
+  it("still stops one address that tries many different phones", async () => {
+    let last = 201;
+    for (let i = 0; i < 12 && last === 201; i++) last = (await apply(noEmailBody(), "192.0.2.77")).status;
+    expect(last).toBe(429);
+  });
+
+  it("makes the email itself even when one is typed: it is never trusted, and the phone limit still applies (review M2)", async () => {
+    const res = await apply({ ...noEmailBody({ firstName: "Typed", lastName: "Email", phone: "9833333333" }), email: "someone@elsewhere.example" });
+    expect(res.status).toBe(201);
+    const { id } = (await res.json()) as { id: string };
+    expect((await rowOf(id))!.email).toBe("typed.email@student.com");
+    for (let i = 0; i < 2; i++) expect((await apply({ ...noEmailBody({ phone: "9833333333" }), email: `a${i}@elsewhere.example` }, `198.51.102.${i}`)).status).toBe(201);
+    expect((await apply({ ...noEmailBody({ phone: "9833333333" }), email: "c@elsewhere.example" }, "198.51.102.9")).status).toBe(429);
+  });
+
+  it("does not email the decision to the invented address: nobody reads it, and the domain is someone else's (review I4)", async () => {
+    const res = await apply(noEmailBody({ firstName: "Quiet", lastName: "Decision" }));
+    const { id } = (await res.json()) as { id: string };
+    const approved = await approve(id, { classId }, coordinator);
+    expect(approved.status).toBe(200);
+    for (const decision of ["approved", "rejected", "needs_changes"]) expect(await count("SELECT COUNT(*) AS n FROM outbox_events WHERE dedupe_key = ?1", `admission-decision:${id}:${decision}`), decision).toBe(0);
+  });
+
+  it("counts one phone number written with a country code or a leading zero as the same number (review M1)", async () => {
+    const forms = ["+977 9844444444", "009779844444444", "09844444444"];
+    for (let i = 0; i < 3; i++) expect((await apply(noEmailBody({ phone: forms[i] }), `198.51.103.${i + 1}`)).status).toBe(201);
+    expect((await apply(noEmailBody({ phone: "9844444444" }), "198.51.103.9")).status).toBe(429);
+  });
+
+  it("stops at a daily ceiling of no-email applications for the whole school, whoever sends them (review I5)", async () => {
+    const since = new Date().toISOString();
+    const rows = Array.from({ length: NO_EMAIL_DAILY_LIMIT }, (_, n) => db.prepare("INSERT INTO application_submission_events (at, ip, email) VALUES (?1, ?2, ?3)").bind(since, `x${n}`, `phone:97000${String(n).padStart(5, "0")}`));
+    await db.batch(rows);
+    try {
+      const before = await count("SELECT COUNT(*) AS n FROM applications");
+      expect((await apply(noEmailBody({ phone: "9855555555" }), "198.51.104.1")).status).toBe(429);
+      expect(await count("SELECT COUNT(*) AS n FROM applications")).toBe(before);
+    } finally {
+      await db.prepare("DELETE FROM application_submission_events WHERE ip LIKE 'x%' AND email LIKE 'phone:97000%'").run();
+    }
+  });
+
+  it("ignores a filled trap field, and checks an email if one is typed", async () => {
+    const before = await count("SELECT COUNT(*) AS n FROM applications");
+    expect((await apply(noEmailBody({ website: "http://spam.example" }))).status).toBe(201);
+    expect(await count("SELECT COUNT(*) AS n FROM applications")).toBe(before);
+    expect((await apply({ ...noEmailBody(), email: "not-an-email" })).status).toBe(400);
+  });
+});
+
+describe("the keys the public limits count by", () => {
+  it("count an IPv6 visitor by its /64 network, since one household holds a whole range of addresses (review I5)", () => {
+    expect(ipLimitKey("2001:db8:1:2:aaaa:bbbb:cccc:dddd")).toBe("2001:db8:1:2");
+    expect(ipLimitKey("2001:db8:1:2:1111:2222:3333:4444")).toBe("2001:db8:1:2");
+    expect(ipLimitKey("2001:db8::1")).toBe("2001:db8:0:0");
+    expect(ipLimitKey("::1")).toBe("0:0:0:0");
+    expect(ipLimitKey("2001:DB8:1:2::9")).toBe("2001:db8:1:2");
+    expect(ipLimitKey("::ffff:203.0.113.7")).toBe("203.0.113.7");
+  });
+
+  it("leave an IPv4 address alone", () => {
+    expect(ipLimitKey("203.0.113.7")).toBe("203.0.113.7");
+    expect(ipLimitKey("0.0.0.0")).toBe("0.0.0.0");
+  });
+
+  it("reduce a phone number to its digits without a country code or leading zero (review M1)", () => {
+    for (const written of ["9822222222", "98-22222222", "(982) 2222222", "+977 9822222222", "00977 9822222222", "977-9822222222", "09822222222"]) expect(phoneKey(written), written).toBe("9822222222");
+    expect(phoneKey("033-564346")).toBe("33564346");
+  });
+});
+
+describe("a school that verifies email (the default) is unchanged", () => {
+  it("still needs an email, and still waits for the link", async () => {
+    expect((await apply(noEmailBody())).status).toBe(422);
+    const ok = await apply(applyBody());
+    expect(ok.status).toBe(201);
+    const { id } = (await ok.json()) as { id: string };
+    expect((await rowOf(id))!.status).toBe("email_unverified");
+  });
+
+  it("still emails its decision to the address the applicant gave", async () => {
+    const body = applyBody();
+    const { id } = (await (await apply(body)).json()) as { id: string };
+    expect((await verify(await verificationTokenFor(id))).status).toBe(200);
+    expect((await approve(id, { classId }, coordinator)).status).toBe(200);
+    expect(await count("SELECT COUNT(*) AS n FROM outbox_events WHERE dedupe_key = ?1", `admission-decision:${id}:approved`)).toBe(1);
   });
 });

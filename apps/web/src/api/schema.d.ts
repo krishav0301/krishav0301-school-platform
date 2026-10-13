@@ -3474,6 +3474,9 @@ export interface components {
                 template: string | null;
                 studentKeepsPin?: boolean;
                 passMarksPerSubject?: boolean;
+                publicApplyNeedsLink?: boolean;
+                /** @enum {string} */
+                publicLayout?: "classic" | "scroll";
             };
             sections: {
                 key: string;
@@ -3810,7 +3813,7 @@ export interface components {
             dob: string;
             phone: string;
             /** Format: email */
-            email: string;
+            email?: string;
             guardianName: string;
             guardianPhone: string;
             previousSchool?: string;
@@ -5134,6 +5137,40 @@ export interface components {
         };
         SitePages: {
             site: {
+                /**
+                 * @default classic
+                 * @enum {string}
+                 */
+                layout: "classic" | "scroll";
+                scroll?: {
+                    photosFolder: string;
+                    hero: {
+                        images: {
+                            file: string;
+                            alt: string;
+                        }[];
+                        tagline?: string;
+                    };
+                    gallery?: {
+                        file: string;
+                        alt: string;
+                    }[];
+                    quote?: string;
+                    intro: string;
+                    cardsIntro?: string;
+                    cards: {
+                        title: string;
+                        text: string;
+                        image?: {
+                            file: string;
+                            alt: string;
+                        };
+                    }[];
+                    about: {
+                        story?: string;
+                        facebook?: string;
+                    };
+                };
                 home: {
                     headline: string;
                     summary: string;

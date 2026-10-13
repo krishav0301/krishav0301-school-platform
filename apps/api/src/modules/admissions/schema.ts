@@ -34,6 +34,8 @@ export type ApplicantDetails = z.infer<typeof ApplicantDetailsSchema>;
 
 /** The public application form. A submission token makes a repeat click (or a retried request) change nothing new. */
 export const ApplySchema = ApplicantDetailsSchema.extend({
+  /** Left out by a school that takes applications without an email link (D-168); then the backend makes one. A school that verifies email refuses an application without it. */
+  email: Email.optional(),
   submissionToken: z.string().trim().regex(/^[A-Za-z0-9_-]{16,100}$/, "That is not a valid submission token"),
   /** A field no real visitor sees or fills; a script that fills every field trips it. Never rejected here: a
    * validation error would teach a bot exactly which field to leave empty. The service silently no-ops instead. */

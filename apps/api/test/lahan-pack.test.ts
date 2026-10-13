@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { parsePack } from "../src/core/config";
+import { contrastRatio } from "../src/core/theme/contrast";
 import royalJson from "../../../packs/royal-softech/pack.json";
 import lahanJson from "../../../packs/lahan-manakamana/pack.json";
 
@@ -39,4 +40,57 @@ describe("the Lahan Manakamana school file", () => {
   it("says nothing of Royal Softech anywhere (D-008: one school's name or data never appears in another's)", () => {
     expect(JSON.stringify(lahanJson)).not.toMatch(/royal|softech/i);
   });
+
+  it("is a scroll site that takes applications without an email link, and no other school does (D-167, D-168)", () => {
+    expect(pack.site.layout).toBe("scroll");
+    expect(pack.school.publicApplyNeedsLink).toBe(false);
+    expect(parsePack(royalJson).school.publicApplyNeedsLink).toBe(true);
+    expect(parsePack(royalJson).site.layout).toBe("classic");
+  });
+
+  it("says what the school stands for at the top of Our School, in the PM's chosen words (2026-10-13), and does not repeat the first card", () => {
+    const intro = pack.site.scroll!.cardsIntro!;
+    expect(intro).toBe("Every child is a light waiting to shine. Lahan Manakamana nurtures curiosity, kindness and discipline, so that each student grows in knowledge and character and steps into the world ready to lead and to care for others.");
+    expect(intro).not.toMatch(/every stage|Kindergarten to Class 10/i);
+  });
+
+  it("shows six cards under Our School, each with words and a photo, with no \"to confirm\" notes (PM, 2026-10-13)", () => {
+    const cards = pack.site.scroll!.cards;
+    expect(cards.map((c) => c.title)).toEqual(["Kindergarten to Class 10", "Learning With Technology", "Sports and Teamwork", "Art and Creativity", "Celebrating Together", "Awards and Achievements"]);
+    for (const card of cards) {
+      expect(card.text.length, card.title).toBeGreaterThan(20);
+      expect(card.image?.file, card.title).toMatch(/.webp$/);
+      expect(JSON.stringify(card), card.title).not.toMatch(/to confirm/i);
+    }
+  });
+
+  it("wears the school's own colours, as seen on its page: yellow, with blue for what you can act on (PM, 2026-10-13)", () => {
+    const rgb = (hex: string) => [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16)) as [number, number, number];
+    const light = pack.theme.light;
+    const [pr, pg, pb] = rgb(light.primary);
+    expect(pb, "the brand colour (buttons, links, headings) is blue").toBeGreaterThan(Math.max(pr, pg) + 40);
+    const [yr, yg, yb] = rgb(light.accentSoft);
+    expect(Math.min(yr, yg) - yb, "the school band's colour is yellow").toBeGreaterThan(80);
+    const [br, bg, bb] = rgb(light.background);
+    expect(Math.min(br, bg) - bb, "the page itself leans yellow").toBeGreaterThan(8);
+    // The yellow band carries the page's dark text (the theme's own rules do not check this pair).
+    expect(contrastRatio(light.text, light.accentSoft)).toBeGreaterThanOrEqual(4.5);
+  });
+
+  it("opens its school band with a line about the leaders of tomorrow, in the PM's words (2026-10-13)", () => {
+    expect(pack.site.scroll!.quote).toBe("From Darkness to Light\nRaising the Leaders of Tomorrow");
+    expect(pack.site.scroll!.intro).toContain("Welcome to Lahan Manakamana Secondary English Boarding School");
+  });
+
+  it("has no map link (PM, 2026-10-13): the address is shown as words only", () => {
+    expect(JSON.stringify(pack)).not.toMatch(/mapQuery|google\.com\/maps/);
+  });
+
+  it("says its motto and the year it was founded, both as printed on its own crest, and names itself as the crest does", () => {
+    expect(pack.site.scroll!.hero.tagline).toBe("Darkness to Light");
+    expect(pack.site.scroll!.about.story).toContain("2058");
+    expect(pack.site.scroll!.intro).toContain("Lahan Manakamana Secondary English Boarding School");
+  });
+
+
 });

@@ -35,7 +35,7 @@ function applicantBody(values: ApplicantForm, dob: string) {
     lastName: values.lastName.trim(),
     dob,
     phone: values.phone.trim(),
-    email: values.email.trim(),
+    email: values.email.trim() || undefined,
     guardianName: values.guardianName.trim(),
     guardianPhone: values.guardianPhone.trim(),
     previousSchool: values.previousSchool.trim() || undefined,

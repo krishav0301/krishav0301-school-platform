@@ -3078,6 +3078,16 @@
               },
               "passMarksPerSubject": {
                 "type": "boolean"
+              },
+              "publicApplyNeedsLink": {
+                "type": "boolean"
+              },
+              "publicLayout": {
+                "type": "string",
+                "enum": [
+                  "classic",
+                  "scroll"
+                ]
               }
             },
             "required": [
@@ -4714,7 +4724,6 @@
           "lastName",
           "dob",
           "phone",
-          "email",
           "guardianName",
           "guardianPhone",
           "levelId",
@@ -10759,6 +10768,167 @@
               "null"
             ],
             "properties": {
+              "layout": {
+                "type": "string",
+                "enum": [
+                  "classic",
+                  "scroll"
+                ],
+                "default": "classic"
+              },
+              "scroll": {
+                "type": "object",
+                "properties": {
+                  "photosFolder": {
+                    "type": "string",
+                    "pattern": "^[a-z0-9][a-z0-9-]{0,40}$"
+                  },
+                  "hero": {
+                    "type": "object",
+                    "properties": {
+                      "images": {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "file": {
+                              "type": "string",
+                              "pattern": "^[a-z0-9][a-z0-9-]{0,60}\\.webp$"
+                            },
+                            "alt": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 160
+                            }
+                          },
+                          "required": [
+                            "file",
+                            "alt"
+                          ],
+                          "additionalProperties": false
+                        },
+                        "minItems": 1,
+                        "maxItems": 6
+                      },
+                      "tagline": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 160
+                      }
+                    },
+                    "required": [
+                      "images"
+                    ],
+                    "additionalProperties": false
+                  },
+                  "gallery": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "file": {
+                          "type": "string",
+                          "pattern": "^[a-z0-9][a-z0-9-]{0,60}\\.webp$"
+                        },
+                        "alt": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 160
+                        }
+                      },
+                      "required": [
+                        "file",
+                        "alt"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "minItems": 1,
+                    "maxItems": 12
+                  },
+                  "quote": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 200
+                  },
+                  "intro": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 900
+                  },
+                  "cardsIntro": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 400
+                  },
+                  "cards": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "title": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 80
+                        },
+                        "text": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 300
+                        },
+                        "image": {
+                          "type": "object",
+                          "properties": {
+                            "file": {
+                              "type": "string",
+                              "pattern": "^[a-z0-9][a-z0-9-]{0,60}\\.webp$"
+                            },
+                            "alt": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 160
+                            }
+                          },
+                          "required": [
+                            "file",
+                            "alt"
+                          ],
+                          "additionalProperties": false
+                        }
+                      },
+                      "required": [
+                        "title",
+                        "text"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "minItems": 1,
+                    "maxItems": 12
+                  },
+                  "about": {
+                    "type": "object",
+                    "properties": {
+                      "story": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 1500
+                      },
+                      "facebook": {
+                        "type": "string",
+                        "pattern": "^https:\\/\\/(www\\.)?facebook\\.com\\/[A-Za-z0-9._\\-/?=&%]{1,200}$"
+                      }
+                    },
+                    "additionalProperties": false
+                  }
+                },
+                "required": [
+                  "photosFolder",
+                  "hero",
+                  "intro",
+                  "cards",
+                  "about"
+                ],
+                "additionalProperties": false
+              },
               "home": {
                 "type": "object",
                 "properties": {

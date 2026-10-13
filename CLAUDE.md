@@ -148,7 +148,7 @@ A role assignment carries a **scope**: the whole institution, or one section (+2
 ## 7. Security, reliability and quality
 
 - Validate all input. Rate-limit and lock out logins and OTPs. Rate-limit the "email already taken" check.
-- Signup is the only anonymous write path: rate limiting, CAPTCHA or similar, a submission token against double submits, email verification before the application enters the queue, strict upload limits, temporary storage with cleanup.
+- Signup is the only anonymous write path: rate limiting, CAPTCHA or similar, a submission token against double submits, email verification before the application enters the queue (a school whose pack turns the link off, `school.publicApplyNeedsLink: false`, takes applications without it, limited by phone number and address, D-168), strict upload limits, temporary storage with cleanup.
 - Uploads: check type by content, rename on save, 20 MB limit (PDF, DOC, DOCX, JPG, PNG), serve from a separate storage domain.
 - Notes and question papers: soft protection only (watermark with student name and ID, right-click and print disabled). Never claim it is a hard guarantee.
 - Staff 2FA by SMS (codes expire in minutes, remember device 30 days, email fallback). Super Admin and Admin use an authenticator app (D-038).

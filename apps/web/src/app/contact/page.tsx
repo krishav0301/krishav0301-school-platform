@@ -11,7 +11,7 @@ export default function ContactPage() {
   return (
     <PublicShell>
       <ConfigGate>
-        <SiteFrame title={t("site.contact.title")}>{(site) => <ContactView site={site} />}</SiteFrame>
+        <SiteFrame title={t("site.contact.title")} classicOnly>{(site) => <ContactView site={site} />}</SiteFrame>
       </ConfigGate>
     </PublicShell>
   );

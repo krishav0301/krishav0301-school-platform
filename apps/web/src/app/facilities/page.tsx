@@ -11,7 +11,7 @@ export default function FacilitiesPage() {
   return (
     <PublicShell>
       <ConfigGate>
-        <SiteFrame title={t("site.facilities.title")}>{(site) => <FacilitiesView site={site} />}</SiteFrame>
+        <SiteFrame title={t("site.facilities.title")} classicOnly>{(site) => <FacilitiesView site={site} />}</SiteFrame>
       </ConfigGate>
     </PublicShell>
   );

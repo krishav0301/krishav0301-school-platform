@@ -6,6 +6,7 @@ One folder per school. A pack is **data** that describes a school completely: na
 packs/
   royal-softech/pack.json        the first customer
   sample-basic-school/pack.json  a fictional Nursery to Grade 10 school
+  lahan-manakamana/pack.json     the first real school: results only, a one-page scroll public site (D-167)
 ```
 
 ## Rules

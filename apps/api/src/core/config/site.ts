@@ -10,7 +10,42 @@ const Text = (max: number) => z.string().trim().min(1).max(max);
 const Slug = z.string().regex(/^[a-z][a-z0-9-]{0,40}$/, "lower-case letters, digits and hyphens");
 const EMAIL = /^[^\s@<>"?;&]+@[^\s@<>"?;&]+\.[^\s@<>"?;&]+$/;
 
+const HeroFile = z.string().regex(/^[a-z0-9][a-z0-9-]{0,60}\.webp$/, "a plain lower-case .webp file name");
+const FACEBOOK = /^https:\/\/(www\.)?facebook\.com\/[A-Za-z0-9._\-/?=&%]{1,200}$/;
+
+/** The folder under `apps/web/public/site/` that holds the school's photos and crest. */
+const PhotosFolder = z.string().regex(/^[a-z0-9][a-z0-9-]{0,40}$/, "a plain lower-case folder name");
+
+/** The words of the one-page scrolling public site (D-167): a school whose pack says `layout: "scroll"` has them. */
+export const ScrollContentSchema = z.strictObject({
+  photosFolder: PhotosFolder,
+  hero: z.strictObject({
+    images: z.array(z.strictObject({ file: HeroFile, alt: Text(160) })).min(1).max(6),
+    tagline: Text(160).optional(),
+  }),
+  /** Photos for the strip under the intro; without them the strip shows the hero photos. */
+  gallery: z.array(z.strictObject({ file: HeroFile, alt: Text(160) })).min(1).max(12).optional(),
+  /** A line shown large at the top of the school band; the intro is the smaller line beneath it. */
+  quote: Text(200).optional(),
+  intro: Text(900),
+  /** A short paragraph at the top of the cards section, under its heading: what the school stands for. Nothing is shown without it. */
+  cardsIntro: Text(400).optional(),
+  /** The cards under "Our School": a title, a few words and, when the school has one, a photo. */
+  cards: z
+    .array(z.strictObject({ title: Text(80), text: Text(300), image: z.strictObject({ file: HeroFile, alt: Text(160) }).optional() }))
+    .min(1)
+    .max(12),
+  about: z.strictObject({
+    story: Text(1500).optional(),
+    facebook: z.string().regex(FACEBOOK, "a facebook.com link").optional(),
+  }),
+});
+export type ScrollContent = z.infer<typeof ScrollContentSchema>;
+
 export const SiteContentSchema = z.strictObject({
+  /** `classic` is the six fixed pages; `scroll` is one long page (D-167). Classic unless the pack says otherwise. */
+  layout: z.enum(["classic", "scroll"]).default("classic"),
+  scroll: ScrollContentSchema.optional(),
   home: z.strictObject({ headline: Text(120), summary: Text(400) }),
   programmes: z
     .array(

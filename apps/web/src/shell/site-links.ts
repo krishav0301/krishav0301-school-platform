@@ -20,3 +20,13 @@ export function isHere(pathname: string | null, href: string): boolean {
   const path = pathname.length > 1 ? pathname.replace(/\/$/, "") : pathname;
   return path === href;
 }
+
+/**
+ * The page links a school's shared pages (notices, privacy, reset) offer. None until the school is known, so a page built
+ * before that never shows a menu it may not have; none for a school with the one-page layout (D-167), which has no
+ * separate pages to link to; every link otherwise.
+ */
+export function siteLinksFor(config: { school: { publicLayout?: "classic" | "scroll" } } | null): readonly { href: string; labelKey: MessageKey }[] {
+  if (config === null || config.school.publicLayout === "scroll") return [];
+  return SITE_LINKS;
+}

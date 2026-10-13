@@ -1,0 +1,624 @@
+/*
+ * The one-page scroll site (D-167). Tokens only: no colour, font or motion is written out here.
+ * Mobile first. Anything that moves animates transform and opacity only, and nothing moves for a visitor
+ * who asked for less motion.
+ */
+
+.page {
+  background: var(--color-background);
+  color: var(--color-text);
+  /* One column exactly as wide as the screen, so enlarged text wraps instead of widening the page. */
+  min-width: 0;
+  overflow-x: clip;
+}
+
+.skip {
+  position: fixed;
+  top: var(--space-2);
+  left: var(--space-2);
+  z-index: 30;
+  padding: var(--space-3) var(--space-4);
+  background: var(--color-surface);
+  color: var(--color-text);
+  border-radius: var(--radius-control);
+  transform: translateY(-200%);
+}
+
+.skip:focus-visible {
+  transform: none;
+  outline: var(--focus-ring);
+}
+
+/* ---- Top bar ------------------------------------------------------------------------------------------ */
+
+.topBar {
+  position: fixed;
+  inset: 0 0 auto 0;
+  z-index: 20;
+  /* Three items that share a row; with enlarged text or a narrow screen the last drops to its own row instead of overlapping. */
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-1) var(--space-3);
+  padding: var(--space-2) var(--page-gutter);
+  color: var(--color-surface);
+  background: color-mix(in srgb, var(--color-text) 35%, transparent);
+  border-bottom: 1px solid transparent;
+}
+
+.topBar[data-scrolled="true"] {
+  background: var(--color-surface);
+  color: var(--color-text);
+  border-bottom-color: var(--color-border);
+}
+
+.menu {
+  position: relative;
+  flex: 1 1 5rem;
+}
+
+.menuButton,
+.topLink {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--control-height);
+  min-width: var(--control-height);
+  padding: 0 var(--space-3);
+  font: inherit;
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: inherit;
+  background: none;
+  border: 0;
+  border-bottom: 1px solid currentcolor;
+  border-radius: 0;
+  cursor: pointer;
+  text-decoration: none;
+}
+
+.menuButton:focus-visible,
+.topLink:focus-visible,
+.crest:focus-visible,
+.heroLink:focus-visible,
+.footerLink:focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: 2px;
+}
+
+.menuList {
+  display: none;
+  position: absolute;
+  top: 100%;
+  left: 0;
+  min-width: 12rem;
+  margin: var(--space-2) 0 0;
+  padding: var(--space-2);
+  list-style: none;
+  background: var(--color-surface);
+  color: var(--color-text);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+}
+
+.menuList[data-open="true"] {
+  display: grid;
+  gap: var(--space-1);
+}
+
+.menuList .topLink {
+  width: 100%;
+  border-bottom: 0;
+}
+
+.crest {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: var(--control-height);
+  min-width: var(--control-height);
+  flex: 0 0 auto;
+}
+
+.crest img {
+  width: 2.75rem;
+  height: 2.75rem;
+  object-fit: contain;
+}
+
+/* At the top of the page the big crest in the hero is the logo; the bar's small one fades in as the page scrolls (opacity only). */
+.topBar:not([data-scrolled="true"]) .crest {
+  opacity: 0;
+}
+
+.crest {
+  transition: opacity 0.4s ease;
+}
+
+.barEnd {
+  display: flex;
+  flex: 1 1 5rem;
+  justify-content: flex-end;
+}
+
+/* ---- Hero --------------------------------------------------------------------------------------------- */
+
+.hero {
+  position: relative;
+  min-height: 100svh;
+  display: grid;
+  align-content: center;
+  overflow: clip;
+  /* What shows if a photo has not arrived yet. */
+  background: var(--color-primary);
+  color: var(--color-surface);
+}
+
+.heroPhotos {
+  position: absolute;
+  inset: 0;
+}
+
+.heroPhoto {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0;
+  transition: opacity 1.4s ease;
+  /* A photo that has not arrived shows no stray alt text over the brand colour. */
+  color: transparent;
+}
+
+.heroPhoto[data-active="true"] {
+  opacity: 1;
+}
+
+/* Dark enough everywhere that white text keeps at least 4.5:1 over even a very light photo (contrast worked out from the theme's text colour). */
+.heroShade {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    to bottom,
+    color-mix(in srgb, var(--color-text) 66%, transparent),
+    color-mix(in srgb, var(--color-text) 60%, transparent) 45%,
+    color-mix(in srgb, var(--color-text) 78%, transparent)
+  );
+}
+
+.heroText {
+  position: relative;
+  display: grid;
+  justify-items: center;
+  gap: var(--space-4);
+  padding: calc(var(--space-8) + var(--space-6)) var(--page-gutter) var(--space-8);
+  text-align: center;
+}
+
+.heroCrest {
+  width: clamp(7rem, 30vw, 11rem);
+  height: auto;
+  object-fit: contain;
+  filter: drop-shadow(0 6px 18px color-mix(in srgb, var(--color-text) 55%, transparent));
+}
+
+.heroKicker {
+  margin: 0;
+  font-size: var(--text-sm);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  overflow-wrap: anywhere;
+}
+
+.heroTitle {
+  margin: 0;
+  max-width: 22ch;
+  font-family: var(--font-heading);
+  /* The smallest size is chosen so that the longest word still fits at 320px with text enlarged to 200%. */
+  font-size: clamp(1.25rem, 9vw, 3.5rem);
+  font-weight: var(--weight-regular);
+  line-height: var(--leading-tight);
+  overflow-wrap: anywhere;
+}
+
+.heroTagline {
+  margin: 0;
+  max-width: 34rem;
+  font-size: var(--text-lg);
+}
+
+/* A thin light edge keeps the blue button visible on the dark shade over any photo. */
+.heroActions > a {
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--color-surface) 60%, transparent);
+}
+
+.heroActions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--space-3);
+  margin-top: var(--space-3);
+}
+
+.heroLinks {
+  position: absolute;
+  inset: auto var(--page-gutter) var(--space-5);
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--space-2) var(--space-5);
+  border-top: 1px solid color-mix(in srgb, var(--color-surface) 45%, transparent);
+  padding-top: var(--space-3);
+}
+
+.heroLink {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--control-height);
+  padding: 0 var(--space-2);
+  color: inherit;
+  font-family: var(--font-heading);
+  font-size: var(--text-lg);
+  letter-spacing: 0.04em;
+  text-decoration: none;
+}
+
+/* ---- The school band and photo strip ------------------------------------------------------------------ */
+
+/* The yellow of the school's colours (the theme's soft accent), carrying the page's own dark text. */
+.band {
+  display: grid;
+  place-items: center;
+  padding: var(--space-8) var(--page-gutter);
+  background: var(--color-accent-soft);
+  color: var(--color-text);
+  text-align: center;
+}
+
+.bandText {
+  max-width: 40rem;
+  font-family: var(--font-heading);
+  font-size: var(--text-xl);
+  line-height: var(--leading-normal);
+}
+
+.bandText p {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+/* The line the band opens with, large; the welcome under it is smaller. The smallest size keeps the longest word whole at 320px with text at 200%. */
+.bandQuote {
+  font-size: clamp(1.5rem, 6.5vw, 2.5rem);
+  line-height: var(--leading-tight);
+}
+
+.bandQuoteLine {
+  display: block;
+}
+
+.bandText .bandIntro {
+  margin-top: var(--space-4);
+  font-size: var(--text-lg);
+}
+
+.strip {
+  display: flex;
+  gap: var(--space-3);
+  overflow-x: auto;
+  padding: var(--space-5) var(--page-gutter);
+  scroll-snap-type: x proximity;
+  background: var(--color-accent-soft);
+}
+
+.strip:focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: -4px;
+}
+
+.stripPhoto {
+  /* The width is set on the picture itself, not only as a flex basis: a flex item may not shrink below the picture file's own size otherwise. */
+  flex: 0 0 auto;
+  width: min(78vw, 22rem);
+  min-width: 0;
+  height: auto;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+  border-radius: var(--radius-card);
+  scroll-snap-align: start;
+  background: var(--color-surface);
+}
+
+/* ---- Sections that follow ----------------------------------------------------------------------------- */
+
+.section {
+  /* The top bar is fixed, so a link to a section must leave room for it. */
+  scroll-margin-top: 4.5rem;
+  padding: var(--space-8) var(--page-gutter);
+  max-width: var(--content-width);
+  margin-inline: auto;
+}
+
+.footer {
+  display: grid;
+  gap: var(--space-2);
+  padding: var(--space-6) var(--page-gutter);
+  text-align: center;
+  color: var(--color-text-muted);
+  border-top: 1px solid var(--color-border);
+}
+
+.footer p {
+  margin: 0;
+}
+
+.footerLink {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--control-height);
+  color: inherit;
+}
+
+/* ---- Reveal on scroll --------------------------------------------------------------------------------- */
+
+.reveal {
+  transition:
+    opacity 0.7s ease,
+    transform 0.7s ease;
+}
+
+/* Hidden only when scripts are running (the page adds `js` to <html>), so without them everything shows. */
+:global(html.js) .reveal:not([data-revealed="true"]) {
+  opacity: 0;
+  transform: translateY(1.25rem);
+}
+
+@media (min-width: 48rem) {
+  .menuButton {
+    display: none;
+  }
+
+  .menuList {
+    display: flex;
+    position: static;
+    margin: 0;
+    padding: 0;
+    gap: var(--space-2);
+    background: none;
+    color: inherit;
+    border: 0;
+    box-shadow: none;
+  }
+
+  .menuList .topLink {
+    width: auto;
+    border-bottom: 1px solid currentcolor;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reveal,
+  .heroPhoto {
+    transition: none;
+  }
+
+  :global(html.js) .reveal:not([data-revealed="true"]) {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* ---- Shared headings ---------------------------------------------------------------------------------- */
+
+.sectionTitle {
+  margin: 0;
+  font-family: var(--font-heading);
+  /* A heading's longest word must stay whole at 320px with text enlarged to 200% (D-030), so its smallest size is modest. */
+  font-size: clamp(1.5rem, 8vw, var(--text-3xl));
+  font-weight: var(--weight-regular);
+  line-height: var(--leading-tight);
+  color: var(--color-primary);
+  overflow-wrap: anywhere;
+}
+
+.sectionLead {
+  margin: var(--space-3) 0 0;
+  max-width: 32rem;
+  color: var(--color-text-muted);
+  font-size: var(--text-lg);
+}
+
+.muted {
+  margin: 0;
+  color: var(--color-text-muted);
+}
+
+/* ---- Classes: a heading that stays while the cards go past -------------------------------------------- */
+
+.classes {
+  display: grid;
+  gap: var(--space-6);
+  padding: var(--space-8) var(--page-gutter);
+  max-width: var(--content-width);
+  margin-inline: auto;
+}
+
+.classesApply {
+  margin-top: var(--space-5);
+}
+
+.classList {
+  display: grid;
+  gap: var(--space-5);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.classCard {
+  display: grid;
+  overflow: clip;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+}
+
+/* The width is the card's own, so a large picture file can never make the card wider than the page. */
+.classPhoto {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  height: auto;
+  aspect-ratio: 16 / 10;
+  object-fit: cover;
+  background: var(--color-accent-soft);
+}
+
+.classBody {
+  display: grid;
+  gap: var(--space-2);
+  padding: var(--space-4);
+}
+
+.classTitle {
+  margin: 0;
+  font-family: var(--font-heading);
+  /* The smallest size keeps the longest word whole at 320px with text at 200%. */
+  font-size: clamp(1rem, 6.5vw, var(--text-2xl));
+  font-weight: var(--weight-regular);
+  line-height: var(--leading-tight);
+  overflow-wrap: anywhere;
+}
+
+@media (min-width: 48rem) {
+  .classes {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.3fr);
+    gap: var(--space-7);
+  }
+
+  .classesPin {
+    position: sticky;
+    top: 6rem;
+    align-self: start;
+  }
+}
+
+
+/* ---- Notice board ------------------------------------------------------------------------------------- */
+
+.noticeList {
+  display: grid;
+  gap: var(--space-2);
+  margin: var(--space-5) 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.noticeRow {
+  display: grid;
+  gap: var(--space-2);
+  width: 100%;
+  min-height: var(--control-height);
+  padding: var(--space-4);
+  font: inherit;
+  text-align: start;
+  color: var(--color-text);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-card);
+  cursor: pointer;
+}
+
+.noticeRow:hover {
+  border-color: var(--color-primary);
+}
+
+.noticeRow:focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: 2px;
+}
+
+.noticeMeta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2) var(--space-3);
+}
+
+.noticeDate {
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+}
+
+.noticeTitle {
+  font-family: var(--font-heading);
+  font-size: var(--text-xl);
+  line-height: var(--leading-tight);
+  overflow-wrap: anywhere;
+}
+
+.noticeAll {
+  margin: var(--space-5) 0 0;
+}
+
+/* ---- Admission and about ------------------------------------------------------------------------------ */
+
+.formWrap,
+.formShape {
+  margin-top: var(--space-5);
+}
+
+.formShape {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.aboutStory {
+  margin: var(--space-4) 0 0;
+  max-width: 40rem;
+  font-size: var(--text-lg);
+  overflow-wrap: anywhere;
+}
+
+.facts {
+  display: grid;
+  gap: var(--space-4);
+  margin: var(--space-5) 0 0;
+}
+
+.facts dt {
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+}
+
+.facts dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.phone {
+  display: block;
+}
+
+.aboutLinks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-5);
+  margin: var(--space-5) 0 0;
+}
+
+.aboutLink {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--control-height);
+  color: var(--color-primary);
+}
+
+.waiting {
+  min-height: 100svh;
+  background: var(--color-background);
+}

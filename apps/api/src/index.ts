@@ -2,7 +2,7 @@ import { createApp } from "./app";
 import { runOutbox } from "./core/notifications";
 import type { Bindings } from "./core/types";
 import { expireStaleApplications } from "./modules/admissions/service";
-import { isCrawlerFile, isFilledPage, renderCrawlerFile, renderPublicPage } from "./modules/site";
+import { isCrawlerFile, isFilledPage, isSchoolFile, renderCrawlerFile, renderFavicon, renderPublicPage } from "./modules/site";
 
 const app = createApp();
 
@@ -15,6 +15,7 @@ export default {
     if (method === "GET" || method === "HEAD") {
       const { pathname } = new URL(request.url);
       if (isCrawlerFile(pathname)) return renderCrawlerFile(request, env);
+      if (env.ASSETS && isSchoolFile(pathname)) return renderFavicon(request, env);
       if (env.ASSETS && isFilledPage(pathname)) return renderPublicPage(request, env);
     }
     return app.fetch(request, env, ctx);
