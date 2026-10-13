@@ -98,7 +98,7 @@
     }
   },
   "theme": {
-    "name": "Lahan crest",
+    "name": "Lahan yellow and blue",
     "font": "inter",
     "headingFont": "source-serif",
     "shape": {
@@ -106,19 +106,19 @@
       "radiusControl": 10
     },
     "light": {
-      "background": "#fbf7ef",
+      "background": "#fffbea",
       "surface": "#ffffff",
-      "text": "#2a1a14",
-      "textMuted": "#5f5148",
-      "border": "#dccfb8",
-      "primary": "#7b1e2b",
+      "text": "#14213d",
+      "textMuted": "#4a5470",
+      "border": "#e8dca0",
+      "primary": "#1e4a9e",
       "primaryText": "#ffffff",
       "ok": "#146c2e",
       "okSoft": "#dcf5e3",
       "bad": "#b42318",
       "badSoft": "#fde4e1",
-      "accent": "#8a6100",
-      "accentSoft": "#f7ecc8",
+      "accent": "#7a5600",
+      "accentSoft": "#ffd23f",
       "warn": "#b54708",
       "warnSoft": "#fef0e1"
     }

@@ -4,6 +4,7 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
 import { parsePack } from "../src/core/config";
+import { contrastRatio } from "../src/core/theme/contrast";
 import royalJson from "../../../packs/royal-softech/pack.json";
 import lahanJson from "../../../packs/lahan-manakamana/pack.json";
 
@@ -49,6 +50,19 @@ describe("the Lahan Manakamana school file", () => {
     expect(parsePack(royalJson).school.publicApplyNeedsLink).toBe(true);
     expect(parsePack(royalJson).site.layout).toBe("classic");
     expect(pack.site.scroll?.batches.length).toBeGreaterThan(0);
+  });
+
+  it("wears the school's own colours, as seen on its page: yellow, with blue for what you can act on (PM, 2026-10-13)", () => {
+    const rgb = (hex: string) => [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16)) as [number, number, number];
+    const light = pack.theme.light;
+    const [pr, pg, pb] = rgb(light.primary);
+    expect(pb, "the brand colour (buttons, links, headings) is blue").toBeGreaterThan(Math.max(pr, pg) + 40);
+    const [yr, yg, yb] = rgb(light.accentSoft);
+    expect(Math.min(yr, yg) - yb, "the school band's colour is yellow").toBeGreaterThan(80);
+    const [br, bg, bb] = rgb(light.background);
+    expect(Math.min(br, bg) - bb, "the page itself leans yellow").toBeGreaterThan(8);
+    // The yellow band carries the page's dark text (the theme's own rules do not check this pair).
+    expect(contrastRatio(light.text, light.accentSoft)).toBeGreaterThanOrEqual(4.5);
   });
 
   // Skipped until the photos are added (plan Task 11); that task removes the skip.

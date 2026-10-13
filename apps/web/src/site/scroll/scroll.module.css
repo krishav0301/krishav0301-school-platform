@@ -214,6 +214,11 @@
   font-size: var(--text-lg);
 }
 
+/* A thin light edge keeps the blue button visible on the dark shade over any photo. */
+.heroActions > a {
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--color-surface) 60%, transparent);
+}
+
 .heroActions {
   display: flex;
   flex-wrap: wrap;
@@ -273,12 +278,13 @@
 
 /* ---- The school band and photo strip ------------------------------------------------------------------ */
 
+/* The yellow of the school's colours (the theme's soft accent), carrying the page's own dark text. */
 .band {
   display: grid;
   place-items: center;
   padding: var(--space-8) var(--page-gutter);
-  background: var(--color-primary);
-  color: var(--color-primary-text);
+  background: var(--color-accent-soft);
+  color: var(--color-text);
   text-align: center;
 }
 
@@ -300,7 +306,7 @@
   overflow-x: auto;
   padding: var(--space-5) var(--page-gutter);
   scroll-snap-type: x proximity;
-  background: var(--color-primary);
+  background: var(--color-accent-soft);
 }
 
 .strip:focus-visible {

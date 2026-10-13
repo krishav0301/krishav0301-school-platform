@@ -67,6 +67,14 @@ describe("the scroll page's shell", () => {
     expect(single).not.toContain("Pause photos");
   });
 
+  it("puts the school band in the theme's yellow with the page's dark text, and keeps blue for what you can act on", () => {
+    const css = readFileSync(join(import.meta.dirname, "..", "src", "site", "scroll", "scroll.module.css"), "utf8");
+    const band = css.match(/\.band\s*\{[^}]*\}/)![0];
+    expect(band).toContain("background: var(--color-accent-soft)");
+    expect(band).toContain("color: var(--color-text)");
+    expect(css.match(/\.sectionTitle\s*\{[^}]*\}/)![0]).toContain("color: var(--color-primary)");
+  });
+
   it("shades the photo enough that white text stays readable over a light one", () => {
     const css = readFileSync(join(import.meta.dirname, "..", "src", "site", "scroll", "scroll.module.css"), "utf8");
     const stops = [...css.match(/\.heroShade\s*\{[^}]*\}/)![0].matchAll(/var\(--color-text\) (\d+)%/g)].map((m) => Number(m[1]));
