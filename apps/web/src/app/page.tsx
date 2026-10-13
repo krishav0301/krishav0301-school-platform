@@ -1,14 +1,14 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useEffect } from "react";
+import { useEffect, useSyncExternalStore } from "react";
 
 import { ConfigGate } from "@/config/ConfigGate";
 import { useConfig } from "@/config/ConfigProvider";
 import { useSession } from "@/session/SessionProvider";
 import { PublicShell } from "@/shell/PublicShell";
 import { HomeFrameView } from "@/site/HomeView";
-import { homeStage, type ScrollSite } from "@/site/scroll/choose-home";
+import { homeStage, readLayoutHint, type ScrollSite } from "@/site/scroll/choose-home";
 import { HomeWaiting } from "@/site/scroll/HomeWaiting";
 import { useSite } from "@/site/SiteFrame";
 import { useUrgentNotices } from "@/site/useUrgentNotices";
@@ -16,6 +16,10 @@ import { useUrgentNotices } from "@/site/useUrgentNotices";
 // The one-page layout is loaded only for a school that chose it, so every other school's front page stays as light as before (D-167).
 const loadScrollHome = () => import("@/site/scroll/ScrollHome").then((m) => m.ScrollHome);
 const ScrollHome = dynamic(loadScrollHome, { ssr: false, loading: () => <HomeWaiting /> });
+
+const noChange = () => () => {};
+// Nothing is known on the server or while hydrating, so the page matches what was served; the stamp is read straight after.
+const useLayoutHint = () => useSyncExternalStore(noChange, () => readLayoutHint(document), () => undefined);
 
 /**
  * The school's front page: the one-page layout when its pack chose it, otherwise admissions first from the words in its pack.
@@ -28,7 +32,8 @@ export default function HomePage() {
   const { view, retry } = useSite();
   const urgent = useUrgentNotices();
   const layout = config?.school.publicLayout;
-  const stage = homeStage(configStatus, layout, view);
+  const hint = useLayoutHint();
+  const stage = homeStage(configStatus, layout, view, hint);
 
   // Fetch the one-page layout's code while its words are still arriving.
   useEffect(() => {

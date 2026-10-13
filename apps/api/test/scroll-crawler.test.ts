@@ -62,6 +62,18 @@ describe("a scroll school's front page, for crawlers", () => {
   });
 });
 
+describe("the layout stamped on the page, so the front page knows which school it is before anything loads", () => {
+  const stamp = async (path: string) => /<html[^>]*data-public-layout="([a-z]+)"/.exec(await page(path))?.[1];
+
+  it("says scroll for a scroll school and classic for a classic one", async () => {
+    expect(await stamp("/")).toBe("scroll");
+    await applyPack(db, testPack(royalJson));
+    expect(await stamp("/")).toBe("classic");
+    expect(await stamp("/programmes")).toBe("classic");
+    await applyPack(db, parsePack(lahanJson));
+  });
+});
+
 describe("the classic pages on a scroll school", () => {
   it("send the visitor to the front page instead: there is no way to reach an old page (PM, 2026-10-13)", async () => {
     for (const path of ["/programmes", "/admission", "/scholarships", "/facilities", "/contact", "/programmes/"]) {

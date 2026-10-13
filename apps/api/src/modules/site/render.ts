@@ -60,6 +60,8 @@ export async function renderPublicPage(request: Request, env: Bindings): Promise
     .on("title", { element: (el) => void el.remove() })
     .on('meta[name="description"]', { element: (el) => void el.remove() })
     .on('link[rel="canonical"]', { element: (el) => void el.remove() })
+    // Which layout this school uses, before any script runs: the front page then knows whether to wait with an empty page or to draw its usual frame.
+    .on("html", { element: (el) => void el.setAttribute("data-public-layout", site?.layout === "scroll" ? "scroll" : "classic") })
     .on("head", { element: (el) => void el.append(head, { html: true }) })
     .on("body", { element: (el) => void el.prepend(body, { html: true }) })
     .transform(asset);
