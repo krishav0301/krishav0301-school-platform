@@ -25,7 +25,6 @@ export const en = {
   "scroll.signIn": "Sign in",
   "scroll.portal": "Portal",
   "scroll.apply": "Apply",
-  "scroll.pause": "Pause photos",
   "scroll.school.heading": "The School",
   "scroll.strip.label": "Photos of the school",
   "scroll.notices.title": "Notice Board",

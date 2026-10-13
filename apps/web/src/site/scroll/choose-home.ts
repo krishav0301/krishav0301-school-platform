@@ -20,3 +20,21 @@ export function chooseHome(view: { status: string; site?: SiteContent }): "scrol
 export function applyRedirectFor(view: { status: string; site?: SiteContent }): string | null {
   return chooseHome(view) === "scroll" ? "/#admission" : null;
 }
+
+/**
+ * What the front page draws right now (PM, 2026-10-13: the old page must never flash before the new one).
+ * `"waiting"`: an empty page, while the school is not known yet, or while a one-page school's words load, so nothing
+ * of the classic frame (shell, menu, band, skeleton) is ever drawn for a school that does not use it. `"scroll"`: the
+ * one-page layout. `"message"`: the school is not set up or cannot be reached, said inside the usual frame.
+ * `"classic"`: every other case, the usual frame with its own loading shape and retry.
+ */
+export function homeStage(
+  configStatus: "loading" | "ready" | "unprovisioned" | "unreachable",
+  publicLayout: "classic" | "scroll" | undefined,
+  view: { status: string; site?: SiteContent },
+): "waiting" | "scroll" | "message" | "classic" {
+  if (configStatus === "loading") return "waiting";
+  if (configStatus !== "ready") return "message";
+  if (chooseHome(view) === "scroll") return "scroll";
+  return publicLayout === "scroll" && view.status === "loading" ? "waiting" : "classic";
+}

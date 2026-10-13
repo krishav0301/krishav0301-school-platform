@@ -93,10 +93,9 @@ describe("the scroll page's shell", () => {
     expect(photo).toMatch(/flex:\s*0 0 auto/);
   });
 
-  it("offers a way to pause the photos when there is more than one, and not when there is only one", () => {
-    expect(html).toMatch(/<button[^>]*aria-pressed="false"[^>]*>Pause photos<\/button>/);
-    const single = renderToStaticMarkup(<ScrollHomeView schoolName="X" site={{ ...site, scroll: { ...site.scroll, hero: { images: [site.scroll.hero.images[0]!] } } }} signedIn={false} slots={slots} />);
-    expect(single).not.toContain("Pause photos");
+  it("has no pause button: the photos just change, and stay still only when motion is reduced (PM, 2026-10-13)", () => {
+    expect(html).not.toMatch(/Pause photos/);
+    expect(html).not.toMatch(/aria-pressed/);
   });
 
   it("puts the school band in the theme's yellow with the page's dark text, and keeps blue for what you can act on", () => {

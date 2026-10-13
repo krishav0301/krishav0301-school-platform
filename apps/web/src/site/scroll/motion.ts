@@ -4,8 +4,8 @@
 export const prefersReducedMotion = (): boolean =>
   typeof window !== "undefined" && typeof window.matchMedia === "function" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
-/** The hero photos change on their own only when there is more than one, motion is allowed and the visitor has not paused them. */
-export const heroShouldCycle = (count: number, reduced: boolean, paused = false): boolean => count > 1 && !reduced && !paused;
+/** The hero photos change on their own only when there is more than one, and motion is allowed. */
+export const heroShouldCycle = (count: number, reduced: boolean): boolean => count > 1 && !reduced;
 
 /** The photo after this one, back to the first at the end. */
 export const heroIndexAfter = (current: number, count: number): number => (count < 2 ? 0 : (current + 1) % count);
