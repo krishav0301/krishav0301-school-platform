@@ -316,6 +316,17 @@
   overflow-wrap: anywhere;
 }
 
+/* The line the band opens with, large; the welcome under it is smaller. The smallest size keeps the longest word whole at 320px with text at 200%. */
+.bandQuote {
+  font-size: clamp(1.5rem, 6.5vw, 2.5rem);
+  line-height: var(--leading-tight);
+}
+
+.bandText .bandIntro {
+  margin-top: var(--space-4);
+  font-size: var(--text-lg);
+}
+
 .strip {
   display: flex;
   gap: var(--space-3);

@@ -114,6 +114,16 @@ describe("the scroll page's shell", () => {
     for (const stop of stops) expect(stop, "every part of the shade is at least 58%").toBeGreaterThanOrEqual(58);
   });
 
+  it("shows the school's quote large in the band, with the welcome line smaller beneath it", () => {
+    const band = /<section[^>]*aria-labelledby="school-heading"[\s\S]*?<\/section>/.exec(html)![0];
+    expect(band).toContain(esc(site.scroll.quote!));
+    expect(band.indexOf(esc(site.scroll.quote!))).toBeLessThan(band.indexOf(esc(site.scroll.intro)));
+    expect(band).toMatch(/<p[^>]*class="bandQuote"/);
+    const plain = renderToStaticMarkup(<ScrollHomeView schoolName="X" site={{ ...site, scroll: { ...site.scroll, quote: undefined } }} signedIn={false} slots={slots} />);
+    expect(plain).not.toContain("bandQuote");
+    expect(plain).toContain(esc(site.scroll.intro));
+  });
+
   it("shows the school's intro in the band, and a photo strip you can scroll by keyboard", () => {
     expect(html).toContain(esc(site.scroll.intro));
     expect(html).toMatch(/<div[^>]*role="region"[^>]*tabindex="0"|<div[^>]*tabindex="0"[^>]*role="region"/);

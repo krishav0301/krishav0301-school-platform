@@ -5153,6 +5153,7 @@ export interface components {
                         file: string;
                         alt: string;
                     }[];
+                    quote?: string;
                     intro: string;
                     batches: {
                         title: string;

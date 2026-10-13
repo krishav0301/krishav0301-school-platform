@@ -25,6 +25,8 @@ export const ScrollContentSchema = z.strictObject({
   }),
   /** Photos for the strip under the intro; without them the strip shows the hero photos. */
   gallery: z.array(z.strictObject({ file: HeroFile, alt: Text(160) })).min(1).max(12).optional(),
+  /** A line shown large at the top of the school band; the intro is the smaller line beneath it. */
+  quote: Text(200).optional(),
   intro: Text(900),
   batches: z.array(z.strictObject({ title: Text(80), note: Text(200).optional() })).min(1).max(20),
   about: z.strictObject({

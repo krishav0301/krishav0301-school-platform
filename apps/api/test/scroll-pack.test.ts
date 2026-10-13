@@ -58,6 +58,12 @@ describe("the scroll layout in a pack", () => {
     expect(() => parsePack(withSite({ layout: "scroll", scroll: { ...scroll, gallery: thirteen } }))).toThrow(InvalidPackError);
   });
 
+  it("takes an optional quote for the school band, and refuses an empty or very long one", () => {
+    expect(parsePack(withSite({ layout: "scroll", scroll: { ...scroll, quote: "Learning today, leading tomorrow." } })).site.scroll?.quote).toBe("Learning today, leading tomorrow.");
+    expect(parsePack(withSite({ layout: "scroll", scroll })).site.scroll?.quote).toBeUndefined();
+    for (const quote of ["", "   ", "x".repeat(201)]) expect(() => parsePack(withSite({ layout: "scroll", scroll: { ...scroll, quote } })), quote.length + " characters").toThrow(InvalidPackError);
+  });
+
   it("refuses the same picture file named twice, across the hero and the gallery", () => {
     expect(() => parsePack(withSite({ layout: "scroll", scroll: { ...scroll, gallery: [{ file: "hero-1.webp", alt: "Again" }] } }))).toThrow(/more than once/);
     expect(() => parsePack(withSite({ layout: "scroll", scroll: { ...scroll, gallery: [{ file: "g.webp", alt: "A" }, { file: "g.webp", alt: "B" }] } }))).toThrow(/more than once/);

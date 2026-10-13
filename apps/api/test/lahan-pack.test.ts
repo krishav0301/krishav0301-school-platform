@@ -62,6 +62,11 @@ describe("the Lahan Manakamana school file", () => {
     expect(contrastRatio(light.text, light.accentSoft)).toBeGreaterThanOrEqual(4.5);
   });
 
+  it("opens its school band with a line about the leaders of tomorrow, in the PM's words (2026-10-13)", () => {
+    expect(pack.site.scroll!.quote).toBe("From darkness to light: raising the leaders of tomorrow.");
+    expect(pack.site.scroll!.intro).toContain("Welcome to Lahan Manakamana Secondary English Boarding School");
+  });
+
   it("says its motto and the year it was founded, both as printed on its own crest, and names itself as the crest does", () => {
     expect(pack.site.scroll!.hero.tagline).toBe("Darkness to Light");
     expect(pack.site.scroll!.about.story).toContain("2058");
