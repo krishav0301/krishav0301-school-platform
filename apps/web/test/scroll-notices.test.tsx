@@ -86,6 +86,10 @@ describe("the reader", () => {
     expect(reader).toMatch(/2083/);
   });
 
+  it("lets the mouse wheel scroll a long notice inside it, instead of the page behind (review I2)", () => {
+    expect(reader).toMatch(/<dialog[^>]*data-lenis-prevent/);
+  });
+
   it("is a dialog named by the notice's title, with a Close button", () => {
     expect(reader).toMatch(/<dialog[^>]*aria-label="Dashain holiday"/);
     expect(reader).toMatch(/aria-label="Close"/);

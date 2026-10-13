@@ -123,6 +123,38 @@ async function withEmail<T extends { firstName?: unknown; lastName?: unknown; em
 
 export type ApplyResult = { ok: true; publicId: string } | { ok: false; reason: "throttled" } | WriteFailure | Invalid;
 
+/** The most no-email applications a school takes in a day, from anyone. Past it the form is refused: with no email to confirm, this keeps a flood out of the Co-ordinator's queue and the database's daily write budget (D-168). */
+export const NO_EMAIL_DAILY_LIMIT = 100;
+
+/**
+ * What the per-address limit counts by. An IPv4 address is itself; an IPv6 visitor is counted by its /64 network, because
+ * one home or phone holds a whole range of addresses and could otherwise get a new one for every try.
+ */
+export function ipLimitKey(ip: string): string {
+  const address = ip.trim().toLowerCase();
+  if (!address.includes(":")) return address;
+  const mapped = /^::ffff:(\d{1,3}(?:\.\d{1,3}){3})$/.exec(address);
+  if (mapped) return mapped[1]!;
+  const [head = "", tail, extra] = address.split("::");
+  if (extra !== undefined) return address;
+  const front = head === "" ? [] : head.split(":");
+  const back = tail === undefined || tail === "" ? [] : tail.split(":");
+  const groups = tail === undefined ? front : [...front, ...Array<string>(Math.max(0, 8 - front.length - back.length)).fill("0"), ...back];
+  if (groups.length !== 8 || groups.some((g) => !/^[0-9a-f]{1,4}$/.test(g))) return address;
+  return groups
+    .slice(0, 4)
+    .map((g) => parseInt(g, 16).toString(16))
+    .join(":");
+}
+
+/** A phone number as the limit counts it: digits only, without Nepal's country code or a leading zero, so the same number written two ways is one. */
+export function phoneKey(phone: string): string {
+  let digits = phone.replace(/\D/g, "");
+  if (digits.startsWith("00977")) digits = digits.slice(5);
+  else if (digits.startsWith("977") && digits.length > 10) digits = digits.slice(3);
+  return digits.replace(/^0+/, "");
+}
+
 /** Anonymous. Rate limited, a submission token makes a retry idempotent, and a filled honeypot field is a silent no-op. */
 export async function applyForAdmission(db: D1Database, dataKey: string, input: ApplyInput, ip: string, now: Date = new Date()): Promise<ApplyResult> {
   if (input.website) return { ok: true, publicId: newPublicId() }; // honeypot: never reveal it was tripped
@@ -133,19 +165,24 @@ export async function applyForAdmission(db: D1Database, dataKey: string, input: 
   // A school may take applications without an email link (D-168): then the email is made for the applicant and nothing is sent.
   const verifies = ((await db.prepare("SELECT public_apply_verifies_email AS v FROM school WHERE id = 1").first<{ v: number }>())?.v ?? 1) === 1;
   if (verifies && !p.email) return { ok: false, reason: "invalid", message: "Give an email address" };
-  const email = (p.email ? p.email.trim() : await suggestEmail(db, p.firstName, p.lastName)).toLowerCase();
+  // A school that does not verify makes the email itself, whatever was typed: an address nobody confirmed is never trusted.
+  const email = (verifies ? p.email!.trim() : await suggestEmail(db, p.firstName, p.lastName)).toLowerCase();
   // With no email of the applicant's own to count against (an invented one is new every time), the limit is by phone number.
-  const limitKey = verifies || p.email ? email : `phone:${p.phone.replace(/\D/g, "")}`;
+  const limitKey = verifies ? email : `phone:${phoneKey(p.phone)}`;
+  const ipKey = ipLimitKey(ip);
 
   const existing = await db.prepare("SELECT public_id FROM applications WHERE submission_token = ?1").bind(p.submissionToken).first<{ public_id: string }>();
   if (existing) return { ok: true, publicId: existing.public_id }; // the same click or a retried request: no new row, no new rate-limit count
 
   const since = new Date(now.getTime() - WINDOW_MINUTES * 60_000).toISOString();
-  const [emailCount, ipCount] = await db.batch([
+  const dayAgo = new Date(now.getTime() - 24 * 3_600_000).toISOString();
+  const [emailCount, ipCount, dayCount] = await db.batch([
     db.prepare("SELECT COUNT(*) AS n FROM application_submission_events WHERE email = ?1 AND at > ?2").bind(limitKey, since),
-    db.prepare("SELECT COUNT(*) AS n FROM application_submission_events WHERE ip = ?1 AND at > ?2").bind(ip, since),
+    db.prepare("SELECT COUNT(*) AS n FROM application_submission_events WHERE ip = ?1 AND at > ?2").bind(ipKey, since),
+    db.prepare("SELECT COUNT(*) AS n FROM application_submission_events WHERE email LIKE 'phone:%' AND at > ?1").bind(dayAgo),
   ]);
   if ((emailCount!.results[0] as { n: number }).n >= EMAIL_LIMIT || (ipCount!.results[0] as { n: number }).n >= IP_LIMIT) return { ok: false, reason: "throttled" };
+  if (!verifies && (dayCount!.results[0] as { n: number }).n >= NO_EMAIL_DAILY_LIMIT) return { ok: false, reason: "throttled" };
 
   const level = await db
     .prepare(
@@ -168,7 +205,7 @@ export async function applyForAdmission(db: D1Database, dataKey: string, input: 
   const status = verifies ? "email_unverified" : "pending_review";
 
   const statements = [
-    db.prepare("INSERT INTO application_submission_events (at, ip, email) VALUES (?1, ?2, ?3)").bind(at, ip, limitKey),
+    db.prepare("INSERT INTO application_submission_events (at, ip, email) VALUES (?1, ?2, ?3)").bind(at, ipKey, limitKey),
     db
       .prepare(
         `INSERT INTO applications
@@ -408,6 +445,8 @@ async function classifyDecideFailure(db: D1Database, actor: string, applicationP
 async function notifyDecision(db: D1Database, dataKey: string, applicationPublicId: string, decision: "needs_changes" | "rejected" | "approved", reason: string, sid?: string): Promise<void> {
   const app = await db.prepare("SELECT email FROM applications WHERE public_id = ?1").bind(applicationPublicId).first<{ email: string }>();
   if (!app) return;
+  // An address the platform made up for an applicant who gave none is nobody's inbox, and its domain belongs to someone else (D-168): nothing is sent.
+  if (app.email.trim().toLowerCase().endsWith(`@${STUDENT_EMAIL_DOMAIN}`)) return;
   await db.batch([
     await queueEmail(db, dataKey, {
       template: "admission_decision",

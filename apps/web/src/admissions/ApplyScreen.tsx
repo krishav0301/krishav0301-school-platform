@@ -10,6 +10,7 @@ import { useSession } from "@/session/SessionProvider";
 import { Button, Card, Checkbox, HeroBand, Notice, Skeleton } from "@/ui";
 
 import { ApplicantFields } from "./ApplicantFields";
+import { ApplyDone } from "./ApplyDone";
 import admissionsStyles from "./admissions.module.css";
 import { apply, loadOpenLevels, newSubmissionToken, verifyEmail } from "./client";
 import { emptyApplicantForm, firstInvalid, validateApplicant, type ApplicantErrors, type ApplicantForm, type OpenLevel } from "./model";
@@ -82,14 +83,7 @@ export function ApplyScreen({ embedded = false, levels: knownLevels }: { embedde
     else setFailure(t("admissions.error.failed"));
   }
 
-  if (done) {
-    return (
-      <Card>
-        <h1 className={setupStyles.title}>{t("admissions.apply.doneTitle")}</h1>
-        <p>{needsEmail ? t("admissions.apply.doneBody", { email: values.email }) : t("admissions.apply.doneBodyNoEmail")}</p>
-      </Card>
-    );
-  }
+  if (done) return <ApplyDone embedded={embedded} needsEmail={needsEmail} email={values.email} />;
 
   return (
     <Card>

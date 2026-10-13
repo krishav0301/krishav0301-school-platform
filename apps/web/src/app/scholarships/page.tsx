@@ -11,7 +11,7 @@ export default function ScholarshipsPage() {
   return (
     <PublicShell>
       <ConfigGate>
-        <SiteFrame title={t("site.scholarships.title")}>{(site) => <ScholarshipsView site={site} />}</SiteFrame>
+        <SiteFrame title={t("site.scholarships.title")} classicOnly>{(site) => <ScholarshipsView site={site} />}</SiteFrame>
       </ConfigGate>
     </PublicShell>
   );

@@ -2,6 +2,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 
 import { chooseHome } from "@/site/scroll/choose-home";
+import { PrivacyView } from "@/site/PrivacyView";
 import { SiteFrameView, type SiteView } from "@/site/SiteFrame";
 import lahanJson from "../../../packs/lahan-manakamana/pack.json";
 import royalJson from "../../../packs/royal-softech/pack.json";
@@ -29,9 +30,9 @@ describe("which front page a school gets", () => {
 });
 
 describe("the classic pages on a scroll school", () => {
-  const frame = (site: typeof scrollSite) =>
+  const frame = (site: typeof scrollSite, classicOnly = true) =>
     renderToStaticMarkup(
-      <SiteFrameView title="Programmes" view={{ status: "ready", site } as SiteView} onRetry={() => {}}>
+      <SiteFrameView title="Programmes" view={{ status: "ready", site } as SiteView} onRetry={() => {}} classicOnly={classicOnly}>
         {() => <p>CLASSIC-WORDS</p>}
       </SiteFrameView>,
     );
@@ -43,8 +44,26 @@ describe("the classic pages on a scroll school", () => {
     expect(html).toMatch(/<a[^>]*href="\/"/);
   });
 
+  it("leave a page that every school has, such as the privacy notice, readable on a scroll school (review I1)", () => {
+    const html = frame(scrollSite, false);
+    expect(html).toContain("CLASSIC-WORDS");
+    expect(html).not.toContain("This page is not available");
+  });
+
   it("are unchanged for a classic school", () => {
     expect(frame(classicSite)).toContain("CLASSIC-WORDS");
     expect(frame(classicSite)).not.toContain("This page is not available");
+  });
+});
+
+describe("the privacy notice for a school that takes applications without an email (review I1)", () => {
+  const collected = (collectsEmail: boolean) => renderToStaticMarkup(<PrivacyView schoolName="Some School" site={scrollSite} collectsEmail={collectsEmail} />);
+
+  it("does not say an email is collected when none is asked for", () => {
+    expect(collected(false)).not.toMatch(/email/i);
+  });
+
+  it("still says so for every other school", () => {
+    expect(collected(true)).toMatch(/email/i);
   });
 });

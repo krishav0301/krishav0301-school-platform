@@ -9,9 +9,9 @@ import styles from "./site.module.css";
  * a school's own CMS content, unlike the other public pages): what this platform collects and why is
  * the same for every school running it. Only the contact details at the end are the school's own.
  */
-export function PrivacyView({ schoolName, site }: { schoolName: string; site: SiteContent }) {
+export function PrivacyView({ schoolName, site, collectsEmail = true }: { schoolName: string; site: SiteContent; /** False for a school whose application form has no email box (D-168): the notice then does not say one is collected. */ collectsEmail?: boolean }) {
   const sections: { title: string; body: string }[] = [
-    { title: t("privacy.collect.title"), body: t("privacy.collect.body", { school: schoolName }) },
+    { title: t("privacy.collect.title"), body: t(collectsEmail ? "privacy.collect.body" : "privacy.collect.bodyNoEmail", { school: schoolName }) },
     { title: t("privacy.security.title"), body: t("privacy.security.body", { school: schoolName }) },
     { title: t("privacy.access.title"), body: t("privacy.access.body") },
     { title: t("privacy.children.title"), body: t("privacy.children.body") },

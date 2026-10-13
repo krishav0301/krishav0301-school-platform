@@ -11,7 +11,7 @@ export default function AdmissionPage() {
   return (
     <PublicShell>
       <ConfigGate>
-        <SiteFrame title={t("site.admission.title")}>{(site) => <AdmissionView site={site} />}</SiteFrame>
+        <SiteFrame title={t("site.admission.title")} classicOnly>{(site) => <AdmissionView site={site} />}</SiteFrame>
       </ConfigGate>
     </PublicShell>
   );

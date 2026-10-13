@@ -28,7 +28,8 @@ export function NoticeReader({ item, onClose }: { item: PublicItem; onClose: () 
   }, []);
 
   return (
-    <dialog ref={ref} className={dialogStyles.dialog} aria-label={item.title} onClose={onClose}>
+    // data-lenis-prevent: smooth scrolling must leave the wheel to this dialog, or a long notice cannot be read to its end.
+    <dialog ref={ref} className={dialogStyles.dialog} aria-label={item.title} onClose={onClose} data-lenis-prevent>
       <div className={dialogStyles.head}>
         <span />
         <button type="button" className={dialogStyles.close} onClick={() => ref.current?.close()} aria-label={t("ui.close")}>

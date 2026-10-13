@@ -9,7 +9,7 @@ import { SiteFrame } from "@/site/SiteFrame";
 
 function Programmes() {
   const { config } = useConfig();
-  return <SiteFrame title={t("site.programmes.title")}>{(site) => <ProgrammesView site={site} sections={config?.sections ?? []} />}</SiteFrame>;
+  return <SiteFrame title={t("site.programmes.title")} classicOnly>{(site) => <ProgrammesView site={site} sections={config?.sections ?? []} />}</SiteFrame>;
 }
 
 /** The programmes the school offers: open to everyone, no sign-in. */

@@ -1301,6 +1301,7 @@ export const en = {
   "privacy.intro": "This notice explains what {school} collects through this website, why, and how it is protected. It covers the public admission form and the staff and student sign-in system.",
   "privacy.collect.title": "What is collected",
   "privacy.collect.body": "For an admission application: the applicant's name, date of birth, phone number and email; a parent or guardian's name and phone number; the programme and level applied for; and, if given, the previous school and how the applicant heard about {school}. For a sign-in account: name, email, phone and role. {school} does not ask for more than it needs to process the application and run the account.",
+  "privacy.collect.bodyNoEmail": "For an admission application: the applicant's name, date of birth and phone number; a parent or guardian's name and phone number; the programme and level applied for; and, if given, the previous school and how the applicant heard about {school}. For a sign-in account: name, the sign-in address, phone and role. {school} does not ask for more than it needs to process the application and run the account.",
   "privacy.security.title": "Security records",
   "privacy.security.body": "Every sign-in attempt is recorded with its time and network address, to detect abuse and lock out repeated failed attempts. Passwords are never stored as plain text: they are one-way scrypted, so even {school}'s own staff cannot read them back.",
   "privacy.access.title": "Who can see it",
