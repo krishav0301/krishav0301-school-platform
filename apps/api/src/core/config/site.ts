@@ -38,7 +38,6 @@ export const ScrollContentSchema = z.strictObject({
   about: z.strictObject({
     story: Text(1500).optional(),
     facebook: z.string().regex(FACEBOOK, "a facebook.com link").optional(),
-    mapQuery: Text(200).optional(),
   }),
 });
 export type ScrollContent = z.infer<typeof ScrollContentSchema>;

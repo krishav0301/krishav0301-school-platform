@@ -40,7 +40,6 @@ export const en = {
   "scroll.about.address": "Address",
   "scroll.about.phone": "Phone",
   "scroll.about.facebook": "The school's Facebook page",
-  "scroll.about.map": "Open in maps",
   "scroll.unavailable": "This Page Is Not Available",
   "scroll.backHome": "Back to the home page",
   "scroll.cards.title": "Our School",

@@ -1,7 +1,9 @@
 "use client";
 
 import { usePathname } from "next/navigation";
-import type { ReactNode } from "react";
+import { useContext, type ReactNode } from "react";
+
+import { ConfigContext } from "@/config/ConfigProvider";
 
 import { t } from "@/i18n/messages";
 
@@ -18,7 +20,9 @@ import styles from "./HeroBand.module.css";
  */
 export function HeroBand({ art, children, className }: { art?: ArtCode | null; children: ReactNode; className?: string }) {
   const pathname = usePathname();
-  const code = art === undefined ? artForPath(pathname) : art;
+  // A school with the one-page layout (D-167) keeps its public pages to words: the band draws no picture there. The portal keeps its own.
+  const justWords = useContext(ConfigContext)?.config?.school.publicLayout === "scroll" && !(pathname ?? "").startsWith("/portal");
+  const code = art !== undefined ? art : justWords ? null : artForPath(pathname);
   const slogan = code ? SLOGANS[code] : undefined;
   return (
     <div className={[styles.band, className].filter(Boolean).join(" ")}>

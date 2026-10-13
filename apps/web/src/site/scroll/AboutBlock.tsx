@@ -6,10 +6,9 @@ import { Reach } from "@/site/Reach";
 import styles from "./scroll.module.css";
 import { useReveal } from "./useReveal";
 
-/** Where the school is and how to reach it, with its story. Shows only what the school has given. Nothing is embedded from elsewhere. */
-export function AboutBlock({ address, phones, about }: { address: string; phones: string[]; about: { story?: string; facebook?: string; mapQuery?: string } }) {
+/** Where the school is and how to reach it, with its story and its Facebook page. Shows only what the school has given. Nothing is embedded from elsewhere, and there is no map link (PM, 2026-10-13). */
+export function AboutBlock({ address, phones, about }: { address: string; phones: string[]; about: { story?: string; facebook?: string } }) {
   const ref = useReveal<HTMLDivElement>();
-  const mapHref = about.mapQuery ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(about.mapQuery)}` : null;
   return (
     <div ref={ref} className={styles.reveal}>
       <h2 className={styles.sectionTitle}>{t("scroll.about.title")}</h2>
@@ -33,11 +32,6 @@ export function AboutBlock({ address, phones, about }: { address: string; phones
         ) : null}
       </dl>
       <p className={styles.aboutLinks}>
-        {mapHref ? (
-          <a href={mapHref} target="_blank" rel="noopener noreferrer" className={styles.aboutLink}>
-            {t("scroll.about.map")}
-          </a>
-        ) : null}
         {about.facebook ? (
           <a href={about.facebook} target="_blank" rel="noopener noreferrer" className={styles.aboutLink}>
             {t("scroll.about.facebook")}

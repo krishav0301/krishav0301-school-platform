@@ -38,7 +38,7 @@ describe("the admission block", () => {
 });
 
 describe("the about block", () => {
-  const about = { story: "A story about the school.", facebook: "https://www.facebook.com/profile.php?id=100090093189751", mapQuery: "Lahan-8, Road No - 2, Lahan, Siraha" };
+  const about = { story: "A story about the school.", facebook: "https://www.facebook.com/profile.php?id=100090093189751" };
   const html = renderToStaticMarkup(<AboutBlock address="Lahan-8, Road No - 2" phones={[PHONE, "+977 33-000000"]} about={about} />);
 
   it("shows the address, every phone as a link, and the story", () => {
@@ -48,10 +48,11 @@ describe("the about block", () => {
     expect(html).toContain("A story about the school.");
   });
 
-  it("opens the Facebook page and the map in a new tab, safely", () => {
+  it("opens the Facebook page in a new tab, safely, and links to nothing else outside the site (no map link, PM 2026-10-13)", () => {
     expect(html).toContain('href="https://www.facebook.com/profile.php?id=100090093189751"');
-    expect((html.match(/rel="noopener noreferrer"/g) ?? []).length).toBe(2);
-    expect(html).toContain('href="https://www.google.com/maps/search/?api=1&amp;query=Lahan-8%2C%20Road%20No%20-%202%2C%20Lahan%2C%20Siraha"');
+    expect((html.match(/rel="noopener noreferrer"/g) ?? []).length).toBe(1);
+    expect(html).not.toMatch(/google|maps/i);
+    expect([...html.matchAll(/href="(https?:[^"]+)"/g)].map((m) => m[1])).toEqual(["https://www.facebook.com/profile.php?id=100090093189751"]);
   });
 
   it("embeds nothing from anywhere else", () => {
@@ -62,7 +63,7 @@ describe("the about block", () => {
     const bare = renderToStaticMarkup(<AboutBlock address="Here" phones={[]} about={{}} />);
     expect(bare).toContain("Here");
     expect(bare).not.toContain("facebook");
-    expect(bare).not.toContain("maps");
+    expect(bare).not.toMatch(/maps|google/i);
     expect(bare).not.toContain("tel:");
   });
 });

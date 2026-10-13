@@ -3081,6 +3081,13 @@
               },
               "publicApplyNeedsLink": {
                 "type": "boolean"
+              },
+              "publicLayout": {
+                "type": "string",
+                "enum": [
+                  "classic",
+                  "scroll"
+                ]
               }
             },
             "required": [
@@ -10908,11 +10915,6 @@
                       "facebook": {
                         "type": "string",
                         "pattern": "^https:\\/\\/(www\\.)?facebook\\.com\\/[A-Za-z0-9._\\-/?=&%]{1,200}$"
-                      },
-                      "mapQuery": {
-                        "type": "string",
-                        "minLength": 1,
-                        "maxLength": 200
                       }
                     },
                     "additionalProperties": false

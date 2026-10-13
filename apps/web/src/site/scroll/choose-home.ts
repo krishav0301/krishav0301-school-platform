@@ -12,3 +12,11 @@ export function chooseHome(view: { status: string; site?: SiteContent }): "scrol
   if (view.status !== "ready" || !view.site) return "loading";
   return view.site.layout === "scroll" && view.site.scroll ? "scroll" : "classic";
 }
+
+/**
+ * Where the old apply page sends a visitor: a school with the one-page layout has its form on the front page, so it is
+ * sent there (D-167); every other school keeps its apply page. Null while the school's words are not here yet.
+ */
+export function applyRedirectFor(view: { status: string; site?: SiteContent }): string | null {
+  return chooseHome(view) === "scroll" ? "/#admission" : null;
+}

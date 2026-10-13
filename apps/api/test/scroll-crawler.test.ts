@@ -1,7 +1,7 @@
 import { env } from "cloudflare:test";
 import { beforeAll, describe, expect, it } from "vitest";
 
-import { applyPack, parsePack } from "../src/core/config";
+import { applyPack, loadConfig, parsePack } from "../src/core/config";
 import { nepalDate } from "../src/core/dates";
 import { createUser } from "../src/modules/accounts/service";
 import { createContent, publishContent } from "../src/modules/content/service";
@@ -63,8 +63,21 @@ describe("a scroll school's front page, for crawlers", () => {
 });
 
 describe("the classic pages on a scroll school", () => {
-  it("are served untouched: the Worker has nothing true to put in them", async () => {
-    for (const path of ["/programmes", "/admission", "/scholarships", "/facilities", "/contact"]) expect(await page(path), path).toBe(SHELL);
+  it("send the visitor to the front page instead: there is no way to reach an old page (PM, 2026-10-13)", async () => {
+    for (const path of ["/programmes", "/admission", "/scholarships", "/facilities", "/contact", "/programmes/"]) {
+      const response = await renderPublicPage(new Request(`https://lahan.example${path}`), { ...env, ASSETS: assets, SITE_ORIGIN: "https://lahan.example" });
+      expect(response.status, path).toBe(302);
+      expect(response.headers.get("Location"), path).toBe("/");
+      expect(await response.text(), path).not.toContain("Loading");
+    }
+  });
+
+  it("keep serving the pages a scroll school does have: the front page, the notices and the privacy notice", async () => {
+    for (const path of ["/", "/notices"]) expect((await renderPublicPage(new Request(`https://lahan.example${path}`), { ...env, ASSETS: assets, SITE_ORIGIN: "https://lahan.example" })).status, path).toBe(200);
+  });
+
+  it("is told to the web app in the public configuration, so its shared pages draw no old menu", async () => {
+    expect((await loadConfig(db))!.school.publicLayout).toBe("scroll");
   });
 
   it("the sitemap and llms.txt list only the front page and the notices", async () => {
@@ -79,6 +92,14 @@ describe("the classic pages on a scroll school", () => {
 });
 
 describe("a classic school is unchanged", () => {
+  it("is classic in the public configuration, and still serves every page", async () => {
+    await applyPack(db, testPack(royalJson));
+    expect((await loadConfig(db))!.school.publicLayout).toBe("classic");
+    for (const path of ["/programmes", "/admission", "/scholarships", "/facilities", "/contact"]) {
+      expect((await renderPublicPage(new Request(`https://lahan.example${path}`), { ...env, ASSETS: assets, SITE_ORIGIN: "https://lahan.example" })).status, path).toBe(200);
+    }
+  });
+
   it("lists all its pages", async () => {
     expect([...filledPagesFor("classic")]).toEqual([...FILLED_PAGES]);
     await applyPack(db, testPack(royalJson));

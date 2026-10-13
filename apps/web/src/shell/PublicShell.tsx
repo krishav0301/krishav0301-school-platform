@@ -7,7 +7,7 @@ import { useConfig } from "@/config/ConfigProvider";
 import { t } from "@/i18n/messages";
 
 import { PublicHeader } from "./PublicHeader";
-import { SITE_LINKS } from "./site-links";
+import { siteLinksFor } from "./site-links";
 import styles from "./shell.module.css";
 
 /**
@@ -19,6 +19,7 @@ import styles from "./shell.module.css";
 export function PublicShell({ children, showSignIn = true }: { children: ReactNode; showSignIn?: boolean }) {
   const { config } = useConfig();
   const school = config?.school;
+  const links = siteLinksFor(config);
 
   return (
     <div className={styles.frame}>
@@ -30,9 +31,10 @@ export function PublicShell({ children, showSignIn = true }: { children: ReactNo
         {children}
       </main>
       <footer className={styles.footer}>
+        {links.length > 0 ? (
         <nav aria-label={t("site.footerNavLabel")}>
           <ul className={styles.footerLinks}>
-            {SITE_LINKS.map((link) => (
+            {links.map((link) => (
               // These links repeat the header's, which already prefetches them.
               <li key={link.href}>
                 <Link href={link.href} prefetch={false} className={styles.footerLink}>
@@ -42,6 +44,7 @@ export function PublicShell({ children, showSignIn = true }: { children: ReactNo
             ))}
           </ul>
         </nav>
+        ) : null}
         {school ? <p>{t("shell.footer", { school: school.name })}</p> : null}
         {/* Not part of SITE_LINKS: a legal page, not one of the Worker's crawler-filled pages (site-links.test.ts checks that list exactly). */}
         <p>

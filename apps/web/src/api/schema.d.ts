@@ -3475,6 +3475,8 @@ export interface components {
                 studentKeepsPin?: boolean;
                 passMarksPerSubject?: boolean;
                 publicApplyNeedsLink?: boolean;
+                /** @enum {string} */
+                publicLayout?: "classic" | "scroll";
             };
             sections: {
                 key: string;
@@ -5167,7 +5169,6 @@ export interface components {
                     about: {
                         story?: string;
                         facebook?: string;
-                        mapQuery?: string;
                     };
                 };
                 home: {

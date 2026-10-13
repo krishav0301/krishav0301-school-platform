@@ -82,6 +82,10 @@ describe("the Lahan Manakamana school file", () => {
     expect(pack.site.scroll!.intro).toContain("Welcome to Lahan Manakamana Secondary English Boarding School");
   });
 
+  it("has no map link (PM, 2026-10-13): the address is shown as words only", () => {
+    expect(JSON.stringify(pack)).not.toMatch(/mapQuery|google\.com\/maps/);
+  });
+
   it("says its motto and the year it was founded, both as printed on its own crest, and names itself as the crest does", () => {
     expect(pack.site.scroll!.hero.tagline).toBe("Darkness to Light");
     expect(pack.site.scroll!.about.story).toContain("2058");

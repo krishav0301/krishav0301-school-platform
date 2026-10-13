@@ -94,6 +94,10 @@ describe("the scroll layout in a pack", () => {
     for (const cardsIntro of ["", "   ", "x".repeat(401)]) expect(() => parsePack(withSite({ layout: "scroll", scroll: { ...scroll, cardsIntro } })), cardsIntro.length + " characters").toThrow(InvalidPackError);
   });
 
+  it("has no map link: the about block takes only a story and the Facebook page (PM, 2026-10-13)", () => {
+    expect(() => parsePack(withSite({ layout: "scroll", scroll: { ...scroll, about: { ...scroll.about, mapQuery: "Lahan, Siraha" } } }))).toThrow(InvalidPackError);
+  });
+
   it("refuses scroll words on a classic site", () => {
     expect(() => parsePack(withSite({ scroll }))).toThrow(/site\.scroll/);
   });

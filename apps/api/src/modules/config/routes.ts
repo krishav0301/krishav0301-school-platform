@@ -25,6 +25,8 @@ const PublicConfigSchema = z
       passMarksPerSubject: z.boolean().optional(),
       /** A public application waits for an email link (D-063); a school may turn that off (D-168). */
       publicApplyNeedsLink: z.boolean().optional(),
+      /** The public layout the school chose (D-167): `scroll` has no menu of separate pages. */
+      publicLayout: z.enum(["classic", "scroll"]).optional(),
     }),
     sections: z.array(z.object({ key: z.string(), name: z.string() })),
     /** Every module and whether this school uses it. */

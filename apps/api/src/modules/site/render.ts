@@ -2,7 +2,7 @@ import { loadConfigAndSite } from "../../core/config";
 import type { Bindings } from "../../core/types";
 import { escapeHtml, jsonLdScript } from "./html";
 import { isProduction } from "./crawler-files";
-import { builderFor, isFilledPage, normalizePath } from "./pages";
+import { CLASSIC_ONLY_PAGES, builderFor, isFilledPage, normalizePath } from "./pages";
 
 /** How long a browser may keep a filled page. The content can change at any time, so it is short. */
 export const FILLED_PAGE_CACHE = "public, max-age=60";
@@ -30,6 +30,8 @@ export async function renderPublicPage(request: Request, env: Bindings): Promise
 
   const path = normalizePath(url.pathname);
   const origin = (env.SITE_ORIGIN ?? url.origin).replace(/\/+$/, "");
+  // A school with the one-page layout has none of the old pages: whoever asks for one is sent to the front page (PM, 2026-10-13).
+  if (site?.layout === "scroll" && CLASSIC_ONLY_PAGES.has(path)) return new Response(null, { status: 302, headers: { Location: "/" } });
   const parts = await builderFor(url.pathname)({
     db: env.DB,
     school: config.school,

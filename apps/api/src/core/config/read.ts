@@ -5,7 +5,7 @@ import { resolveTerms, type TermKey } from "./terminology";
 
 /** What the web app needs to draw itself for this school. Public, and the same for every visitor. */
 export interface PublicConfig {
-  school: { name: string; shortName: string; currency: string; timezone: string; region: string; template: string | null; studentKeepsPin: boolean; passMarksPerSubject: boolean; publicApplyNeedsLink: boolean };
+  school: { name: string; shortName: string; currency: string; timezone: string; region: string; template: string | null; studentKeepsPin: boolean; passMarksPerSubject: boolean; publicApplyNeedsLink: boolean; publicLayout: "classic" | "scroll" };
   sections: { key: string; name: string }[];
   modules: Record<string, boolean>;
   terms: Record<TermKey, string>;
@@ -14,7 +14,7 @@ export interface PublicConfig {
 
 /** The five reads that make up the configuration. */
 const configStatements = (db: D1Database): D1PreparedStatement[] => [
-  db.prepare("SELECT name, short_name, currency, timezone, region_pack, template_key, student_keeps_pin, pass_marks_per_subject, public_apply_verifies_email FROM school WHERE id = 1"),
+  db.prepare("SELECT name, short_name, currency, timezone, region_pack, template_key, student_keeps_pin, pass_marks_per_subject, public_apply_verifies_email, (SELECT json_extract(content_json, '$.layout') FROM site_content WHERE id = 1) AS public_layout FROM school WHERE id = 1"),
   // Only sections switched on are offered where a section is chosen (D-097).
   db.prepare("SELECT key, name FROM sections WHERE is_active = 1 ORDER BY ordering, id"),
   db.prepare("SELECT key, enabled FROM module_switches"),
@@ -26,7 +26,7 @@ function buildConfig(results: D1Result[]): PublicConfig | null {
   const [school, sections, switches, terms, theme] = results;
 
   const row = school!.results[0] as
-    | { name: string; short_name: string; currency: string; timezone: string; region_pack: string; template_key: string | null; student_keeps_pin: number; pass_marks_per_subject: number; public_apply_verifies_email: number }
+    | { name: string; short_name: string; currency: string; timezone: string; region_pack: string; template_key: string | null; student_keeps_pin: number; pass_marks_per_subject: number; public_apply_verifies_email: number; public_layout: string | null }
     | undefined;
   if (!row) return null;
 
@@ -42,7 +42,7 @@ function buildConfig(results: D1Result[]): PublicConfig | null {
   }
 
   return {
-    school: { name: row.name, shortName: row.short_name, currency: row.currency, timezone: row.timezone, region: row.region_pack, template: row.template_key, studentKeepsPin: row.student_keeps_pin === 1, passMarksPerSubject: row.pass_marks_per_subject === 1, publicApplyNeedsLink: row.public_apply_verifies_email === 1 },
+    school: { name: row.name, shortName: row.short_name, currency: row.currency, timezone: row.timezone, region: row.region_pack, template: row.template_key, studentKeepsPin: row.student_keeps_pin === 1, passMarksPerSubject: row.pass_marks_per_subject === 1, publicApplyNeedsLink: row.public_apply_verifies_email === 1, publicLayout: row.public_layout === "scroll" ? "scroll" : "classic" },
     sections: sections!.results as unknown as { key: string; name: string }[],
     modules: resolveModules(switchMap),
     terms: resolveTerms(termMap),
