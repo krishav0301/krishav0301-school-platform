@@ -14,7 +14,7 @@ import styles from "./scroll.module.css";
  * Sign in on the right for everyone (a signed-in person sees Portal instead). It sits over the photo and takes a
  * solid background once the page has scrolled.
  */
-export function TopBar({ schoolName, signedIn }: { schoolName: string; signedIn: boolean }) {
+export function TopBar({ schoolName, signedIn, folder }: { schoolName: string; signedIn: boolean; folder: string }) {
   const [scrolled, setScrolled] = useState(false);
   const [open, setOpen] = useState(false);
   const menuId = useId();
@@ -44,7 +44,7 @@ export function TopBar({ schoolName, signedIn }: { schoolName: string; signedIn:
       </nav>
       <a href="#top" className={styles.crest} aria-label={schoolName}>
         {/* eslint-disable-next-line @next/next/no-img-element -- pre-sized WebP in a static export */}
-        <img src={photoUrl("crest.webp")} alt="" width={44} height={44} />
+        <img src={photoUrl(folder, "crest.webp")} alt="" width={44} height={44} />
       </a>
       <div className={styles.barEnd}>
         <Link href={signedIn ? "/portal" : "/sign-in"} className={styles.topLink}>

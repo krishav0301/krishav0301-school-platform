@@ -14,6 +14,7 @@ import { PhotoStrip } from "./PhotoStrip";
 import { SchoolBand } from "./SchoolBand";
 import { SmoothScroll } from "./SmoothScroll";
 import { TopBar } from "./TopBar";
+import { anchorFromHash } from "./anchor";
 import { type ScrollSite } from "./choose-home";
 import styles from "./scroll.module.css";
 
@@ -40,18 +41,24 @@ export function ScrollHomeView({
     return () => document.documentElement.classList.remove("js");
   }, []);
 
-  const { hero, intro } = site.scroll;
+  // A link such as `/#admission` is opened before this page has drawn its sections, so the browser cannot scroll there by itself.
+  useEffect(() => {
+    const id = anchorFromHash(window.location.hash);
+    if (id) document.getElementById(id)?.scrollIntoView();
+  }, []);
+
+  const { hero, intro, photosFolder: folder } = site.scroll;
   return (
     <div className={styles.page}>
       <SmoothScroll />
       <a href="#main" className={styles.skip}>
         {t("shell.skipToContent")}
       </a>
-      <TopBar schoolName={schoolName} signedIn={signedIn} />
+      <TopBar schoolName={schoolName} signedIn={signedIn} folder={folder} />
       <main id="main">
-        <Hero schoolName={schoolName} address={site.contact.address} images={hero.images} tagline={hero.tagline} signedIn={signedIn} />
+        <Hero schoolName={schoolName} address={site.contact.address} images={hero.images} folder={folder} tagline={hero.tagline} signedIn={signedIn} />
         <SchoolBand intro={intro} />
-        <PhotoStrip images={hero.images} />
+        <PhotoStrip images={hero.images} folder={folder} />
         {slots.batches}
         <section id="notices" className={styles.section}>
           {slots.notices}

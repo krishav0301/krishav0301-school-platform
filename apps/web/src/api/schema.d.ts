@@ -5141,6 +5141,7 @@ export interface components {
                  */
                 layout: "classic" | "scroll";
                 scroll?: {
+                    photosFolder: string;
                     hero: {
                         images: {
                             file: string;

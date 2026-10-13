@@ -53,6 +53,6 @@ describe("the Lahan Manakamana school file", () => {
 
   // Skipped until the photos are added (plan Task 11); that task removes the skip.
   it.skip("names only photo files that exist", () => {
-    for (const image of pack.site.scroll!.hero.images) expect(existsSync(join(import.meta.dirname, "../../web/public/site/lahan", image.file)), image.file).toBe(true);
+    for (const image of pack.site.scroll!.hero.images) expect(existsSync(join(import.meta.dirname, "../../web/public/site", pack.site.scroll!.photosFolder, image.file)), image.file).toBe(true);
   });
 });

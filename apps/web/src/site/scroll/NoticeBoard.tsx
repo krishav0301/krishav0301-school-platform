@@ -25,6 +25,9 @@ export const openIdFromSearch = (search: string): string | null => {
 /** The live notice with this id; null when it has ended, was never there, or none was asked for. */
 export const pickOpen = (items: PublicItem[], id: string | null): PublicItem | null => (id ? (items.find((item) => item.id === id) ?? null) : null);
 
+/** How many notices the page shows; the rest are on the full list, so the board stays short however many a school posts. */
+export const BOARD_LIMIT = 8;
+
 export type BoardStatus = "loading" | "ready" | "failed";
 
 /** The board in each state, drawn from its data so every state can be checked without a network. */
@@ -45,6 +48,7 @@ export function NoticeBoardView({
 }) {
   const ref = useReveal<HTMLDivElement>();
   const opened = status === "ready" ? pickOpen(items, openId) : null;
+  const shown = items.slice(0, BOARD_LIMIT);
   return (
     <div ref={ref} className={styles.reveal}>
       <h2 className={styles.sectionTitle}>{t("scroll.notices.title")}</h2>
@@ -74,7 +78,7 @@ export function NoticeBoardView({
 
       {status === "ready" && items.length > 0 ? (
         <ul className={styles.noticeList}>
-          {items.map((item) => (
+          {shown.map((item) => (
             <li key={item.id}>
               <button type="button" className={styles.noticeRow} onClick={() => onOpen(item.id)}>
                 <span className={styles.noticeMeta}>

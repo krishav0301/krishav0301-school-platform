@@ -35,10 +35,11 @@
   position: fixed;
   inset: 0 0 auto 0;
   z-index: 20;
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  /* Three items that share a row; with enlarged text or a narrow screen the last drops to its own row instead of overlapping. */
+  display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: var(--space-3);
+  gap: var(--space-1) var(--space-3);
   padding: var(--space-2) var(--page-gutter);
   color: var(--color-surface);
   background: color-mix(in srgb, var(--color-text) 35%, transparent);
@@ -53,7 +54,7 @@
 
 .menu {
   position: relative;
-  justify-self: start;
+  flex: 1 1 5rem;
 }
 
 .menuButton,
@@ -118,7 +119,7 @@
   justify-content: center;
   min-height: var(--control-height);
   min-width: var(--control-height);
-  justify-self: center;
+  flex: 0 0 auto;
 }
 
 .crest img {
@@ -128,7 +129,9 @@
 }
 
 .barEnd {
-  justify-self: end;
+  display: flex;
+  flex: 1 1 5rem;
+  justify-content: flex-end;
 }
 
 /* ---- Hero --------------------------------------------------------------------------------------------- */
@@ -157,6 +160,8 @@
   object-fit: cover;
   opacity: 0;
   transition: opacity 1.4s ease;
+  /* A photo that has not arrived shows no stray alt text over the brand colour. */
+  color: transparent;
 }
 
 .heroPhoto[data-active="true"] {
@@ -195,7 +200,8 @@
   margin: 0;
   max-width: 18ch;
   font-family: var(--font-heading);
-  font-size: clamp(2.25rem, 8vw, 4.5rem);
+  /* The smallest size is chosen so that the longest word still fits at 320px with text enlarged to 200%. */
+  font-size: clamp(1.25rem, 9vw, 4.5rem);
   font-weight: var(--weight-regular);
   line-height: var(--leading-tight);
   overflow-wrap: anywhere;
@@ -368,7 +374,8 @@
 .sectionTitle {
   margin: 0;
   font-family: var(--font-heading);
-  font-size: var(--text-3xl);
+  /* A heading's longest word must stay whole at 320px with text enlarged to 200% (D-030), so its smallest size is modest. */
+  font-size: clamp(1.5rem, 8vw, var(--text-3xl));
   font-weight: var(--weight-regular);
   line-height: var(--leading-tight);
   color: var(--color-primary);
@@ -408,7 +415,7 @@
 .batchCard {
   display: grid;
   gap: var(--space-2);
-  padding: var(--space-5);
+  padding: var(--space-4);
   background: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-card);
@@ -425,7 +432,7 @@
 .batchTitle {
   margin: 0;
   font-family: var(--font-heading);
-  font-size: var(--text-2xl);
+  font-size: clamp(1rem, 6.5vw, var(--text-2xl));
   font-weight: var(--weight-regular);
   overflow-wrap: anywhere;
 }

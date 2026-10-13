@@ -10772,6 +10772,10 @@
               "scroll": {
                 "type": "object",
                 "properties": {
+                  "photosFolder": {
+                    "type": "string",
+                    "pattern": "^[a-z0-9][a-z0-9-]{0,40}$"
+                  },
                   "hero": {
                     "type": "object",
                     "properties": {
@@ -10861,6 +10865,7 @@
                   }
                 },
                 "required": [
+                  "photosFolder",
                   "hero",
                   "intro",
                   "batches",

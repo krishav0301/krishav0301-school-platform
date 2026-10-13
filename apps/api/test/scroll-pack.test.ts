@@ -4,6 +4,7 @@ import { InvalidPackError, parsePack } from "../src/core/config";
 import royalJson from "../../../packs/royal-softech/pack.json";
 
 const scroll = {
+  photosFolder: "demo",
   hero: { images: [{ file: "hero-1.webp", alt: "The school building" }] },
   intro: "A short intro.",
   batches: [{ title: "Kindergarten" }, { title: "Class 1 to 5", note: "to confirm" }],
@@ -39,6 +40,14 @@ describe("the scroll layout in a pack", () => {
   it("refuses a link that is not on facebook.com, and duplicate batch titles", () => {
     expect(() => parsePack(withSite({ layout: "scroll", scroll: { ...scroll, about: { facebook: "https://evil.example/facebook.com" } } }))).toThrow(InvalidPackError);
     expect(() => parsePack(withSite({ layout: "scroll", scroll: { ...scroll, batches: [{ title: "A" }, { title: "A" }] } }))).toThrow(/batches/);
+  });
+
+  it("needs a plain folder name for the photos, and refuses a path or a missing one", () => {
+    const { photosFolder: _unused, ...withoutFolder } = scroll;
+    expect(() => parsePack(withSite({ layout: "scroll", scroll: withoutFolder }))).toThrow(InvalidPackError);
+    for (const photosFolder of ["../x", "a/b", "Demo", "", "x".repeat(60)]) {
+      expect(() => parsePack(withSite({ layout: "scroll", scroll: { ...scroll, photosFolder } })), photosFolder).toThrow(InvalidPackError);
+    }
   });
 
   it("refuses scroll words on a classic site", () => {

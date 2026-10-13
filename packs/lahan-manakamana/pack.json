@@ -28,6 +28,7 @@
   "site": {
     "layout": "scroll",
     "scroll": {
+      "photosFolder": "lahan",
       "hero": {
         "images": [
           { "file": "hero-1.webp", "alt": "Students in class at Lahan Manakamana English Boarding School" },

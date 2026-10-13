@@ -57,6 +57,7 @@ Today the public form requires an email and the application waits as `email_unve
 
 | Key | Shape |
 |---|---|
+| `photosFolder` | a plain folder name under `apps/web/public/site/` (the boundary check keeps a school's name out of the code) |
 | `hero` | `{ images: { file, alt }[] (1 to 6), tagline? }` |
 | `intro` | `string` (the school paragraph) |
 | `batches` | `{ title, note? }[]` (max 20) |

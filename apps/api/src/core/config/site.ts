@@ -13,8 +13,12 @@ const EMAIL = /^[^\s@<>"?;&]+@[^\s@<>"?;&]+\.[^\s@<>"?;&]+$/;
 const HeroFile = z.string().regex(/^[a-z0-9][a-z0-9-]{0,60}\.webp$/, "a plain lower-case .webp file name");
 const FACEBOOK = /^https:\/\/(www\.)?facebook\.com\/[A-Za-z0-9._\-/?=&%]{1,200}$/;
 
+/** The folder under `apps/web/public/site/` that holds the school's photos and crest. */
+const PhotosFolder = z.string().regex(/^[a-z0-9][a-z0-9-]{0,40}$/, "a plain lower-case folder name");
+
 /** The words of the one-page scrolling public site (D-167): a school whose pack says `layout: "scroll"` has them. */
 export const ScrollContentSchema = z.strictObject({
+  photosFolder: PhotosFolder,
   hero: z.strictObject({
     images: z.array(z.strictObject({ file: HeroFile, alt: Text(160) })).min(1).max(6),
     tagline: Text(160).optional(),

@@ -16,7 +16,7 @@ export interface HeroImage {
 }
 
 /** The first screen: school photos fading into one another under a shade, the school's name, and the two ways in. */
-export function Hero({ schoolName, address, images, tagline, signedIn }: { schoolName: string; address: string; images: HeroImage[]; tagline?: string; signedIn: boolean }) {
+export function Hero({ schoolName, address, images, folder, tagline, signedIn }: { schoolName: string; address: string; images: HeroImage[]; folder: string; tagline?: string; signedIn: boolean }) {
   const active = useHeroCycle(images.length);
   return (
     <section id="top" className={styles.hero} aria-label={schoolName}>
@@ -25,7 +25,7 @@ export function Hero({ schoolName, address, images, tagline, signedIn }: { schoo
           // eslint-disable-next-line @next/next/no-img-element -- pre-sized WebP in a static export
           <img
             key={image.file}
-            src={photoUrl(image.file)}
+            src={photoUrl(folder, image.file)}
             alt={i === active ? image.alt : ""}
             className={styles.heroPhoto}
             data-active={i === active ? "true" : "false"}

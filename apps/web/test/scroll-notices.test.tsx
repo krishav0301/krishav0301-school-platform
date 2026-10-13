@@ -4,7 +4,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 
 import type { PublicItem } from "@/content/model";
-import { NoticeBoardView, openIdFromSearch, pickOpen } from "@/site/scroll/NoticeBoard";
+import { BOARD_LIMIT, NoticeBoardView, openIdFromSearch, pickOpen } from "@/site/scroll/NoticeBoard";
 import { NoticeReader } from "@/site/scroll/NoticeReader";
 
 vi.mock("next/navigation", () => ({ usePathname: () => "/", useRouter: () => ({ replace: vi.fn(), push: vi.fn() }) }));
@@ -113,5 +113,23 @@ describe("a long title", () => {
     const css = readFileSync(join(import.meta.dirname, "..", "src", "site", "scroll", "scroll.module.css"), "utf8");
     expect(css).toMatch(/\.noticeTitle\s*\{[^}]*overflow-wrap:\s*anywhere/);
     expect(css).toMatch(/\.noticeRow\s*\{[^}]*min-height:\s*var\(--control-height\)/);
+  });
+});
+
+describe("a board with many notices", () => {
+  it("shows only the newest few, and sends the rest to the full list", () => {
+    const many = Array.from({ length: BOARD_LIMIT + 5 }, (_, n) => item({ id: `${String(n).padStart(2, "0")}`.padEnd(32, "0"), title: `Notice number ${n}` }));
+    const html = renderToStaticMarkup(<NoticeBoardView status="ready" items={many} openId={null} onOpen={noop} onClose={noop} onRetry={noop} />);
+    expect(html.match(/Notice number \d+/g)!.length).toBe(BOARD_LIMIT);
+    expect(html).toContain("Notice number 0<");
+    expect(html).not.toContain(`Notice number ${BOARD_LIMIT}<`);
+    expect(html).toMatch(/href="\/notices"/);
+  });
+
+  it("still opens a notice that is past the limit, when its address asks for it", () => {
+    const many = Array.from({ length: BOARD_LIMIT + 2 }, (_, n) => item({ id: `${String(n).padStart(2, "0")}`.padEnd(32, "0"), title: `Notice number ${n}`, body: `BODY-${n}` }));
+    const last = many.at(-1)!;
+    const html = renderToStaticMarkup(<NoticeBoardView status="ready" items={many} openId={last.id} onOpen={noop} onClose={noop} onRetry={noop} />);
+    expect(html).toContain(`BODY-${BOARD_LIMIT + 1}`);
   });
 });
