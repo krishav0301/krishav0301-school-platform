@@ -128,6 +128,15 @@
   object-fit: contain;
 }
 
+/* At the top of the page the big crest in the hero is the logo; the bar's small one fades in as the page scrolls (opacity only). */
+.topBar:not([data-scrolled="true"]) .crest {
+  opacity: 0;
+}
+
+.crest {
+  transition: opacity 0.4s ease;
+}
+
 .barEnd {
   display: flex;
   flex: 1 1 5rem;
@@ -189,6 +198,13 @@
   text-align: center;
 }
 
+.heroCrest {
+  width: clamp(7rem, 30vw, 11rem);
+  height: auto;
+  object-fit: contain;
+  filter: drop-shadow(0 6px 18px color-mix(in srgb, var(--color-text) 55%, transparent));
+}
+
 .heroKicker {
   margin: 0;
   font-size: var(--text-sm);
@@ -199,10 +215,10 @@
 
 .heroTitle {
   margin: 0;
-  max-width: 18ch;
+  max-width: 22ch;
   font-family: var(--font-heading);
   /* The smallest size is chosen so that the longest word still fits at 320px with text enlarged to 200%. */
-  font-size: clamp(1.25rem, 9vw, 4.5rem);
+  font-size: clamp(1.25rem, 9vw, 3.5rem);
   font-weight: var(--weight-regular);
   line-height: var(--leading-tight);
   overflow-wrap: anywhere;

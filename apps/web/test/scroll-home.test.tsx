@@ -25,6 +25,18 @@ describe("the scroll page's shell", () => {
     expect(html.indexOf(esc(site.contact.address))).toBeLessThan(html.indexOf("<h1"));
   });
 
+  it("puts the school's crest large at the top centre of the page, before its name, and small in the bar once you scroll (PM, 2026-10-13)", () => {
+    const hero = /<section id="top"[\s\S]*?<\/section>/.exec(html)![0];
+    expect(hero).toMatch(/<img[^>]*class="heroCrest"[^>]*src="\/site\/lahan\/crest\.webp"|<img[^>]*src="\/site\/lahan\/crest\.webp"[^>]*class="heroCrest"/);
+    expect(hero.indexOf('class="heroCrest"')).toBeLessThan(hero.indexOf("<h1"));
+    expect(/<header[\s\S]*?<\/header>/.exec(html)![0]).toContain("/site/lahan/crest.webp");
+    expect(count(html, /class="heroCrest"/g)).toBe(1);
+  });
+
+  it("shows the school's motto under its name", () => {
+    expect(html).toContain("Darkness to Light");
+  });
+
   it("has exactly one prominent button, Sign in, and an outlined Apply that goes to the admission form", () => {
     expect(count(html, /class="button primary/g)).toBe(1);
     expect(html).toMatch(/<a[^>]*href="\/sign-in"[^>]*class="button primary[^"]*"[^>]*>Sign in<\/a>|<a[^>]*class="button primary[^"]*"[^>]*href="\/sign-in"[^>]*>Sign in<\/a>/);

@@ -30,6 +30,7 @@
     "scroll": {
       "photosFolder": "lahan",
       "hero": {
+        "tagline": "Darkness to Light",
         "images": [
           { "file": "hero-1.webp", "alt": "Students in class at Lahan Manakamana English Boarding School" },
           { "file": "hero-2.webp", "alt": "The school and its students" },
@@ -37,7 +38,7 @@
           { "file": "hero-4.webp", "alt": "Students taking part in a school event" }
         ]
       },
-      "intro": "Lahan Manakamana English Boarding School is in Lahan-8, Siraha. Here you can read the school's notices, apply for admission and sign in to see results.",
+      "intro": "Lahan Manakamana Secondary English Boarding School is in Lahan-8, Siraha, Nepal. Here you can read the school's notices, apply for admission and sign in to see results.",
       "batches": [
         { "title": "Kindergarten", "note": "To confirm with the school" },
         { "title": "Class 1 to 3", "note": "To confirm with the school" },
@@ -46,6 +47,7 @@
         { "title": "Class 9 to 10 (SEE)", "note": "To confirm with the school" }
       ],
       "about": {
+        "story": "Established in BS 2058, in Lahan-8, Siraha.",
         "facebook": "https://www.facebook.com/profile.php?id=100090093189751",
         "mapQuery": "Lahan-8, Road No - 2, Lahan, Siraha"
       }
@@ -118,7 +120,7 @@
       "bad": "#b42318",
       "badSoft": "#fde4e1",
       "accent": "#7a5600",
-      "accentSoft": "#ffd23f",
+      "accentSoft": "#ffd800",
       "warn": "#b54708",
       "warnSoft": "#fef0e1"
     }

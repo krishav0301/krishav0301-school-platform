@@ -39,6 +39,9 @@ export function Hero({ schoolName, address, images, folder, tagline, signedIn }:
       </div>
       <div className={styles.heroShade} />
       <div className={styles.heroText}>
+        {/* The school's own crest, large at the top centre; the bar's small one takes over once the page scrolls. */}
+        {/* eslint-disable-next-line @next/next/no-img-element -- pre-sized WebP in a static export */}
+        <img src={photoUrl(folder, "crest.webp")} alt="" className={styles.heroCrest} width={150} height={174} decoding="async" fetchPriority="high" />
         <p className={styles.heroKicker}>{address}</p>
         <h1 className={styles.heroTitle}>{schoolName}</h1>
         {tagline ? <p className={styles.heroTagline}>{tagline}</p> : null}

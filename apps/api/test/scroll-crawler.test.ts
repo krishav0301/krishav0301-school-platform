@@ -37,6 +37,8 @@ describe("a scroll school's front page, for crawlers", () => {
     expect(copy).toContain(site.scroll.intro.slice(0, 40));
     for (const batch of site.scroll.batches) expect(copy).toContain(batch.title);
     expect(copy).toContain("Exam routine for the final term");
+    expect(copy).toContain("Darkness to Light");
+    expect(copy).toContain("2058");
     expect(copy).toContain('href="https://www.facebook.com/profile.php?id=100090093189751"');
   });
 

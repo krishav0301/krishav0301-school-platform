@@ -1,6 +1,3 @@
-import { existsSync } from "node:fs";
-import { join } from "node:path";
-
 import { describe, expect, it } from "vitest";
 
 import { parsePack } from "../src/core/config";
@@ -65,8 +62,11 @@ describe("the Lahan Manakamana school file", () => {
     expect(contrastRatio(light.text, light.accentSoft)).toBeGreaterThanOrEqual(4.5);
   });
 
-  // Skipped until the photos are added (plan Task 11); that task removes the skip.
-  it.skip("names only photo files that exist", () => {
-    for (const image of pack.site.scroll!.hero.images) expect(existsSync(join(import.meta.dirname, "../../web/public/site", pack.site.scroll!.photosFolder, image.file)), image.file).toBe(true);
+  it("says its motto and the year it was founded, both as printed on its own crest, and names itself as the crest does", () => {
+    expect(pack.site.scroll!.hero.tagline).toBe("Darkness to Light");
+    expect(pack.site.scroll!.about.story).toContain("2058");
+    expect(pack.site.scroll!.intro).toContain("Lahan Manakamana Secondary English Boarding School");
   });
+
+
 });

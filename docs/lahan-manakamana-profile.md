@@ -8,11 +8,11 @@ Source: https://www.facebook.com/profile.php?id=100090093189751 (Page, category 
 | Item | Value |
 |---|---|
 | Name on the page | Lahan Manakamana English Boarding School |
-| Name in the pack | Lahan Manakamana **Secondary** English Boarding School (a visitor's comment also says "manakamana secondary English boarding school"). **Ask which is official.** |
+| Name in the pack | Lahan Manakamana **Secondary** English Boarding School. **Settled by the school's own crest (2026-10-13), which reads "Lahan Manakamana Secondary English Boarding School Pvt. (Ltd.)".** |
 | Address | Lahan-8, Road No - 2 (Lahan, Siraha) |
 | Phone | +977 33-564346 (listed as "Mobile") |
 | Rating | Not yet rated (0 reviews) |
-| Logo | A gold-and-yellow shield crest with a lamp. Supplied by the school; use the real file, never regenerate it (CLAUDE.md section 7). |
+| Logo | A yellow shield crest with a lamp, a book, a racket and mountains, green lettering and a ribbon reading "Darkness to Light". **Supplied by the PM on 2026-10-13 and now in the site** (`apps/web/public/site/lahan/crest.webp`). The crest reads "Lahan Manakamana Secondary English Boarding School Pvt. (Ltd.)", "Lahan-8, Siraha (Nepal)" and "Estd 2058" (BS). Never regenerate it (CLAUDE.md section 7). |
 
 ## Seen in posts (the school's life)
 - **Classes:** Kindergarten (a welcome post), Class 6, 8, 9 and 10 are named, so Kindergarten to Class 10 is likely. Class 10 sits SEE; one post names the SEE exam centre for 2082 (Siraha). **Confirm the exact class range.**
