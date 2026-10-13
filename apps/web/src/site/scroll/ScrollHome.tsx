@@ -47,7 +47,7 @@ export function ScrollHomeView({
     if (id) document.getElementById(id)?.scrollIntoView();
   }, []);
 
-  const { hero, intro, photosFolder: folder } = site.scroll;
+  const { hero, gallery, intro, photosFolder: folder } = site.scroll;
   return (
     <div className={styles.page}>
       <SmoothScroll />
@@ -58,7 +58,7 @@ export function ScrollHomeView({
       <main id="main">
         <Hero schoolName={schoolName} address={site.contact.address} images={hero.images} folder={folder} tagline={hero.tagline} signedIn={signedIn} />
         <SchoolBand intro={intro} />
-        <PhotoStrip images={hero.images} folder={folder} />
+        <PhotoStrip images={gallery ?? hero.images} folder={folder} />
         {slots.batches}
         <section id="notices" className={styles.section}>
           {slots.notices}

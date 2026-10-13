@@ -331,7 +331,11 @@
 }
 
 .stripPhoto {
-  flex: 0 0 min(78vw, 22rem);
+  /* The width is set on the picture itself, not only as a flex basis: a flex item may not shrink below the picture file's own size otherwise. */
+  flex: 0 0 auto;
+  width: min(78vw, 22rem);
+  min-width: 0;
+  height: auto;
   aspect-ratio: 4 / 3;
   object-fit: cover;
   border-radius: var(--radius-card);

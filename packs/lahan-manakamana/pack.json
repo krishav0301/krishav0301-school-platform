@@ -32,12 +32,23 @@
       "hero": {
         "tagline": "Darkness to Light",
         "images": [
-          { "file": "hero-1.webp", "alt": "Students in class at Lahan Manakamana English Boarding School" },
-          { "file": "hero-2.webp", "alt": "The school and its students" },
-          { "file": "hero-3.webp", "alt": "A school programme" },
-          { "file": "hero-4.webp", "alt": "Students taking part in a school event" }
+          { "file": "hero-building.webp", "alt": "The school's yellow building in Lahan" },
+          { "file": "hero-classroom.webp", "alt": "Students writing at their desks in a classroom" },
+          { "file": "hero-computer-lab.webp", "alt": "Students working in the computer lab" },
+          { "file": "hero-football.webp", "alt": "A school football team with their coach" },
+          { "file": "hero-painting.webp", "alt": "Students drawing and painting at their desks" }
         ]
       },
+      "gallery": [
+        { "file": "gallery-ceremony.webp", "alt": "A teacher applying a tika to a student at a school ceremony" },
+        { "file": "gallery-certificate.webp", "alt": "Students and teachers holding their drawings in front of the school" },
+        { "file": "gallery-award.webp", "alt": "Students and teachers with their medals in front of the school" },
+        { "file": "gallery-rangoli.webp", "alt": "Students making a rangoli of flower petals" },
+        { "file": "gallery-project.webp", "alt": "A student showing her paintings" },
+        { "file": "gallery-sports.webp", "alt": "A sports team in their tracksuits with their teachers" },
+        { "file": "gallery-festival.webp", "alt": "Children at a festival celebration" },
+        { "file": "gallery-kindergarten.webp", "alt": "A kindergarten child showing her painted hands, with her teachers" }
+      ],
       "intro": "Lahan Manakamana Secondary English Boarding School is in Lahan-8, Siraha, Nepal. Here you can read the school's notices, apply for admission and sign in to see results.",
       "batches": [
         { "title": "Kindergarten", "note": "To confirm with the school" },

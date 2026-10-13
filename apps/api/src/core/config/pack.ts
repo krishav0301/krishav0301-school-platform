@@ -72,6 +72,8 @@ export function parsePack(input: unknown): Pack {
   const sectionKeys = new Set(keys);
   if (pack.site.layout === "scroll" && !pack.site.scroll) problems.push("site.scroll: required when site.layout is scroll");
   if (pack.site.layout !== "scroll" && pack.site.scroll) problems.push("site.scroll: only a scroll layout may have scroll words");
+  const pictureFiles = [...(pack.site.scroll?.hero.images ?? []), ...(pack.site.scroll?.gallery ?? [])].map((image) => image.file);
+  if (new Set(pictureFiles).size !== pictureFiles.length) problems.push("site.scroll: a picture file is named more than once (hero and gallery)");
   const batchTitles = pack.site.scroll?.batches.map((b) => b.title) ?? [];
   if (new Set(batchTitles).size !== batchTitles.length) problems.push("site.scroll.batches: titles must be unique");
 

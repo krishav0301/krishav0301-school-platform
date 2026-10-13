@@ -50,6 +50,20 @@ describe("the scroll layout in a pack", () => {
     }
   });
 
+  it("takes an optional gallery of its own for the photo strip, up to twelve", () => {
+    const gallery = [{ file: "g-1.webp", alt: "A first photo" }, { file: "g-2.webp", alt: "A second photo" }];
+    expect(parsePack(withSite({ layout: "scroll", scroll: { ...scroll, gallery } })).site.scroll?.gallery).toHaveLength(2);
+    expect(parsePack(withSite({ layout: "scroll", scroll })).site.scroll?.gallery).toBeUndefined();
+    const thirteen = Array.from({ length: 13 }, (_, n) => ({ file: `g-${n}.webp`, alt: "A photo" }));
+    expect(() => parsePack(withSite({ layout: "scroll", scroll: { ...scroll, gallery: thirteen } }))).toThrow(InvalidPackError);
+  });
+
+  it("refuses the same picture file named twice, across the hero and the gallery", () => {
+    expect(() => parsePack(withSite({ layout: "scroll", scroll: { ...scroll, gallery: [{ file: "hero-1.webp", alt: "Again" }] } }))).toThrow(/more than once/);
+    expect(() => parsePack(withSite({ layout: "scroll", scroll: { ...scroll, gallery: [{ file: "g.webp", alt: "A" }, { file: "g.webp", alt: "B" }] } }))).toThrow(/more than once/);
+    expect(() => parsePack(withSite({ layout: "scroll", scroll: { ...scroll, hero: { images: [{ file: "h.webp", alt: "A" }, { file: "h.webp", alt: "B" }] } } }))).toThrow(/more than once/);
+  });
+
   it("refuses scroll words on a classic site", () => {
     expect(() => parsePack(withSite({ scroll }))).toThrow(/site\.scroll/);
   });

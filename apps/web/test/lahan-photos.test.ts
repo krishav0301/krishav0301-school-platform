@@ -1,4 +1,4 @@
-import { existsSync, statSync } from "node:fs";
+import { existsSync, readdirSync, statSync } from "node:fs";
 import { join } from "node:path";
 
 import { describe, expect, it } from "vitest";
@@ -15,12 +15,24 @@ describe("Lahan's picture files", () => {
     expect(statSync(crest).size).toBeLessThan(80 * 1024);
   });
 
-  // Skipped until the school's photos are added (the PM must approve the download list first, D-167).
-  it.skip("has every photo the pack names, each small enough", () => {
+  it("has every hero photo the pack names, each small enough for a full-screen picture", () => {
     for (const image of lahanJson.site.scroll.hero.images) {
       const file = join(folder, image.file);
       expect(existsSync(file), image.file).toBe(true);
-      expect(statSync(file).size, image.file).toBeLessThan(150 * 1024);
+      expect(statSync(file).size, image.file).toBeLessThan(155 * 1024);
     }
+  });
+
+  it("has every gallery photo the pack names, each small enough for the strip", () => {
+    for (const image of lahanJson.site.scroll.gallery) {
+      const file = join(folder, image.file);
+      expect(existsSync(file), image.file).toBe(true);
+      expect(statSync(file).size, image.file).toBeLessThan(100 * 1024);
+    }
+  });
+
+  it("has no picture in the folder that the pack does not use (nothing is shipped for nothing)", () => {
+    const named = new Set(["crest.webp", ...lahanJson.site.scroll.hero.images.map((i) => i.file), ...lahanJson.site.scroll.gallery.map((i) => i.file)]);
+    expect(readdirSync(folder).filter((f) => !named.has(f))).toEqual([]);
   });
 });

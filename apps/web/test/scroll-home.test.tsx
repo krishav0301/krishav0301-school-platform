@@ -73,6 +73,26 @@ describe("the scroll page's shell", () => {
     for (const image of images.slice(1)) expect(new RegExp(`<img[^>]*src="/site/lahan/${image.file}"[^>]*loading="lazy"`).test(html), image.file).toBe(true);
   });
 
+  it("shows the school's gallery in the strip when it has one, and the hero photos otherwise", () => {
+    const withGallery = { ...site, scroll: { ...site.scroll, gallery: [{ file: "g-one.webp", alt: "A gallery photo" }, { file: "g-two.webp", alt: "Another gallery photo" }] } };
+    const page = renderToStaticMarkup(<ScrollHomeView schoolName="X" site={withGallery} signedIn={false} slots={slots} />);
+    const strip = /<div[^>]*role="region"[\s\S]*?<\/div>/.exec(page)![0];
+    expect(strip).toContain("g-one.webp");
+    expect(strip).toContain("g-two.webp");
+    for (const image of site.scroll.hero.images) expect(strip, image.file).not.toContain(image.file);
+    const withoutGallery = { ...site, scroll: { ...site.scroll, gallery: undefined } };
+    const plainStrip = /<div[^>]*role="region"[\s\S]*?<\/div>/.exec(renderToStaticMarkup(<ScrollHomeView schoolName="X" site={withoutGallery} signedIn={false} slots={slots} />))![0];
+    for (const image of site.scroll.hero.images) expect(plainStrip, image.file).toContain(image.file);
+  });
+
+  it("sizes each strip photo itself, so a large picture file cannot make its card as wide as the file", () => {
+    const css = readFileSync(join(import.meta.dirname, "..", "src", "site", "scroll", "scroll.module.css"), "utf8");
+    const photo = /\.stripPhoto\s*\{[^}]*\}/.exec(css)![0];
+    expect(photo).toMatch(/width:\s*min\(78vw,\s*22rem\)/);
+    expect(photo).toMatch(/min-width:\s*0/);
+    expect(photo).toMatch(/flex:\s*0 0 auto/);
+  });
+
   it("offers a way to pause the photos when there is more than one, and not when there is only one", () => {
     expect(html).toMatch(/<button[^>]*aria-pressed="false"[^>]*>Pause photos<\/button>/);
     const single = renderToStaticMarkup(<ScrollHomeView schoolName="X" site={{ ...site, scroll: { ...site.scroll, hero: { images: [site.scroll.hero.images[0]!] } } }} signedIn={false} slots={slots} />);

@@ -5149,6 +5149,10 @@ export interface components {
                         }[];
                         tagline?: string;
                     };
+                    gallery?: {
+                        file: string;
+                        alt: string;
+                    }[];
                     intro: string;
                     batches: {
                         title: string;
