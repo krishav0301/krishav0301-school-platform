@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 
+import { useConfig } from "@/config/ConfigProvider";
 import { toAd } from "@/content/client";
 import { t } from "@/i18n/messages";
 import { useSession } from "@/session/SessionProvider";
@@ -21,8 +22,11 @@ type Levels = { status: "loading" } | { status: "ready"; levels: OpenLevel[] } |
  * and reused on every retry. The title and intro show at once; only the fields wait on the level list
  * (D-030: show the shape of a page while it loads, not a lone spinner).
  */
-export function ApplyScreen() {
+export function ApplyScreen({ embedded = false }: { embedded?: boolean }) {
   const { api } = useSession();
+  const { config } = useConfig();
+  // A school may take applications without an email link (D-168): then there is no email field, and nothing is sent to confirm.
+  const needsEmail = config?.school.publicApplyNeedsLink !== false;
   const [levels, setLevels] = useState<Levels>({ status: "loading" });
   const [values, setValues] = useState<ApplicantForm>(emptyApplicantForm());
   const [errors, setErrors] = useState<ApplicantErrors>({});
@@ -51,7 +55,7 @@ export function ApplyScreen() {
   async function submit() {
     if (pending) return;
     setFailure(null);
-    const problems = validateApplicant(values);
+    const problems = validateApplicant(values, { email: needsEmail });
     if (Object.keys(problems).length > 0) {
       setErrors(problems);
       const first = firstInvalid(problems);
@@ -80,17 +84,19 @@ export function ApplyScreen() {
     return (
       <Card>
         <h1 className={setupStyles.title}>{t("admissions.apply.doneTitle")}</h1>
-        <p>{t("admissions.apply.doneBody", { email: values.email })}</p>
+        <p>{needsEmail ? t("admissions.apply.doneBody", { email: values.email }) : t("admissions.apply.doneBodyNoEmail")}</p>
       </Card>
     );
   }
 
   return (
     <Card>
-      <HeroBand>
-        <h1 className={setupStyles.title}>{t("admissions.apply.title")}</h1>
-        <p className={setupStyles.muted}>{t("admissions.apply.intro")}</p>
-      </HeroBand>
+      {embedded ? null : (
+        <HeroBand>
+          <h1 className={setupStyles.title}>{t("admissions.apply.title")}</h1>
+          <p className={setupStyles.muted}>{needsEmail ? t("admissions.apply.intro") : t("admissions.apply.introNoEmail")}</p>
+        </HeroBand>
+      )}
       {levels.status === "loading" ? (
         <div role="status" aria-busy="true" className={setupStyles.list}>
           <span className="sr-only">{t("setup.loading")}</span>
@@ -111,7 +117,7 @@ export function ApplyScreen() {
               void submit();
             }}
           >
-            <ApplicantFields values={values} errors={errors} levels={levels.levels} onChange={set} fieldRefs={{ firstName: firstNameRef, dobBs: dobRef, levelId: levelRef }} />
+            <ApplicantFields showEmail={needsEmail} values={values} errors={errors} levels={levels.levels} onChange={set} fieldRefs={{ firstName: firstNameRef, dobBs: dobRef, levelId: levelRef }} />
             <div className={admissionsStyles.honeypot} aria-hidden="true">
               <label htmlFor="admissions-website">Website</label>
               <input id="admissions-website" name="website" type="text" tabIndex={-1} autoComplete="off" value={website} onChange={(e) => setWebsite(e.target.value)} />

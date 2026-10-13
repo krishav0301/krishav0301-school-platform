@@ -27,6 +27,7 @@ export function ApplicantFields({
   onChange,
   fieldRefs,
   staff = false,
+  showEmail = true,
   onFirstNameBlur,
 }: {
   values: ApplicantForm;
@@ -36,6 +37,8 @@ export function ApplicantFields({
   fieldRefs?: { firstName?: React.Ref<HTMLInputElement>; dobBs?: React.Ref<HTMLInputElement>; levelId?: React.Ref<HTMLSelectElement> };
   /** A student typed in by staff (the PM, 2026-10-10): only the first name and the level are required, the rest says so, and the email is made from the name. */
   staff?: boolean;
+  /** A school that takes applications without an email link leaves the field out (D-168). */
+  showEmail?: boolean;
   onFirstNameBlur?: () => void;
 }) {
   const label = (text: string) => (staff ? `${text} ${t("admissions.field.optional")}` : text);
@@ -48,7 +51,7 @@ export function ApplicantFields({
       <Field label={label(t("admissions.field.lastName"))} value={values.lastName} autoComplete="family-name" onChange={(e) => onChange("lastName", e.target.value)} onBlur={onFirstNameBlur} error={err("lastName")} />
       <BsDateField ref={fieldRefs?.dobBs} legend={label(t("admissions.field.dob"))} value={values.dobBs} onChange={(text) => onChange("dobBs", text)} error={err("dobBs")} />
       <Field label={label(t("admissions.field.phone"))} value={values.phone} autoComplete="tel" inputMode="tel" onChange={(e) => onChange("phone", e.target.value)} error={err("phone")} />
-      <Field label={t("admissions.field.email")} hint={staff ? t("admissions.field.emailAutoHint") : undefined} type="email" value={values.email} autoComplete="email" onChange={(e) => onChange("email", e.target.value)} error={err("email")} />
+      {showEmail ? <Field label={t("admissions.field.email")} hint={staff ? t("admissions.field.emailAutoHint") : undefined} type="email" value={values.email} autoComplete="email" onChange={(e) => onChange("email", e.target.value)} error={err("email")} /> : null}
       <Field label={label(t("admissions.field.guardianName"))} value={values.guardianName} onChange={(e) => onChange("guardianName", e.target.value)} error={err("guardianName")} />
       <Field label={label(t("admissions.field.guardianPhone"))} value={values.guardianPhone} inputMode="tel" onChange={(e) => onChange("guardianPhone", e.target.value)} error={err("guardianPhone")} />
       <Field label={label(t("admissions.field.previousSchool"))} hint={staff ? undefined : t("admissions.field.previousSchoolHint")} value={values.previousSchool} onChange={(e) => onChange("previousSchool", e.target.value)} />

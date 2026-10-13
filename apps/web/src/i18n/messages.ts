@@ -1341,6 +1341,8 @@ export const en = {
   "admissions.apply.intro": "Fill in the applicant's details. We will email a link to confirm before the application is reviewed.",
   "admissions.apply.submit": "Submit application",
   "admissions.apply.submitting": "Submitting…",
+  "admissions.apply.introNoEmail": "Fill in the applicant's details. The school office will look at the application and call you.",
+  "admissions.apply.doneBodyNoEmail": "Thank you. The school office will review the application and call the number you gave.",
   "admissions.apply.doneTitle": "Application received",
   "admissions.apply.doneBody": "We sent a confirmation link to {email}. Open it to put the application in the queue.",
   "admissions.verify.failed": "This link has expired or was already used.",

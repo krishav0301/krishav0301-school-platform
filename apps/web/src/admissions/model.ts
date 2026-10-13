@@ -41,13 +41,13 @@ export type ApplicantField = "firstName" | "lastName" | "dobBs" | "phone" | "ema
 export type ApplicantErrors = Partial<Record<ApplicantField, MessageKey>>;
 
 /** The same shape checks the server enforces (D-063), so a person is told before sending, not after. */
-export function validateApplicant(values: ApplicantForm): ApplicantErrors {
+export function validateApplicant(values: ApplicantForm, options: { email?: boolean } = {}): ApplicantErrors {
   const errors: ApplicantErrors = {};
   if (!values.firstName.trim()) errors.firstName = "admissions.error.required";
   if (!values.lastName.trim()) errors.lastName = "admissions.error.required";
   if (!values.dobBs.trim()) errors.dobBs = "admissions.error.required";
   if (!/^[0-9+\-() ]{7,20}$/.test(values.phone.trim())) errors.phone = "admissions.error.phone";
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(values.email.trim())) errors.email = "admissions.error.email";
+  if ((options.email ?? true) && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(values.email.trim())) errors.email = "admissions.error.email";
   if (!values.guardianName.trim()) errors.guardianName = "admissions.error.required";
   if (!/^[0-9+\-() ]{7,20}$/.test(values.guardianPhone.trim())) errors.guardianPhone = "admissions.error.phone";
   if (!values.levelId) errors.levelId = "admissions.error.required";
