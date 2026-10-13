@@ -15,6 +15,18 @@ export const en = {
   "shell.signOut": "Sign out",
   "shell.signedInAs": "Signed in as {name}",
   "shell.footer": "{school}",
+
+  // The one-page scroll site (D-167)
+  "scroll.menu": "Menu",
+  "scroll.menuLabel": "Page sections",
+  "scroll.nav.notices": "Notices",
+  "scroll.nav.admission": "Admission",
+  "scroll.nav.about": "About",
+  "scroll.signIn": "Sign in",
+  "scroll.portal": "Portal",
+  "scroll.apply": "Apply",
+  "scroll.school.heading": "The school",
+  "scroll.strip.label": "Photos of the school",
   "nav.dashboard": "Overview",
 
   // Loading and status of the school configuration

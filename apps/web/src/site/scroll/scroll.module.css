@@ -1,0 +1,364 @@
+/*
+ * The one-page scroll site (D-167). Tokens only: no colour, font or motion is written out here.
+ * Mobile first. Anything that moves animates transform and opacity only, and nothing moves for a visitor
+ * who asked for less motion.
+ */
+
+.page {
+  background: var(--color-background);
+  color: var(--color-text);
+  /* One column exactly as wide as the screen, so enlarged text wraps instead of widening the page. */
+  min-width: 0;
+  overflow-x: clip;
+}
+
+.skip {
+  position: fixed;
+  top: var(--space-2);
+  left: var(--space-2);
+  z-index: 30;
+  padding: var(--space-3) var(--space-4);
+  background: var(--color-surface);
+  color: var(--color-text);
+  border-radius: var(--radius-control);
+  transform: translateY(-200%);
+}
+
+.skip:focus-visible {
+  transform: none;
+  outline: var(--focus-ring);
+}
+
+/* ---- Top bar ------------------------------------------------------------------------------------------ */
+
+.topBar {
+  position: fixed;
+  inset: 0 0 auto 0;
+  z-index: 20;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--page-gutter);
+  color: var(--color-surface);
+  background: color-mix(in srgb, var(--color-text) 35%, transparent);
+  border-bottom: 1px solid transparent;
+}
+
+.topBar[data-scrolled="true"] {
+  background: var(--color-surface);
+  color: var(--color-text);
+  border-bottom-color: var(--color-border);
+}
+
+.menu {
+  position: relative;
+  justify-self: start;
+}
+
+.menuButton,
+.topLink {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--control-height);
+  min-width: var(--control-height);
+  padding: 0 var(--space-3);
+  font: inherit;
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: inherit;
+  background: none;
+  border: 0;
+  border-bottom: 1px solid currentcolor;
+  border-radius: 0;
+  cursor: pointer;
+  text-decoration: none;
+}
+
+.menuButton:focus-visible,
+.topLink:focus-visible,
+.crest:focus-visible,
+.heroLink:focus-visible,
+.footerLink:focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: 2px;
+}
+
+.menuList {
+  display: none;
+  position: absolute;
+  top: 100%;
+  left: 0;
+  min-width: 12rem;
+  margin: var(--space-2) 0 0;
+  padding: var(--space-2);
+  list-style: none;
+  background: var(--color-surface);
+  color: var(--color-text);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+}
+
+.menuList[data-open="true"] {
+  display: grid;
+  gap: var(--space-1);
+}
+
+.menuList .topLink {
+  width: 100%;
+  border-bottom: 0;
+}
+
+.crest {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: var(--control-height);
+  min-width: var(--control-height);
+  justify-self: center;
+}
+
+.crest img {
+  width: 2.75rem;
+  height: 2.75rem;
+  object-fit: contain;
+}
+
+.barEnd {
+  justify-self: end;
+}
+
+/* ---- Hero --------------------------------------------------------------------------------------------- */
+
+.hero {
+  position: relative;
+  min-height: 100svh;
+  display: grid;
+  align-content: center;
+  overflow: clip;
+  /* What shows if a photo has not arrived yet. */
+  background: var(--color-primary);
+  color: var(--color-surface);
+}
+
+.heroPhotos {
+  position: absolute;
+  inset: 0;
+}
+
+.heroPhoto {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0;
+  transition: opacity 1.4s ease;
+}
+
+.heroPhoto[data-active="true"] {
+  opacity: 1;
+}
+
+.heroShade {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    to bottom,
+    color-mix(in srgb, var(--color-text) 55%, transparent),
+    color-mix(in srgb, var(--color-text) 30%, transparent) 45%,
+    color-mix(in srgb, var(--color-text) 72%, transparent)
+  );
+}
+
+.heroText {
+  position: relative;
+  display: grid;
+  justify-items: center;
+  gap: var(--space-4);
+  padding: calc(var(--space-8) + var(--space-6)) var(--page-gutter) var(--space-8);
+  text-align: center;
+}
+
+.heroKicker {
+  margin: 0;
+  font-size: var(--text-sm);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  overflow-wrap: anywhere;
+}
+
+.heroTitle {
+  margin: 0;
+  max-width: 18ch;
+  font-family: var(--font-heading);
+  font-size: clamp(2.25rem, 8vw, 4.5rem);
+  font-weight: var(--weight-regular);
+  line-height: var(--leading-tight);
+  overflow-wrap: anywhere;
+}
+
+.heroTagline {
+  margin: 0;
+  max-width: 34rem;
+  font-size: var(--text-lg);
+}
+
+.heroActions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--space-3);
+  margin-top: var(--space-3);
+}
+
+.heroLinks {
+  position: absolute;
+  inset: auto var(--page-gutter) var(--space-5);
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--space-2) var(--space-5);
+  border-top: 1px solid color-mix(in srgb, var(--color-surface) 45%, transparent);
+  padding-top: var(--space-3);
+}
+
+.heroLink {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--control-height);
+  padding: 0 var(--space-2);
+  color: inherit;
+  font-family: var(--font-heading);
+  font-size: var(--text-lg);
+  letter-spacing: 0.04em;
+  text-decoration: none;
+}
+
+/* ---- The school band and photo strip ------------------------------------------------------------------ */
+
+.band {
+  display: grid;
+  place-items: center;
+  padding: var(--space-8) var(--page-gutter);
+  background: var(--color-primary);
+  color: var(--color-primary-text);
+  text-align: center;
+}
+
+.bandText {
+  max-width: 40rem;
+  font-family: var(--font-heading);
+  font-size: var(--text-xl);
+  line-height: var(--leading-normal);
+}
+
+.bandText p {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.strip {
+  display: flex;
+  gap: var(--space-3);
+  overflow-x: auto;
+  padding: var(--space-5) var(--page-gutter);
+  scroll-snap-type: x proximity;
+  background: var(--color-primary);
+}
+
+.strip:focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: -4px;
+}
+
+.stripPhoto {
+  flex: 0 0 min(78vw, 22rem);
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+  border-radius: var(--radius-card);
+  scroll-snap-align: start;
+  background: var(--color-surface);
+}
+
+/* ---- Sections that follow ----------------------------------------------------------------------------- */
+
+.section {
+  /* The top bar is fixed, so a link to a section must leave room for it. */
+  scroll-margin-top: 4.5rem;
+  padding: var(--space-8) var(--page-gutter);
+  max-width: var(--content-width);
+  margin-inline: auto;
+}
+
+.footer {
+  display: grid;
+  gap: var(--space-2);
+  padding: var(--space-6) var(--page-gutter);
+  text-align: center;
+  color: var(--color-text-muted);
+  border-top: 1px solid var(--color-border);
+}
+
+.footer p {
+  margin: 0;
+}
+
+.footerLink {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--control-height);
+  color: inherit;
+}
+
+/* ---- Reveal on scroll --------------------------------------------------------------------------------- */
+
+.reveal {
+  transition:
+    opacity 0.7s ease,
+    transform 0.7s ease;
+}
+
+/* Hidden only when scripts are running (the page adds `js` to <html>), so without them everything shows. */
+:global(html.js) .reveal:not([data-revealed="true"]) {
+  opacity: 0;
+  transform: translateY(1.25rem);
+}
+
+@media (min-width: 48rem) {
+  .menuButton {
+    display: none;
+  }
+
+  .menuList {
+    display: flex;
+    position: static;
+    margin: 0;
+    padding: 0;
+    gap: var(--space-2);
+    background: none;
+    color: inherit;
+    border: 0;
+    box-shadow: none;
+  }
+
+  .menuList .topLink {
+    width: auto;
+    border-bottom: 1px solid currentcolor;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reveal,
+  .heroPhoto {
+    transition: none;
+  }
+
+  :global(html.js) .reveal:not([data-revealed="true"]) {
+    opacity: 1;
+    transform: none;
+  }
+}
