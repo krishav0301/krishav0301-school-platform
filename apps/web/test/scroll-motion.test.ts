@@ -33,6 +33,11 @@ describe("the hero photos", () => {
     expect(heroShouldCycle(0, false)).toBe(false);
   });
 
+  it("stop cycling when the visitor pauses them, and go on when they play them again", () => {
+    expect(heroShouldCycle(4, false, true)).toBe(false);
+    expect(heroShouldCycle(4, false, false)).toBe(true);
+  });
+
   it("go on to the next, and wrap round to the first", () => {
     expect(heroIndexAfter(0, 3)).toBe(1);
     expect(heroIndexAfter(2, 3)).toBe(0);

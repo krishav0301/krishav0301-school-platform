@@ -168,14 +168,15 @@
   opacity: 1;
 }
 
+/* Dark enough everywhere that white text keeps at least 4.5:1 over even a very light photo (contrast worked out from the theme's text colour). */
 .heroShade {
   position: absolute;
   inset: 0;
   background: linear-gradient(
     to bottom,
-    color-mix(in srgb, var(--color-text) 55%, transparent),
-    color-mix(in srgb, var(--color-text) 30%, transparent) 45%,
-    color-mix(in srgb, var(--color-text) 72%, transparent)
+    color-mix(in srgb, var(--color-text) 66%, transparent),
+    color-mix(in srgb, var(--color-text) 60%, transparent) 45%,
+    color-mix(in srgb, var(--color-text) 78%, transparent)
   );
 }
 
@@ -219,6 +220,32 @@
   justify-content: center;
   gap: var(--space-3);
   margin-top: var(--space-3);
+}
+
+.heroPause {
+  position: absolute;
+  inset: auto var(--page-gutter) calc(var(--space-5) + var(--control-height) + var(--space-5)) auto;
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--control-height);
+  padding: 0 var(--space-3);
+  font: inherit;
+  font-size: var(--text-sm);
+  color: inherit;
+  background: color-mix(in srgb, var(--color-text) 40%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-surface) 55%, transparent);
+  border-radius: var(--radius-control);
+  cursor: pointer;
+}
+
+.heroPause[aria-pressed="true"] {
+  background: var(--color-surface);
+  color: var(--color-text);
+}
+
+.heroPause:focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: 2px;
 }
 
 .heroLinks {

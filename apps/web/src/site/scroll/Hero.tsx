@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useState } from "react";
 
 import { t } from "@/i18n/messages";
 import { buttonClass } from "@/ui";
@@ -17,7 +18,8 @@ export interface HeroImage {
 
 /** The first screen: school photos fading into one another under a shade, the school's name, and the two ways in. */
 export function Hero({ schoolName, address, images, folder, tagline, signedIn }: { schoolName: string; address: string; images: HeroImage[]; folder: string; tagline?: string; signedIn: boolean }) {
-  const active = useHeroCycle(images.length);
+  const [paused, setPaused] = useState(false);
+  const active = useHeroCycle(images.length, 6000, paused);
   return (
     <section id="top" className={styles.hero} aria-label={schoolName}>
       <div className={styles.heroPhotos}>
@@ -49,6 +51,11 @@ export function Hero({ schoolName, address, images, folder, tagline, signedIn }:
           </a>
         </div>
       </div>
+      {images.length > 1 ? (
+        <button type="button" className={styles.heroPause} aria-pressed={paused} onClick={() => setPaused((v) => !v)}>
+          {t("scroll.pause")}
+        </button>
+      ) : null}
       <nav className={styles.heroLinks} aria-label={t("scroll.menuLabel")}>
         {SECTION_LINKS.map((link) => (
           <a key={link.id} href={`#${link.id}`} className={styles.heroLink}>

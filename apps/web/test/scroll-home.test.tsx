@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 
@@ -57,6 +59,19 @@ describe("the scroll page's shell", () => {
     expect(first).toContain('loading="eager"');
     expect(first).toContain(`alt="${esc(images[0]!.alt)}"`);
     for (const image of images.slice(1)) expect(new RegExp(`<img[^>]*src="/site/lahan/${image.file}"[^>]*loading="lazy"`).test(html), image.file).toBe(true);
+  });
+
+  it("offers a way to pause the photos when there is more than one, and not when there is only one", () => {
+    expect(html).toMatch(/<button[^>]*aria-pressed="false"[^>]*>Pause photos<\/button>/);
+    const single = renderToStaticMarkup(<ScrollHomeView schoolName="X" site={{ ...site, scroll: { ...site.scroll, hero: { images: [site.scroll.hero.images[0]!] } } }} signedIn={false} slots={slots} />);
+    expect(single).not.toContain("Pause photos");
+  });
+
+  it("shades the photo enough that white text stays readable over a light one", () => {
+    const css = readFileSync(join(import.meta.dirname, "..", "src", "site", "scroll", "scroll.module.css"), "utf8");
+    const stops = [...css.match(/\.heroShade\s*\{[^}]*\}/)![0].matchAll(/var\(--color-text\) (\d+)%/g)].map((m) => Number(m[1]));
+    expect(stops.length).toBeGreaterThanOrEqual(3);
+    for (const stop of stops) expect(stop, "every part of the shade is at least 58%").toBeGreaterThanOrEqual(58);
   });
 
   it("shows the school's intro in the band, and a photo strip you can scroll by keyboard", () => {
