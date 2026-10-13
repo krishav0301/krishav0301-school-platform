@@ -32,21 +32,57 @@
       "hero": {
         "tagline": "Darkness to Light",
         "images": [
-          { "file": "hero-building.webp", "alt": "The school's yellow building in Lahan" },
-          { "file": "hero-classroom.webp", "alt": "Students writing at their desks in a classroom" },
-          { "file": "hero-computer-lab.webp", "alt": "Students working in the computer lab" },
-          { "file": "hero-football.webp", "alt": "A school football team with their coach" },
-          { "file": "hero-painting.webp", "alt": "Students drawing and painting at their desks" }
+          {
+            "file": "hero-building.webp",
+            "alt": "The school's yellow building in Lahan"
+          },
+          {
+            "file": "hero-group.webp",
+            "alt": "Students and teachers together in front of the school"
+          },
+          {
+            "file": "hero-classroom.webp",
+            "alt": "Students writing at their desks in a classroom"
+          },
+          {
+            "file": "hero-sports-week.webp",
+            "alt": "Teachers carrying flags and the School Sports Week banner on the school ground"
+          },
+          {
+            "file": "hero-football.webp",
+            "alt": "A school football team with their coach"
+          }
         ]
       },
       "gallery": [
-        { "file": "gallery-ceremony.webp", "alt": "A teacher applying a tika to a student at a school ceremony" },
-        { "file": "gallery-certificate.webp", "alt": "Students and teachers holding their drawings in front of the school" },
-        { "file": "gallery-award.webp", "alt": "Students and teachers with their medals in front of the school" },
-        { "file": "gallery-rangoli.webp", "alt": "Students making a rangoli of flower petals" },
-        { "file": "gallery-sports.webp", "alt": "A sports team in their tracksuits with their teachers" },
-        { "file": "gallery-festival.webp", "alt": "Children at a festival celebration" },
-        { "file": "gallery-kindergarten.webp", "alt": "A kindergarten child showing her painted hands, with her teachers" }
+        {
+          "file": "gallery-ceremony.webp",
+          "alt": "A teacher applying a tika to a student at a school ceremony"
+        },
+        {
+          "file": "gallery-certificate.webp",
+          "alt": "Students and teachers holding their drawings in front of the school"
+        },
+        {
+          "file": "gallery-award.webp",
+          "alt": "Students and teachers with their medals in front of the school"
+        },
+        {
+          "file": "gallery-rangoli.webp",
+          "alt": "Students making a rangoli of flower petals"
+        },
+        {
+          "file": "gallery-sports.webp",
+          "alt": "A sports team in their tracksuits with their teachers"
+        },
+        {
+          "file": "gallery-winners.webp",
+          "alt": "Students with their medals, standing with a teacher"
+        },
+        {
+          "file": "gallery-stage.webp",
+          "alt": "A student speaking into a microphone at a school programme"
+        }
       ],
       "quote": "From Darkness to Light\nRaising the Leaders of Tomorrow",
       "intro": "Welcome to Lahan Manakamana Secondary English Boarding School in Lahan-8, Siraha. Read the latest notices, apply for admission, or sign in to check results.",
@@ -54,32 +90,50 @@
         {
           "title": "Kindergarten to Class 10",
           "text": "One school for every stage, from a child's first day in Kindergarten to the SEE in Class 10.",
-          "image": { "file": "gallery-kindergarten.webp", "alt": "A kindergarten child showing her painted hands, with her teachers" }
+          "image": {
+            "file": "card-kindergarten.webp",
+            "alt": "A kindergarten child showing her painted hands, with her teachers"
+          }
         },
         {
           "title": "Learning With Technology",
           "text": "Students work on computers in the school's own computer lab.",
-          "image": { "file": "hero-computer-lab.webp", "alt": "Students working in the computer lab" }
+          "image": {
+            "file": "card-technology.webp",
+            "alt": "Students working in the computer lab"
+          }
         },
         {
           "title": "Sports and Teamwork",
           "text": "Football, sports week and the friendships made on the field.",
-          "image": { "file": "hero-football.webp", "alt": "A school football team with their coach" }
+          "image": {
+            "file": "card-cricket.webp",
+            "alt": "The school cricket team in their red tracksuits"
+          }
         },
         {
           "title": "Art and Creativity",
           "text": "Painting, drawing and rangoli bring out every child's imagination.",
-          "image": { "file": "hero-painting.webp", "alt": "Students drawing and painting at their desks" }
+          "image": {
+            "file": "card-painting.webp",
+            "alt": "Students drawing and painting at their desks"
+          }
         },
         {
           "title": "Celebrating Together",
           "text": "Saraswati Puja, Akshararambha and festivals shared as one school family.",
-          "image": { "file": "gallery-festival.webp", "alt": "Children at a festival celebration" }
+          "image": {
+            "file": "card-festival.webp",
+            "alt": "Children at a festival celebration"
+          }
         },
         {
           "title": "Awards and Achievements",
           "text": "Every term ends with a prize-giving that honours first, second and third places.",
-          "image": { "file": "gallery-award.webp", "alt": "Students and teachers with their medals in front of the school" }
+          "image": {
+            "file": "card-felicitation.webp",
+            "alt": "Teachers and students presenting a shield at a school ceremony"
+          }
         }
       ],
       "about": {

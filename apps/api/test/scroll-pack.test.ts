@@ -79,6 +79,15 @@ describe("the scroll layout in a pack", () => {
     expect(() => parsePack(withSite({ layout: "scroll", scroll: { ...scroll, hero: { images: [{ file: "h.webp", alt: "A" }, { file: "h.webp", alt: "B" }] } } }))).toThrow(/more than once/);
   });
 
+  it("refuses a card's photo that is already used in the hero, the gallery or another card, so no picture shows twice (PM, 2026-10-13)", () => {
+    const withCards = (cards: unknown[], gallery?: unknown[]) => parsePack(withSite({ layout: "scroll", scroll: { ...scroll, cards, ...(gallery ? { gallery } : {}) } }));
+    const card = (title: string, file: string) => ({ title, text: "Some words about it.", image: { file, alt: "A photo" } });
+    expect(() => withCards([card("One", "hero-1.webp")])).toThrow(/more than once/);
+    expect(() => withCards([card("One", "g-1.webp")], [{ file: "g-1.webp", alt: "A photo" }])).toThrow(/more than once/);
+    expect(() => withCards([card("One", "same.webp"), card("Two", "same.webp")])).toThrow(/more than once/);
+    expect(withCards([card("One", "c-1.webp"), card("Two", "c-2.webp")], [{ file: "g-1.webp", alt: "A photo" }]).site.scroll?.cards).toHaveLength(2);
+  });
+
   it("refuses scroll words on a classic site", () => {
     expect(() => parsePack(withSite({ scroll }))).toThrow(/site\.scroll/);
   });
