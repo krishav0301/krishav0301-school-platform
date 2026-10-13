@@ -25,16 +25,24 @@ export function applyRedirectFor(view: { status: string; site?: SiteContent }): 
  * What the front page draws right now (PM, 2026-10-13: the old page must never flash before the new one).
  * `"waiting"`: an empty page, while the school is not known yet, or while a one-page school's words load, so nothing
  * of the classic frame (shell, menu, band, skeleton) is ever drawn for a school that does not use it. `"scroll"`: the
- * one-page layout. `"message"`: the school is not set up or cannot be reached, said inside the usual frame.
+ * one-page layout. `"message"`: the usual frame around the school's status: loading shape, not set up, or cannot be reached.
  * `"classic"`: every other case, the usual frame with its own loading shape and retry.
  */
 export function homeStage(
   configStatus: "loading" | "ready" | "unprovisioned" | "unreachable",
   publicLayout: "classic" | "scroll" | undefined,
   view: { status: string; site?: SiteContent },
+  hint?: "classic" | "scroll",
 ): "waiting" | "scroll" | "message" | "classic" {
-  if (configStatus === "loading") return "waiting";
+  // The Worker stamps the layout on the page it serves: a classic school keeps its usual frame (with its loading shape) from the first moment.
+  if (configStatus === "loading") return hint === "classic" ? "message" : "waiting";
   if (configStatus !== "ready") return "message";
   if (chooseHome(view) === "scroll") return "scroll";
   return publicLayout === "scroll" && view.status === "loading" ? "waiting" : "classic";
+}
+
+/** The layout the Worker stamped on the page it served (`data-public-layout`), or nothing when there was no Worker or it said something else. */
+export function readLayoutHint(doc: { documentElement: { dataset: DOMStringMap | Record<string, string | undefined> } }): "classic" | "scroll" | undefined {
+  const value = doc.documentElement.dataset.publicLayout;
+  return value === "scroll" || value === "classic" ? value : undefined;
 }

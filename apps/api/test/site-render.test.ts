@@ -118,7 +118,7 @@ describe("a set-up school", () => {
 
   it("the page shell is kept whole: the app's markup and script are still there, in order, and the language is untouched", async () => {
     const { html } = await page("/");
-    expect(html).toContain('<html lang="en">');
+    expect(html).toMatch(/<html lang="en" data-public-layout="classic">/); // the language is untouched; the layout stamp is added
     expect(html).toContain('<div id="root">Loading</div>');
     expect(html).toContain('<script src="/_next/app.js"></script>');
     expect(html.indexOf('id="server-copy"')).toBeLessThan(html.indexOf('id="root"'));

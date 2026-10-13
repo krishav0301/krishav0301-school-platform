@@ -1,7 +1,7 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 
-import { homeStage } from "@/site/scroll/choose-home";
+import { homeStage, readLayoutHint } from "@/site/scroll/choose-home";
 import { HomeWaiting } from "@/site/scroll/HomeWaiting";
 
 const ready = { status: "ready", site: { layout: "scroll", scroll: {} } } as never;
@@ -10,6 +10,15 @@ const loading = { status: "loading" } as const;
 describe("which front page to draw while things load (PM, 2026-10-13: the old page must never flash)", () => {
   it("draws nothing of the old page before the school is known", () => {
     expect(homeStage("loading", undefined, loading)).toBe("waiting");
+  });
+
+  it("gives a school the Worker says is classic its usual frame at once, as before, even before its settings load", () => {
+    expect(homeStage("loading", undefined, loading, "classic")).toBe("message");
+  });
+
+  it("keeps the empty page for a school the Worker says is scroll, and when nothing says (a static file with no Worker)", () => {
+    expect(homeStage("loading", undefined, loading, "scroll")).toBe("waiting");
+    expect(homeStage("loading", undefined, loading, undefined)).toBe("waiting");
   });
 
   it("keeps waiting, not the old frame, while a one-page school's words load", () => {
@@ -43,5 +52,16 @@ describe("the waiting screen", () => {
     expect(html).toMatch(/role="status"/);
     expect(html).toContain("Loading");
     for (const word of ["<header", "<footer", "<nav", "<h1", "skeleton"]) expect(html).not.toContain(word);
+  });
+});
+
+describe("reading what the Worker stamped on the page", () => {
+  const doc = (value?: string) => ({ documentElement: { dataset: value === undefined ? {} : { publicLayout: value } } });
+
+  it("is scroll or classic, and nothing for anything else", () => {
+    expect(readLayoutHint(doc("scroll"))).toBe("scroll");
+    expect(readLayoutHint(doc("classic"))).toBe("classic");
+    expect(readLayoutHint(doc("other"))).toBeUndefined();
+    expect(readLayoutHint(doc())).toBeUndefined();
   });
 });
