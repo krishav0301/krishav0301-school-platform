@@ -1,6 +1,8 @@
 import type { SiteContent } from "../../core/config";
+import { nepalMinute } from "../../core/dates";
+import { listPublicContent } from "../content";
 import { escapeHtml } from "./html";
-import type { Builder, PageContext } from "./page-types";
+import type { Builder, PageContext, PageParts } from "./page-types";
 import { say } from "./strings";
 
 /** The crawler copy of the six fixed pages (D-046). Every value from the pack is escaped where it is written. */
@@ -58,9 +60,28 @@ const facts = (p: Programme): string =>
   `<p>${e(say("site.affiliation"))}: ${e(p.affiliation)}. ${e(say("site.duration"))}: ${e(p.duration)}.</p>` +
   (p.options.length > 0 ? `<p>${e(say("site.options"))}: ${e(p.options.join(", "))}.</p>` : "");
 
+/** The crawler copy of a scroll school's one page (D-167): its name, address, phone, intro, classes, live notices and about. */
+async function scrollHome(ctx: PageContext, site: SiteContent): Promise<PageParts> {
+  const { items } = await listPublicContent(ctx.db, nepalMinute(new Date()));
+  const s = site.scroll!;
+  return {
+    title: ctx.school.name,
+    description: s.intro.slice(0, 160),
+    structuredData: [{ "@context": LD, "@type": "WebSite", "@id": `${ctx.origin}/#website`, name: ctx.school.name, url: ctx.origin, publisher: { "@id": orgId(ctx.origin) } }],
+    organisation: { ...orgDetails(site), description: s.intro, ...(s.about.facebook ? { sameAs: [s.about.facebook] } : {}) },
+    bodyHtml:
+      `<h1>${e(ctx.school.name)}</h1><p>${e(site.contact.address)}</p><p>${e(say("site.phone"))}: ${e(site.contact.phones[0]!)}</p><p>${e(s.intro)}</p>` +
+      `<h2>${e(say("site.scroll.batches"))}</h2><ul>${s.batches.map((b) => `<li>${e(b.title)}${b.note ? ` (${e(b.note)})` : ""}</li>`).join("")}</ul>` +
+      `<h2>${e(say("site.scroll.notices"))}</h2>${items.length > 0 ? `<ul>${items.map((i) => `<li>${e(i.title)}</li>`).join("")}</ul>` : ""}<p><a href="/notices">${e(say("notices.title"))}</a></p>` +
+      (s.about.story ? `<h2>${e(say("site.scroll.about"))}</h2><p>${e(s.about.story)}</p>` : "") +
+      (s.about.facebook ? `<p><a href="${e(s.about.facebook)}" rel="noopener">${e(say("site.scroll.facebook"))}</a></p>` : ""),
+  };
+}
+
 export const home: Builder = async (ctx) => {
   const site = await ctx.site();
   if (!site) return null;
+  if (site.layout === "scroll" && site.scroll) return scrollHome(ctx, site);
   const groups = groupProgrammes(ctx.sections, site.programmes);
   return {
     title: ctx.school.name,
@@ -94,7 +115,7 @@ export const home: Builder = async (ctx) => {
 
 export const programmes: Builder = async (ctx) => {
   const site = await ctx.site();
-  if (!site) return null;
+  if (!site || site.layout === "scroll") return null;
   const groups = groupProgrammes(ctx.sections, site.programmes);
   return {
     ...titled(ctx, "site.programmes.title", "site.programmes.description"),
@@ -119,7 +140,7 @@ export const programmes: Builder = async (ctx) => {
 
 export const admission: Builder = async (ctx) => {
   const site = await ctx.site();
-  if (!site) return null;
+  if (!site || site.layout === "scroll") return null;
   const { intro, steps } = site.admission;
   return {
     ...titled(ctx, "site.admission.title", "site.admission.description"),
@@ -141,7 +162,7 @@ export const admission: Builder = async (ctx) => {
 
 export const scholarships: Builder = async (ctx) => {
   const site = await ctx.site();
-  if (!site) return null;
+  if (!site || site.layout === "scroll") return null;
   const { intro, items } = site.scholarships;
   return {
     ...titled(ctx, "site.scholarships.title", "site.scholarships.description"),
@@ -155,7 +176,7 @@ export const scholarships: Builder = async (ctx) => {
 
 export const facilities: Builder = async (ctx) => {
   const site = await ctx.site();
-  if (!site) return null;
+  if (!site || site.layout === "scroll") return null;
   const { intro, items } = site.facilities;
   return {
     ...titled(ctx, "site.facilities.title", "site.facilities.description"),
@@ -178,7 +199,7 @@ export const facilities: Builder = async (ctx) => {
 
 export const contact: Builder = async (ctx) => {
   const site = await ctx.site();
-  if (!site) return null;
+  if (!site || site.layout === "scroll") return null;
   const c = site.contact;
   return {
     ...titled(ctx, "site.contact.title", "site.contact.description"),

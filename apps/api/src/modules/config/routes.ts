@@ -23,6 +23,8 @@ const PublicConfigSchema = z
       studentKeepsPin: z.boolean().optional(),
       /** Each subject has its own pass marks (the first school's file). */
       passMarksPerSubject: z.boolean().optional(),
+      /** A public application waits for an email link (D-063); a school may turn that off (D-168). */
+      publicApplyNeedsLink: z.boolean().optional(),
     }),
     sections: z.array(z.object({ key: z.string(), name: z.string() })),
     /** Every module and whether this school uses it. */

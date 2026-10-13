@@ -28,6 +28,8 @@ export const PackSchema = z.strictObject({
     studentKeepsPin: z.boolean().default(false),
     /** Whether each subject has its own pass marks, for theory and practical, instead of the exam pattern's two percentages. Off unless the school says so. */
     passMarksPerSubject: z.boolean().default(false),
+    /** Whether a public application must confirm an email link before it reaches the Co-ordinator (D-063). A school may turn it off (D-168): the backend then makes the email. */
+    publicApplyNeedsLink: z.boolean().default(true),
   }),
   /**
    * Sections the pack adds. A school's own pack lists none (D-095): the Admin makes them on the Programs screen. Demo
@@ -68,6 +70,11 @@ export function parsePack(input: unknown): Pack {
   if (new Set(keys).size !== keys.length) problems.push("sections: keys must be unique");
 
   const sectionKeys = new Set(keys);
+  if (pack.site.layout === "scroll" && !pack.site.scroll) problems.push("site.scroll: required when site.layout is scroll");
+  if (pack.site.layout !== "scroll" && pack.site.scroll) problems.push("site.scroll: only a scroll layout may have scroll words");
+  const batchTitles = pack.site.scroll?.batches.map((b) => b.title) ?? [];
+  if (new Set(batchTitles).size !== batchTitles.length) problems.push("site.scroll.batches: titles must be unique");
+
   const programmeKeys = pack.site.programmes.map((p) => p.key);
   if (new Set(programmeKeys).size !== programmeKeys.length) problems.push("site.programmes: keys must be unique");
   // A pack that lists sections must name one of them on each public programme. A pack with none leaves the public
@@ -109,13 +116,13 @@ export function packOperations(pack: Pack): Operation[] {
   const ops: Operation[] = [];
 
   ops.push({
-    sql: `INSERT INTO school (id, name, short_name, currency, timezone, template_key, region_pack, admin_two_factor, student_keeps_pin, pass_marks_per_subject)
-          VALUES (1, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    sql: `INSERT INTO school (id, name, short_name, currency, timezone, template_key, region_pack, admin_two_factor, student_keeps_pin, pass_marks_per_subject, public_apply_verifies_email)
+          VALUES (1, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
           ON CONFLICT (id) DO UPDATE SET name = excluded.name, short_name = excluded.short_name,
             currency = excluded.currency, timezone = excluded.timezone,
             template_key = excluded.template_key, region_pack = excluded.region_pack, admin_two_factor = excluded.admin_two_factor, student_keeps_pin = excluded.student_keeps_pin,
-            pass_marks_per_subject = excluded.pass_marks_per_subject`,
-    params: [pack.school.name, pack.school.shortName, pack.school.currency, pack.school.timezone, pack.school.template ?? null, pack.school.region, pack.school.adminTwoFactor ? 1 : 0, pack.school.studentKeepsPin ? 1 : 0, pack.school.passMarksPerSubject ? 1 : 0],
+            pass_marks_per_subject = excluded.pass_marks_per_subject, public_apply_verifies_email = excluded.public_apply_verifies_email`,
+    params: [pack.school.name, pack.school.shortName, pack.school.currency, pack.school.timezone, pack.school.template ?? null, pack.school.region, pack.school.adminTwoFactor ? 1 : 0, pack.school.studentKeepsPin ? 1 : 0, pack.school.passMarksPerSubject ? 1 : 0, pack.school.publicApplyNeedsLink ? 1 : 0],
   });
 
   pack.sections.forEach((section, index) =>

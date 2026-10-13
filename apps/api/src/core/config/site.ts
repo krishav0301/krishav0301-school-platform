@@ -10,7 +10,29 @@ const Text = (max: number) => z.string().trim().min(1).max(max);
 const Slug = z.string().regex(/^[a-z][a-z0-9-]{0,40}$/, "lower-case letters, digits and hyphens");
 const EMAIL = /^[^\s@<>"?;&]+@[^\s@<>"?;&]+\.[^\s@<>"?;&]+$/;
 
+const HeroFile = z.string().regex(/^[a-z0-9][a-z0-9-]{0,60}\.webp$/, "a plain lower-case .webp file name");
+const FACEBOOK = /^https:\/\/(www\.)?facebook\.com\/[A-Za-z0-9._\-/?=&%]{1,200}$/;
+
+/** The words of the one-page scrolling public site (D-167): a school whose pack says `layout: "scroll"` has them. */
+export const ScrollContentSchema = z.strictObject({
+  hero: z.strictObject({
+    images: z.array(z.strictObject({ file: HeroFile, alt: Text(160) })).min(1).max(6),
+    tagline: Text(160).optional(),
+  }),
+  intro: Text(900),
+  batches: z.array(z.strictObject({ title: Text(80), note: Text(200).optional() })).min(1).max(20),
+  about: z.strictObject({
+    story: Text(1500).optional(),
+    facebook: z.string().regex(FACEBOOK, "a facebook.com link").optional(),
+    mapQuery: Text(200).optional(),
+  }),
+});
+export type ScrollContent = z.infer<typeof ScrollContentSchema>;
+
 export const SiteContentSchema = z.strictObject({
+  /** `classic` is the six fixed pages; `scroll` is one long page (D-167). Classic unless the pack says otherwise. */
+  layout: z.enum(["classic", "scroll"]).default("classic"),
+  scroll: ScrollContentSchema.optional(),
   home: z.strictObject({ headline: Text(120), summary: Text(400) }),
   programmes: z
     .array(

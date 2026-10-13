@@ -43,7 +43,7 @@ Failure modes the spec implies but no obvious test covers; each has its test in 
 | File | Responsibility |
 |---|---|
 | `apps/api/src/core/config/site.ts` | `layout` and `scroll` block in `SiteContentSchema` |
-| `apps/api/src/core/config/pack.ts`, `read.ts` | `school.publicApplyVerifiesEmail`, its SQL and its read |
+| `apps/api/src/core/config/pack.ts`, `read.ts` | `school.publicApplyNeedsLink`, its SQL and its read |
 | `apps/api/migrations/0039_public_apply_verifies_email.sql` | the new `school` column |
 | `apps/api/src/modules/admissions/{schema,service}.ts` | optional email on the public form, no-email path |
 | `apps/api/src/modules/site/{site-pages,pages,crawler-files,strings}.ts` | scroll `home` body, classic pages off for scroll, sitemap and `llms.txt` by layout |
@@ -64,7 +64,7 @@ Failure modes the spec implies but no obvious test covers; each has its test in 
 - Test: `apps/api/test/scroll-pack.test.ts` (create), `apps/api/test/lahan-pack.test.ts` (extend)
 
 **Interfaces:**
-- Produces: `SiteContent` gains `layout: "classic" | "scroll"` (default `"classic"`) and `scroll?: ScrollContent`; `ScrollContent = { hero: { images: { file: string; alt: string }[]; tagline?: string }; intro: string; batches: { title: string; note?: string }[]; about: { story?: string; facebook?: string; mapQuery?: string } }`. `Pack.school.publicApplyVerifiesEmail: boolean` (default `true`). `PublicConfig.school.publicApplyVerifiesEmail: boolean`. DB column `school.public_apply_verifies_email INTEGER NOT NULL DEFAULT 1`.
+- Produces: `SiteContent` gains `layout: "classic" | "scroll"` (default `"classic"`) and `scroll?: ScrollContent`; `ScrollContent = { hero: { images: { file: string; alt: string }[]; tagline?: string }; intro: string; batches: { title: string; note?: string }[]; about: { story?: string; facebook?: string; mapQuery?: string } }`. `Pack.school.publicApplyNeedsLink: boolean` (default `true`). `PublicConfig.school.publicApplyNeedsLink: boolean`. DB column `school.public_apply_verifies_email INTEGER NOT NULL DEFAULT 1`.
 
 - [ ] **Step 1: Create the branch**
 
@@ -93,7 +93,7 @@ describe("the scroll layout in a pack", () => {
     const pack = parsePack(royalJson);
     expect(pack.site.layout).toBe("classic");
     expect(pack.site.scroll).toBeUndefined();
-    expect(pack.school.publicApplyVerifiesEmail).toBe(true);
+    expect(pack.school.publicApplyNeedsLink).toBe(true);
   });
 
   it("accepts the scroll layout with its words", () => {
@@ -127,7 +127,7 @@ describe("the scroll layout in a pack", () => {
 - [ ] **Step 3: Run it and see it fail**
 
 Run: `cd apps/api && npx vitest run test/scroll-pack.test.ts`
-Expected: FAIL (`layout` is an unknown key / `publicApplyVerifiesEmail` undefined).
+Expected: FAIL (`layout` is an unknown key / `publicApplyNeedsLink` undefined).
 
 - [ ] **Step 4: Implement the schema** in `apps/api/src/core/config/site.ts`. Add before `SiteContentSchema`:
 
@@ -160,7 +160,7 @@ and add to the `SiteContentSchema` object (first keys): `layout: z.enum(["classi
   if (new Set(batchTitles).size !== batchTitles.length) problems.push("site.scroll.batches: titles must be unique");
 ```
 
-In `PackSchema.school` add `publicApplyVerifiesEmail: z.boolean().default(true),` (doc comment: "Whether a public application must confirm an email link before it reaches the Co-ordinator (D-063). A school may turn it off (D-168): the backend then makes the email."). In `packOperations` extend the `school` INSERT and UPDATE with `public_apply_verifies_email` exactly as `student_keeps_pin` is (same pattern, `? 1 : 0`). In `read.ts` add `public_apply_verifies_email` to the SELECT, the row type and `school: { …, publicApplyVerifiesEmail: row.public_apply_verifies_email === 1 }`, and to `PublicConfig`. In `modules/config/routes.ts` add `publicApplyVerifiesEmail: z.boolean().optional()` beside `studentKeepsPin` and do the same wherever `studentKeepsPin` is handled in that file (`grep -n studentKeepsPin apps/api/src/modules/config/routes.ts`) only if it is part of the public config shape.
+In `PackSchema.school` add `publicApplyNeedsLink: z.boolean().default(true),` (doc comment: "Whether a public application must confirm an email link before it reaches the Co-ordinator (D-063). A school may turn it off (D-168): the backend then makes the email."). In `packOperations` extend the `school` INSERT and UPDATE with `public_apply_verifies_email` exactly as `student_keeps_pin` is (same pattern, `? 1 : 0`). In `read.ts` add `public_apply_verifies_email` to the SELECT, the row type and `school: { …, publicApplyNeedsLink: row.public_apply_verifies_email === 1 }`, and to `PublicConfig`. In `modules/config/routes.ts` add `publicApplyNeedsLink: z.boolean().optional()` beside `studentKeepsPin` and do the same wherever `studentKeepsPin` is handled in that file (`grep -n studentKeepsPin apps/api/src/modules/config/routes.ts`) only if it is part of the public config shape.
 
 - [ ] **Step 5: The migration** `apps/api/migrations/0039_public_apply_verifies_email.sql`
 
@@ -174,7 +174,7 @@ ALTER TABLE school ADD COLUMN public_apply_verifies_email INTEGER NOT NULL DEFAU
 Run: `cd apps/api && npx vitest run test/scroll-pack.test.ts && npm run typecheck`
 Expected: PASS, typecheck clean.
 
-- [ ] **Step 7: Lahan's pack.** In `packs/lahan-manakamana/pack.json` set `"school"` `"publicApplyVerifiesEmail": false`, and in `site` add `"layout": "scroll"` and the `scroll` block built only from `docs/lahan-manakamana-profile.md` (hero images file names `hero-1.webp` to `hero-4.webp`, to be created in Task 11; alt texts neutral; `intro`: "Lahan Manakamana English Boarding School in Lahan-8, Siraha. Notices, results and admission in one place." (draft, in `packs/README.md` marked unconfirmed); `batches`: Kindergarten, Class 1 to 3, Class 4 to 5, Class 6 to 8, Class 9 to 10 (SEE) each with note "To confirm with the school"; `about`: `facebook` the page link, `mapQuery` "Lahan-8, Road No - 2, Lahan, Siraha"). Keep the existing `site.contact` (address "Lahan-8, Road No - 2"; replace the phone "To be added" with "+977 33-564346"). Set the theme to the crest look:
+- [ ] **Step 7: Lahan's pack.** In `packs/lahan-manakamana/pack.json` set `"school"` `"publicApplyNeedsLink": false`, and in `site` add `"layout": "scroll"` and the `scroll` block built only from `docs/lahan-manakamana-profile.md` (hero images file names `hero-1.webp` to `hero-4.webp`, to be created in Task 11; alt texts neutral; `intro`: "Lahan Manakamana English Boarding School in Lahan-8, Siraha. Notices, results and admission in one place." (draft, in `packs/README.md` marked unconfirmed); `batches`: Kindergarten, Class 1 to 3, Class 4 to 5, Class 6 to 8, Class 9 to 10 (SEE) each with note "To confirm with the school"; `about`: `facebook` the page link, `mapQuery` "Lahan-8, Road No - 2, Lahan, Siraha"). Keep the existing `site.contact` (address "Lahan-8, Road No - 2"; replace the phone "To be added" with "+977 33-564346"). Set the theme to the crest look:
 
 ```json
 "theme": {
@@ -196,8 +196,8 @@ Expected: PASS, typecheck clean.
 ```ts
   it("is a scroll site that takes applications without an email link, and no other school does", () => {
     expect(pack.site.layout).toBe("scroll");
-    expect(pack.school.publicApplyVerifiesEmail).toBe(false);
-    expect(parsePack(royalJson).school.publicApplyVerifiesEmail).toBe(true);
+    expect(pack.school.publicApplyNeedsLink).toBe(false);
+    expect(parsePack(royalJson).school.publicApplyNeedsLink).toBe(true);
     expect(pack.site.scroll?.batches.length).toBeGreaterThan(0);
   });
 
@@ -446,8 +446,8 @@ git commit -m "Worker: crawler copy, sitemap and llms.txt follow the scroll layo
 - Test: `apps/web/test/admissions-no-email.test.tsx` (create; model on `apps/web/test/admissions-screens.test.tsx`)
 
 **Interfaces:**
-- Consumes: `PublicConfig.school.publicApplyVerifiesEmail` (Task 1, via `useConfig()`).
-- Produces: `ApplyScreen({ embedded?: boolean })`: when `config.school.publicApplyVerifiesEmail === false` the email field is not drawn, `validateApplicant(values, { email: false })` skips it, `apply(...)` sends no `email`, and the done card says `admissions.apply.doneBodyNoEmail`. `embedded` drops the card's own `HeroBand`/h1 (the scroll page supplies its heading).
+- Consumes: `PublicConfig.school.publicApplyNeedsLink` (Task 1, via `useConfig()`).
+- Produces: `ApplyScreen({ embedded?: boolean })`: when `config.school.publicApplyNeedsLink === false` the email field is not drawn, `validateApplicant(values, { email: false })` skips it, `apply(...)` sends no `email`, and the done card says `admissions.apply.doneBodyNoEmail`. `embedded` drops the card's own `HeroBand`/h1 (the scroll page supplies its heading).
 
 - [ ] **Step 1: Failing tests.**
 
@@ -467,7 +467,7 @@ it("applicantBody leaves email out when it is blank and not required", () => { /
 
 - [ ] **Step 2: Run, see fail.** `cd apps/web && npx vitest run test/admissions-no-email.test.tsx` — FAIL.
 
-- [ ] **Step 3: Implement.** `model.ts`: `export function validateApplicant(values: ApplicantForm, options: { email?: boolean } = {})` and guard the existing email check with `(options.email ?? true) &&`. `ApplicantFields`: new prop `showEmail?: boolean` (default `true`), wrap the existing `<Field … type="email" …/>` in `{showEmail !== false ? … : null}`. `client.ts` `applicantBody(values, dob)`: `email: values.email.trim() || undefined`. `ApplyScreen`: read `const { config } = useConfig(); const needsEmail = config?.school.publicApplyVerifiesEmail !== false;` pass `showEmail={needsEmail}` and `validateApplicant(values, { email: needsEmail })`; the intro key becomes `needsEmail ? "admissions.apply.intro" : "admissions.apply.introNoEmail"`; the done body `needsEmail ? doneBody : doneBodyNoEmail`; add the `embedded` prop that renders `<Card>` without the `HeroBand` block. Messages to add:
+- [ ] **Step 3: Implement.** `model.ts`: `export function validateApplicant(values: ApplicantForm, options: { email?: boolean } = {})` and guard the existing email check with `(options.email ?? true) &&`. `ApplicantFields`: new prop `showEmail?: boolean` (default `true`), wrap the existing `<Field … type="email" …/>` in `{showEmail !== false ? … : null}`. `client.ts` `applicantBody(values, dob)`: `email: values.email.trim() || undefined`. `ApplyScreen`: read `const { config } = useConfig(); const needsEmail = config?.school.publicApplyNeedsLink !== false;` pass `showEmail={needsEmail}` and `validateApplicant(values, { email: needsEmail })`; the intro key becomes `needsEmail ? "admissions.apply.intro" : "admissions.apply.introNoEmail"`; the done body `needsEmail ? doneBody : doneBodyNoEmail`; add the `embedded` prop that renders `<Card>` without the `HeroBand` block. Messages to add:
 
 ```ts
   "admissions.apply.introNoEmail": "Fill in the applicant's details. The school office will review the application and call you.",
@@ -884,7 +884,7 @@ where `convert.mjs` resizes heroes to 1920 px wide at quality 70 (target at most
 - Modify: `docs/DECISIONS.md` (D-167, D-168), `CLAUDE.md` (the "Current phase" line gets one sentence; section 7 signup rule gets "except a school whose pack turns the email link off, D-168"), `packs/README.md`, `docs/uat-guide.md` (one short section for the scroll page), the spec (record the deviations below)
 - Test: run everything
 
-- [ ] **Step 1: Record the decisions.** Append D-167 (scroll layout: pack-selected, classic kept for others, photos folder constant `OPEN:`, classic-only pages say "not available") and D-168 (admission without email: the school flag `public_apply_verifies_email`, status `pending_review`, limit per phone and per address, CAPTCHA skipped by the PM on 2026-10-13, amends CLAUDE.md section 7). Update the spec's section 5 and 6.1 to say the flag is `school.publicApplyVerifiesEmail` (not `admissions.verifyEmail`), that one migration (0039) was needed, and that hero-file existence is checked by a test, not by `parsePack`.
+- [ ] **Step 1: Record the decisions.** Append D-167 (scroll layout: pack-selected, classic kept for others, photos folder constant `OPEN:`, classic-only pages say "not available") and D-168 (admission without email: the school flag `public_apply_verifies_email`, status `pending_review`, limit per phone and per address, CAPTCHA skipped by the PM on 2026-10-13, amends CLAUDE.md section 7). Update the spec's section 5 and 6.1 to say the flag is `school.publicApplyNeedsLink` (not `admissions.verifyEmail`), that one migration (0039) was needed, and that hero-file existence is checked by a test, not by `parsePack`.
 - [ ] **Step 2: Everything green.**
 
 ```bash
@@ -912,6 +912,6 @@ cd ../web && npm run build && cd ../api && npm run dev       # http://localhost:
 ## Self-review
 
 - **Spec coverage:** sections 2 (layout, pages lists, crawler copy) Tasks 1, 3, 10; 3 (the eight blocks) Tasks 6 to 9 (top bar, hero, school band, strip, batches, notices, admission, about; footer in Task 6); 4 (motion, Lenis, reduced motion, no-JS) Task 5 and Task 6 CSS; 5 (no-email admission, limits, queue, classic unchanged, CAPTCHA skipped) Tasks 2 and 4; 6.1 (pack) Task 1, 6.2 (reading) Task 1 and 10, 6.3 (photos, approval) Task 11; 7 (who posts) needs no code, checked in Task 12 step 3 by the existing matrix tests; 8 (code layout) the File Structure table; 9 (testing) each task plus Task 12; 10 (order) matches; 11 (local only) Global Constraints and Task 12; 12 (open points) Task 12 step 5.
-- **Deviations from the spec (recorded in Task 12):** the flag lives on `school` (`publicApplyVerifiesEmail`, migration 0039) beside `studentKeepsPin`, because the service reads it from SQL; hero files are checked by a test, not `parsePack` (the core cannot touch the file system); the photos folder is a constant for now.
+- **Deviations from the spec (recorded in Task 12):** the flag lives on `school` (`publicApplyNeedsLink`, migration 0039) beside `studentKeepsPin`, because the service reads it from SQL; hero files are checked by a test, not `parsePack` (the core cannot touch the file system); the photos folder is a constant for now.
 - **Placeholders:** none intended; the places that say "look up the real name" (token names, outbox table, `call` options, Lenis version) are verification steps on code I read only in part, each with the command to find the answer.
-- **Types:** `ScrollContent`, `SiteContent.layout`, `publicApplyVerifiesEmail`, `filledPagesFor`, `ApplyScreen({ embedded })`, `validateApplicant(values, { email })`, `showEmail`, `openIdFromSearch`, `pickOpen`, `chooseHome`, `photoUrl` are defined once and used with the same names.
+- **Types:** `ScrollContent`, `SiteContent.layout`, `publicApplyNeedsLink`, `filledPagesFor`, `ApplyScreen({ embedded })`, `validateApplicant(values, { email })`, `showEmail`, `openIdFromSearch`, `pickOpen`, `chooseHome`, `photoUrl` are defined once and used with the same names.

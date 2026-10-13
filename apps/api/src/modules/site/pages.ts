@@ -79,6 +79,9 @@ const PAGES: Record<string, Builder> = {
 
 export const FILLED_PAGES: readonly string[] = Object.keys(PAGES);
 
+/** The pages a school of this layout has: a scroll school has one long page and the notices (D-167). */
+export const filledPagesFor = (layout: "classic" | "scroll"): readonly string[] => (layout === "scroll" ? ["/", "/notices"] : FILLED_PAGES);
+
 /** How each page is introduced in `llms.txt`: its name and a line about it. Every filled page must be here (a test checks). */
 const SUMMARIES: Record<string, (school: string) => { name: string; summary: string }> = {
   "/": (school) => ({ name: say("llms.home"), summary: say("llms.homeSummary", { school }) }),

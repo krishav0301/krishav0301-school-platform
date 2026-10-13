@@ -130,14 +130,19 @@ export async function applyForAdmission(db: D1Database, dataKey: string, input: 
   const parsed = ApplySchema.safeParse(input);
   if (!parsed.success) return { ok: false, reason: "invalid", message: firstMessage(parsed.error) };
   const p = parsed.data;
-  const email = p.email.trim().toLowerCase();
+  // A school may take applications without an email link (D-168): then the email is made for the applicant and nothing is sent.
+  const verifies = ((await db.prepare("SELECT public_apply_verifies_email AS v FROM school WHERE id = 1").first<{ v: number }>())?.v ?? 1) === 1;
+  if (verifies && !p.email) return { ok: false, reason: "invalid", message: "Give an email address" };
+  const email = (p.email ? p.email.trim() : await suggestEmail(db, p.firstName, p.lastName)).toLowerCase();
+  // With no email of the applicant's own to count against (an invented one is new every time), the limit is by phone number.
+  const limitKey = verifies || p.email ? email : `phone:${p.phone.replace(/\D/g, "")}`;
 
   const existing = await db.prepare("SELECT public_id FROM applications WHERE submission_token = ?1").bind(p.submissionToken).first<{ public_id: string }>();
   if (existing) return { ok: true, publicId: existing.public_id }; // the same click or a retried request: no new row, no new rate-limit count
 
   const since = new Date(now.getTime() - WINDOW_MINUTES * 60_000).toISOString();
   const [emailCount, ipCount] = await db.batch([
-    db.prepare("SELECT COUNT(*) AS n FROM application_submission_events WHERE email = ?1 AND at > ?2").bind(email, since),
+    db.prepare("SELECT COUNT(*) AS n FROM application_submission_events WHERE email = ?1 AND at > ?2").bind(limitKey, since),
     db.prepare("SELECT COUNT(*) AS n FROM application_submission_events WHERE ip = ?1 AND at > ?2").bind(ip, since),
   ]);
   if ((emailCount!.results[0] as { n: number }).n >= EMAIL_LIMIT || (ipCount!.results[0] as { n: number }).n >= IP_LIMIT) return { ok: false, reason: "throttled" };
@@ -156,28 +161,30 @@ export async function applyForAdmission(db: D1Database, dataKey: string, input: 
   const duplicateFlags = await findDuplicateFlags(db, p.phone, p.firstName, p.lastName, p.dob);
 
   const publicId = newPublicId();
-  const token = newRefreshToken();
-  const tokenHash = await sha256Hex(token);
+  const token = verifies ? newRefreshToken() : null;
+  const tokenHash = token ? await sha256Hex(token) : null;
   const at = now.toISOString();
-  const expiresAt = new Date(now.getTime() + VERIFY_HOURS * 3_600_000).toISOString();
+  const expiresAt = verifies ? new Date(now.getTime() + VERIFY_HOURS * 3_600_000).toISOString() : null;
+  const status = verifies ? "email_unverified" : "pending_review";
 
-  await db.batch([
-    db.prepare("INSERT INTO application_submission_events (at, ip, email) VALUES (?1, ?2, ?3)").bind(at, ip, email),
+  const statements = [
+    db.prepare("INSERT INTO application_submission_events (at, ip, email) VALUES (?1, ?2, ?3)").bind(at, ip, limitKey),
     db
       .prepare(
         `INSERT INTO applications
            (public_id, submission_token, status, walk_in, first_name, middle_name, last_name, dob_ad, phone, email,
             guardian_name, guardian_phone, previous_school, referred_by, programme_id, level_id, academic_year_id,
             verification_token_hash, verification_expires_at, submitted_ip, duplicate_flags, created_at, updated_at)
-         VALUES (?1, ?2, 'email_unverified', 0, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17, ?18, ?19, ?20, ?20)`,
+         VALUES (?1, ?2, ?21, 0, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17, ?18, ?19, ?20, ?20)`,
       )
       .bind(
         publicId, p.submissionToken, p.firstName, p.middleName ?? null, p.lastName, p.dob, p.phone, email,
         p.guardianName, p.guardianPhone, p.previousSchool ?? null, p.referredBy ?? null, level.programme_id, level.id,
-        year.id, tokenHash, expiresAt, ip, JSON.stringify(duplicateFlags), at,
+        year.id, tokenHash, expiresAt, ip, JSON.stringify(duplicateFlags), at, status,
       ),
-    await queueEmail(db, dataKey, { template: "admission_verify", to: email, data: { token }, dedupeKey: `admission-verify:${publicId}` }),
-  ]);
+  ];
+  if (token) statements.push(await queueEmail(db, dataKey, { template: "admission_verify", to: email, data: { token }, dedupeKey: `admission-verify:${publicId}` }));
+  await db.batch(statements);
 
   return { ok: true, publicId };
 }

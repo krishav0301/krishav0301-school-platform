@@ -8,7 +8,8 @@
     "region": "nepal",
     "adminTwoFactor": false,
     "studentKeepsPin": true,
-    "passMarksPerSubject": true
+    "passMarksPerSubject": true,
+    "publicApplyNeedsLink": false
   },
   "sections": [],
   "modules": {
@@ -25,6 +26,29 @@
     "role.admin": "Principal"
   },
   "site": {
+    "layout": "scroll",
+    "scroll": {
+      "hero": {
+        "images": [
+          { "file": "hero-1.webp", "alt": "Students in class at Lahan Manakamana English Boarding School" },
+          { "file": "hero-2.webp", "alt": "The school and its students" },
+          { "file": "hero-3.webp", "alt": "A school programme" },
+          { "file": "hero-4.webp", "alt": "Students taking part in a school event" }
+        ]
+      },
+      "intro": "Lahan Manakamana English Boarding School is in Lahan-8, Siraha. Here you can read the school's notices, apply for admission and sign in to see results.",
+      "batches": [
+        { "title": "Kindergarten", "note": "To confirm with the school" },
+        { "title": "Class 1 to 3", "note": "To confirm with the school" },
+        { "title": "Class 4 to 5", "note": "To confirm with the school" },
+        { "title": "Class 6 to 8", "note": "To confirm with the school" },
+        { "title": "Class 9 to 10 (SEE)", "note": "To confirm with the school" }
+      ],
+      "about": {
+        "facebook": "https://www.facebook.com/profile.php?id=100090093189751",
+        "mapQuery": "Lahan-8, Road No - 2, Lahan, Siraha"
+      }
+    },
     "home": {
       "headline": "Lahan Manakamana Secondary English Boarding School",
       "summary": "Results for students and parents."
@@ -66,34 +90,34 @@
       ]
     },
     "contact": {
-      "address": "Lahan",
+      "address": "Lahan-8, Road No - 2",
       "phones": [
-        "To be added"
+        "+977 33-564346"
       ]
     }
   },
   "theme": {
-    "name": "Default look",
+    "name": "Lahan crest",
     "font": "inter",
-    "headingFont": "body",
+    "headingFont": "source-serif",
     "shape": {
-      "radiusCard": 18,
-      "radiusControl": 12
+      "radiusCard": 14,
+      "radiusControl": 10
     },
     "light": {
-      "background": "#f5f5f7",
+      "background": "#fbf7ef",
       "surface": "#ffffff",
-      "text": "#1d1d1f",
-      "textMuted": "#5b5b62",
-      "border": "#d2d2d7",
-      "primary": "#1a56db",
+      "text": "#2a1a14",
+      "textMuted": "#5f5148",
+      "border": "#dccfb8",
+      "primary": "#7b1e2b",
       "primaryText": "#ffffff",
       "ok": "#146c2e",
       "okSoft": "#dcf5e3",
       "bad": "#b42318",
       "badSoft": "#fde4e1",
-      "accent": "#6941c6",
-      "accentSoft": "#f1ecfd",
+      "accent": "#8a6100",
+      "accentSoft": "#f7ecc8",
       "warn": "#b54708",
       "warnSoft": "#fef0e1"
     }

@@ -1,7 +1,7 @@
-import { loadConfigAndSite } from "../../core/config";
+import { loadConfigAndSite, loadSiteContent } from "../../core/config";
 import type { Bindings } from "../../core/types";
 import { escapeHtml } from "./html";
-import { FILLED_PAGES, pageSummary } from "./pages";
+import { filledPagesFor, pageSummary } from "./pages";
 import { say } from "./strings";
 
 /**
@@ -60,9 +60,9 @@ function robotsTxt(origin: string, indexable: boolean): string {
   ].join("\n");
 }
 
-function sitemapXml(origin: string): string {
+function sitemapXml(origin: string, layout: "classic" | "scroll"): string {
   // No <lastmod>: a day we do not know is left out rather than guessed.
-  const urls = FILLED_PAGES.map((path) => `  <url><loc>${xmlEscape(`${origin}${path}`)}</loc></url>`).join("\n");
+  const urls = filledPagesFor(layout).map((path) => `  <url><loc>${xmlEscape(`${origin}${path}`)}</loc></url>`).join("\n");
   return `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls}\n</urlset>\n`;
 }
 
@@ -73,7 +73,7 @@ async function llmsTxt(env: Bindings, origin: string): Promise<string | null> {
 
   const name = oneLine(config.school.name);
   const sections = config.sections.map((s) => oneLine(s.name));
-  const links = FILLED_PAGES.map((path) => {
+  const links = filledPagesFor(site?.layout ?? "classic").map((path) => {
     const page = pageSummary(path, name);
     return `- [${oneLine(page.name)}](${origin}${path}): ${oneLine(page.summary)}`;
   });
@@ -106,6 +106,15 @@ const TYPES: Record<(typeof CRAWLER_FILES)[number], string> = {
   "/llms.txt": "text/plain; charset=utf-8",
 };
 
+/** The school's layout; a site not set up yet (or a database without the table) is classic, so the sitemap never fails. */
+async function layoutOf(env: Bindings): Promise<"classic" | "scroll"> {
+  try {
+    return (await loadSiteContent(env.DB))?.layout ?? "classic";
+  } catch {
+    return "classic";
+  }
+}
+
 /** Answers a GET or HEAD for one of the three files. */
 export async function renderCrawlerFile(request: Request, env: Bindings): Promise<Response> {
   const path = new URL(request.url).pathname as (typeof CRAWLER_FILES)[number];
@@ -113,7 +122,7 @@ export async function renderCrawlerFile(request: Request, env: Bindings): Promis
 
   let body: string | null;
   if (path === "/robots.txt") body = robotsTxt(origin, isProduction(env));
-  else if (path === "/sitemap.xml") body = sitemapXml(origin);
+  else if (path === "/sitemap.xml") body = sitemapXml(origin, await layoutOf(env));
   else body = await llmsTxt(env, origin);
 
   if (body === null) return new Response("Not found", { status: 404, headers: { "Content-Type": "text/plain; charset=utf-8" } });

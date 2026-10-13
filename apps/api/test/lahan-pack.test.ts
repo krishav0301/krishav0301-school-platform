@@ -1,3 +1,6 @@
+import { existsSync } from "node:fs";
+import { join } from "node:path";
+
 import { describe, expect, it } from "vitest";
 
 import { parsePack } from "../src/core/config";
@@ -38,5 +41,18 @@ describe("the Lahan Manakamana school file", () => {
 
   it("says nothing of Royal Softech anywhere (D-008: one school's name or data never appears in another's)", () => {
     expect(JSON.stringify(lahanJson)).not.toMatch(/royal|softech/i);
+  });
+
+  it("is a scroll site that takes applications without an email link, and no other school does (D-167, D-168)", () => {
+    expect(pack.site.layout).toBe("scroll");
+    expect(pack.school.publicApplyNeedsLink).toBe(false);
+    expect(parsePack(royalJson).school.publicApplyNeedsLink).toBe(true);
+    expect(parsePack(royalJson).site.layout).toBe("classic");
+    expect(pack.site.scroll?.batches.length).toBeGreaterThan(0);
+  });
+
+  // Skipped until the photos are added (plan Task 11); that task removes the skip.
+  it.skip("names only photo files that exist", () => {
+    for (const image of pack.site.scroll!.hero.images) expect(existsSync(join(import.meta.dirname, "../../web/public/site/lahan", image.file)), image.file).toBe(true);
   });
 });

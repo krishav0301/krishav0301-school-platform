@@ -3474,6 +3474,7 @@ export interface components {
                 template: string | null;
                 studentKeepsPin?: boolean;
                 passMarksPerSubject?: boolean;
+                publicApplyNeedsLink?: boolean;
             };
             sections: {
                 key: string;
@@ -3810,7 +3811,7 @@ export interface components {
             dob: string;
             phone: string;
             /** Format: email */
-            email: string;
+            email?: string;
             guardianName: string;
             guardianPhone: string;
             previousSchool?: string;
@@ -5134,6 +5135,30 @@ export interface components {
         };
         SitePages: {
             site: {
+                /**
+                 * @default classic
+                 * @enum {string}
+                 */
+                layout: "classic" | "scroll";
+                scroll?: {
+                    hero: {
+                        images: {
+                            file: string;
+                            alt: string;
+                        }[];
+                        tagline?: string;
+                    };
+                    intro: string;
+                    batches: {
+                        title: string;
+                        note?: string;
+                    }[];
+                    about: {
+                        story?: string;
+                        facebook?: string;
+                        mapQuery?: string;
+                    };
+                };
                 home: {
                     headline: string;
                     summary: string;
