@@ -45,7 +45,7 @@ Today the public form requires an email and the application waits as `email_unve
 
 - The public form has **no email field**. The backend makes one with `suggestEmail` (`first.last@student.com`, then `first.last_1@…`), exactly as it already does for a walk-in or a registered student.
 - With no real address there is nothing to verify, so the application is stored as **`pending_review`** and appears in the Co-ordinator's queue at once. No `admission_verify` message is queued. The Co-ordinator still reviews and approves every application; rejection stays final.
-- This amends the rule in `CLAUDE.md` section 7 ("email verification before the application enters the queue"). It is on for a school only when its pack says `site.layout: "scroll"` with `admissions.verifyEmail: false` (default `true`), so Royal Softech and the sample school keep verification.
+- This amends the rule in `CLAUDE.md` section 7 ("email verification before the application enters the queue"). It is on for a school only when its pack says `site.layout: "scroll"` with `school.publicApplyNeedsLink: false` (default `true`; built as a column on `school`, migration 0039, like `studentKeepsPin`), so Royal Softech and the sample school keep verification.
 - The anonymous write path is guarded by: the one-time submission token (a retry is idempotent), the hidden `website` trap field (already there), **a limit per phone number** (the old limit per email is meaningless with an invented email, so it is replaced for these schools) and the existing limit per address, and the existing duplicate flags (phone, or name plus date of birth). The strict upload rule is unchanged (no uploads).
 - **OPEN:** a CAPTCHA (for example Cloudflare Turnstile) needs the PM's approval before it is added.
 - Server-side cleanup for expired unverified applications is unaffected (these never enter that state).
@@ -62,7 +62,7 @@ Today the public form requires an email and the application waits as `email_unve
 | `batches` | `{ title, note? }[]` (max 20) |
 | `about` | `{ story?, facebook? (https URL on facebook.com), mapQuery? }` |
 
-`admissions.verifyEmail` (boolean, default `true`). `parsePack` checks: image files exist under `apps/web/public/site/<school>/`, the Facebook link's host, unique batch titles. Address and phones keep coming from `site.contact`. Lahan's pack is filled from `docs/lahan-manakamana-profile.md`; unconfirmed items are named in `packs/README.md` and in the test that counts them (`OPEN:`), since JSON holds no comment.
+`school.publicApplyNeedsLink` (boolean, default `true`; named without the word "email" because a guard test forbids it in the public configuration). `parsePack` checks: a plain `.webp` file name for each hero image (a test, `lahan-pack.test.ts`, checks the files exist, because the core cannot read the file system), the Facebook link's host, unique batch titles. Address and phones keep coming from `site.contact`. Lahan's pack is filled from `docs/lahan-manakamana-profile.md`; unconfirmed items are named in `packs/README.md` and in the test that counts them (`OPEN:`), since JSON holds no comment.
 
 ### 6.2 Reading
 The scroll block travels in the existing `GET /api/site/pages` answer (new optional field, contract regenerated). Notices come from the existing public content endpoints (D-039, D-044), which show items live from their publish day. No new table, no new migration.

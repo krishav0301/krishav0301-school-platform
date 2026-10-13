@@ -44,6 +44,10 @@ One open academic term (2083, running Grade 11 and Grade 12) with its exam patte
 
 **Anyone:** the public site on a phone and a computer: Home, Programmes, Admission (apply), Scholarships, Facilities, Contact.
 
+## The Lahan Manakamana front page (the one-page scroll layout)
+
+Only on the Lahan Manakamana site. **Anyone:** open the address and scroll: photo hero, the school and its classes, the notice board (select a title to read it all; the address keeps it, `/?notice=<id>`), the admission form (no email box: the office calls the number given, and the application appears in the Co-ordinator's queue at once), then About. Sign in is at the top right for everyone. **Principal:** publish a notice in Website Content and check it appears on the board. **Co-ordinator:** send a notice for approval; it shows only after the Principal approves it. With the browser set to reduce motion, nothing moves.
+
 ## Not in this test (known limits)
 
 - **Results were rebuilt on 2026-10-06 (D-117):** one exam pattern per term, out of 100. Results entered before that were cleared. The grade ranges are typed in by the school; the starter set's ranges are a stand-in, so **no real +2 result may be published until the official NEB figures are entered** (D-085). No credit hours or GPA for now.
