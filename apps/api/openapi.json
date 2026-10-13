@@ -10848,7 +10848,7 @@
                     "minLength": 1,
                     "maxLength": 900
                   },
-                  "batches": {
+                  "cards": {
                     "type": "array",
                     "items": {
                       "type": "object",
@@ -10858,19 +10858,39 @@
                           "minLength": 1,
                           "maxLength": 80
                         },
-                        "note": {
+                        "text": {
                           "type": "string",
                           "minLength": 1,
-                          "maxLength": 200
+                          "maxLength": 300
+                        },
+                        "image": {
+                          "type": "object",
+                          "properties": {
+                            "file": {
+                              "type": "string",
+                              "pattern": "^[a-z0-9][a-z0-9-]{0,60}\\.webp$"
+                            },
+                            "alt": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 160
+                            }
+                          },
+                          "required": [
+                            "file",
+                            "alt"
+                          ],
+                          "additionalProperties": false
                         }
                       },
                       "required": [
-                        "title"
+                        "title",
+                        "text"
                       ],
                       "additionalProperties": false
                     },
                     "minItems": 1,
-                    "maxItems": 20
+                    "maxItems": 12
                   },
                   "about": {
                     "type": "object",
@@ -10897,7 +10917,7 @@
                   "photosFolder",
                   "hero",
                   "intro",
-                  "batches",
+                  "cards",
                   "about"
                 ],
                 "additionalProperties": false

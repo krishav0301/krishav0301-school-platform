@@ -35,7 +35,10 @@ describe("a scroll school's front page, for crawlers", () => {
     expect(copy).toContain(site.contact.address);
     expect(copy).toContain(site.contact.phones[0]);
     expect(copy).toContain(site.scroll.intro.slice(0, 40));
-    for (const batch of site.scroll.batches) expect(copy).toContain(batch.title);
+    for (const card of site.scroll.cards) {
+      expect(copy).toContain(card.title);
+      expect(copy).toContain(card.text.replace(/'/g, "&#39;"));
+    }
     expect(copy).toContain("Exam routine for the final term");
     expect(copy).toContain("Darkness to Light");
     expect(copy).toContain("From Darkness to Light. Raising the Leaders of Tomorrow");
@@ -49,7 +52,7 @@ describe("a scroll school's front page, for crawlers", () => {
   });
 
   it("escapes what the pack says", async () => {
-    const hostile = parsePack({ ...lahanJson, site: { ...lahanJson.site, scroll: { ...lahanJson.site.scroll, batches: [{ title: "<img src=x onerror=alert(1)>" }] } } });
+    const hostile = parsePack({ ...lahanJson, site: { ...lahanJson.site, scroll: { ...lahanJson.site.scroll, cards: [{ title: "<img src=x onerror=alert(1)>", text: "<script>alert(2)</script>" }] } } });
     await applyPack(db, hostile);
     const copy = copyOf(await page("/"));
     expect(copy).not.toContain("<img src=x");

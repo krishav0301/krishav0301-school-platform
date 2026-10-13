@@ -5155,9 +5155,13 @@ export interface components {
                     }[];
                     quote?: string;
                     intro: string;
-                    batches: {
+                    cards: {
                         title: string;
-                        note?: string;
+                        text: string;
+                        image?: {
+                            file: string;
+                            alt: string;
+                        };
                     }[];
                     about: {
                         story?: string;

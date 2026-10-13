@@ -11,7 +11,7 @@ const isTitleCase = (text: string): boolean =>
     return index > 0 && SMALL.has(bare.toLowerCase()) ? true : /^[A-Z]/.test(bare);
   });
 
-const HEADINGS = ["scroll.notices.title", "scroll.batches.title", "scroll.admission.title", "scroll.admission.closedTitle", "scroll.admission.doneTitle", "scroll.about.title", "scroll.school.heading", "scroll.unavailable"] as const;
+const HEADINGS = ["scroll.notices.title", "scroll.cards.title", "scroll.admission.title", "scroll.admission.closedTitle", "scroll.admission.doneTitle", "scroll.about.title", "scroll.school.heading", "scroll.unavailable"] as const;
 
 describe("the scroll page's headings", () => {
   it("know what title case is (the check itself)", () => {

@@ -7,7 +7,7 @@ const scroll = {
   photosFolder: "demo",
   hero: { images: [{ file: "hero-1.webp", alt: "The school building" }] },
   intro: "A short intro.",
-  batches: [{ title: "Kindergarten" }, { title: "Class 1 to 5", note: "to confirm" }],
+  cards: [{ title: "Kindergarten to Class 10", text: "A school for every stage.", image: { file: "card-1.webp", alt: "A card photo" } }, { title: "Learning With Technology", text: "Students use the lab." }],
   about: { story: "Our story.", facebook: "https://www.facebook.com/profile.php?id=100090093189751" },
 };
 const withSite = (patch: Record<string, unknown>) => ({ ...royalJson, site: { ...royalJson.site, ...patch } });
@@ -23,7 +23,7 @@ describe("the scroll layout in a pack", () => {
   it("accepts the scroll layout with its words", () => {
     const pack = parsePack(withSite({ layout: "scroll", scroll }));
     expect(pack.site.layout).toBe("scroll");
-    expect(pack.site.scroll?.batches).toHaveLength(2);
+    expect(pack.site.scroll?.cards).toHaveLength(2);
   });
 
   it("refuses an unknown layout, and a scroll layout with no scroll words", () => {
@@ -37,9 +37,9 @@ describe("the scroll layout in a pack", () => {
     }
   });
 
-  it("refuses a link that is not on facebook.com, and duplicate batch titles", () => {
+  it("refuses a link that is not on facebook.com, and duplicate card titles", () => {
     expect(() => parsePack(withSite({ layout: "scroll", scroll: { ...scroll, about: { facebook: "https://evil.example/facebook.com" } } }))).toThrow(InvalidPackError);
-    expect(() => parsePack(withSite({ layout: "scroll", scroll: { ...scroll, batches: [{ title: "A" }, { title: "A" }] } }))).toThrow(/batches/);
+    expect(() => parsePack(withSite({ layout: "scroll", scroll: { ...scroll, cards: [{ title: "A", text: "x" }, { title: "A", text: "y" }] } }))).toThrow(/cards/);
   });
 
   it("needs a plain folder name for the photos, and refuses a path or a missing one", () => {
@@ -48,6 +48,15 @@ describe("the scroll layout in a pack", () => {
     for (const photosFolder of ["../x", "a/b", "Demo", "", "x".repeat(60)]) {
       expect(() => parsePack(withSite({ layout: "scroll", scroll: { ...scroll, photosFolder } })), photosFolder).toThrow(InvalidPackError);
     }
+  });
+
+  it("needs words on every card, lets a card go without a photo, and keeps a card's photo to a plain file name", () => {
+    expect(() => parsePack(withSite({ layout: "scroll", scroll: { ...scroll, cards: [{ title: "No words" }] } }))).toThrow(InvalidPackError);
+    expect(parsePack(withSite({ layout: "scroll", scroll: { ...scroll, cards: [{ title: "Plain", text: "No photo yet." }] } })).site.scroll?.cards[0]?.image).toBeUndefined();
+    for (const file of ["../x.webp", "a/b.webp", "card.png"]) {
+      expect(() => parsePack(withSite({ layout: "scroll", scroll: { ...scroll, cards: [{ title: "Bad", text: "Photo path.", image: { file, alt: "x" } }] } })), file).toThrow(InvalidPackError);
+    }
+    expect(() => parsePack(withSite({ layout: "scroll", scroll: { ...scroll, cards: [] } }))).toThrow(InvalidPackError);
   });
 
   it("takes an optional gallery of its own for the photo strip, up to twelve", () => {

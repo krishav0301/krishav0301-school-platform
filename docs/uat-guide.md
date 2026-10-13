@@ -46,7 +46,7 @@ One open academic term (2083, running Grade 11 and Grade 12) with its exam patte
 
 ## The Lahan Manakamana front page (the one-page scroll layout)
 
-Only on the Lahan Manakamana site. **Anyone:** open the address and scroll: photo hero, the school and its classes, the notice board (select a title to read it all; the address keeps it, `/?notice=<id>`), the admission form (no email box: the office calls the number given, and the application appears in the Co-ordinator's queue at once), then About. Sign in is at the top right for everyone. **Principal:** publish a notice in Website Content and check it appears on the board. **Co-ordinator:** send a notice for approval; it shows only after the Principal approves it. With the browser set to reduce motion, nothing moves.
+Only on the Lahan Manakamana site. **Anyone:** open the address and scroll: photo hero, the school, Our Classes (photo cards), the notice board (select a title to read it all; the address keeps it, `/?notice=<id>`), the admission form (no email box: the office calls the number given, and the application appears in the Co-ordinator's queue at once), then About. Sign in is at the top right for everyone. **Principal:** publish a notice in Website Content and check it appears on the board. **Co-ordinator:** send a notice for approval; it shows only after the Principal approves it. With the browser set to reduce motion, nothing moves.
 
 ## Not in this test (known limits)
 

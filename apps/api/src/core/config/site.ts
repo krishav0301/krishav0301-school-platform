@@ -28,7 +28,11 @@ export const ScrollContentSchema = z.strictObject({
   /** A line shown large at the top of the school band; the intro is the smaller line beneath it. */
   quote: Text(200).optional(),
   intro: Text(900),
-  batches: z.array(z.strictObject({ title: Text(80), note: Text(200).optional() })).min(1).max(20),
+  /** The cards under "Our Classes": a title, a few words and, when the school has one, a photo. */
+  cards: z
+    .array(z.strictObject({ title: Text(80), text: Text(300), image: z.strictObject({ file: HeroFile, alt: Text(160) }).optional() }))
+    .min(1)
+    .max(12),
   about: z.strictObject({
     story: Text(1500).optional(),
     facebook: z.string().regex(FACEBOOK, "a facebook.com link").optional(),

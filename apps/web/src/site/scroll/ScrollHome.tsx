@@ -7,7 +7,7 @@ import { t } from "@/i18n/messages";
 
 import { AboutBlock } from "./AboutBlock";
 import { AdmissionBlock } from "./AdmissionBlock";
-import { Batches } from "./Batches";
+import { ClassCards } from "./ClassCards";
 import { Hero } from "./Hero";
 import { NoticeBoard } from "./NoticeBoard";
 import { PhotoStrip } from "./PhotoStrip";
@@ -33,7 +33,7 @@ export function ScrollHomeView({
   schoolName: string;
   site: ScrollSite;
   signedIn: boolean;
-  slots: { batches: ReactNode; notices: ReactNode; admission: ReactNode; about: ReactNode };
+  slots: { classes: ReactNode; notices: ReactNode; admission: ReactNode; about: ReactNode };
 }) {
   // The stylesheet hides a block until it scrolls in only when scripts are running, so a page without them shows everything.
   useEffect(() => {
@@ -59,7 +59,7 @@ export function ScrollHomeView({
         <Hero schoolName={schoolName} address={site.contact.address} images={hero.images} folder={folder} tagline={hero.tagline} signedIn={signedIn} />
         <SchoolBand quote={quote} intro={intro} />
         <PhotoStrip images={gallery ?? hero.images} folder={folder} />
-        {slots.batches}
+        {slots.classes}
         <section id="notices" className={styles.section}>
           {slots.notices}
         </section>
@@ -84,13 +84,14 @@ export function ScrollHomeView({
 
 /** The page as a school's visitors get it: the blocks that load their own data, in their places. */
 export function ScrollHome({ schoolName, site, signedIn }: { schoolName: string; site: ScrollSite; signedIn: boolean }) {
+  const folder = site.scroll.photosFolder;
   return (
     <ScrollHomeView
       schoolName={schoolName}
       site={site}
       signedIn={signedIn}
       slots={{
-        batches: <Batches batches={site.scroll.batches} />,
+        classes: <ClassCards cards={site.scroll.cards} folder={folder} />,
         notices: <NoticeBoard />,
         admission: <AdmissionBlock phone={site.contact.phones[0] ?? null} />,
         about: <AboutBlock address={site.contact.address} phones={site.contact.phones} about={site.scroll.about} />,

@@ -46,7 +46,16 @@ describe("the Lahan Manakamana school file", () => {
     expect(pack.school.publicApplyNeedsLink).toBe(false);
     expect(parsePack(royalJson).school.publicApplyNeedsLink).toBe(true);
     expect(parsePack(royalJson).site.layout).toBe("classic");
-    expect(pack.site.scroll?.batches.length).toBeGreaterThan(0);
+  });
+
+  it("shows six cards under Our Classes, each with words and a photo, with no \"to confirm\" notes (PM, 2026-10-13)", () => {
+    const cards = pack.site.scroll!.cards;
+    expect(cards.map((c) => c.title)).toEqual(["Kindergarten to Class 10", "Learning With Technology", "Sports and Teamwork", "Art and Creativity", "Celebrating Together", "Awards and Achievements"]);
+    for (const card of cards) {
+      expect(card.text.length, card.title).toBeGreaterThan(20);
+      expect(card.image?.file, card.title).toMatch(/.webp$/);
+      expect(JSON.stringify(card), card.title).not.toMatch(/to confirm/i);
+    }
   });
 
   it("wears the school's own colours, as seen on its page: yellow, with blue for what you can act on (PM, 2026-10-13)", () => {

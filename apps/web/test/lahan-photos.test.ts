@@ -31,8 +31,16 @@ describe("Lahan's picture files", () => {
     }
   });
 
+  it("has every photo the class cards name, each small enough for a card", () => {
+    for (const card of lahanJson.site.scroll.cards) {
+      const file = join(folder, card.image.file);
+      expect(existsSync(file), card.title).toBe(true);
+      expect(statSync(file).size, card.title).toBeLessThan(155 * 1024);
+    }
+  });
+
   it("has no picture in the folder that the pack does not use (nothing is shipped for nothing)", () => {
-    const named = new Set(["crest.webp", ...lahanJson.site.scroll.hero.images.map((i) => i.file), ...lahanJson.site.scroll.gallery.map((i) => i.file)]);
+    const named = new Set(["crest.webp", ...lahanJson.site.scroll.hero.images.map((i) => i.file), ...lahanJson.site.scroll.gallery.map((i) => i.file), ...lahanJson.site.scroll.cards.map((c) => c.image.file)]);
     expect(readdirSync(folder).filter((f) => !named.has(f))).toEqual([]);
   });
 });

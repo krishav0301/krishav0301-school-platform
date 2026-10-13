@@ -3,7 +3,7 @@ import { join } from "node:path";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 
-import { Batches } from "@/site/scroll/Batches";
+import { ClassCards } from "@/site/scroll/ClassCards";
 import { ScrollHomeView, type ScrollSite } from "@/site/scroll/ScrollHome";
 import lahanJson from "../../../packs/lahan-manakamana/pack.json";
 import { siteFrom } from "./site-fixture";
@@ -14,7 +14,7 @@ const esc = (text: string) => text.replace(/&/g, "&amp;").replace(/</g, "&lt;").
 const count = (html: string, pattern: RegExp) => (html.match(pattern) ?? []).length;
 
 const site = siteFrom(lahanJson as never) as ScrollSite;
-const slots = { batches: <p>BATCHES-SLOT</p>, notices: <p>NOTICES-SLOT</p>, admission: <p>ADMISSION-SLOT</p>, about: <p>ABOUT-SLOT</p> };
+const slots = { classes: <p>CLASSES-SLOT</p>, notices: <p>NOTICES-SLOT</p>, admission: <p>ADMISSION-SLOT</p>, about: <p>ABOUT-SLOT</p> };
 const render = (signedIn = false) => renderToStaticMarkup(<ScrollHomeView schoolName={lahanJson.school.name} site={site} signedIn={signedIn} slots={slots} />);
 const html = render();
 
@@ -59,7 +59,7 @@ describe("the scroll page's shell", () => {
   });
 
   it("puts each block where the slot says, in the order of the design", () => {
-    const order = ["BATCHES-SLOT", "NOTICES-SLOT", "ADMISSION-SLOT", "ABOUT-SLOT"].map((s) => html.indexOf(s));
+    const order = ["CLASSES-SLOT", "NOTICES-SLOT", "ADMISSION-SLOT", "ABOUT-SLOT"].map((s) => html.indexOf(s));
     expect(order.every((n) => n > 0)).toBe(true);
     expect([...order].sort((a, b) => a - b)).toEqual(order);
   });
@@ -141,23 +141,63 @@ describe("the scroll page's shell", () => {
 });
 
 describe("the classes block", () => {
-  const batches = site.scroll.batches;
-  const block = renderToStaticMarkup(<Batches batches={batches} />);
+  const cards = site.scroll.cards;
+  const folder = site.scroll.photosFolder;
+  const block = renderToStaticMarkup(<ClassCards cards={cards} folder={folder} />);
 
-  it("lists one card per class group, in order, with its note", () => {
-    for (const b of batches) expect(block).toContain(esc(b.title));
-    expect(block).toContain("To confirm with the school");
-    expect(block.indexOf(esc(batches[0]!.title))).toBeLessThan(block.indexOf(esc(batches.at(-1)!.title)));
-    expect(count(block, /<li[^>]*class="batchCard/g)).toBe(batches.length);
+  it("shows one card per entry, in order, each with its title and words", () => {
+    for (const card of cards) {
+      expect(block).toContain(">" + esc(card.title) + "</h3>");
+      expect(block).toContain(esc(card.text));
+    }
+    expect(block.indexOf(esc(cards[0]!.title))).toBeLessThan(block.indexOf(esc(cards.at(-1)!.title)));
+    expect(count(block, /<li[^>]*class="classCard/g)).toBe(cards.length);
   });
 
-  it("has an h2 that names the list, and the cards are an ordered list", () => {
-    expect(block).toMatch(/<h2[^>]*id="batches-title"/);
-    expect(block).toMatch(/<section[^>]*aria-labelledby="batches-title"/);
-    expect(block).toMatch(/<ol[^>]*class="batchList/);
+  it("shows each card's photo from the school's folder, loaded only when scrolled near, with its own words", () => {
+    for (const card of cards) {
+      const image = card.image!;
+      const tag = block.split("<img").find((part) => part.includes(`src="/site/${folder}/${image.file}"`));
+      expect(tag, card.title).toBeDefined();
+      expect(tag!, card.title).toContain('loading="lazy"');
+      expect(tag!, card.title).toContain('alt="' + esc(image.alt) + '"');
+      expect(tag!, card.title).toContain('class="classPhoto"');
+    }
   });
 
-  it("shows nothing at all when the school lists no classes", () => {
-    expect(renderToStaticMarkup(<Batches batches={[]} />)).toBe("");
+  it("has an h2 that names the section, a short line, and an Apply button that is not the page's one prominent button", () => {
+    expect(block).toMatch(/<h2[^>]*id="classes-title"[^>]*>Our Classes<\/h2>/);
+    expect(block).toMatch(/<section[^>]*aria-labelledby="classes-title"/);
+    expect(block).toContain("Kindergarten to Class 10");
+    expect(block).toMatch(/<a[^>]*href="#admission"[^>]*>Apply<\/a>/);
+    expect(block).not.toContain("button primary");
+  });
+
+  it("draws the cards as a list", () => {
+    expect(block).toMatch(/<ol[^>]*class="classList/);
+  });
+
+  it("leaves out a photo the school has not sent yet, and keeps the card", () => {
+    const html = renderToStaticMarkup(<ClassCards cards={[{ title: "No Photo Yet", text: "Words only for now." }]} folder={folder} />);
+    expect(html).toContain("No Photo Yet");
+    expect(html).not.toContain("<img");
+  });
+
+  it("shows nothing at all when the school lists no cards", () => {
+    expect(renderToStaticMarkup(<ClassCards cards={[]} folder={folder} />)).toBe("");
+  });
+
+  it("lets a card title shrink to 1rem, so its longest word (Achievements) stays whole at 320px with text at 200%", () => {
+    const css = readFileSync(join(import.meta.dirname, "..", "src", "site", "scroll", "scroll.module.css"), "utf8");
+    expect(css).toMatch(/\.classTitle\s*\{[^}]*font-size:\s*clamp\(1rem,/);
+  });
+
+  it("sizes each card photo itself, so a large file cannot widen its card", () => {
+    const css = readFileSync(join(import.meta.dirname, "..", "src", "site", "scroll", "scroll.module.css"), "utf8");
+    const photo = /\.classPhoto\s*\{[^}]*\}/.exec(css)![0];
+    expect(photo).toMatch(/width:\s*100%/);
+    expect(photo).toMatch(/min-width:\s*0/);
+    expect(photo).toMatch(/aspect-ratio:/);
+    expect(photo).toMatch(/object-fit:\s*cover/);
   });
 });

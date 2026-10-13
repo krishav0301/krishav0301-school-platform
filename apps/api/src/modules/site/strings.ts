@@ -55,7 +55,7 @@ export const CRAWLER_ONLY = {
   "site.options": "Options",
   "site.address": "Address",
   "site.phone": "Phone",
-  "site.scroll.batches": "Classes",
+  "site.scroll.classes": "Classes",
   "site.scroll.notices": "Notices",
   "site.scroll.about": "About the school",
   "site.scroll.facebook": "The school's Facebook page",
