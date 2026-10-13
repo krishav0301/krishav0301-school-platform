@@ -143,7 +143,8 @@ describe("the scroll page's shell", () => {
 describe("the classes block", () => {
   const cards = site.scroll.cards;
   const folder = site.scroll.photosFolder;
-  const block = renderToStaticMarkup(<ClassCards cards={cards} folder={folder} />);
+  const intro = "Every child is a light waiting to shine. Lahan Manakamana nurtures curiosity.";
+  const block = renderToStaticMarkup(<ClassCards cards={cards} folder={folder} intro={intro} />);
 
   it("shows one card per entry, in order, each with its title and words", () => {
     for (const card of cards) {
@@ -166,11 +167,18 @@ describe("the classes block", () => {
   });
 
   it("has an h2 that names the section, a short line, and an Apply button that is not the page's one prominent button", () => {
-    expect(block).toMatch(/<h2[^>]*id="classes-title"[^>]*>Our Classes<\/h2>/);
+    expect(block).toMatch(/<h2[^>]*id="classes-title"[^>]*>Our School<\/h2>/);
     expect(block).toMatch(/<section[^>]*aria-labelledby="classes-title"/);
-    expect(block).toContain("Kindergarten to Class 10");
+    expect(block).toContain(esc(intro));
+    expect(block.indexOf("Our School")).toBeLessThan(block.indexOf(esc(intro)));
     expect(block).toMatch(/<a[^>]*href="#admission"[^>]*>Apply<\/a>/);
     expect(block).not.toContain("button primary");
+  });
+
+  it("shows no intro line at all when the school gives none, and does not make one up", () => {
+    const bare = renderToStaticMarkup(<ClassCards cards={cards} folder={folder} />);
+    expect(bare).not.toContain("sectionLead");
+    expect(bare).toContain("Our School");
   });
 
   it("draws the cards as a list", () => {

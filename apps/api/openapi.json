@@ -10848,6 +10848,11 @@
                     "minLength": 1,
                     "maxLength": 900
                   },
+                  "cardsIntro": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 400
+                  },
                   "cards": {
                     "type": "array",
                     "items": {

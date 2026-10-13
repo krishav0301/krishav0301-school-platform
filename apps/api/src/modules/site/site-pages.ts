@@ -71,7 +71,7 @@ async function scrollHome(ctx: PageContext, site: SiteContent): Promise<PagePart
     organisation: { ...orgDetails(site), description: s.intro, ...(s.about.facebook ? { sameAs: [s.about.facebook] } : {}) },
     bodyHtml:
       `<h1>${e(ctx.school.name)}</h1><p>${e(site.contact.address)}</p><p>${e(say("site.phone"))}: ${e(site.contact.phones[0]!)}</p>${s.hero.tagline ? `<p>${e(s.hero.tagline)}</p>` : ""}${s.quote ? `<p>${e(s.quote.replace(/\s*\n\s*/g, ". "))}</p>` : ""}<p>${e(s.intro)}</p>` +
-      `<h2>${e(say("site.scroll.classes"))}</h2><ul>${s.cards.map((c) => `<li>${e(c.title)}: ${e(c.text)}</li>`).join("")}</ul>` +
+      `<h2>${e(say("site.scroll.school"))}</h2>${s.cardsIntro ? `<p>${e(s.cardsIntro)}</p>` : ""}<ul>${s.cards.map((c) => `<li>${e(c.title)}: ${e(c.text)}</li>`).join("")}</ul>` +
       `<h2>${e(say("site.scroll.notices"))}</h2>${items.length > 0 ? `<ul>${items.map((i) => `<li>${e(i.title)}</li>`).join("")}</ul>` : ""}<p><a href="/notices">${e(say("notices.title"))}</a></p>` +
       (s.about.story ? `<h2>${e(say("site.scroll.about"))}</h2><p>${e(s.about.story)}</p>` : "") +
       (s.about.facebook ? `<p><a href="${e(s.about.facebook)}" rel="noopener">${e(say("site.scroll.facebook"))}</a></p>` : ""),

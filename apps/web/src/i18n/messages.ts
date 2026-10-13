@@ -43,8 +43,7 @@ export const en = {
   "scroll.about.map": "Open in maps",
   "scroll.unavailable": "This Page Is Not Available",
   "scroll.backHome": "Back to the home page",
-  "scroll.cards.title": "Our Classes",
-  "scroll.cards.lead": "A school for every stage, from Kindergarten to Class 10.",
+  "scroll.cards.title": "Our School",
   "nav.dashboard": "Overview",
 
   // Loading and status of the school configuration

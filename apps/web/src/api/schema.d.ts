@@ -5155,6 +5155,7 @@ export interface components {
                     }[];
                     quote?: string;
                     intro: string;
+                    cardsIntro?: string;
                     cards: {
                         title: string;
                         text: string;

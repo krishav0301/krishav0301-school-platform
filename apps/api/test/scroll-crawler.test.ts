@@ -40,6 +40,7 @@ describe("a scroll school's front page, for crawlers", () => {
       expect(copy).toContain(card.text.replace(/'/g, "&#39;"));
     }
     expect(copy).toContain("Exam routine for the final term");
+    expect(copy).toContain("Every child is a light waiting to shine.");
     expect(copy).toContain("Darkness to Light");
     expect(copy).toContain("From Darkness to Light. Raising the Leaders of Tomorrow");
     expect(copy).toContain("2058");

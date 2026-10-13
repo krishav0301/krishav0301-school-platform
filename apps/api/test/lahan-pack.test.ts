@@ -48,7 +48,13 @@ describe("the Lahan Manakamana school file", () => {
     expect(parsePack(royalJson).site.layout).toBe("classic");
   });
 
-  it("shows six cards under Our Classes, each with words and a photo, with no \"to confirm\" notes (PM, 2026-10-13)", () => {
+  it("says what the school stands for at the top of Our School, in the PM's chosen words (2026-10-13), and does not repeat the first card", () => {
+    const intro = pack.site.scroll!.cardsIntro!;
+    expect(intro).toBe("Every child is a light waiting to shine. Lahan Manakamana nurtures curiosity, kindness and discipline, so that each student grows in knowledge and character and steps into the world ready to lead and to care for others.");
+    expect(intro).not.toMatch(/every stage|Kindergarten to Class 10/i);
+  });
+
+  it("shows six cards under Our School, each with words and a photo, with no \"to confirm\" notes (PM, 2026-10-13)", () => {
     const cards = pack.site.scroll!.cards;
     expect(cards.map((c) => c.title)).toEqual(["Kindergarten to Class 10", "Learning With Technology", "Sports and Teamwork", "Art and Creativity", "Celebrating Together", "Awards and Achievements"]);
     for (const card of cards) {

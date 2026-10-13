@@ -14,11 +14,12 @@ export interface ClassCard {
 }
 
 /**
- * "Our Classes": on a wide screen the heading, a short line and the Apply button stay in view on the left while a card
+ * "Our School": on a wide screen the heading, a short line and the Apply button stay in view on the left while a card
  * for each part of school life, with its photo, scrolls past on the right. On a phone the columns stack and nothing sticks.
+ * The paragraph under the heading is the school's own words about what it stands for, and is left out when it has none.
  * A card whose photo has not been sent yet keeps its words. Shows nothing when there are no cards.
  */
-export function ClassCards({ cards, folder }: { cards: ClassCard[]; folder: string }) {
+export function ClassCards({ cards, folder, intro }: { cards: ClassCard[]; folder: string; intro?: string }) {
   if (cards.length === 0) return null;
   return (
     <section className={styles.classes} aria-labelledby="classes-title">
@@ -26,7 +27,7 @@ export function ClassCards({ cards, folder }: { cards: ClassCard[]; folder: stri
         <h2 id="classes-title" className={styles.sectionTitle}>
           {t("scroll.cards.title")}
         </h2>
-        <p className={styles.sectionLead}>{t("scroll.cards.lead")}</p>
+        {intro ? <p className={styles.sectionLead}>{intro}</p> : null}
         <a href="#admission" className={`${buttonClass({ variant: "secondary" })} ${styles.classesApply}`}>
           {t("scroll.apply")}
         </a>

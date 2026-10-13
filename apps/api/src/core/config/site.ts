@@ -28,7 +28,9 @@ export const ScrollContentSchema = z.strictObject({
   /** A line shown large at the top of the school band; the intro is the smaller line beneath it. */
   quote: Text(200).optional(),
   intro: Text(900),
-  /** The cards under "Our Classes": a title, a few words and, when the school has one, a photo. */
+  /** A short paragraph at the top of the cards section, under its heading: what the school stands for. Nothing is shown without it. */
+  cardsIntro: Text(400).optional(),
+  /** The cards under "Our School": a title, a few words and, when the school has one, a photo. */
   cards: z
     .array(z.strictObject({ title: Text(80), text: Text(300), image: z.strictObject({ file: HeroFile, alt: Text(160) }).optional() }))
     .min(1)

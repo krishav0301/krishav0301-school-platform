@@ -91,7 +91,7 @@ export function ScrollHome({ schoolName, site, signedIn }: { schoolName: string;
       site={site}
       signedIn={signedIn}
       slots={{
-        classes: <ClassCards cards={site.scroll.cards} folder={folder} />,
+        classes: <ClassCards cards={site.scroll.cards} folder={folder} intro={site.scroll.cardsIntro} />,
         notices: <NoticeBoard />,
         admission: <AdmissionBlock phone={site.contact.phones[0] ?? null} />,
         about: <AboutBlock address={site.contact.address} phones={site.contact.phones} about={site.scroll.about} />,

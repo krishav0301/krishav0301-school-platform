@@ -88,6 +88,12 @@ describe("the scroll layout in a pack", () => {
     expect(withCards([card("One", "c-1.webp"), card("Two", "c-2.webp")], [{ file: "g-1.webp", alt: "A photo" }]).site.scroll?.cards).toHaveLength(2);
   });
 
+  it("takes an optional paragraph for the top of the cards section, and refuses an empty or very long one", () => {
+    expect(parsePack(withSite({ layout: "scroll", scroll: { ...scroll, cardsIntro: "What the school stands for." } })).site.scroll?.cardsIntro).toBe("What the school stands for.");
+    expect(parsePack(withSite({ layout: "scroll", scroll })).site.scroll?.cardsIntro).toBeUndefined();
+    for (const cardsIntro of ["", "   ", "x".repeat(401)]) expect(() => parsePack(withSite({ layout: "scroll", scroll: { ...scroll, cardsIntro } })), cardsIntro.length + " characters").toThrow(InvalidPackError);
+  });
+
   it("refuses scroll words on a classic site", () => {
     expect(() => parsePack(withSite({ scroll }))).toThrow(/site\.scroll/);
   });
