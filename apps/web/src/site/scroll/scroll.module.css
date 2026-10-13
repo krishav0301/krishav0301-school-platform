@@ -442,3 +442,60 @@
     align-self: start;
   }
 }
+
+/* ---- Notice board ------------------------------------------------------------------------------------- */
+
+.noticeList {
+  display: grid;
+  gap: var(--space-2);
+  margin: var(--space-5) 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.noticeRow {
+  display: grid;
+  gap: var(--space-2);
+  width: 100%;
+  min-height: var(--control-height);
+  padding: var(--space-4);
+  font: inherit;
+  text-align: start;
+  color: var(--color-text);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-card);
+  cursor: pointer;
+}
+
+.noticeRow:hover {
+  border-color: var(--color-primary);
+}
+
+.noticeRow:focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: 2px;
+}
+
+.noticeMeta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2) var(--space-3);
+}
+
+.noticeDate {
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+}
+
+.noticeTitle {
+  font-family: var(--font-heading);
+  font-size: var(--text-xl);
+  line-height: var(--leading-tight);
+  overflow-wrap: anywhere;
+}
+
+.noticeAll {
+  margin: var(--space-5) 0 0;
+}
