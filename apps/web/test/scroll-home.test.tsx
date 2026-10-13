@@ -1,6 +1,7 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 
+import { Batches } from "@/site/scroll/Batches";
 import { ScrollHomeView, type ScrollSite } from "@/site/scroll/ScrollHome";
 import lahanJson from "../../../packs/lahan-manakamana/pack.json";
 import { siteFrom } from "./site-fixture";
@@ -69,5 +70,27 @@ describe("the scroll page's shell", () => {
 
   it("links to the privacy notice in the footer", () => {
     expect(html).toContain('href="/privacy"');
+  });
+});
+
+describe("the classes block", () => {
+  const batches = site.scroll.batches;
+  const block = renderToStaticMarkup(<Batches batches={batches} />);
+
+  it("lists one card per class group, in order, with its note", () => {
+    for (const b of batches) expect(block).toContain(esc(b.title));
+    expect(block).toContain("To confirm with the school");
+    expect(block.indexOf(esc(batches[0]!.title))).toBeLessThan(block.indexOf(esc(batches.at(-1)!.title)));
+    expect(count(block, /<li[^>]*class="batchCard/g)).toBe(batches.length);
+  });
+
+  it("has an h2 that names the list, and the cards are an ordered list", () => {
+    expect(block).toMatch(/<h2[^>]*id="batches-title"/);
+    expect(block).toMatch(/<section[^>]*aria-labelledby="batches-title"/);
+    expect(block).toMatch(/<ol[^>]*class="batchList/);
+  });
+
+  it("shows nothing at all when the school lists no classes", () => {
+    expect(renderToStaticMarkup(<Batches batches={[]} />)).toBe("");
   });
 });

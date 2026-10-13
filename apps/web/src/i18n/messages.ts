@@ -27,6 +27,8 @@ export const en = {
   "scroll.apply": "Apply",
   "scroll.school.heading": "The school",
   "scroll.strip.label": "Photos of the school",
+  "scroll.batches.title": "Our classes",
+  "scroll.batches.lead": "The class groups at the school.",
   "nav.dashboard": "Overview",
 
   // Loading and status of the school configuration
