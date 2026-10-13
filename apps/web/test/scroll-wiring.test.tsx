@@ -40,19 +40,19 @@ describe("the classic pages on a scroll school", () => {
   it("say the page is not available, and lead home, instead of showing placeholder words", () => {
     const html = frame(scrollSite);
     expect(html).not.toContain("CLASSIC-WORDS");
-    expect(html).toContain("This page is not available");
+    expect(html).toContain("This Page Is Not Available");
     expect(html).toMatch(/<a[^>]*href="\/"/);
   });
 
   it("leave a page that every school has, such as the privacy notice, readable on a scroll school (review I1)", () => {
     const html = frame(scrollSite, false);
     expect(html).toContain("CLASSIC-WORDS");
-    expect(html).not.toContain("This page is not available");
+    expect(html).not.toContain("This Page Is Not Available");
   });
 
   it("are unchanged for a classic school", () => {
     expect(frame(classicSite)).toContain("CLASSIC-WORDS");
-    expect(frame(classicSite)).not.toContain("This page is not available");
+    expect(frame(classicSite)).not.toContain("This Page Is Not Available");
   });
 });
 

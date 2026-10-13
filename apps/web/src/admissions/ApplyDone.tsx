@@ -24,7 +24,7 @@ export function ApplyDone({ embedded = false, needsEmail, email }: { embedded?: 
   return (
     <Card>
       <div ref={ref} role="status" tabIndex={-1}>
-        <Heading className={setupStyles.title}>{t("admissions.apply.doneTitle")}</Heading>
+        <Heading className={setupStyles.title}>{t(embedded ? "scroll.admission.doneTitle" : "admissions.apply.doneTitle")}</Heading>
         <p>{needsEmail ? t("admissions.apply.doneBody", { email }) : t("admissions.apply.doneBodyNoEmail")}</p>
       </div>
     </Card>

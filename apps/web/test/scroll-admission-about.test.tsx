@@ -14,14 +14,14 @@ describe("the admission block", () => {
   it("shows the form when a class is open for admission", () => {
     const html = admission("open");
     expect(html).toContain("THE-FORM");
-    expect(html).toContain("Apply for admission");
+    expect(html).toContain("Apply for Admission");
     expect(html).not.toContain("not open online");
   });
 
   it("shows the office's phone number, not a form, when no class is open or the classes could not be loaded", () => {
     const html = admission("closed");
     expect(html).not.toContain("THE-FORM");
-    expect(html).toContain("Admissions are not open online right now");
+    expect(html).toContain("Admissions Are Not Open Online Right Now");
     expect(html).toContain('href="tel:+97733564346"');
   });
 

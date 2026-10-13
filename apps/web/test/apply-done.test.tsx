@@ -18,6 +18,11 @@ describe("the message after an application is sent", () => {
     expect(renderToStaticMarkup(<ApplyDone needsEmail email="a@b.example" />)).toMatch(/<h1/);
   });
 
+  it("is headed in title case inside the scroll page, like its other headings, and keeps the usual wording on its own page", () => {
+    expect(renderToStaticMarkup(<ApplyDone embedded needsEmail={false} email="" />)).toContain(">Application Received<");
+    expect(renderToStaticMarkup(<ApplyDone needsEmail email="a@b.example" />)).toContain(">Application received<");
+  });
+
   it("says where the confirmation went, or that the office will call", () => {
     expect(renderToStaticMarkup(<ApplyDone needsEmail email="a@b.example" />)).toContain("a@b.example");
     expect(renderToStaticMarkup(<ApplyDone embedded needsEmail={false} email="" />)).toContain("call the number you gave");
