@@ -1,4 +1,4 @@
-import { existsSync, readdirSync, statSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
 import { join } from "node:path";
 
 import { describe, expect, it } from "vitest";
@@ -13,6 +13,16 @@ describe("Lahan's picture files", () => {
     const crest = join(folder, "crest.webp");
     expect(existsSync(crest)).toBe(true);
     expect(statSync(crest).size).toBeLessThan(80 * 1024);
+  });
+
+  it("has its tab icon, a small square picture of the crest that the Worker serves as /favicon.ico (PM, 2026-10-13)", () => {
+    const icon = join(folder, "favicon.png");
+    expect(existsSync(icon)).toBe(true);
+    expect(statSync(icon).size).toBeLessThan(30 * 1024);
+    const bytes = readFileSync(icon);
+    expect(bytes.subarray(1, 4).toString("ascii"), "a PNG picture").toBe("PNG");
+    expect([bytes.readUInt32BE(16), bytes.readUInt32BE(20)], "square").toEqual([bytes.readUInt32BE(16), bytes.readUInt32BE(16)]);
+    expect(bytes.readUInt32BE(16)).toBeGreaterThanOrEqual(64);
   });
 
   it("has every hero photo the pack names, each small enough for a full-screen picture", () => {
@@ -40,7 +50,7 @@ describe("Lahan's picture files", () => {
   });
 
   it("has no picture in the folder that the pack does not use (nothing is shipped for nothing)", () => {
-    const named = new Set(["crest.webp", ...lahanJson.site.scroll.hero.images.map((i) => i.file), ...lahanJson.site.scroll.gallery.map((i) => i.file), ...lahanJson.site.scroll.cards.map((c) => c.image.file)]);
+    const named = new Set(["crest.webp", "favicon.png", ...lahanJson.site.scroll.hero.images.map((i) => i.file), ...lahanJson.site.scroll.gallery.map((i) => i.file), ...lahanJson.site.scroll.cards.map((c) => c.image.file)]);
     expect(readdirSync(folder).filter((f) => !named.has(f))).toEqual([]);
   });
 });

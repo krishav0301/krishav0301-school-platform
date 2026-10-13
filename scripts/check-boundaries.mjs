@@ -55,9 +55,9 @@ for (const dir of [apiSrc, webSrc]) {
   }
 }
 
-// Rule 5 (D-046): the public pages the Worker fills in, and the three crawler files it writes (robots.txt,
-// sitemap.xml, llms.txt), must be listed twice, and the lists must agree.
-// `PAGES` and `CRAWLER_FILES` (the code) say which addresses the Worker answers; `run_worker_first`
+// Rule 5 (D-046): the public pages the Worker fills in, the three crawler files it writes (robots.txt,
+// sitemap.xml, llms.txt) and the school's tab icon (favicon.ico) must be listed twice, and the lists must agree.
+// `PAGES`, `CRAWLER_FILES` and `SCHOOL_FILES` (the code) say which addresses the Worker answers; `run_worker_first`
 // (wrangler.jsonc) is what makes Cloudflare send those addresses to the Worker instead of serving the
 // static file. An address in only one list would silently be served without its words.
 {
@@ -65,7 +65,9 @@ for (const dir of [apiSrc, webSrc]) {
   const block = /const PAGES: Record<string, Builder> = \{([^}]*)\}/.exec(pagesSource)?.[1] ?? "";
   const filesSource = readFileSync(join(apiSrc, "modules", "site", "crawler-files.ts"), "utf8");
   const filesBlock = /export const CRAWLER_FILES = \[([^\]]*)\]/.exec(filesSource)?.[1] ?? "";
-  const inCode = [...block.matchAll(/"([^"]+)"\s*:/g), ...filesBlock.matchAll(/"([^"]+)"/g)].map((m) => m[1]).sort();
+  const schoolSource = readFileSync(join(apiSrc, "modules", "site", "favicon.ts"), "utf8");
+  const schoolBlock = /export const SCHOOL_FILES = \[([^\]]*)\]/.exec(schoolSource)?.[1] ?? "";
+  const inCode = [...block.matchAll(/"([^"]+)"\s*:/g), ...filesBlock.matchAll(/"([^"]+)"/g), ...schoolBlock.matchAll(/"([^"]+)"/g)].map((m) => m[1]).sort();
 
   const wrangler = readFileSync(join(root, "apps", "api", "wrangler.jsonc"), "utf8")
     .replace(/^\s*\/\/.*$/gm, "");
