@@ -63,7 +63,7 @@ describe("the Lahan Manakamana school file", () => {
   });
 
   it("opens its school band with a line about the leaders of tomorrow, in the PM's words (2026-10-13)", () => {
-    expect(pack.site.scroll!.quote).toBe("From darkness to light: raising the leaders of tomorrow.");
+    expect(pack.site.scroll!.quote).toBe("From Darkness to Light\nRaising the Leaders of Tomorrow");
     expect(pack.site.scroll!.intro).toContain("Welcome to Lahan Manakamana Secondary English Boarding School");
   });
 

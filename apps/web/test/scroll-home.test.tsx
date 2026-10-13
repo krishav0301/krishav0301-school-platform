@@ -116,8 +116,10 @@ describe("the scroll page's shell", () => {
 
   it("shows the school's quote large in the band, with the welcome line smaller beneath it", () => {
     const band = /<section[^>]*aria-labelledby="school-heading"[\s\S]*?<\/section>/.exec(html)![0];
-    expect(band).toContain(esc(site.scroll.quote!));
-    expect(band.indexOf(esc(site.scroll.quote!))).toBeLessThan(band.indexOf(esc(site.scroll.intro)));
+    const lines = site.scroll.quote!.split("\n");
+    expect(lines).toEqual(["From Darkness to Light", "Raising the Leaders of Tomorrow"]);
+    for (const line of lines) expect(band, line).toMatch(new RegExp(`<span[^>]*class="bandQuoteLine"[^>]*>${line}</span>`));
+    expect(band.indexOf(lines[1]!)).toBeLessThan(band.indexOf(esc(site.scroll.intro)));
     expect(band).toMatch(/<p[^>]*class="bandQuote"/);
     const plain = renderToStaticMarkup(<ScrollHomeView schoolName="X" site={{ ...site, scroll: { ...site.scroll, quote: undefined } }} signedIn={false} slots={slots} />);
     expect(plain).not.toContain("bandQuote");

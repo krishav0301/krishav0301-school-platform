@@ -322,6 +322,10 @@
   line-height: var(--leading-tight);
 }
 
+.bandQuoteLine {
+  display: block;
+}
+
 .bandText .bandIntro {
   margin-top: var(--space-4);
   font-size: var(--text-lg);
