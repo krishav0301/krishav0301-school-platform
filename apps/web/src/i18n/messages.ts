@@ -39,6 +39,8 @@ export const en = {
   "scroll.about.phone": "Phone",
   "scroll.about.facebook": "The school's Facebook page",
   "scroll.about.map": "Open in maps",
+  "scroll.unavailable": "This page is not available",
+  "scroll.backHome": "Back to the home page",
   "scroll.batches.title": "Our classes",
   "scroll.batches.lead": "The class groups at the school.",
   "nav.dashboard": "Overview",

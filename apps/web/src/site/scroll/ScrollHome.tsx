@@ -4,23 +4,20 @@ import Link from "next/link";
 import { useEffect, type ReactNode } from "react";
 
 import { t } from "@/i18n/messages";
-import type { SiteContent } from "@/site/model";
 
+import { AboutBlock } from "./AboutBlock";
+import { AdmissionBlock } from "./AdmissionBlock";
+import { Batches } from "./Batches";
 import { Hero } from "./Hero";
+import { NoticeBoard } from "./NoticeBoard";
 import { PhotoStrip } from "./PhotoStrip";
 import { SchoolBand } from "./SchoolBand";
 import { SmoothScroll } from "./SmoothScroll";
 import { TopBar } from "./TopBar";
+import { type ScrollSite } from "./choose-home";
 import styles from "./scroll.module.css";
 
-/** A site whose pack chose the scroll layout, with its words. */
-export type ScrollSite = SiteContent & { scroll: NonNullable<SiteContent["scroll"]> };
-
-/** `"scroll"` once the words are loaded and say so; a classic school's front page is drawn as before. */
-export function chooseHome(view: { status: string; site?: SiteContent }): "scroll" | "classic" | "loading" {
-  if (view.status !== "ready" || !view.site) return "loading";
-  return view.site.layout === "scroll" && view.site.scroll ? "scroll" : "classic";
-}
+export type { ScrollSite };
 
 /**
  * The whole page, drawn from its words and the four blocks that load their own data (classes, notices, admission,
@@ -75,5 +72,22 @@ export function ScrollHomeView({
         </p>
       </footer>
     </div>
+  );
+}
+
+/** The page as a school's visitors get it: the blocks that load their own data, in their places. */
+export function ScrollHome({ schoolName, site, signedIn }: { schoolName: string; site: ScrollSite; signedIn: boolean }) {
+  return (
+    <ScrollHomeView
+      schoolName={schoolName}
+      site={site}
+      signedIn={signedIn}
+      slots={{
+        batches: <Batches batches={site.scroll.batches} />,
+        notices: <NoticeBoard />,
+        admission: <AdmissionBlock phone={site.contact.phones[0] ?? null} />,
+        about: <AboutBlock address={site.contact.address} phones={site.contact.phones} about={site.scroll.about} />,
+      }}
+    />
   );
 }

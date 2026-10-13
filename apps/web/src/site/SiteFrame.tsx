@@ -1,11 +1,12 @@
 "use client";
 
+import Link from "next/link";
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 
 import { createApiClient } from "@/api/client";
 import { usePageTitle } from "@/config/page-title";
 import { t } from "@/i18n/messages";
-import { Button, HeroBand, Notice, Skeleton } from "@/ui";
+import { Button, HeroBand, Notice, Skeleton, buttonClass } from "@/ui";
 
 import { loadSite } from "./client";
 import type { SiteContent } from "./model";
@@ -72,7 +73,16 @@ export function SiteFrameView({ title, view, onRetry, children }: { title: strin
 
       {view.status === "notReady" ? <Notice title={t("site.notReadyTitle")}>{t("site.notReadyBody")}</Notice> : null}
 
-      {view.status === "ready" ? children(view.site) : null}
+      {/* A school with the one-page layout has no separate pages (D-167): its words are on the front page. */}
+      {view.status === "ready" && view.site.layout === "scroll" ? (
+        <Notice title={t("scroll.unavailable")}>
+          <Link href="/" className={buttonClass({ variant: "secondary" })}>
+            {t("scroll.backHome")}
+          </Link>
+        </Notice>
+      ) : null}
+
+      {view.status === "ready" && view.site.layout !== "scroll" ? children(view.site) : null}
     </>
   );
 }
