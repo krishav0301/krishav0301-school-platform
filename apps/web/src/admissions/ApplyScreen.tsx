@@ -22,12 +22,12 @@ type Levels = { status: "loading" } | { status: "ready"; levels: OpenLevel[] } |
  * and reused on every retry. The title and intro show at once; only the fields wait on the level list
  * (D-030: show the shape of a page while it loads, not a lone spinner).
  */
-export function ApplyScreen({ embedded = false }: { embedded?: boolean }) {
+export function ApplyScreen({ embedded = false, levels: knownLevels }: { embedded?: boolean; levels?: OpenLevel[] }) {
   const { api } = useSession();
   const { config } = useConfig();
   // A school may take applications without an email link (D-168): then there is no email field, and nothing is sent to confirm.
   const needsEmail = config?.school.publicApplyNeedsLink !== false;
-  const [levels, setLevels] = useState<Levels>({ status: "loading" });
+  const [levels, setLevels] = useState<Levels>(knownLevels ? { status: "ready", levels: knownLevels } : { status: "loading" });
   const [values, setValues] = useState<ApplicantForm>(emptyApplicantForm());
   const [errors, setErrors] = useState<ApplicantErrors>({});
   const [pending, setPending] = useState(false);
@@ -41,6 +41,8 @@ export function ApplyScreen({ embedded = false }: { embedded?: boolean }) {
   const levelRef = useRef<HTMLSelectElement>(null);
 
   useEffect(() => {
+    // The page that embeds the form may already have the open classes.
+    if (knownLevels) return;
     let active = true;
     void loadOpenLevels(api).then((result) => {
       if (active) setLevels(result.ok ? { status: "ready", levels: result.data } : { status: "failed" });
@@ -48,7 +50,7 @@ export function ApplyScreen({ embedded = false }: { embedded?: boolean }) {
     return () => {
       active = false;
     };
-  }, [api]);
+  }, [api, knownLevels]);
 
   const set = useCallback(<K extends keyof ApplicantForm>(name: K, value: ApplicantForm[K]) => setValues((current) => ({ ...current, [name]: value })), []);
 
