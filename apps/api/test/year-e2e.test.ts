@@ -29,8 +29,12 @@ vi.setConfig({ testTimeout: 180_000 });
 const app = createApp();
 const PASS = "Papaya-Compass-Ledger-8823";
 
+// Royal's own pack switches homework, notes and the daily log off (the PM, 2026-10-17), but these suites test those features, which
+// other schools still use: they run Royal's pack with them on.
+const royalWithClasswork = { ...royalJson, modules: { ...royalJson.modules, homework: true, notes: true, activity_log: true } };
+
 describe.each([
-  { label: "Royal Softech", json: royalJson, database: () => env.DB },
+  { label: "Royal Softech", json: royalWithClasswork, database: () => env.DB },
   { label: "Sample Basic School", json: sampleJson, database: () => env.SCRATCH_DB },
 ])("A school year: $label", ({ label, json, database }) => {
   const pack: Pack = testPack(json);

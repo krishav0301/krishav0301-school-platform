@@ -29,8 +29,12 @@ import { seedProgrammes, testPack, wingOfLevel } from "./programme-fixtures";
 
 const app = createApp();
 
+// Royal's own pack switches homework, notes and the daily log off (the PM, 2026-10-17), but these suites test those features, which
+// other schools still use: they run Royal's pack with them on.
+const royalWithClasswork = { ...royalJson, modules: { ...royalJson.modules, homework: true, notes: true, activity_log: true } };
+
 describe.each([
-  { label: "Royal Softech", json: royalJson, database: () => env.DB },
+  { label: "Royal Softech", json: royalWithClasswork, database: () => env.DB },
   { label: "Sample Basic School", json: sampleJson, database: () => env.SCRATCH_DB },
 ])("Phase 5 exit check: $label", ({ json, database }) => {
   const pack: Pack = testPack(json);
