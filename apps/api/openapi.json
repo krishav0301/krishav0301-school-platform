@@ -9683,6 +9683,9 @@
                 "label": {
                   "type": "string"
                 },
+                "wing": {
+                  "type": "string"
+                },
                 "termLabel": {
                   "type": "string"
                 },
@@ -9758,6 +9761,7 @@
                 "programmeName",
                 "levelName",
                 "label",
+                "wing",
                 "termLabel",
                 "terminal",
                 "publishedAt",

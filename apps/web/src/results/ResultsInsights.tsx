@@ -1,10 +1,13 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { BookOpen, ChevronDown } from "lucide-react";
+import { useCallback, useId, useState, type CSSProperties, type ReactNode } from "react";
 
-import { formatBsDate } from "@/content/model";
+import classStyles from "@/classes/classes.module.css";
+import { bareSection, sectionBadge } from "@/classes/model";
 import { t } from "@/i18n/messages";
-import { OpenLink, ReadFailure, ReadTable, TableSkeleton } from "@/read/ReadView";
+import accessStyles from "@/people/people-access.module.css";
+import { ReadFailure, TableSkeleton } from "@/read/ReadView";
 import { useSession } from "@/session/SessionProvider";
 import { useLoad } from "@/setup/useLoad";
 import { Button, Select } from "@/ui";
@@ -13,72 +16,223 @@ import { gateFailure, loadPublishedResults } from "./client";
 import {
   NO_FILTERS,
   applyFilters,
-  classBars,
-  classLabel,
-  examLabel,
   filterOptions,
+  groupInsights,
   scoreTone,
+  sheetTerminal,
   shortPercent,
-  subjectBars,
+  startFilters,
   summarise,
   type Bar,
+  type DepartmentGroup,
   type InsightFilters,
+  type LevelGroup,
   type PublishedResults,
   type PublishedRow,
+  type Summary,
 } from "./insights-model";
 import styles from "./results-insights.module.css";
 
 const BAND_TONES = ["bad", "warn", "primary", "ok"] as const;
 const BAND_LABELS = ["results.insights.band0", "results.insights.band1", "results.insights.band2", "results.insights.band3"] as const;
+/** Each department card's soft tint, in turn, from the theme's tones (as on the Classes page). */
+const TONES = ["primary", "ok", "accent", "warn"] as const;
 
-/** Horizontal bars, one per class or subject: the name, a bar that grows in, the value. Every bar's value is also text. Pure. */
+/** Shows one class's published sheet (its students); the screens that use this say how, so no screen imports another. */
+export type SheetOf = (classId: string, terminalId: string) => ReactNode;
+
+/** One score as a bar that grows in, with its value as text too. Pure. */
+export function ScoreBar({ value }: { value: number }) {
+  return (
+    <span className={styles.scoreBar}>
+      <span className={styles.track} aria-hidden>
+        <span className={styles.fill} data-tone={scoreTone(value)} style={{ "--s": Math.min(1, value / 10000) } as CSSProperties} />
+      </span>
+      <span className={styles.barValue}>{shortPercent(value)}</span>
+    </span>
+  );
+}
+
+/** A level's subjects: the name, a bar, the average. Only within a level, whose classes share their subjects. Pure. */
 export function BarList({ bars, label }: { bars: readonly Bar[]; label: string }) {
   return (
     <ul className={styles.bars} aria-label={label}>
       {bars.map((b) => (
         <li key={b.key} className={styles.bar}>
           <span className={styles.barName}>{b.label}</span>
-          <span className={styles.track} aria-hidden>
-            <span className={styles.fill} data-tone={scoreTone(b.value)} style={{ "--s": Math.min(1, b.value / 10000) } as React.CSSProperties} />
-          </span>
-          <span className={styles.barValue}>{shortPercent(b.value)}</span>
+          <ScoreBar value={b.value} />
         </li>
       ))}
     </ul>
   );
 }
 
-/** The filters, four figures, three graphs and the list of what is published. Pure: the data comes in, nothing is fetched. */
-export function ResultsInsightsView({ data, showList = true }: { data: PublishedResults; showList?: boolean }) {
-  const [filters, setFilters] = useState<InsightFilters>(NO_FILTERS);
-  const options = filterOptions(data.results);
+/** One bar split in four by how students scored, and what each part is. Pure. */
+export function ScoreSplit({ bands, id }: { bands: readonly number[]; id: string }) {
+  const total = bands.reduce((a, b) => a + b, 0);
+  return (
+    <>
+      <div className={styles.split} role="img" aria-labelledby={id} aria-label={bands.map((n, i) => `${t(BAND_LABELS[i]!)}: ${n}`).join(", ")}>
+        {bands.map((n, i) => (
+          <span key={BAND_TONES[i]} className={styles.slice} data-tone={BAND_TONES[i]} style={{ "--n": n } as CSSProperties} />
+        ))}
+      </div>
+      <ul className={styles.legend}>
+        {bands.map((n, i) => (
+          <li key={BAND_TONES[i]}>
+            <span className={styles.dot} data-tone={BAND_TONES[i]} aria-hidden />
+            {t(BAND_LABELS[i]!)}
+            <strong>{total > 0 ? `${n} · ${Math.round((n * 100) / total)}%` : n}</strong>
+          </li>
+        ))}
+      </ul>
+    </>
+  );
+}
+
+const sectionName = (r: PublishedRow): string => (r.label ? t("classes.section", { name: bareSection(r.label) }) : t("classes.noSection"));
+
+/** The facts of a group in a line: classes, students, average, and the pass rate when a final is shown. */
+const facts = (s: Summary): string =>
+  [
+    t(s.published === 1 ? "classes.sectionsOne" : "classes.sectionsMany", { n: s.published }),
+    t(s.students === 1 ? "classes.studentsOne" : "classes.studentsMany", { n: s.students }),
+    s.passPercent === null ? null : t("results.insights.passedPercent", { percent: s.passPercent }),
+  ]
+    .filter(Boolean)
+    .join(" · ");
+
+/**
+ * One class of a level: its badge and name, its average, its students and how many passed (a final only), and a button
+ * that opens the class's own sheet right here, student by student. Pure apart from the open state.
+ */
+export function ClassRow({ row, sheet, startOpen }: { row: PublishedRow; sheet: SheetOf; startOpen?: boolean }) {
+  const [open, setOpen] = useState(startOpen ?? false);
+  const bodyId = useId();
+  const name = `${row.programmeName} · ${row.levelName} · ${sectionName(row)}`;
+  return (
+    <li className={styles.classItem}>
+      <div className={styles.classRow}>
+        <span className={classStyles.badge} aria-hidden>
+          {sectionBadge(row.label)}
+        </span>
+        <span className={styles.classMain}>
+          <span className={styles.className}>{sectionName(row)}</span>
+          {row.avgPercentHundredths === null ? null : <ScoreBar value={row.avgPercentHundredths} />}
+        </span>
+        <span className={styles.classFacts}>
+          {t(row.cards === 1 ? "classes.studentsOne" : "classes.studentsMany", { n: row.cards })}
+          {row.passed === null ? null : <small>{t("results.insights.passedOf", { passed: row.passed, total: row.cards })}</small>}
+        </span>
+        <button type="button" className={classStyles.disclosure} aria-expanded={open} aria-controls={bodyId} aria-label={t(open ? "results.insights.hideStudents" : "results.insights.showStudents", { name })} onClick={() => setOpen(!open)}>
+          <ChevronDown aria-hidden data-open={open} />
+        </button>
+      </div>
+      {open ? (
+        <div id={bodyId} className={styles.classBody}>
+          {sheet(row.classId, sheetTerminal(row))}
+        </div>
+      ) : null}
+    </li>
+  );
+}
+
+function LevelBlock({ level, sheet, startOpen }: { level: LevelGroup; sheet: SheetOf; startOpen: boolean }) {
+  const id = useId();
+  return (
+    <section className={classStyles.level} aria-labelledby={id}>
+      <div className={classStyles.levelHead}>
+        <h4 id={id} className={classStyles.levelTitle}>
+          {level.name}
+        </h4>
+        <span className={classStyles.levelCounts}>{facts(level.summary)}</span>
+        {level.summary.avgPercentHundredths === null ? null : <ScoreBar value={level.summary.avgPercentHundredths} />}
+      </div>
+      <ul className={classStyles.sections}>
+        {level.classes.map((row) => (
+          <ClassRow key={row.classId} row={row} sheet={sheet} startOpen={startOpen && level.classes.length === 1} />
+        ))}
+      </ul>
+      {level.subjects.length > 0 ? (
+        <div className={styles.levelSubjects}>
+          <h5 className={styles.chartTitle}>{t("results.insights.subjectsOf", { level: level.name })}</h5>
+          <BarList bars={level.subjects} label={t("results.insights.subjectsOf", { level: level.name })} />
+        </div>
+      ) : null}
+    </section>
+  );
+}
+
+/** A department as a card, like the Classes page: its totals in the head, its levels inside when open. Pure apart from the open state. */
+export function DepartmentCard({ dept, tone, startOpen, sheet, lone }: { dept: DepartmentGroup; tone: string; startOpen: boolean; sheet: SheetOf; lone: boolean }) {
+  const [open, setOpen] = useState(startOpen);
+  const bodyId = useId();
+  return (
+    <li className={classStyles.course} data-tone={tone}>
+      <div className={classStyles.courseHead}>
+        <span className={accessStyles.tile} data-tone={tone} aria-hidden>
+          <BookOpen />
+        </span>
+        <div className={classStyles.courseName}>
+          <h3 className={classStyles.courseTitle}>{dept.name}</h3>
+          <p className={classStyles.muted}>{facts(dept.summary)}</p>
+        </div>
+        {dept.summary.avgPercentHundredths === null ? null : (
+          <dl className={classStyles.stats}>
+            <div>
+              <dt>{t("results.insights.average")}</dt>
+              <dd>{shortPercent(dept.summary.avgPercentHundredths)}</dd>
+            </div>
+          </dl>
+        )}
+        <button type="button" className={classStyles.disclosure} aria-expanded={open} aria-controls={bodyId} aria-label={t(open ? "classes.hide" : "classes.show", { name: dept.name })} onClick={() => setOpen(!open)}>
+          <ChevronDown aria-hidden data-open={open} />
+        </button>
+      </div>
+      {open ? (
+        <div id={bodyId} className={classStyles.levels}>
+          {dept.levels.map((level) => (
+            <LevelBlock key={level.name} level={level} sheet={sheet} startOpen={lone} />
+          ))}
+        </div>
+      ) : null}
+    </li>
+  );
+}
+
+/**
+ * The published results as data, grouped as the school is (the PM, 2026-10-17): a filter bar, four figures and how
+ * students scored for what is chosen, then wing, department and level, each class opening to its students. One exam at
+ * a time, so figures are never mixed across exams. Pure: the data comes in, nothing is fetched.
+ */
+export function ResultsInsightsView({ data, sheet }: { data: PublishedResults; sheet: SheetOf }) {
+  const [filters, setFilters] = useState<InsightFilters>(() => startFilters(data.results));
+  const options = filterOptions(data.results, filters);
   const rows = applyFilters(data.results, filters);
   const sum = summarise(rows);
-  const filtered = Object.values(filters).some(Boolean);
-  const classes = classBars(rows);
-  const subjects = subjectBars(rows);
-  const scored = sum.bands.reduce((a, b) => a + b, 0);
+  const wings = groupInsights(rows);
+  const narrowed = Boolean(filters.wing || filters.department || filters.level);
   const choose = (patch: Partial<InsightFilters>) => setFilters((f) => ({ ...f, ...patch }));
+  const bandsId = useId();
+  let index = 0;
 
   if (data.results.length === 0) return <p className={styles.empty}>{t("dashboard.glance.noResults")}</p>;
   return (
     <div className={styles.root}>
       <div className={styles.filters} role="group" aria-label={t("results.insights.filters")}>
-        <Select label={t("results.terminal")} value={filters.exam} onChange={(event) => choose({ exam: event.target.value })} options={[{ value: "", label: t("results.insights.allExams") }, ...options.exams]} />
+        <Select label={t("results.terminal")} value={filters.exam} onChange={(event) => setFilters({ ...NO_FILTERS, exam: event.target.value })} options={options.exams} />
+        {options.wings.length > 1 || filters.wing ? (
+          <Select label={t("results.insights.wing")} value={filters.wing} onChange={(event) => choose({ wing: event.target.value, department: "", level: "" })} options={[{ value: "", label: t("results.insights.all") }, ...options.wings]} />
+        ) : null}
         <Select
           label={t("results.insights.department")}
           value={filters.department}
-          onChange={(event) => choose({ department: event.target.value, classId: "" })}
+          onChange={(event) => choose({ department: event.target.value, level: "" })}
           options={[{ value: "", label: t("results.insights.allDepartments") }, ...options.departments]}
         />
-        <Select
-          label={t("results.sheets.class")}
-          value={filters.classId}
-          onChange={(event) => choose({ classId: event.target.value })}
-          options={[{ value: "", label: t("results.insights.allClasses") }, ...options.classes.filter((c) => !filters.department || data.results.some((r) => r.classId === c.value && r.programmeName === filters.department))]}
-        />
-        {filtered ? (
-          <Button variant="secondary" onClick={() => setFilters(NO_FILTERS)}>
+        <Select label={t("results.insights.level")} value={filters.level} onChange={(event) => choose({ level: event.target.value })} options={[{ value: "", label: t("results.insights.allLevels") }, ...options.levels]} />
+        {narrowed ? (
+          <Button variant="secondary" onClick={() => setFilters({ ...NO_FILTERS, exam: filters.exam })}>
             {t("content.clearFilters")}
           </Button>
         ) : null}
@@ -110,80 +264,32 @@ export function ResultsInsightsView({ data, showList = true }: { data: Published
             </div>
           </dl>
 
-          <div className={styles.charts}>
-            <section className={styles.chart} aria-labelledby="insight-classes">
-              <h3 id="insight-classes" className={styles.chartTitle}>
-                {t("results.insights.byClass")}
-              </h3>
-              <BarList bars={classes} label={t("results.insights.byClass")} />
-            </section>
+          <section className={styles.chart} aria-labelledby={bandsId}>
+            <h3 id={bandsId} className={styles.chartTitle}>
+              {t("results.insights.bands")}
+            </h3>
+            <ScoreSplit bands={sum.bands} id={bandsId} />
+          </section>
 
-            <section className={styles.chart} aria-labelledby="insight-bands">
-              <h3 id="insight-bands" className={styles.chartTitle}>
-                {t("results.insights.bands")}
-              </h3>
-              <div className={styles.split} role="img" aria-label={sum.bands.map((n, i) => `${t(BAND_LABELS[i]!)}: ${n}`).join(", ")}>
-                {sum.bands.map((n, i) => (
-                  <span key={BAND_TONES[i]} className={styles.slice} data-tone={BAND_TONES[i]} style={{ "--n": n } as React.CSSProperties} />
-                ))}
-              </div>
-              <ul className={styles.legend}>
-                {sum.bands.map((n, i) => (
-                  <li key={BAND_TONES[i]}>
-                    <span className={styles.dot} data-tone={BAND_TONES[i]} aria-hidden />
-                    {t(BAND_LABELS[i]!)}
-                    <strong>{scored > 0 ? `${n} · ${Math.round((n * 100) / scored)}%` : n}</strong>
-                  </li>
-                ))}
+          {wings.map((wing) => (
+            <section key={wing.name} className={styles.wing} aria-label={wing.name}>
+              {wings.length > 1 ? <h3 className={styles.wingTitle}>{wing.name}</h3> : null}
+              <ul className={classStyles.courses}>
+                {wing.departments.map((dept) => {
+                  const i = index++;
+                  return <DepartmentCard key={dept.name} dept={dept} tone={TONES[i % TONES.length]!} startOpen={narrowed || i === 0} sheet={sheet} lone={rows.length === 1} />;
+                })}
               </ul>
             </section>
-
-            {subjects.length > 0 ? (
-              <section className={`${styles.chart} ${styles.wide}`} aria-labelledby="insight-subjects">
-                <h3 id="insight-subjects" className={styles.chartTitle}>
-                  {t("results.insights.bySubject")}
-                </h3>
-                <BarList bars={subjects} label={t("results.insights.bySubject")} />
-              </section>
-            ) : null}
-          </div>
-
-          {showList ? <PublishedList rows={rows} /> : null}
+          ))}
         </>
       )}
     </div>
   );
 }
 
-/** Each published result, newest first, with the link to its class sheet. Pure. */
-export function PublishedList({ rows }: { rows: readonly PublishedRow[] }) {
-  return (
-    <div className={styles.tableWrap}>
-      <ReadTable
-        caption={t("results.insights.list")}
-        rows={rows}
-        rowKey={(r) => `${r.classId}/${r.terminal?.id ?? "final"}`}
-        columns={[
-          { key: "class", label: t("results.sheets.class"), primary: true, cell: (r: PublishedRow) => classLabel(r) },
-          { key: "exam", label: t("results.terminal"), cell: (r) => examLabel(r) },
-          { key: "when", label: t("results.insights.publishedOn"), hidePhone: true, cell: (r) => (r.publishedOnBs ? formatBsDate(r.publishedOnBs) : "–") },
-          { key: "cards", label: t("results.insights.students"), align: "end", hidePhone: true, cell: (r) => r.cards },
-          { key: "avg", label: t("results.insights.average"), align: "end", cell: (r) => (r.avgPercentHundredths === null ? "–" : shortPercent(r.avgPercentHundredths)) },
-          {
-            key: "open",
-            label: t("results.review.open"),
-            align: "end",
-            plain: true,
-            cell: (r) => <OpenLink href={`/portal/results/sheets?class=${r.classId}&terminal=${r.terminal?.id ?? "final"}`} label={t("results.insights.openNamed", { name: `${classLabel(r)}, ${examLabel(r)}` })} />,
-          },
-        ]}
-      />
-    </div>
-  );
-}
-
-/** The published results, loaded: for the Principal's Results tab (`showList` off, the dashboard has no room) and the class sheets page. */
-export function ResultsInsights({ showList = true }: { showList?: boolean }) {
+/** The published results, loaded, for the Principal's Results tab and the class sheets page. */
+export function ResultsInsights({ sheet }: { sheet: SheetOf }) {
   const { api } = useSession();
   const loadNow = useCallback(async () => {
     const result = await loadPublishedResults(api);
@@ -192,5 +298,5 @@ export function ResultsInsights({ showList = true }: { showList?: boolean }) {
   const { view, reload } = useLoad<PublishedResults>(loadNow);
   if (view.status === "loading") return <TableSkeleton rows={4} tiles={4} />;
   if (view.status === "failed" || view.status === "forbidden") return <ReadFailure status={view.status} onRetry={() => void reload()} />;
-  return <ResultsInsightsView data={view.data} showList={showList} />;
+  return <ResultsInsightsView data={view.data} sheet={sheet} />;
 }

@@ -23,6 +23,7 @@ import { useConfig } from "@/config/ConfigProvider";
 import { formatNpr } from "@/fees/money";
 import { t, type MessageKey } from "@/i18n/messages";
 import { ResultsInsights } from "@/results/ResultsInsights";
+import { ClassSheetView } from "@/results/StaffScreens";
 import { useSession } from "@/session/SessionProvider";
 import { useLoad } from "@/setup/useLoad";
 import { Button, HeroBand, OVERVIEW_ART, Skeleton } from "@/ui";
@@ -287,7 +288,7 @@ function FeesTab({ o }: { o: Overview }) {
 
 function ResultsTab({ o }: { o: Overview }) {
   if (o.results.publications === 0) return <p className={styles.empty}>{t("dashboard.glance.noResults")}</p>;
-  return <ResultsInsights showList={false} />;
+  return <ResultsInsights sheet={(classId, terminalId) => <ClassSheetView classId={classId} terminalId={terminalId} bare />} />;
 }
 
 // --- Actions, website, activity ----------------------------------------------------------

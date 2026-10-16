@@ -4921,6 +4921,7 @@ export interface components {
                 programmeName: string;
                 levelName: string;
                 label: string;
+                wing: string;
                 termLabel: string;
                 terminal: {
                     id: string;

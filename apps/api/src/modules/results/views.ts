@@ -364,7 +364,7 @@ export async function publishedResults(db: D1Database, reach: Reach, classTeache
   const [heads, subjects] = await db.batch([
     db
       .prepare(
-        `SELECT rp.id AS pid, cl.public_id AS class_id, ${NAMING_COLUMNS}, ay.label AS term_label, t.public_id AS terminal_id, t.name AS terminal_name, rp.published_at,
+        `SELECT rp.id AS pid, cl.public_id AS class_id, ${NAMING_COLUMNS}, s.name AS wing, ay.label AS term_label, t.public_id AS terminal_id, t.name AS terminal_name, rp.published_at,
                 COUNT(mc.id) AS cards, AVG(mc.percent_hundredths) AS avg_percent,
                 SUM(CASE WHEN rp.terminal_id IS NULL THEN mc.passed END) AS passed,
                 COALESCE(SUM(mc.percent_hundredths < 4000), 0) AS b0,
@@ -397,9 +397,10 @@ export async function publishedResults(db: D1Database, reach: Reach, classTeache
     (bySubject.get(r.pid) ?? bySubject.set(r.pid, []).get(r.pid)!).push({ name: r.subject_name, avgPercentHundredths: Math.round(r.avg_percent) });
   }
   return {
-    results: (heads!.results as unknown as { pid: number; class_id: string; programme_name: string; level_name: string; label: string; term_label: string; terminal_id: string | null; terminal_name: string | null; published_at: string; cards: number; avg_percent: number | null; passed: number | null; b0: number; b1: number; b2: number; b3: number }[]).map((r) => ({
+    results: (heads!.results as unknown as { pid: number; class_id: string; programme_name: string; level_name: string; label: string; wing: string; term_label: string; terminal_id: string | null; terminal_name: string | null; published_at: string; cards: number; avg_percent: number | null; passed: number | null; b0: number; b1: number; b2: number; b3: number }[]).map((r) => ({
       classId: r.class_id,
       ...naming(r),
+      wing: r.wing,
       termLabel: r.term_label,
       terminal: r.terminal_id === null ? null : { id: r.terminal_id, name: r.terminal_name! },
       publishedAt: r.published_at,

@@ -96,6 +96,7 @@ export function ClassSheetsScreen() {
           <EmptyLine>{t("results.sheets.none")}</EmptyLine>
         ) : (
           <>
+            {classId ? (
             <div className={`${readStyles.search} ${readStyles.searchWide}`}>
               <Select
                 label={t("results.sheets.class")}
@@ -110,7 +111,8 @@ export function ClassSheetsScreen() {
                 options={[{ value: "", label: t("results.choose") }, ...exams.map((x) => ({ value: x.id, label: x.name }))]}
               />
             </div>
-            {classId && terminalId ? <ClassSheetView classId={classId} terminalId={terminalId} /> : <ResultsInsights />}
+            ) : null}
+            {classId && terminalId ? <ClassSheetView classId={classId} terminalId={terminalId} /> : <ResultsInsights sheet={(id, exam) => <ClassSheetView classId={id} terminalId={exam} bare />} />}
           </>
         )
       ) : null}

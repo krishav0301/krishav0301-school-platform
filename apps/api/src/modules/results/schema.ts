@@ -298,6 +298,8 @@ export const PublishedResultsSchema = z
       z.object({
         classId: z.string(),
         ...Naming,
+        /** The wing the class is in (+2, Bachelor's): the top of the grouping. */
+        wing: z.string(),
         termLabel: z.string(),
         /** The exam, or null for the final result. */
         terminal: z.object({ id: z.string(), name: z.string() }).nullable(),

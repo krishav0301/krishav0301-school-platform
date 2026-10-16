@@ -128,33 +128,36 @@
   list-style: none;
 }
 
-/* A bar: its name, the track with the bar growing in, its value. On a phone the name sits above. */
+/* A subject: its name, then the score bar (the track with the bar growing in, and its value). */
 .bar {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  grid-template-areas:
-    "name value"
-    "track track";
-  align-items: center;
-  gap: var(--space-1) var(--space-3);
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-1);
 }
 
 @media (min-width: 40rem) {
   .bar {
-    grid-template-columns: minmax(7rem, 11rem) minmax(0, 1fr) 3.5rem;
-    grid-template-areas: "name track value";
+    grid-template-columns: minmax(7rem, 11rem) minmax(0, 1fr);
+    align-items: center;
+    gap: var(--space-3);
   }
 }
 
 .barName {
-  grid-area: name;
   min-width: 0;
   overflow-wrap: anywhere;
   font-size: var(--text-sm);
 }
 
+.scoreBar {
+  display: grid;
+  grid-template-columns: minmax(4rem, 1fr) 3.5rem;
+  align-items: center;
+  gap: var(--space-3);
+  min-width: 0;
+}
+
 .track {
-  grid-area: track;
   overflow: hidden;
   height: 0.75rem;
   border-radius: 999px;
@@ -185,10 +188,90 @@
 }
 
 .barValue {
-  grid-area: value;
   justify-self: end;
   font-size: var(--text-sm);
   font-weight: var(--weight-bold);
+}
+
+/* A class of a level: badge, name with its average, students, and the button that opens its sheet below. */
+.classItem + .classItem {
+  border-top: 1px solid color-mix(in srgb, var(--color-border) 50%, transparent);
+}
+
+.classRow {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  grid-template-areas:
+    "badge main menu"
+    "facts facts facts";
+  align-items: center;
+  gap: var(--space-1) var(--space-3);
+  padding: var(--space-3) min(var(--space-4), 4vw);
+}
+
+@media (min-width: 48rem) {
+  .classRow {
+    grid-template-columns: auto minmax(0, 1fr) auto auto;
+    grid-template-areas: "badge main facts menu";
+  }
+}
+
+.classRow > :first-child {
+  grid-area: badge;
+}
+
+.classMain {
+  grid-area: main;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-width: 0;
+}
+
+.className {
+  font-weight: var(--weight-bold);
+  overflow-wrap: anywhere;
+}
+
+.classFacts {
+  grid-area: facts;
+  display: flex;
+  flex-direction: column;
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+}
+
+.classFacts small {
+  font-size: var(--text-sm);
+}
+
+.classRow > :last-child {
+  grid-area: menu;
+  justify-self: end;
+}
+
+.classBody {
+  padding: var(--space-2) min(var(--space-4), 4vw) var(--space-4);
+}
+
+.levelSubjects {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-3) min(var(--space-4), 4vw) var(--space-4);
+  border-top: 1px solid color-mix(in srgb, var(--color-border) 60%, transparent);
+}
+
+.wing {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.wingTitle {
+  margin: 0;
+  font-family: var(--font-heading);
+  font-size: var(--text-lg);
 }
 
 /* How students scored: one bar split in four, and a legend with each count. */
