@@ -59,8 +59,8 @@ describe("the Co-ordinator's home (D-106)", () => {
     const figures = dayFigures(day());
     expect(figures.map((f) => [f.key, f.value])).toEqual([
       ["waiting", "3"],
-      ["verify", "2"],
       ["registers", "1 of 4"],
+      ["verify", "2"],
       ["setup", "7 of 7"],
     ]);
   });
@@ -89,99 +89,15 @@ describe("the Co-ordinator's home (D-106)", () => {
 describe("the setup checklist", () => {
   it("lists the steps still to do first, each with its link and a status in words", () => {
     const html = inContext(<SetupList checklist={{ ...empty, year: true }} />);
-    // Only what is left, under a progress bar; the done step is not repeated (the PM, 2026-10-17).
-    for (const item of CHECKLIST.filter((i) => i.key !== "year")) expect(html).toContain(`href="${item.href}"`);
-    expect(html).not.toContain("An open academic term");
-    expect(html).toContain("Add Courses and Levels");
-    expect(html).toMatch(/role="img" aria-label="1 of 7 done"/);
+    for (const item of CHECKLIST) expect(html).toContain(`href="${item.href}"`);
+    expect(html.indexOf("Add programmes and levels")).toBeLessThan(html.indexOf("An open academic term"));
     expect((html.match(/>Not done</g) ?? []).length).toBe(6);
-    expect((html.match(/>Done</g) ?? []).length).toBe(0);
-  });
-
-  it("a figure is a link to where it is dealt with", () => {
-    const links = Object.fromEntries(dayFigures(day()).map((f) => [f.key, f.href]));
-    expect(links).toEqual({ waiting: "/portal/admissions", verify: "/portal/results", registers: "/portal/attendance", setup: "/portal/setup" });
+    expect((html.match(/>Done</g) ?? []).length).toBe(1);
   });
 
   it("once every step is done, says so in one line", () => {
     const html = inContext(<SetupList checklist={full} />);
     expect(html).toContain("Everything is set up for the open terms.");
     expect(html).not.toContain("Not done");
-  });
-});
-
-// --- The progress and "needs you" panels (the PM, 2026-10-17) ---------------------------------------------------------
-import { NeedsPanel, PipelinePanel, needsOf, pipelineOf } from "@/dashboard/CoordinatorPanels";
-import type { ReviewBoard } from "@/results/model";
-
-type BoardClass = ReviewBoard["classes"][number];
-const sub = (offeringId: string, status: BoardClass["subjects"][number]["status"]): BoardClass["subjects"][number] => ({ offeringId, subjectName: offeringId, teacherName: null, sheetId: null, status, missing: 0 });
-const klass = (classId: string, programmeName: string, subjects: BoardClass["subjects"], over: Partial<BoardClass> = {}): BoardClass => ({ classId, programmeName, levelName: "Grade 11", label: "A", published: false, finalPublished: false, ready: false, subjects, ...over });
-const board: ReviewBoard = {
-  terminals: [{ id: "t1", name: "First Terminal", weight: 40 }],
-  terminalId: "t1",
-  classes: [
-    klass("c1", "Science", [sub("a", "verified"), sub("b", "under_review"), sub("c", "not_started")]),
-    klass("c2", "Science", [sub("d", "published")], { published: true, ready: true, label: "B" }),
-    klass("c3", "Management", [sub("e", "verified"), sub("f", "verified")], { ready: true }),
-  ],
-};
-
-describe("marks progress by department", () => {
-  it("counts each department's subjects by stage and how many are verified", () => {
-    const p = pipelineOf(board)!;
-    expect(p.exam).toBe("First Terminal");
-    expect(p.departments.map((d) => [d.name, d.total, d.done])).toEqual([["Management", 2, 2], ["Science", 4, 2]]);
-    expect(p.departments[1]!.counts).toEqual({ published: 1, verified: 1, under_review: 1, draft: 0, not_started: 1 });
-    expect([p.classesReady, p.classesPublished, p.classesTotal]).toEqual([2, 1, 3]);
-  });
-
-  it("is nothing when there is no exam or no class", () => {
-    expect(pipelineOf({ ...board, terminalId: null })).toBeNull();
-    expect(pipelineOf({ ...board, classes: [] })).toBeNull();
-  });
-
-  it("is one bar per department with its numbers in words, the stages named once, and a link to the review board", () => {
-    const html = inContext(<PipelinePanel pipeline={pipelineOf(board)!} />);
-    expect(html).toContain("Marks progress, First Terminal");
-    expect(html).toContain("2 of 4 verified");
-    expect(html).toContain("2 of 2 verified");
-    expect(html).toMatch(/role="img" aria-label="Published: 1, Verified: 1, Under review: 1, Draft: 0, Not started: 1"/);
-    expect(html).toContain('href="/portal/results"');
-    expect((html.match(/class="dot"/g) ?? []).length).toBe(5);
-  });
-});
-
-describe("what needs the Co-ordinator", () => {
-  const hub = (id: string, teacher: string | null) => ({ id, termId: "y", termLabel: "2082/83", courseId: "co", levelId: "lv", classTeacherId: teacher ? "u" : null, wing: "+2", course: "Science", level: "Grade 11", section: id.toUpperCase(), classTeacher: teacher, students: 5, isClassTeacher: false });
-
-  it("is one short chip for each kind: the oldest application waiting, classes ready to publish, classes with no Class Teacher", () => {
-    const needs = needsOf({ oldestWaitingDays: 4, classes: [hub("a", null), hub("c", null), hub("b", "Sunita Rai")], board });
-    expect(needs.map((n) => [n.key, n.text, n.href])).toEqual([
-      ["oldest", "Oldest application waiting 4 days", "/portal/admissions"],
-      ["ready", "2 classes ready to publish", "/portal/results"],
-      ["teacher", "2 classes have no Class Teacher", "/portal/setup/teaching"],
-    ]);
-    expect(needs[0]!.tone).toBe("bad");
-    expect(needsOf({ oldestWaitingDays: 1, classes: [hub("a", null)], board: null }).map((n) => n.text)).toEqual(["Oldest application waiting 1 day", "1 class has no Class Teacher"]);
-  });
-
-  it("a new application is not yet a need, and nothing is listed when all is well", () => {
-    expect(needsOf({ oldestWaitingDays: 0, classes: [hub("a", "Sunita Rai")], board: null })).toEqual([]);
-    expect(needsOf({ oldestWaitingDays: null, classes: null, board: null })).toEqual([]);
-  });
-
-  it("shows chips, or a calm line when nothing needs them", () => {
-    expect(inContext(<NeedsPanel needs={needsOf({ oldestWaitingDays: 2, classes: null, board: null })} />)).toContain("Oldest application waiting 2 days");
-    expect(inContext(<NeedsPanel needs={[]} />)).toContain("Nothing needs you right now.");
-  });
-
-  it("the home shows both panels when it has them, and neither when it has not", () => {
-    const withBoth = inContext(<CoordinatorDayView day={day({ pipeline: pipelineOf(board), needs: needsOf({ oldestWaitingDays: 2, classes: null, board }) })} />);
-    expect(withBoth).toContain("Needs you");
-    expect(withBoth).toContain("Marks progress, First Terminal");
-    const without = inContext(<CoordinatorDayView day={day()} />);
-    expect(without).not.toContain("Needs you");
-    expect(without).not.toContain("Marks progress");
   });
 });
