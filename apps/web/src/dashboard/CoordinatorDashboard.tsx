@@ -1,10 +1,11 @@
 "use client";
 
-import { CalendarCheck, ClipboardCheck, ClipboardList, ListChecks } from "lucide-react";
-import { useCallback, useState, type ReactNode } from "react";
+import { CalendarCheck, CheckCheck, ClipboardCheck, ClipboardList, ListChecks } from "lucide-react";
+import { useCallback, useState, type CSSProperties, type ReactNode } from "react";
 
 import { loadQueue } from "@/admissions/client";
 import { loadClasses, loadTeacherDay } from "@/attendance/client";
+import { loadClassHubList } from "@/classes/client";
 import { loadActivityClasses } from "@/classwork/client";
 import { nepalToday } from "./nepal-today";
 import { useConfig } from "@/config/ConfigProvider";
@@ -17,6 +18,8 @@ import { loadChecklist, type Checklist } from "@/setup/checklist-client";
 import { useLoad } from "@/setup/useLoad";
 
 import { bsLong, greetingKey } from "./admin-model";
+import { NeedsPanel, PipelinePanel, needsOf, pipelineOf, type Need, type Pipeline } from "./CoordinatorPanels";
+import styles from "./coordinator.module.css";
 import { RoleBriefLinks } from "./RoleBrief";
 import { DayList, type DayRow } from "./RoleDashboards";
 
@@ -42,16 +45,21 @@ export interface SchoolDay {
   logs: { complete: number; total: number } | null;
   toVerify: number | null;
   checklist: Checklist;
+  /** The exam in progress, stage by stage and department by department; null when there is none (the PM, 2026-10-17). */
+  pipeline?: Pipeline | null;
+  /** What needs the Co-ordinator now, as links. */
+  needs?: Need[];
 }
 
 const done = (c: Checklist) => CHECKLIST.filter((item) => c[item.key]).length;
 
-/** Four figures: applications waiting, registers marked, marks to verify, setup done. Only what the lines below say. */
+/** Four figures, each a link to where it is dealt with: applications waiting, marks to verify, classes ready to publish, registers marked; setup done only when there is room. */
 export function dayFigures(d: SchoolDay): Figure[] {
-  const figures: Figure[] = [{ key: "waiting", icon: ClipboardList, tone: d.waiting > 0 ? "warn" : "ok", value: String(d.waiting), label: t("coord.figure.waiting") }];
-  if (d.registers && d.registers.total > 0) figures.push({ key: "registers", icon: CalendarCheck, tone: d.registers.marked < d.registers.total ? "warn" : "ok", value: t("coord.ofTotal", { done: d.registers.marked, total: d.registers.total }), label: t("coord.figure.registers") });
-  if (d.toVerify !== null) figures.push({ key: "verify", icon: ClipboardCheck, tone: d.toVerify > 0 ? "warn" : "ok", value: String(d.toVerify), label: t("coord.figure.verify") });
-  figures.push({ key: "setup", icon: ListChecks, tone: done(d.checklist) < CHECKLIST.length ? "accent" : "ok", value: t("coord.ofTotal", { done: done(d.checklist), total: CHECKLIST.length }), label: t("coord.figure.setup") });
+  const figures: Figure[] = [{ key: "waiting", icon: ClipboardList, tone: d.waiting > 0 ? "warn" : "ok", value: String(d.waiting), label: t("coord.figure.waiting"), href: "/portal/admissions" }];
+  if (d.toVerify !== null) figures.push({ key: "verify", icon: ClipboardCheck, tone: d.toVerify > 0 ? "warn" : "ok", value: String(d.toVerify), label: t("coord.figure.verify"), href: "/portal/results" });
+  if (d.pipeline) figures.push({ key: "ready", icon: CheckCheck, tone: d.pipeline.classesReady > 0 ? "accent" : "ok", value: t("coord.ofTotal", { done: d.pipeline.classesPublished, total: d.pipeline.classesTotal }), label: t("coord.figure.published"), href: "/portal/results" });
+  if (d.registers && d.registers.total > 0) figures.push({ key: "registers", icon: CalendarCheck, tone: d.registers.marked < d.registers.total ? "warn" : "ok", value: t("coord.ofTotal", { done: d.registers.marked, total: d.registers.total }), label: t("coord.figure.registers"), href: "/portal/attendance" });
+  figures.push({ key: "setup", icon: ListChecks, tone: done(d.checklist) < CHECKLIST.length ? "accent" : "ok", value: t("coord.ofTotal", { done: done(d.checklist), total: CHECKLIST.length }), label: t("coord.figure.setup"), href: "/portal/setup" });
   return figures;
 }
 
@@ -96,7 +104,7 @@ export function dayRows(d: SchoolDay): DayRow[] {
   return rows;
 }
 
-/** The setup checklist: the steps still to do first; once all are done, one calm line instead of seven ticks. Pure. */
+/** The setup checklist: a progress bar and only the steps still to do; once all are done, one calm line. Pure. */
 export function SetupList({ checklist }: { checklist: Checklist }) {
   if (done(checklist) === CHECKLIST.length) {
     return (
@@ -106,21 +114,26 @@ export function SetupList({ checklist }: { checklist: Checklist }) {
       </div>
     );
   }
-  const ordered = [...CHECKLIST.filter((i) => !checklist[i.key]), ...CHECKLIST.filter((i) => checklist[i.key])];
+  const left = CHECKLIST.filter((i) => !checklist[i.key]);
   return (
-    <ul className={readStyles.rows}>
-      {ordered.map((item) => (
-        <li key={item.key} className={readStyles.rowItem}>
-          <div className={readStyles.rowHead}>
-            <h3 className={readStyles.rowTitle}>{t(item.label)}</h3>
-            <span className={readStyles.cellWords}>
-              <StatusWord tone={checklist[item.key] ? "ok" : "warn"}>{t(checklist[item.key] ? "portal.checklist.done" : "portal.checklist.notDone")}</StatusWord>
-              <OpenLink href={item.href} label={t(item.label)} />
-            </span>
-          </div>
-        </li>
-      ))}
-    </ul>
+    <>
+      <div className={styles.progress} role="img" aria-label={t("coord.setup.progress", { done: done(checklist), total: CHECKLIST.length })}>
+        <span className={styles.progressFill} style={{ "--s": done(checklist) / CHECKLIST.length } as CSSProperties} />
+      </div>
+      <ul className={readStyles.rows}>
+        {left.map((item) => (
+          <li key={item.key} className={readStyles.rowItem}>
+            <div className={readStyles.rowHead}>
+              <h3 className={readStyles.rowTitle}>{t(item.label)}</h3>
+              <span className={readStyles.cellWords}>
+                <StatusWord tone="warn">{t("portal.checklist.notDone")}</StatusWord>
+                <OpenLink href={item.href} label={t(item.label)} />
+              </span>
+            </div>
+          </li>
+        ))}
+      </ul>
+    </>
   );
 }
 
@@ -129,6 +142,8 @@ export function CoordinatorDayView({ day, extra }: { day: SchoolDay; extra?: Rea
   return (
     <>
       <FigureTiles figures={dayFigures(day)} label={t("coord.figures")} />
+      {day.needs ? <NeedsPanel needs={day.needs} /> : null}
+      {day.pipeline ? <PipelinePanel pipeline={day.pipeline} /> : null}
       <Panel title={t("coord.today.title")} labelledBy="coord-today">
         <DayList rows={dayRows(day)} />
       </Panel>
@@ -153,7 +168,7 @@ export function CoordinatorDashboard({ extra }: { extra?: ReactNode } = {}) {
   const [now] = useState(() => new Date());
 
   const loadNow = useCallback(async (): Promise<{ ok: true; data: SchoolDay } | { ok: false; reason: "failed" | "forbidden" }> => {
-    const [queue, checklist, classes, teachers, activity, board, clockBs] = await Promise.all([
+    const [queue, checklist, classes, teachers, activity, board, clockBs, hub] = await Promise.all([
       loadQueue(api),
       loadChecklist(api),
       attendanceOn ? loadClasses(api) : null,
@@ -161,9 +176,13 @@ export function CoordinatorDashboard({ extra }: { extra?: ReactNode } = {}) {
       activityOn ? loadActivityClasses(api) : null,
       resultsOn ? loadBoard(api) : null,
       attendanceOn || activityOn ? null : nepalToday(api),
+      loadClassHubList(api),
     ]);
     if (!queue.ok || !checklist.ok || (classes && !classes.ok) || (teachers && !teachers.ok) || (activity && !activity.ok)) return { ok: false, reason: "failed" };
     const staffed = activity?.ok ? activity.data.classes.filter((c) => c.expected > 0) : [];
+    const pending = queue.data.filter((a) => a.status === "pending_review");
+    const oldest = pending.length > 0 ? Math.floor((Date.now() - Math.min(...pending.map((a) => Date.parse(a.createdAt)))) / 86_400_000) : null;
+    const boardData = board?.ok ? board.data : null;
     return {
       ok: true,
       data: {
@@ -175,6 +194,8 @@ export function CoordinatorDashboard({ extra }: { extra?: ReactNode } = {}) {
         // The board is a help, not the page: if it cannot be read (no terminal yet), the line is simply left out.
         toVerify: board?.ok ? board.data.classes.flatMap((c) => c.subjects).filter((s) => s.status === "under_review").length : null,
         checklist: checklist.data,
+        pipeline: boardData ? pipelineOf(boardData) : null,
+        needs: needsOf({ oldestWaitingDays: oldest, classes: hub.ok ? hub.data.classes : null, board: boardData }),
       },
     };
   }, [api, attendanceOn, teachersOn, activityOn, resultsOn]);

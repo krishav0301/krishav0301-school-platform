@@ -82,6 +82,22 @@ export interface Figure {
   tone: Tone;
   value: string;
   label: string;
+  /** The page where this figure is dealt with: the whole tile then opens it. */
+  href?: string;
+}
+
+function TileBody({ figure: f }: { figure: Figure }) {
+  return (
+    <>
+      <span className={styles.tileIcon} data-tone={f.tone} aria-hidden>
+        <f.icon strokeWidth={1.75} />
+      </span>
+      <span className={styles.tileText}>
+        <span className={styles.tileValue}>{f.value}</span>
+        <span className={styles.tileLabel}>{f.label}</span>
+      </span>
+    </>
+  );
 }
 
 /** At most four figures (D-103); only what the server already gives. */
@@ -90,14 +106,14 @@ export function FigureTiles({ figures, label }: { figures: readonly Figure[]; la
   return (
     <ul className={styles.tiles} aria-label={label}>
       {figures.slice(0, 4).map((f) => (
-        <li key={f.key} className={styles.tile} data-tone={f.tone}>
-          <span className={styles.tileIcon} data-tone={f.tone} aria-hidden>
-            <f.icon strokeWidth={1.75} />
-          </span>
-          <span className={styles.tileText}>
-            <span className={styles.tileValue}>{f.value}</span>
-            <span className={styles.tileLabel}>{f.label}</span>
-          </span>
+        <li key={f.key} className={styles.tile} data-tone={f.tone} data-link={f.href ? "" : undefined}>
+          {f.href ? (
+            <Link href={f.href} className={styles.tileLink}>
+              <TileBody figure={f} />
+            </Link>
+          ) : (
+            <TileBody figure={f} />
+          )}
         </li>
       ))}
     </ul>

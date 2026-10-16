@@ -116,6 +116,46 @@
   box-shadow: var(--shadow-soft);
 }
 
+/* A figure that is a link: the tile is its target, lifts a little under the pointer, and keeps a clear focus ring. */
+.tile[data-link] {
+  padding: 0;
+  transition: transform var(--motion-fast) var(--motion-ease);
+}
+
+.tileLink {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: inherit;
+  padding: var(--space-5) var(--space-4);
+  color: inherit;
+  text-decoration: none;
+}
+
+.tileLink:focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: -3px;
+  border-radius: var(--radius-hero);
+}
+
+@media (hover: hover) {
+  .tile[data-link]:hover {
+    transform: translateY(-2px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tile[data-link] {
+    transition: none;
+  }
+
+  .tile[data-link]:hover {
+    transform: none;
+  }
+}
+
 .tile::after {
   content: "";
   position: absolute;
