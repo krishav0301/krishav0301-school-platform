@@ -2,7 +2,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 
 import { ConfigContext, makeConfigValue, type PublicConfig } from "@/config/ConfigProvider";
-import { AdminDashboardView } from "@/dashboard/AdminDashboard";
+import { AdminDashboardView, ResultsTab } from "@/dashboard/AdminDashboard";
 import type { Overview } from "@/dashboard/admin-model";
 import royal from "../../../packs/royal-softech/pack.json";
 import { TEST_SECTIONS } from "./sections";
@@ -184,5 +184,25 @@ describe("the results figures for a school that runs the result system (the PM, 
     const html = view(withSheets, true, true);
     expect(html).not.toContain("Waiting to be verified");
     expect(html).not.toContain("Marks still to be sent");
+  });
+});
+
+describe("the Results tab of Institution at a glance (the PM, 2026-10-17)", () => {
+  const tab = (results: Overview["results"]) => renderToStaticMarkup(<ResultsTab o={{ ...base, results }} />);
+
+  it("with only an exam published, no final yet: says so instead of showing empty column headings", () => {
+    const html = tab({ ...base.results, publications: 1, byProgramme: [] });
+    expect(html).toContain("1 exam result published");
+    expect(html).toContain("appear here once a final result is published");
+    expect(html).not.toContain("<table");
+  });
+
+  it("with a final published: the table of marks cards, pass rate and average", () => {
+    const html = tab({ ...base.results, publications: 2, byProgramme: [{ id: "p1", name: "Science", cards: 30, passed: 27, passPercent: 90, avgPercentHundredths: 7250 }] });
+    expect(html).toContain("2 exam results published");
+    expect(html).toContain("<table");
+    expect(html).toContain(">Science<");
+    expect(html).toContain("90%");
+    expect(html).toContain("72.5%");
   });
 });

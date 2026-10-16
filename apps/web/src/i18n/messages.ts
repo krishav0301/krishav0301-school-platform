@@ -1511,6 +1511,8 @@ export const en = {
   "dashboard.glance.overdue": "Overdue",
   "dashboard.glance.noResults": "No results published this term yet.",
   "dashboard.glance.published": "{count} exam results published",
+  "dashboard.glance.publishedOne": "{count} exam result published",
+  "dashboard.glance.noFinal": "Pass rate and average appear here once a final result is published. Until then, open a class to read each exam's marks.",
   "dashboard.glance.passRate": "Pass rate",
   "dashboard.glance.average": "Average",
   "dashboard.glance.cards": "Marks cards",

@@ -284,11 +284,14 @@ function FeesTab({ o }: { o: Overview }) {
   );
 }
 
-function ResultsTab({ o }: { o: Overview }) {
+export function ResultsTab({ o }: { o: Overview }) {
   if (o.results.publications === 0) return <p className={styles.empty}>{t("dashboard.glance.noResults")}</p>;
   return (
     <>
-      <p className={styles.muted}>{t("dashboard.glance.published", { count: o.results.publications })}</p>
+      <p className={styles.muted}>{t(o.results.publications === 1 ? "dashboard.glance.publishedOne" : "dashboard.glance.published", { count: o.results.publications })}</p>
+      {o.results.byProgramme.length === 0 ? (
+        <p className={styles.empty}>{t("dashboard.glance.noFinal")}</p>
+      ) : (
       <div className={styles.tableWrap}>
         <table className={styles.table}>
           <thead>
@@ -313,6 +316,7 @@ function ResultsTab({ o }: { o: Overview }) {
           </tbody>
         </table>
       </div>
+      )}
     </>
   );
 }
