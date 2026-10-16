@@ -70,17 +70,12 @@ describe("the Principal's dashboard (D-088)", () => {
     expect(html).toContain("Nothing to compare yet"); // staff had no figure a month ago
   });
 
-  it("attention lists only what is waiting, each a link to where it is handled", () => {
-    expect(html).toContain("pending approvals");
-    expect(html).toContain('href="/portal/approvals"');
-    expect(html).toContain("fee follow-ups");
-    expect(html).not.toContain("attendance anomalies");
-    expect(html).not.toContain("website drafts");
-  });
-
-  it("an empty attention list reassures instead of showing nothing", () => {
-    const calm = render({ ...base, status: "on_track", attention: { approvals: { count: 0, kinds: [] }, feeFollowUps: 0, anomalies: { count: 0, classes: [] }, websiteDrafts: 0 } });
-    expect(calm).toContain("You&#x27;re all caught up.");
+  it("has no Attention needed or Website card (the PM, 2026-10-17)", () => {
+    expect(html).not.toContain("Attention needed");
+    expect(html).not.toContain("pending approvals");
+    expect(html).not.toContain("all caught up");
+    expect(html).not.toContain("Awaiting review");
+    expect(html).not.toContain("Manage</a>");
   });
 
   it("quick actions lead to the real flows", () => {
@@ -115,14 +110,13 @@ describe("with Fees switched off (D-137, the PM 2026-10-11)", () => {
     </ConfigContext.Provider>,
   );
 
-  it("the Principal sees nothing about fees: no figure, no tab, no attention row, no Accountant to add", () => {
+  it("the Principal sees nothing about fees: no figure, no tab, no Accountant to add", () => {
     expect(off).not.toContain("NPR 28.4 L");
     expect(off).not.toContain("/portal/fees");
     expect(off).not.toContain("add=accountant");
     expect(off).not.toMatch(/follow-ups?|fees/i);
     // The rest of the dashboard is untouched.
     expect(off).toContain("1,248");
-    expect(off).toContain('href="/portal/approvals"');
     expect(off).toContain("add=coordinator");
   });
 
@@ -140,7 +134,7 @@ describe("with Attendance switched off too (a results-only school, the PM 2026-1
       </ConfigContext.Provider>,
     );
 
-  it("no attendance figure, tab or attention row; the first tab is the next one; students, staff and results stay", () => {
+  it("no attendance figure or tab; the first tab is the next one; students, staff and results stay", () => {
     const html = view(false, false);
     expect(html).not.toContain("/portal/attendance");
     expect(html).not.toContain("92%");
@@ -151,7 +145,7 @@ describe("with Attendance switched off too (a results-only school, the PM 2026-1
     expect(html).toMatch(/<button[^>]*aria-selected="true"[^>]*>[^<]*(Programme|Course|Department)/i); // it opens on the next tab, not on an empty Attendance
   });
 
-  it("with attendance on, the figure, the tab and the attention row are there", () => {
+  it("with attendance on, the figure and the tab are there", () => {
     const html = view(false, true);
     expect(html).toContain("92%");
     expect(html).toContain("/portal/attendance");

@@ -150,6 +150,18 @@ a.wrapLabel {
 }
 
 /* Under a class's subjects (D-106): why it cannot be published yet, or that it can, beside Publish. */
+/* A class of the board inside its level: the Classes page's section row, with its subjects below when opened. */
+.sectionItem + .sectionItem {
+  border-top: 1px solid color-mix(in srgb, var(--color-border) 50%, transparent);
+}
+
+.sectionBody {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-3) min(var(--space-4), 4vw) var(--space-4);
+}
+
 .publishRow {
   display: flex;
   flex-wrap: wrap;

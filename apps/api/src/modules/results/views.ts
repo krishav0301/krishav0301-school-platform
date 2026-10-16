@@ -2,7 +2,7 @@ import { rowsOf, type DashboardPart } from "../../core/dashboard";
 import { adToBsText } from "../../core/dates";
 import { rankResults } from "./grading";
 import { CLASS_JOINS, NAMING_COLUMNS, naming, sectionInReach, top20On, type Reach } from "./guard";
-import type { CardBody, ClassSheet, MarksCard, OwnResults, Top20 } from "./schema";
+import type { CardBody, ClassSheet, MarksCard, OwnResults, PublishedResults, Top20 } from "./schema";
 
 /**
  * What people read (Phase 7, slice 4, D-082; on the exam pattern since D-117): the student's own results, each
@@ -350,5 +350,35 @@ export function resultsDashboardPart(db: D1Database): DashboardPart<ResultsDashb
       byProgramme: rowsOf<ResultsDashboard["byProgramme"][number]>(programmes),
       sheets: rowsOf<ResultsDashboard["sheets"]>(sheets)[0] ?? { expected: 0, sent: 0, underReview: 0 },
     }),
+  };
+}
+
+/**
+ * Every published result in reach, newest first (the PM, 2026-10-17: the dashboard's Results tab counts them by department,
+ * and the Class sheets page lists them to open). One row per class and exam, or per class for its final.
+ * `classTeacher`: only a class this person leads. One round trip.
+ */
+export async function publishedResults(db: D1Database, reach: Reach, classTeacher: string | null = null): Promise<PublishedResults> {
+  const { results } = await db
+    .prepare(
+      `SELECT cl.public_id AS class_id, ${NAMING_COLUMNS}, ay.label AS term_label, t.public_id AS terminal_id, t.name AS terminal_name, rp.published_at,
+              (SELECT COUNT(*) FROM marks_cards mc WHERE mc.publication_id = rp.id AND ${LATEST}) AS cards
+         FROM result_publications rp JOIN classes cl ON cl.id = rp.class_id ${CLASS_JOINS} JOIN academic_years ay ON ay.id = cl.academic_year_id
+         LEFT JOIN terminals t ON t.id = rp.terminal_id
+        WHERE ${sectionInReach(1)} AND (?3 IS NULL OR cl.class_teacher_user_id = (SELECT id FROM users WHERE public_id = ?3))
+        ORDER BY rp.published_at DESC, rp.id DESC`,
+    )
+    .bind(reach.institution, reach.sections, classTeacher)
+    .all<{ class_id: string; programme_name: string; level_name: string; label: string; term_label: string; terminal_id: string | null; terminal_name: string | null; published_at: string; cards: number }>();
+  return {
+    results: results.map((r) => ({
+      classId: r.class_id,
+      ...naming(r),
+      termLabel: r.term_label,
+      terminal: r.terminal_id === null ? null : { id: r.terminal_id, name: r.terminal_name! },
+      publishedAt: r.published_at,
+      publishedOnBs: bsOf(r.published_at),
+      cards: r.cards,
+    })),
   };
 }

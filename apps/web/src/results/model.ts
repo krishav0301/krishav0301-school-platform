@@ -5,6 +5,7 @@ export type MyMarkSheets = components["schemas"]["MyMarkSheets"];
 export type MarkSheet = components["schemas"]["MarkSheet"];
 export type ReviewBoard = components["schemas"]["ReviewBoard"];
 export type OwnResults = components["schemas"]["OwnResults"];
+export type PublishedResults = components["schemas"]["PublishedResults"];
 export type MarksCard = components["schemas"]["MarksCard"];
 export type Top20 = components["schemas"]["Top20"];
 export type ClassSheet = components["schemas"]["ClassResultSheet"];

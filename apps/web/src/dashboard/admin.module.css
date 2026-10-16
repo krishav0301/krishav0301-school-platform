@@ -278,16 +278,6 @@
   gap: var(--space-4);
 }
 
-@media (min-width: 72rem) {
-  .rowMain {
-    grid-template-columns: minmax(0, 1.75fr) minmax(0, 1fr);
-  }
-
-  .rowSecond {
-    grid-template-columns: minmax(0, 1.45fr) minmax(0, 1fr);
-  }
-}
-
 /* --- At a glance ------------------------------------------------------------------------------ */
 
 .tabs {

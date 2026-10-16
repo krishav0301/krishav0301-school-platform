@@ -1,6 +1,6 @@
 "use client";
 
-import { BookOpen, CalendarDays, School, CalendarRange, ChartColumn, ChartPie, ChevronDown, CircleCheck, ClipboardList, CreditCard, Ellipsis, FileText, Globe, House, LogOut, Settings, Settings2, Users, type LucideIcon } from "lucide-react";
+import { ChevronDown, Ellipsis, LogOut, Settings } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
@@ -14,28 +14,11 @@ import { showPalette, showPersonalPalette } from "@/theme/personal";
 import { Illustration, Skeleton, Spinner } from "@/ui";
 
 import { GlobalSearch } from "./GlobalSearch";
+import { NAV_ICONS } from "./icons";
 import { ImportChip } from "./ImportChip";
-import { MORE_HREF, NAV_ITEMS, isCurrent, showsMenu, splitNav, visibleNav, type NavIcon, type NavItem } from "./nav";
+import { MORE_HREF, NAV_ITEMS, isCurrent, showsMenu, splitNav, visibleNav, type NavItem } from "./nav";
 import { TERM_ROLES, TermChoiceProvider, TermPicker } from "./TermChoice";
 import styles from "./shell.module.css";
-
-const ICONS: Record<NavIcon, LucideIcon> = {
-  overview: House,
-  classes: School,
-  website: Globe,
-  programs: BookOpen,
-  terms: CalendarRange,
-  setup: Settings2,
-  people: Users,
-  approvals: CircleCheck,
-  admissions: ClipboardList,
-  attendance: CalendarDays,
-  classwork: FileText,
-  fees: CreditCard,
-  results: ChartColumn,
-  reports: ChartPie,
-  settings: Settings,
-};
 
 /** "Sita Sharma" → "SS"; one word → its first two letters. */
 export const initials = (name: string): string => {
@@ -172,7 +155,7 @@ export function PortalShell({ children, items = NAV_ITEMS }: { children: ReactNo
             <div className={styles.sidebarBrand}>{brand}</div>
             <nav className={styles.nav} aria-label={t("shell.mainNavigation")}>
               {menu.map((item) => {
-                const Icon = ICONS[item.icon];
+                const Icon = NAV_ICONS[item.icon];
                 const badge = item.id === "approvals" && pending ? pending : null;
                 return (
                   <Link

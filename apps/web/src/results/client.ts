@@ -1,6 +1,6 @@
 import type { ApiClient } from "@/api/client";
 
-import type { ClassElectives, ClassSheet, MarkSheet, MarksCard, MyMarkSheets, OwnResults, Part, RecheckList, ReviewBoard, Top20 } from "./model";
+import type { ClassElectives, ClassSheet, MarkSheet, MarksCard, MyMarkSheets, OwnResults, Part, PublishedResults, RecheckList, ReviewBoard, Top20 } from "./model";
 
 /** What the results screens ask of the server, as plain results. Nothing here throws. */
 export type Loaded<T> = { ok: true; data: T } | { ok: false; reason: "forbidden" | "not_found" | "failed" };
@@ -53,6 +53,8 @@ export const loadClassSheet = (api: ApiClient, classId: string, terminalId: stri
           params: { path: { classId, terminalId } },
         }),
       );
+/** Every published result in reach, with the figures the graphs use (the Principal's Results tab and the class sheets page). */
+export const loadPublishedResults = (api: ApiClient): Promise<Loaded<PublishedResults>> => load(() => api.GET("/api/results/published"));
 export const loadRechecks = (api: ApiClient): Promise<Loaded<RecheckList>> => load(() => api.GET("/api/results/rechecks"));
 export const loadElectives = (api: ApiClient, classId: string): Promise<Loaded<ClassElectives>> =>
   load(() =>

@@ -291,6 +291,26 @@ export const ClassSheetSchema = z
   .openapi("ClassResultSheet");
 export type ClassSheet = z.infer<typeof ClassSheetSchema>;
 
+/** Every published result, newest first: one row per class and exam (or final), for the Principal and the Co-ordinator to open. */
+export const PublishedResultsSchema = z
+  .object({
+    results: z.array(
+      z.object({
+        classId: z.string(),
+        ...Naming,
+        termLabel: z.string(),
+        /** The exam, or null for the final result. */
+        terminal: z.object({ id: z.string(), name: z.string() }).nullable(),
+        publishedAt: z.string(),
+        publishedOnBs: z.string().nullable(),
+        /** Marks cards made for it: the students it covers. */
+        cards: z.number().int(),
+      }),
+    ),
+  })
+  .openapi("PublishedResults");
+export type PublishedResults = z.infer<typeof PublishedResultsSchema>;
+
 // --- Rechecks (slice 5) ------------------------------------------------------------------------------
 
 export const RequestRecheckSchema = z.strictObject({ offeringId: PublicIdSchema, reason: Reason("reason") }).openapi("RequestRecheck");
