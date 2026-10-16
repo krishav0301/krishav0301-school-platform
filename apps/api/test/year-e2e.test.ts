@@ -293,21 +293,25 @@ describe.each([
 
   // --- 4. Fees across the year --------------------------------------------------------------------
 
-  it("fees: a structure (monthly, yearly, one-time) drafted, approved once, charged to every class; repeated safely", async () => {
-    s.structureId = (await ok(await post("/api/fees/structures", { levelId: s.levelId }, c.accountant), 201)).id as string;
-    await ok(await post(`/api/fees/structures/${s.structureId}/items`, { name: "Tuition", amountPaisa: 250_000, frequency: "monthly" }, c.accountant), 201);
-    await ok(await post(`/api/fees/structures/${s.structureId}/items`, { name: "Exam", amountPaisa: 300_000, frequency: "yearly" }, c.accountant), 201);
-    await ok(await post(`/api/fees/structures/${s.structureId}/items`, { name: "Admission", amountPaisa: 1_000_000, frequency: "one_time" }, c.accountant), 201);
-    expect((await post(`/api/fees/structures/${s.structureId}/items`, { name: "Half paisa", amountPaisa: 10.5, frequency: "monthly" }, c.accountant)).status).toBe(400);
+  it("fees: a structure with lines drafted, approved once, linked to the level so every student is charged; repeated safely", async () => {
+    const term = (await db().prepare("SELECT start_date, end_date FROM academic_years WHERE public_id = ?1").bind(s.yearId).first<{ start_date: string; end_date: string }>())!;
+    s.structureId = (await ok(await post("/api/fees/structures", { name: "Year fees", sectionKey: firstSection, startDate: term.start_date, endDate: term.end_date }, c.accountant), 201)).id as string;
+    await ok(await post(`/api/fees/structures/${s.structureId}/items`, { name: "Tuition", amountPaisa: 250_000 }, c.accountant), 201);
+    await ok(await post(`/api/fees/structures/${s.structureId}/items`, { name: "Exam", amountPaisa: 300_000 }, c.accountant), 201);
+    await ok(await post(`/api/fees/structures/${s.structureId}/items`, { name: "Admission", amountPaisa: 1_000_000 }, c.accountant), 201);
+    expect((await post(`/api/fees/structures/${s.structureId}/items`, { name: "Half paisa", amountPaisa: 10.5 }, c.accountant)).status).toBe(400);
     await ok(await post(`/api/fees/structures/${s.structureId}/send`, {}, c.accountant), 201);
     const request = (await db().prepare("SELECT public_id FROM approval_requests WHERE subject_public_id = ?1 ORDER BY id DESC LIMIT 1").bind(s.structureId).first<{ public_id: string }>())!.public_id;
     const [x, y] = await Promise.all([post(`/api/approvals/${request}/approve`, undefined, c.admin), post(`/api/approvals/${request}/approve`, undefined, c.admin)]);
     expect([x.status, y.status]).toContain(200);
     expect([x.status, y.status].filter((st) => st === 200)).toHaveLength(1);
-    const made = await ok(await post(`/api/fees/structures/${s.structureId}/charges`, { classId: s.classId }, c.accountant));
-    expect(made.created as number).toBeGreaterThan(0);
-    const again = await post(`/api/fees/structures/${s.structureId}/charges`, { classId: s.classId }, c.accountant);
-    expect(((await again.json()) as { created: number }).created).toBe(0);
+    // Linked to the level, with no approval: every student of its classes is charged at once, and a repeat makes nothing.
+    const made = await ok(await post(`/api/fees/structures/${s.structureId}/levels`, { levelIds: [s.levelId] }, c.accountant));
+    expect((made.levels as { ok: boolean }[])[0]).toMatchObject({ ok: true });
+    expect(made.charged as number).toBeGreaterThan(0);
+    const again = (await (await post(`/api/fees/structures/${s.structureId}/levels`, { levelIds: [s.levelId] }, c.accountant)).json()) as { levels: { ok: boolean; reason?: string }[]; charged: number };
+    expect(again.levels[0]).toMatchObject({ ok: false, reason: "conflict" });
+    expect(again.charged).toBe(0);
     for (const who of Object.keys(s.students)) {
       if (!s.students[who]!.enrollmentId) s.students[who]!.enrollmentId = ((await get<{ enrollmentId: string }>("/api/fees/me", c[who])).enrollmentId);
     }
@@ -360,13 +364,13 @@ describe.each([
     expect((await call(`/api/fees/enrollments/${bina}`, { cookie: c.Asha })).status).toBe(404);
   });
 
-  it("fees: a late joiner is charged on the next run; dues, CSV and reminders agree", async () => {
+  it("fees: a late joiner is charged as they join; dues, CSV and reminders agree", async () => {
     const email = `late-${tag}@example.com`;
     const late = await ok(await post("/api/admissions/walk-ins", { firstName: "Late", lastName: "Joiner", dob: "2009-01-01", phone: "9812345678", email, guardianName: "G", guardianPhone: "9800000041", levelId: s.levelId, classId: s.classId }, c.coordinator), 201);
     c.Late = await firstSignIn(email, late.temporaryPassword as string);
-    const made = await ok(await post(`/api/fees/structures/${s.structureId}/charges`, { classId: s.classId }, c.accountant));
-    expect(made.created as number).toBeGreaterThan(0);
     s.students.Late = { studentId: late.studentId as string, sid: late.sid as string, enrollmentId: (await get<{ enrollmentId: string }>("/api/fees/me", c.Late)).enrollmentId };
+    // Charged as they joined (the walk-in's approval makes their charges at once), with no one pressing anything.
+    expect((await db().prepare("SELECT COUNT(*) AS n FROM ledger_entries le JOIN enrollments en ON en.id = le.enrollment_id WHERE le.kind = 'charge' AND en.public_id = ?1").bind(s.students.Late.enrollmentId).first<{ n: number }>())!.n).toBeGreaterThan(0);
     const dues = await get<{ students: { enrollmentId: string; duePaisa: number }[]; totals: { duePaisa: number } }>(`/api/fees/dues?classId=${s.classId}`, c.accountant);
     expect(dues.totals.duePaisa).toBe(dues.students.reduce((sum, x) => sum + x.duePaisa, 0));
     const csv = await (await call(`/api/fees/dues.csv?classId=${s.classId}`, { cookie: c.admin })).text();
@@ -519,7 +523,6 @@ describe.each([
       ["cash", post("/api/fees/payments/cash", { enrollmentId: asha, amountPaisa: 100, idempotencyKey: key() }, c.accountant)],
       ["discount", post(`/api/fees/enrollments/${asha}/discounts`, { amountPaisa: 100, reason: "sibling" }, c.accountant)],
       ["refund", post(`/api/fees/enrollments/${asha}/refunds`, { amountPaisa: 100, reason: "After the year closed" }, c.accountant)],
-      ["charges", post(`/api/fees/structures/${s.structureId}/charges`, { classId: s.classId }, c.accountant)],
       ["marks", put(sheetPath(s.subjects.science!, s.terminals[2]!), { marks: [{ enrollmentId: asha, componentId: "theory", valueHundredths: 100 }] }, c.ram)],
       ["picks", put(`/api/results/enrollments/${asha}/electives/${s.groupId}`, { offeringIds: [s.subjects.computing!.id] }, c.coordinator)],
       ["class", post("/api/academics/classes", { yearId: s.yearId, levelId: s.levelId, label: "Z" }, c.coordinator)],

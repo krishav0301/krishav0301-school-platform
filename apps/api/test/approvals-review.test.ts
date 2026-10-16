@@ -2,6 +2,7 @@ import { beforeAll, describe, expect, it } from "vitest";
 
 import { createContent, updateContent } from "../src/modules/content/service";
 import { auditKey, call, db, person, seedSections, type Person } from "./academics-helpers";
+import { draftStructure, link } from "./fees-helpers";
 import { classWith, type ClassFixture } from "./schoolday-helpers";
 
 /**
@@ -35,32 +36,31 @@ beforeAll(async () => {
   admin = await person("admin", "institution");
   secondAdmin = await person("admin", "institution");
   fixture = await classWith("plus2", 2);
-  const structure = ((await (await post("/api/fees/structures", { levelId: fixture.levelId }, accountant)).json()) as { id: string }).id;
-  structureId = structure;
-  await post(`/api/fees/structures/${structure}/items`, { name: "Tuition", amountPaisa: 350_000, frequency: "monthly" }, accountant);
-  await post(`/api/fees/structures/${structure}/items`, { name: "Admission", amountPaisa: 1_500_000, frequency: "one_time" }, accountant);
-  await post(`/api/fees/structures/${structure}/send`, {}, accountant);
-  structureRequest = await requestOf(structure);
+  structureId = await draftStructure(accountant, { sectionKey: "plus2", items: [{ name: "Tuition", amountPaisa: 350_000 }, { name: "Admission", amountPaisa: 1_500_000 }] });
+  await post(`/api/fees/structures/${structureId}/send`, {}, accountant);
+  structureRequest = await requestOf(structureId);
 });
 
 describe("a fee structure", () => {
-  it("shows every item and the yearly total, who sent it with their role, and the BS day", async () => {
+  it("shows its name, dates, every line and the total, who sent it with their role, and the BS day", async () => {
     const r = await review(structureRequest);
     expect(r.status).toBe("pending");
     expect(r.request).toMatchObject({ kind: "fee_structure", requesterRole: "accountant", mine: false });
     expect(r.request.createdOnBs).toMatch(/^\d{4}-\d{2}-\d{2}$/);
     expect(r.detail).toMatchObject({
       kind: "fee_structure",
+      startDate: "2026-04-14",
+      endDate: "2027-04-13",
       items: [
-        { name: "Tuition", amountPaisa: 350_000, frequency: "monthly" },
+        { name: "Tuition", amountPaisa: 350_000, frequency: "one_time" },
         { name: "Admission", amountPaisa: 1_500_000, frequency: "one_time" },
       ],
-      yearlyTotalPaisa: 12 * 350_000 + 1_500_000,
+      totalPaisa: 350_000 + 1_500_000,
     });
-    // Approved, it is charged, and the money kinds below have something to work on.
+    // Approved and linked, it is charged, and the money kinds below have something to work on.
     expect((await post(`/api/approvals/${structureRequest}/approve`, undefined, admin)).status).toBe(200);
     expect((await review(structureRequest)).status).toBe("approved");
-    expect((await post(`/api/fees/structures/${structureId}/charges`, { classId: fixture.classId }, accountant)).status).toBe(200);
+    expect((await link(accountant, structureId, [fixture.levelId])).body.levels[0]).toMatchObject({ ok: true });
   });
 
   it("a second Admin approving afterwards is told it was already decided, not that it changed (F-07)", async () => {

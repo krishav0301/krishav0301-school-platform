@@ -4,6 +4,7 @@ import { beforeAll, describe, expect, it } from "vitest";
 import { verifyAuditChain } from "../src/core/audit";
 import { verifyLedgerChain } from "../src/modules/fees/ledger";
 import { app, auditKey, call, count, db, person, seedSections, type Person } from "./academics-helpers";
+import { liveFees } from "./fees-helpers";
 import { classWith, type ClassFixture } from "./schoolday-helpers";
 
 /**
@@ -23,12 +24,7 @@ const key = () => crypto.randomUUID().replace(/-/g, "");
 /** A class billed from a live structure: 3,000.00 a year each (one yearly item). */
 async function billedClass(section: "plus2" | "bachelors", size: number): Promise<ClassFixture> {
   const fixture = await classWith(section, size);
-  const structure = ((await (await post("/api/fees/structures", { levelId: fixture.levelId }, accountant)).json()) as { id: string }).id;
-  await post(`/api/fees/structures/${structure}/items`, { name: "Annual fee", amountPaisa: 300_000, frequency: "yearly" }, accountant);
-  await post(`/api/fees/structures/${structure}/send`, {}, accountant);
-  const request = (await db.prepare("SELECT public_id FROM approval_requests WHERE subject_public_id = ?1").bind(structure).first<{ public_id: string }>())!.public_id;
-  expect((await post(`/api/approvals/${request}/approve`, undefined, admin)).status).toBe(200);
-  expect((await post(`/api/fees/structures/${structure}/charges`, { classId: fixture.classId }, accountant)).status).toBe(200);
+  await liveFees({ accountant, admin, sectionKey: section, levelIds: [fixture.levelId], items: [{ name: "Annual fee", amountPaisa: 300_000 }] });
   return fixture;
 }
 

@@ -138,7 +138,8 @@ describe("the Accountant's lists (D-107)", () => {
       ["NPR 22,500", "warn"],
       ["NPR 0", "ok"],
     ]);
-    const s = (id: string, status: "draft" | "waiting" | "live") => ({ id, levelId: id, status, yearLabel: "2083", programmeName: "+2 Science", levelName: "Grade 11", sectionKey: "plus2", yearlyTotalPaisa: 0 });
-    expect(structureFigures({ structures: [s("a", "live"), s("b", "waiting"), s("c", "draft")] }, 2).map((f) => f.value)).toEqual(["1", "1", "1", "2"]);
+    const s = (id: string, status: "draft" | "waiting" | "live", levelsLinked = 0) => ({ id, name: id, status, startDate: "2026-04-14", endDate: "2027-04-13", startDateBs: null, endDateBs: null, sectionKey: "plus2", totalPaisa: 0, levelsLinked });
+    // Live, waiting, draft, and live structures not yet linked to a level.
+    expect(structureFigures({ structures: [s("a", "live"), s("b", "waiting"), s("c", "draft"), s("d", "live", 3)] }).map((f) => f.value)).toEqual(["2", "1", "1", "1"]);
   });
 });

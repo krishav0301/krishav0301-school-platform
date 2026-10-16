@@ -20,6 +20,7 @@ export function sentMessage(sent: Sent): string | null {
   if (sent.ok) return null;
   if (sent.reason === "invalid") return sent.message;
   if (sent.reason === "closed") return t("fees.closed");
+  if (sent.reason === "inUse") return t("fees.structure.inUse");
   if (sent.reason === "refused") return t("fees.refused");
   return t("fees.failed");
 }

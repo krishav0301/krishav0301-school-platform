@@ -4323,14 +4323,26 @@
                   "fee_structure"
                 ]
               },
-              "programme": {
+              "name": {
                 "type": "string"
               },
-              "level": {
+              "startDate": {
                 "type": "string"
               },
-              "year": {
+              "endDate": {
                 "type": "string"
+              },
+              "startDateBs": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "endDateBs": {
+                "type": [
+                  "string",
+                  "null"
+                ]
               },
               "items": {
                 "type": "array",
@@ -4360,17 +4372,19 @@
                   ]
                 }
               },
-              "yearlyTotalPaisa": {
+              "totalPaisa": {
                 "type": "integer"
               }
             },
             "required": [
               "kind",
-              "programme",
-              "level",
-              "year",
+              "name",
+              "startDate",
+              "endDate",
+              "startDateBs",
+              "endDateBs",
               "items",
-              "yearlyTotalPaisa"
+              "totalPaisa"
             ]
           },
           {
@@ -7491,8 +7505,29 @@
                 "id": {
                   "type": "string"
                 },
-                "levelId": {
+                "name": {
                   "type": "string"
+                },
+                "sectionKey": {
+                  "type": "string"
+                },
+                "startDate": {
+                  "type": "string"
+                },
+                "endDate": {
+                  "type": "string"
+                },
+                "startDateBs": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "endDateBs": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
                 },
                 "status": {
                   "type": "string",
@@ -7502,31 +7537,24 @@
                     "live"
                   ]
                 },
-                "yearLabel": {
-                  "type": "string"
+                "totalPaisa": {
+                  "type": "integer"
                 },
-                "programmeName": {
-                  "type": "string"
-                },
-                "levelName": {
-                  "type": "string"
-                },
-                "sectionKey": {
-                  "type": "string"
-                },
-                "yearlyTotalPaisa": {
+                "levelsLinked": {
                   "type": "integer"
                 }
               },
               "required": [
                 "id",
-                "levelId",
-                "status",
-                "yearLabel",
-                "programmeName",
-                "levelName",
+                "name",
                 "sectionKey",
-                "yearlyTotalPaisa"
+                "startDate",
+                "endDate",
+                "startDateBs",
+                "endDateBs",
+                "status",
+                "totalPaisa",
+                "levelsLinked"
               ]
             }
           }
@@ -7552,8 +7580,29 @@
           "id": {
             "type": "string"
           },
-          "levelId": {
+          "name": {
             "type": "string"
+          },
+          "sectionKey": {
+            "type": "string"
+          },
+          "startDate": {
+            "type": "string"
+          },
+          "endDate": {
+            "type": "string"
+          },
+          "startDateBs": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "endDateBs": {
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "status": {
             "type": "string",
@@ -7563,19 +7612,10 @@
               "live"
             ]
           },
-          "yearLabel": {
-            "type": "string"
+          "totalPaisa": {
+            "type": "integer"
           },
-          "programmeName": {
-            "type": "string"
-          },
-          "levelName": {
-            "type": "string"
-          },
-          "sectionKey": {
-            "type": "string"
-          },
-          "yearlyTotalPaisa": {
+          "levelsLinked": {
             "type": "integer"
           },
           "items": {
@@ -7610,15 +7650,18 @@
               ]
             }
           },
-          "classes": {
+          "levels": {
             "type": "array",
             "items": {
               "type": "object",
               "properties": {
-                "id": {
+                "levelId": {
                   "type": "string"
                 },
-                "label": {
+                "programmeName": {
+                  "type": "string"
+                },
+                "levelName": {
                   "type": "string"
                 },
                 "students": {
@@ -7626,8 +7669,9 @@
                 }
               },
               "required": [
-                "id",
-                "label",
+                "levelId",
+                "programmeName",
+                "levelName",
                 "students"
               ]
             }
@@ -7635,15 +7679,17 @@
         },
         "required": [
           "id",
-          "levelId",
-          "status",
-          "yearLabel",
-          "programmeName",
-          "levelName",
+          "name",
           "sectionKey",
-          "yearlyTotalPaisa",
+          "startDate",
+          "endDate",
+          "startDateBs",
+          "endDateBs",
+          "status",
+          "totalPaisa",
+          "levelsLinked",
           "items",
-          "classes"
+          "levels"
         ]
       },
       "FeesInvalid": {
@@ -7667,13 +7713,30 @@
       "NewFeeStructure": {
         "type": "object",
         "properties": {
-          "levelId": {
+          "name": {
             "type": "string",
-            "pattern": "^[0-9a-f]{32}$"
+            "minLength": 1,
+            "maxLength": 80
+          },
+          "sectionKey": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 40
+          },
+          "startDate": {
+            "type": "string",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+          },
+          "endDate": {
+            "type": "string",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
           }
         },
         "required": [
-          "levelId"
+          "name",
+          "sectionKey",
+          "startDate",
+          "endDate"
         ],
         "additionalProperties": false
       },
@@ -7689,21 +7752,11 @@
             "type": "integer",
             "exclusiveMinimum": 0,
             "maximum": 10000000000
-          },
-          "frequency": {
-            "type": "string",
-            "enum": [
-              "one_time",
-              "monthly",
-              "yearly",
-              "whole_course"
-            ]
           }
         },
         "required": [
           "name",
-          "amountPaisa",
-          "frequency"
+          "amountPaisa"
         ],
         "additionalProperties": false
       },
@@ -7720,31 +7773,88 @@
             "exclusiveMinimum": 0,
             "maximum": 10000000000
           },
-          "frequency": {
-            "type": "string",
-            "enum": [
-              "one_time",
-              "monthly",
-              "yearly",
-              "whole_course"
-            ]
-          },
           "isActive": {
             "type": "boolean"
           }
         },
         "additionalProperties": false
       },
-      "GenerateCharges": {
+      "NewFeePeriod": {
         "type": "object",
         "properties": {
-          "classId": {
+          "startDate": {
             "type": "string",
-            "pattern": "^[0-9a-f]{32}$"
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+          },
+          "endDate": {
+            "type": "string",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
           }
         },
         "required": [
-          "classId"
+          "startDate",
+          "endDate"
+        ],
+        "additionalProperties": false
+      },
+      "LinkFeeLevelsResult": {
+        "type": "object",
+        "properties": {
+          "levels": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "levelId": {
+                  "type": "string"
+                },
+                "ok": {
+                  "type": "boolean"
+                },
+                "reason": {
+                  "type": "string",
+                  "enum": [
+                    "not_found",
+                    "not_live",
+                    "wrong_wing",
+                    "conflict"
+                  ]
+                }
+              },
+              "required": [
+                "levelId",
+                "ok"
+              ]
+            }
+          },
+          "charged": {
+            "type": "integer"
+          },
+          "pending": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "levels",
+          "charged",
+          "pending"
+        ]
+      },
+      "LinkFeeLevels": {
+        "type": "object",
+        "properties": {
+          "levelIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{32}$"
+            },
+            "minItems": 1,
+            "maxItems": 60
+          }
+        },
+        "required": [
+          "levelIds"
         ],
         "additionalProperties": false
       },
@@ -18998,7 +19108,7 @@
         "tags": [
           "fees"
         ],
-        "description": "The active year's fee structures in the person's sections. Not for students (their own fees are at /api/fees/me).",
+        "description": "The fee structures in the person's wings, newest period first. Not for students (their own fees are at /api/fees/me).",
         "responses": {
           "200": {
             "description": "The structures",
@@ -19027,7 +19137,7 @@
         "tags": [
           "fees"
         ],
-        "description": "Drafts the active year's fee structure for a programme level. One per level and year.",
+        "description": "Drafts a fee structure in a wing: a name, a start date and an end date. Lines are added to the draft; the Principal approves it; then it is linked to levels.",
         "requestBody": {
           "required": true,
           "content": {
@@ -19106,7 +19216,7 @@
         "tags": [
           "fees"
         ],
-        "description": "One fee structure: its items, its yearly total, and the classes of its level with their student counts.",
+        "description": "One fee structure: its lines, its total, and the levels it is linked to with their student counts.",
         "parameters": [
           {
             "schema": {
@@ -19158,7 +19268,7 @@
         "tags": [
           "fees"
         ],
-        "description": "Adds an item to a draft: a name, an amount in whole paisa, and how often it is billed.",
+        "description": "Adds a line to a draft: a name and a price in whole paisa. The lines add up to the structure's total, due on its start date.",
         "parameters": [
           {
             "schema": {
@@ -19248,7 +19358,7 @@
         "tags": [
           "fees"
         ],
-        "description": "Changes a draft's item, or switches it off. A structure waiting for approval or live does not change.",
+        "description": "Changes a draft's line, or switches it off. A structure waiting for approval or live does not change.",
         "parameters": [
           {
             "schema": {
@@ -19341,7 +19451,7 @@
         "tags": [
           "fees"
         ],
-        "description": "Sends a draft with at least one item to the Admins for approval. It is locked while it waits.",
+        "description": "Sends a draft with at least one line to the Principal for approval. It is locked while it waits.",
         "parameters": [
           {
             "schema": {
@@ -19415,13 +19525,13 @@
         }
       }
     },
-    "/api/fees/structures/{id}/charges": {
+    "/api/fees/structures/{id}/next-period": {
       "post": {
-        "operationId": "generate_fee_charges",
+        "operationId": "start_next_fee_period",
         "tags": [
           "fees"
         ],
-        "description": "Makes every missing charge for the active students of one class of the structure's level, from the live structure. Safe to repeat.",
+        "description": "Starts the next period of a structure: a new draft of the same name and wing with the new dates and a copy of its lines, to edit and send for approval. Reuse for next year.",
         "parameters": [
           {
             "schema": {
@@ -19438,25 +19548,199 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/GenerateCharges"
+                "$ref": "#/components/schemas/NewFeePeriod"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Drafted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "id"
+                  ]
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FeesError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such item, or not one the person may reach",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FeesError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Not possible in its current state (not a draft, not live, already there, or the year is closed)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FeesError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Not valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FeesInvalid"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/fees/structures/{id}/levels": {
+      "post": {
+        "operationId": "link_fee_levels",
+        "tags": [
+          "fees"
+        ],
+        "description": "Links an approved structure to levels of its wing, with no approval. Every student of a linked level is then charged automatically, and so is one who joins later. A level has one structure for any dates.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{32}$"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LinkFeeLevels"
               }
             }
           }
         },
         "responses": {
           "200": {
-            "description": "Made",
+            "description": "What happened to each level, and how many charges were made now",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LinkFeeLevelsResult"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FeesError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such item, or not one the person may reach",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FeesError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Not possible in its current state (not a draft, not live, already there, or the year is closed)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FeesError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Not valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FeesInvalid"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/fees/structures/{id}/levels/{levelId}": {
+      "delete": {
+        "operationId": "unlink_fee_level",
+        "tags": [
+          "fees"
+        ],
+        "description": "Removes a level's link. Refused (409 in_use) once any student of the level, charged under it, has paid anything.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{32}$"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{32}$"
+            },
+            "required": true,
+            "name": "levelId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Unlinked",
             "content": {
               "application/json": {
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "created": {
-                      "type": "integer"
+                    "ok": {
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
                     }
                   },
                   "required": [
-                    "created"
+                    "ok"
                   ]
                 }
               }

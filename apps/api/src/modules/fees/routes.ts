@@ -19,8 +19,10 @@ import {
   FeeStructureListSchema,
   FeeStructureSchema,
   GatewayCallbackSchema,
-  GenerateChargesSchema,
+  LinkLevelsSchema,
+  LinkResultSchema,
   NewFeeItemSchema,
+  NewPeriodSchema,
   NewStructureSchema,
   OnlinePaymentSchema,
   PaidSchema,
@@ -34,7 +36,7 @@ import {
   VoucherListSchema,
   VoucherSchema,
 } from "./schema";
-import { addItem, changeItem, createStructure, generateCharges, getStructure, listStructures, sendStructure, type Failure } from "./structures";
+import { addItem, changeItem, createStructure, getStructure, linkLevels, listStructures, sendStructure, startNextPeriod, unlinkLevel, type Failure } from "./structures";
 
 const json = <T extends z.ZodType>(schema: T) => ({ "application/json": { schema } });
 export const ErrorSchema = z.object({ error: z.string() }).openapi("FeesError");
@@ -73,7 +75,7 @@ const ClassQuery = z.object({ classId: PublicIdSchema.optional() });
 
 const paid = (c: Context<AppEnv>, result: PayResult) =>
   result.ok ? c.json({ paymentId: result.paymentId, receipt: result.receipt }, 201) : fail(c, result);
-const GENERATE = { action: "fees.charges.generate" } as const;
+const LINK = { action: "fees.structure.link" } as const;
 const VIEW = { action: "fees.view" } as const;
 
 export function registerFees(app: App): void {
@@ -84,7 +86,7 @@ export function registerFees(app: App): void {
       path: "/api/fees/structures",
       operationId: "list_fee_structures",
       tags: ["fees"],
-      description: "The active year's fee structures in the person's sections. Not for students (their own fees are at /api/fees/me).",
+      description: "The fee structures in the person's wings, newest period first. Not for students (their own fees are at /api/fees/me).",
       access: VIEW,
       responses: { 200: { description: "The structures", content: json(FeeStructureListSchema) }, 403: failures[403] },
     },
@@ -103,7 +105,7 @@ export function registerFees(app: App): void {
       path: "/api/fees/structures/{id}",
       operationId: "get_fee_structure",
       tags: ["fees"],
-      description: "One fee structure: its items, its yearly total, and the classes of its level with their student counts.",
+      description: "One fee structure: its lines, its total, and the levels it is linked to with their student counts.",
       access: VIEW,
       request: { params: IdParam },
       responses: { 200: { description: "The structure", content: json(FeeStructureSchema) }, 403: failures[403], 404: failures[404] },
@@ -124,13 +126,13 @@ export function registerFees(app: App): void {
       path: "/api/fees/structures",
       operationId: "create_fee_structure",
       tags: ["fees"],
-      description: "Drafts the active year's fee structure for a programme level. One per level and year.",
+      description: "Drafts a fee structure in a wing: a name, a start date and an end date. Lines are added to the draft; the Principal approves it; then it is linked to levels.",
       access: DRAFT,
       request: { body: { required: true, content: json(NewStructureSchema) } },
       responses: { 201: { description: "Drafted", content: json(Created) }, ...failures },
     },
     async (c) => {
-      const result = await createStructure(c.env.DB, c.env.AUDIT_HMAC_KEY, c.get("auth")!.userPublicId, c.req.valid("json").levelId);
+      const result = await createStructure(c.env.DB, c.env.AUDIT_HMAC_KEY, c.get("auth")!.userPublicId, c.req.valid("json"));
       return result.ok ? c.json({ id: result.publicId }, 201) : fail(c, result);
     },
   );
@@ -142,7 +144,7 @@ export function registerFees(app: App): void {
       path: "/api/fees/structures/{id}/items",
       operationId: "add_fee_item",
       tags: ["fees"],
-      description: "Adds an item to a draft: a name, an amount in whole paisa, and how often it is billed.",
+      description: "Adds a line to a draft: a name and a price in whole paisa. The lines add up to the structure's total, due on its start date.",
       access: DRAFT,
       request: { params: IdParam, body: { required: true, content: json(NewFeeItemSchema) } },
       responses: { 201: { description: "Added", content: json(Created) }, ...failures },
@@ -160,7 +162,7 @@ export function registerFees(app: App): void {
       path: "/api/fees/items/{id}",
       operationId: "change_fee_item",
       tags: ["fees"],
-      description: "Changes a draft's item, or switches it off. A structure waiting for approval or live does not change.",
+      description: "Changes a draft's line, or switches it off. A structure waiting for approval or live does not change.",
       access: DRAFT,
       request: { params: IdParam, body: { required: true, content: json(ChangeFeeItemSchema) } },
       responses: { 200: { description: "Changed", content: json(z.object({ ok: z.literal(true) })) }, ...failures },
@@ -178,7 +180,7 @@ export function registerFees(app: App): void {
       path: "/api/fees/structures/{id}/send",
       operationId: "send_fee_structure",
       tags: ["fees"],
-      description: "Sends a draft with at least one item to the Admins for approval. It is locked while it waits.",
+      description: "Sends a draft with at least one line to the Principal for approval. It is locked while it waits.",
       access: DRAFT,
       request: { params: IdParam },
       responses: { 201: { description: "Sent; the approval request's id", content: json(Created) }, ...failures },
@@ -193,17 +195,54 @@ export function registerFees(app: App): void {
     app,
     {
       method: "post",
-      path: "/api/fees/structures/{id}/charges",
-      operationId: "generate_fee_charges",
+      path: "/api/fees/structures/{id}/next-period",
+      operationId: "start_next_fee_period",
       tags: ["fees"],
-      description: "Makes every missing charge for the active students of one class of the structure's level, from the live structure. Safe to repeat.",
-      access: GENERATE,
-      request: { params: IdParam, body: { required: true, content: json(GenerateChargesSchema) } },
-      responses: { 200: { description: "Made", content: json(z.object({ created: z.number().int() })) }, ...failures },
+      description: "Starts the next period of a structure: a new draft of the same name and wing with the new dates and a copy of its lines, to edit and send for approval. Reuse for next year.",
+      access: DRAFT,
+      request: { params: IdParam, body: { required: true, content: json(NewPeriodSchema) } },
+      responses: { 201: { description: "Drafted", content: json(Created) }, ...failures },
     },
     async (c) => {
-      const result = await generateCharges(c.env.DB, c.env.AUDIT_HMAC_KEY, c.get("auth")!.userPublicId, c.req.valid("param").id, c.req.valid("json").classId);
-      return result.ok ? c.json({ created: result.created }, 200) : fail(c, result);
+      const result = await startNextPeriod(c.env.DB, c.env.AUDIT_HMAC_KEY, c.get("auth")!.userPublicId, c.req.valid("param").id, c.req.valid("json"));
+      return result.ok ? c.json({ id: result.publicId }, 201) : fail(c, result);
+    },
+  );
+
+  defineRoute(
+    app,
+    {
+      method: "post",
+      path: "/api/fees/structures/{id}/levels",
+      operationId: "link_fee_levels",
+      tags: ["fees"],
+      description: "Links an approved structure to levels of its wing, with no approval. Every student of a linked level is then charged automatically, and so is one who joins later. A level has one structure for any dates.",
+      access: LINK,
+      request: { params: IdParam, body: { required: true, content: json(LinkLevelsSchema) } },
+      responses: { 200: { description: "What happened to each level, and how many charges were made now", content: json(LinkResultSchema) }, ...failures },
+    },
+    async (c) => {
+      const result = await linkLevels(c.env.DB, c.env.AUDIT_HMAC_KEY, c.get("auth")!.userPublicId, c.req.valid("param").id, c.req.valid("json").levelIds);
+      return result.ok ? c.json({ levels: result.levels.map((l) => ({ levelId: l.levelId, ok: l.ok, ...(l.ok ? {} : { reason: l.reason }) })), charged: result.charged, pending: result.pending }, 200) : fail(c, result);
+    },
+  );
+
+  defineRoute(
+    app,
+    {
+      method: "delete",
+      path: "/api/fees/structures/{id}/levels/{levelId}",
+      operationId: "unlink_fee_level",
+      tags: ["fees"],
+      description: "Removes a level's link. Refused (409 in_use) once any student of the level, charged under it, has paid anything.",
+      access: LINK,
+      request: { params: z.object({ id: PublicIdSchema, levelId: PublicIdSchema }) },
+      responses: { 200: { description: "Unlinked", content: json(z.object({ ok: z.literal(true) })) }, ...failures },
+    },
+    async (c) => {
+      const { id, levelId } = c.req.valid("param");
+      const result = await unlinkLevel(c.env.DB, c.env.AUDIT_HMAC_KEY, c.get("auth")!.userPublicId, id, levelId);
+      return result.ok ? c.json({ ok: true as const }, 200) : fail(c, result);
     },
   );
 

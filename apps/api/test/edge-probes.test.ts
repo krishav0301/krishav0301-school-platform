@@ -1,6 +1,7 @@
 import { beforeAll, describe, expect, it } from "vitest";
 
-import { call, db, person, seedSections, type Person } from "./academics-helpers";
+import { call, person, seedSections, type Person } from "./academics-helpers";
+import { liveFees } from "./fees-helpers";
 import { addSubject, enterAndSubmit, examTerm, pattern, resultsClass, sheetIdOf, sheetPath, type Subject, type Term } from "./results-helpers";
 import { classWith, type ClassFixture } from "./schoolday-helpers";
 
@@ -23,12 +24,7 @@ beforeAll(async () => {
   coordinator = await person("coordinator", "institution");
   admin = await person("admin", "institution");
   fixture = await classWith("plus2", 2);
-  const structure = ((await (await post("/api/fees/structures", { levelId: fixture.levelId }, accountant)).json()) as { id: string }).id;
-  await post(`/api/fees/structures/${structure}/items`, { name: "Annual", amountPaisa: 100_000, frequency: "yearly" }, accountant);
-  await post(`/api/fees/structures/${structure}/send`, {}, accountant);
-  const request = (await db.prepare("SELECT public_id FROM approval_requests WHERE subject_public_id = ?1").bind(structure).first<{ public_id: string }>())!.public_id;
-  await post(`/api/approvals/${request}/approve`, undefined, admin);
-  await post(`/api/fees/structures/${structure}/charges`, { classId: fixture.classId }, accountant);
+  await liveFees({ accountant, admin, sectionKey: "plus2", levelIds: [fixture.levelId], items: [{ name: "Annual", amountPaisa: 100_000 }] });
 });
 
 describe("money inputs", () => {

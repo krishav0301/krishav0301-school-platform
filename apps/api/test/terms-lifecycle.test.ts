@@ -6,6 +6,7 @@ import { newPublicId } from "../src/core/ids";
 import { verifyLedgerChain } from "../src/modules/fees/ledger";
 import { billingSchedule, termMonths } from "../src/modules/fees/policy";
 import { auditKey, call, count, db, person, seedSections, type Person } from "./academics-helpers";
+import { liveFees } from "./fees-helpers";
 
 /**
  * A semester school through the real routes (D-109, D-110): the Principal makes a semester term beside a yearly one, the
@@ -114,12 +115,7 @@ describe("a semester school beside a yearly one", () => {
   });
 
   it("the Accountant bills the term once; a receipt carries the term's code", async () => {
-    const structure = (await ok<{ id: string }>(await post("/api/fees/structures", { levelId: s.sems[0] }, accountant), 201)).id;
-    await ok(await post(`/api/fees/structures/${structure}/items`, { name: "Tuition", amountPaisa: 600_000, frequency: "yearly" }, accountant), 201);
-    await ok(await post(`/api/fees/structures/${structure}/send`, {}, accountant), 201);
-    const request = (await db.prepare("SELECT public_id FROM approval_requests WHERE subject_public_id = ?1").bind(structure).first<{ public_id: string }>())!.public_id;
-    await ok(await post(`/api/approvals/${request}/approve`, undefined, principal));
-    await ok(await post(`/api/fees/structures/${structure}/charges`, { classId: s.classes.sem1 }, accountant));
+    await liveFees({ accountant, admin: principal, sectionKey: "bachelors", levelIds: [s.sems[0]!], items: [{ name: "Tuition", amountPaisa: 600_000 }], startDate: termStart, endDate: termEnd });
     // Once a term (D-110): one charge.
     expect(await count("SELECT COUNT(*) AS n FROM ledger_entries le JOIN enrollments en ON en.id = le.enrollment_id WHERE en.public_id = ?1 AND le.kind = 'charge'", s.enrollments.Asha!)).toBe(1);
 

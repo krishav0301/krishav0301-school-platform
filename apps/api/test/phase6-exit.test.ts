@@ -99,14 +99,17 @@ describe.each([
   });
 
   it("the fee structure: drafted, not the Co-ordinator's, approved by an Admin, charges made", async () => {
-    expect((await post("/api/fees/structures", { levelId: state.levelId }, cookies.coordinator)).status).toBe(403);
-    state.structureId = await idOf(await post("/api/fees/structures", { levelId: state.levelId }, cookies.accountant));
-    expect((await post(`/api/fees/structures/${state.structureId}/items`, { name: "Tuition", amountPaisa: 150_000, frequency: "monthly" }, cookies.accountant)).status).toBe(201);
-    expect((await post(`/api/fees/structures/${state.structureId}/items`, { name: "Exam", amountPaisa: 200_000, frequency: "yearly" }, cookies.accountant)).status).toBe(201);
+    const b = todayBs().year;
+    const shape = { name: "Exit fees", sectionKey: pack.sections[0]!.key, startDate: bsToAd({ year: b, month: 1, day: 1 }), endDate: bsToAd({ year: b, month: 12, day: daysInMonth(b, 12) }) };
+    expect((await post("/api/fees/structures", shape, cookies.coordinator)).status).toBe(403);
+    state.structureId = await idOf(await post("/api/fees/structures", shape, cookies.accountant));
+    expect((await post(`/api/fees/structures/${state.structureId}/items`, { name: "Tuition", amountPaisa: 150_000 }, cookies.accountant)).status).toBe(201);
+    expect((await post(`/api/fees/structures/${state.structureId}/items`, { name: "Exam", amountPaisa: 200_000 }, cookies.accountant)).status).toBe(201);
     expect((await post(`/api/fees/structures/${state.structureId}/send`, {}, cookies.accountant)).status).toBe(201);
     expect((await approveLatest(state.structureId!, cookies.admin)).status).toBe(200);
-    const made = await post(`/api/fees/structures/${state.structureId}/charges`, { classId: state.classId }, cookies.accountant);
-    expect(((await made.json()) as { created: number }).created).toBeGreaterThanOrEqual(4);
+    // Linked to the level, with no approval: every student of it is charged at once.
+    const made = await post(`/api/fees/structures/${state.structureId}/levels`, { levelIds: [state.levelId] }, cookies.accountant);
+    expect(((await made.json()) as { charged: number }).charged).toBeGreaterThanOrEqual(4);
   });
 
   it("payments: cash and a verified voucher, each with the next receipt number", async () => {

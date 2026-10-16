@@ -2,6 +2,7 @@ import { beforeAll, describe, expect, it } from "vitest";
 
 import { formatNpr } from "../src/modules/fees/money";
 import { call, count, db, person, seedSections, type Person } from "./academics-helpers";
+import { liveFees } from "./fees-helpers";
 import { classWith, type ClassFixture } from "./schoolday-helpers";
 
 /**
@@ -23,12 +24,7 @@ beforeAll(async () => {
   admin = await person("admin", "institution");
   coordinator = await person("coordinator", "institution");
   fixture = await classWith("plus2", 3);
-  const structure = ((await (await post("/api/fees/structures", { levelId: fixture.levelId }, accountant)).json()) as { id: string }).id;
-  await post(`/api/fees/structures/${structure}/items`, { name: "Annual fee", amountPaisa: 125_000_000, frequency: "yearly" }, accountant);
-  await post(`/api/fees/structures/${structure}/send`, {}, accountant);
-  const request = (await db.prepare("SELECT public_id FROM approval_requests WHERE subject_public_id = ?1").bind(structure).first<{ public_id: string }>())!.public_id;
-  await post(`/api/approvals/${request}/approve`, undefined, admin);
-  await post(`/api/fees/structures/${structure}/charges`, { classId: fixture.classId }, accountant);
+  await liveFees({ accountant, admin, sectionKey: "plus2", levelIds: [fixture.levelId], items: [{ name: "Annual fee", amountPaisa: 125_000_000 }] });
   // Pupil 0 pays in full; pupil 1 pays part; pupil 2 pays nothing and has an email address.
   await post("/api/fees/payments/cash", { enrollmentId: fixture.pupils[0]!.enrollmentId, amountPaisa: 125_000_000, idempotencyKey: crypto.randomUUID().replace(/-/g, "") }, accountant);
   await post("/api/fees/payments/cash", { enrollmentId: fixture.pupils[1]!.enrollmentId, amountPaisa: 25_000_000, idempotencyKey: crypto.randomUUID().replace(/-/g, "") }, accountant);

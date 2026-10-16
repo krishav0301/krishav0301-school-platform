@@ -70,11 +70,13 @@ export const ApprovalDetailSchema = z
     }),
     z.object({
       kind: z.literal("fee_structure"),
-      programme: z.string(),
-      level: z.string(),
-      year: z.string(),
+      name: z.string(),
+      startDate: z.string(),
+      endDate: z.string(),
+      startDateBs: z.string().nullable(),
+      endDateBs: z.string().nullable(),
       items: z.array(z.object({ name: z.string(), amountPaisa: z.number().int(), frequency: z.enum(["one_time", "monthly", "yearly", "whole_course"]) })),
-      yearlyTotalPaisa: z.number().int(),
+      totalPaisa: z.number().int(),
     }),
     z.object({
       kind: z.literal("discount"),

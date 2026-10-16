@@ -1,6 +1,7 @@
 import { beforeAll, describe, expect, it } from "vitest";
 
 import { call, count, db, person, seedSections, type Person } from "./academics-helpers";
+import { liveFees } from "./fees-helpers";
 import { assign, classWith, teacherIn, type ClassFixture } from "./schoolday-helpers";
 
 /**
@@ -22,14 +23,9 @@ const approve = (requestId: string, who: Person = admin) => post(`/api/approvals
 const account = async (enrollmentId: string) =>
   (await (await call(`/api/fees/enrollments/${enrollmentId}`, { cookie: accountant.cookie })).json()) as { chargedPaisa: number; discountPaisa: number; paidPaisa: number };
 
-/** A live structure for the fixture's level with one item, its charges generated for `classId`. */
-async function liveStructure(levelId: string, classId: string, item: { amountPaisa: number; frequency: string }): Promise<Response> {
-  const structure = ((await (await post("/api/fees/structures", { levelId }, accountant)).json()) as { id: string }).id;
-  await post(`/api/fees/structures/${structure}/items`, { name: "Tuition", ...item }, accountant);
-  await post(`/api/fees/structures/${structure}/send`, {}, accountant);
-  expect((await approve(await requestOf(structure))).status).toBe(200);
-  return post(`/api/fees/structures/${structure}/charges`, { classId }, accountant);
-}
+/** A live structure linked to the fixture's level, with lines of the given prices: its students are charged at once. */
+const liveStructure = (levelId: string, amounts: number[]): Promise<string> =>
+  liveFees({ accountant, admin, sectionKey: "plus2", levelIds: [levelId], items: amounts.map((amountPaisa, i) => ({ name: `Line ${i + 1}`, amountPaisa })) });
 
 beforeAll(async () => {
   await seedSections();
@@ -37,7 +33,7 @@ beforeAll(async () => {
   admin = await person("admin", "institution");
   secondAdmin = await person("admin", "institution");
   fixture = await classWith("plus2", 3);
-  expect((await liveStructure(fixture.levelId, fixture.classId, { amountPaisa: 400_000, frequency: "yearly" })).status).toBe(200);
+  await liveStructure(fixture.levelId, [400_000]);
 });
 
 describe("money and approvals", () => {
@@ -88,9 +84,9 @@ describe("money and approvals", () => {
   });
 
   it("a class needing more charges than one write chunk gets every one of them", async () => {
-    // Monthly charges start from the month a student was enrolled, so 16 students give over 100 charges, past one chunk.
+    // Eight lines for each of 16 students give 128 charges, past one write chunk of 100.
     const big = await classWith("plus2", 16);
-    expect((await liveStructure(big.levelId, big.classId, { amountPaisa: 1_000, frequency: "monthly" })).status).toBe(200);
+    await liveStructure(big.levelId, [1_000, 1_100, 1_200, 1_300, 1_400, 1_500, 1_600, 1_700]);
     const { results } = await db
       .prepare(
         `SELECT en.public_id, COUNT(le.id) AS n FROM enrollments en JOIN classes cl ON cl.id = en.class_id
@@ -100,7 +96,8 @@ describe("money and approvals", () => {
       .all<{ n: number }>();
     expect(results).toHaveLength(16);
     expect(new Set(results.map((r) => r.n)).size).toBe(1); // every student the same full run
-    expect(results.reduce((sum, r) => sum + r.n, 0)).toBeGreaterThan(100);
+    expect(results.every((r) => r.n === 8)).toBe(true);
+    expect(results.reduce((sum, r) => sum + r.n, 0)).toBe(128);
   });
 });
 

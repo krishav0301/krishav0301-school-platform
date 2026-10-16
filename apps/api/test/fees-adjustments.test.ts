@@ -6,6 +6,7 @@ import { signAccessToken, type RoleClaim } from "../src/core/tokens";
 import { recordRefund } from "../src/modules/fees/adjustments";
 import { ledgerInserts, verifyLedgerChain, writeMoney } from "../src/modules/fees/ledger";
 import { auditKey, call, count, db, person, seedSections, type Person } from "./academics-helpers";
+import { liveFees } from "./fees-helpers";
 import { classWith, type ClassFixture } from "./schoolday-helpers";
 
 /**
@@ -46,11 +47,7 @@ beforeAll(async () => {
   secondAdmin = await person("admin", "institution");
   coordinator = await person("coordinator", "institution");
   fixture = await classWith("plus2", 3);
-  const structure = ((await (await post("/api/fees/structures", { levelId: fixture.levelId }, accountant)).json()) as { id: string }).id;
-  await post(`/api/fees/structures/${structure}/items`, { name: "Annual fee", amountPaisa: 400_000, frequency: "yearly" }, accountant);
-  await post(`/api/fees/structures/${structure}/send`, {}, accountant);
-  await approve(await requestOf(structure));
-  await post(`/api/fees/structures/${structure}/charges`, { classId: fixture.classId }, accountant);
+  await liveFees({ accountant, admin, sectionKey: "plus2", levelIds: [fixture.levelId], items: [{ name: "Annual fee", amountPaisa: 400_000 }] });
 });
 
 describe("discounts", () => {

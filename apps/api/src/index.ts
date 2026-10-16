@@ -2,6 +2,7 @@ import { createApp } from "./app";
 import { runOutbox } from "./core/notifications";
 import type { Bindings } from "./core/types";
 import { expireStaleApplications } from "./modules/admissions/service";
+import { chargeLinked } from "./modules/fees";
 import { isCrawlerFile, isFilledPage, isSchoolFile, renderCrawlerFile, renderFavicon, renderPublicPage } from "./modules/site";
 
 const app = createApp();
@@ -26,6 +27,7 @@ export default {
   // cheap, low-volume housekeeping, so neither needs a cron trigger of its own.
   async scheduled(_controller: ScheduledController, env: Bindings, ctx: ExecutionContext): Promise<void> {
     ctx.waitUntil(runOutbox(env).then((result) => console.warn(`Outbox sweep: ${JSON.stringify(result)}`)));
+    ctx.waitUntil(chargeLinked(env.DB, env.AUDIT_HMAC_KEY).then((result) => console.warn(`Fee charge sweep: ${JSON.stringify(result)}`)));
     ctx.waitUntil(expireStaleApplications(env.DB).then((result) => console.warn(`Application expiry sweep: ${JSON.stringify(result)}`)));
   },
 };

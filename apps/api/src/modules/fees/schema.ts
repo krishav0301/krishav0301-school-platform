@@ -7,28 +7,45 @@ export const PaisaSchema = z.number().int("Money is whole paisa").positive("The 
 
 export const FrequencySchema = z.enum(["one_time", "monthly", "yearly", "whole_course"]);
 
-export const NewStructureSchema = z.strictObject({ levelId: PublicIdSchema }).openapi("NewFeeStructure");
-export const NewFeeItemSchema = z
-  .strictObject({ name: z.string().trim().min(1, "Name the item").max(80, "Keep the name to 80 characters"), amountPaisa: PaisaSchema, frequency: FrequencySchema })
-  .openapi("NewFeeItem");
+const DateSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Use the form YYYY-MM-DD");
+
+/** A new structure (D-172): a name, a wing, a start and an end date (AD; the screens show BS). Its lines are added to the draft. */
+export const NewStructureSchema = z
+  .strictObject({ name: z.string().trim().min(1, "Name the fee structure").max(80, "Keep the name to 80 characters"), sectionKey: z.string().min(1).max(40), startDate: DateSchema, endDate: DateSchema })
+  .openapi("NewFeeStructure");
+export type NewStructure = z.infer<typeof NewStructureSchema>;
+/** The next period of a structure: new dates; the lines are copied in. */
+export const NewPeriodSchema = z.strictObject({ startDate: DateSchema, endDate: DateSchema }).openapi("NewFeePeriod");
+export type NewPeriod = z.infer<typeof NewPeriodSchema>;
+/** A line of a structure: a name and a price in whole paisa. The whole total is due on the structure's start date. */
+export const NewFeeItemSchema = z.strictObject({ name: z.string().trim().min(1, "Name the line").max(80, "Keep the name to 80 characters"), amountPaisa: PaisaSchema }).openapi("NewFeeItem");
 export type NewFeeItem = z.infer<typeof NewFeeItemSchema>;
-export const ChangeFeeItemSchema = z
-  .strictObject({ name: z.string().trim().min(1).max(80).optional(), amountPaisa: PaisaSchema.optional(), frequency: FrequencySchema.optional(), isActive: z.boolean().optional() })
-  .openapi("ChangeFeeItem");
+export const ChangeFeeItemSchema = z.strictObject({ name: z.string().trim().min(1).max(80).optional(), amountPaisa: PaisaSchema.optional(), isActive: z.boolean().optional() }).openapi("ChangeFeeItem");
 export type ChangeFeeItem = z.infer<typeof ChangeFeeItemSchema>;
-export const GenerateChargesSchema = z.strictObject({ classId: PublicIdSchema }).openapi("GenerateCharges");
+export const LinkLevelsSchema = z.strictObject({ levelIds: z.array(PublicIdSchema).min(1, "Choose at least one level").max(60) }).openapi("LinkFeeLevels");
+export const LinkResultSchema = z
+  .object({
+    levels: z.array(z.object({ levelId: z.string(), ok: z.boolean(), reason: z.enum(["not_found", "not_live", "wrong_wing", "conflict"]).optional() })),
+    charged: z.number().int(),
+    /** More students are still to be charged; the sweep makes the rest within minutes. */
+    pending: z.boolean(),
+  })
+  .openapi("LinkFeeLevelsResult");
 
 export const StructureStatusSchema = z.enum(["draft", "waiting", "live"]);
 
 const StructureSummary = {
+  /** The version in force (or being drafted): what lines are added to and what is sent for approval. */
   id: z.string(),
-  levelId: z.string(),
-  status: StructureStatusSchema,
-  yearLabel: z.string(),
-  programmeName: z.string(),
-  levelName: z.string(),
+  name: z.string(),
   sectionKey: z.string(),
-  yearlyTotalPaisa: z.number().int(),
+  startDate: z.string(),
+  endDate: z.string(),
+  startDateBs: z.string().nullable(),
+  endDateBs: z.string().nullable(),
+  status: StructureStatusSchema,
+  totalPaisa: z.number().int(),
+  levelsLinked: z.number().int(),
 };
 
 export const FeeStructureListSchema = z.object({ structures: z.array(z.object(StructureSummary)) }).openapi("FeeStructureList");
@@ -37,8 +54,9 @@ export type FeeStructureList = z.infer<typeof FeeStructureListSchema>;
 export const FeeStructureSchema = z
   .object({
     ...StructureSummary,
+    /** The lines. `frequency` is only on a structure from before D-172 (monthly, a term, the course); a new line is one charge. */
     items: z.array(z.object({ id: z.string(), name: z.string(), amountPaisa: z.number().int(), frequency: FrequencySchema })),
-    classes: z.array(z.object({ id: z.string(), label: z.string(), students: z.number().int() })),
+    levels: z.array(z.object({ levelId: z.string(), programmeName: z.string(), levelName: z.string(), students: z.number().int() })),
   })
   .openapi("FeeStructure");
 export type FeeStructure = z.infer<typeof FeeStructureSchema>;

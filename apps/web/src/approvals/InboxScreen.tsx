@@ -207,12 +207,12 @@ export function DetailBody({ detail }: { detail: ApprovalDetail }) {
             <Facts
               rows={[
                 ...detail.items.map((item) => ({ name: item.name, value: feeAmount(item.amountPaisa, item.frequency) })),
-                { name: t("approvals.detail.yearlyTotal"), value: npr(detail.yearlyTotalPaisa), total: true },
+                { name: t("approvals.detail.total"), value: npr(detail.totalPaisa), total: true },
               ]}
             />
           </Section>
-          <Section title={t("approvals.detail.programmeLevel")}>
-            <p className={styles.subject}>{t("approvals.detail.programmeLine", { programme: detail.programme, level: detail.level, year: detail.year })}</p>
+          <Section title={t("approvals.detail.structure")}>
+            <p className={styles.subject}>{t("approvals.detail.structureLine", { name: detail.name, start: detail.startDateBs ?? detail.startDate, end: detail.endDateBs ?? detail.endDate })}</p>
           </Section>
           <Notice>
             <span className={styles.failed}>

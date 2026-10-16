@@ -157,7 +157,7 @@ export const MATRIX = [
   // --- Fees and money
   row(G.fees, "fees.structure.draft", "Draft yearly fee structure", 6, { ACC: inst }),
   row(G.fees, "fees.structure.approve", "Approve fee structure", 6, { ADM: all }),
-  row(G.fees, "fees.charges.generate", "Generate the year's charges from a live fee structure", 6, { ACC: inst }),
+  row(G.fees, "fees.structure.link", "Link an approved fee structure to levels, or unlink one that has no payment yet", 6, { ACC: inst }),
   row(G.fees, "fees.view", "View fees, dues, ledger", 6, { STU: own, ACC: inst, ADM: read, SUP: all }),
   row(G.fees, "fees.voucher.upload", "Upload a payment voucher", 6, { STU: own }),
   row(G.fees, "fees.online.pay", "Pay online through the gateway (demo adapter only until Phase 9)", 6, { STU: own }),

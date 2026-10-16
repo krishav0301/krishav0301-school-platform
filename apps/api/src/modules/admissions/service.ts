@@ -16,6 +16,7 @@ import { hashPin } from "../../core/passwords";
 import { generateTemporaryPassword } from "../../core/temporary-password";
 import { newRefreshToken, sha256Hex } from "../../core/tokens";
 import { queueEmail } from "../../core/notifications";
+import { chargeLinked } from "../fees";
 import { accountantAnywhere, applicationSection, coordinatorForSection } from "./guard";
 import { CorrectStudentSchema, type CorrectStudent } from "./schema";
 import {
@@ -495,6 +496,7 @@ export async function approveApplication(
   now: Date = new Date(),
 ): Promise<ApproveResult> {
   const studentPublicId = newPublicId();
+  const enrollmentPublicId = newPublicId();
   const userPublicId = newPublicId();
   const temporaryPassword = generateTemporaryPassword();
   const at = now.toISOString();
@@ -535,7 +537,7 @@ export async function approveApplication(
            SELECT ?1, (SELECT id FROM students WHERE public_id = ?2), cl.academic_year_id, cl.id, ?4, 'active', ?5
              FROM applications ap JOIN classes cl ON cl.public_id = ?3 WHERE ap.public_id = ?6 AND changes() > 0`,
         )
-        .bind(newPublicId(), studentPublicId, input.classId, input.rollNo ?? null, at, applicationPublicId),
+        .bind(enrollmentPublicId, studentPublicId, input.classId, input.rollNo ?? null, at, applicationPublicId),
       db
         .prepare(
           `UPDATE applications SET status = 'approved', reviewed_by = (SELECT id FROM users WHERE public_id = ?2), decided_at = ?3, updated_at = ?3, student_id = (SELECT id FROM students WHERE public_id = ?4)
@@ -546,6 +548,12 @@ export async function approveApplication(
   );
 
   if (outcome === "done") {
+    // A student of a level with a fee structure is charged at once (D-172). If it cannot be now, the 5-minute sweep does it.
+    try {
+      await chargeLinked(db, auditKey, { enrollmentPublicId });
+    } catch (error) {
+      console.warn(`Charging the new enrollment failed; the sweep will: ${error instanceof Error ? error.message : String(error)}`);
+    }
     const created = await db.prepare("SELECT sid FROM students WHERE public_id = ?1").bind(studentPublicId).first<{ sid: string }>();
     await notifyDecision(db, dataKey, applicationPublicId, "approved", "", created!.sid);
     return { ok: true, sid: created!.sid, studentId: studentPublicId, temporaryPassword };

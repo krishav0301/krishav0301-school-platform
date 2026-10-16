@@ -106,7 +106,7 @@ interface ProgrammeRow {
 export const LEVEL_FREE = (l: string) =>
   `(NOT EXISTS (SELECT 1 FROM classes x WHERE x.level_id = ${l}.id) AND NOT EXISTS (SELECT 1 FROM subject_offerings x WHERE x.level_id = ${l}.id)
     AND NOT EXISTS (SELECT 1 FROM elective_groups x WHERE x.level_id = ${l}.id) AND NOT EXISTS (SELECT 1 FROM applications x WHERE x.level_id = ${l}.id)
-    AND NOT EXISTS (SELECT 1 FROM fee_structures x WHERE x.level_id = ${l}.id) AND NOT EXISTS (SELECT 1 FROM term_levels x WHERE x.level_id = ${l}.id))`;
+    AND NOT EXISTS (SELECT 1 FROM level_fee_structures x WHERE x.level_id = ${l}.id) AND NOT EXISTS (SELECT 1 FROM term_levels x WHERE x.level_id = ${l}.id))`;
 export const PROGRAMME_FREE = (p: string) =>
   `(NOT EXISTS (SELECT 1 FROM levels x WHERE x.programme_id = ${p}.id) AND NOT EXISTS (SELECT 1 FROM applications x WHERE x.programme_id = ${p}.id)
     AND NOT EXISTS (SELECT 1 FROM classes x WHERE x.programme_id = ${p}.id))`;
@@ -122,10 +122,10 @@ export const OFFERING_FREE = (o: string) =>
     AND NOT EXISTS (SELECT 1 FROM elective_picks x WHERE x.offering_id = ${o}.id) AND NOT EXISTS (SELECT 1 FROM mark_sheets x WHERE x.offering_id = ${o}.id))`;
 /** An elective group with no subject in it. */
 export const GROUP_FREE = (g: string) => `NOT EXISTS (SELECT 1 FROM subject_offerings x WHERE x.elective_group_id = ${g}.id)`;
-/** A term nobody has used: no class, student, application, fee structure or receipt in it (and so no marks or results). Its own exam pattern, exams and levels go with it. */
+/** A term nobody has used: no class, student, application or receipt in it (and so no marks or results). Its own exam pattern, exams and levels go with it. */
 export const TERM_FREE = (t: string) =>
   `(${t}.status <> 'closed' AND NOT EXISTS (SELECT 1 FROM classes x WHERE x.academic_year_id = ${t}.id) AND NOT EXISTS (SELECT 1 FROM enrollments x WHERE x.academic_year_id = ${t}.id)
-    AND NOT EXISTS (SELECT 1 FROM applications x WHERE x.academic_year_id = ${t}.id) AND NOT EXISTS (SELECT 1 FROM fee_structures x WHERE x.academic_year_id = ${t}.id)
+    AND NOT EXISTS (SELECT 1 FROM applications x WHERE x.academic_year_id = ${t}.id)
     AND NOT EXISTS (SELECT 1 FROM receipt_counters x WHERE x.academic_year_id = ${t}.id) AND NOT EXISTS (SELECT 1 FROM receipts x WHERE x.academic_year_id = ${t}.id))`;
 export const SECTION_FREE = (s: string) =>
   `(NOT EXISTS (SELECT 1 FROM programmes x WHERE x.section_id = ${s}.id) AND NOT EXISTS (SELECT 1 FROM role_assignments x WHERE x.section_id = ${s}.id)

@@ -9,7 +9,7 @@ import { FeesHome } from "@/fees/FeesHome";
 import { DuesScreen, DuesTable, duesFigures, dueState } from "@/fees/DuesScreen";
 import { FoundStudents } from "@/fees/FeesHome";
 import { ReceiptPaper } from "@/fees/ReceiptScreen";
-import { ItemsTable } from "@/fees/StructureScreen";
+import { ItemsTable, LinkedLevels } from "@/fees/StructureScreen";
 import { StructuresTable } from "@/fees/StructuresScreen";
 import type { Account } from "@/fees/model";
 import { SessionContext } from "@/session/SessionProvider";
@@ -174,11 +174,32 @@ describe("the Principal reads fees (D-104, after the PM's topic 7 reference)", (
     expect(inContext(<FoundStudents students={found} balances={null} />, as("admin"))).not.toContain("Balance this year");
   });
 
-  it("a structure's items read as the Approvals panel: item, billed, amount, and the yearly total; no Remove for the Principal", () => {
-    const structure = { id: "f1", levelId: "l1", status: "live" as const, yearLabel: "2083", programmeName: "Science", levelName: "Grade 11", sectionKey: "plus2", yearlyTotalPaisa: 6_200_000, items: [{ id: "i1", name: "Tuition", amountPaisa: 350_000, frequency: "monthly" as const }], classes: [] };
+  it("a structure's lines read as the Approvals panel: line, amount, and the total; no Remove for the Principal", () => {
+    const structure = {
+      id: "f1",
+      name: "Science fees",
+      sectionKey: "plus2",
+      startDate: "2026-04-14",
+      endDate: "2027-04-13",
+      startDateBs: "2083-01-01",
+      endDateBs: "2083-12-30",
+      status: "live" as const,
+      totalPaisa: 1_850_000,
+      levelsLinked: 2,
+      items: [{ id: "i1", name: "Tuition", amountPaisa: 350_000, frequency: "one_time" as const }, { id: "i2", name: "Admission", amountPaisa: 1_500_000, frequency: "one_time" as const }],
+      levels: [{ levelId: "l1", programmeName: "Science", levelName: "Grade 11", students: 30 }],
+    };
     const html = inContext(<ItemsTable structure={structure} />, as("admin"));
-    for (const text of ["Tuition", "Monthly", "NPR 3,500", "Term total", "NPR 62,000"]) expect(html).toContain(text);
+    for (const text of ["Tuition", "NPR 3,500", "Admission", "Total fees", "NPR 18,500"]) expect(html).toContain(text);
+    expect(html).not.toContain("Billed"); // no billing column for a structure with plain lines
     expect(html).not.toMatch(/<button/);
-    expect(inContext(<StructuresTable structures={[structure]} />, as("admin"))).toContain(">Live<");
+    const table = inContext(<StructuresTable structures={[structure]} sections={[{ key: "plus2", name: "+2" }]} />, as("admin"));
+    for (const text of [">Live<", "Science fees", "2083-01-01 to 2083-12-30", "NPR 18,500", ">+2<"]) expect(table).toContain(text);
+    // A structure from before D-172 shows how its lines were billed.
+    expect(inContext(<ItemsTable structure={{ ...structure, items: [{ id: "i1", name: "Tuition", amountPaisa: 350_000, frequency: "monthly" as const }] }} />, as("admin"))).toContain("Monthly");
+    // The linked levels, with Unlink only where it is offered.
+    expect(inContext(<LinkedLevels structure={structure} />, as("admin"))).toContain("Science · Grade 11");
+    expect(inContext(<LinkedLevels structure={structure} />, as("admin"))).not.toMatch(/<button/);
+    expect(inContext(<LinkedLevels structure={structure} onUnlink={() => {}} />, as("accountant"))).toContain('aria-label="Unlink Science · Grade 11"');
   });
 });

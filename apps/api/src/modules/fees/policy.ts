@@ -6,7 +6,8 @@ import { adToBs, bsToAd } from "../../core/dates";
  * day it falls due. The period is part of the charge's identity, so a charge is never made twice.
  *
  * OPEN: the client's real schedule and what "course-wise" means (build plan, Phase 6 needs). Defaults:
- *  - one-time and yearly ("once a term" since D-110): one charge, due on the term's first day;
+ *  - one-time (a line of a fee structure since D-172): one charge, due on the structure's first day, or the day a later
+ *    student joined; yearly ("once a term" since D-110, on structures from before D-172): one charge, due on the first day;
  *  - monthly: one charge per BS month the term spans, due on its first day (or the term's first day, if later), from
  *    the month the student enrolled in on (a student admitted mid-term is not billed for months before they joined);
  *  - whole course: one charge, only in the student's first year of the programme.
@@ -44,7 +45,7 @@ export interface BillingStudent {
 export function billingSchedule(item: { frequency: Frequency }, year: BillingYear, student: BillingStudent): { period: string; dueOn: string }[] {
   switch (item.frequency) {
     case "one_time":
-      return [{ period: "once", dueOn: year.startDate }];
+      return [{ period: "once", dueOn: student.enrolledOn > year.startDate ? student.enrolledOn : year.startDate }];
     case "yearly":
       return [{ period: "year", dueOn: year.startDate }];
     case "whole_course":

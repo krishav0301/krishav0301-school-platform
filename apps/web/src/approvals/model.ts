@@ -92,11 +92,11 @@ export const contentKindLabel = (kind: string | undefined): string => t(CONTENT_
 // --- The card: what a request is about, from the snapshot taken when it was sent ------------------------------
 
 interface FeeSnapshot {
-  programme?: string;
-  level?: string;
-  year?: string;
+  name?: string;
+  startDate?: string;
+  endDate?: string;
   items?: { name: string; amountPaisa: number; frequency: string }[];
-  yearlyTotalPaisa?: number;
+  totalPaisa?: number;
 }
 interface AdjustmentSnapshot {
   student?: string;
@@ -122,11 +122,11 @@ export function cardLines(request: ApprovalSummary): { subject: string; lines: s
   switch (request.kind) {
     case "fee_structure": {
       const s = snap as FeeSnapshot;
-      if (!s.programme || !s.items) return { subject: request.summary, lines: [] };
+      if (!s.name || !s.items) return { subject: request.summary, lines: [] };
       const items = s.items.map((i) => `${i.name} ${feeAmount(i.amountPaisa, i.frequency).replace(/^NPR /, "")}`).join(" · ");
       return {
-        subject: [s.programme, s.level, s.year].filter(Boolean).join(" · "),
-        lines: [items, ...(s.yearlyTotalPaisa !== undefined ? [t("approvals.card.yearlyTotal", { amount: npr(s.yearlyTotalPaisa) })] : [])],
+        subject: s.name,
+        lines: [items, ...(s.totalPaisa !== undefined ? [t("approvals.card.total", { amount: npr(s.totalPaisa) })] : [])],
       };
     }
     case "website_content": {
@@ -179,7 +179,7 @@ export function effectLines(detail: ApprovalDetail | null, kind: ApprovalKind): 
   switch (kind) {
     case "fee_structure": {
       const d = detail?.kind === "fee_structure" ? detail : null;
-      const what = d ? `${d.programme}, ${d.level}, ${d.year}` : "";
+      const what = d ? d.name : "";
       return { confirm: t("approvals.effect.feeStructure"), done: d ? t("approvals.done.feeStructure", { what }) : t("approvals.done.generic") };
     }
     case "website_content":
@@ -193,13 +193,13 @@ export function effectLines(detail: ApprovalDetail | null, kind: ApprovalKind): 
   }
 }
 
-/** Two short lines naming the request, for the confirmation: "Fee structure" / "+2 Science · Grade 11 · 2083". */
+/** Two short lines naming the request, for the confirmation: "Fee structure" / "Science fees". */
 export function confirmSubject(request: ApprovalSummary, detail: ApprovalDetail | null): { kind: string; subject: string; amountLabel: string | null; amount: string | null } {
   const kind = kindLabel(request.kind);
   if (!detail) return { kind, subject: cardLines(request).subject, amountLabel: null, amount: null };
   switch (detail.kind) {
     case "fee_structure":
-      return { kind, subject: `${detail.programme} · ${detail.level} · ${detail.year}`, amountLabel: t("approvals.detail.yearlyTotal"), amount: npr(detail.yearlyTotalPaisa) };
+      return { kind, subject: detail.name, amountLabel: t("approvals.detail.total"), amount: npr(detail.totalPaisa) };
     case "website_content":
       return { kind, subject: `${contentKindLabel(detail.contentKind)}: ${detail.title}`, amountLabel: null, amount: null };
     case "discount":

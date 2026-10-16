@@ -1903,10 +1903,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** @description The active year's fee structures in the person's sections. Not for students (their own fees are at /api/fees/me). */
+        /** @description The fee structures in the person's wings, newest period first. Not for students (their own fees are at /api/fees/me). */
         get: operations["list_fee_structures"];
         put?: never;
-        /** @description Drafts the active year's fee structure for a programme level. One per level and year. */
+        /** @description Drafts a fee structure in a wing: a name, a start date and an end date. Lines are added to the draft; the Principal approves it; then it is linked to levels. */
         post: operations["create_fee_structure"];
         delete?: never;
         options?: never;
@@ -1921,7 +1921,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** @description One fee structure: its items, its yearly total, and the classes of its level with their student counts. */
+        /** @description One fee structure: its lines, its total, and the levels it is linked to with their student counts. */
         get: operations["get_fee_structure"];
         put?: never;
         post?: never;
@@ -1940,7 +1940,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** @description Adds an item to a draft: a name, an amount in whole paisa, and how often it is billed. */
+        /** @description Adds a line to a draft: a name and a price in whole paisa. The lines add up to the structure's total, due on its start date. */
         post: operations["add_fee_item"];
         delete?: never;
         options?: never;
@@ -1961,7 +1961,7 @@ export interface paths {
         delete?: never;
         options?: never;
         head?: never;
-        /** @description Changes a draft's item, or switches it off. A structure waiting for approval or live does not change. */
+        /** @description Changes a draft's line, or switches it off. A structure waiting for approval or live does not change. */
         patch: operations["change_fee_item"];
         trace?: never;
     };
@@ -1974,7 +1974,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** @description Sends a draft with at least one item to the Admins for approval. It is locked while it waits. */
+        /** @description Sends a draft with at least one line to the Principal for approval. It is locked while it waits. */
         post: operations["send_fee_structure"];
         delete?: never;
         options?: never;
@@ -1982,7 +1982,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/fees/structures/{id}/charges": {
+    "/api/fees/structures/{id}/next-period": {
         parameters: {
             query?: never;
             header?: never;
@@ -1991,9 +1991,43 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** @description Makes every missing charge for the active students of one class of the structure's level, from the live structure. Safe to repeat. */
-        post: operations["generate_fee_charges"];
+        /** @description Starts the next period of a structure: a new draft of the same name and wing with the new dates and a copy of its lines, to edit and send for approval. Reuse for next year. */
+        post: operations["start_next_fee_period"];
         delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/fees/structures/{id}/levels": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Links an approved structure to levels of its wing, with no approval. Every student of a linked level is then charged automatically, and so is one who joins later. A level has one structure for any dates. */
+        post: operations["link_fee_levels"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/fees/structures/{id}/levels/{levelId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** @description Removes a level's link. Refused (409 in_use) once any student of the level, charged under it, has paid anything. */
+        delete: operations["unlink_fee_level"];
         options?: never;
         head?: never;
         patch?: never;
@@ -3753,16 +3787,18 @@ export interface components {
         } | {
             /** @enum {string} */
             kind: "fee_structure";
-            programme: string;
-            level: string;
-            year: string;
+            name: string;
+            startDate: string;
+            endDate: string;
+            startDateBs: string | null;
+            endDateBs: string | null;
             items: {
                 name: string;
                 amountPaisa: number;
                 /** @enum {string} */
                 frequency: "one_time" | "monthly" | "yearly" | "whole_course";
             }[];
-            yearlyTotalPaisa: number;
+            totalPaisa: number;
         } | {
             /** @enum {string} */
             kind: "discount";
@@ -4437,14 +4473,16 @@ export interface components {
         FeeStructureList: {
             structures: {
                 id: string;
-                levelId: string;
+                name: string;
+                sectionKey: string;
+                startDate: string;
+                endDate: string;
+                startDateBs: string | null;
+                endDateBs: string | null;
                 /** @enum {string} */
                 status: "draft" | "waiting" | "live";
-                yearLabel: string;
-                programmeName: string;
-                levelName: string;
-                sectionKey: string;
-                yearlyTotalPaisa: number;
+                totalPaisa: number;
+                levelsLinked: number;
             }[];
         };
         FeesError: {
@@ -4452,14 +4490,16 @@ export interface components {
         };
         FeeStructure: {
             id: string;
-            levelId: string;
+            name: string;
+            sectionKey: string;
+            startDate: string;
+            endDate: string;
+            startDateBs: string | null;
+            endDateBs: string | null;
             /** @enum {string} */
             status: "draft" | "waiting" | "live";
-            yearLabel: string;
-            programmeName: string;
-            levelName: string;
-            sectionKey: string;
-            yearlyTotalPaisa: number;
+            totalPaisa: number;
+            levelsLinked: number;
             items: {
                 id: string;
                 name: string;
@@ -4467,9 +4507,10 @@ export interface components {
                 /** @enum {string} */
                 frequency: "one_time" | "monthly" | "yearly" | "whole_course";
             }[];
-            classes: {
-                id: string;
-                label: string;
+            levels: {
+                levelId: string;
+                programmeName: string;
+                levelName: string;
                 students: number;
             }[];
         };
@@ -4479,23 +4520,36 @@ export interface components {
             message: string;
         };
         NewFeeStructure: {
-            levelId: string;
+            name: string;
+            sectionKey: string;
+            startDate: string;
+            endDate: string;
         };
         NewFeeItem: {
             name: string;
             amountPaisa: number;
-            /** @enum {string} */
-            frequency: "one_time" | "monthly" | "yearly" | "whole_course";
         };
         ChangeFeeItem: {
             name?: string;
             amountPaisa?: number;
-            /** @enum {string} */
-            frequency?: "one_time" | "monthly" | "yearly" | "whole_course";
             isActive?: boolean;
         };
-        GenerateCharges: {
-            classId: string;
+        NewFeePeriod: {
+            startDate: string;
+            endDate: string;
+        };
+        LinkFeeLevelsResult: {
+            levels: {
+                levelId: string;
+                ok: boolean;
+                /** @enum {string} */
+                reason?: "not_found" | "not_live" | "wrong_wing" | "conflict";
+            }[];
+            charged: number;
+            pending: boolean;
+        };
+        LinkFeeLevels: {
+            levelIds: string[];
         };
         FeeAccount: {
             enrollmentId: string;
@@ -11381,7 +11435,7 @@ export interface operations {
             };
         };
     };
-    generate_fee_charges: {
+    start_next_fee_period: {
         parameters: {
             query?: never;
             header?: never;
@@ -11392,18 +11446,142 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["GenerateCharges"];
+                "application/json": components["schemas"]["NewFeePeriod"];
             };
         };
         responses: {
-            /** @description Made */
+            /** @description Drafted */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        id: string;
+                    };
+                };
+            };
+            /** @description Not allowed */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeesError"];
+                };
+            };
+            /** @description No such item, or not one the person may reach */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeesError"];
+                };
+            };
+            /** @description Not possible in its current state (not a draft, not live, already there, or the year is closed) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeesError"];
+                };
+            };
+            /** @description Not valid */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeesInvalid"];
+                };
+            };
+        };
+    };
+    link_fee_levels: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LinkFeeLevels"];
+            };
+        };
+        responses: {
+            /** @description What happened to each level, and how many charges were made now */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LinkFeeLevelsResult"];
+                };
+            };
+            /** @description Not allowed */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeesError"];
+                };
+            };
+            /** @description No such item, or not one the person may reach */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeesError"];
+                };
+            };
+            /** @description Not possible in its current state (not a draft, not live, already there, or the year is closed) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeesError"];
+                };
+            };
+            /** @description Not valid */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeesInvalid"];
+                };
+            };
+        };
+    };
+    unlink_fee_level: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                levelId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Unlinked */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
                     "application/json": {
-                        created: number;
+                        /** @enum {boolean} */
+                        ok: true;
                     };
                 };
             };
