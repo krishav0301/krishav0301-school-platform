@@ -1,46 +1,39 @@
 "use client";
 
 import { AdminDashboard } from "@/dashboard/AdminDashboard";
-import { CoordinatorDashboard } from "@/dashboard/CoordinatorDashboard";
-import { ROLE_BRIEFS, RoleBriefLinks } from "@/dashboard/RoleBrief";
-import { AccountantDashboard, StudentDashboard, TeacherDashboard, TeachingPanel } from "@/dashboard/RoleDashboards";
+import { RoleBriefLinks } from "@/dashboard/RoleBrief";
+import { AccountantDashboard } from "@/dashboard/RoleDashboards";
+import { RoleLanding } from "@/dashboard/RoleLanding";
 import { t } from "@/i18n/messages";
 import { EmptyLine, Panel, readStyles } from "@/read/ReadView";
 import { useSession } from "@/session/SessionProvider";
 import { PortalShell } from "@/shell/PortalShell";
 
-type Brief = keyof typeof ROLE_BRIEFS;
-
 /**
- * Each role's home (D-088, D-106, D-107): the Principal's dashboard, the Co-ordinator's school day, a teacher's day,
- * a student's studies, the Accountant's fees. Someone with two roles gets the first home and, under it, what their
- * other role can do.
+ * Each role's home: the Principal's dashboard (D-088); a landing page, a hero and the places to go, for the Co-ordinator, the
+ * Teacher and the Student (the PM, 2026-10-17); the Accountant's fees day (D-107). Someone with two roles gets the first
+ * one's home, and a landing already lists every place their roles reach.
  */
 function Dashboard() {
   const { me } = useSession();
   if (!me) return null;
   const has = (role: string) => me.roles.some((r) => r.role === role);
   if (has("admin") || has("super_admin")) return <AdminDashboard />;
-  if (has("coordinator")) return <CoordinatorDashboard extra={has("teacher") ? <TeachingPanel /> : null} />;
-
-  const order: Brief[] = ["teacher", "accountant", "student"];
-  const first = order.find(has);
-  const others = order.filter((role) => role !== first && has(role));
-  const home = first === "teacher" ? <TeacherDashboard /> : first === "accountant" ? <AccountantDashboard /> : first === "student" ? <StudentDashboard /> : null;
-  if (!home) {
+  if (has("coordinator")) return <RoleLanding role="coordinator" />;
+  if (has("teacher")) return <RoleLanding role="teacher" />;
+  if (has("accountant")) {
     return (
-      <Panel>
-        <EmptyLine>{t("portal.nothingYet")}</EmptyLine>
-      </Panel>
+      <div className={readStyles.page}>
+        <AccountantDashboard />
+        {has("student") ? <RoleBriefLinks role="student" /> : null}
+      </div>
     );
   }
+  if (has("student")) return <RoleLanding role="student" />;
   return (
-    <div className={readStyles.page}>
-      {home}
-      {others.map((role) => (
-        <RoleBriefLinks key={role} role={role} />
-      ))}
-    </div>
+    <Panel>
+      <EmptyLine>{t("portal.nothingYet")}</EmptyLine>
+    </Panel>
   );
 }
 

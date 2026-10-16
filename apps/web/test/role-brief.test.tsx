@@ -39,28 +39,28 @@ describe("what each role can do (the PM, 2026-10-01)", () => {
   });
 
   it("names the role in the school's own words", () => {
-    expect(render(<RoleBriefLinks role="coordinator" />)).toContain("What you can do as Co-ordinator");
-    expect(render(<RoleBriefLinks role="coordinator" />, sample)).toContain("What you can do as Vice Principal");
+    expect(render(<RoleBriefLinks role="accountant" />)).toContain("What you can do as Accountant");
+    expect(render(<RoleBriefLinks role="student" />, sample)).toContain("What you can do as Pupil");
   });
 
   it("leaves out what the school has switched off", () => {
-    const on = render(<RoleBriefLinks role="teacher" />, royal, [{ role: "teacher", scope: "assigned" }], { attendance: true, homework: true });
-    const off = render(<RoleBriefLinks role="teacher" />, royal, [{ role: "teacher", scope: "assigned" }], { attendance: false, homework: false });
-    expect(on).toContain("Mark your class&#x27;s attendance");
-    expect(off).not.toContain("Mark your class&#x27;s attendance");
-    expect(off).not.toContain("Set homework");
-    expect(off).toContain("Write what each class did today");
+    const on = render(<RoleBriefLinks role="student" />, royal, [{ role: "student", scope: "own" }], { attendance: true, fees: true });
+    const off = render(<RoleBriefLinks role="student" />, royal, [{ role: "student", scope: "own" }], { attendance: false, fees: false });
+    expect(on).toContain("See your attendance");
+    expect(on).toContain("See your fees and receipts");
+    expect(off).not.toContain("See your attendance");
+    expect(off).not.toContain("See your fees and receipts");
+    expect(off).toContain("See your results and marks card");
   });
 
-  it("each role's home shows its own brief, and a person with two roles sees both", () => {
+  it("the Accountant's home shows its brief, and with a second role the other's too", () => {
     expect(render(<PortalPage />, royal, [{ role: "accountant", scope: "institution" }])).toContain("What you can do as Accountant");
-    expect(render(<PortalPage />, royal, [{ role: "student", scope: "own" }])).toContain("What you can do as Student");
     const both = render(<PortalPage />, royal, [
-      { role: "teacher", scope: "assigned" },
       { role: "accountant", scope: "institution" },
+      { role: "student", scope: "own" },
     ]);
-    expect(both).toContain("What you can do as Teacher");
     expect(both).toContain("What you can do as Accountant");
+    expect(both).toContain("What you can do as Student");
     expect(both.match(/<h1/g)).toHaveLength(1);
   });
 });

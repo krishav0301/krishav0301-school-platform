@@ -1,0 +1,85 @@
+/* The landing page: large tiles for the places a person can go. Theme tokens only; motion is transform only. */
+
+.places {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(17rem, 100%), 1fr));
+  gap: var(--space-4);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.place {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  min-height: 5.5rem;
+  padding: var(--space-4) var(--space-5);
+  border: 1px solid color-mix(in srgb, var(--color-border) 70%, transparent);
+  border-radius: var(--radius-card);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-card);
+  color: var(--color-text);
+  text-decoration: none;
+  transition: transform var(--motion-fast) var(--motion-ease);
+}
+
+.place:focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: 2px;
+}
+
+@media (hover: hover) {
+  .place:hover {
+    transform: translateY(-3px);
+  }
+
+  .place:hover .placeArrow {
+    transform: translateX(3px);
+  }
+}
+
+.placeIcon {
+  display: inline-grid;
+  flex: none;
+  place-items: center;
+  width: 3.25rem;
+  height: 3.25rem;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--color-primary) 10%, var(--color-surface));
+  color: var(--color-primary);
+}
+
+.placeIcon svg {
+  width: 1.5rem;
+  height: 1.5rem;
+}
+
+.placeName {
+  flex: 1 1 auto;
+  min-width: 0;
+  font-family: var(--font-heading);
+  font-size: var(--text-lg);
+  font-weight: var(--weight-bold);
+  overflow-wrap: normal; /* whole words only (D-030) */
+}
+
+.placeArrow {
+  flex: none;
+  width: 1.25rem;
+  height: 1.25rem;
+  color: var(--color-text-muted);
+  transition: transform var(--motion-fast) var(--motion-ease);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .place,
+  .placeArrow {
+    transition: none;
+  }
+
+  .place:hover,
+  .place:hover .placeArrow {
+    transform: none;
+  }
+}
