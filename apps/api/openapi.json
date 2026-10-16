@@ -9683,9 +9683,6 @@
                 "label": {
                   "type": "string"
                 },
-                "wing": {
-                  "type": "string"
-                },
                 "termLabel": {
                   "type": "string"
                 },
@@ -9718,42 +9715,6 @@
                 },
                 "cards": {
                   "type": "integer"
-                },
-                "avgPercentHundredths": {
-                  "type": [
-                    "integer",
-                    "null"
-                  ]
-                },
-                "passed": {
-                  "type": [
-                    "integer",
-                    "null"
-                  ]
-                },
-                "bands": {
-                  "type": "array",
-                  "items": {
-                    "type": "integer"
-                  }
-                },
-                "subjects": {
-                  "type": "array",
-                  "items": {
-                    "type": "object",
-                    "properties": {
-                      "name": {
-                        "type": "string"
-                      },
-                      "avgPercentHundredths": {
-                        "type": "integer"
-                      }
-                    },
-                    "required": [
-                      "name",
-                      "avgPercentHundredths"
-                    ]
-                  }
                 }
               },
               "required": [
@@ -9761,16 +9722,11 @@
                 "programmeName",
                 "levelName",
                 "label",
-                "wing",
                 "termLabel",
                 "terminal",
                 "publishedAt",
                 "publishedOnBs",
-                "cards",
-                "avgPercentHundredths",
-                "passed",
-                "bands",
-                "subjects"
+                "cards"
               ]
             }
           }

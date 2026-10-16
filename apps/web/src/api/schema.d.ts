@@ -4921,7 +4921,6 @@ export interface components {
                 programmeName: string;
                 levelName: string;
                 label: string;
-                wing: string;
                 termLabel: string;
                 terminal: {
                     id: string;
@@ -4930,13 +4929,6 @@ export interface components {
                 publishedAt: string;
                 publishedOnBs: string | null;
                 cards: number;
-                avgPercentHundredths: number | null;
-                passed: number | null;
-                bands: number[];
-                subjects: {
-                    name: string;
-                    avgPercentHundredths: number;
-                }[];
             }[];
         };
         ClassResultSheet: {

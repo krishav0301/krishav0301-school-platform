@@ -1,7 +1,6 @@
 import type { ApiClient } from "@/api/client";
 
-import type { PublishedResults } from "./insights-model";
-import type { ClassElectives, ClassSheet, MarkSheet, MarksCard, MyMarkSheets, OwnResults, Part, RecheckList, ReviewBoard, Top20 } from "./model";
+import type { ClassElectives, ClassSheet, MarkSheet, MarksCard, MyMarkSheets, OwnResults, Part, PublishedResults, RecheckList, ReviewBoard, Top20 } from "./model";
 
 /** What the results screens ask of the server, as plain results. Nothing here throws. */
 export type Loaded<T> = { ok: true; data: T } | { ok: false; reason: "forbidden" | "not_found" | "failed" };

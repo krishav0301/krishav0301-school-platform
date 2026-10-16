@@ -298,22 +298,13 @@ export const PublishedResultsSchema = z
       z.object({
         classId: z.string(),
         ...Naming,
-        /** The wing the class is in (+2, Bachelor's): the top of the grouping. */
-        wing: z.string(),
         termLabel: z.string(),
         /** The exam, or null for the final result. */
         terminal: z.object({ id: z.string(), name: z.string() }).nullable(),
         publishedAt: z.string(),
         publishedOnBs: z.string().nullable(),
+        /** Marks cards made for it: the students it covers. */
         cards: z.number().int(),
-        /** The class's average percentage in whole hundredths of a percent; null with no cards. */
-        avgPercentHundredths: z.number().int().nullable(),
-        /** Students who passed; only on a final result (an exam is for information, D-117), else null. */
-        passed: z.number().int().nullable(),
-        /** Students by percentage: under 40, 40 to 59, 60 to 79, 80 and over. */
-        bands: z.array(z.number().int()).length(4),
-        /** Each subject's average percentage, in whole hundredths of a percent. */
-        subjects: z.array(z.object({ name: z.string(), avgPercentHundredths: z.number().int() })),
       }),
     ),
   })

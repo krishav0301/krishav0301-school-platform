@@ -19,7 +19,7 @@ import { Button, Checkbox, Field, Notice, Select, buttonClass } from "@/ui";
 
 import { decideRecheck, gateFailure, loadClassSheet, loadElectives, loadRechecks, setPicks } from "./client";
 import { sentText } from "./MarkSheetScreen";
-import { ResultsInsights } from "./ResultsInsights";
+import { PublishedList, PublishedResultsLoader } from "./PublishedResults";
 import { RECHECK_LABEL, className, hundredthsText, markText, parseMark, partName, scoreText, type ClassElectives, type ClassSheet, type RecheckList } from "./model";
 import styles from "./results.module.css";
 
@@ -112,7 +112,7 @@ export function ClassSheetsScreen() {
               />
             </div>
             ) : null}
-            {classId && terminalId ? <ClassSheetView classId={classId} terminalId={terminalId} /> : <ResultsInsights sheet={(id, exam) => <ClassSheetView classId={id} terminalId={exam} bare />} />}
+            {classId && terminalId ? <ClassSheetView classId={classId} terminalId={terminalId} /> : <PublishedResultsLoader view={(rows) => <PublishedList rows={rows} />} />}
           </>
         )
       ) : null}
