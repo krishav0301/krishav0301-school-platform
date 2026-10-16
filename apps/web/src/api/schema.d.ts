@@ -2544,6 +2544,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/results/published": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Every published result the person may read, newest first: one row per class and exam (or final). The Principal and Co-ordinator reach every class in their wing; a Class Teacher only the class they lead. */
+        get: operations["list_published_results"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/results/classes/{classId}/terminals/{terminalId}/sheet": {
         parameters: {
             query?: never;
@@ -4897,6 +4914,29 @@ export interface components {
                 grade: string | null;
                 outcome: string;
             };
+        };
+        PublishedResults: {
+            results: {
+                classId: string;
+                programmeName: string;
+                levelName: string;
+                label: string;
+                termLabel: string;
+                terminal: {
+                    id: string;
+                    name: string;
+                } | null;
+                publishedAt: string;
+                publishedOnBs: string | null;
+                cards: number;
+                avgPercentHundredths: number | null;
+                passed: number | null;
+                bands: number[];
+                subjects: {
+                    name: string;
+                    avgPercentHundredths: number;
+                }[];
+            }[];
         };
         ClassResultSheet: {
             classId: string;
@@ -12781,6 +12821,26 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ResultsError"];
+                };
+            };
+        };
+    };
+    list_published_results: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The published results */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublishedResults"];
                 };
             };
         };

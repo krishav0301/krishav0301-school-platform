@@ -1,0 +1,299 @@
+/* The Principal's Results tab and the class sheets page: a filter bar, four figures, three graphs, the list. Theme tokens only. */
+
+.root {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  min-width: 0;
+}
+
+.filters {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(12rem, 100%), 1fr));
+  align-items: end;
+  gap: var(--space-3);
+  padding: var(--space-3) min(var(--space-4), 4vw);
+  border: 1px solid color-mix(in srgb, var(--color-border) 70%, transparent);
+  border-radius: var(--radius-card);
+  background: color-mix(in srgb, var(--color-text) 3%, var(--color-surface));
+}
+
+.figures {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(9rem, 100%), 1fr));
+  gap: var(--space-3);
+  margin: 0;
+}
+
+.figure {
+  display: flex;
+  flex-direction: column-reverse;
+  gap: var(--space-1);
+  padding: var(--space-3) var(--space-4);
+  border-radius: calc(var(--radius-card) - 4px);
+  background: color-mix(in srgb, var(--color-primary) 6%, var(--color-surface));
+  animation: rise 360ms var(--motion-ease, ease) both;
+}
+
+.figure[data-tone="ok"] {
+  background: color-mix(in srgb, var(--color-ok-soft) 60%, var(--color-surface));
+}
+
+.figure[data-tone="warn"] {
+  background: color-mix(in srgb, var(--color-warn-soft) 60%, var(--color-surface));
+}
+
+.figure[data-tone="accent"] {
+  background: color-mix(in srgb, var(--color-accent-soft) 60%, var(--color-surface));
+}
+
+.figure:nth-child(2) {
+  animation-delay: 60ms;
+}
+
+.figure:nth-child(3) {
+  animation-delay: 120ms;
+}
+
+.figure:nth-child(4) {
+  animation-delay: 180ms;
+}
+
+.figure dt {
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+}
+
+.figure dd {
+  margin: 0;
+  font-family: var(--font-heading);
+  font-size: var(--text-2xl, var(--text-xl));
+  font-weight: var(--weight-bold);
+  line-height: var(--leading-tight);
+}
+
+.figure small {
+  display: block;
+  color: var(--color-text-muted);
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-regular);
+}
+
+.charts {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-4);
+}
+
+@media (min-width: 64rem) {
+  .charts {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .wide {
+    grid-column: 1 / -1;
+  }
+}
+
+.chart {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  min-width: 0;
+  padding: var(--space-4);
+  border: 1px solid color-mix(in srgb, var(--color-border) 70%, transparent);
+  border-radius: var(--radius-card);
+  background: var(--color-surface);
+}
+
+.chartTitle {
+  margin: 0;
+  font-size: var(--text-base);
+  font-weight: var(--weight-bold);
+}
+
+.chartNote {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+}
+
+.bars {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* A bar: its name, the track with the bar growing in, its value. On a phone the name sits above. */
+.bar {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas:
+    "name value"
+    "track track";
+  align-items: center;
+  gap: var(--space-1) var(--space-3);
+}
+
+@media (min-width: 40rem) {
+  .bar {
+    grid-template-columns: minmax(7rem, 11rem) minmax(0, 1fr) 3.5rem;
+    grid-template-areas: "name track value";
+  }
+}
+
+.barName {
+  grid-area: name;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  font-size: var(--text-sm);
+}
+
+.track {
+  grid-area: track;
+  overflow: hidden;
+  height: 0.75rem;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--color-text) 8%, transparent);
+}
+
+.fill {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border-radius: 999px;
+  background: var(--color-primary);
+  transform: scaleX(var(--s, 0));
+  transform-origin: left center;
+  animation: grow 640ms var(--motion-ease, ease) both;
+}
+
+.fill[data-tone="ok"] {
+  background: var(--color-ok);
+}
+
+.fill[data-tone="warn"] {
+  background: var(--color-warn);
+}
+
+.fill[data-tone="bad"] {
+  background: var(--color-bad);
+}
+
+.barValue {
+  grid-area: value;
+  justify-self: end;
+  font-size: var(--text-sm);
+  font-weight: var(--weight-bold);
+}
+
+/* How students scored: one bar split in four, and a legend with each count. */
+.split {
+  display: flex;
+  overflow: hidden;
+  height: 1.25rem;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--color-text) 8%, transparent);
+}
+
+.slice {
+  min-width: 0;
+  flex: var(--n, 0) 1 0;
+  transform-origin: left center;
+  animation: grow 640ms var(--motion-ease, ease) both;
+}
+
+.slice[data-tone="ok"] {
+  background: var(--color-ok);
+}
+
+.slice[data-tone="primary"] {
+  background: var(--color-primary);
+}
+
+.slice[data-tone="warn"] {
+  background: var(--color-warn);
+}
+
+.slice[data-tone="bad"] {
+  background: var(--color-bad);
+}
+
+.legend {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(13rem, 100%), 1fr));
+  gap: var(--space-2) var(--space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.legend li {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--text-sm);
+}
+
+.dot {
+  flex: none;
+  width: 0.75rem;
+  height: 0.75rem;
+  border-radius: 50%;
+}
+
+.dot[data-tone="ok"] {
+  background: var(--color-ok);
+}
+
+.dot[data-tone="primary"] {
+  background: var(--color-primary);
+}
+
+.dot[data-tone="warn"] {
+  background: var(--color-warn);
+}
+
+.dot[data-tone="bad"] {
+  background: var(--color-bad);
+}
+
+.legend strong {
+  margin-inline-start: auto;
+  white-space: nowrap;
+}
+
+.tableWrap {
+  overflow-x: auto;
+}
+
+.empty {
+  margin: 0;
+  padding: var(--space-4) 0;
+  color: var(--color-text-muted);
+}
+
+@keyframes grow {
+  from {
+    transform: scaleX(0);
+  }
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(0.5rem);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fill,
+  .slice,
+  .figure {
+    animation: none;
+  }
+}

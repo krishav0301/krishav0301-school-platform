@@ -9663,6 +9663,118 @@
           "body"
         ]
       },
+      "PublishedResults": {
+        "type": "object",
+        "properties": {
+          "results": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "classId": {
+                  "type": "string"
+                },
+                "programmeName": {
+                  "type": "string"
+                },
+                "levelName": {
+                  "type": "string"
+                },
+                "label": {
+                  "type": "string"
+                },
+                "termLabel": {
+                  "type": "string"
+                },
+                "terminal": {
+                  "type": [
+                    "object",
+                    "null"
+                  ],
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "name": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "name"
+                  ]
+                },
+                "publishedAt": {
+                  "type": "string"
+                },
+                "publishedOnBs": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "cards": {
+                  "type": "integer"
+                },
+                "avgPercentHundredths": {
+                  "type": [
+                    "integer",
+                    "null"
+                  ]
+                },
+                "passed": {
+                  "type": [
+                    "integer",
+                    "null"
+                  ]
+                },
+                "bands": {
+                  "type": "array",
+                  "items": {
+                    "type": "integer"
+                  }
+                },
+                "subjects": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "name": {
+                        "type": "string"
+                      },
+                      "avgPercentHundredths": {
+                        "type": "integer"
+                      }
+                    },
+                    "required": [
+                      "name",
+                      "avgPercentHundredths"
+                    ]
+                  }
+                }
+              },
+              "required": [
+                "classId",
+                "programmeName",
+                "levelName",
+                "label",
+                "termLabel",
+                "terminal",
+                "publishedAt",
+                "publishedOnBs",
+                "cards",
+                "avgPercentHundredths",
+                "passed",
+                "bands",
+                "subjects"
+              ]
+            }
+          }
+        },
+        "required": [
+          "results"
+        ]
+      },
       "ClassResultSheet": {
         "type": "object",
         "properties": {
@@ -21325,6 +21437,27 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ResultsError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/results/published": {
+      "get": {
+        "operationId": "list_published_results",
+        "tags": [
+          "results"
+        ],
+        "description": "Every published result the person may read, newest first: one row per class and exam (or final). The Principal and Co-ordinator reach every class in their wing; a Class Teacher only the class they lead.",
+        "responses": {
+          "200": {
+            "description": "The published results",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublishedResults"
                 }
               }
             }

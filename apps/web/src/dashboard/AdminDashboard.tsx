@@ -22,6 +22,7 @@ import { useCallback, useEffect, useId, useState, type KeyboardEvent, type React
 import { useConfig } from "@/config/ConfigProvider";
 import { formatNpr } from "@/fees/money";
 import { t, type MessageKey } from "@/i18n/messages";
+import { ResultsInsights } from "@/results/ResultsInsights";
 import { useSession } from "@/session/SessionProvider";
 import { useLoad } from "@/setup/useLoad";
 import { Button, HeroBand, OVERVIEW_ART, Skeleton } from "@/ui";
@@ -284,41 +285,9 @@ function FeesTab({ o }: { o: Overview }) {
   );
 }
 
-export function ResultsTab({ o }: { o: Overview }) {
+function ResultsTab({ o }: { o: Overview }) {
   if (o.results.publications === 0) return <p className={styles.empty}>{t("dashboard.glance.noResults")}</p>;
-  return (
-    <>
-      <p className={styles.muted}>{t(o.results.publications === 1 ? "dashboard.glance.publishedOne" : "dashboard.glance.published", { count: o.results.publications })}</p>
-      {o.results.byProgramme.length === 0 ? (
-        <p className={styles.empty}>{t("dashboard.glance.noFinal")}</p>
-      ) : (
-      <div className={styles.tableWrap}>
-        <table className={styles.table}>
-          <thead>
-            <tr>
-              <th scope="col">{t("dashboard.glance.programme")}</th>
-              <th scope="col">{t("dashboard.glance.cards")}</th>
-              <th scope="col">{t("dashboard.glance.passRate")}</th>
-              <th scope="col">{t("dashboard.glance.average")}</th>
-            </tr>
-          </thead>
-          <tbody>
-            {o.results.byProgramme.map((p) => (
-              <tr key={p.id}>
-                <th scope="row">{p.name}</th>
-                <td>{p.cards}</td>
-                <td>{p.passPercent === null ? "–" : `${p.passPercent}%`}</td>
-                <td>
-                  {p.avgPercentHundredths !== null ? t("dashboard.glance.percent", { percent: (p.avgPercentHundredths / 100).toFixed(1) }) : "–"}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-      )}
-    </>
-  );
+  return <ResultsInsights showList={false} />;
 }
 
 // --- Actions, website, activity ----------------------------------------------------------

@@ -2,7 +2,7 @@ import { rowsOf, type DashboardPart } from "../../core/dashboard";
 import { adToBsText } from "../../core/dates";
 import { rankResults } from "./grading";
 import { CLASS_JOINS, NAMING_COLUMNS, naming, sectionInReach, top20On, type Reach } from "./guard";
-import type { CardBody, ClassSheet, MarksCard, OwnResults, Top20 } from "./schema";
+import type { CardBody, ClassSheet, MarksCard, OwnResults, PublishedResults, Top20 } from "./schema";
 
 /**
  * What people read (Phase 7, slice 4, D-082; on the exam pattern since D-117): the student's own results, each
@@ -350,5 +350,65 @@ export function resultsDashboardPart(db: D1Database): DashboardPart<ResultsDashb
       byProgramme: rowsOf<ResultsDashboard["byProgramme"][number]>(programmes),
       sheets: rowsOf<ResultsDashboard["sheets"]>(sheets)[0] ?? { expected: 0, sent: 0, underReview: 0 },
     }),
+  };
+}
+
+/**
+ * Every published result in reach, newest first, with what a graph needs (the PM, 2026-10-17: the Principal's Results tab and
+ * the results page): per class and exam (or final) the marks cards, the average, students by percentage band, those who
+ * passed (a final only) and each subject's average. All summed in SQL from the stored cards, never recomputed in code.
+ * `classTeacher`: only a class this person leads. One round trip.
+ */
+export async function publishedResults(db: D1Database, reach: Reach, classTeacher: string | null = null): Promise<PublishedResults> {
+  const scope = `${sectionInReach(1)} AND (?3 IS NULL OR cl.class_teacher_user_id = (SELECT id FROM users WHERE public_id = ?3))`;
+  const [heads, subjects] = await db.batch([
+    db
+      .prepare(
+        `SELECT rp.id AS pid, cl.public_id AS class_id, ${NAMING_COLUMNS}, ay.label AS term_label, t.public_id AS terminal_id, t.name AS terminal_name, rp.published_at,
+                COUNT(mc.id) AS cards, AVG(mc.percent_hundredths) AS avg_percent,
+                SUM(CASE WHEN rp.terminal_id IS NULL THEN mc.passed END) AS passed,
+                COALESCE(SUM(mc.percent_hundredths < 4000), 0) AS b0,
+                COALESCE(SUM(mc.percent_hundredths >= 4000 AND mc.percent_hundredths < 6000), 0) AS b1,
+                COALESCE(SUM(mc.percent_hundredths >= 6000 AND mc.percent_hundredths < 8000), 0) AS b2,
+                COALESCE(SUM(mc.percent_hundredths >= 8000), 0) AS b3
+           FROM result_publications rp JOIN classes cl ON cl.id = rp.class_id ${CLASS_JOINS} JOIN academic_years ay ON ay.id = cl.academic_year_id
+           LEFT JOIN terminals t ON t.id = rp.terminal_id
+           LEFT JOIN marks_cards mc ON mc.publication_id = rp.id AND ${LATEST}
+          WHERE ${scope}
+          GROUP BY rp.id
+          ORDER BY rp.published_at DESC, rp.id DESC`,
+      )
+      .bind(reach.institution, reach.sections, classTeacher),
+    db
+      .prepare(
+        `SELECT rp.id AS pid, json_extract(j.value, '$.name') AS subject_name,
+                AVG(COALESCE(json_extract(j.value, '$.percentHundredths'), json_extract(j.value, '$.finalHundredths'))) AS avg_percent
+           FROM result_publications rp JOIN classes cl ON cl.id = rp.class_id ${CLASS_JOINS}
+           JOIN marks_cards mc ON mc.publication_id = rp.id AND ${LATEST}, json_each(mc.body, '$.subjects') j
+          WHERE ${scope}
+          GROUP BY rp.id, subject_name
+          ORDER BY subject_name`,
+      )
+      .bind(reach.institution, reach.sections, classTeacher),
+  ]);
+  const bySubject = new Map<number, { name: string; avgPercentHundredths: number }[]>();
+  for (const r of subjects!.results as unknown as { pid: number; subject_name: string; avg_percent: number | null }[]) {
+    if (r.avg_percent === null) continue;
+    (bySubject.get(r.pid) ?? bySubject.set(r.pid, []).get(r.pid)!).push({ name: r.subject_name, avgPercentHundredths: Math.round(r.avg_percent) });
+  }
+  return {
+    results: (heads!.results as unknown as { pid: number; class_id: string; programme_name: string; level_name: string; label: string; term_label: string; terminal_id: string | null; terminal_name: string | null; published_at: string; cards: number; avg_percent: number | null; passed: number | null; b0: number; b1: number; b2: number; b3: number }[]).map((r) => ({
+      classId: r.class_id,
+      ...naming(r),
+      termLabel: r.term_label,
+      terminal: r.terminal_id === null ? null : { id: r.terminal_id, name: r.terminal_name! },
+      publishedAt: r.published_at,
+      publishedOnBs: bsOf(r.published_at),
+      cards: r.cards,
+      avgPercentHundredths: r.avg_percent === null ? null : Math.round(r.avg_percent),
+      passed: r.passed,
+      bands: [r.b0, r.b1, r.b2, r.b3],
+      subjects: bySubject.get(r.pid) ?? [],
+    })),
   };
 }

@@ -136,6 +136,31 @@ describe("the whole-class sheet", () => {
   });
 });
 
+describe("the list of published results (the PM, 2026-10-17)", () => {
+  type Listed = { results: { classId: string; terminal: { name: string } | null; cards: number; avgPercentHundredths: number | null; passed: number | null; bands: number[]; subjects: { name: string }[] }[] };
+  const list = async (who: Person) => (await (await call("/api/results/published", { cookie: who.cookie })).json()) as Listed;
+
+  it("the Principal and the Co-ordinator read every published exam and final, one row each, with the marks cards", async () => {
+    const mine = (await list(admin)).results.filter((r) => r.classId === fixture.classId);
+    expect(mine.map((r) => r.terminal?.name ?? "final").sort()).toEqual(["Final", "final"]);
+    expect(mine.every((r) => r.cards === 4)).toBe(true);
+    // Percentages 90, 80, 80, 20: the average, the bands (under 40, 40-59, 60-79, 80+), the one failure, the subject.
+    const final = mine.find((r) => r.terminal === null)!;
+    expect(final).toMatchObject({ avgPercentHundredths: 6750, passed: 3, bands: [1, 0, 0, 3] });
+    expect(final.subjects).toHaveLength(1);
+    expect(mine.find((r) => r.terminal !== null)).toMatchObject({ avgPercentHundredths: 6750, passed: null });
+    expect((await list(coordinator)).results.some((r) => r.classId === bachelors.classId)).toBe(true);
+    expect((await list(admin)).results.some((r) => r.classId === sibling.classId)).toBe(false); // never published
+  });
+
+  it("a section-scoped person gets nothing from the other section; a student and a teacher are refused", async () => {
+    const theirs = (await list(bachelorsCoordinator)).results;
+    expect(theirs.length).toBeGreaterThan(0);
+    expect(theirs.every((r) => r.classId === bachelors.classId)).toBe(true);
+    expect((await call("/api/results/published", { cookie: fixture.pupils[0]!.person.cookie })).status).toBe(403);
+  });
+});
+
 describe("the Top 20, on the final result only", () => {
   it("a student sees their own section and level only, name and rank only, and only once their class's final is out", async () => {
     const siblingStudent = sibling.pupils[0]!.person;

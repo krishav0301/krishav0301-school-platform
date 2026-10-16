@@ -19,6 +19,7 @@ import {
   MyMarkSheetsSchema,
   OwnResultsSchema,
   PublicIdSchema,
+  PublishedResultsSchema,
   PublishSchema,
   RecheckListSchema,
   RequestRecheckSchema,
@@ -28,7 +29,7 @@ import {
   SetPicksSchema,
   Top20Schema,
 } from "./schema";
-import { classSheet, classSheetCsv, ownResults, staffCard, studentResults, top20 } from "./views";
+import { classSheet, classSheetCsv, ownResults, publishedResults, staffCard, studentResults, top20 } from "./views";
 
 const json = <T extends z.ZodType>(schema: T) => ({ "application/json": { schema } });
 const ErrorSchema = z.object({ error: z.string(), message: z.string().optional() }).openapi("ResultsError");
@@ -335,6 +336,30 @@ export function registerResults(app: App): void {
       const reach = staffReach(c.get("grant")!);
       const results = reach ? await studentResults(c.env.DB, reach, c.req.valid("param").studentId) : null;
       return results ? c.json(results, 200) : c.json({ error: "not_found" }, 404);
+    },
+  );
+
+  defineRoute(
+    app,
+    {
+      method: "get",
+      path: "/api/results/published",
+      operationId: "list_published_results",
+      tags: ["results"],
+      description: "Every published result the person may read, newest first: one row per class and exam (or final). The Principal and Co-ordinator reach every class in their wing; a Class Teacher only the class they lead.",
+      access: CLASS_SHEET,
+      responses: { 200: { description: "The published results", content: json(PublishedResultsSchema) } },
+    },
+    async (c) => {
+      const grant = c.get("grant")!;
+      const staff = staffReach(grant);
+      const list = staff
+        ? await publishedResults(c.env.DB, staff)
+        : grant.classOnly
+          ? await publishedResults(c.env.DB, { institution: 1, sections: null }, c.get("auth")!.userPublicId)
+          : { results: [] };
+      c.header("Cache-Control", "no-store");
+      return c.json(list, 200);
     },
   );
 
