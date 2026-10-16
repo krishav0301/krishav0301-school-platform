@@ -30,6 +30,7 @@ import {
   type PublishedResults,
   type PublishedRow,
   type Summary,
+  type WingGroup,
 } from "./insights-model";
 import styles from "./results-insights.module.css";
 
@@ -208,6 +209,76 @@ export function DepartmentCard({ dept, tone, startOpen, sheet, lone }: { dept: D
   );
 }
 
+/** The levels of every department, flat and in order, each named with its department when there is more than one. */
+function briefLevels(wings: WingGroup[]): { key: string; label: string; level: LevelGroup }[] {
+  const depts = wings.flatMap((w) => w.departments.map((d) => ({ wing: w.name, d })));
+  return depts.flatMap(({ wing, d }) => d.levels.map((level) => ({ key: `${wing}/${d.name}/${level.name}`, label: depts.length > 1 ? `${d.name} · ${level.name}` : level.name, level })));
+}
+
+/**
+ * The dashboard's chart space (the PM, 2026-10-17): class averages as columns grouped by level, and the score mix of each
+ * level as one stacked bar. Almost no words; every value is also in the chart's accessible name. Pure.
+ */
+export function ResultsBrief({ wings }: { wings: WingGroup[] }) {
+  const levels = briefLevels(wings);
+  const summary = levels.map((l) => `${l.label}: ${l.level.classes.map((c) => `${sectionName(c)} ${c.avgPercentHundredths === null ? "–" : shortPercent(c.avgPercentHundredths)}`).join(", ")}`).join(". ");
+  const columnsId = useId();
+  const mixId = useId();
+  return (
+    <div className={styles.brief}>
+      <section className={styles.chart} aria-labelledby={columnsId}>
+        <h3 id={columnsId} className={styles.chartTitle}>
+          {t("results.insights.byClass")}
+        </h3>
+        <div className={styles.plot} role="img" aria-label={summary}>
+          {levels.map(({ key, label, level }) => (
+            <div key={key} className={styles.group}>
+              <div className={styles.cols}>
+                {level.classes.map((c) => (
+                  <div key={c.classId} className={styles.col}>
+                    <span className={styles.colValue}>{c.avgPercentHundredths === null ? "–" : Math.round(c.avgPercentHundredths / 100)}</span>
+                    <span className={styles.colTrack}>
+                      <span className={styles.colBar} data-tone={c.avgPercentHundredths === null ? undefined : scoreTone(c.avgPercentHundredths)} style={{ "--s": Math.min(1, (c.avgPercentHundredths ?? 0) / 10000) } as CSSProperties} />
+                    </span>
+                    <span className={styles.colName}>{c.label ? bareSection(c.label) : "–"}</span>
+                  </div>
+                ))}
+              </div>
+              <span className={styles.groupName}>{label}</span>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <section className={styles.chart} aria-labelledby={mixId}>
+        <h3 id={mixId} className={styles.chartTitle}>
+          {t("results.insights.bands")}
+        </h3>
+        <ul className={styles.mixRows}>
+          {levels.map(({ key, label, level }) => (
+            <li key={key} className={styles.mixRow}>
+              <span className={styles.mixName}>{label}</span>
+              <div className={styles.split} role="img" aria-label={level.summary.bands.map((n, i) => `${t(BAND_LABELS[i]!)}: ${n}`).join(", ")}>
+                {level.summary.bands.map((n, i) => (
+                  <span key={BAND_TONES[i]} className={styles.slice} data-tone={BAND_TONES[i]} style={{ "--n": n } as CSSProperties} />
+                ))}
+              </div>
+            </li>
+          ))}
+        </ul>
+        <ul className={styles.keys}>
+          {BAND_LABELS.map((label, i) => (
+            <li key={label}>
+              <span className={styles.dot} data-tone={BAND_TONES[i]} aria-hidden />
+              {t(label)}
+            </li>
+          ))}
+        </ul>
+      </section>
+    </div>
+  );
+}
+
 /**
  * The published results as data, grouped as the school is (the PM, 2026-10-17): a filter bar, four figures and how
  * students scored for what is chosen, then wing, department and level, each class opening to its students. One exam at
@@ -267,19 +338,23 @@ export function ResultsInsightsView({ data, sheet }: { data: PublishedResults; s
               <dt>{t("results.insights.passRate")}</dt>
               <dd>
                 {sum.passPercent === null ? "–" : `${sum.passPercent}%`}
-                {sum.passPercent === null ? <small>{t("results.insights.passRateWhen")}</small> : null}
+                {sum.passPercent === null && sheet ? <small>{t("results.insights.passRateWhen")}</small> : null}
               </dd>
             </div>
           </dl>
 
-          <section className={styles.chart} aria-labelledby={bandsId}>
-            <h3 id={bandsId} className={styles.chartTitle}>
-              {t("results.insights.bands")}
-            </h3>
-            <ScoreSplit bands={sum.bands} id={bandsId} />
-          </section>
+          {sheet ? (
+            <section className={styles.chart} aria-labelledby={bandsId}>
+              <h3 id={bandsId} className={styles.chartTitle}>
+                {t("results.insights.bands")}
+              </h3>
+              <ScoreSplit bands={sum.bands} id={bandsId} />
+            </section>
+          ) : (
+            <ResultsBrief wings={wings} />
+          )}
 
-          {wings.map((wing) => (
+          {(sheet ? wings : []).map((wing) => (
             <section key={wing.name} className={styles.wing} aria-label={wing.name}>
               {wings.length > 1 ? <h3 className={styles.wingTitle}>{wing.name}</h3> : null}
               <ul className={classStyles.courses}>

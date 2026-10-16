@@ -156,20 +156,27 @@ describe("the Results view", () => {
     expect(renderToStaticMarkup(<ClassRow row={data.results[5]!} sheet={sheet} startOpen />)).toContain("sheet c1 t1");
   });
 
-  it("the dashboard's brief has graphs and figures by level and class, and nothing that opens", () => {
+  it("the dashboard is a chart space: class columns grouped by level and one score-mix bar per level, with almost no words", () => {
     const html = renderToStaticMarkup(
       <ConfigContext.Provider value={makeConfigValue("ready", config)}>
         <ResultsInsightsView data={{ results: data.results.filter((r) => r.terminal !== null) }} />
       </ConfigContext.Provider>,
     );
-    expect(html).toContain(">Management</h3>");
-    expect(html).toContain(">Science</h3>");
-    expect(html).toContain("Grade 12"); // every level is in view, not closed behind a card
-    expect(html).toContain("Section A");
-    expect(html).toContain("30 students");
-    expect(html).not.toContain("aria-expanded"); // no card or class opens
+    expect(html).toContain("Average by class");
+    expect(html).toContain("How students scored");
+    // A column for each class, its value on top, its section below, its level (with the department, as there are several) under the group.
+    expect((html.match(/class="colBar"/g) ?? []).length).toBe(5);
+    expect(html).toContain("Science · Grade 11");
+    expect(html).toContain("Management · Grade 11");
+    expect(html).toContain("Science · Grade 12");
+    // Each chart carries its numbers in its accessible name.
+    expect(html).toMatch(/role="img" aria-label="[^"]*Section A 70%/);
+    expect(html).toMatch(/role="img" aria-label="Below 40%: 2, 40 to 59%: 4, 60 to 79%: 14, 80% and above: 10"/);
+    // Nothing opens, no lists of text, no tables.
+    expect(html).not.toContain("aria-expanded");
     expect(html).not.toContain("<table");
-    expect(html).not.toContain("Subjects in"); // the subjects are on the Class sheets page
+    expect(html).not.toContain("Subjects in");
+    expect(html).not.toContain("30 students");
     expect(renderToStaticMarkup(<ClassRow row={data.results[0]!} />)).not.toContain("<button");
   });
 

@@ -128,6 +128,157 @@
   list-style: none;
 }
 
+/* The dashboard's chart space: class averages as columns grouped by level, and each level's score mix as one bar. */
+.brief {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-4);
+}
+
+@media (min-width: 64rem) {
+  .brief {
+    grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
+    align-items: start;
+  }
+}
+
+.plot {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--space-4);
+  overflow-x: auto;
+  padding-block-start: var(--space-2);
+  /* Faint guide lines at a half and the top of the scale. */
+  background:
+    linear-gradient(to bottom, color-mix(in srgb, var(--color-border) 55%, transparent) 1px, transparent 1px) 0 calc(var(--space-2) + 1.25rem) / 100% 1px no-repeat;
+}
+
+.group {
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  gap: var(--space-2);
+  align-items: center;
+}
+
+.cols {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--space-2);
+}
+
+.col {
+  display: grid;
+  grid-template-rows: 1.25rem 9rem auto;
+  justify-items: center;
+  gap: var(--space-1);
+  width: 2.25rem;
+}
+
+.colValue {
+  align-self: end;
+  font-size: var(--text-sm);
+  font-weight: var(--weight-bold);
+}
+
+.colTrack {
+  display: flex;
+  align-items: flex-end;
+  width: 100%;
+  height: 100%;
+  border-radius: calc(var(--radius-card) / 3);
+  background: color-mix(in srgb, var(--color-text) 6%, transparent);
+}
+
+.colBar {
+  width: 100%;
+  height: 100%;
+  border-radius: calc(var(--radius-card) / 3);
+  background: var(--color-primary);
+  transform: scaleY(var(--s, 0));
+  transform-origin: bottom center;
+  animation: growY 640ms var(--motion-ease, ease) both;
+}
+
+.colBar[data-tone="ok"] {
+  background: var(--color-ok);
+}
+
+.colBar[data-tone="warn"] {
+  background: var(--color-warn);
+}
+
+.colBar[data-tone="bad"] {
+  background: var(--color-bad);
+}
+
+.colName {
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+}
+
+.groupName {
+  max-width: 10rem;
+  padding-block-start: var(--space-1);
+  border-block-start: 1px solid var(--color-border);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+  text-align: center;
+  overflow-wrap: anywhere;
+}
+
+.mixRows {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.mixRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-1);
+}
+
+@media (min-width: 40rem) {
+  .mixRow {
+    grid-template-columns: minmax(6rem, 9rem) minmax(0, 1fr);
+    align-items: center;
+    gap: var(--space-3);
+  }
+}
+
+.mixName {
+  min-width: 0;
+  font-size: var(--text-sm);
+  overflow-wrap: anywhere;
+}
+
+.keys {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-4);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+}
+
+.keys li {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+@keyframes growY {
+  from {
+    transform: scaleY(0);
+  }
+}
+
 /* A subject: its name, then the score bar (the track with the bar growing in, and its value). */
 .bar {
   display: grid;
@@ -375,6 +526,7 @@
 
 @media (prefers-reduced-motion: reduce) {
   .fill,
+  .colBar,
   .slice,
   .figure {
     animation: none;

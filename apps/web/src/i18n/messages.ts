@@ -2216,6 +2216,7 @@ export const en = {
   "results.insights.average": "Average",
   "results.insights.passRate": "Pass rate",
   "results.insights.passRateWhen": "Shown once a final result is out",
+  "results.insights.byClass": "Average by class",
   "results.insights.bands": "How students scored",
   "results.insights.band0": "Below 40%",
   "results.insights.band1": "40 to 59%",
