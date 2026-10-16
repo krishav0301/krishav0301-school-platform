@@ -142,7 +142,7 @@ describe("the More tab", () => {
     // Setup and People are still in the markup, for the sidebar, but marked to hide on a phone.
     expect(html).toContain('class="navLink overflow" href="/portal/setup/map"');
     expect(html).toContain('class="navLink overflow" href="/portal/people"');
-    expect(html).toContain('class="navLink overflow" href="/portal/content"');
+    expect(html).toContain('class="navLink" href="/portal/content"'); // a tab now: the Co-ordinator has no Overview (the PM, 2026-10-17)
     expect(html).toContain('class="navLink" aria-current="page" href="/portal/attendance"');
   });
 

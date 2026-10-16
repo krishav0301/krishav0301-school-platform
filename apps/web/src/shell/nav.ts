@@ -35,7 +35,8 @@ export type NavIcon = "overview" | "classes" | "website" | "programs" | "terms" 
 export const MAX_TABS = 5;
 
 export const NAV_ITEMS: readonly NavItem[] = [
-  { id: "dashboard", labelKey: "nav.dashboard", href: "/portal", icon: "overview" },
+  // The Principal's dashboard and the Accountant's fees day. The Co-ordinator, Teacher and Student have no Overview: they open on a hero page and start from the menu (the PM, 2026-10-17).
+  { id: "dashboard", labelKey: "nav.dashboard", href: "/portal", roles: ["admin", "super_admin", "accountant"], icon: "overview" },
   // FUT point 19 (D-116): a class as one page, for the staff who work with classes. A teacher sees the classes they teach.
   // D-130 (the PM): the Co-ordinator reaches the same page as Setup's Classes tab, so it is not in their menu.
   { id: "classes", labelKey: "nav.classes", href: "/portal/classes", roles: ["teacher", "admin", "super_admin"], icon: "classes" },
