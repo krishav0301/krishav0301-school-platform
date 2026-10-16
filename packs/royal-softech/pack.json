@@ -9,7 +9,7 @@
     "template": "plus2-and-bachelors"
   },
   "sections": [],
-  "modules": {},
+  "modules": { "homework": false, "notes": false, "activity_log": false },
   "terminology": { "role.admin": "Principal", "term.programme": "Department" },
   "site": {
     "home": {

@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from "vitest";
 
 import { ConfigContext, makeConfigValue, type PublicConfig } from "@/config/ConfigProvider";
 import type { ReviewBoard } from "@/results/model";
-import { BoardClassPanel, ReviewBoardScreen, boardFigures, classState } from "@/results/ReviewScreen";
+import { BoardClassPanel, ReviewBoardScreen, boardFigures, classState, groupBoard } from "@/results/ReviewScreen";
 import { DecidePanel, ElectivesView, electiveFigures, recheckFigures } from "@/results/StaffScreens";
 import { SessionContext } from "@/session/SessionProvider";
 import { fakeSession } from "./session";
@@ -74,8 +74,20 @@ describe("the Co-ordinator's review board (D-106)", () => {
     expect(classState(cls({ published: true, finalPublished: true })).key).toBe("results.review.finalOut");
   });
 
+  it("groups the classes like the Classes page: a card per course, its levels inside, each class a section row", () => {
+    const groups = groupBoard([...board.classes, cls({ classId: "c3", programmeName: "BBS", levelName: "Year 1", label: "" })]);
+    expect(groups.map((g) => [g.name, g.classes, g.waiting, g.published, g.levels.map((l) => l.name)])).toEqual([
+      ["+2 Science", 2, 1, 1, ["Grade 11"]],
+      ["BBS", 1, 1, 0, ["Year 1"]],
+    ]);
+    const closed = inContext(<BoardClassPanel cls={cls()} terminalId="t1" chosen={new Set()} busy={null} onChoose={noop} onPublish={noop} />);
+    expect(closed).toContain("1 of 3 subjects verified");
+    expect(closed).toContain('aria-expanded="false"');
+    expect(closed).not.toContain("Publish results"); // the subjects open on demand
+  });
+
   it("a class card: a box only for a sheet waiting to be verified, each status in words, and Publish held until every subject is verified", () => {
-    const html = inContext(<BoardClassPanel cls={cls()} terminalId="t1" chosen={new Set()} busy={null} onChoose={noop} onPublish={noop} />);
+    const html = inContext(<BoardClassPanel cls={cls()} terminalId="t1" chosen={new Set()} busy={null} onChoose={noop} onPublish={noop} startOpen />);
     expect(html).toContain("+2 Science · Grade 11 · A");
     expect((html.match(/type="checkbox"/g) ?? []).length).toBe(1);
     expect(html).toContain(">Under review<");
@@ -90,12 +102,12 @@ describe("the Co-ordinator's review board (D-106)", () => {
   });
 
   it("a published class links to its sheet instead of offering Publish", () => {
-    const html = inContext(<BoardClassPanel cls={board.classes[1]!} terminalId="t1" chosen={new Set()} busy={null} onChoose={noop} onPublish={noop} />);
+    const html = inContext(<BoardClassPanel cls={board.classes[1]!} terminalId="t1" chosen={new Set()} busy={null} onChoose={noop} onPublish={noop} startOpen />);
     expect(html).toContain(">Published<");
     expect(html).toContain("/portal/results/sheets?class=c2&amp;terminal=t1");
     expect(html).not.toContain("Publish results");
     expect(html).not.toContain("Final result sheet");
-    const withFinal = inContext(<BoardClassPanel cls={{ ...board.classes[1]!, finalPublished: true }} terminalId="t1" chosen={new Set()} busy={null} onChoose={noop} onPublish={noop} />);
+    const withFinal = inContext(<BoardClassPanel cls={{ ...board.classes[1]!, finalPublished: true }} terminalId="t1" chosen={new Set()} busy={null} onChoose={noop} onPublish={noop} startOpen />);
     expect(withFinal).toContain("/portal/results/sheets?class=c2&amp;terminal=final");
   });
 });

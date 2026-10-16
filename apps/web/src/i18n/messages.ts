@@ -2150,6 +2150,8 @@ export const en = {
   "results.review.figure.waiting": "Waiting for you to verify",
   "results.review.figure.verified": "Subjects verified",
   "results.review.figure.published": "Classes published",
+  "results.review.stat.waiting": "To verify",
+  "results.review.verifiedOf": "{done} of {total} subjects verified",
   "results.review.col.subject": "Subject",
   "results.review.col.teacher": "Teacher",
   "results.review.finalOut": "Published, with the final result",

@@ -30,7 +30,8 @@ function configFor(pack: PackJson): PublicConfig {
   return {
     school: { name: pack.school.name, shortName: pack.school.shortName, currency: "NPR", timezone: "Asia/Kathmandu", region: "nepal", template: null },
     sections: sectionsOf(pack),
-    modules: { ...modules, ...pack.modules },
+    // Royal Softech has the classwork modules switched off (2026-10-17, until the PM says); this test is about layout, which a switch must not change, so it keeps them on for both schools.
+    modules: { ...modules, ...pack.modules, activity_log: true, homework: true, notes: true },
     terms: { "role.student": "Student", "role.teacher": "Teacher", "role.coordinator": "Co-ordinator", "role.accountant": "Accountant", "role.admin": "Admin", ...pack.terminology },
     theme: pack.theme as PublicConfig["theme"],
   };
