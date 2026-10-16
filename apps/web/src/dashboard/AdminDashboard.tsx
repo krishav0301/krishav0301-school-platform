@@ -5,16 +5,12 @@ import {
   ArrowUp,
   Banknote,
   BookOpen,
-  Calendar,
   CalendarCheck,
   ChevronRight,
   ClipboardCheck,
-  ExternalLink,
   FileText,
-  Globe,
   Trophy,
   UserPlus,
-  UserRoundX,
   Workflow,
   Users,
   UsersRound,
@@ -31,7 +27,6 @@ import { useLoad } from "@/setup/useLoad";
 import { Button, HeroBand, OVERVIEW_ART, Skeleton } from "@/ui";
 
 import {
-  attentionRows,
   bsDayMonth,
   bsLong,
   changeLabel,
@@ -322,53 +317,7 @@ function ResultsTab({ o }: { o: Overview }) {
   );
 }
 
-// --- Attention, actions, website, activity ----------------------------------------------------------
-
-const ATTENTION_ICON: Record<string, LucideIcon> = { approvals: FileText, fees: Banknote, attendance: UserRoundX, website: Globe };
-
-function Attention({ o, feesOn, attendanceOn }: { o: Overview; feesOn: boolean; attendanceOn: boolean }) {
-  const rows = attentionRows(o, feesOn, attendanceOn);
-  return (
-    <section className={`${styles.card} ${styles.attention}`} aria-labelledby="attention-title">
-      <div className={styles.cardHead}>
-        <h2 id="attention-title" className={styles.cardTitle}>
-          {t("dashboard.attention.title")}
-        </h2>
-        {rows.length > 0 ? (
-          <Link href={rows[0]!.href} className={styles.link}>
-            {t("dashboard.attention.viewAll")}
-          </Link>
-        ) : null}
-      </div>
-      {rows.length === 0 ? (
-        <div className={styles.caughtUp}>
-          <p className={styles.caughtUpTitle}>{t("dashboard.attention.caughtUp")}</p>
-          <p className={styles.muted}>{t("dashboard.attention.caughtUpDetail")}</p>
-        </div>
-      ) : (
-        <ul className={styles.attentionList}>
-          {rows.map((r) => (
-            <li key={r.id}>
-              <Link href={r.href} className={styles.attentionRow} data-tone={r.tone}>
-                <Tile icon={ATTENTION_ICON[r.id]!} tone={r.tone} size="small" />
-                <span className={styles.attentionText}>
-                  <span className={styles.attentionTitle}>
-                    <span className={styles.count} data-tone={r.tone}>
-                      {r.count}
-                    </span>{" "}
-                    {t(r.title)}
-                  </span>
-                  <span className={styles.muted}>{t(r.detail)}</span>
-                </span>
-                <ChevronRight className={styles.chevron} aria-hidden />
-              </Link>
-            </li>
-          ))}
-        </ul>
-      )}
-    </section>
-  );
-}
+// --- Actions, website, activity ----------------------------------------------------------
 
 const ACTIONS: { href: string; icon: LucideIcon; tone: Tone; title: MessageKey; detail: MessageKey }[] = [
   { href: "/portal/people?add=coordinator", icon: UserPlus, tone: "primary", title: "dashboard.actions.coordinator", detail: "dashboard.actions.coordinatorDetail" },
@@ -401,47 +350,6 @@ function QuickActions({ feesOn }: { feesOn: boolean }) {
 
 const when = (iso: string) =>
   new Intl.DateTimeFormat("en-GB", { timeZone: "Asia/Kathmandu", day: "numeric", month: "short", year: "numeric", hour: "numeric", minute: "2-digit" }).format(new Date(iso));
-
-function Website({ o }: { o: Overview }) {
-  const host = o.website.origin ? o.website.origin.replace(/^https?:\/\//, "") : null;
-  return (
-    <section className={`${styles.card} ${styles.website}`} aria-labelledby="website-title">
-      <div className={styles.cardHead}>
-        <h2 id="website-title" className={styles.cardTitle}>
-          {t("dashboard.website.title")}
-        </h2>
-        <Link href="/portal/content" className={styles.link}>
-          {t("dashboard.website.manage")}
-        </Link>
-      </div>
-      <p className={styles.siteState}>
-        <span className={styles.liveDot} data-live={o.website.live > 0} aria-hidden />
-        <span className={styles.siteStateText}>{o.website.live > 0 ? t("dashboard.website.published") : t("dashboard.website.nothingLive")}</span>
-      </p>
-      {o.website.origin && host ? (
-        <a href={o.website.origin} className={styles.siteLink} target="_blank" rel="noreferrer">
-          {host} <ExternalLink aria-hidden className={styles.inlineIcon} />
-        </a>
-      ) : null}
-      <dl className={styles.siteFacts}>
-        <div className={styles.siteFact}>
-          <Calendar aria-hidden className={styles.factIcon} />
-          <span>
-            <dt className={styles.muted}>{t("dashboard.website.lastUpdated")}</dt>
-            <dd>{o.website.lastPublishedAt ? when(o.website.lastPublishedAt) : t("dashboard.website.never")}</dd>
-          </span>
-        </div>
-        <div className={styles.siteFact}>
-          <FileText aria-hidden className={styles.factIcon} />
-          <span>
-            <dt>{t("dashboard.website.drafts", { count: o.website.drafts })}</dt>
-            <dd className={styles.muted}>{t("dashboard.website.awaiting")}</dd>
-          </span>
-        </div>
-      </dl>
-    </section>
-  );
-}
 
 // --- The page ----------------------------------------------------------------------------------------
 
@@ -513,12 +421,10 @@ export function AdminDashboardView({ o, name, now, feesOn = true, attendanceOn =
 
       <div className={styles.rowMain}>
         <Glance o={o} feesOn={feesOn} attendanceOn={attendanceOn} />
-        <Attention o={o} feesOn={feesOn} attendanceOn={attendanceOn} />
       </div>
 
       <div className={styles.rowSecond}>
         <QuickActions feesOn={feesOn} />
-        <Website o={o} />
       </div>
 
     </div>
