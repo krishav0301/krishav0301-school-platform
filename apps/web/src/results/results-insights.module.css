@@ -245,7 +245,7 @@
   font-size: var(--text-sm);
 }
 
-.classRow > :last-child {
+.classRow > button {
   grid-area: menu;
   justify-self: end;
 }

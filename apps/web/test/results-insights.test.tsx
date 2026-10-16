@@ -156,6 +156,23 @@ describe("the Results view", () => {
     expect(renderToStaticMarkup(<ClassRow row={data.results[5]!} sheet={sheet} startOpen />)).toContain("sheet c1 t1");
   });
 
+  it("the dashboard's brief has graphs and figures by level and class, and nothing that opens", () => {
+    const html = renderToStaticMarkup(
+      <ConfigContext.Provider value={makeConfigValue("ready", config)}>
+        <ResultsInsightsView data={{ results: data.results.filter((r) => r.terminal !== null) }} />
+      </ConfigContext.Provider>,
+    );
+    expect(html).toContain(">Management</h3>");
+    expect(html).toContain(">Science</h3>");
+    expect(html).toContain("Grade 12"); // every level is in view, not closed behind a card
+    expect(html).toContain("Section A");
+    expect(html).toContain("30 students");
+    expect(html).not.toContain("aria-expanded"); // no card or class opens
+    expect(html).not.toContain("<table");
+    expect(html).not.toContain("Subjects in"); // the subjects are on the Class sheets page
+    expect(renderToStaticMarkup(<ClassRow row={data.results[0]!} />)).not.toContain("<button");
+  });
+
   it("with nothing published it says so, with no empty graphs", () => {
     const html = view({ results: [] });
     expect(html).toContain("No results published this term yet.");

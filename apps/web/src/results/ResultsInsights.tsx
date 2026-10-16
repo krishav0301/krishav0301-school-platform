@@ -38,7 +38,10 @@ const BAND_LABELS = ["results.insights.band0", "results.insights.band1", "result
 /** Each department card's soft tint, in turn, from the theme's tones (as on the Classes page). */
 const TONES = ["primary", "ok", "accent", "warn"] as const;
 
-/** Shows one class's published sheet (its students); the screens that use this say how, so no screen imports another. */
+/**
+ * Shows one class's published sheet (its students); the screens that use this say how, so no screen imports another. A
+ * view given none is a brief: graphs and figures only, nothing opens (the dashboard's Results tab, the PM 2026-10-17).
+ */
 export type SheetOf = (classId: string, terminalId: string) => ReactNode;
 
 /** One score as a bar that grows in, with its value as text too. Pure. */
@@ -106,7 +109,7 @@ const facts = (s: Summary): string =>
  * One class of a level: its badge and name, its average, its students and how many passed (a final only), and a button
  * that opens the class's own sheet right here, student by student. Pure apart from the open state.
  */
-export function ClassRow({ row, sheet, startOpen }: { row: PublishedRow; sheet: SheetOf; startOpen?: boolean }) {
+export function ClassRow({ row, sheet, startOpen }: { row: PublishedRow; sheet?: SheetOf; startOpen?: boolean }) {
   const [open, setOpen] = useState(startOpen ?? false);
   const bodyId = useId();
   const name = `${row.programmeName} · ${row.levelName} · ${sectionName(row)}`;
@@ -124,11 +127,13 @@ export function ClassRow({ row, sheet, startOpen }: { row: PublishedRow; sheet: 
           {t(row.cards === 1 ? "classes.studentsOne" : "classes.studentsMany", { n: row.cards })}
           {row.passed === null ? null : <small>{t("results.insights.passedOf", { passed: row.passed, total: row.cards })}</small>}
         </span>
-        <button type="button" className={classStyles.disclosure} aria-expanded={open} aria-controls={bodyId} aria-label={t(open ? "results.insights.hideStudents" : "results.insights.showStudents", { name })} onClick={() => setOpen(!open)}>
-          <ChevronDown aria-hidden data-open={open} />
-        </button>
+        {sheet ? (
+          <button type="button" className={classStyles.disclosure} aria-expanded={open} aria-controls={bodyId} aria-label={t(open ? "results.insights.hideStudents" : "results.insights.showStudents", { name })} onClick={() => setOpen(!open)}>
+            <ChevronDown aria-hidden data-open={open} />
+          </button>
+        ) : null}
       </div>
-      {open ? (
+      {sheet && open ? (
         <div id={bodyId} className={styles.classBody}>
           {sheet(row.classId, sheetTerminal(row))}
         </div>
@@ -137,7 +142,7 @@ export function ClassRow({ row, sheet, startOpen }: { row: PublishedRow; sheet: 
   );
 }
 
-function LevelBlock({ level, sheet, startOpen }: { level: LevelGroup; sheet: SheetOf; startOpen: boolean }) {
+function LevelBlock({ level, sheet, startOpen }: { level: LevelGroup; sheet?: SheetOf; startOpen: boolean }) {
   const id = useId();
   return (
     <section className={classStyles.level} aria-labelledby={id}>
@@ -153,7 +158,7 @@ function LevelBlock({ level, sheet, startOpen }: { level: LevelGroup; sheet: She
           <ClassRow key={row.classId} row={row} sheet={sheet} startOpen={startOpen && level.classes.length === 1} />
         ))}
       </ul>
-      {level.subjects.length > 0 ? (
+      {sheet && level.subjects.length > 0 ? (
         <div className={styles.levelSubjects}>
           <h5 className={styles.chartTitle}>{t("results.insights.subjectsOf", { level: level.name })}</h5>
           <BarList bars={level.subjects} label={t("results.insights.subjectsOf", { level: level.name })} />
@@ -164,8 +169,9 @@ function LevelBlock({ level, sheet, startOpen }: { level: LevelGroup; sheet: She
 }
 
 /** A department as a card, like the Classes page: its totals in the head, its levels inside when open. Pure apart from the open state. */
-export function DepartmentCard({ dept, tone, startOpen, sheet, lone }: { dept: DepartmentGroup; tone: string; startOpen: boolean; sheet: SheetOf; lone: boolean }) {
-  const [open, setOpen] = useState(startOpen);
+export function DepartmentCard({ dept, tone, startOpen, sheet, lone }: { dept: DepartmentGroup; tone: string; startOpen: boolean; sheet?: SheetOf; lone: boolean }) {
+  const [toggled, setOpen] = useState(startOpen);
+  const open = sheet ? toggled : true; // a brief has every level in view
   const bodyId = useId();
   return (
     <li className={classStyles.course} data-tone={tone}>
@@ -185,9 +191,11 @@ export function DepartmentCard({ dept, tone, startOpen, sheet, lone }: { dept: D
             </div>
           </dl>
         )}
-        <button type="button" className={classStyles.disclosure} aria-expanded={open} aria-controls={bodyId} aria-label={t(open ? "classes.hide" : "classes.show", { name: dept.name })} onClick={() => setOpen(!open)}>
-          <ChevronDown aria-hidden data-open={open} />
-        </button>
+        {sheet ? (
+          <button type="button" className={classStyles.disclosure} aria-expanded={open} aria-controls={bodyId} aria-label={t(open ? "classes.hide" : "classes.show", { name: dept.name })} onClick={() => setOpen(!open)}>
+            <ChevronDown aria-hidden data-open={open} />
+          </button>
+        ) : null}
       </div>
       {open ? (
         <div id={bodyId} className={classStyles.levels}>
@@ -205,7 +213,7 @@ export function DepartmentCard({ dept, tone, startOpen, sheet, lone }: { dept: D
  * students scored for what is chosen, then wing, department and level, each class opening to its students. One exam at
  * a time, so figures are never mixed across exams. Pure: the data comes in, nothing is fetched.
  */
-export function ResultsInsightsView({ data, sheet }: { data: PublishedResults; sheet: SheetOf }) {
+export function ResultsInsightsView({ data, sheet }: { data: PublishedResults; sheet?: SheetOf }) {
   const [filters, setFilters] = useState<InsightFilters>(() => startFilters(data.results));
   const options = filterOptions(data.results, filters);
   const rows = applyFilters(data.results, filters);
@@ -289,7 +297,7 @@ export function ResultsInsightsView({ data, sheet }: { data: PublishedResults; s
 }
 
 /** The published results, loaded, for the Principal's Results tab and the class sheets page. */
-export function ResultsInsights({ sheet }: { sheet: SheetOf }) {
+export function ResultsInsights({ sheet }: { sheet?: SheetOf }) {
   const { api } = useSession();
   const loadNow = useCallback(async () => {
     const result = await loadPublishedResults(api);
