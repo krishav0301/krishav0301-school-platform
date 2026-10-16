@@ -67,6 +67,7 @@ export function SubjectsBoard({
   onEdit,
   onDelete,
   onAdded,
+  startOpen,
 }: {
   subjects: readonly Subject[];
   wings: readonly Wing[];
@@ -83,6 +84,8 @@ export function SubjectsBoard({
   /** Deletes a subject no level teaches (the PM, 2026-10-10); true when it went. */
   onDelete?: (subject: Subject) => Promise<boolean>;
   onAdded?: () => void;
+  /** The wings (by key) that start open: none by default, as on Classes (the PM, 2026-10-17); a test opens one. */
+  startOpen?: readonly string[];
 }) {
   const { term } = useConfig();
   const [toggled, setToggled] = useState<Record<string, boolean>>({});
@@ -95,8 +98,8 @@ export function SubjectsBoard({
   return (
     <ul className={board.cards}>
       {groups.map((group, index) => {
-        // The first wing starts open; a search or filter opens every wing that has a match.
-        const open = toggled[group.key] ?? (filtered || index === 0);
+        // Every wing starts closed; a search or filter opens every wing that has a match.
+        const open = toggled[group.key] ?? (filtered || (startOpen ?? []).includes(group.key));
         const bodyId = `${idBase}-${group.key || "none"}`;
         return (
           <li key={group.key || "none"} className={board.card}>

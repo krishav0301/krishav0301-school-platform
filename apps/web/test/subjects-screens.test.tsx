@@ -55,7 +55,7 @@ describe("the subjects screen", () => {
 
   const wings = TEST_SECTIONS.royal;
   const board = (props: Partial<React.ComponentProps<typeof SubjectsBoard>> = {}) =>
-    inContext(<SubjectsBoard subjects={subjects} wings={wings} canArchive busy={null} onToggle={noop} {...props} />);
+    inContext(<SubjectsBoard subjects={subjects} wings={wings} canArchive busy={null} onToggle={noop} startOpen={["plus2"]} {...props} />);
 
   it("groups the subjects by wing in the school's order, an old one with no wing last, and filters by search and status", () => {
     const all = [subject("s1", "English"), subject("s2", "English", { sectionKey: "bachelors" }), subject("s3", "Music", { sectionKey: null }), subject("s4", "Physics", { code: "PHY", archived: true })];
@@ -73,7 +73,15 @@ describe("the subjects screen", () => {
     expect(groupSubjects([subject("s1", "English")], wings, "", "").groups).toHaveLength(2);
   });
 
-  it("is one card per wing with its name and a count; the first opens to its table, the others stay closed", () => {
+  it("starts with every wing closed, as Classes does (the PM, 2026-10-17)", () => {
+    const html = board({ subjects: [subject("s1", "Biology"), subject("s3", "English", { sectionKey: "bachelors" })], startOpen: undefined });
+    expect(html).not.toContain('aria-expanded="true"');
+    expect(count(html, /aria-expanded="false"/g)).toBe(2);
+    expect(html).not.toContain("Biology");
+    expect(html).not.toContain("English");
+  });
+
+  it("is one card per wing with its name and a count; a wing opens to its table, the others stay closed", () => {
     const html = board({ subjects: [subject("s1", "Biology", { code: "BIO" }), subject("s2", "Physics", { archived: true }), subject("s3", "English", { sectionKey: "bachelors" })] });
     expect(html).toContain(">+2<");
     expect(html).toContain(">Bachelor&#x27;s<");
