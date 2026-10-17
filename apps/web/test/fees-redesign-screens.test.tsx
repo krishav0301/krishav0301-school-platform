@@ -4,6 +4,7 @@ import { describe, expect, it, vi } from "vitest";
 import { ConfigContext, makeConfigValue, type PublicConfig } from "@/config/ConfigProvider";
 import { AccountView } from "@/fees/AccountView";
 import { DiscountsTable } from "@/fees/DiscountsReportScreen";
+import { LiveStructures, OtherStructures } from "@/fees/StructuresBoard";
 import { DuesTable } from "@/fees/DuesScreen";
 import { FeesTabs } from "@/fees/FeesTabs";
 import type { Account, DiscountReport } from "@/fees/model";
@@ -86,5 +87,22 @@ describe("the Principal's Discounts report", () => {
   it("only the Principal has the Discounts tab", () => {
     expect(inContext(<FeesTabs pathname="/portal/fees" />, as("admin"))).toContain("Discounts");
     expect(inContext(<FeesTabs pathname="/portal/fees" />, as("accountant"))).not.toContain("/portal/fees/discounts");
+  });
+});
+
+describe("a structure that has ended (the PM, 2026-10-17)", () => {
+  const base = { sectionKey: "plus2", startDate: "2026-04-14", endDate: "2027-04-13", startDateBs: "2083-01-01", endDateBs: "2083-12-30", status: "live" as const, totalPaisa: 100_000, levelsLinked: 2, editing: false };
+  const running = { ...base, id: "a", name: "Running fees", ended: false };
+  const over = { ...base, id: "b", name: "Last year fees", ended: true };
+
+  it("is not among the live cards; it is in the other list, marked Ended", () => {
+    const live = inContext(<LiveStructures structures={[running, over]} sections={[{ key: "plus2", name: "+2" }]} />);
+    expect(live).toContain("Running fees");
+    expect(live).not.toContain("Last year fees");
+    expect(live).toContain("Currently Live (1)");
+    const other = inContext(<OtherStructures structures={[running, over]} sections={[{ key: "plus2", name: "+2" }]} />);
+    expect(other).toContain("Last year fees");
+    expect(other).not.toContain("Running fees");
+    expect(other).toContain("Ended");
   });
 });

@@ -115,7 +115,7 @@ describe("a semester school beside a yearly one", () => {
   });
 
   it("the Accountant bills the term once; a receipt carries the term's code", async () => {
-    await liveFees({ accountant, admin: principal, sectionKey: "bachelors", levelIds: [s.sems[0]!], items: [{ name: "Tuition", amountPaisa: 600_000 }], startDate: termStart, endDate: termEnd });
+    await liveFees({ accountant, admin: principal, sectionKey: "bachelors", levelIds: [s.sems[0]!], items: [{ name: "Tuition", amountPaisa: 600_000 }], startDate: termStart, endDate: new Date(Date.now() + 120 * 86_400_000).toISOString().slice(0, 10) }); // runs until after today: these students joined today, between its dates
     // Once a term (D-110): one charge.
     expect(await count("SELECT COUNT(*) AS n FROM ledger_entries le JOIN enrollments en ON en.id = le.enrollment_id WHERE en.public_id = ?1 AND le.kind = 'charge'", s.enrollments.Asha!)).toBe(1);
 

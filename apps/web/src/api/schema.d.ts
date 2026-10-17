@@ -4604,6 +4604,7 @@ export interface components {
                 status: "draft" | "waiting" | "live";
                 totalPaisa: number;
                 levelsLinked: number;
+                ended: boolean;
                 editing: boolean;
             }[];
         };
@@ -4622,6 +4623,7 @@ export interface components {
             status: "draft" | "waiting" | "live";
             totalPaisa: number;
             levelsLinked: number;
+            ended: boolean;
             editing: boolean;
             items: {
                 id: string;
@@ -4674,7 +4676,7 @@ export interface components {
                 levelId: string;
                 ok: boolean;
                 /** @enum {string} */
-                reason?: "not_found" | "not_live" | "wrong_wing" | "conflict";
+                reason?: "not_found" | "not_live" | "wrong_wing" | "conflict" | "ended";
             }[];
             charged: number;
             pending: boolean;

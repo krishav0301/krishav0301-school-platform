@@ -122,7 +122,8 @@ export function structureFigures(list: FeeStructureList): Figure[] {
 }
 
 /** A structure's status in words: Live, Draft, Waiting for approval. */
-export const StructureStatus = ({ status }: { status: FeeStructure["status"] }) => <StatusWord tone={status === "live" ? "ok" : status === "waiting" ? "warn" : undefined}>{t(STATUS_LABEL[status])}</StatusWord>;
+export const StructureStatus = ({ status, ended = false }: { status: FeeStructure["status"]; ended?: boolean }) =>
+  status === "live" && ended ? <StatusWord>{t("fees.status.ended")}</StatusWord> : <StatusWord tone={status === "live" ? "ok" : status === "waiting" ? "warn" : undefined}>{t(STATUS_LABEL[status])}</StatusWord>;
 
 /** Every structure: its name, wing, period, total, levels linked and status in words, each opening its lines. Pure. */
 export function StructuresTable({ structures, sections }: { structures: FeeStructureList["structures"]; sections: readonly { key: string; name: string }[] }) {
@@ -137,7 +138,7 @@ export function StructuresTable({ structures, sections }: { structures: FeeStruc
         { key: "period", label: t("fees.col.period"), cell: (x) => periodText(x) },
         { key: "total", label: t("fees.col.total"), align: "end", cell: (x) => nprShort(x.totalPaisa) },
         { key: "levels", label: t("fees.col.levels"), align: "end", hidePhone: true, cell: (x) => x.levelsLinked },
-        { key: "status", label: t("attendance.class.status"), cell: (x) => <StructureStatus status={x.status} /> },
+        { key: "status", label: t("attendance.class.status"), cell: (x) => <StructureStatus status={x.status} ended={x.ended} /> },
         { key: "open", label: t("fees.col.lines"), align: "end", plain: true, cell: (x) => <OpenLink href={`/portal/fees/structure?id=${x.id}`} label={t("fees.structures.open", { name: x.name })} /> },
       ]}
     />

@@ -319,7 +319,7 @@ export async function discardEdit(db: D1Database, key: string, actor: string, st
 
 // --- Linking to levels --------------------------------------------------------------------------------
 
-export type LinkOutcome = { levelId: string; ok: true } | { levelId: string; ok: false; reason: "not_found" | "not_live" | "wrong_wing" | "conflict" };
+export type LinkOutcome = { levelId: string; ok: true } | { levelId: string; ok: false; reason: "not_found" | "not_live" | "wrong_wing" | "conflict" | "ended" };
 export type LinkResult = { ok: true; levels: LinkOutcome[]; charged: number; pending: boolean } | Failure;
 
 /** The chain's first version (the "root"): what a link points at, so a newer live version is used at once. */
@@ -342,6 +342,9 @@ export async function linkLevels(db: D1Database, key: string, actor: string, str
   const allowed = await db.prepare(`SELECT ${STRUCTURE_GUARD} AS ok`).bind(actor, structureId).first<{ ok: number }>();
   if (allowed?.ok !== 1) return { ok: false, reason: "not_found" };
   const levels: LinkOutcome[] = [];
+  // A structure whose last day has passed charges no one (the PM, 2026-10-17): it is renewed, not linked again.
+  const ends = await db.prepare("SELECT end_date FROM fee_structures WHERE id = ?1").bind(root.id).first<{ end_date: string }>();
+  if (ends && ends.end_date < nepalDate(new Date())) return { ok: true, levels: [...new Set(levelIds)].map((levelId) => ({ levelId, ok: false as const, reason: "ended" as const })), charged: 0, pending: false };
   for (const levelId of [...new Set(levelIds)]) {
     const outcome = await audited(db, key, { action: "fees.structure.linked", entityType: "fee_structure", entityPublicId: root.publicId, actorPublicId: actor, summary: "Fee structure linked to a level", after: { levelId } }, [
       db
@@ -449,6 +452,10 @@ export async function chargeLinked(db: D1Database, key: string, scope: ChargeSco
   for (const w of work) {
     for (const line of lines.filter((l) => l.structure_id === w.version_id)) {
       const year = { bsYear: adToBs(w.start_date).year, startDate: w.start_date, endDate: w.end_date };
+      // Only a student who joined between the structure's first and last day is charged under it (the PM, 2026-10-17): one who
+      // joins after it ended is not (it is as if unlinked), nor is one who joined before it began.
+      const joinedOn = nepalDate(new Date(w.created_at));
+      if (line.frequency === "one_time" && (joinedOn < w.start_date || joinedOn > w.end_date)) continue;
       for (const charge of billingSchedule(line, year, { enrolledOn: nepalDate(new Date(w.created_at)), firstInProgramme: w.first_in_programme === 1 })) {
         // Billed under any version of this structure already (a line of an edited version is the same line, by its name).
         if (have.has(`${w.enrollment}|${w.root_id}|${line.name.toLowerCase()}|${charge.period}`)) continue;
@@ -613,6 +620,7 @@ export async function listStructures(db: D1Database, grant: Grant): Promise<FeeS
     .bind(sectionFilter(grant))
     .all<SummaryRow>();
   const sums = await totals(db, results.map((r) => r.public_id));
+  const today = nepalDate(new Date());
   return {
     structures: results.map((r) => ({
       id: r.public_id,
@@ -625,6 +633,7 @@ export async function listStructures(db: D1Database, grant: Grant): Promise<FeeS
       status: r.status === "superseded" ? "live" : r.status,
       totalPaisa: sums.get(r.public_id) ?? 0,
       levelsLinked: r.levels_linked,
+      ended: r.end_date < today,
       editing: r.editing === 1,
     })),
   };
@@ -666,6 +675,7 @@ export async function getStructure(db: D1Database, grant: Grant, structureId: st
     status: row.status === "superseded" ? "live" : row.status,
     totalPaisa: items.reduce((sum, i) => sum + yearlyAmount({ frequency: i.frequency, amountPaisa: i.amount_paisa }, months), 0),
     levelsLinked: row.levels_linked,
+    ended: row.end_date < nepalDate(new Date()),
     editing: row.editing === 1,
     inForce: row.editing === 1 ? ((rows) => (rows ? { id: rows.public_id, totalPaisa: rows.total } : null))(force!.results[0] as { public_id: string; total: number } | undefined) : null,
     editRequested: (asked!.results[0] as { asked: number }).asked === 1,

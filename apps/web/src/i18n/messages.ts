@@ -1937,6 +1937,8 @@ export const en = {
   "fees.status.draft": "Draft",
   "fees.status.waiting": "Waiting for approval",
   "fees.status.live": "Live",
+  "fees.status.ended": "Ended",
+  "fees.structure.endedNote": "This structure has ended, so it no longer charges anyone, as if it were unlinked from its levels. To bill the next period, start the next period from it: the lines are copied, you set the new dates, the Principal approves it, and you link it to the levels.",
   "fees.reason.scholarship": "Scholarship",
   "fees.reason.sibling": "Sibling",
   "fees.reason.staffChild": "Staff child",

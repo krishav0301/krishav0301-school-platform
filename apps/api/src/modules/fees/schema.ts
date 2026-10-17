@@ -26,7 +26,7 @@ export const RequestEditSchema = z.strictObject({ reason: z.string().trim().min(
 export const LinkLevelsSchema = z.strictObject({ levelIds: z.array(PublicIdSchema).min(1, "Choose at least one level").max(60) }).openapi("LinkFeeLevels");
 export const LinkResultSchema = z
   .object({
-    levels: z.array(z.object({ levelId: z.string(), ok: z.boolean(), reason: z.enum(["not_found", "not_live", "wrong_wing", "conflict"]).optional() })),
+    levels: z.array(z.object({ levelId: z.string(), ok: z.boolean(), reason: z.enum(["not_found", "not_live", "wrong_wing", "conflict", "ended"]).optional() })),
     charged: z.number().int(),
     /** More students are still to be charged; the sweep makes the rest within minutes. */
     pending: z.boolean(),
@@ -47,6 +47,8 @@ const StructureSummary = {
   status: StructureStatusSchema,
   totalPaisa: z.number().int(),
   levelsLinked: z.number().int(),
+  /** The structure's last day has passed: it no longer charges anyone, as if unlinked. Renew it with the next period. */
+  ended: z.boolean(),
   /** This is a new version being drafted or waiting while the approved one stays in force (an edit). */
   editing: z.boolean(),
 };

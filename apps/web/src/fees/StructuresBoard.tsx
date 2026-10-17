@@ -33,7 +33,7 @@ export function StructuresBanner() {
 
 /** Currently Live: one card per live structure, as the terms page shows active terms. Pure. */
 export function LiveStructures({ structures, sections }: { structures: readonly Structure[]; sections: readonly { key: string; name: string }[] }) {
-  const live = structures.filter((x) => x.status === "live");
+  const live = structures.filter((x) => x.status === "live" && !x.ended);
   return (
     <section className={termStyles.board} aria-labelledby="live-structures">
       <div>
@@ -51,7 +51,7 @@ export function LiveStructures({ structures, sections }: { structures: readonly 
               <span className={accessStyles.tile} data-tone={TONES[i % TONES.length]} aria-hidden>
                 <ReceiptText />
               </span>
-              <StructureStatus status={x.status} />
+              <StructureStatus status={x.status} ended={x.ended} />
             </div>
             <div>
               <h3 className={termStyles.cardTitle}>{x.name}</h3>
@@ -82,15 +82,15 @@ export function LiveStructures({ structures, sections }: { structures: readonly 
   );
 }
 
-type OtherStatus = "" | "draft" | "waiting";
+type OtherStatus = "" | "draft" | "waiting" | "ended";
 
 /** Other Structures: drafts and those waiting for the Principal, searched and filtered by state. Pure but for its filters. */
 export function OtherStructures({ structures, sections }: { structures: readonly Structure[]; sections: readonly { key: string; name: string }[] }) {
   const [q, setQ] = useState("");
   const [status, setStatus] = useState<OtherStatus>("");
-  const others = structures.filter((x) => x.status !== "live");
+  const others = structures.filter((x) => x.status !== "live" || x.ended);
   const needle = q.trim().toLowerCase();
-  const rows = others.filter((x) => (!status || x.status === status) && (!needle || x.name.toLowerCase().includes(needle)));
+  const rows = others.filter((x) => (!status || (status === "ended" ? x.ended : x.status === status)) && (!needle || x.name.toLowerCase().includes(needle)));
   return (
     <section className={termStyles.board} aria-labelledby="other-structures">
       <div className={termStyles.boardHead}>
@@ -111,6 +111,7 @@ export function OtherStructures({ structures, sections }: { structures: readonly
                 { value: "", label: t("content.filterAll") },
                 { value: "draft", label: t(STATUS_LABEL.draft) },
                 { value: "waiting", label: t(STATUS_LABEL.waiting) },
+                { value: "ended", label: t("fees.status.ended") },
               ]}
             />
           </div>
@@ -140,7 +141,7 @@ export function OtherStructures({ structures, sections }: { structures: readonly
                 <td data-label={t("fees.col.period")}>{periodText(x)}</td>
                 <td data-label={t("fees.col.total")}>{nprShort(x.totalPaisa)}</td>
                 <td data-label={t("attendance.class.status")}>
-                  <StructureStatus status={x.status} />
+                  <StructureStatus status={x.status} ended={x.ended} />
                 </td>
                 <td className={accessStyles.actionsCell}>
                   <Link href={`/portal/fees/structure?id=${x.id}`} className={buttonClass({ variant: "quiet" })} aria-label={t("fees.structures.open", { name: x.name })}>

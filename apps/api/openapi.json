@@ -7708,6 +7708,9 @@
                 "levelsLinked": {
                   "type": "integer"
                 },
+                "ended": {
+                  "type": "boolean"
+                },
                 "editing": {
                   "type": "boolean"
                 }
@@ -7723,6 +7726,7 @@
                 "status",
                 "totalPaisa",
                 "levelsLinked",
+                "ended",
                 "editing"
               ]
             }
@@ -7786,6 +7790,9 @@
           },
           "levelsLinked": {
             "type": "integer"
+          },
+          "ended": {
+            "type": "boolean"
           },
           "editing": {
             "type": "boolean"
@@ -7881,6 +7888,7 @@
           "status",
           "totalPaisa",
           "levelsLinked",
+          "ended",
           "editing",
           "items",
           "inForce",
@@ -8027,7 +8035,8 @@
                     "not_found",
                     "not_live",
                     "wrong_wing",
-                    "conflict"
+                    "conflict",
+                    "ended"
                   ]
                 }
               },

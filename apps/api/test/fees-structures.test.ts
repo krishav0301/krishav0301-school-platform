@@ -369,3 +369,38 @@ describe("unlinking", () => {
     expect((await call(`/api/fees/structures/${id}/levels/${level.levelId}`, { method: "DELETE", cookie: bachelorsAccountant.cookie })).status).toBe(404);
   });
 });
+
+describe("a student is charged only for a structure they joined between the dates of (the PM, 2026-10-17)", () => {
+  const plusDays = (days: number) => new Date(Date.now() + days * 86_400_000 + 345 * 60_000).toISOString().slice(0, 10);
+
+  it("a structure whose last day has passed is as if unlinked: it cannot be linked again, and charges no one", async () => {
+    const fixture = await classWith("plus2", 1);
+    const id = await draftStructure(accountant, { sectionKey: "plus2", startDate: YEAR.startDate, endDate: plusDays(-2), items: [{ name: "Old", amountPaisa: 100_000 }] });
+    await approveStructure(accountant, admin, id);
+    const linked = await link(accountant, id, [fixture.levelId]);
+    expect(linked.body.levels[0]).toMatchObject({ ok: false, reason: "ended" });
+    expect(linked.body.charged).toBe(0);
+    expect(await chargesOf(fixture.pupils[0]!.enrollmentId)).toEqual([]);
+    // It shows as ended in its list, so the Accountant renews it.
+    const list = (await (await call("/api/fees/structures", { cookie: accountant.cookie })).json()) as { structures: { id: string; ended: boolean }[] };
+    expect(list.structures.find((x) => x.id === id)?.ended).toBe(true);
+  });
+
+  it("only a student who joined between the first and last day is charged: not one who joins after it ended, nor one who joined before it began", async () => {
+    const fixture = await classWith("plus2", 0);
+    const id = await draftStructure(accountant, { sectionKey: "plus2", startDate: plusDays(-5), endDate: plusDays(5), items: [{ name: "Window", amountPaisa: 200_000 }] });
+    await approveStructure(accountant, admin, id);
+    const inside = await enrol(fixture.classId, "Inside");
+    const after = await enrol(fixture.classId, "After");
+    const before = await enrol(fixture.classId, "Before");
+    const setJoined = (pupil: { enrollmentId: string }, day: string) => db.prepare("UPDATE enrollments SET created_at = ?2 WHERE public_id = ?1").bind(pupil.enrollmentId, `${day}T06:00:00.000Z`).run();
+    await setJoined(inside, plusDays(0));
+    await setJoined(after, plusDays(9));
+    await setJoined(before, plusDays(-20));
+    expect((await link(accountant, id, [fixture.levelId])).status).toBe(200);
+    await chargeLinked(db, auditKey);
+    expect((await chargesOf(inside.enrollmentId)).map((c) => [c.memo, c.amount_paisa, c.due_on])).toEqual([["Window", 200_000, plusDays(5)]]);
+    expect(await chargesOf(after.enrollmentId)).toEqual([]);
+    expect(await chargesOf(before.enrollmentId)).toEqual([]);
+  });
+});

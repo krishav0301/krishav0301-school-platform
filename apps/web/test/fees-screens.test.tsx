@@ -188,6 +188,7 @@ describe("the Principal reads fees (D-104, after the PM's topic 7 reference)", (
       status: "live" as const,
       totalPaisa: 1_850_000,
       levelsLinked: 2,
+      ended: false,
       editing: false,
       inForce: null,
       editRequested: false,

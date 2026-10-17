@@ -60,7 +60,7 @@ export function StructureScreen() {
         crumbs={[{ label: t("fees.structures.title"), href: "/portal/fees/structures" }, { label: s.name }]}
         actions={
           <div className={styles.headerActions}>
-            <StructureStatus status={s.status} />
+            <StructureStatus status={s.status} ended={s.ended} />
             {draft ? (
               <AddDialog label={t("fees.structure.add")} title={t("fees.structure.add")} variant={s.items.length > 0 ? "secondary" : "primary"}>
                 {(close) => (
@@ -80,7 +80,7 @@ export function StructureScreen() {
                 {t("fees.structure.send")}
               </Button>
             ) : null}
-            {accountant && s.status === "live" && !s.editRequested ? (
+            {accountant && s.status === "live" && !s.ended && !s.editRequested ? (
               <AddDialog label={t("fees.structure.editAsk")} title={t("fees.structure.editAsk")} variant="secondary" plus={false}>
                 {(close) => (
                   <EditAskForm
@@ -108,7 +108,8 @@ export function StructureScreen() {
         }
       />
       {message ? <Notice tone={message.tone}>{message.text}</Notice> : null}
-      {accountant && s.status === "live" ? <ReadOnlyNote>{s.editRequested ? t("fees.structure.editWaiting") : t("fees.structure.fixed")}</ReadOnlyNote> : null}
+      {accountant && s.status === "live" && s.ended ? <ReadOnlyNote>{t("fees.structure.endedNote")}</ReadOnlyNote> : null}
+      {accountant && s.status === "live" && !s.ended ? <ReadOnlyNote>{s.editRequested ? t("fees.structure.editWaiting") : t("fees.structure.fixed")}</ReadOnlyNote> : null}
       {s.editing && s.inForce ? <ReadOnlyNote>{t("fees.structure.editingNote", { total: formatNprShort(s.inForce.totalPaisa) })}</ReadOnlyNote> : null}
       {accountant && s.status === "waiting" ? <ReadOnlyNote>{t("fees.structure.waiting")}</ReadOnlyNote> : null}
       <Panel title={t("fees.structure.items")} labelledBy="items-heading">
@@ -119,7 +120,7 @@ export function StructureScreen() {
           title={t("fees.structure.levels")}
           labelledBy="levels-heading"
           actions={
-            accountant ? (
+            accountant && !s.ended ? (
               <AddDialog label={t("fees.structure.link")} title={t("fees.structure.link")} variant="secondary" plus={false}>
                 {(close) => (
                   <LinkLevels

@@ -2,6 +2,7 @@ import { beforeAll, describe, expect, it } from "vitest";
 
 import { formatNpr } from "../src/modules/fees/money";
 import { call, count, db, person, seedSections, type Person } from "./academics-helpers";
+import { afterEach, vi } from "vitest";
 import { liveFees } from "./fees-helpers";
 import { classWith, type ClassFixture } from "./schoolday-helpers";
 
@@ -16,6 +17,13 @@ let fixture: ClassFixture;
 let accountant: Person, admin: Person, coordinator: Person;
 const post = (path: string, body: unknown, who: Person) => call(path, { method: "POST", body, cookie: who.cookie });
 
+afterEach(() => vi.useRealTimers());
+/** Three days on, after the structure has ended, with a fresh sign-in (a token is short-lived). */
+async function afterTheEnd(role: "accountant" | "admin"): Promise<Person> {
+  vi.useFakeTimers({ toFake: ["Date"], now: Date.now() + 3 * 86_400_000 });
+  return person(role, "institution");
+}
+
 beforeAll(async () => {
   await seedSections();
   // An email names the school, so the school must exist for one to be delivered.
@@ -24,7 +32,7 @@ beforeAll(async () => {
   admin = await person("admin", "institution");
   coordinator = await person("coordinator", "institution");
   fixture = await classWith("plus2", 3);
-  await liveFees({ accountant, admin, sectionKey: "plus2", levelIds: [fixture.levelId], items: [{ name: "Annual fee", amountPaisa: 125_000_000 }], endDate: "2026-10-01" }); // ended: what is unpaid is overdue (due on the last day)
+  await liveFees({ accountant, admin, sectionKey: "plus2", levelIds: [fixture.levelId], items: [{ name: "Annual fee", amountPaisa: 125_000_000 }], endDate: new Date(Date.now() + 86_400_000).toISOString().slice(0, 10) }); // ends tomorrow: what is unpaid is overdue only once it has ended (due on the last day)
   // Pupil 0 pays in full; pupil 1 pays part; pupil 2 pays nothing and has an email address.
   await post("/api/fees/payments/cash", { enrollmentId: fixture.pupils[0]!.enrollmentId, amountPaisa: 125_000_000, idempotencyKey: crypto.randomUUID().replace(/-/g, "") }, accountant);
   await post("/api/fees/payments/cash", { enrollmentId: fixture.pupils[1]!.enrollmentId, amountPaisa: 25_000_000, idempotencyKey: crypto.randomUUID().replace(/-/g, "") }, accountant);
@@ -44,7 +52,8 @@ describe("NPR", () => {
 
 describe("the dues list", () => {
   it("gives each student's charged, paid, due and overdue, and the totals", async () => {
-    const response = await call(`/api/fees/dues?classId=${fixture.classId}`, { cookie: accountant.cookie });
+    const later = await afterTheEnd("accountant");
+    const response = await call(`/api/fees/dues?classId=${fixture.classId}`, { cookie: later.cookie });
     expect(response.status).toBe(200);
     const list = (await response.json()) as { students: { enrollmentId: string; paidPaisa: number; duePaisa: number; overduePaisa: number }[]; totals: { duePaisa: number } };
     const row = (i: number) => list.students.find((s) => s.enrollmentId === fixture.pupils[i]!.enrollmentId)!;
@@ -85,10 +94,11 @@ describe("the dues list", () => {
 describe("overdue reminders", () => {
   it("email the students with something overdue and an address, once a day however often it is pressed", async () => {
     const before = await count("SELECT COUNT(*) AS n FROM outbox_events WHERE dedupe_key LIKE 'fee_overdue:%'");
-    const first = await post("/api/fees/reminders", undefined, accountant);
+    const later = await afterTheEnd("accountant");
+    const first = await post("/api/fees/reminders", undefined, later);
     expect(first.status).toBe(200);
     expect(((await first.json()) as { queued: number }).queued).toBe(1); // pupil 1 is overdue but has no email
-    await post("/api/fees/reminders", undefined, accountant);
+    await post("/api/fees/reminders", undefined, later);
     expect(await count("SELECT COUNT(*) AS n FROM outbox_events WHERE dedupe_key LIKE 'fee_overdue:%'")).toBe(before + 1);
     const mail = await db.prepare("SELECT body FROM dev_mailbox WHERE to_email = 'pupil2@example.com' ORDER BY id DESC LIMIT 1").first<{ body: string }>();
     expect(mail?.body ?? "").toContain("12,50,000.00");
