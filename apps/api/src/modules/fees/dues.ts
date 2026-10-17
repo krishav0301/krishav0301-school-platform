@@ -22,7 +22,8 @@ export async function listDues(db: D1Database, grant: Grant, classId: string | n
                 EXISTS (SELECT 1 FROM fee_account_closures fc WHERE fc.enrollment_id = en.id) AS closed
            FROM enrollments en JOIN students st ON st.id = en.student_id JOIN academic_years ay ON ay.id = en.academic_year_id
            JOIN classes cl ON cl.id = en.class_id JOIN levels lv ON lv.id = cl.level_id JOIN programmes pv ON pv.id = lv.programme_id JOIN sections s ON s.id = pv.section_id
-          WHERE ay.status = 'active' AND (?1 IS NULL OR s.key IN (SELECT value FROM json_each(?1))) AND (?2 IS NULL OR cl.public_id = ?2)
+          WHERE ay.status = 'active' AND NOT EXISTS (SELECT 1 FROM fee_account_closures fc WHERE fc.enrollment_id = en.id)
+            AND (?1 IS NULL OR s.key IN (SELECT value FROM json_each(?1))) AND (?2 IS NULL OR cl.public_id = ?2)
           ORDER BY s.ordering, pv.ordering, lv.ordinal, cl.label, st.last_name, st.first_name`,
       )
       .bind(sectionFilter(grant), classId),
@@ -31,7 +32,8 @@ export async function listDues(db: D1Database, grant: Grant, classId: string | n
         `SELECT en.public_id AS enrollment, le.public_id, le.kind, le.amount_paisa, le.due_on
            FROM ledger_entries le JOIN enrollments en ON en.id = le.enrollment_id JOIN academic_years ay ON ay.id = en.academic_year_id
            JOIN classes cl ON cl.id = en.class_id JOIN levels lv ON lv.id = cl.level_id JOIN programmes pv ON pv.id = lv.programme_id JOIN sections s ON s.id = pv.section_id
-          WHERE ay.status = 'active' AND (?1 IS NULL OR s.key IN (SELECT value FROM json_each(?1))) AND (?2 IS NULL OR cl.public_id = ?2)`,
+          WHERE ay.status = 'active' AND NOT EXISTS (SELECT 1 FROM fee_account_closures fc WHERE fc.enrollment_id = en.id)
+            AND (?1 IS NULL OR s.key IN (SELECT value FROM json_each(?1))) AND (?2 IS NULL OR cl.public_id = ?2)`,
       )
       .bind(sectionFilter(grant), classId),
   ]);

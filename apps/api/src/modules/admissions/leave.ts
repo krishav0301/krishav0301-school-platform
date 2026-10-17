@@ -1,7 +1,7 @@
 import { recordAudit } from "../../core/audit";
 import { newPublicId } from "../../core/ids";
 import { requestApproval, type ApprovalHandler } from "../approvals/service";
-import { closeFeeAccountStatement } from "../fees";
+import { closeFeeAccountStatement, formatNpr } from "../fees";
 import { coordinatorForSection } from "./guard";
 
 /**
@@ -101,6 +101,18 @@ export const studentLeaveApprovalHandler: ApprovalHandler = {
   async currentVersion(db, id) {
     return (await db.prepare("SELECT 1 AS n FROM student_leave_requests WHERE id = ?1").bind(id).first<{ n: number }>())?.n ?? null;
   },
+  // The fee account must be settled first (the PM, 2026-10-17): nothing owed and no credit. The Principal can give a discount for
+  // what is owed, and the Accountant pays back any credit, then approve. The batch below checks it again.
+  async blocker(db, id) {
+    const row = await db
+      .prepare("SELECT COALESCE(SUM(le.amount_paisa), 0) AS balance FROM student_leave_requests r JOIN ledger_entries le ON le.enrollment_id = r.enrollment_id WHERE r.id = ?1")
+      .bind(id)
+      .first<{ balance: number }>();
+    const balance = row?.balance ?? 0;
+    if (balance > 0) return `The fee account must be settled before the student is marked Left: NPR ${formatNpr(balance)} is still owed. Give a discount for that amount on the student's fee page, or have it paid, then approve.`;
+    if (balance < 0) return `The fee account must be settled before the student is marked Left: NPR ${formatNpr(-balance)} is in credit. The Accountant pays it back first, then approve.`;
+    return null;
+  },
   onRequested: (db, id) => [db.prepare("UPDATE student_leave_requests SET status = 'pending' WHERE id = ?1 AND status = 'draft'").bind(id)],
   // Each statement runs only if the one before it changed a row (the engine's own decide statement follows the last): the
   // student is marked Left, the enrollment leaves the class, the fee account closes, and the request is marked approved.
@@ -111,7 +123,8 @@ export const studentLeaveApprovalHandler: ApprovalHandler = {
       db
         .prepare(
           `UPDATE students SET status = 'left'
-            WHERE id = (SELECT en.student_id FROM student_leave_requests r JOIN enrollments en ON en.id = r.enrollment_id WHERE r.id = ?1 AND r.status = 'pending')
+            WHERE id = (SELECT en.student_id FROM student_leave_requests r JOIN enrollments en ON en.id = r.enrollment_id WHERE r.id = ?1 AND r.status = 'pending'
+                 AND (SELECT COALESCE(SUM(le.amount_paisa), 0) FROM ledger_entries le WHERE le.enrollment_id = r.enrollment_id) = 0)
               AND status = 'active'`,
         )
         .bind(id),

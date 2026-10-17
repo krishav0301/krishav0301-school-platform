@@ -93,24 +93,46 @@ describe("asking for a student to be marked Left", () => {
 });
 
 describe("approved: the student is Left and the fee account is closed", () => {
-  it("one batch: Left, the enrollment leaves the class, the account closes with what was owed; unpaid stays owed", async () => {
+  const leaveOf = async (pupil: number) =>
+    (await db.prepare("SELECT public_id FROM student_leave_requests WHERE enrollment_id = (SELECT id FROM enrollments WHERE public_id = ?1) AND status = 'pending'").bind(fixture.pupils[pupil]!.enrollmentId).first<{ public_id: string }>())!.public_id;
+  const settleByDiscount = async (pupil: number) => {
+    const { balancePaisa } = await account(pupil);
+    expect((await post(`/api/fees/enrollments/${fixture.pupils[pupil]!.enrollmentId}/discounts`, { amountPaisa: balancePaisa, reason: "other", note: "Left before the term ended" }, admin)).status).toBe(201);
+  };
+
+  it("blocked while anything is owed: the Principal is told what to do, and nothing changes", async () => {
     const before = await account(1);
     expect(before.balancePaisa).toBe(1_000_000);
-    const leaveId = (await db.prepare("SELECT public_id FROM student_leave_requests WHERE enrollment_id = (SELECT id FROM enrollments WHERE public_id = ?1) AND status = 'pending'").bind(fixture.pupils[1]!.enrollmentId).first<{ public_id: string }>())!.public_id;
-    expect((await approve(await requestOf(leaveId))).status).toBe(200);
+    const refused = await approve(await requestOf(await leaveOf(1)));
+    expect(refused.status).toBe(422);
+    expect(((await refused.json()) as { message: string }).message).toMatch(/must be settled.*10,000\.00 is still owed.*discount/i);
+    expect(await statusOf(1)).toEqual({ student: "active", enrollment: "active" });
+    expect(await closureOf(1)).toBeNull();
+  });
+
+  it("the Principal gives a discount for what is owed, then approves: one batch, Left, the enrollment leaves the class, the account closes at zero", async () => {
+    await settleByDiscount(1);
+    expect(await account(1)).toMatchObject({ balancePaisa: 0 });
+    const requestId = await requestOf(await leaveOf(1));
+    expect((await approve(requestId)).status).toBe(200);
     expect(await statusOf(1)).toEqual({ student: "left", enrollment: "left" });
-    expect(await closureOf(1)).toEqual({ owed_paisa: 1_000_000 });
-    expect(await account(1)).toMatchObject({ balancePaisa: 1_000_000, duePaisa: 1_000_000 });
+    expect(await closureOf(1)).toEqual({ owed_paisa: 0 });
     // A second click is "already decided" and changes nothing.
-    expect((await approve(await requestOf(leaveId), secondAdmin)).status).toBe(409);
+    expect((await approve(requestId, secondAdmin)).status).toBe(409);
     expect(await count("SELECT COUNT(*) AS n FROM fee_account_closures WHERE enrollment_id = (SELECT id FROM enrollments WHERE public_id = ?1)", fixture.pupils[1]!.enrollmentId)).toBe(1);
   });
 
-  it("a part-paid student leaves owing the rest: no zero-dues rule", async () => {
-    const leaveId = (await db.prepare("SELECT public_id FROM student_leave_requests WHERE enrollment_id = (SELECT id FROM enrollments WHERE public_id = ?1) AND status = 'pending'").bind(fixture.pupils[0]!.enrollmentId).first<{ public_id: string }>())!.public_id;
-    expect((await approve(await requestOf(leaveId))).status).toBe(200);
-    expect(await closureOf(0)).toEqual({ owed_paisa: 600_000 });
-    expect(await account(0)).toMatchObject({ paidPaisa: 400_000, balancePaisa: 600_000 });
+  it("credit blocks it too: the Accountant pays it back first", async () => {
+    await settleByDiscount(0); // part-paid: 600,000 owed, discounted away
+    expect((await post("/api/fees/payments/cash", { enrollmentId: fixture.pupils[0]!.enrollmentId, amountPaisa: 50_000, idempotencyKey: key() }, accountant)).status).toBe(201);
+    expect(await account(0)).toMatchObject({ creditPaisa: 50_000 });
+    const requestId = await requestOf(await leaveOf(0));
+    const refused = await approve(requestId);
+    expect(refused.status).toBe(422);
+    expect(((await refused.json()) as { message: string }).message).toMatch(/in credit.*pays it back/i);
+    expect((await post(`/api/fees/enrollments/${fixture.pupils[0]!.enrollmentId}/refunds`, { amountPaisa: 50_000, method: "cash" }, accountant)).status).toBe(201);
+    expect((await approve(requestId)).status).toBe(200);
+    expect(await closureOf(0)).toEqual({ owed_paisa: 0 });
   });
 
   it("nobody can take anything on a closed account: payment, discount, refund, reversal, voucher", async () => {
@@ -118,7 +140,7 @@ describe("approved: the student is Left and the fee account is closed", () => {
     const entries = () => count("SELECT COUNT(*) AS n FROM ledger_entries WHERE enrollment_id = (SELECT id FROM enrollments WHERE public_id = ?1)", enrollmentId);
     const before = await entries();
     expect((await post("/api/fees/payments/cash", { enrollmentId, amountPaisa: 1_000, idempotencyKey: key() }, accountant)).status).toBe(409);
-    expect((await post(`/api/fees/enrollments/${enrollmentId}/discounts`, { amountPaisa: 1_000, reason: "sibling" }, admin)).status).toBe(409);
+    expect((await post(`/api/fees/enrollments/${enrollmentId}/discounts`, { amountPaisa: 1_000, reason: "sibling" }, admin)).status).toBeGreaterThanOrEqual(409); // refused: fully discounted, and closed
     expect((await post(`/api/fees/enrollments/${enrollmentId}/refunds`, { amountPaisa: 1, method: "cash" }, accountant)).status).toBe(422); // no credit to give back
     expect(await entries()).toBe(before);
     // The database says the same, whoever asks: a direct entry is refused.
@@ -148,6 +170,7 @@ describe("approved: the student is Left and the fee account is closed", () => {
 
   it("two Principals approving at once: one wins; the student is marked Left once", async () => {
     const leaveId = await idOf(await ask(4));
+    await settleByDiscount(4);
     const requestId = await requestOf(leaveId);
     const [a, b] = await Promise.all([approve(requestId, admin), approve(requestId, secondAdmin)]);
     expect([a.status, b.status].sort()).toEqual([200, 409]);

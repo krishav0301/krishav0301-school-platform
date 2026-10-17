@@ -16,3 +16,4 @@ export { feesDashboardPart, type FeesDashboard } from "./dues";
 export { applyPriceChanges, chargeLinked } from "./structures";
 export { carryDues, enrollmentBalances, type CarryResult } from "./carry";
 export { closeFeeAccountStatement } from "./closure";
+export { formatNpr } from "./money";

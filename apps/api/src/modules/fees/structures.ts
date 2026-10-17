@@ -1,5 +1,5 @@
 import { recordAudit } from "../../core/audit";
-import { adToBs, adToBsText, nepalDate } from "../../core/dates";
+import { adToBsText, nepalDate } from "../../core/dates";
 import { newPublicId } from "../../core/ids";
 import { formatNpr } from "./money";
 import type { Grant } from "../../core/permissions";
@@ -421,7 +421,7 @@ export async function chargeLinked(db: D1Database, key: string, scope: ChargeSco
          JOIN users lfu ON lfu.id = lf.linked_by_user_id AND lfu.is_active = 1
          JOIN levels lv ON lv.id = lf.level_id
          JOIN classes cl ON cl.level_id = lf.level_id AND cl.is_active = 1
-         JOIN academic_years ay ON ay.id = cl.academic_year_id AND ay.status <> 'closed' AND ay.start_date <= r.end_date AND ay.end_date >= r.start_date
+         JOIN academic_years ay ON ay.id = cl.academic_year_id AND ay.status <> 'closed'
          JOIN enrollments en ON en.class_id = cl.id AND en.status = 'active'
         WHERE (?1 IS NULL OR r.public_id = ?1) AND (?2 IS NULL OR en.public_id = ?2)
         ORDER BY en.id`,
@@ -451,11 +451,19 @@ export async function chargeLinked(db: D1Database, key: string, scope: ChargeSco
   let cut = false;
   for (const w of work) {
     for (const line of lines.filter((l) => l.structure_id === w.version_id)) {
-      const year = { bsYear: adToBs(w.start_date).year, startDate: w.start_date, endDate: w.end_date };
+      // A structure is its own dates, not the term's (the PM, 2026-10-17); `bsYear` is only a fallback when there is no end date, so a date
+      // beyond the verified BS calendar must not stop the run.
+      const year = { bsYear: 0, startDate: w.start_date, endDate: w.end_date };
       // A student who joined by the structure's last day is charged under it, once it is linked and approved (one admitted early
       // included); one who joins after it ended is not (the PM, 2026-10-17): it is as if unlinked.
       if (line.frequency === "one_time" && nepalDate(new Date(w.created_at)) > w.end_date) continue;
-      for (const charge of billingSchedule(line, year, { enrolledOn: nepalDate(new Date(w.created_at)), firstInProgramme: w.first_in_programme === 1 })) {
+      let schedule: ReturnType<typeof billingSchedule>;
+      try {
+        schedule = billingSchedule(line, year, { enrolledOn: nepalDate(new Date(w.created_at)), firstInProgramme: w.first_in_programme === 1 });
+      } catch {
+        continue; // an old-style monthly line over dates the calendar cannot convert yet: left for when it can
+      }
+      for (const charge of schedule) {
         // Billed under any version of this structure already (a line of an edited version is the same line, by its name).
         if (have.has(`${w.enrollment}|${w.root_id}|${line.name.toLowerCase()}|${charge.period}`)) continue;
         if (total >= limit) {

@@ -139,6 +139,11 @@ export async function decideRequest(db: D1Database, auditKey: string, actor: str
   };
   if (staleRow && staleRow.subject_version !== currentVersion) return markStale();
 
+  if (parsed.data.approve && handler.blocker) {
+    const blocked = await handler.blocker(db, request.subject_id);
+    if (blocked) return { ok: false, reason: "invalid", message: blocked };
+  }
+
   const now = new Date().toISOString();
   const decideStatement = parsed.data.approve
     ? db

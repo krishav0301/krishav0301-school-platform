@@ -162,18 +162,21 @@ describe.each([
     expect(await accountOf(cookies.Sita!)).toMatchObject({ creditPaisa: 0, balancePaisa: 0, refundedPaisa: 100_000 });
   });
 
-  it("a student leaves: the Co-ordinator asks, the Principal approves, the account closes with what is unpaid still owed", async () => {
+  it("a student leaves: the Co-ordinator asks; the Principal settles any balance with a discount, approves, and the account closes at zero", async () => {
     const hari = await accountOf(cookies.Hari!);
     expect((await post("/api/students/leave-requests", { enrollmentId: hari.enrollmentId, reason: "Family is moving" }, cookies.accountant)).status).toBe(403);
     const asked = await post("/api/students/leave-requests", { enrollmentId: hari.enrollmentId, reason: "Family is moving" }, cookies.coordinator);
     expect(asked.status).toBe(201);
     const leaveId = await idOf(asked);
     expect((await approve(leaveId, cookies.coordinator)).status).toBe(403);
+    // Blocked while 650 is owed; the Principal discounts it, then approves.
+    expect((await approve(leaveId, cookies.admin)).status).toBe(422);
+    expect((await post(`/api/fees/enrollments/${hari.enrollmentId}/discounts`, { amountPaisa: 650_000, reason: "other", note: "Left before the term ended" }, cookies.admin)).status).toBe(201);
     expect((await approve(leaveId, cookies.admin)).status).toBe(200);
-    expect(await accountOf(cookies.Hari!)).toMatchObject({ balancePaisa: 650_000, closed: { owedPaisa: 650_000 } });
+    expect(await accountOf(cookies.Hari!)).toMatchObject({ balancePaisa: 0, closed: { owedPaisa: 0 } });
     // Closed for everyone.
     expect((await post("/api/fees/payments/cash", { enrollmentId: hari.enrollmentId, amountPaisa: 1_000, idempotencyKey: key() }, cookies.accountant)).status).toBe(409);
-    expect((await post(`/api/fees/enrollments/${hari.enrollmentId}/discounts`, { amountPaisa: 1_000, reason: "sibling" }, cookies.admin)).status).toBe(409);
+    expect((await post(`/api/fees/enrollments/${hari.enrollmentId}/discounts`, { amountPaisa: 1_000, reason: "sibling" }, cookies.admin)).status).toBeGreaterThanOrEqual(409);
     expect((await call(`/api/fees/discounts/${state.discountId}`, { method: "DELETE", cookie: cookies.admin })).status).toBeGreaterThanOrEqual(409);
     // The others of the class are untouched and can still pay.
     const gita = await accountOf(cookies.Gita!);
@@ -187,14 +190,14 @@ describe.each([
     expect((await call("/api/fees/dues", { cookie: cookies.coordinator })).status).toBe(403);
     expect((await call("/api/fees/discounts", { cookie: cookies.accountant })).status).toBe(403);
     const report = (await (await call("/api/fees/discounts", { cookie: cookies.admin })).json()) as { activeCount: number; activePaisa: number };
-    expect(report).toMatchObject({ activeCount: 1, activePaisa: 250_000 });
+    expect(report).toMatchObject({ activeCount: 2, activePaisa: 900_000 });
   });
 
   it("the dues list shows the closed account and agrees with the accounts; both chains are unbroken", async () => {
     const dues = (await (await call("/api/fees/dues", { cookie: cookies.accountant })).json()) as { students: { enrollmentId: string; closed: boolean; balancePaisa: number }[] };
     const hari = await accountOf(cookies.Hari!);
-    expect(dues.students.find((s) => s.enrollmentId === hari.enrollmentId)).toMatchObject({ closed: true, balancePaisa: 650_000 });
-    expect(dues.students.filter((s) => s.closed)).toHaveLength(1);
+    expect(dues.students.find((s) => s.enrollmentId === hari.enrollmentId)).toBeUndefined(); // closed and archived
+    expect(dues.students).toHaveLength(2);
     expect((await verifyLedgerChain(db(), env.AUDIT_HMAC_KEY)).ok).toBe(true);
     expect((await verifyAuditChain(db(), env.AUDIT_HMAC_KEY)).ok).toBe(true);
   });

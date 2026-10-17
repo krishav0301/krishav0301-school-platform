@@ -223,8 +223,8 @@ describe("linking to levels", () => {
     await approveStructure(accountant, admin, nextYear);
     const linkedNext = await link(accountant, nextYear, [level.levelId]);
     expect(linkedNext.body.levels[0]).toMatchObject({ ok: true });
-    // The term of these students has ended before next year's structure begins: nobody is charged for it yet.
-    expect(linkedNext.body.charged).toBe(0);
+    // Fees are not tied to terms: a student already in the level is charged when the structure is linked, even before it begins.
+    expect(linkedNext.body.charged).toBe(1);
   });
 
   it("the Co-ordinator, the Principal and a student cannot link; a section Accountant links only their own wing's structure", async () => {
@@ -308,10 +308,10 @@ describe("automatic charging", () => {
     expect((await call(`/api/fees/enrollments/${fixture.pupils[1]!.enrollmentId}`, { cookie: own.person.cookie })).status).toBe(404);
   });
 
-  it("a structure whose dates do not meet the pupils' term charges them nothing, and a closed term is never charged", async () => {
+  it("a structure is its own dates, not the term's: far dates still charge the level's students once it is linked", async () => {
     const far = await classWith("plus2", 1);
     await liveFees({ accountant, admin, sectionKey: "plus2", levelIds: [far.levelId], startDate: "2030-04-14", endDate: "2031-04-12" });
-    expect(await chargesOf(far.pupils[0]!.enrollmentId)).toEqual([]);
+    expect((await chargesOf(far.pupils[0]!.enrollmentId)).map((c) => [c.memo, c.due_on])).toEqual([["Annual fee", "2031-04-12"]]);
   });
 
   it("a level linked to a structure bills the lines of the live version only, and a line switched off before approval is not billed", async () => {

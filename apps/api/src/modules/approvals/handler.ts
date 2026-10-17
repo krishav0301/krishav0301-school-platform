@@ -32,6 +32,12 @@ export interface ApprovalHandler {
   detail?(db: D1Database, subjectId: number): Promise<ApprovalDetail | null>;
   /** The subject's own version fingerprint right now. Null when gone. */
   currentVersion(db: D1Database, subjectId: number): Promise<number | null>;
+  /**
+   * Something that must be put right before this request can be approved: its plain-words reason, or null when nothing stands in
+   * the way (a student's fee account must be settled before they are marked Left, D-172). Checked before the approval, and the
+   * handler's own statements check it again inside the batch.
+   */
+  blocker?(db: D1Database, subjectId: number): Promise<string | null>;
   /** Runs FIRST in the "send for approval" batch, conditioned on the subject's own "may be sent" state. */
   onRequested(db: D1Database, subjectId: number): D1PreparedStatement[];
   /** Runs FIRST in the "approve" batch, conditioned on the subject's own "is pending" state. */

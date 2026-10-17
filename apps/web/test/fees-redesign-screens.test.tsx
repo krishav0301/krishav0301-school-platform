@@ -51,12 +51,12 @@ const account: Account = {
 };
 
 describe("a closed fee account (D-172, slice 5)", () => {
-  it("says it is closed, when, and what stays owed; an open account says nothing of the kind", () => {
+  it("says it is closed and when; an open account says nothing of the kind", () => {
     const open = inContext(<AccountView account={account} />);
     expect(open).not.toContain("was closed on");
     const closed = inContext(<AccountView account={{ ...account, closed: { closedOnBs: "2083-07-01", owedPaisa: 60_000 } }} />);
     expect(closed).toContain("was closed on");
-    expect(closed).toContain("stays owed");
+    expect(closed).toContain("with 600 owed");
     expect(inContext(<AccountView account={{ ...account, closed: { closedOnBs: "2083-07-01", owedPaisa: -5_000 } }} />)).toContain("in credit");
     expect(inContext(<AccountView account={{ ...account, closed: { closedOnBs: "2083-07-01", owedPaisa: 0 } }} />)).toContain("Nothing was owed");
   });

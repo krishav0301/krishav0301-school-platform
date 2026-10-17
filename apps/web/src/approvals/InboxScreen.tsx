@@ -418,7 +418,7 @@ function ReviewDrawer({ request, onClose }: { request: ApprovalSummary; onClose:
     if (result.ok) return setStep("approved");
     if (result.reason === "stale") return setStale(true);
     if (result.reason === "already_decided") return setStep("already");
-    setProblem(t(result.reason === "own_request" ? "approvals.error.ownRequest" : "approvals.error.approveFailed"));
+    setProblem(result.message ?? t(result.reason === "own_request" ? "approvals.error.ownRequest" : "approvals.error.approveFailed"));
   }
 
   async function doDecline(event: FormEvent) {

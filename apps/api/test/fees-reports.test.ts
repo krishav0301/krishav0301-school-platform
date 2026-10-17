@@ -88,22 +88,23 @@ describe("price changes after an approved edit", () => {
 });
 
 describe("a closed account in the statement and the dues list", () => {
-  it("the statement says it is closed, with when and what was owed; the dues list marks it and still counts what is owed", async () => {
+  it("the statement says it is closed and when; the dues list no longer has it (archived)", async () => {
     const pupil = fixture.pupils[2]!;
     const before = await get<{ closed: unknown; balancePaisa: number }>(`/api/fees/enrollments/${pupil.enrollmentId}`, accountant);
     expect(before.closed).toBeNull();
+    // Settled first: a student leaves only with nothing owed and no credit.
+    expect((await post(`/api/fees/enrollments/${pupil.enrollmentId}/discounts`, { amountPaisa: before.balancePaisa, reason: "other", note: "Left" }, admin)).status).toBe(201);
     const asked = await post("/api/students/leave-requests", { enrollmentId: pupil.enrollmentId, reason: "Moving away" }, coordinator);
     const request = (await db.prepare("SELECT public_id FROM approval_requests WHERE subject_public_id = ?1").bind(await idOf(asked)).first<{ public_id: string }>())!.public_id;
     expect((await post(`/api/approvals/${request}/approve`, undefined, admin)).status).toBe(200);
 
     const after = await get<{ closed: { closedOnBs: string | null; owedPaisa: number } | null; balancePaisa: number }>(`/api/fees/enrollments/${pupil.enrollmentId}`, accountant);
-    expect(after.closed).toMatchObject({ owedPaisa: before.balancePaisa });
+    expect(after.closed).toMatchObject({ owedPaisa: 0 });
     expect(after.closed!.closedOnBs).toMatch(/^\d{4}-\d{2}-\d{2}$/);
-    expect(after.balancePaisa).toBe(before.balancePaisa);
+    expect(after.balancePaisa).toBe(0);
 
     const dues = await get<{ students: { enrollmentId: string; closed: boolean; duePaisa: number }[]; totals: { duePaisa: number } }>("/api/fees/dues", accountant);
-    expect(dues.students.find((s) => s.enrollmentId === pupil.enrollmentId)).toMatchObject({ closed: true });
-    expect(dues.students.find((s) => s.enrollmentId === pupil.enrollmentId)!.duePaisa).toBeGreaterThan(0);
+    expect(dues.students.find((s) => s.enrollmentId === pupil.enrollmentId)).toBeUndefined(); // archived
     expect(dues.students.find((s) => s.enrollmentId === fixture.pupils[1]!.enrollmentId)!.closed).toBe(false);
     void auditKey;
   });
