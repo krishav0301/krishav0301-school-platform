@@ -1999,6 +1999,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/fees/structures/{id}/edit-request": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Asks the Principal to let an approved structure be edited, with a reason. The approved version stays in force. When the Principal approves the request, a draft copy appears for the Accountant to edit and send for approval again. */
+        post: operations["request_fee_structure_edit"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/fees/structures/{id}/discard": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Gives up a draft edit of an approved structure (only a draft that replaces an approved version). The approved version is untouched, and a new edit can be asked for. */
+        post: operations["discard_fee_structure_edit"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/fees/structures/{id}/levels": {
         parameters: {
             query?: never;
@@ -3738,7 +3772,7 @@ export interface components {
             subjectId: string;
         };
         /** @enum {string} */
-        ApprovalKind: "website_content" | "fee_structure" | "discount" | "reversal" | "refund";
+        ApprovalKind: "website_content" | "fee_structure" | "fee_structure_edit" | "discount" | "reversal" | "refund" | "student_leave";
         ApprovalsOk: {
             /** @enum {boolean} */
             ok: true;
@@ -3797,6 +3831,25 @@ export interface components {
                 amountPaisa: number;
                 /** @enum {string} */
                 frequency: "one_time" | "monthly" | "yearly" | "whole_course";
+            }[];
+            totalPaisa: number;
+            previous: {
+                items: {
+                    name: string;
+                    amountPaisa: number;
+                }[];
+                totalPaisa: number;
+            } | null;
+        } | {
+            /** @enum {string} */
+            kind: "fee_structure_edit";
+            name: string;
+            startDateBs: string | null;
+            endDateBs: string | null;
+            reason: string;
+            items: {
+                name: string;
+                amountPaisa: number;
             }[];
             totalPaisa: number;
         } | {
@@ -4483,6 +4536,7 @@ export interface components {
                 status: "draft" | "waiting" | "live";
                 totalPaisa: number;
                 levelsLinked: number;
+                editing: boolean;
             }[];
         };
         FeesError: {
@@ -4500,6 +4554,7 @@ export interface components {
             status: "draft" | "waiting" | "live";
             totalPaisa: number;
             levelsLinked: number;
+            editing: boolean;
             items: {
                 id: string;
                 name: string;
@@ -4507,6 +4562,11 @@ export interface components {
                 /** @enum {string} */
                 frequency: "one_time" | "monthly" | "yearly" | "whole_course";
             }[];
+            inForce: {
+                id: string;
+                totalPaisa: number;
+            } | null;
+            editRequested: boolean;
             levels: {
                 levelId: string;
                 programmeName: string;
@@ -4537,6 +4597,9 @@ export interface components {
         NewFeePeriod: {
             startDate: string;
             endDate: string;
+        };
+        RequestFeeEdit: {
+            reason: string;
         };
         LinkFeeLevelsResult: {
             levels: {
@@ -11458,6 +11521,131 @@ export interface operations {
                 content: {
                     "application/json": {
                         id: string;
+                    };
+                };
+            };
+            /** @description Not allowed */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeesError"];
+                };
+            };
+            /** @description No such item, or not one the person may reach */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeesError"];
+                };
+            };
+            /** @description Not possible in its current state (not a draft, not live, already there, or the year is closed) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeesError"];
+                };
+            };
+            /** @description Not valid */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeesInvalid"];
+                };
+            };
+        };
+    };
+    request_fee_structure_edit: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RequestFeeEdit"];
+            };
+        };
+        responses: {
+            /** @description Asked; the approval request's id */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        id: string;
+                    };
+                };
+            };
+            /** @description Not allowed */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeesError"];
+                };
+            };
+            /** @description No such item, or not one the person may reach */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeesError"];
+                };
+            };
+            /** @description Not possible in its current state (not a draft, not live, already there, or the year is closed) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeesError"];
+                };
+            };
+            /** @description Not valid */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeesInvalid"];
+                };
+            };
+        };
+    };
+    discard_fee_structure_edit: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Discarded */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {boolean} */
+                        ok: true;
                     };
                 };
             };

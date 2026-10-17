@@ -4092,9 +4092,11 @@
         "enum": [
           "website_content",
           "fee_structure",
+          "fee_structure_edit",
           "discount",
           "reversal",
-          "refund"
+          "refund",
+          "student_leave"
         ]
       },
       "ApprovalsOk": {
@@ -4374,6 +4376,39 @@
               },
               "totalPaisa": {
                 "type": "integer"
+              },
+              "previous": {
+                "type": [
+                  "object",
+                  "null"
+                ],
+                "properties": {
+                  "items": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "name": {
+                          "type": "string"
+                        },
+                        "amountPaisa": {
+                          "type": "integer"
+                        }
+                      },
+                      "required": [
+                        "name",
+                        "amountPaisa"
+                      ]
+                    }
+                  },
+                  "totalPaisa": {
+                    "type": "integer"
+                  }
+                },
+                "required": [
+                  "items",
+                  "totalPaisa"
+                ]
               }
             },
             "required": [
@@ -4383,6 +4418,66 @@
               "endDate",
               "startDateBs",
               "endDateBs",
+              "items",
+              "totalPaisa",
+              "previous"
+            ]
+          },
+          {
+            "type": "object",
+            "properties": {
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "fee_structure_edit"
+                ]
+              },
+              "name": {
+                "type": "string"
+              },
+              "startDateBs": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "endDateBs": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "reason": {
+                "type": "string"
+              },
+              "items": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "name": {
+                      "type": "string"
+                    },
+                    "amountPaisa": {
+                      "type": "integer"
+                    }
+                  },
+                  "required": [
+                    "name",
+                    "amountPaisa"
+                  ]
+                }
+              },
+              "totalPaisa": {
+                "type": "integer"
+              }
+            },
+            "required": [
+              "kind",
+              "name",
+              "startDateBs",
+              "endDateBs",
+              "reason",
               "items",
               "totalPaisa"
             ]
@@ -7542,6 +7637,9 @@
                 },
                 "levelsLinked": {
                   "type": "integer"
+                },
+                "editing": {
+                  "type": "boolean"
                 }
               },
               "required": [
@@ -7554,7 +7652,8 @@
                 "endDateBs",
                 "status",
                 "totalPaisa",
-                "levelsLinked"
+                "levelsLinked",
+                "editing"
               ]
             }
           }
@@ -7618,6 +7717,9 @@
           "levelsLinked": {
             "type": "integer"
           },
+          "editing": {
+            "type": "boolean"
+          },
           "items": {
             "type": "array",
             "items": {
@@ -7649,6 +7751,27 @@
                 "frequency"
               ]
             }
+          },
+          "inForce": {
+            "type": [
+              "object",
+              "null"
+            ],
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "totalPaisa": {
+                "type": "integer"
+              }
+            },
+            "required": [
+              "id",
+              "totalPaisa"
+            ]
+          },
+          "editRequested": {
+            "type": "boolean"
           },
           "levels": {
             "type": "array",
@@ -7688,7 +7811,10 @@
           "status",
           "totalPaisa",
           "levelsLinked",
+          "editing",
           "items",
+          "inForce",
+          "editRequested",
           "levels"
         ]
       },
@@ -7794,6 +7920,20 @@
         "required": [
           "startDate",
           "endDate"
+        ],
+        "additionalProperties": false
+      },
+      "RequestFeeEdit": {
+        "type": "object",
+        "properties": {
+          "reason": {
+            "type": "string",
+            "minLength": 3,
+            "maxLength": 500
+          }
+        },
+        "required": [
+          "reason"
         ],
         "additionalProperties": false
       },
@@ -19567,6 +19707,179 @@
                   },
                   "required": [
                     "id"
+                  ]
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FeesError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such item, or not one the person may reach",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FeesError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Not possible in its current state (not a draft, not live, already there, or the year is closed)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FeesError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Not valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FeesInvalid"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/fees/structures/{id}/edit-request": {
+      "post": {
+        "operationId": "request_fee_structure_edit",
+        "tags": [
+          "fees"
+        ],
+        "description": "Asks the Principal to let an approved structure be edited, with a reason. The approved version stays in force. When the Principal approves the request, a draft copy appears for the Accountant to edit and send for approval again.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{32}$"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RequestFeeEdit"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Asked; the approval request's id",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "id"
+                  ]
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FeesError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such item, or not one the person may reach",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FeesError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Not possible in its current state (not a draft, not live, already there, or the year is closed)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FeesError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Not valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FeesInvalid"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/fees/structures/{id}/discard": {
+      "post": {
+        "operationId": "discard_fee_structure_edit",
+        "tags": [
+          "fees"
+        ],
+        "description": "Gives up a draft edit of an approved structure (only a draft that replaces an approved version). The approved version is untouched, and a new edit can be asked for.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{32}$"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Discarded",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": {
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
+                    }
+                  },
+                  "required": [
+                    "ok"
                   ]
                 }
               }

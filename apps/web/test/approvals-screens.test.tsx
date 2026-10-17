@@ -215,7 +215,7 @@ describe("the filters follow whether the school collects fees (D-137)", () => {
 
   it("a school with fees off offers the website's requests only, and no filter bar", () => {
     expect(kindsFor(false)).toEqual(["website_content"]);
-    expect(kindsFor(true)).toHaveLength(5);
+    expect(kindsFor(true)).toHaveLength(6);
     const html = inContext(<InboxScreen />);
     for (const label of ["Fee structure", "Discount", "Reversal", "Refund"]) expect(html).not.toContain(label);
   });

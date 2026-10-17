@@ -59,6 +59,8 @@ export const addFeeItem = (api: ApiClient, structureId: string, body: { name: st
   send(() => api.POST("/api/fees/structures/{id}/items", { params: { path: { id: structureId } }, body }));
 export const removeFeeItem = (api: ApiClient, itemId: string) => send(() => api.PATCH("/api/fees/items/{id}", { params: { path: { id: itemId } }, body: { isActive: false } }));
 export const sendStructure = (api: ApiClient, id: string) => send(() => api.POST("/api/fees/structures/{id}/send", { params: { path: { id } } }));
+export const requestFeeEdit = (api: ApiClient, id: string, reason: string) => send(() => api.POST("/api/fees/structures/{id}/edit-request", { params: { path: { id } }, body: { reason } }));
+export const discardFeeEdit = (api: ApiClient, id: string) => send(() => api.POST("/api/fees/structures/{id}/discard", { params: { path: { id } } }));
 export const startNextPeriod = (api: ApiClient, id: string, body: { startDate: string; endDate: string }) => send(() => api.POST("/api/fees/structures/{id}/next-period", { params: { path: { id } }, body }));
 export const linkLevels = (api: ApiClient, id: string, levelIds: string[]) => send(() => api.POST("/api/fees/structures/{id}/levels", { params: { path: { id } }, body: { levelIds } }));
 export const unlinkLevel = (api: ApiClient, id: string, levelId: string) => send(() => api.DELETE("/api/fees/structures/{id}/levels/{levelId}", { params: { path: { id, levelId } } }));

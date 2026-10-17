@@ -184,7 +184,16 @@ export async function decideRequest(db: D1Database, auditKey: string, actor: str
   }
   // A busy ledger is never reported as "someone else decided it" (D-085).
   if (outcome === null) throw new Error("The ledger is too busy: could not apply the approval after several attempts.");
-  if (outcome === "done") return { ok: true };
+  if (outcome === "done") {
+    if (parsed.data.approve && handler.afterApproved) {
+      try {
+        await handler.afterApproved(db, auditKey, request.subject_id);
+      } catch (error) {
+        console.warn(`After-approval step of ${request.kind} failed; it is repeated later: ${error instanceof Error ? error.message : String(error)}`);
+      }
+    }
+    return { ok: true };
+  }
   // Nothing changed. Decided by someone else a moment ago, or, while it is still pending: its subject changed in the
   // moment between the read above and the batch (a kind may re-check its version inside the batch, D-108), or this
   // person may no longer decide.

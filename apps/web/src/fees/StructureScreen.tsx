@@ -15,7 +15,7 @@ import { EmptyLine, Panel, ReadFailure, ReadHeader, ReadOnlyNote, ReadTable, Tab
 import { useLoad } from "@/setup/useLoad";
 import { AddDialog, Button, Checkbox, Field, Notice } from "@/ui";
 
-import { addFeeItem, gateFailure, linkLevels, loadStructure, removeFeeItem, sendStructure, startNextPeriod, unlinkLevel, type Sent } from "./client";
+import { addFeeItem, discardFeeEdit, gateFailure, linkLevels, loadStructure, removeFeeItem, requestFeeEdit, sendStructure, startNextPeriod, unlinkLevel, type Sent } from "./client";
 import styles from "./fees.module.css";
 import { FREQUENCY_LABEL, type FeeStructure } from "./model";
 import { formatNprShort, parseNpr } from "./money";
@@ -79,6 +79,25 @@ export function StructureScreen() {
                 {t("fees.structure.send")}
               </Button>
             ) : null}
+            {accountant && s.status === "live" && !s.editRequested ? (
+              <AddDialog label={t("fees.structure.editAsk")} title={t("fees.structure.editAsk")} variant="secondary" plus={false}>
+                {(close) => (
+                  <EditAskForm
+                    structureId={s.id}
+                    onAsked={() => {
+                      close();
+                      setMessage({ tone: "ok", text: t("fees.structure.editAsked") });
+                      void reload();
+                    }}
+                  />
+                )}
+              </AddDialog>
+            ) : null}
+            {draft && s.editing ? (
+              <Button className={styles.wrapLabel} variant="quiet" onClick={() => void act(() => discardFeeEdit(api, s.id), () => t("fees.structure.editDiscarded"))}>
+                {t("fees.structure.editDiscard")}
+              </Button>
+            ) : null}
             {accountant && s.status === "live" ? (
               <AddDialog label={t("fees.structure.next")} title={t("fees.structure.next")} variant="secondary" plus={false}>
                 {() => <NextPeriodForm structureId={s.id} onMade={(nextId) => router.push(`/portal/fees/structure?id=${nextId}`)} />}
@@ -88,7 +107,8 @@ export function StructureScreen() {
         }
       />
       {message ? <Notice tone={message.tone}>{message.text}</Notice> : null}
-      {accountant && s.status === "live" ? <ReadOnlyNote>{t("fees.structure.fixed")}</ReadOnlyNote> : null}
+      {accountant && s.status === "live" ? <ReadOnlyNote>{s.editRequested ? t("fees.structure.editWaiting") : t("fees.structure.fixed")}</ReadOnlyNote> : null}
+      {s.editing && s.inForce ? <ReadOnlyNote>{t("fees.structure.editingNote", { total: formatNprShort(s.inForce.totalPaisa) })}</ReadOnlyNote> : null}
       {accountant && s.status === "waiting" ? <ReadOnlyNote>{t("fees.structure.waiting")}</ReadOnlyNote> : null}
       <Panel title={t("fees.structure.items")} labelledBy="items-heading">
         <ItemsTable structure={s} onRemove={draft ? (itemId) => void act(() => removeFeeItem(api, itemId), () => t("fees.structure.removed")) : undefined} />
@@ -255,6 +275,34 @@ function NextPeriodForm({ structureId, onMade }: { structureId: string; onMade: 
       <BsDateField legend={t("fees.structures.end")} value={endBs} onChange={setEndBs} />
       <Button type="submit" loading={saving} loadingLabel={t("fees.saving")} disabled={!startBs || !endBs}>
         {t("fees.structure.nextMake")}
+      </Button>
+    </form>
+  );
+}
+
+/** The reason for editing an approved structure, asked in a pop-up; the Principal decides it. */
+function EditAskForm({ structureId, onAsked }: { structureId: string; onAsked: () => void }) {
+  const { api } = useSession();
+  const [reason, setReason] = useState("");
+  const [problem, setProblem] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+  async function submit(event: FormEvent) {
+    event.preventDefault();
+    if (saving) return;
+    setProblem(null);
+    setSaving(true);
+    const sent = await requestFeeEdit(api, structureId, reason.trim());
+    setSaving(false);
+    if (sent.ok) onAsked();
+    else setProblem(sentMessage(sent));
+  }
+  return (
+    <form onSubmit={submit} noValidate className={styles.form}>
+      <p className={readStyles.rowMeta}>{t("fees.structure.editIntro")}</p>
+      {problem ? <Notice tone="bad">{problem}</Notice> : null}
+      <Field label={t("fees.structure.editReason")} value={reason} onChange={(e) => setReason(e.target.value)} maxLength={500} />
+      <Button type="submit" loading={saving} loadingLabel={t("fees.saving")} disabled={reason.trim().length < 3}>
+        {t("fees.structure.editSend")}
       </Button>
     </form>
   );

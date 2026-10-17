@@ -102,6 +102,7 @@ The Co-ordinator has **no** fees access at all.
 |---|---|---|---|---|---|---|---|
 | Draft yearly fee structure (`fees.structure.draft`) | — | — | — | inst | — | — | 6 |
 | Approve fee structure (`fees.structure.approve`) | — | — | — | — | ✓ | — | 6 |
+| Ask the Principal to let an approved fee structure be edited (`fees.structure.edit_request`) | — | — | — | inst | — | — | 6 |
 | Link an approved fee structure to levels, or unlink one that has no payment yet (`fees.structure.link`) | — | — | — | inst | — | — | 6 |
 | View fees, dues, ledger (`fees.view`) | own | — | — | inst | read | ✓ | 6 |
 | Upload a payment voucher (`fees.voucher.upload`) | own | — | — | — | — | — | 6 |

@@ -10,7 +10,7 @@ export type ApprovalDetail = NonNullable<components["schemas"]["ApprovalDetail"]
 export type ApprovalKind = ApprovalSummary["kind"];
 
 /** The five kinds, in the order the filters show them (CLAUDE.md section 6: there are exactly five). */
-export const KINDS: readonly ApprovalKind[] = ["website_content", "fee_structure", "discount", "reversal", "refund"];
+export const KINDS: readonly ApprovalKind[] = ["website_content", "fee_structure", "fee_structure_edit", "discount", "reversal", "refund"];
 
 /** The kinds a school can be asked about: the four fee kinds only where the school collects fees (D-137); otherwise only the website's. Pure. */
 export const kindsFor = (feesOn: boolean): readonly ApprovalKind[] => (feesOn ? KINDS : ["website_content"]);
@@ -19,6 +19,8 @@ export const kindsFor = (feesOn: boolean): readonly ApprovalKind[] => (feesOn ? 
 export const KIND_LABEL: Record<ApprovalKind, MessageKey> = {
   website_content: "approvals.kind.websiteContent",
   fee_structure: "approvals.kind.feeStructure",
+  fee_structure_edit: "approvals.kind.feeStructureEdit",
+  student_leave: "approvals.kind.studentLeave",
   discount: "approvals.kind.discount",
   reversal: "approvals.kind.reversal",
   refund: "approvals.kind.refund",
@@ -27,6 +29,8 @@ export const KIND_LABEL: Record<ApprovalKind, MessageKey> = {
 export const KIND_FILTER_LABEL: Record<ApprovalKind, MessageKey> = {
   website_content: "approvals.filter.website",
   fee_structure: "approvals.filter.feeStructure",
+  fee_structure_edit: "approvals.filter.feeStructureEdit",
+  student_leave: "approvals.filter.studentLeave",
   discount: "approvals.filter.discount",
   reversal: "approvals.filter.reversal",
   refund: "approvals.filter.refund",
@@ -129,6 +133,10 @@ export function cardLines(request: ApprovalSummary): { subject: string; lines: s
         lines: [items, ...(s.totalPaisa !== undefined ? [t("approvals.card.total", { amount: npr(s.totalPaisa) })] : [])],
       };
     }
+    case "fee_structure_edit": {
+      const s = snap as { name?: string; reason?: string };
+      return { subject: s.name ?? request.summary, lines: s.reason ? [t("approvals.card.reason", { reason: s.reason })] : [] };
+    }
     case "website_content": {
       const s = snap as ContentSnapshot;
       if (!s.title) return { subject: request.summary, lines: [] };
@@ -182,6 +190,10 @@ export function effectLines(detail: ApprovalDetail | null, kind: ApprovalKind): 
       const what = d ? d.name : "";
       return { confirm: t("approvals.effect.feeStructure"), done: d ? t("approvals.done.feeStructure", { what }) : t("approvals.done.generic") };
     }
+    case "fee_structure_edit":
+      return { confirm: t("approvals.effect.feeStructureEdit"), done: t("approvals.done.feeStructureEdit") };
+    case "student_leave":
+      return { confirm: t("approvals.effect.studentLeave"), done: t("approvals.done.generic") };
     case "website_content":
       return { confirm: t("approvals.effect.content"), done: t("approvals.done.content") };
     case "discount":
@@ -199,6 +211,8 @@ export function confirmSubject(request: ApprovalSummary, detail: ApprovalDetail 
   if (!detail) return { kind, subject: cardLines(request).subject, amountLabel: null, amount: null };
   switch (detail.kind) {
     case "fee_structure":
+      return { kind, subject: detail.name, amountLabel: t("approvals.detail.total"), amount: npr(detail.totalPaisa) };
+    case "fee_structure_edit":
       return { kind, subject: detail.name, amountLabel: t("approvals.detail.total"), amount: npr(detail.totalPaisa) };
     case "website_content":
       return { kind, subject: `${contentKindLabel(detail.contentKind)}: ${detail.title}`, amountLabel: null, amount: null };

@@ -36,6 +36,12 @@ export interface ApprovalHandler {
   onRequested(db: D1Database, subjectId: number): D1PreparedStatement[];
   /** Runs FIRST in the "approve" batch, conditioned on the subject's own "is pending" state. */
   onApproved(db: D1Database, subjectId: number, context: ApprovalContext): Statements;
+  /**
+   * Runs after an approval has been applied, outside its batch and best effort (a failure is logged, never undone): work the
+   * approval started but that is too large or too slow for the batch itself, and that its owner can also finish later (fees:
+   * the price corrections of a new version, D-172).
+   */
+  afterApproved?(db: D1Database, auditKey: string, subjectId: number): Promise<void>;
   /** Runs FIRST in the "decline" or "withdraw" batch: reverts the subject to its pre-request state. */
   onResolved(db: D1Database, subjectId: number): D1PreparedStatement[];
 }

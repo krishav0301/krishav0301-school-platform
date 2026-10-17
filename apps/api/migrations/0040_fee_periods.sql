@@ -29,7 +29,7 @@ CREATE TABLE fee_structures (
   name TEXT NOT NULL CHECK (length(trim(name)) BETWEEN 1 AND 80),
   start_date TEXT NOT NULL CHECK (start_date GLOB '[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]'),
   end_date TEXT NOT NULL CHECK (end_date GLOB '[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]'),
-  status TEXT NOT NULL DEFAULT 'draft' CHECK (status IN ('draft', 'waiting', 'live', 'superseded')),
+  status TEXT NOT NULL DEFAULT 'draft' CHECK (status IN ('draft', 'waiting', 'live', 'superseded', 'discarded')),
   -- Bumped by every change to its items, so a pending approval goes stale.
   version INTEGER NOT NULL DEFAULT 1,
   -- The chain this version belongs to: the first version's id, or NULL on the first version itself.
@@ -72,7 +72,8 @@ DROP TABLE fee_structures_copy;
 
 -- Rules ---------------------------------------------------------------------------------------------------------------
 
--- What is not a draft is fixed; a live version only becomes superseded; a superseded one is final; nothing is deleted.
+-- What is not a draft is fixed; a live version only becomes superseded; a superseded or discarded one is final; only a draft that
+-- replaces a live version can be discarded (the Accountant gives up an edit); nothing is deleted.
 CREATE TRIGGER fee_structures_rules BEFORE UPDATE ON fee_structures
 BEGIN
   SELECT RAISE(ABORT, 'a fee structure that is not a draft is fixed')
@@ -81,7 +82,9 @@ BEGIN
   SELECT RAISE(ABORT, 'a live fee structure can only be superseded')
    WHERE OLD.status = 'live' AND NEW.status NOT IN ('live', 'superseded');
   SELECT RAISE(ABORT, 'a superseded fee structure is final')
-   WHERE OLD.status = 'superseded' AND NEW.status <> 'superseded';
+   WHERE OLD.status IN ('superseded', 'discarded') AND NEW.status <> OLD.status;
+  SELECT RAISE(ABORT, 'only a draft edit of a live fee structure can be discarded')
+   WHERE NEW.status = 'discarded' AND (OLD.status <> 'draft' OR OLD.replaces_id IS NULL);
 END;
 CREATE TRIGGER fee_structures_no_delete BEFORE DELETE ON fee_structures
 BEGIN SELECT RAISE(ABORT, 'fee structures are never deleted'); END;

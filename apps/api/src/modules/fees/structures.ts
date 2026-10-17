@@ -170,10 +170,13 @@ export const feeStructureApprovalHandler: ApprovalHandler = {
     return (await db.prepare("SELECT id FROM fee_structures WHERE public_id = ?1").bind(publicId).first<{ id: number }>())?.id ?? null;
   },
   async describe(db, id) {
-    const [head, items] = await db.batch([
+    const [head, items, before] = await db.batch([
       db.prepare("SELECT fs.public_id, fs.name, fs.start_date, fs.end_date FROM fee_structures fs WHERE fs.id = ?1").bind(id),
       db.prepare("SELECT name, amount_paisa, frequency FROM fee_items WHERE structure_id = ?1 AND is_active = 1 ORDER BY id").bind(id),
+      db.prepare("SELECT name, amount_paisa FROM fee_items WHERE is_active = 1 AND structure_id = (SELECT replaces_id FROM fee_structures WHERE id = ?1) ORDER BY id").bind(id),
     ]);
+    const previousLines = (before!.results as unknown as { name: string; amount_paisa: number }[]).map((i) => ({ name: i.name, amountPaisa: i.amount_paisa }));
+    const previous = previousLines.length > 0 ? { items: previousLines, totalPaisa: previousLines.reduce((sum, i) => sum + i.amountPaisa, 0) } : null;
     const row = head!.results[0] as { public_id: string; name: string; start_date: string; end_date: string } | undefined;
     if (!row) return null;
     const months = monthsOf(row.start_date, row.end_date);
@@ -183,8 +186,8 @@ export const feeStructureApprovalHandler: ApprovalHandler = {
     const lineWords = lines.map((i) => `${i.name} NPR ${formatNpr(i.amountPaisa)}${FREQUENCY_WORD[i.frequency]}`).join("; ");
     const period = `${adToBsText(row.start_date) ?? row.start_date} to ${adToBsText(row.end_date) ?? row.end_date}`;
     return {
-      snapshot: { name: row.name, startDate: row.start_date, endDate: row.end_date, items: lines, totalPaisa },
-      summary: `Fee structure "${row.name}", ${period}: ${lineWords}. Total NPR ${formatNpr(totalPaisa)}`,
+      snapshot: { name: row.name, startDate: row.start_date, endDate: row.end_date, items: lines, totalPaisa, previous },
+      summary: `${previous ? "New version of fee structure" : "Fee structure"} "${row.name}", ${period}: ${lineWords}. Total NPR ${formatNpr(totalPaisa)}${previous ? ` (was NPR ${formatNpr(previous.totalPaisa)})` : ""}`,
       subjectPublicId: row.public_id,
     };
   },
@@ -192,8 +195,8 @@ export const feeStructureApprovalHandler: ApprovalHandler = {
   async detail(db, id) {
     const described = await this.describe(db, id);
     if (!described) return null;
-    const s = described.snapshot as { name: string; startDate: string; endDate: string; items: { name: string; amountPaisa: number; frequency: Frequency }[]; totalPaisa: number };
-    return { kind: "fee_structure" as const, name: s.name, startDate: s.startDate, endDate: s.endDate, startDateBs: adToBsText(s.startDate), endDateBs: adToBsText(s.endDate), items: s.items, totalPaisa: s.totalPaisa };
+    const s = described.snapshot as { name: string; startDate: string; endDate: string; items: { name: string; amountPaisa: number; frequency: Frequency }[]; totalPaisa: number; previous: { items: { name: string; amountPaisa: number }[]; totalPaisa: number } | null };
+    return { kind: "fee_structure" as const, name: s.name, startDate: s.startDate, endDate: s.endDate, startDateBs: adToBsText(s.startDate), endDateBs: adToBsText(s.endDate), items: s.items, totalPaisa: s.totalPaisa, previous: s.previous };
   },
   async currentVersion(db, id) {
     return (await db.prepare("SELECT version FROM fee_structures WHERE id = ?1").bind(id).first<{ version: number }>())?.version ?? null;
@@ -201,9 +204,118 @@ export const feeStructureApprovalHandler: ApprovalHandler = {
   onRequested: (db, id) => [
     db.prepare("UPDATE fee_structures SET status = 'waiting' WHERE id = ?1 AND status = 'draft' AND EXISTS (SELECT 1 FROM fee_items WHERE structure_id = ?1 AND is_active = 1)").bind(id),
   ],
-  onApproved: (db, id) => [db.prepare("UPDATE fee_structures SET status = 'live', live_at = ?2 WHERE id = ?1 AND status = 'waiting'").bind(id, now())],
+  // A new version replaces the one in force in the same batch: the old one first (only while this one is waiting), then this one is
+  // live (the last statement, which the engine's own decision rides on). The price corrections follow in `afterApproved`.
+  onApproved: (db, id) => [
+    db.prepare("UPDATE fee_structures SET status = 'superseded' WHERE id = (SELECT replaces_id FROM fee_structures WHERE id = ?1 AND status = 'waiting') AND status = 'live'").bind(id),
+    db.prepare("UPDATE fee_structures SET status = 'live', live_at = ?2 WHERE id = ?1 AND status = 'waiting'").bind(id, now()),
+  ],
   onResolved: (db, id) => [db.prepare("UPDATE fee_structures SET status = 'draft' WHERE id = ?1 AND status = 'waiting'").bind(id)],
+  async afterApproved(db, auditKey, id) {
+    const root = await db.prepare("SELECT r.public_id FROM fee_structures s JOIN fee_structures r ON r.id = COALESCE(s.root_id, s.id) WHERE s.id = ?1").bind(id).first<{ public_id: string }>();
+    if (root) await applyPriceChanges(db, auditKey, { rootPublicId: root.public_id });
+  },
 };
+
+// --- Editing an approved structure ------------------------------------------------------------------
+
+/**
+ * The Accountant asks to edit an approved structure, with a reason (D-172). The approved version stays in force. The
+ * Principal decides the request; on approval a draft copy appears for the Accountant to edit and send for approval
+ * again (the `fee_structure` kind, now on that version).
+ */
+export async function requestEdit(db: D1Database, key: string, actor: string, structureId: string, reason: string): Promise<Created> {
+  const text = reason.trim();
+  if (text.length < 3 || text.length > 500) return { ok: false, reason: "invalid", message: "Say why the structure should change, in 3 to 500 characters" };
+  const publicId = newPublicId();
+  try {
+    const { applied } = await recordAudit(db, key, { action: "fees.structure.edit_requested", entityType: "fee_edit_request", entityPublicId: publicId, actorPublicId: actor, summary: "Edit of an approved fee structure asked for", after: { structureId, reason: text } }, [
+      db
+        .prepare(
+          `INSERT INTO fee_edit_requests (public_id, structure_id, reason, requested_by_user_id, created_at)
+           SELECT ?1, fs.id, ?3, u.id, ?4 FROM fee_structures fs, users u
+            WHERE fs.public_id = ?2 AND fs.status = 'live' AND u.public_id = ?5 AND ${accountantFor(5, "fs.section_id")}
+              AND NOT EXISTS (SELECT 1 FROM fee_structures o WHERE COALESCE(o.root_id, o.id) = COALESCE(fs.root_id, fs.id) AND o.status IN ('draft', 'waiting'))`,
+        )
+        .bind(publicId, structureId, text, now(), actor),
+    ], { onlyIfLastChanged: true });
+    if (!applied) return { ok: false, reason: "not_found" };
+  } catch (error) {
+    if (/UNIQUE constraint failed/i.test(error instanceof Error ? error.message : String(error))) return { ok: false, reason: "conflict" };
+    throw error;
+  }
+  const sent = await requestApproval(db, key, actor, { kind: "fee_structure_edit", subjectId: publicId });
+  if (sent.ok) return { ok: true, publicId: sent.publicId };
+  // A send that fails closes the draft request, so it does not hold the structure's one open request.
+  await db.prepare("UPDATE fee_edit_requests SET status = 'closed' WHERE public_id = ?1 AND status = 'draft'").bind(publicId).run();
+  return { ok: false, reason: sent.reason === "conflict" ? "conflict" : "not_found" };
+}
+
+export const feeEditApprovalHandler: ApprovalHandler = {
+  requesterSql: anyAccountant,
+  async resolveId(db, publicId) {
+    return (await db.prepare("SELECT id FROM fee_edit_requests WHERE public_id = ?1").bind(publicId).first<{ id: number }>())?.id ?? null;
+  },
+  async describe(db, id) {
+    const [head, items] = await db.batch([
+      db.prepare("SELECT r.public_id, r.reason, s.id AS structure_id, s.name, s.start_date, s.end_date FROM fee_edit_requests r JOIN fee_structures s ON s.id = r.structure_id WHERE r.id = ?1").bind(id),
+      db.prepare("SELECT fi.name, fi.amount_paisa FROM fee_edit_requests r JOIN fee_items fi ON fi.structure_id = r.structure_id AND fi.is_active = 1 WHERE r.id = ?1 ORDER BY fi.id").bind(id),
+    ]);
+    const row = head!.results[0] as { public_id: string; reason: string; name: string; start_date: string; end_date: string } | undefined;
+    if (!row) return null;
+    const lines = (items!.results as unknown as { name: string; amount_paisa: number }[]).map((i) => ({ name: i.name, amountPaisa: i.amount_paisa }));
+    const totalPaisa = lines.reduce((sum, i) => sum + i.amountPaisa, 0);
+    return {
+      snapshot: { name: row.name, startDate: row.start_date, endDate: row.end_date, reason: row.reason, items: lines, totalPaisa },
+      summary: `Edit of fee structure "${row.name}" (now NPR ${formatNpr(totalPaisa)}): ${row.reason}`,
+      subjectPublicId: row.public_id,
+    };
+  },
+  async detail(db, id) {
+    const described = await this.describe(db, id);
+    if (!described) return null;
+    const s = described.snapshot as { name: string; startDate: string; endDate: string; reason: string; items: { name: string; amountPaisa: number }[]; totalPaisa: number };
+    return { kind: "fee_structure_edit" as const, name: s.name, startDateBs: adToBsText(s.startDate), endDateBs: adToBsText(s.endDate), reason: s.reason, items: s.items, totalPaisa: s.totalPaisa };
+  },
+  async currentVersion(db, id) {
+    return (await db.prepare("SELECT s.version FROM fee_edit_requests r JOIN fee_structures s ON s.id = r.structure_id WHERE r.id = ?1").bind(id).first<{ version: number }>())?.version ?? null;
+  },
+  onRequested: (db, id) => [db.prepare("UPDATE fee_edit_requests SET status = 'pending' WHERE id = ?1 AND status = 'draft'").bind(id)],
+  // Approving makes the draft copy of the version in force: the version, its lines, then the request is marked (the last statement).
+  onApproved: (db, id) => [
+    db
+      .prepare(
+        `INSERT INTO fee_structures (public_id, section_id, name, start_date, end_date, root_id, replaces_id, created_by_user_id, created_at)
+         SELECT lower(hex(randomblob(16))), s.section_id, s.name, s.start_date, s.end_date, COALESCE(s.root_id, s.id), s.id, r.requested_by_user_id, ?2
+           FROM fee_edit_requests r JOIN fee_structures s ON s.id = r.structure_id WHERE r.id = ?1 AND r.status = 'pending' AND s.status = 'live'`,
+      )
+      .bind(id, now()),
+    db
+      .prepare(
+        `INSERT INTO fee_items (public_id, structure_id, name, amount_paisa, frequency, created_at)
+         SELECT lower(hex(randomblob(16))), (SELECT n.id FROM fee_structures n WHERE n.replaces_id = r.structure_id AND n.status = 'draft'), fi.name, fi.amount_paisa, fi.frequency, ?2
+           FROM fee_edit_requests r JOIN fee_items fi ON fi.structure_id = r.structure_id AND fi.is_active = 1
+          WHERE r.id = ?1 AND r.status = 'pending' AND EXISTS (SELECT 1 FROM fee_structures n WHERE n.replaces_id = r.structure_id AND n.status = 'draft')
+          ORDER BY fi.id`,
+      )
+      .bind(id, now()),
+    db
+      .prepare(
+        `UPDATE fee_edit_requests SET status = 'approved', new_version_id = (SELECT n.id FROM fee_structures n WHERE n.replaces_id = fee_edit_requests.structure_id AND n.status = 'draft')
+          WHERE id = ?1 AND status = 'pending' AND EXISTS (SELECT 1 FROM fee_structures n WHERE n.replaces_id = fee_edit_requests.structure_id AND n.status = 'draft')`,
+      )
+      .bind(id),
+  ],
+  onResolved: (db, id) => [db.prepare("UPDATE fee_edit_requests SET status = 'closed' WHERE id = ?1 AND status = 'pending'").bind(id)],
+};
+
+/** Gives up a draft edit of an approved structure: only a draft that replaces a live version. The approved version is untouched. */
+export async function discardEdit(db: D1Database, key: string, actor: string, structureId: string): Promise<Done> {
+  const outcome = await audited(db, key, { action: "fees.structure.edit_discarded", entityType: "fee_structure", entityPublicId: structureId, actorPublicId: actor, summary: "Draft edit of a fee structure discarded" }, [
+    db.prepare(`UPDATE fee_structures SET status = 'discarded' WHERE public_id = ?2 AND status = 'draft' AND replaces_id IS NOT NULL AND ${accountantFor(1, "fee_structures.section_id")}`).bind(actor, structureId),
+  ]);
+  return outcome === "done" ? { ok: true } : { ok: false, reason: "not_found" };
+}
 
 // --- Linking to levels --------------------------------------------------------------------------------
 
@@ -285,6 +397,7 @@ interface Work {
   end_date: string;
   first_in_programme: number;
   version_id: number;
+  root_id: number;
 }
 
 /**
@@ -296,7 +409,7 @@ interface Work {
 export async function chargeLinked(db: D1Database, key: string, scope: ChargeScope = {}, limit = MAX_ENTRIES_PER_RUN): Promise<{ created: number; pending: boolean }> {
   const { results: work } = await db
     .prepare(
-      `SELECT en.public_id AS enrollment, en.created_at, r.public_id AS root_public, lfu.public_id AS actor, r.start_date, r.end_date, live.id AS version_id,
+      `SELECT en.public_id AS enrollment, en.created_at, r.public_id AS root_public, lfu.public_id AS actor, r.start_date, r.end_date, live.id AS version_id, lf.root_id AS root_id,
               NOT EXISTS (SELECT 1 FROM enrollments e2 JOIN classes c2 ON c2.id = e2.class_id JOIN levels l2 ON l2.id = c2.level_id JOIN academic_years y2 ON y2.id = e2.academic_year_id
                            WHERE e2.student_id = en.student_id AND l2.programme_id = lv.programme_id AND y2.start_date < ay.start_date) AS first_in_programme
          FROM level_fee_structures lf
@@ -319,13 +432,14 @@ export async function chargeLinked(db: D1Database, key: string, scope: ChargeSco
     db.prepare("SELECT fi.public_id, fi.structure_id, fi.name, fi.amount_paisa, fi.frequency FROM fee_items fi WHERE fi.is_active = 1 AND fi.structure_id IN (SELECT value FROM json_each(?1)) ORDER BY fi.id").bind(JSON.stringify(versions)),
     db
       .prepare(
-        `SELECT en.public_id AS enrollment, fi.public_id AS item, le.period FROM ledger_entries le JOIN enrollments en ON en.id = le.enrollment_id JOIN fee_items fi ON fi.id = le.fee_item_id
+        `SELECT en.public_id AS enrollment, COALESCE(fv.root_id, fv.id) AS root, lower(fi.name) AS name, le.period
+           FROM ledger_entries le JOIN enrollments en ON en.id = le.enrollment_id JOIN fee_items fi ON fi.id = le.fee_item_id JOIN fee_structures fv ON fv.id = fi.structure_id
           WHERE le.kind = 'charge' AND le.enrollment_id IN (SELECT id FROM enrollments WHERE public_id IN (SELECT value FROM json_each(?1)))`,
       )
       .bind(JSON.stringify([...new Set(work.map((w) => w.enrollment))])),
   ]);
   const lines = lineRows!.results as unknown as { public_id: string; structure_id: number; name: string; amount_paisa: number; frequency: Frequency }[];
-  const have = new Set((haveRows!.results as unknown as { enrollment: string; item: string; period: string }[]).map((r) => `${r.enrollment}|${r.item}|${r.period}`));
+  const have = new Set((haveRows!.results as unknown as { enrollment: string; root: number; name: string; period: string }[]).map((r) => `${r.enrollment}|${r.root}|${r.name}|${r.period}`));
 
   // What is missing, grouped by structure so each chunk is one audited write with one guard.
   const at = now();
@@ -336,7 +450,8 @@ export async function chargeLinked(db: D1Database, key: string, scope: ChargeSco
     for (const line of lines.filter((l) => l.structure_id === w.version_id)) {
       const year = { bsYear: adToBs(w.start_date).year, startDate: w.start_date, endDate: w.end_date };
       for (const charge of billingSchedule(line, year, { enrolledOn: nepalDate(new Date(w.created_at)), firstInProgramme: w.first_in_programme === 1 })) {
-        if (have.has(`${w.enrollment}|${line.public_id}|${charge.period}`)) continue;
+        // Billed under any version of this structure already (a line of an edited version is the same line, by its name).
+        if (have.has(`${w.enrollment}|${w.root_id}|${line.name.toLowerCase()}|${charge.period}`)) continue;
         if (total >= limit) {
           cut = true;
           continue;
@@ -371,9 +486,95 @@ export async function chargeLinked(db: D1Database, key: string, scope: ChargeSco
   return { created, pending: cut };
 }
 
+// --- Price changes ------------------------------------------------------------------------------------
+
+/**
+ * When an edited version of a structure goes live (D-172), what each student was billed for a line is brought to the new
+ * price, by new ledger entries (the ledger is never rewritten): a price that went down makes a discount entry for the
+ * difference (a student who had paid in full then shows a credit); one that went up makes an extra charge for it, due
+ * on the day it was due or the day the version went live. The Principal's approval of the version covers it; nothing here
+ * asks again. It is worked out from the ledger each time, so it is safe to repeat, and it picks up where it stopped: it is
+ * run when the version is approved and by the 5-minute sweep, at most `limit` entries each time. Only plain lines are
+ * corrected; a line of a structure from before D-172 (monthly, a term, the course) keeps its own schedule.
+ */
+export async function applyPriceChanges(db: D1Database, key: string, scope: { rootPublicId?: string } = {}, limit = MAX_ENTRIES_PER_RUN): Promise<{ created: number; pending: boolean }> {
+  const { results: versions } = await db
+    .prepare(
+      `SELECT v.id AS version_id, v.public_id AS version_public, v.live_at, r.id AS root_id, r.public_id AS root_public, cu.public_id AS actor
+         FROM fee_structures v JOIN fee_structures r ON r.id = v.root_id JOIN users cu ON cu.id = v.created_by_user_id
+        WHERE v.status = 'live' AND v.replaces_id IS NOT NULL AND (?1 IS NULL OR r.public_id = ?1)
+          AND EXISTS (SELECT 1 FROM level_fee_structures lf WHERE lf.root_id = r.id)`,
+    )
+    .bind(scope.rootPublicId ?? null)
+    .all<{ version_id: number; version_public: string; live_at: string; root_id: number; root_public: string; actor: string }>();
+  let created = 0;
+  let total = 0;
+  let cut = false;
+  for (const v of versions) {
+    const [lineRows, billedRows, discountRows] = await db.batch([
+      db.prepare("SELECT public_id, name, amount_paisa FROM fee_items WHERE structure_id = ?1 AND is_active = 1 AND frequency = 'one_time' ORDER BY id").bind(v.version_id),
+      db
+        .prepare(
+          `SELECT en.public_id AS enrollment, lower(fi.name) AS name, SUM(le.amount_paisa) AS billed, MAX(le.due_on) AS due
+             FROM ledger_entries le JOIN fee_items fi ON fi.id = le.fee_item_id JOIN fee_structures fv ON fv.id = fi.structure_id
+             JOIN enrollments en ON en.id = le.enrollment_id JOIN academic_years ay ON ay.id = en.academic_year_id
+            WHERE le.kind = 'charge' AND fi.frequency = 'one_time' AND COALESCE(fv.root_id, fv.id) = ?1 AND ay.status <> 'closed'
+            GROUP BY le.enrollment_id, lower(fi.name) ORDER BY le.enrollment_id`,
+        )
+        .bind(v.root_id),
+      // The corrections already made for this structure's lines (a discount entry's source is "version:enrollment:name").
+      db
+        .prepare(
+          `SELECT en.public_id AS enrollment, substr(le.source_public_id, 67) AS name, SUM(le.amount_paisa) AS amount
+             FROM ledger_entries le JOIN enrollments en ON en.id = le.enrollment_id
+            WHERE le.kind = 'discount' AND le.source_type = 'price_change'
+              AND substr(le.source_public_id, 1, 32) IN (SELECT public_id FROM fee_structures WHERE COALESCE(root_id, id) = ?1)
+            GROUP BY le.enrollment_id, substr(le.source_public_id, 67)`,
+        )
+        .bind(v.root_id),
+    ]);
+    const lines = new Map((lineRows!.results as unknown as { public_id: string; name: string; amount_paisa: number }[]).map((l) => [l.name.toLowerCase(), l]));
+    const corrected = new Map((discountRows!.results as unknown as { enrollment: string; name: string; amount: number }[]).map((r) => [`${r.enrollment}|${r.name}`, r.amount]));
+    const liveOn = nepalDate(new Date(v.live_at));
+    const at = now();
+    const drafts: LedgerDraft[] = [];
+    for (const row of billedRows!.results as unknown as { enrollment: string; name: string; billed: number; due: string }[]) {
+      const line = lines.get(row.name);
+      if (!line) continue; // a line this version no longer has: what was billed stands
+      const diff = line.amount_paisa - (row.billed + (corrected.get(`${row.enrollment}|${row.name}`) ?? 0));
+      if (diff === 0) continue;
+      if (total >= limit) {
+        cut = true;
+        continue;
+      }
+      total += 1;
+      drafts.push(
+        diff < 0
+          ? { publicId: newPublicId(), enrollmentPublicId: row.enrollment, kind: "discount", amountPaisa: diff, sourceType: "price_change", sourcePublicId: `${v.version_public}:${row.enrollment}:${row.name}`, memo: `Price change: ${line.name}`, actorPublicId: v.actor, createdAt: at }
+          : { publicId: newPublicId(), enrollmentPublicId: row.enrollment, kind: "charge", amountPaisa: diff, feeItemPublicId: line.public_id, period: "once", dueOn: row.due > liveOn ? row.due : liveOn, memo: `Price change: ${line.name}`, actorPublicId: v.actor, createdAt: at },
+      );
+    }
+    const guard = "EXISTS (SELECT 1 FROM fee_structures lv WHERE lv.public_id = ?16 AND lv.status = 'live')";
+    for (let from = 0; from < drafts.length; from += CHUNK) {
+      const chunk = drafts.slice(from, from + CHUNK);
+      const outcome = await writeMoney(
+        db,
+        key,
+        { action: "fees.price_changes.applied", entityType: "fee_structure", entityPublicId: v.root_public, actorPublicId: v.actor, summary: `${chunk.length} price changes applied`, after: { count: chunk.length, version: v.version_public } },
+        async (head) => (await ledgerInserts(db, key, head, chunk, { guard, guardBinds: [v.version_public] })).statements,
+      );
+      if (outcome === "done") created += chunk.length;
+      else if (outcome === "duplicate" || outcome === "year_closed") cut = true; // the next run reads the ledger again
+      else if (outcome === "rejected") throw new Error("The ledger refused a price change.");
+    }
+  }
+  return { created, pending: cut };
+}
+
 // --- Reads --------------------------------------------------------------------------------------------
 
 interface SummaryRow {
+  editing: number;
   public_id: string;
   status: "draft" | "waiting" | "live" | "superseded";
   name: string;
@@ -384,10 +585,10 @@ interface SummaryRow {
 }
 
 /** One row for each structure (its chain of versions): the version in force, else the one being drafted, else the newest. */
-const SUMMARY = `v.public_id, v.status, r.name, r.start_date, r.end_date, s.key AS section_key, (SELECT COUNT(*) FROM level_fee_structures x WHERE x.root_id = r.id) AS levels_linked
+const SUMMARY = `v.public_id, v.status, (v.replaces_id IS NOT NULL AND v.status IN ('draft','waiting')) AS editing, r.name, r.start_date, r.end_date, s.key AS section_key, (SELECT COUNT(*) FROM level_fee_structures x WHERE x.root_id = r.id) AS levels_linked
                    FROM fee_structures r JOIN sections s ON s.id = r.section_id
                    JOIN fee_structures v ON v.id = (SELECT p.id FROM fee_structures p WHERE COALESCE(p.root_id, p.id) = r.id
-                                                     ORDER BY (p.status = 'live') DESC, (p.status IN ('draft', 'waiting')) DESC, p.id DESC LIMIT 1)
+                                                      AND p.status <> 'discarded' ORDER BY (p.status IN ('draft', 'waiting')) DESC, (p.status = 'live') DESC, p.id DESC LIMIT 1)
                   WHERE r.root_id IS NULL`;
 
 async function totals(db: D1Database, versionIds: string[]): Promise<Map<string, number>> {
@@ -423,6 +624,7 @@ export async function listStructures(db: D1Database, grant: Grant): Promise<FeeS
       status: r.status === "superseded" ? "live" : r.status,
       totalPaisa: sums.get(r.public_id) ?? 0,
       levelsLinked: r.levels_linked,
+      editing: r.editing === 1,
     })),
   };
 }
@@ -431,7 +633,7 @@ export async function getStructure(db: D1Database, grant: Grant, structureId: st
   // Any version's id finds its structure; what is shown is the version in force (or being drafted).
   const root = await rootOf(db, structureId);
   if (!root) return null;
-  const [head, linked] = await db.batch([
+  const [head, linked, force, asked] = await db.batch([
     db.prepare(`SELECT ${SUMMARY} AND r.id = ?1 AND (?2 IS NULL OR s.key IN (SELECT value FROM json_each(?2)))`).bind(root.id, sectionFilter(grant)),
     db
       .prepare(
@@ -442,6 +644,8 @@ export async function getStructure(db: D1Database, grant: Grant, structureId: st
           WHERE lf.root_id = ?1 ORDER BY pv.ordering, lv.ordinal`,
       )
       .bind(root.id),
+    db.prepare("SELECT l.public_id, (SELECT COALESCE(SUM(fi.amount_paisa), 0) FROM fee_items fi WHERE fi.structure_id = l.id AND fi.is_active = 1) AS total FROM fee_structures l WHERE COALESCE(l.root_id, l.id) = ?1 AND l.status = 'live'").bind(root.id),
+    db.prepare("SELECT EXISTS (SELECT 1 FROM fee_edit_requests r JOIN fee_structures s ON s.id = r.structure_id WHERE COALESCE(s.root_id, s.id) = ?1 AND r.status IN ('draft', 'pending')) AS asked").bind(root.id),
   ]);
   const row = head!.results[0] as SummaryRow | undefined;
   if (!row) return null;
@@ -461,6 +665,9 @@ export async function getStructure(db: D1Database, grant: Grant, structureId: st
     status: row.status === "superseded" ? "live" : row.status,
     totalPaisa: items.reduce((sum, i) => sum + yearlyAmount({ frequency: i.frequency, amountPaisa: i.amount_paisa }, months), 0),
     levelsLinked: row.levels_linked,
+    editing: row.editing === 1,
+    inForce: row.editing === 1 ? ((rows) => (rows ? { id: rows.public_id, totalPaisa: rows.total } : null))(force!.results[0] as { public_id: string; total: number } | undefined) : null,
+    editRequested: (asked!.results[0] as { asked: number }).asked === 1,
     items: items.map((i) => ({ id: i.public_id, name: i.name, amountPaisa: i.amount_paisa, frequency: i.frequency })),
     levels: (linked!.results as unknown as { level_id: string; programme_name: string; level_name: string; students: number }[]).map((l) => ({ levelId: l.level_id, programmeName: l.programme_name, levelName: l.level_name, students: l.students })),
   };

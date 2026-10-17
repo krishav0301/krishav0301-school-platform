@@ -22,6 +22,7 @@ export const NewFeeItemSchema = z.strictObject({ name: z.string().trim().min(1, 
 export type NewFeeItem = z.infer<typeof NewFeeItemSchema>;
 export const ChangeFeeItemSchema = z.strictObject({ name: z.string().trim().min(1).max(80).optional(), amountPaisa: PaisaSchema.optional(), isActive: z.boolean().optional() }).openapi("ChangeFeeItem");
 export type ChangeFeeItem = z.infer<typeof ChangeFeeItemSchema>;
+export const RequestEditSchema = z.strictObject({ reason: z.string().trim().min(3, "Say why the structure should change, in at least 3 characters").max(500, "Keep the reason to 500 characters") }).openapi("RequestFeeEdit");
 export const LinkLevelsSchema = z.strictObject({ levelIds: z.array(PublicIdSchema).min(1, "Choose at least one level").max(60) }).openapi("LinkFeeLevels");
 export const LinkResultSchema = z
   .object({
@@ -46,6 +47,8 @@ const StructureSummary = {
   status: StructureStatusSchema,
   totalPaisa: z.number().int(),
   levelsLinked: z.number().int(),
+  /** This is a new version being drafted or waiting while the approved one stays in force (an edit). */
+  editing: z.boolean(),
 };
 
 export const FeeStructureListSchema = z.object({ structures: z.array(z.object(StructureSummary)) }).openapi("FeeStructureList");
@@ -56,6 +59,10 @@ export const FeeStructureSchema = z
     ...StructureSummary,
     /** The lines. `frequency` is only on a structure from before D-172 (monthly, a term, the course); a new line is one charge. */
     items: z.array(z.object({ id: z.string(), name: z.string(), amountPaisa: z.number().int(), frequency: FrequencySchema })),
+    /** The approved version still in force while this one is edited: its id and total. */
+    inForce: z.object({ id: z.string(), totalPaisa: z.number().int() }).nullable(),
+    /** An edit of this structure has been asked for and not yet decided. */
+    editRequested: z.boolean(),
     levels: z.array(z.object({ levelId: z.string(), programmeName: z.string(), levelName: z.string(), students: z.number().int() })),
   })
   .openapi("FeeStructure");

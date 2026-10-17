@@ -46,6 +46,8 @@ import {
 const KIND_ICON: Record<ApprovalKind, { icon: LucideIcon; tone: "accent" | "ok" | "bad" | "warn" }> = {
   website_content: { icon: FileText, tone: "ok" },
   fee_structure: { icon: ReceiptText, tone: "accent" },
+  fee_structure_edit: { icon: ReceiptText, tone: "warn" },
+  student_leave: { icon: Undo2, tone: "warn" },
   discount: { icon: Percent, tone: "bad" },
   reversal: { icon: Undo2, tone: "warn" },
   refund: { icon: Wallet, tone: "accent" },
@@ -218,6 +220,28 @@ export function DetailBody({ detail }: { detail: ApprovalDetail }) {
             <span className={styles.failed}>
               <Info aria-hidden width={18} height={18} />
               {t("approvals.effect.feeStructure")}
+            </span>
+          </Notice>
+        </>
+      );
+    case "fee_structure_edit":
+      return (
+        <>
+          <Section title={t("approvals.detail.editReason")}>
+            <p className={styles.line}>{detail.reason}</p>
+          </Section>
+          <Section title={t("approvals.detail.feeItems")}>
+            <Facts
+              rows={[
+                ...detail.items.map((item) => ({ name: item.name, value: npr(item.amountPaisa) })),
+                { name: t("approvals.detail.total"), value: npr(detail.totalPaisa), total: true },
+              ]}
+            />
+          </Section>
+          <Notice>
+            <span className={styles.failed}>
+              <Info aria-hidden width={18} height={18} />
+              {t("approvals.effect.feeStructureEdit")}
             </span>
           </Notice>
         </>

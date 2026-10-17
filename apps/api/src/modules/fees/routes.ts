@@ -29,6 +29,7 @@ import {
   ProposeDiscountSchema,
   PublicIdSchema,
   ReceiptSchema,
+  RequestEditSchema,
   RecordRefundSchema,
   RefundRequestSchema,
   RejectVoucherSchema,
@@ -36,7 +37,7 @@ import {
   VoucherListSchema,
   VoucherSchema,
 } from "./schema";
-import { addItem, changeItem, createStructure, getStructure, linkLevels, listStructures, sendStructure, startNextPeriod, unlinkLevel, type Failure } from "./structures";
+import { addItem, changeItem, createStructure, discardEdit, getStructure, linkLevels, listStructures, requestEdit, sendStructure, startNextPeriod, unlinkLevel, type Failure } from "./structures";
 
 const json = <T extends z.ZodType>(schema: T) => ({ "application/json": { schema } });
 export const ErrorSchema = z.object({ error: z.string() }).openapi("FeesError");
@@ -76,6 +77,7 @@ const ClassQuery = z.object({ classId: PublicIdSchema.optional() });
 const paid = (c: Context<AppEnv>, result: PayResult) =>
   result.ok ? c.json({ paymentId: result.paymentId, receipt: result.receipt }, 201) : fail(c, result);
 const LINK = { action: "fees.structure.link" } as const;
+const EDIT = { action: "fees.structure.edit_request" } as const;
 const VIEW = { action: "fees.view" } as const;
 
 export function registerFees(app: App): void {
@@ -206,6 +208,42 @@ export function registerFees(app: App): void {
     async (c) => {
       const result = await startNextPeriod(c.env.DB, c.env.AUDIT_HMAC_KEY, c.get("auth")!.userPublicId, c.req.valid("param").id, c.req.valid("json"));
       return result.ok ? c.json({ id: result.publicId }, 201) : fail(c, result);
+    },
+  );
+
+  defineRoute(
+    app,
+    {
+      method: "post",
+      path: "/api/fees/structures/{id}/edit-request",
+      operationId: "request_fee_structure_edit",
+      tags: ["fees"],
+      description: "Asks the Principal to let an approved structure be edited, with a reason. The approved version stays in force. When the Principal approves the request, a draft copy appears for the Accountant to edit and send for approval again.",
+      access: EDIT,
+      request: { params: IdParam, body: { required: true, content: json(RequestEditSchema) } },
+      responses: { 201: { description: "Asked; the approval request's id", content: json(Created) }, ...failures },
+    },
+    async (c) => {
+      const result = await requestEdit(c.env.DB, c.env.AUDIT_HMAC_KEY, c.get("auth")!.userPublicId, c.req.valid("param").id, c.req.valid("json").reason);
+      return result.ok ? c.json({ id: result.publicId }, 201) : fail(c, result);
+    },
+  );
+
+  defineRoute(
+    app,
+    {
+      method: "post",
+      path: "/api/fees/structures/{id}/discard",
+      operationId: "discard_fee_structure_edit",
+      tags: ["fees"],
+      description: "Gives up a draft edit of an approved structure (only a draft that replaces an approved version). The approved version is untouched, and a new edit can be asked for.",
+      access: DRAFT,
+      request: { params: IdParam },
+      responses: { 200: { description: "Discarded", content: json(z.object({ ok: z.literal(true) })) }, ...failures },
+    },
+    async (c) => {
+      const result = await discardEdit(c.env.DB, c.env.AUDIT_HMAC_KEY, c.get("auth")!.userPublicId, c.req.valid("param").id);
+      return result.ok ? c.json({ ok: true as const }, 200) : fail(c, result);
     },
   );
 

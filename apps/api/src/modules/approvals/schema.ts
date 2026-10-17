@@ -1,6 +1,6 @@
 import { z } from "@hono/zod-openapi";
 
-export const APPROVAL_KINDS = ["website_content", "fee_structure", "discount", "reversal", "refund"] as const;
+export const APPROVAL_KINDS = ["website_content", "fee_structure", "fee_structure_edit", "discount", "reversal", "refund", "student_leave"] as const;
 export const ApprovalKindSchema = z.enum(APPROVAL_KINDS).openapi("ApprovalKind");
 export type ApprovalKind = z.infer<typeof ApprovalKindSchema>;
 
@@ -76,6 +76,17 @@ export const ApprovalDetailSchema = z
       startDateBs: z.string().nullable(),
       endDateBs: z.string().nullable(),
       items: z.array(z.object({ name: z.string(), amountPaisa: z.number().int(), frequency: z.enum(["one_time", "monthly", "yearly", "whole_course"]) })),
+      totalPaisa: z.number().int(),
+      /** The version in force, when this is a new version of one (an edit): what the Principal compares against. */
+      previous: z.object({ items: z.array(z.object({ name: z.string(), amountPaisa: z.number().int() })), totalPaisa: z.number().int() }).nullable(),
+    }),
+    z.object({
+      kind: z.literal("fee_structure_edit"),
+      name: z.string(),
+      startDateBs: z.string().nullable(),
+      endDateBs: z.string().nullable(),
+      reason: z.string(),
+      items: z.array(z.object({ name: z.string(), amountPaisa: z.number().int() })),
       totalPaisa: z.number().int(),
     }),
     z.object({
