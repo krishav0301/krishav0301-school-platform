@@ -1,0 +1,262 @@
+/* The gate screen (D-175): one thing at a time, large enough to read from a few steps away. Theme tokens only. */
+
+.stage {
+  display: flex;
+  min-height: 100dvh;
+  background: var(--color-surface);
+  color: var(--color-text);
+}
+
+.checking {
+  margin: auto;
+  color: var(--color-text-muted);
+  font-size: var(--text-lg);
+}
+
+.connect {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  width: min(100%, 28rem);
+  margin: auto;
+  padding: var(--space-5) var(--page-gutter);
+}
+
+.connectTitle {
+  margin: 0;
+  font-size: var(--text-2xl);
+  font-weight: var(--weight-bold);
+}
+
+.muted {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: var(--text-base);
+}
+
+.screen {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 100dvh;
+  cursor: default;
+}
+
+.center {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-6) var(--page-gutter);
+}
+
+.idle,
+.answer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-3);
+  max-width: 40rem;
+  text-align: center;
+}
+
+.mark {
+  display: grid;
+  place-items: center;
+  width: 7rem;
+  height: 7rem;
+  border-radius: 50%;
+  background: var(--tint-primary);
+  color: var(--color-primary);
+}
+
+.mark svg {
+  width: 3.5rem;
+  height: 3.5rem;
+}
+
+.school {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: var(--text-lg);
+}
+
+.name {
+  margin: 0;
+  font-size: var(--text-4xl);
+  font-weight: var(--weight-bold);
+  line-height: var(--leading-tight);
+  overflow-wrap: anywhere;
+}
+
+.detail {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: var(--text-xl);
+  overflow-wrap: anywhere;
+}
+
+/* The answer's colour is also said in words and an icon, never by colour alone. */
+.answer[data-tone="ok"] .mark {
+  background: var(--color-ok-soft);
+  color: var(--color-ok);
+}
+
+.answer[data-tone="neutral"] .mark {
+  background: var(--tint-ok);
+  color: var(--color-ok);
+}
+
+.answer[data-tone="warn"] .mark {
+  background: var(--color-warn-soft);
+  color: var(--color-warn);
+}
+
+.answer[data-tone="bad"] .mark {
+  background: var(--color-bad-soft);
+  color: var(--color-bad);
+}
+
+.answer[data-tone="bad"] .name {
+  color: var(--color-bad);
+}
+
+/* The answer fades in; nothing moves, so a fast line of students is never chased by animation. */
+@media (prefers-reduced-motion: no-preference) {
+  .answer {
+    animation: arrive var(--motion-fast) var(--motion-ease);
+  }
+}
+
+@keyframes arrive {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-4) var(--page-gutter);
+  color: var(--color-text-muted);
+  font-size: var(--text-base);
+}
+
+.clock {
+  font-variant-numeric: tabular-nums;
+}
+
+.status {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.status svg {
+  width: 1.1em;
+  height: 1.1em;
+}
+
+.status[data-offline] {
+  color: var(--color-warn);
+}
+
+/* --- Gate computers, on the Admin's Settings page ------------------------------------------------------------------- */
+
+.addForm {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  max-width: 28rem;
+}
+
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+}
+
+.keyNotice {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  border-radius: var(--radius-card);
+  background: var(--tint-ok);
+}
+
+.keyTitle {
+  margin: 0;
+  font-size: var(--text-lg);
+  font-weight: var(--weight-bold);
+}
+
+.key {
+  margin: 0;
+  font-size: var(--text-base);
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+  user-select: all;
+}
+
+.deviceList {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.device {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.deviceHead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.deviceName {
+  font-weight: var(--weight-bold);
+  overflow-wrap: anywhere;
+}
+
+.confirm {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.secrets {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  margin: 0;
+}
+
+.secrets dt {
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+}
+
+.secrets dd {
+  margin: 0;
+}
+
+/* The QR code keeps its own black and white (it is read by a machine); only its size is set here. */
+.qr {
+  width: 11rem;
+  max-width: 100%;
+  height: auto;
+}

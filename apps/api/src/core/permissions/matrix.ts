@@ -140,6 +140,12 @@ export const MATRIX = [
   row(G.people, "students.personal.correct", "Correct personal details (reason required; SID never editable)", 4, { COO: inst, SUP: all }),
   row(G.people, "students.status.set", "Mark Graduated (zero dues only)", 8, { COO: inst, SUP: all }),
   row(G.people, "students.leave.request", "Ask for a student to be marked Left (the Principal decides)", 8, { COO: inst, SUP: all }),
+  row(G.people, "cards.view", "See a person's RFID card and the cards retired before it (only where the school uses cards, D-174)", 8, { COO: inst, ADM: read, SUP: all }),
+  row(G.people, "cards.manage", "Link, replace or retire a person's RFID card (D-174)", 8, {
+    COO: only(inst, "students, teachers"),
+    ADM: only(all, "co-ordinators, accountants"),
+    SUP: all,
+  }),
   row(G.people, "students.rollover", "Year rollover: Promote, Repeat, Leaving", 8, { COO: inst, SUP: all }),
 
   // --- Daily school life
@@ -147,6 +153,7 @@ export const MATRIX = [
   row(G.life, "attendance.student.view", "View student attendance", 5, { STU: own, TEA: cls, COO: inst, ADM: read, SUP: all }),
   row(G.life, "attendance.teacher.mark", "Mark teacher attendance (past days editable with reason)", 5, { COO: inst, SUP: all }),
   row(G.life, "attendance.teacher.view", "View teacher attendance", 5, { TEA: own, COO: inst, ADM: read, SUP: all }),
+  row(G.life, "gate.manage", "Register or revoke a gate computer for card taps, and see the list (D-175)", 8, { ADM: all, SUP: all }),
   row(G.life, "activity.write", "Write daily activity log", 5, { TEA: assigned }),
   row(G.life, "activity.read", "Read daily activity log", 5, { STU: only(own, "own class"), TEA: assigned, COO: inst, ADM: read, SUP: all }),
   row(G.life, "notes.manage", "Upload or delete notes and question papers", 5, { TEA: assigned }),

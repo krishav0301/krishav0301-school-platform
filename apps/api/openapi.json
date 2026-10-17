@@ -6662,6 +6662,522 @@
           "days"
         ]
       },
+      "CardView": {
+        "type": "object",
+        "properties": {
+          "owner": {
+            "type": "object",
+            "properties": {
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "student",
+                  "person"
+                ]
+              },
+              "name": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "kind",
+              "name"
+            ]
+          },
+          "current": {
+            "type": [
+              "object",
+              "null"
+            ],
+            "properties": {
+              "cardNumber": {
+                "type": "string"
+              },
+              "issuedAt": {
+                "type": "string"
+              },
+              "issuedOnBs": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "usable": {
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "cardNumber",
+              "issuedAt",
+              "issuedOnBs",
+              "usable"
+            ]
+          },
+          "history": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "cardNumber": {
+                  "type": "string"
+                },
+                "issuedAt": {
+                  "type": "string"
+                },
+                "retiredAt": {
+                  "type": "string"
+                },
+                "retiredOnBs": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "reason": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "cardNumber",
+                "issuedAt",
+                "retiredAt",
+                "retiredOnBs",
+                "reason"
+              ]
+            }
+          }
+        },
+        "required": [
+          "owner",
+          "current",
+          "history"
+        ]
+      },
+      "CardError": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "error"
+        ]
+      },
+      "CardOk": {
+        "type": "object",
+        "properties": {
+          "ok": {
+            "type": "boolean",
+            "enum": [
+              true
+            ]
+          }
+        },
+        "required": [
+          "ok"
+        ]
+      },
+      "CardInvalid": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "string",
+            "enum": [
+              "invalid"
+            ]
+          },
+          "message": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "error",
+          "message"
+        ]
+      },
+      "LinkCard": {
+        "type": "object",
+        "properties": {
+          "cardNumber": {
+            "type": "string",
+            "maxLength": 100
+          },
+          "reason": {
+            "type": "string",
+            "maxLength": 300
+          }
+        },
+        "required": [
+          "cardNumber"
+        ],
+        "additionalProperties": false
+      },
+      "RetireCard": {
+        "type": "object",
+        "properties": {
+          "reason": {
+            "type": "string",
+            "maxLength": 300
+          }
+        },
+        "required": [
+          "reason"
+        ],
+        "additionalProperties": false
+      },
+      "GateAccountList": {
+        "type": "object",
+        "properties": {
+          "accounts": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "gateId": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "status": {
+                  "type": "string",
+                  "enum": [
+                    "active",
+                    "disabled"
+                  ]
+                },
+                "createdAt": {
+                  "type": "string"
+                },
+                "computers": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string"
+                      },
+                      "label": {
+                        "type": "string"
+                      },
+                      "status": {
+                        "type": "string",
+                        "enum": [
+                          "active",
+                          "revoked"
+                        ]
+                      },
+                      "signedInAt": {
+                        "type": "string"
+                      },
+                      "lastSeenAt": {
+                        "type": [
+                          "string",
+                          "null"
+                        ]
+                      },
+                      "lastSeenOnBs": {
+                        "type": [
+                          "string",
+                          "null"
+                        ]
+                      },
+                      "lastSeenTime": {
+                        "type": [
+                          "string",
+                          "null"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "id",
+                      "label",
+                      "status",
+                      "signedInAt",
+                      "lastSeenAt",
+                      "lastSeenOnBs",
+                      "lastSeenTime"
+                    ]
+                  }
+                }
+              },
+              "required": [
+                "id",
+                "gateId",
+                "name",
+                "status",
+                "createdAt",
+                "computers"
+              ]
+            }
+          }
+        },
+        "required": [
+          "accounts"
+        ]
+      },
+      "GateLoginIssued": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "gateId": {
+            "type": "string"
+          },
+          "password": {
+            "type": "string"
+          },
+          "authenticator": {
+            "type": "object",
+            "properties": {
+              "secret": {
+                "type": "string"
+              },
+              "uri": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "secret",
+              "uri"
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "gateId",
+          "password",
+          "authenticator"
+        ]
+      },
+      "GateError": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "error"
+        ]
+      },
+      "GateInvalid": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "string",
+            "enum": [
+              "invalid"
+            ]
+          },
+          "message": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "error",
+          "message"
+        ]
+      },
+      "GateAccountName": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 200
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "additionalProperties": false
+      },
+      "GateOk": {
+        "type": "object",
+        "properties": {
+          "ok": {
+            "type": "boolean",
+            "enum": [
+              true
+            ]
+          }
+        },
+        "required": [
+          "ok"
+        ]
+      },
+      "GateSignedIn": {
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string"
+          },
+          "account": {
+            "type": "string"
+          },
+          "computer": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "label": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "label"
+            ]
+          }
+        },
+        "required": [
+          "key",
+          "account",
+          "computer"
+        ]
+      },
+      "GateSignIn": {
+        "type": "object",
+        "properties": {
+          "gateId": {
+            "type": "string",
+            "maxLength": 100
+          },
+          "password": {
+            "type": "string",
+            "maxLength": 300
+          },
+          "code": {
+            "type": "string",
+            "maxLength": 30
+          },
+          "computer": {
+            "type": "string",
+            "maxLength": 200
+          }
+        },
+        "required": [
+          "gateId",
+          "password",
+          "code"
+        ],
+        "additionalProperties": false
+      },
+      "GateMe": {
+        "type": "object",
+        "properties": {
+          "account": {
+            "type": "string"
+          },
+          "computer": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "account",
+          "computer"
+        ]
+      },
+      "GateScanResult": {
+        "type": "object",
+        "properties": {
+          "result": {
+            "type": "string",
+            "enum": [
+              "marked",
+              "again",
+              "recorded",
+              "no_school",
+              "unknown",
+              "retired",
+              "inactive"
+            ]
+          },
+          "person": {
+            "type": [
+              "object",
+              "null"
+            ],
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "student",
+                  "staff"
+                ]
+              },
+              "role": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "place": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            },
+            "required": [
+              "name",
+              "kind",
+              "role",
+              "place"
+            ]
+          },
+          "at": {
+            "type": "string"
+          },
+          "firstAt": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "result",
+          "person",
+          "at",
+          "firstAt"
+        ]
+      },
+      "GateScan": {
+        "type": "object",
+        "properties": {
+          "cardNumber": {
+            "type": "string",
+            "maxLength": 200
+          },
+          "scanId": {
+            "type": "string",
+            "maxLength": 100
+          },
+          "at": {
+            "type": "string",
+            "maxLength": 40
+          }
+        },
+        "required": [
+          "cardNumber",
+          "scanId"
+        ],
+        "additionalProperties": false
+      },
       "MyActivityToday": {
         "type": "object",
         "properties": {
@@ -18448,6 +18964,693 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/AttendanceInvalid"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/cards/students/{id}": {
+      "get": {
+        "operationId": "get_student_card",
+        "tags": [
+          "cards"
+        ],
+        "description": "A student's card in use and the cards retired before it. The number is what the reader types. `usable` is false while the person has left, graduated or been switched off.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{32}$"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The card and its history",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CardView"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such person, not one the caller may manage, no card to retire, or cards are switched off for this school",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CardError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "operationId": "link_student_card",
+        "tags": [
+          "cards"
+        ],
+        "description": "Links a card to a student, or replaces the one they have (then a reason is required and the old card is retired). Sending the same number again changes nothing. A number belongs to one person for good.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{32}$"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LinkCard"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Linked (or already linked to this person)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CardOk"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such person, not one the caller may manage, no card to retire, or cards are switched off for this school",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CardError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "That number is another person's, or was retired (`card_in_use`), or the person's card changed meanwhile (`changed`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CardError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "The number is the wrong shape, or a replacement has no reason",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CardInvalid"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/cards/students/{id}/retire": {
+      "post": {
+        "operationId": "retire_student_card",
+        "tags": [
+          "cards"
+        ],
+        "description": "Retires a student's card with a reason, for example when it is lost. Nothing is deleted, and the number can never be linked again.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{32}$"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RetireCard"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Retired",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CardOk"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such person, not one the caller may manage, no card to retire, or cards are switched off for this school",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CardError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "No reason given",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CardInvalid"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/cards/people/{id}": {
+      "get": {
+        "operationId": "get_person_card",
+        "tags": [
+          "cards"
+        ],
+        "description": "A staff member (a teacher, Co-ordinator, Accountant or Admin)'s card in use and the cards retired before it. The number is what the reader types. `usable` is false while the person has left, graduated or been switched off.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{32}$"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The card and its history",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CardView"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such person, not one the caller may manage, no card to retire, or cards are switched off for this school",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CardError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "operationId": "link_person_card",
+        "tags": [
+          "cards"
+        ],
+        "description": "Links a card to a staff member (a teacher, Co-ordinator, Accountant or Admin), or replaces the one they have (then a reason is required and the old card is retired). Sending the same number again changes nothing. A number belongs to one person for good.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{32}$"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LinkCard"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Linked (or already linked to this person)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CardOk"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such person, not one the caller may manage, no card to retire, or cards are switched off for this school",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CardError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "That number is another person's, or was retired (`card_in_use`), or the person's card changed meanwhile (`changed`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CardError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "The number is the wrong shape, or a replacement has no reason",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CardInvalid"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/cards/people/{id}/retire": {
+      "post": {
+        "operationId": "retire_person_card",
+        "tags": [
+          "cards"
+        ],
+        "description": "Retires a staff member (a teacher, Co-ordinator, Accountant or Admin)'s card with a reason, for example when it is lost. Nothing is deleted, and the number can never be linked again.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{32}$"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RetireCard"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Retired",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CardOk"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such person, not one the caller may manage, no card to retire, or cards are switched off for this school",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CardError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "No reason given",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CardInvalid"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/gate/accounts": {
+      "get": {
+        "operationId": "list_gate_accounts",
+        "tags": [
+          "gate"
+        ],
+        "description": "The gate accounts, newest first, each with the computers signed in with it and when each last sent a tap. Never a password, a secret or a key.",
+        "responses": {
+          "200": {
+            "description": "The gate accounts",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GateAccountList"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "operationId": "create_gate_account",
+        "tags": [
+          "gate"
+        ],
+        "description": "Makes a gate account: a special ID, a password and an authenticator, all made by the server and shown once, never again. Any number of computers can sign in with it at /gate.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GateAccountName"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Made, with its login (never cached)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GateLoginIssued"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GateError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "The name is missing or too long",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GateInvalid"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/gate/accounts/{id}/new-login": {
+      "post": {
+        "operationId": "reissue_gate_login",
+        "tags": [
+          "gate"
+        ],
+        "description": "Gives an account a new password and a new authenticator, shown once, and signs out every computer signed in with it: for a lost password or phone.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{32}$"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The new login (never cached)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GateLoginIssued"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GateError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such active gate account",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GateError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/gate/accounts/{id}/disable": {
+      "post": {
+        "operationId": "disable_gate_account",
+        "tags": [
+          "gate"
+        ],
+        "description": "Disables a gate account for good. It can no longer sign in, and every computer signed in with it stops at once.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{32}$"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Disabled",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GateOk"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such active gate account",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GateError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/gate/computers/{id}/revoke": {
+      "post": {
+        "operationId": "revoke_gate_computer",
+        "tags": [
+          "gate"
+        ],
+        "description": "Signs one computer out of the gate. Its key stops working at once; it can sign in again with the account's login.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{32}$"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Signed out",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GateOk"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such signed-in computer",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GateError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/gate/sign-in": {
+      "post": {
+        "operationId": "sign_in_gate",
+        "tags": [
+          "gate"
+        ],
+        "description": "A computer signs in to the gate with an account's special ID, its password and the code from its authenticator app. The answer carries the computer's secret key, which the gate page keeps. A code works once. Wrong ID, password and code all answer the same.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GateSignIn"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Signed in, with the computer's key (never cached)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GateSignedIn"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "The ID, password or code is wrong",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GateError"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many recent failed attempts",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GateError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/gate/me": {
+      "get": {
+        "operationId": "get_gate_computer",
+        "tags": [
+          "gate"
+        ],
+        "description": "Which gate account and computer the key in the `x-gate-key` header belongs to; the gate page asks this when it opens.",
+        "responses": {
+          "200": {
+            "description": "The computer",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GateMe"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "The key is missing, wrong or revoked",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GateError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/gate/scan": {
+      "post": {
+        "operationId": "record_gate_scan",
+        "tags": [
+          "gate"
+        ],
+        "description": "One card tap from a gate computer (key in the `x-gate-key` header). Always recorded. A first tap on a school day marks the student or teacher Present; a repeat changes nothing; an unknown, retired or inactive card marks nothing. The same `scanId` again is the same tap and gets the same answer.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GateScan"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "What the screen shows",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GateScanResult"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "The key is missing, wrong or revoked",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GateError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "The card number or scan id is malformed, or the tap is more than a week old",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GateInvalid"
                 }
               }
             }

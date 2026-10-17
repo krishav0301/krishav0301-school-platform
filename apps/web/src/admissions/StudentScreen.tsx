@@ -2,6 +2,7 @@
 
 import { useCallback, useState } from "react";
 
+import { CardPanel } from "@/cards/CardPanel";
 import { useConfig } from "@/config/ConfigProvider";
 import { useAddressQuery } from "@/content/address";
 import { formatBsDate } from "@/content/model";
@@ -136,6 +137,7 @@ export function StudentScreen() {
           ) : null
         }
       />
+      {id ? <CardPanel owner="students" id={id} canManage={canCorrect} titled /> : null}
       {resultsLink && id ? <RecordResults studentId={id} /> : null}
       {feesLink && id ? <RecordFees studentId={id} name={[(corrected ?? view.data).firstName, (corrected ?? view.data).lastName].join(" ")} /> : null}
       {reader ? <ReadOnlyNote>{t("admissions.record.readOnly", { coordinator: term("role.coordinator") })}</ReadOnlyNote> : null}

@@ -1590,6 +1590,196 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/cards/students/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description A student's card in use and the cards retired before it. The number is what the reader types. `usable` is false while the person has left, graduated or been switched off. */
+        get: operations["get_student_card"];
+        /** @description Links a card to a student, or replaces the one they have (then a reason is required and the old card is retired). Sending the same number again changes nothing. A number belongs to one person for good. */
+        put: operations["link_student_card"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/cards/students/{id}/retire": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Retires a student's card with a reason, for example when it is lost. Nothing is deleted, and the number can never be linked again. */
+        post: operations["retire_student_card"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/cards/people/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description A staff member (a teacher, Co-ordinator, Accountant or Admin)'s card in use and the cards retired before it. The number is what the reader types. `usable` is false while the person has left, graduated or been switched off. */
+        get: operations["get_person_card"];
+        /** @description Links a card to a staff member (a teacher, Co-ordinator, Accountant or Admin), or replaces the one they have (then a reason is required and the old card is retired). Sending the same number again changes nothing. A number belongs to one person for good. */
+        put: operations["link_person_card"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/cards/people/{id}/retire": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Retires a staff member (a teacher, Co-ordinator, Accountant or Admin)'s card with a reason, for example when it is lost. Nothing is deleted, and the number can never be linked again. */
+        post: operations["retire_person_card"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/gate/accounts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description The gate accounts, newest first, each with the computers signed in with it and when each last sent a tap. Never a password, a secret or a key. */
+        get: operations["list_gate_accounts"];
+        put?: never;
+        /** @description Makes a gate account: a special ID, a password and an authenticator, all made by the server and shown once, never again. Any number of computers can sign in with it at /gate. */
+        post: operations["create_gate_account"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/gate/accounts/{id}/new-login": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Gives an account a new password and a new authenticator, shown once, and signs out every computer signed in with it: for a lost password or phone. */
+        post: operations["reissue_gate_login"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/gate/accounts/{id}/disable": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Disables a gate account for good. It can no longer sign in, and every computer signed in with it stops at once. */
+        post: operations["disable_gate_account"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/gate/computers/{id}/revoke": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Signs one computer out of the gate. Its key stops working at once; it can sign in again with the account's login. */
+        post: operations["revoke_gate_computer"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/gate/sign-in": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description A computer signs in to the gate with an account's special ID, its password and the code from its authenticator app. The answer carries the computer's secret key, which the gate page keeps. A code works once. Wrong ID, password and code all answer the same. */
+        post: operations["sign_in_gate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/gate/me": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Which gate account and computer the key in the `x-gate-key` header belongs to; the gate page asks this when it opens. */
+        get: operations["get_gate_computer"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/gate/scan": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description One card tap from a gate computer (key in the `x-gate-key` header). Always recorded. A first tap on a school day marks the student or teacher Present; a repeat changes nothing; an unknown, retired or inactive card marks nothing. The same `scanId` again is the same tap and gets the same answer. */
+        post: operations["record_gate_scan"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/activity/mine": {
         parameters: {
             query?: never;
@@ -4289,6 +4479,126 @@ export interface components {
                 /** @enum {string|null} */
                 status: "present" | "absent" | "leave" | null;
             }[];
+        };
+        CardView: {
+            owner: {
+                /** @enum {string} */
+                kind: "student" | "person";
+                name: string;
+            };
+            current: {
+                cardNumber: string;
+                issuedAt: string;
+                issuedOnBs: string | null;
+                usable: boolean;
+            } | null;
+            history: {
+                cardNumber: string;
+                issuedAt: string;
+                retiredAt: string;
+                retiredOnBs: string | null;
+                reason: string;
+            }[];
+        };
+        CardError: {
+            error: string;
+        };
+        CardOk: {
+            /** @enum {boolean} */
+            ok: true;
+        };
+        CardInvalid: {
+            /** @enum {string} */
+            error: "invalid";
+            message: string;
+        };
+        LinkCard: {
+            cardNumber: string;
+            reason?: string;
+        };
+        RetireCard: {
+            reason: string;
+        };
+        GateAccountList: {
+            accounts: {
+                id: string;
+                gateId: string;
+                name: string;
+                /** @enum {string} */
+                status: "active" | "disabled";
+                createdAt: string;
+                computers: {
+                    id: string;
+                    label: string;
+                    /** @enum {string} */
+                    status: "active" | "revoked";
+                    signedInAt: string;
+                    lastSeenAt: string | null;
+                    lastSeenOnBs: string | null;
+                    lastSeenTime: string | null;
+                }[];
+            }[];
+        };
+        GateLoginIssued: {
+            id: string;
+            name: string;
+            gateId: string;
+            password: string;
+            authenticator: {
+                secret: string;
+                uri: string;
+            };
+        };
+        GateError: {
+            error: string;
+        };
+        GateInvalid: {
+            /** @enum {string} */
+            error: "invalid";
+            message: string;
+        };
+        GateAccountName: {
+            name: string;
+        };
+        GateOk: {
+            /** @enum {boolean} */
+            ok: true;
+        };
+        GateSignedIn: {
+            key: string;
+            account: string;
+            computer: {
+                id: string;
+                label: string;
+            };
+        };
+        GateSignIn: {
+            gateId: string;
+            password: string;
+            code: string;
+            computer?: string;
+        };
+        GateMe: {
+            account: string;
+            computer: string;
+        };
+        GateScanResult: {
+            /** @enum {string} */
+            result: "marked" | "again" | "recorded" | "no_school" | "unknown" | "retired" | "inactive";
+            person: {
+                name: string;
+                /** @enum {string} */
+                kind: "student" | "staff";
+                role: string | null;
+                place: string | null;
+            } | null;
+            at: string;
+            firstAt: string | null;
+        };
+        GateScan: {
+            cardNumber: string;
+            scanId: string;
+            at?: string;
         };
         MyActivityToday: {
             date: string;
@@ -10458,6 +10768,539 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AttendanceInvalid"];
+                };
+            };
+        };
+    };
+    get_student_card: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The card and its history */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CardView"];
+                };
+            };
+            /** @description No such person, not one the caller may manage, no card to retire, or cards are switched off for this school */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CardError"];
+                };
+            };
+        };
+    };
+    link_student_card: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LinkCard"];
+            };
+        };
+        responses: {
+            /** @description Linked (or already linked to this person) */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CardOk"];
+                };
+            };
+            /** @description No such person, not one the caller may manage, no card to retire, or cards are switched off for this school */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CardError"];
+                };
+            };
+            /** @description That number is another person's, or was retired (`card_in_use`), or the person's card changed meanwhile (`changed`) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CardError"];
+                };
+            };
+            /** @description The number is the wrong shape, or a replacement has no reason */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CardInvalid"];
+                };
+            };
+        };
+    };
+    retire_student_card: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RetireCard"];
+            };
+        };
+        responses: {
+            /** @description Retired */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CardOk"];
+                };
+            };
+            /** @description No such person, not one the caller may manage, no card to retire, or cards are switched off for this school */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CardError"];
+                };
+            };
+            /** @description No reason given */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CardInvalid"];
+                };
+            };
+        };
+    };
+    get_person_card: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The card and its history */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CardView"];
+                };
+            };
+            /** @description No such person, not one the caller may manage, no card to retire, or cards are switched off for this school */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CardError"];
+                };
+            };
+        };
+    };
+    link_person_card: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LinkCard"];
+            };
+        };
+        responses: {
+            /** @description Linked (or already linked to this person) */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CardOk"];
+                };
+            };
+            /** @description No such person, not one the caller may manage, no card to retire, or cards are switched off for this school */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CardError"];
+                };
+            };
+            /** @description That number is another person's, or was retired (`card_in_use`), or the person's card changed meanwhile (`changed`) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CardError"];
+                };
+            };
+            /** @description The number is the wrong shape, or a replacement has no reason */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CardInvalid"];
+                };
+            };
+        };
+    };
+    retire_person_card: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RetireCard"];
+            };
+        };
+        responses: {
+            /** @description Retired */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CardOk"];
+                };
+            };
+            /** @description No such person, not one the caller may manage, no card to retire, or cards are switched off for this school */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CardError"];
+                };
+            };
+            /** @description No reason given */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CardInvalid"];
+                };
+            };
+        };
+    };
+    list_gate_accounts: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The gate accounts */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GateAccountList"];
+                };
+            };
+        };
+    };
+    create_gate_account: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["GateAccountName"];
+            };
+        };
+        responses: {
+            /** @description Made, with its login (never cached) */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GateLoginIssued"];
+                };
+            };
+            /** @description Not allowed */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GateError"];
+                };
+            };
+            /** @description The name is missing or too long */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GateInvalid"];
+                };
+            };
+        };
+    };
+    reissue_gate_login: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The new login (never cached) */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GateLoginIssued"];
+                };
+            };
+            /** @description Not allowed */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GateError"];
+                };
+            };
+            /** @description No such active gate account */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GateError"];
+                };
+            };
+        };
+    };
+    disable_gate_account: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Disabled */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GateOk"];
+                };
+            };
+            /** @description No such active gate account */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GateError"];
+                };
+            };
+        };
+    };
+    revoke_gate_computer: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Signed out */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GateOk"];
+                };
+            };
+            /** @description No such signed-in computer */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GateError"];
+                };
+            };
+        };
+    };
+    sign_in_gate: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["GateSignIn"];
+            };
+        };
+        responses: {
+            /** @description Signed in, with the computer's key (never cached) */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GateSignedIn"];
+                };
+            };
+            /** @description The ID, password or code is wrong */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GateError"];
+                };
+            };
+            /** @description Too many recent failed attempts */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GateError"];
+                };
+            };
+        };
+    };
+    get_gate_computer: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The computer */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GateMe"];
+                };
+            };
+            /** @description The key is missing, wrong or revoked */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GateError"];
+                };
+            };
+        };
+    };
+    record_gate_scan: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["GateScan"];
+            };
+        };
+        responses: {
+            /** @description What the screen shows */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GateScanResult"];
+                };
+            };
+            /** @description The key is missing, wrong or revoked */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GateError"];
+                };
+            };
+            /** @description The card number or scan id is malformed, or the tap is more than a week old */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GateInvalid"];
                 };
             };
         };
