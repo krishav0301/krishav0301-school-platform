@@ -1385,7 +1385,7 @@ export const en = {
   "admissions.queue.title": "Admissions queue",
   "admissions.leave.open": "Mark as left",
   "admissions.leave.title": "Mark {name} as left",
-  "admissions.leave.intro": "The Principal decides. If approved, the student is marked Left and their fee account is closed for everyone: whatever is unpaid stays owed and nothing can be added later. Settle fees with the family before you send this.",
+  "admissions.leave.intro": "The Principal decides. The student can only be marked Left once nothing is owed and nothing is in credit, so settle the fees first: payments, a refund of any credit, or a discount from the Principal. When approved, the fee account is closed and archived and the student leaves the class.",
   "admissions.leave.reason": "Why is the student leaving?",
   "admissions.leave.send": "Send to the Principal",
   "admissions.leave.sending": "Sending",
