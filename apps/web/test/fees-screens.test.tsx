@@ -144,6 +144,7 @@ describe("the Principal reads fees (D-104, after the PM's topic 7 reference)", (
     classId: "c1",
     className: "Science · Grade 11",
     hasEmail: false,
+    closed: false,
     chargedPaisa: charged,
     discountPaisa: 0,
     paidPaisa: paid,
@@ -187,6 +188,9 @@ describe("the Principal reads fees (D-104, after the PM's topic 7 reference)", (
       status: "live" as const,
       totalPaisa: 1_850_000,
       levelsLinked: 2,
+      editing: false,
+      inForce: null,
+      editRequested: false,
       items: [{ id: "i1", name: "Tuition", amountPaisa: 350_000, frequency: "one_time" as const }, { id: "i2", name: "Admission", amountPaisa: 1_500_000, frequency: "one_time" as const }],
       levels: [{ levelId: "l1", programmeName: "Science", levelName: "Grade 11", students: 30 }],
     };

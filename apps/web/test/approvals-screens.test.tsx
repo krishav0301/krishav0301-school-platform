@@ -118,14 +118,14 @@ describe("the approvals inbox (D-102)", () => {
 
 describe("the review panel's details, for each kind (D-102)", () => {
   it("a fee structure: every line, the total, its name and dates, and what approving does", () => {
-    const html = inContext(<DetailBody detail={{ kind: "fee_structure", name: "+2 Science fees", startDate: "2026-04-14", endDate: "2027-04-13", startDateBs: "2083-01-01", endDateBs: "2083-12-30", items: [{ name: "Tuition", amountPaisa: 350_000, frequency: "one_time" }, { name: "Laboratory", amountPaisa: 200_000, frequency: "one_time" }], totalPaisa: 550_000 }} />);
+    const html = inContext(<DetailBody detail={{ kind: "fee_structure", name: "+2 Science fees", startDate: "2026-04-14", endDate: "2027-04-13", startDateBs: "2083-01-01", endDateBs: "2083-12-30", items: [{ name: "Tuition", amountPaisa: 350_000, frequency: "one_time" }, { name: "Laboratory", amountPaisa: 200_000, frequency: "one_time" }], totalPaisa: 550_000, previous: null }} />);
     expect(html).toContain("<dt>Tuition</dt><dd>NPR 3,500 once</dd>");
     expect(html).toContain("<dt>Laboratory</dt><dd>NPR 2,000 once</dd>");
     expect(html).toContain("<dt>Total fees</dt><dd>NPR 5,500</dd>");
     expect(html).toContain("+2 Science fees · 2083-01-01 to 2083-12-30");
     expect(html).toContain("If approved, this fee structure can be linked to levels, and then every student of those levels is charged.");
     // A structure from before D-172 keeps how its lines were billed.
-    expect(inContext(<DetailBody detail={{ kind: "fee_structure", name: "Old", startDate: "2026-04-14", endDate: "2027-04-13", startDateBs: null, endDateBs: null, items: [{ name: "Tuition", amountPaisa: 350_000, frequency: "monthly" }], totalPaisa: 4_200_000 }} />)).toContain("<dt>Tuition</dt><dd>NPR 3,500 / month</dd>");
+    expect(inContext(<DetailBody detail={{ kind: "fee_structure", name: "Old", startDate: "2026-04-14", endDate: "2027-04-13", startDateBs: null, endDateBs: null, items: [{ name: "Tuition", amountPaisa: 350_000, frequency: "monthly" }], totalPaisa: 4_200_000, previous: null }} />)).toContain("<dt>Tuition</dt><dd>NPR 3,500 / month</dd>");
   });
 
   it("a percentage discount: the percentage and its amount, the reason, and the note when Other", () => {

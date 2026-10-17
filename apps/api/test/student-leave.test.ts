@@ -134,7 +134,6 @@ describe("approved: the student is Left and the fee account is closed", () => {
   });
 
   it("charging and price changes skip a closed account: the sweep adds nothing to it", async () => {
-    const enrollmentId = fixture.pupils[1]!.enrollmentId;
     const before = await account(1);
     await chargeLinked(db, auditKey);
     await applyPriceChanges(db, auditKey);
