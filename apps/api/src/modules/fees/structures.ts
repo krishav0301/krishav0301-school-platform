@@ -519,6 +519,7 @@ export async function applyPriceChanges(db: D1Database, key: string, scope: { ro
              FROM ledger_entries le JOIN fee_items fi ON fi.id = le.fee_item_id JOIN fee_structures fv ON fv.id = fi.structure_id
              JOIN enrollments en ON en.id = le.enrollment_id JOIN academic_years ay ON ay.id = en.academic_year_id
             WHERE le.kind = 'charge' AND fi.frequency = 'one_time' AND COALESCE(fv.root_id, fv.id) = ?1 AND ay.status <> 'closed'
+              AND NOT EXISTS (SELECT 1 FROM fee_account_closures fc WHERE fc.enrollment_id = en.id)
             GROUP BY le.enrollment_id, lower(fi.name) ORDER BY le.enrollment_id`,
         )
         .bind(v.root_id),

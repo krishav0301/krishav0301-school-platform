@@ -3,6 +3,7 @@ import { nepalDate } from "../../core/dates";
 import { newPublicId } from "../../core/ids";
 import { carryDues, enrollmentBalances } from "../fees";
 import { coordinatorForSection } from "./guard";
+import { requestLeave } from "./leave";
 import type { MoveInput, MoveResult, PromotionBoard } from "./schema";
 
 /**
@@ -72,7 +73,7 @@ export async function promotionBoard(db: D1Database, sections: "all" | readonly 
            FROM academic_years ay JOIN classes cl ON cl.academic_year_id = ay.id
            JOIN levels lv ON lv.id = cl.level_id JOIN programmes pv ON pv.id = lv.programme_id JOIN sections s ON s.id = pv.section_id
            LEFT JOIN levels nl ON nl.id = ${NEXT_LEVEL("lv")}
-           JOIN enrollments en ON en.class_id = cl.id AND en.status = 'active' JOIN students st ON st.id = en.student_id
+           JOIN enrollments en ON en.class_id = cl.id AND en.status IN ('active', 'left') JOIN students st ON st.id = en.student_id
            LEFT JOIN enrollments me ON me.previous_enrollment_id = en.id
            LEFT JOIN classes mc ON mc.id = me.class_id LEFT JOIN levels ml ON ml.id = mc.level_id LEFT JOIN programmes mp ON mp.id = ml.programme_id
           WHERE ay.public_id = ?1 AND (?2 IS NULL OR s.key IN (SELECT value FROM json_each(?2)))
@@ -205,7 +206,15 @@ export async function moveStudents(db: D1Database, key: string, actor: string, m
       continue;
     }
 
-    if (move.action === "leave" || move.action === "graduate") {
+    if (move.action === "leave") {
+      // Leaving is the Principal's to approve; what is owed stays owed (D-172). The student is marked Left when it is approved.
+      const asked = await requestLeave(db, key, actor, move.enrollmentId, "Leaving at the end of the term");
+      if (asked.ok) results.push({ enrollmentId: move.enrollmentId, ok: true, pending: true });
+      else fail(asked.reason === "conflict" ? "conflict" : "not_found", asked.reason === "conflict" ? "A request for this student is already waiting for the Principal" : undefined);
+      continue;
+    }
+
+    if (move.action === "graduate") {
       if (move.action === "graduate" && old.next_level_id !== null) {
         fail("invalid", "Only a student at the last level graduates");
         continue;

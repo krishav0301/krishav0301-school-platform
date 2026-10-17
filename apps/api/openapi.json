@@ -4429,6 +4429,43 @@
               "kind": {
                 "type": "string",
                 "enum": [
+                  "student_leave"
+                ]
+              },
+              "student": {
+                "type": "string"
+              },
+              "sid": {
+                "type": "string"
+              },
+              "className": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "reason": {
+                "type": "string"
+              },
+              "owedPaisa": {
+                "type": "integer"
+              }
+            },
+            "required": [
+              "kind",
+              "student",
+              "sid",
+              "className",
+              "reason",
+              "owedPaisa"
+            ]
+          },
+          {
+            "type": "object",
+            "properties": {
+              "kind": {
+                "type": "string",
+                "enum": [
                   "fee_structure_edit"
                 ]
               },
@@ -5698,6 +5735,15 @@
           },
           "createdAt": {
             "type": "string"
+          },
+          "enrollmentId": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "leaveRequested": {
+            "type": "boolean"
           }
         },
         "required": [
@@ -5716,7 +5762,9 @@
           "status",
           "className",
           "place",
-          "createdAt"
+          "createdAt",
+          "enrollmentId",
+          "leaveRequested"
         ]
       },
       "CorrectStudent": {
@@ -5945,6 +5993,25 @@
           "targets"
         ]
       },
+      "LeaveRequest": {
+        "type": "object",
+        "properties": {
+          "enrollmentId": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{32}$"
+          },
+          "reason": {
+            "type": "string",
+            "minLength": 3,
+            "maxLength": 500
+          }
+        },
+        "required": [
+          "enrollmentId",
+          "reason"
+        ],
+        "additionalProperties": false
+      },
       "MoveResults": {
         "type": "object",
         "properties": {
@@ -5985,6 +6052,9 @@
             "type": "string"
           },
           "carriedDues": {
+            "type": "boolean"
+          },
+          "pending": {
             "type": "boolean"
           }
         },
@@ -17789,7 +17859,7 @@
         "tags": [
           "admissions"
         ],
-        "description": "Moves students of a closed term: promote (a class of the next level in an open term), repeat (the same level), leave, or graduate (last level). Leaving and graduating need nothing owed. What is owed is carried into the new term. Each student is answered on its own; a repeat finds the move already made.",
+        "description": "Moves students of a closed term: promote (a class of the next level in an open term), repeat (the same level), leave (sent to the Principal; no zero-dues rule), or graduate (last level; needs nothing owed). What is owed is carried into the new term. Each student is answered on its own; a repeat finds the move already made.",
         "requestBody": {
           "required": true,
           "content": {
@@ -17807,6 +17877,75 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/MoveResults"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/students/leave-requests": {
+      "post": {
+        "operationId": "request_student_leave",
+        "tags": [
+          "admissions"
+        ],
+        "description": "The Co-ordinator asks for a student to be marked Left, with a reason. The Principal decides it; when approved, in one step the student is marked Left and their fee account is closed for everyone (what is unpaid stays owed). Settle any fees with the family before asking.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LeaveRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Sent; the request's id",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "id"
+                  ]
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdmissionsError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such student, or not one the person may reach",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdmissionsError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "A request for this student is already waiting",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdmissionsError"
                 }
               }
             }

@@ -20,6 +20,7 @@ import { Notice } from "@/ui";
 import styles from "./admissions.module.css";
 import { loadStudent } from "./client";
 import { CorrectDetails } from "./CorrectDetails";
+import { LeaveRequest } from "./LeaveRequest";
 import { NewPassword } from "./NewPassword";
 import type { StudentDetail } from "./model";
 
@@ -95,6 +96,7 @@ export function StudentScreen() {
   const { view, reload } = useLoad(load);
   const [corrected, setCorrected] = useState<StudentDetail | null>(null);
   const [saved, setSaved] = useState(false);
+  const [leaveAsked, setLeaveAsked] = useState(false);
   const roles = me?.roles.map((r) => r.role) ?? [];
   // The Co-ordinator (and Support) may correct details (students.personal.correct); the server checks the section again.
   const canCorrect = roles.some((r) => r === "coordinator" || r === "super_admin");
@@ -122,6 +124,13 @@ export function StudentScreen() {
                   setSaved(true);
                 }}
               />
+              {view.data.status === "active" && view.data.enrollmentId ? (
+                view.data.leaveRequested || leaveAsked ? (
+                  <StatusWord tone="warn">{t("admissions.leave.status")}</StatusWord>
+                ) : (
+                  <LeaveRequest enrollmentId={view.data.enrollmentId} name={[view.data.firstName, view.data.lastName].join(" ")} onAsked={() => setLeaveAsked(true)} />
+                )
+              ) : null}
               <NewPassword studentId={view.data.id} name={[(corrected ?? view.data).firstName, (corrected ?? view.data).lastName].filter(Boolean).join(" ")} />
             </>
           ) : null

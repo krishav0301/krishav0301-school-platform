@@ -6,9 +6,11 @@ import { runOutbox } from "../../core/notifications";
 import { allowedSections } from "../../core/permissions";
 import { defineRoute } from "../../core/routes";
 import type { App, AppEnv } from "../../core/types";
+import { requestLeave } from "./leave";
 import { getApplication, getOwnStudent, getStudent, listOpenLevels, listQueue, searchStudents } from "./queries";
 import {
   AdmittedSchema,
+  LeaveRequestSchema,
   ApplicationDetailSchema,
   ApplicationQueueSchema,
   ApplySchema,
@@ -446,6 +448,7 @@ export function registerAdmissions(app: App): void {
 
   // --- Moving students into the next term (D-109, D-110) ----------------------------------------
   const PROMOTE = { action: "students.promote" } as const;
+  const LEAVE = { action: "students.leave.request" } as const;
   defineRoute(
     app,
     {
@@ -469,11 +472,37 @@ export function registerAdmissions(app: App): void {
     app,
     {
       method: "post",
+      path: "/api/students/leave-requests",
+      operationId: "request_student_leave",
+      tags: ["admissions"],
+      description:
+        "The Co-ordinator asks for a student to be marked Left, with a reason. The Principal decides it; when approved, in one step the student is marked Left and their fee account is closed for everyone (what is unpaid stays owed). Settle any fees with the family before asking.",
+      access: LEAVE,
+      request: { body: { required: true, content: json(LeaveRequestSchema) } },
+      responses: {
+        201: { description: "Sent; the request's id", content: json(z.object({ id: z.string() })) },
+        403: { description: "Not allowed", content: json(ErrorSchema) },
+        404: { description: "No such student, or not one the person may reach", content: json(ErrorSchema) },
+        409: { description: "A request for this student is already waiting", content: json(ErrorSchema) },
+      },
+    },
+    async (c) => {
+      const { enrollmentId, reason } = c.req.valid("json");
+      const result = await requestLeave(c.env.DB, c.env.AUDIT_HMAC_KEY, c.get("auth")!.userPublicId, enrollmentId, reason);
+      if (result.ok) return c.json({ id: result.publicId }, 201);
+      return result.reason === "not_found" ? c.json({ error: "not_found" as const }, 404) : c.json({ error: "conflict" as const }, 409);
+    },
+  );
+
+  defineRoute(
+    app,
+    {
+      method: "post",
       path: "/api/promotions",
       operationId: "move_students",
       tags: ["admissions"],
       description:
-        "Moves students of a closed term: promote (a class of the next level in an open term), repeat (the same level), leave, or graduate (last level). Leaving and graduating need nothing owed. What is owed is carried into the new term. Each student is answered on its own; a repeat finds the move already made.",
+        "Moves students of a closed term: promote (a class of the next level in an open term), repeat (the same level), leave (sent to the Principal; no zero-dues rule), or graduate (last level; needs nothing owed). What is owed is carried into the new term. Each student is answered on its own; a repeat finds the move already made.",
       access: PROMOTE,
       request: { body: { required: true, content: json(MovesSchema) } },
       responses: { 200: { description: "Each student's answer", content: json(MoveResultsSchema) } },

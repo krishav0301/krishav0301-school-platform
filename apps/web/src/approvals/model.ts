@@ -133,6 +133,10 @@ export function cardLines(request: ApprovalSummary): { subject: string; lines: s
         lines: [items, ...(s.totalPaisa !== undefined ? [t("approvals.card.total", { amount: npr(s.totalPaisa) })] : [])],
       };
     }
+    case "student_leave": {
+      const s = snap as { student?: string; sid?: string; reason?: string };
+      return { subject: s.student ? `${s.student} (${s.sid ?? ""})` : request.summary, lines: s.reason ? [t("approvals.card.reason", { reason: s.reason })] : [] };
+    }
     case "fee_structure_edit": {
       const s = snap as { name?: string; reason?: string };
       return { subject: s.name ?? request.summary, lines: s.reason ? [t("approvals.card.reason", { reason: s.reason })] : [] };
@@ -214,6 +218,8 @@ export function confirmSubject(request: ApprovalSummary, detail: ApprovalDetail 
       return { kind, subject: detail.name, amountLabel: t("approvals.detail.total"), amount: npr(detail.totalPaisa) };
     case "fee_structure_edit":
       return { kind, subject: detail.name, amountLabel: t("approvals.detail.total"), amount: npr(detail.totalPaisa) };
+    case "student_leave":
+      return { kind, subject: `${detail.student} (${detail.sid})`, amountLabel: detail.owedPaisa >= 0 ? t("approvals.detail.owed") : t("approvals.detail.credit"), amount: npr(Math.abs(detail.owedPaisa)) };
     case "website_content":
       return { kind, subject: `${contentKindLabel(detail.contentKind)}: ${detail.title}`, amountLabel: null, amount: null };
     case "discount":

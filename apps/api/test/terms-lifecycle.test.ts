@@ -162,7 +162,7 @@ describe("a semester school beside a yearly one", () => {
     s.nextClasses.sem4 = (await ok<{ id: string }>(await post("/api/academics/classes", { yearId: s.next, levelId: s.sems[3], label: "A" }, coordinator), 201)).id;
   });
 
-  it("the Co-ordinator moves each student on: promote carries what is owed, once; leaving needs nothing owed", async () => {
+  it("the Co-ordinator moves each student on: promote carries what is owed, once; leaving goes to the Principal", async () => {
     const board = await ok<{ termId: string; classes: { classId: string; nextLevelId: string | null; students: { enrollmentId: string; outcome: string; balancePaisa: number }[] }[]; targets: { classId: string }[] }>(
       await get("/api/promotions", coordinator),
     );
@@ -197,7 +197,7 @@ describe("a semester school beside a yearly one", () => {
     expect(again.results[0]).toEqual({ enrollmentId: s.enrollments.Asha, ok: false, reason: "already_moved" });
     expect(await carried()).toBe(1);
 
-    // Bikash paid everything, so he may leave; Chandra is promoted to Semester 4 with nothing owed.
+    // Bikash leaves (the Principal decides, owed or not); Chandra is promoted to Semester 4 with nothing owed.
     const second = await ok<{ results: { ok: boolean; carriedDues?: boolean }[] }>(
       await post(
         "/api/promotions",
@@ -205,16 +205,19 @@ describe("a semester school beside a yearly one", () => {
         coordinator,
       ),
     );
-    expect(second.results).toMatchObject([{ ok: true }, { ok: true, carriedDues: false }]);
-    expect((await db.prepare("SELECT st.status FROM students st JOIN enrollments en ON en.student_id = st.id WHERE en.public_id = ?1").bind(s.enrollments.Bikash).first<{ status: string }>())!.status).toBe("left");
+    expect(second.results).toMatchObject([{ ok: true, pending: true }, { ok: true, carriedDues: false }]);
+    const statusOfBikash = async () => (await db.prepare("SELECT st.status FROM students st JOIN enrollments en ON en.student_id = st.id WHERE en.public_id = ?1").bind(s.enrollments.Bikash).first<{ status: string }>())!.status;
+    expect(await statusOfBikash()).toBe("active"); // not Left until the Principal approves
+    const requestId = (await db.prepare("SELECT ar.public_id FROM approval_requests ar JOIN student_leave_requests lr ON lr.public_id = ar.subject_public_id JOIN enrollments en ON en.id = lr.enrollment_id WHERE en.public_id = ?1").bind(s.enrollments.Bikash).first<{ public_id: string }>())!.public_id;
+    await ok(await post(`/api/approvals/${requestId}/approve`, undefined, principal));
+    expect(await statusOfBikash()).toBe("left");
 
     const after = await ok<{ classes: { students: { enrollmentId: string; outcome: string; movedTo: string | null }[] }[] }>(await get(`/api/promotions?term=${s.odd}`, coordinator));
     const outcomes = Object.fromEntries(after.classes.flatMap((c) => c.students).map((st) => [st.enrollmentId, st.outcome]));
     expect(outcomes).toEqual({ [s.enrollments.Asha!]: "promoted", [s.enrollments.Bikash!]: "left", [s.enrollments.Chandra!]: "promoted" });
   });
 
-  it("leaving with dues is refused; another section's Co-ordinator and a student get nothing", async () => {
-    // A fresh student in the new term owes nothing there yet, but Asha's carried dues stop her leaving after the next close.
+  it("another section's Co-ordinator and a student get nothing", async () => {
     expect((await get("/api/promotions", student)).status).toBe(403);
     const theirs = await ok<{ classes: unknown[] }>(await get(`/api/promotions?term=${s.odd}`, plus2Coordinator));
     expect(theirs.classes).toEqual([]);

@@ -138,7 +138,8 @@ export const MATRIX = [
   row(G.people, "students.search", "Search students", 4, { TEA: only(assigned, "sid+name", "sid+name (assigned)"), COO: inst, ACC: inst, ADM: inst, SUP: all }),
   row(G.people, "students.personal.view", "View personal details", 4, { STU: own, COO: inst, ACC: read, ADM: read, SUP: all }),
   row(G.people, "students.personal.correct", "Correct personal details (reason required; SID never editable)", 4, { COO: inst, SUP: all }),
-  row(G.people, "students.status.set", "Mark Left or Graduated (zero dues only)", 8, { COO: inst, SUP: all }),
+  row(G.people, "students.status.set", "Mark Graduated (zero dues only)", 8, { COO: inst, SUP: all }),
+  row(G.people, "students.leave.request", "Ask for a student to be marked Left (the Principal decides)", 8, { COO: inst, SUP: all }),
   row(G.people, "students.rollover", "Year rollover: Promote, Repeat, Leaving", 8, { COO: inst, SUP: all }),
 
   // --- Daily school life

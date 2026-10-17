@@ -172,6 +172,8 @@ interface StudentDetailRow {
   class_label: string | null;
   term_label: string | null;
   created_at: string;
+  enrollment_id: string | null;
+  leave_requested: number;
 }
 
 async function studentDetailFrom(db: D1Database, where: string, param: string): Promise<StudentDetail | null> {
@@ -180,7 +182,9 @@ async function studentDetailFrom(db: D1Database, where: string, param: string): 
       `SELECT st.public_id, st.sid, st.first_name, st.middle_name, st.last_name, st.dob_ad, st.phone, st.email,
               st.guardian_name, st.guardian_phone, st.previous_school, st.status, st.created_at,
               pv.name || ' - ' || lv.name AS class_name,
-              ws.name AS wing_name, pv.name AS course_name, lv.name AS level_name, cl.label AS class_label, ty.label AS term_label
+              ws.name AS wing_name, pv.name AS course_name, lv.name AS level_name, cl.label AS class_label, ty.label AS term_label,
+              CASE WHEN en.status = 'active' THEN en.public_id END AS enrollment_id,
+              EXISTS (SELECT 1 FROM student_leave_requests lr WHERE lr.enrollment_id = en.id AND lr.status IN ('draft', 'pending')) AS leave_requested
          FROM students st
          LEFT JOIN enrollments en ON en.id = ${LATEST_ENROLLMENT}
          LEFT JOIN academic_years ty ON ty.id = en.academic_year_id
@@ -213,6 +217,8 @@ async function studentDetailFrom(db: D1Database, where: string, param: string): 
         ? { wing: row.wing_name ?? "", course: row.course_name, level: row.level_name, section: row.class_label ?? "", term: row.term_label ?? "" }
         : null,
     createdAt: row.created_at,
+    enrollmentId: row.enrollment_id,
+    leaveRequested: row.leave_requested === 1,
   };
 }
 

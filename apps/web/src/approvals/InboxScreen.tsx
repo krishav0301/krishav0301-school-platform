@@ -224,6 +224,26 @@ export function DetailBody({ detail }: { detail: ApprovalDetail }) {
           </Notice>
         </>
       );
+    case "student_leave":
+      return (
+        <>
+          <Section title={t("approvals.detail.student")}>
+            <p className={styles.subject}>{[detail.student, detail.sid, detail.className].filter(Boolean).join(" · ")}</p>
+          </Section>
+          <Section title={t("approvals.detail.leaveReason")}>
+            <p className={styles.line}>{detail.reason}</p>
+          </Section>
+          <Section title={detail.owedPaisa >= 0 ? t("approvals.detail.owed") : t("approvals.detail.credit")}>
+            <p className={styles.line}>{npr(Math.abs(detail.owedPaisa))}</p>
+          </Section>
+          <Notice>
+            <span className={styles.failed}>
+              <Info aria-hidden width={18} height={18} />
+              {t("approvals.effect.studentLeave")}
+            </span>
+          </Notice>
+        </>
+      );
     case "fee_structure_edit":
       return (
         <>

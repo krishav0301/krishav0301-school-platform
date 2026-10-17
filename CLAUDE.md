@@ -105,7 +105,7 @@ A role assignment carries a **scope**: the whole institution, or one section (+2
 - A closed year rejects all writes. Corrections are **new entries in the current year** that point back.
 - SID = admission year + sequence, for example `2083-00123`. One sequence for the institution, assigned at approval, never changes, never editable. Increment the counter and create the student in one batch (D1 serialises writes). Class and roll number belong to the enrollment.
 - No hard deletes. Deactivate or archive.
-- Left or Graduated only with **zero dues**.
+- **Graduated** only with **zero dues**. **Left** (D-172) is asked for by the Co-ordinator, with a reason, and approved by the Principal; it needs no zero dues. On approval, in one batch, the student is marked Left and their **fee account is closed for everyone**: what is unpaid stays owed, nothing is added or reopened afterwards (settle fees with the family before asking).
 
 **Admissions**
 - Only the **Co-ordinator** approves students. Walk-ins the Co-ordinator registers are auto-approved. Rejection is final. "Ask for changes" is the fix-it path.
@@ -123,7 +123,7 @@ A role assignment carries a **scope**: the whole institution, or one section (+2
 - The Accountant owns fees. The Co-ordinator has **no Fees view**. The Accountant's student profile shows only Personal and Fees.
 
 **Approvals (Admin)**
-- Types: website content, fee structure (a priced period, D-172), fee structure edit (the Accountant asks, the Principal decides), payment reversal. Any one Admin can approve. (Discounts and refunds of credit need no approval since D-172.)
+- Types: website content, fee structure (a priced period, D-172), fee structure edit (the Accountant asks, the Principal decides), payment reversal, student leaving (the Co-ordinator asks). Any one Admin can approve. (Discounts and refunds of credit need no approval since D-172.)
 - Approve-and-apply is **one batch** (all or nothing) with a conditional update, so a race has exactly one winner. A second click or retry returns "already resolved". Nothing is applied twice.
 - A request goes stale if what it refers to changes. Nobody approves their own request.
 

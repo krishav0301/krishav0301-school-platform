@@ -75,7 +75,8 @@ Phase is the build phase where the action first exists. The action id in code fo
 | Search students (`students.search`) | — | sid+name (assigned) | inst | inst | inst | ✓ | 4 |
 | View personal details (`students.personal.view`) | own | — | inst | read | read | ✓ | 4 |
 | Correct personal details (reason required; SID never editable) (`students.personal.correct`) | — | — | inst | — | — | ✓ | 4 |
-| Mark Left or Graduated (zero dues only) (`students.status.set`) | — | — | inst | — | — | ✓ | 8 |
+| Mark Graduated (zero dues only) (`students.status.set`) | — | — | inst | — | — | ✓ | 8 |
+| Ask for a student to be marked Left (the Principal decides) (`students.leave.request`) | — | — | inst | — | — | ✓ | 8 |
 | Year rollover: Promote, Repeat, Leaving (`students.rollover`) | — | — | inst | — | — | ✓ | 8 |
 
 ### Daily school life

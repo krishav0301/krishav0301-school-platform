@@ -244,6 +244,19 @@ export async function correctStudent(api: ApiClient, id: string, changes: Correc
   }
 }
 
+export type LeaveOutcome = { ok: true } | { ok: false; reason: "conflict" | "not_found" | "forbidden" | "failed" };
+
+/** The Co-ordinator asks for a student to be marked Left; the Principal decides. */
+export async function requestLeave(api: ApiClient, enrollmentId: string, reason: string): Promise<LeaveOutcome> {
+  try {
+    const { data, response } = await api.POST("/api/students/leave-requests", { body: { enrollmentId, reason } });
+    if (data) return { ok: true };
+    return { ok: false, reason: response.status === 409 ? "conflict" : response.status === 404 ? "not_found" : response.status === 403 ? "forbidden" : "failed" };
+  } catch {
+    return { ok: false, reason: "failed" };
+  }
+}
+
 export type StudentBrowse = components["schemas"]["StudentBrowse"];
 export type BrowsedStudent = StudentBrowse["students"][number];
 

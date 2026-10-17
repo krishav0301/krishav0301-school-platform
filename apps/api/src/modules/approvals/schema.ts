@@ -81,6 +81,15 @@ export const ApprovalDetailSchema = z
       previous: z.object({ items: z.array(z.object({ name: z.string(), amountPaisa: z.number().int() })), totalPaisa: z.number().int() }).nullable(),
     }),
     z.object({
+      kind: z.literal("student_leave"),
+      student: z.string(),
+      sid: z.string(),
+      className: z.string().nullable(),
+      reason: z.string(),
+      /** What the student owes now (negative: credit). The Principal decides knowing it; the account closes with it. */
+      owedPaisa: z.number().int(),
+    }),
+    z.object({
       kind: z.literal("fee_structure_edit"),
       name: z.string(),
       startDateBs: z.string().nullable(),

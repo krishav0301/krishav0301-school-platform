@@ -1445,8 +1445,25 @@ export interface paths {
         /** @description A closed term's classes in the person's sections, with each student, what they owe, and where they have gone; and the open terms' classes they can move into. With no term asked for, the most recently closed term that still has students to move. */
         get: operations["get_promotion_board"];
         put?: never;
-        /** @description Moves students of a closed term: promote (a class of the next level in an open term), repeat (the same level), leave, or graduate (last level). Leaving and graduating need nothing owed. What is owed is carried into the new term. Each student is answered on its own; a repeat finds the move already made. */
+        /** @description Moves students of a closed term: promote (a class of the next level in an open term), repeat (the same level), leave (sent to the Principal; no zero-dues rule), or graduate (last level; needs nothing owed). What is owed is carried into the new term. Each student is answered on its own; a repeat finds the move already made. */
         post: operations["move_students"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/students/leave-requests": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description The Co-ordinator asks for a student to be marked Left, with a reason. The Principal decides it; when approved, in one step the student is marked Left and their fee account is closed for everyone (what is unpaid stays owed). Settle any fees with the family before asking. */
+        post: operations["request_student_leave"];
         delete?: never;
         options?: never;
         head?: never;
@@ -3844,6 +3861,14 @@ export interface components {
             } | null;
         } | {
             /** @enum {string} */
+            kind: "student_leave";
+            student: string;
+            sid: string;
+            className: string | null;
+            reason: string;
+            owedPaisa: number;
+        } | {
+            /** @enum {string} */
             kind: "fee_structure_edit";
             name: string;
             startDateBs: string | null;
@@ -4119,6 +4144,8 @@ export interface components {
                 term: string;
             } | null;
             createdAt: string;
+            enrollmentId: string | null;
+            leaveRequested: boolean;
         };
         CorrectStudent: {
             firstName?: string;
@@ -4166,6 +4193,10 @@ export interface components {
                 termLabel: string;
             }[];
         };
+        LeaveRequest: {
+            enrollmentId: string;
+            reason: string;
+        };
         MoveResults: {
             results: components["schemas"]["MoveResult"][];
         };
@@ -4177,6 +4208,7 @@ export interface components {
             message?: string;
             newEnrollmentId?: string;
             carriedDues?: boolean;
+            pending?: boolean;
         };
         Moves: {
             moves: {
@@ -10079,6 +10111,59 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["MoveResults"];
+                };
+            };
+        };
+    };
+    request_student_leave: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LeaveRequest"];
+            };
+        };
+        responses: {
+            /** @description Sent; the request's id */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        id: string;
+                    };
+                };
+            };
+            /** @description Not allowed */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdmissionsError"];
+                };
+            };
+            /** @description No such student, or not one the person may reach */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdmissionsError"];
+                };
+            };
+            /** @description A request for this student is already waiting */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdmissionsError"];
                 };
             };
         };
