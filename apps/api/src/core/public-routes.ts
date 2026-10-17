@@ -37,6 +37,11 @@ export const PUBLIC_ROUTES: ReadonlySet<string> = new Set([
   // itself, server to server, and applied once per gateway reference. Answers 404 unless a gateway is configured
   // (only the demo adapter, in demo mode, until Phase 9).
   "POST /api/fees/gateway/callback",
+  // A gate computer's card taps (D-175). The credential is the device's own secret key in the `x-gate-key` header
+  // (256 random bits, only its hash stored, revocable at once), checked again inside the write; a wrong key is a 401 that
+  // writes nothing. Both answer 404 unless the school switched `card_attendance` on.
+  "GET /api/gate/me",
+  "POST /api/gate/scan",
 ]);
 
 /** Any signed-in user, whatever their role. For things people do to their own account. */

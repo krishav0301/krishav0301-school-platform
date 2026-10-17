@@ -1660,6 +1660,75 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/gate/devices": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description The registered gate computers, newest first, with when each last sent a tap. Never a key. */
+        get: operations["list_gate_devices"];
+        put?: never;
+        /** @description Registers a gate computer. The answer carries its secret key, shown once and never again: it is typed into the gate page on that computer. */
+        post: operations["register_gate_device"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/gate/devices/{id}/revoke": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Revokes a gate computer for good. Its key stops working at once. */
+        post: operations["revoke_gate_device"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/gate/me": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Which gate computer the key in the `x-gate-key` header belongs to; the gate page asks this when it opens. */
+        get: operations["get_gate_device"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/gate/scan": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description One card tap from a gate computer (key in the `x-gate-key` header). Always recorded. A first tap on a school day marks the student or teacher Present; a repeat changes nothing; an unknown, retired or inactive card marks nothing. The same `scanId` again is the same tap and gets the same answer. */
+        post: operations["record_gate_scan"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/activity/mine": {
         parameters: {
             query?: never;
@@ -4398,6 +4467,61 @@ export interface components {
         };
         RetireCard: {
             reason: string;
+        };
+        GateDeviceList: {
+            devices: {
+                id: string;
+                name: string;
+                /** @enum {string} */
+                status: "active" | "revoked";
+                createdAt: string;
+                lastSeenAt: string | null;
+                lastSeenOnBs: string | null;
+                lastSeenTime: string | null;
+            }[];
+        };
+        GateDeviceCreated: {
+            id: string;
+            name: string;
+            key: string;
+        };
+        GateError: {
+            error: string;
+        };
+        GateInvalid: {
+            /** @enum {string} */
+            error: "invalid";
+            message: string;
+        };
+        GateDeviceName: {
+            name: string;
+        };
+        GateOk: {
+            /** @enum {boolean} */
+            ok: true;
+        };
+        GateDeviceMe: {
+            device: {
+                name: string;
+            };
+        };
+        GateScanResult: {
+            /** @enum {string} */
+            result: "marked" | "again" | "recorded" | "no_school" | "unknown" | "retired" | "inactive";
+            person: {
+                name: string;
+                /** @enum {string} */
+                kind: "student" | "staff";
+                role: string | null;
+                place: string | null;
+            } | null;
+            at: string;
+            firstAt: string | null;
+        };
+        GateScan: {
+            cardNumber: string;
+            scanId: string;
+            at?: string;
         };
         MyActivityToday: {
             date: string;
@@ -10823,6 +10947,170 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["CardInvalid"];
+                };
+            };
+        };
+    };
+    list_gate_devices: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The gate computers */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GateDeviceList"];
+                };
+            };
+        };
+    };
+    register_gate_device: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["GateDeviceName"];
+            };
+        };
+        responses: {
+            /** @description Registered, with the key (never cached) */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GateDeviceCreated"];
+                };
+            };
+            /** @description Not allowed */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GateError"];
+                };
+            };
+            /** @description The name is missing or too long */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GateInvalid"];
+                };
+            };
+        };
+    };
+    revoke_gate_device: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Revoked */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GateOk"];
+                };
+            };
+            /** @description No such active gate computer */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GateError"];
+                };
+            };
+        };
+    };
+    get_gate_device: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The device */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GateDeviceMe"];
+                };
+            };
+            /** @description The key is missing, wrong or revoked */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GateError"];
+                };
+            };
+        };
+    };
+    record_gate_scan: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["GateScan"];
+            };
+        };
+        responses: {
+            /** @description What the screen shows */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GateScanResult"];
+                };
+            };
+            /** @description The key is missing, wrong or revoked */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GateError"];
+                };
+            };
+            /** @description The card number or scan id is malformed, or the tap is more than a week old */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GateInvalid"];
                 };
             };
         };

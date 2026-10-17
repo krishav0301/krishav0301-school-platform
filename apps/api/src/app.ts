@@ -16,6 +16,7 @@ import { registerApprovalHandler } from "./modules/approvals/service";
 import { registerAttendance } from "./modules/attendance";
 import { registerCards } from "./modules/cards";
 import { registerClasswork } from "./modules/classwork";
+import { registerGate } from "./modules/gate";
 import { registerApprovals } from "./modules/approvals/routes";
 import { registerAuth } from "./modules/auth/routes";
 import { registerConfig } from "./modules/config/routes";
@@ -45,6 +46,7 @@ export function createApp() {
   app.use("/api/activity/*", moduleRequired("activity_log"));
   // RFID cards (D-174): off unless the school's pack switches `card_attendance` on.
   app.use("/api/cards/*", moduleRequired("card_attendance"));
+  app.use("/api/gate/*", moduleRequired("card_attendance"));
   // And for elective subjects (D-142): making groups, and every pick.
   for (const path of ["/api/results/classes/:classId/electives", "/api/results/enrollments/:enrollmentId/electives/:groupId", "/api/academics/levels/:id/groups", "/api/academics/groups/:id"]) {
     app.use(path, moduleRequired("electives"));
@@ -70,6 +72,7 @@ export function createApp() {
   registerAdmissions(app);
   registerAttendance(app);
   registerCards(app);
+  registerGate(app);
   registerClasswork(app);
   registerFees(app);
   registerResults(app);

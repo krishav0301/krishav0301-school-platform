@@ -4,6 +4,7 @@ import { LogOut } from "lucide-react";
 import { useCallback, useState, type FormEvent } from "react";
 
 import { useConfig } from "@/config/ConfigProvider";
+import { GateDevicesCard } from "@/gate/GateDevices";
 
 import { t, type MessageKey } from "@/i18n/messages";
 import { useSession } from "@/session/SessionProvider";
@@ -209,6 +210,7 @@ export function SettingsScreen() {
       {view.status === "failed" || view.status === "forbidden" ? <ReadFailure status={view.status} onRetry={() => void reload()} /> : null}
       {view.status === "ready" ? <ProfileCard profile={view.data} /> : null}
       <PasswordCard />
+      <GateDevicesCard />
       <AppearanceCard />
       <Panel title={t("settings.signOut.title")} labelledBy="signout-title">
         <p className={readStyles.rowMeta}>{t("settings.signOut.help")}</p>

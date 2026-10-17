@@ -153,6 +153,7 @@ export const MATRIX = [
   row(G.life, "attendance.student.view", "View student attendance", 5, { STU: own, TEA: cls, COO: inst, ADM: read, SUP: all }),
   row(G.life, "attendance.teacher.mark", "Mark teacher attendance (past days editable with reason)", 5, { COO: inst, SUP: all }),
   row(G.life, "attendance.teacher.view", "View teacher attendance", 5, { TEA: own, COO: inst, ADM: read, SUP: all }),
+  row(G.life, "gate.manage", "Register or revoke a gate computer for card taps, and see the list (D-175)", 8, { ADM: all, SUP: all }),
   row(G.life, "activity.write", "Write daily activity log", 5, { TEA: assigned }),
   row(G.life, "activity.read", "Read daily activity log", 5, { STU: only(own, "own class"), TEA: assigned, COO: inst, ADM: read, SUP: all }),
   row(G.life, "notes.manage", "Upload or delete notes and question papers", 5, { TEA: assigned }),

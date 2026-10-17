@@ -6826,6 +6826,249 @@
         ],
         "additionalProperties": false
       },
+      "GateDeviceList": {
+        "type": "object",
+        "properties": {
+          "devices": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "status": {
+                  "type": "string",
+                  "enum": [
+                    "active",
+                    "revoked"
+                  ]
+                },
+                "createdAt": {
+                  "type": "string"
+                },
+                "lastSeenAt": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "lastSeenOnBs": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "lastSeenTime": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                }
+              },
+              "required": [
+                "id",
+                "name",
+                "status",
+                "createdAt",
+                "lastSeenAt",
+                "lastSeenOnBs",
+                "lastSeenTime"
+              ]
+            }
+          }
+        },
+        "required": [
+          "devices"
+        ]
+      },
+      "GateDeviceCreated": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "key": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "key"
+        ]
+      },
+      "GateError": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "error"
+        ]
+      },
+      "GateInvalid": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "string",
+            "enum": [
+              "invalid"
+            ]
+          },
+          "message": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "error",
+          "message"
+        ]
+      },
+      "GateDeviceName": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 200
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "additionalProperties": false
+      },
+      "GateOk": {
+        "type": "object",
+        "properties": {
+          "ok": {
+            "type": "boolean",
+            "enum": [
+              true
+            ]
+          }
+        },
+        "required": [
+          "ok"
+        ]
+      },
+      "GateDeviceMe": {
+        "type": "object",
+        "properties": {
+          "device": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "name"
+            ]
+          }
+        },
+        "required": [
+          "device"
+        ]
+      },
+      "GateScanResult": {
+        "type": "object",
+        "properties": {
+          "result": {
+            "type": "string",
+            "enum": [
+              "marked",
+              "again",
+              "recorded",
+              "no_school",
+              "unknown",
+              "retired",
+              "inactive"
+            ]
+          },
+          "person": {
+            "type": [
+              "object",
+              "null"
+            ],
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "student",
+                  "staff"
+                ]
+              },
+              "role": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "place": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            },
+            "required": [
+              "name",
+              "kind",
+              "role",
+              "place"
+            ]
+          },
+          "at": {
+            "type": "string"
+          },
+          "firstAt": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "result",
+          "person",
+          "at",
+          "firstAt"
+        ]
+      },
+      "GateScan": {
+        "type": "object",
+        "properties": {
+          "cardNumber": {
+            "type": "string",
+            "maxLength": 200
+          },
+          "scanId": {
+            "type": "string",
+            "maxLength": 100
+          },
+          "at": {
+            "type": "string",
+            "maxLength": 40
+          }
+        },
+        "required": [
+          "cardNumber",
+          "scanId"
+        ],
+        "additionalProperties": false
+      },
       "MyActivityToday": {
         "type": "object",
         "properties": {
@@ -18960,6 +19203,200 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/CardInvalid"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/gate/devices": {
+      "get": {
+        "operationId": "list_gate_devices",
+        "tags": [
+          "gate"
+        ],
+        "description": "The registered gate computers, newest first, with when each last sent a tap. Never a key.",
+        "responses": {
+          "200": {
+            "description": "The gate computers",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GateDeviceList"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "operationId": "register_gate_device",
+        "tags": [
+          "gate"
+        ],
+        "description": "Registers a gate computer. The answer carries its secret key, shown once and never again: it is typed into the gate page on that computer.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GateDeviceName"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Registered, with the key (never cached)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GateDeviceCreated"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GateError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "The name is missing or too long",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GateInvalid"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/gate/devices/{id}/revoke": {
+      "post": {
+        "operationId": "revoke_gate_device",
+        "tags": [
+          "gate"
+        ],
+        "description": "Revokes a gate computer for good. Its key stops working at once.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{32}$"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Revoked",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GateOk"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such active gate computer",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GateError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/gate/me": {
+      "get": {
+        "operationId": "get_gate_device",
+        "tags": [
+          "gate"
+        ],
+        "description": "Which gate computer the key in the `x-gate-key` header belongs to; the gate page asks this when it opens.",
+        "responses": {
+          "200": {
+            "description": "The device",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GateDeviceMe"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "The key is missing, wrong or revoked",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GateError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/gate/scan": {
+      "post": {
+        "operationId": "record_gate_scan",
+        "tags": [
+          "gate"
+        ],
+        "description": "One card tap from a gate computer (key in the `x-gate-key` header). Always recorded. A first tap on a school day marks the student or teacher Present; a repeat changes nothing; an unknown, retired or inactive card marks nothing. The same `scanId` again is the same tap and gets the same answer.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GateScan"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "What the screen shows",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GateScanResult"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "The key is missing, wrong or revoked",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GateError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "The card number or scan id is malformed, or the tap is more than a week old",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GateInvalid"
                 }
               }
             }

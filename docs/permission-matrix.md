@@ -89,6 +89,7 @@ Phase is the build phase where the action first exists. The action id in code fo
 | View student attendance (`attendance.student.view`) | own | class | inst | — | read | ✓ | 5 |
 | Mark teacher attendance (past days editable with reason) (`attendance.teacher.mark`) | — | — | inst | — | — | ✓ | 5 |
 | View teacher attendance (`attendance.teacher.view`) | — | own | inst | — | read | ✓ | 5 |
+| Register or revoke a gate computer for card taps, and see the list (D-175) (`gate.manage`) | — | — | — | — | ✓ | ✓ | 8 |
 | Write daily activity log (`activity.write`) | — | assigned | — | — | — | — | 5 |
 | Read daily activity log (`activity.read`) | own class | assigned | inst | — | read | ✓ | 5 |
 | Upload or delete notes and question papers (`notes.manage`) | — | assigned | — | — | — | — | 5 |
