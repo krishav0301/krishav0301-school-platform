@@ -2127,6 +2127,8 @@ export const en = {
   "payments.title": "Record a payment",
   "payments.intro": "Find the student, then record what they paid. Their fee account opens with the payment form.",
   "payments.record": "Record a payment",
+  "payments.col.due": "Due amount",
+  "payments.col.credit": "Credit amount",
   "payments.openNamed": "Record a payment for {name}",
   "nav.payments": "Students",
   "fees.structures.banner": "A fee structure is a priced list of fee lines for a period. The Principal approves it, then it is linked to levels and every student of those levels is charged. A level has one structure at a time; to change an approved one, ask to edit it.",

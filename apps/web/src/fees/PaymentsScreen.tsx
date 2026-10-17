@@ -1,10 +1,17 @@
 "use client";
 
+import { useCallback } from "react";
+
+import { useSession } from "@/session/SessionProvider";
+import { useLoad } from "@/setup/useLoad";
 import { ListSkeleton, Pager, SearchBox } from "@/people/ListParts";
 import styles from "@/people/people-access.module.css";
 import { t } from "@/i18n/messages";
 import { Button, HeroBand, Notice } from "@/ui";
 import { StudentsTable, useStudents } from "@/admissions/StudentsScreen";
+
+import { gateFailure, loadDues } from "./client";
+import type { DuesList } from "./model";
 
 /**
  * The Accountant's Students tab (the PM, 2026-10-17): the list of students with a search bar, and for each one Record a
@@ -12,6 +19,14 @@ import { StudentsTable, useStudents } from "@/admissions/StudentsScreen";
  */
 export function PaymentsScreen() {
   const list = useStudents();
+  const { api } = useSession();
+  // What each student owes or has over-paid this term, from the dues list (the Accountant's whole reach); the list shows a dash until it arrives.
+  const loadNow = useCallback(async () => {
+    const dues = await loadDues(api);
+    return dues.ok ? dues : gateFailure(dues.reason);
+  }, [api]);
+  const { view: duesView } = useLoad<DuesList>(loadNow);
+  const balances = duesView.status === "ready" ? new Map(duesView.data.students.map((x) => [x.studentId, { duePaisa: x.duePaisa, balancePaisa: x.balancePaisa }])) : null;
   const data = list.view.status === "ready" ? list.view : null;
   return (
     <div className={styles.page}>
@@ -49,7 +64,7 @@ export function PaymentsScreen() {
         ) : null}
         {data && data.students.length > 0 ? (
           <>
-            <StudentsTable students={data.students} payment />
+            <StudentsTable students={data.students} payment balances={balances} />
             <Pager page={data.page} total={data.total} pageSize={data.pageSize} onPage={list.setPage} noun="students.showing" />
           </>
         ) : null}
