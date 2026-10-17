@@ -171,9 +171,9 @@ Academic terms of any length replace the academic year as the unit of time: the 
 
 **Progress** (approved 2026-10-04):
 - [x] 1. Terms, their levels, opening and closing, the next term, and moving students with dues carried; screens for the Principal and the Co-ordinator; wording at every login (D-110)
-- [ ] 2. Waive-dues flow, +2 to Bachelor's handover, reactivation
+- [x] 2. Dropped by the PM (D-173): the +2 to Bachelor's handover and reactivation are fresh admissions, and the waive-dues flow is the Principal's discount (D-172). **Phase 8 is complete.**
 
-### Phase 9: Paid integrations
+### Phase 9: Paid integrations (parked by the PM, D-173: no gateway, SMS or paid service for now)
 Payment gateway with server-side confirmation, reconciliation job and exceptions screen. SMS provider (2FA, approvals, overdue, results published) with budget alert. Production email, error tracking, uptime, CDN.
 **Needs:** the school's merchant account, an SMS vendor, gateway sandbox access.
 
