@@ -77,13 +77,14 @@ const INSERT = `INSERT INTO fee_adjustments (public_id, kind, enrollment_id, amo
 export async function requestReversal(db: D1Database, key: string, actor: string, paymentId: string, reason: string): Promise<Created> {
   const payment = await db
     .prepare(
-      `SELECT -le.amount_paisa AS amount, en.public_id AS enrollment_id,
+      `SELECT -le.amount_paisa AS amount, en.public_id AS enrollment_id, le.source_type,
               EXISTS (SELECT 1 FROM ledger_entries rv WHERE rv.refers_to_id = le.id AND rv.kind = 'reversal') AS reversed
          FROM ledger_entries le JOIN enrollments en ON en.id = le.enrollment_id WHERE le.public_id = ?1 AND le.kind = 'payment'`,
     )
     .bind(paymentId)
-    .first<{ amount: number; enrollment_id: string; reversed: number }>();
-  if (!payment) return { ok: false, reason: "not_found" };
+    .first<{ amount: number; enrollment_id: string; reversed: number; source_type: string | null }>();
+  // A credit carried from the previous term is not a payment taken: nothing to reverse.
+  if (!payment || payment.source_type === "carried_credit") return { ok: false, reason: "not_found" };
   const state = await accountState(db, actor, payment.enrollment_id);
   if (!state.allowed) return { ok: false, reason: "not_found" };
   if (state.closed) return { ok: false, reason: "year_closed" };

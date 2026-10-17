@@ -1,7 +1,7 @@
 import { beforeAll, describe, expect, it } from "vitest";
 
 import { formatNpr } from "../src/modules/fees/money";
-import { call, count, db, person, seedSections, type Person } from "./academics-helpers";
+import { call, db, person, seedSections, type Person } from "./academics-helpers";
 import { afterEach, vi } from "vitest";
 import { liveFees } from "./fees-helpers";
 import { classWith, type ClassFixture } from "./schoolday-helpers";
@@ -88,23 +88,5 @@ describe("the dues list", () => {
   it("the Co-ordinator has no fees reports; a student none either", async () => {
     expect((await call("/api/fees/dues", { cookie: coordinator.cookie })).status).toBe(403);
     expect((await call("/api/fees/dues", { cookie: fixture.pupils[0]!.person.cookie })).status).toBe(403);
-  });
-});
-
-describe("overdue reminders", () => {
-  it("email the students with something overdue and an address, once a day however often it is pressed", async () => {
-    const before = await count("SELECT COUNT(*) AS n FROM outbox_events WHERE dedupe_key LIKE 'fee_overdue:%'");
-    const later = await afterTheEnd("accountant");
-    const first = await post("/api/fees/reminders", undefined, later);
-    expect(first.status).toBe(200);
-    expect(((await first.json()) as { queued: number }).queued).toBe(1); // pupil 1 is overdue but has no email
-    await post("/api/fees/reminders", undefined, later);
-    expect(await count("SELECT COUNT(*) AS n FROM outbox_events WHERE dedupe_key LIKE 'fee_overdue:%'")).toBe(before + 1);
-    const mail = await db.prepare("SELECT body FROM dev_mailbox WHERE to_email = 'pupil2@example.com' ORDER BY id DESC LIMIT 1").first<{ body: string }>();
-    expect(mail?.body ?? "").toContain("12,50,000.00");
-  });
-
-  it("only the Accountant sends them", async () => {
-    for (const who of [admin, coordinator]) expect((await post("/api/fees/reminders", undefined, who)).status).toBe(403);
   });
 });

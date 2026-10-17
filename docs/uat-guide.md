@@ -36,11 +36,11 @@ One open academic term (2083, running Grade 11 and Grade 12) with its exam patte
 
 **Teacher:** mark today's attendance for your class; write the activity log; add a note and homework; review a submission; enter marks and send them for review.
 
-**Accountant:** on **Fee structures**, make a structure (a name, a wing, start and end dates, and priced lines), send it for approval, then link it to levels (no approval; every student of those levels is charged at once); ask to edit an approved structure (give a reason; edit the draft copy once the Principal agrees; send it again) and see who a price change affected; take a cash payment and print the receipt; check a student's fee account and the dues list; verify a bank voucher; ask for a payment reversal; pay back a student's credit (up to the credit, no approval). The Accountant cannot give a discount.
+**Accountant:** on **Fee structures**, make a structure (a name, a wing, start and end dates, and priced lines), send it for approval, then link it to levels (no approval; every student of those levels is charged at once); ask to edit an approved structure (give a reason; edit the draft copy once the Principal agrees; send it again) and see who a price change affected; record a payment from the **Students** tab ("Record a payment") and print the receipt; check the dues list; ask for a payment reversal; pay back a student's credit (up to the credit, no approval). The Accountant cannot give a discount.
 
 **Admin:** approve or decline fee structures, edit requests, payment reversals, a student leaving and website changes; give a discount on a student's fees page (a review and confirm step first), then change or remove it within 15 days (after that it is frozen), and read the **Discounts** tab; edit and publish a notice on the public site; add a Co-ordinator or Accountant; read the test mailbox; on **Academic terms**, make a new term (a semester or a year, with its levels), open it, try closing the current term (it says class by class which results are missing) and fill in the next term.
 
-**Student:** see your attendance, homework (and submit it), fees and receipts, each exam's result (for information) and the final result (pass or fail), and the marks cards; report a bank voucher; ask for a recheck.
+**Student:** see your attendance, homework (and submit it), fees and receipts, each exam's result (for information) and the final result (pass or fail), and the marks cards; ask for a recheck.
 
 **Anyone:** the public site on a phone and a computer: Home, Programmes, Admission (apply), Scholarships, Facilities, Contact.
 
@@ -51,7 +51,7 @@ Only on the Lahan Manakamana site. **Anyone:** open the address and scroll: phot
 ## Not in this test (known limits)
 
 - **Results were rebuilt on 2026-10-06 (D-117):** one exam pattern per term, out of 100. Results entered before that were cleared. The grade ranges are typed in by the school; the starter set's ranges are a stand-in, so **no real +2 result may be published until the official NEB figures are entered** (D-085). No credit hours or GPA for now.
-- **No file uploads** (certificates, homework files, voucher scans) until file storage is turned on.
+- **No file uploads** (certificates, homework files) until file storage is turned on.
 - **Online payment is a demo:** no real money moves, and no gateway page opens.
 - **No SMS.** Email only goes to the test mailbox.
 - **Closing a term is final.** Close the starter term only when everyone has finished testing in it: nothing can be written to a closed term. To try closing early, make and use a separate small term.

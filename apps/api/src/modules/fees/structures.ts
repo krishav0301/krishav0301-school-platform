@@ -18,7 +18,7 @@ import { ChangeFeeItemSchema, NewFeeItemSchema, type ChangeFeeItem, type FeeStru
  */
 
 export type Failure =
-  | { ok: false; reason: "not_found" | "conflict" | "not_draft" | "not_live" | "year_closed" | "not_allowed" | "in_use" }
+  | { ok: false; reason: "not_found" | "conflict" | "not_draft" | "not_live" | "year_closed" | "not_allowed" | "in_use" | "moves_pending" }
   | { ok: false; reason: "invalid"; message: string };
 export type Created = { ok: true; publicId: string } | Failure;
 export type Done = { ok: true } | Failure;
@@ -58,9 +58,23 @@ const validDates = (startDate: string, endDate: string): string | null => (endDa
 // --- Drafting ------------------------------------------------------------------------------------
 
 /** Drafts a new structure in a wing: a name, a start date and an end date (AD). The Accountant of that wing, or of every wing. */
+/**
+ * Students of a closed term in this wing who have not been moved on yet (the PM, 2026-10-17: once a term is done the
+ * Co-ordinator moves the students first, and only then can the Accountant make and link the new term's structure).
+ */
+const PENDING_MOVES = `SELECT COUNT(*) AS n FROM enrollments en JOIN academic_years ay ON ay.id = en.academic_year_id JOIN students st ON st.id = en.student_id
+   JOIN classes cl ON cl.id = en.class_id JOIN levels lv ON lv.id = cl.level_id JOIN programmes pv ON pv.id = lv.programme_id
+  WHERE ay.status = 'closed' AND en.status = 'active' AND st.status = 'active' AND pv.section_id = ?1
+    AND NOT EXISTS (SELECT 1 FROM enrollments nx WHERE nx.previous_enrollment_id = en.id)`;
+async function movesPending(db: D1Database, sectionId: number): Promise<boolean> {
+  return ((await db.prepare(PENDING_MOVES).bind(sectionId).first<{ n: number }>())?.n ?? 0) > 0;
+}
+
 export async function createStructure(db: D1Database, key: string, actor: string, input: NewStructure): Promise<Created> {
   const bad = validDates(input.startDate, input.endDate);
   if (bad) return { ok: false, reason: "invalid", message: bad };
+  const wing = await db.prepare("SELECT id FROM sections WHERE key = ?1").bind(input.sectionKey).first<{ id: number }>();
+  if (wing && (await movesPending(db, wing.id))) return { ok: false, reason: "moves_pending" };
   const publicId = newPublicId();
   const outcome = await audited(db, key, { action: "fees.structure.created", entityType: "fee_structure", entityPublicId: publicId, actorPublicId: actor, summary: `Fee structure drafted: ${input.name}`, after: input }, [
     db
@@ -87,6 +101,8 @@ const STRUCTURE_GUARD = accountantFor(1, structureSection("(SELECT id FROM fee_s
 export async function startNextPeriod(db: D1Database, key: string, actor: string, fromId: string, input: NewPeriod): Promise<Created> {
   const bad = validDates(input.startDate, input.endDate);
   if (bad) return { ok: false, reason: "invalid", message: bad };
+  const from = await db.prepare("SELECT section_id FROM fee_structures WHERE public_id = ?1").bind(fromId).first<{ section_id: number }>();
+  if (from && (await movesPending(db, from.section_id))) return { ok: false, reason: "moves_pending" };
   const publicId = newPublicId();
   const outcome = await audited(db, key, { action: "fees.structure.next_period", entityType: "fee_structure", entityPublicId: publicId, actorPublicId: actor, summary: "Next period of a fee structure started", after: { from: fromId, ...input } }, [
     db
@@ -341,6 +357,8 @@ export async function linkLevels(db: D1Database, key: string, actor: string, str
   if (!root) return { ok: false, reason: "not_found" };
   const allowed = await db.prepare(`SELECT ${STRUCTURE_GUARD} AS ok`).bind(actor, structureId).first<{ ok: number }>();
   if (allowed?.ok !== 1) return { ok: false, reason: "not_found" };
+  const wingOf = await db.prepare("SELECT section_id FROM fee_structures WHERE id = ?1").bind(root.id).first<{ section_id: number }>();
+  if (wingOf && (await movesPending(db, wingOf.section_id))) return { ok: false, reason: "moves_pending" };
   const levels: LinkOutcome[] = [];
   // A structure whose last day has passed charges no one (the PM, 2026-10-17): it is renewed, not linked again.
   const ends = await db.prepare("SELECT end_date FROM fee_structures WHERE id = ?1").bind(root.id).first<{ end_date: string }>();

@@ -11,6 +11,15 @@ Branch `fees-redesign`, PR #78. Design: `docs/superpowers/specs/2026-10-17-fee-s
 | Co-ordinator | **Mark as left** on a student's record (reason); the Principal decides. Sees no amounts in the request. |
 | Student | Sees their statement; a closed account says so and what stays owed. |
 
+## Also changed after review (PM, 2026-10-17)
+
+- A fee structure's total is due on its **last day**; an ended structure charges no one; a student joining after its end is not charged; an early admission is charged once the structure is approved and linked.
+- A student is marked Left only with a **zero balance** (the Principal gives a discount for what is owed, the Accountant pays back credit), then the account is closed and archived (out of the Dues list).
+- A **credit** is carried into the next term like an unpaid due, and used up by the new term's fees.
+- The Accountant can make, renew or link a structure for a wing only after the Co-ordinator has **moved the students** of its closed term.
+- **Vouchers** (a student reporting a bank deposit, the Accountant verifying it) and the **overdue reminder email** are removed.
+- The Accountant's menu is Students (Record a payment), Fees (Fee structures, Dues), Settings; no Overview.
+
 ## Rules that changed in `CLAUDE.md`
 
 1. Discounts need no approval; they are the Principal's alone.
@@ -38,4 +47,3 @@ API 1996 and web 1146 tests pass (the last full run). The exit test `fees-redesi
 
 - The Co-ordinator still sees the balance on the promotion board (D-110) though the redesign says they see no amounts.
 - Discount reasons are still the default list (Scholarship, Sibling, Staff child, Other); the client's published Dalit-student scholarship may need its own (section 9 of `CLAUDE.md`).
-- A reminder email can still go to a student who has left and owes money; whether to stop it is for the PM.

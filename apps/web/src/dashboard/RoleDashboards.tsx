@@ -1,10 +1,10 @@
 "use client";
 
-import { FileText, Receipt, Scale, Wallet } from "lucide-react";
+import { FileText, Scale, Wallet } from "lucide-react";
 import { useCallback, useState } from "react";
 
 import { useConfig } from "@/config/ConfigProvider";
-import { loadDues, loadStructures, loadVouchers } from "@/fees/client";
+import { loadDues, loadStructures } from "@/fees/client";
 import { nprShort } from "@/fees/ReadFees";
 import { t } from "@/i18n/messages";
 import { FigureTiles, OpenLink, Panel, ReadFailure, ReadHeader, StatusWord, TableSkeleton, readStyles, type Figure } from "@/read/ReadView";
@@ -76,7 +76,6 @@ function scopeOf(claim: RoleClaim | undefined, sectionName: (key: string | null 
 // ---------------------------------------------------------------- Accountant
 
 export interface FeesDay {
-  vouchers: number;
   overdue: { students: number; paisa: number };
   duePaisa: number;
   structures: { draft: number; waiting: number; live: number };
@@ -84,7 +83,6 @@ export interface FeesDay {
 
 export function feesFigures(d: FeesDay): Figure[] {
   return [
-    { key: "vouchers", icon: Receipt, tone: d.vouchers > 0 ? "warn" : "ok", value: String(d.vouchers), label: t("home.accountant.figure.vouchers") },
     { key: "overdue", icon: Scale, tone: d.overdue.students > 0 ? "bad" : "ok", value: String(d.overdue.students), label: t("home.accountant.figure.overdue") },
     { key: "due", icon: Wallet, tone: "accent", value: nprShort(d.duePaisa), label: t("home.accountant.figure.due") },
     { key: "structures", icon: FileText, tone: d.structures.waiting > 0 ? "warn" : "ok", value: String(d.structures.waiting), label: t("home.accountant.figure.waiting") },
@@ -93,7 +91,6 @@ export function feesFigures(d: FeesDay): Figure[] {
 
 export function feesRows(d: FeesDay): DayRow[] {
   return [
-    { key: "vouchers", title: t("home.accountant.vouchers"), meta: d.vouchers > 0 ? t("home.accountant.vouchersWaiting", { count: d.vouchers }) : t("home.accountant.vouchersNone"), todo: d.vouchers > 0, href: "/portal/fees/vouchers", action: d.vouchers > 0 ? t("home.accountant.check") : t("dashboard.open") },
     { key: "overdue", title: t("home.accountant.overdue"), meta: d.overdue.students > 0 ? t("home.accountant.overdueMeta", { count: d.overdue.students, amount: nprShort(d.overdue.paisa) }) : t("home.accountant.overdueNone"), todo: d.overdue.students > 0, href: "/portal/fees/dues", action: t("dashboard.open") },
     {
       key: "structures",
@@ -114,14 +111,13 @@ export function AccountantDashboard() {
   const [now] = useState(() => new Date());
   const loadNow = useCallback(async (): Promise<Loaded<FeesDay | null>> => {
     if (!feesOn) return { ok: true, data: null };
-    const [vouchers, dues, structures] = await Promise.all([loadVouchers(api), loadDues(api), loadStructures(api)]);
-    if (!vouchers.ok || !dues.ok || !structures.ok) return failed;
+    const [dues, structures] = await Promise.all([loadDues(api), loadStructures(api)]);
+    if (!dues.ok || !structures.ok) return failed;
     const overdue = dues.data.students.filter((s) => s.overduePaisa > 0);
     const count = (status: "draft" | "waiting" | "live") => structures.data.structures.filter((s) => s.status === status).length;
     return {
       ok: true,
       data: {
-        vouchers: vouchers.data.vouchers.length,
         overdue: { students: overdue.length, paisa: dues.data.totals.overduePaisa },
         duePaisa: dues.data.totals.duePaisa,
         structures: { draft: count("draft"), waiting: count("waiting"), live: count("live") },

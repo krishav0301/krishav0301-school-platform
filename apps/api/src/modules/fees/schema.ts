@@ -80,37 +80,6 @@ export type CashPayment = z.infer<typeof CashPaymentSchema>;
 
 export const PaidSchema = z.object({ paymentId: z.string(), receipt: z.object({ id: z.string(), number: z.string() }) }).openapi("Paid");
 
-export const VoucherSchema = z
-  .strictObject({
-    amountPaisa: PaisaSchema,
-    bank: z.string().trim().min(1, "Name the bank").max(80),
-    reference: z.string().trim().min(1, "Give the deposit's reference number").max(80),
-    paidOn: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Use the form YYYY-MM-DD"),
-  })
-  .openapi("Voucher");
-export type Voucher = z.infer<typeof VoucherSchema>;
-export const RejectVoucherSchema = z.strictObject({ reason: z.string().trim().min(1, "Give a reason").max(300) }).openapi("RejectVoucher");
-
-export const VoucherListSchema = z
-  .object({
-    vouchers: z.array(
-      z.object({
-        id: z.string(),
-        enrollmentId: z.string(),
-        studentName: z.string(),
-        sid: z.string(),
-        amountPaisa: z.number().int(),
-        bank: z.string(),
-        reference: z.string(),
-        paidOn: z.string(),
-        paidOnBs: z.string().nullable(),
-        submittedAt: z.string(),
-      }),
-    ),
-  })
-  .openapi("VoucherList");
-export type VoucherList = z.infer<typeof VoucherListSchema>;
-
 export const OnlinePaymentSchema = z.strictObject({ amountPaisa: PaisaSchema }).openapi("OnlinePayment");
 export const GatewayCallbackSchema = z.strictObject({ gatewayReference: z.string().min(1).max(120) }).openapi("GatewayCallback");
 

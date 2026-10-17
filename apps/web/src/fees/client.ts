@@ -1,6 +1,6 @@
 import type { ApiClient } from "@/api/client";
 
-import type { Account, AdjustmentList, DiscountList, DiscountReport, DuesList, FeeStructure, FeeStructureList, PriceChangeList, Receipt, VoucherList } from "./model";
+import type { Account, AdjustmentList, DiscountList, DiscountReport, DuesList, FeeStructure, FeeStructureList, PriceChangeList, Receipt } from "./model";
 
 /** What the fee screens ask of the server, as plain results. Nothing here throws. */
 export type Loaded<T> = { ok: true; data: T } | { ok: false; reason: "forbidden" | "not_found" | "failed" };
@@ -29,11 +29,10 @@ export const loadPriceChanges = (api: ApiClient, structureId: string): Promise<L
 export const loadReceipt = (api: ApiClient, id: string): Promise<Loaded<Receipt>> => load(() => api.GET("/api/fees/receipts/{id}", { params: { path: { id } } }));
 export const loadStructures = (api: ApiClient): Promise<Loaded<FeeStructureList>> => load(() => api.GET("/api/fees/structures"));
 export const loadStructure = (api: ApiClient, id: string): Promise<Loaded<FeeStructure>> => load(() => api.GET("/api/fees/structures/{id}", { params: { path: { id } } }));
-export const loadVouchers = (api: ApiClient): Promise<Loaded<VoucherList>> => load(() => api.GET("/api/fees/vouchers"));
 export const loadDues = (api: ApiClient): Promise<Loaded<DuesList>> => load(() => api.GET("/api/fees/dues"));
 
 /** A write's plain result: done, the API's own words (422), or a state it cannot happen in. */
-export type Sent<T = unknown> = { ok: true; data: T } | { ok: false; reason: "invalid"; message: string } | { ok: false; reason: "refused" | "closed" | "inUse" | "failed" };
+export type Sent<T = unknown> = { ok: true; data: T } | { ok: false; reason: "invalid"; message: string } | { ok: false; reason: "refused" | "closed" | "inUse" | "movesPending" | "failed" };
 
 async function send<T>(run: () => Promise<{ data?: T; error?: unknown; response: Response }>): Promise<Sent<T>> {
   try {
@@ -42,6 +41,7 @@ async function send<T>(run: () => Promise<{ data?: T; error?: unknown; response:
     if (response.status === 422 && error && typeof error === "object" && "message" in error) return { ok: false, reason: "invalid", message: String((error as { message: unknown }).message) };
     if (response.status === 409 && (error as { error?: string } | undefined)?.error === "year_closed") return { ok: false, reason: "closed" };
     if (response.status === 409 && (error as { error?: string } | undefined)?.error === "in_use") return { ok: false, reason: "inUse" };
+    if (response.status === 409 && (error as { error?: string } | undefined)?.error === "moves_pending") return { ok: false, reason: "movesPending" };
     if (response.status === 400 || response.status === 404 || response.status === 409) return { ok: false, reason: "refused" };
     return { ok: false, reason: "failed" };
   } catch {
@@ -69,7 +69,3 @@ export const discardFeeEdit = (api: ApiClient, id: string) => send(() => api.POS
 export const startNextPeriod = (api: ApiClient, id: string, body: { startDate: string; endDate: string }) => send(() => api.POST("/api/fees/structures/{id}/next-period", { params: { path: { id } }, body }));
 export const linkLevels = (api: ApiClient, id: string, levelIds: string[]) => send(() => api.POST("/api/fees/structures/{id}/levels", { params: { path: { id } }, body: { levelIds } }));
 export const unlinkLevel = (api: ApiClient, id: string, levelId: string) => send(() => api.DELETE("/api/fees/structures/{id}/levels/{levelId}", { params: { path: { id, levelId } } }));
-export const verifyVoucher = (api: ApiClient, id: string) => send(() => api.POST("/api/fees/vouchers/{id}/verify", { params: { path: { id } } }));
-export const rejectVoucher = (api: ApiClient, id: string, reason: string) => send(() => api.POST("/api/fees/vouchers/{id}/reject", { params: { path: { id } }, body: { reason } }));
-export const submitVoucher = (api: ApiClient, body: { amountPaisa: number; bank: string; reference: string; paidOn: string }) => send(() => api.POST("/api/fees/me/vouchers", { body }));
-export const sendReminders = (api: ApiClient) => send(() => api.POST("/api/fees/reminders"));

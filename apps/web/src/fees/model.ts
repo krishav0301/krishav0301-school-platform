@@ -5,7 +5,6 @@ export type Account = components["schemas"]["FeeAccount"];
 export type Receipt = components["schemas"]["Receipt"];
 export type FeeStructure = components["schemas"]["FeeStructure"];
 export type FeeStructureList = components["schemas"]["FeeStructureList"];
-export type VoucherList = components["schemas"]["VoucherList"];
 export type DuesList = components["schemas"]["DuesList"];
 export type AdjustmentList = components["schemas"]["AdjustmentList"];
 export type DiscountList = components["schemas"]["DiscountList"];

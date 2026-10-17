@@ -144,43 +144,7 @@ describe("what a student sees", () => {
 
   it("the Co-ordinator has no fees view at all", async () => {
     expect((await call(`/api/fees/enrollments/${plus2.pupils[0]!.enrollmentId}`, { cookie: coordinator.cookie })).status).toBe(403);
-    expect((await call("/api/fees/vouchers", { cookie: coordinator.cookie })).status).toBe(403);
-  });
-});
-
-describe("vouchers", () => {
-  const voucher = (pupil: Person, body: Record<string, unknown> = {}) =>
-    post("/api/fees/me/vouchers", { amountPaisa: 25_000, bank: "Nabil Bank", reference: `TXN-${key().slice(0, 8)}`, paidOn: "2026-09-20", ...body }, pupil);
-
-  it("a student reports a deposit; the Accountant verifies it into a payment with a receipt", async () => {
-    const pupil = plus2.pupils[1]!.person;
-    const sent = await voucher(pupil);
-    expect(sent.status).toBe(201);
-    const id = ((await sent.json()) as { id: string }).id;
-    const queue = (await (await call("/api/fees/vouchers", { cookie: accountant.cookie })).json()) as { vouchers: { id: string }[] };
-    expect(queue.vouchers.map((v) => v.id)).toContain(id);
-    const verified = await post(`/api/fees/vouchers/${id}/verify`, {}, accountant);
-    expect(verified.status).toBe(201);
-    expect(((await verified.json()) as Paid).receipt.number).toMatch(/^(plus2|P2)-/) // P2 once the receipt-code test above has run;
-    expect((await post(`/api/fees/vouchers/${id}/verify`, {}, accountant)).status).toBe(409);
-  });
-
-  it("the same bank reference is claimed once; a rejection needs a reason and frees it", async () => {
-    const pupil = plus2.pupils[2]!.person;
-    const reference = `TXN-${key().slice(0, 8)}`;
-    const id = ((await (await voucher(pupil, { reference })).json()) as { id: string }).id;
-    expect((await voucher(pupil, { reference })).status).toBe(409);
-    expect((await post(`/api/fees/vouchers/${id}/reject`, {}, accountant)).status).toBe(400);
-    expect((await post(`/api/fees/vouchers/${id}/reject`, { reason: "Deposit not found in the statement" }, accountant)).status).toBe(200);
-    expect((await voucher(pupil, { reference })).status).toBe(201);
-  });
-
-  it("a student cannot verify, and the other section's Accountant does not see or verify it", async () => {
-    const id = ((await (await voucher(plus2.pupils[0]!.person)).json()) as { id: string }).id;
-    expect((await post(`/api/fees/vouchers/${id}/verify`, {}, plus2.pupils[0]!.person)).status).toBe(403);
-    expect((await post(`/api/fees/vouchers/${id}/verify`, {}, bachelorsAccountant)).status).toBe(404);
-    const theirs = (await (await call("/api/fees/vouchers", { cookie: bachelorsAccountant.cookie })).json()) as { vouchers: { id: string }[] };
-    expect(theirs.vouchers.map((v) => v.id)).not.toContain(id);
+    expect((await call("/api/fees/dues", { cookie: coordinator.cookie })).status).toBe(403);
   });
 });
 

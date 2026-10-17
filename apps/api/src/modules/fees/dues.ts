@@ -1,14 +1,12 @@
 import { rowsOf, type DashboardPart } from "../../core/dashboard";
-import { recordAudit } from "../../core/audit";
 import { nepalDate } from "../../core/dates";
-import { queueEmailIf } from "../../core/notifications";
 import type { Grant } from "../../core/permissions";
 import { allocate, type LedgerKind } from "./allocation";
 import { formatNpr } from "./money";
 import type { DuesList } from "./schema";
 
 /**
- * The dues list and overdue reminders (D-078): every student of the active year in the person's sections, with what
+ * The dues list (D-078; the overdue reminder email was removed, D-172): every student of the active year in the person's sections, with what
  * was charged, discounted and paid, and what is due and overdue, computed from the ledger (oldest due first).
  */
 
@@ -90,40 +88,6 @@ export function duesCsv(list: DuesList): string {
   const money = (p: number) => formatNpr(p);
   const lines = [CSV_HEADER, ...list.students.map((r) => [r.sid, r.studentName, r.className, money(r.chargedPaisa), money(r.discountPaisa), money(r.paidPaisa), money(r.duePaisa), money(r.overduePaisa)])];
   return `﻿${lines.map((line) => line.map(csvField).join(",")).join("\r\n")}\r\n`;
-}
-
-/**
- * Emails every student in reach who has something overdue and an email address. Once per student per day (the
- * outbox's dedupe key), so pressing it twice sends nothing new. In-app and email only; SMS waits for Phase 9.
- */
-export async function sendOverdueReminders(db: D1Database, key: string, dataKey: string, actor: string, grant: Grant, today = nepalDate(new Date())): Promise<{ queued: number }> {
-  const list = await listDues(db, grant, null, today);
-  const due = list.students.filter((s) => s.overduePaisa > 0 && s.hasEmail);
-  if (due.length === 0) return { queued: 0 };
-  const emails = await db
-    .prepare(`SELECT en.public_id, st.email FROM enrollments en JOIN students st ON st.id = en.student_id WHERE en.public_id IN (SELECT value FROM json_each(?1))`)
-    .bind(JSON.stringify(due.map((s) => s.enrollmentId)))
-    .all<{ public_id: string; email: string }>();
-  const address = new Map(emails.results.map((r) => [r.public_id, r.email]));
-  let queued = 0;
-  for (let i = 0; i < due.length; i += 50) {
-    const chunk = due.slice(i, i + 50);
-    const statements = await Promise.all(
-      chunk.map((s) =>
-        // Only if not already queued today: a second press sends nothing new.
-        queueEmailIf(
-          db,
-          dataKey,
-          { template: "fee_overdue", to: address.get(s.enrollmentId)!, data: { name: s.studentName, sid: s.sid, overdue: formatNpr(s.overduePaisa) }, dedupeKey: `fee_overdue:${s.enrollmentId}:${today}` },
-          "SELECT 1 WHERE NOT EXISTS (SELECT 1 FROM outbox_events WHERE dedupe_key = ?5)",
-          `fee_overdue:${s.enrollmentId}:${today}`,
-        ),
-      ),
-    );
-    await recordAudit(db, key, { action: "fees.reminders.sent", entityType: "fees", actorPublicId: actor, summary: `Overdue reminders queued for ${chunk.length} students`, after: { today, enrollments: chunk.map((s) => s.enrollmentId) } }, statements);
-    queued += chunk.length;
-  }
-  return { queued };
 }
 
 export interface FeesDashboard {

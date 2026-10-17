@@ -79,7 +79,6 @@ describe("sensitive rules, stated independently (docs/source/sample-creation-inf
     "approvals.request": ["COO", "ADM", "SUP"],
     // The Accountant owns fees and payments. Nobody else touches them.
     "fees.structure.draft": ["ACC"],
-    "fees.voucher.verify": ["ACC"],
     "fees.cash.record": ["ACC"],
     // A discount is the Principal's alone (D-172); the Accountant takes the money and pays back credit.
     "fees.discount.give": ["ADM"],
@@ -164,7 +163,6 @@ describe("sensitive rules, stated independently (docs/source/sample-creation-inf
         "notes.view",
         "assignments.submit",
         "fees.view",
-        "fees.voucher.upload",
         // Source 6.4, "Payments: online (parked)": the student pays their own fees online (demo adapter only, D-076).
         "fees.online.pay",
         "fees.receipts.view",

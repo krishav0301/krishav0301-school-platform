@@ -112,13 +112,12 @@ describe.each([
     expect(((await made.json()) as { charged: number }).charged).toBeGreaterThanOrEqual(4);
   });
 
-  it("payments: cash and a verified voucher, each with the next receipt number", async () => {
+  it("payments: two cash payments, each with the next receipt number", async () => {
     const sita = (await (await call("/api/fees/me", { cookie: cookies.Sita })).json()) as { enrollmentId: string; chargedPaisa: number };
     expect(sita.chargedPaisa).toBeGreaterThan(0);
     const cash = (await (await post("/api/fees/payments/cash", { enrollmentId: sita.enrollmentId, amountPaisa: 100_000, idempotencyKey: key() }, cookies.accountant)).json()) as { paymentId: string; receipt: { number: string } };
     state.paymentId = cash.paymentId;
-    const voucherId = await idOf(await post("/api/fees/me/vouchers", { amountPaisa: 50_000, bank: "Nabil Bank", reference: `EXIT-${key().slice(0, 6)}`, paidOn: bsToAd(todayBs()) }, cookies.Sita));
-    const verified = (await (await post(`/api/fees/vouchers/${voucherId}/verify`, {}, cookies.accountant)).json()) as { receipt: { number: string } };
+    const verified = (await (await post("/api/fees/payments/cash", { enrollmentId: sita.enrollmentId, amountPaisa: 50_000, idempotencyKey: key() }, cookies.accountant)).json()) as { receipt: { number: string } };
     const seq = (n: string) => Number(n.split("-").at(-1));
     expect(seq(verified.receipt.number)).toBe(seq(cash.receipt.number) + 1);
   });

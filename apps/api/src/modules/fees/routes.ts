@@ -1,8 +1,6 @@
 import { z } from "@hono/zod-openapi";
 import type { Context } from "hono";
 
-import { runInBackground } from "../../core/background";
-import { runOutbox } from "../../core/notifications";
 import { paymentGateway } from "../../core/payments";
 import { defineRoute } from "../../core/routes";
 import type { App, AppEnv } from "../../core/types";
@@ -10,8 +8,8 @@ import { enrollmentOfStudent, getReceipt, listAdjustments, ownAccount, staffAcco
 import { giveRefund, requestReversal } from "./adjustments";
 import { changeDiscount, discountsOf, giveDiscount, removeDiscount } from "./discounts";
 import { discountReport, listPriceChanges } from "./reports";
-import { duesCsv, listDues, sendOverdueReminders } from "./dues";
-import { gatewayCallback, listVouchers, recordCash, rejectVoucher, startOnlinePayment, submitVoucher, verifyVoucher, type PayResult } from "./payments";
+import { duesCsv, listDues } from "./dues";
+import { gatewayCallback, recordCash, startOnlinePayment, type PayResult } from "./payments";
 import {
   AccountSchema,
   AdjustmentListSchema,
@@ -36,10 +34,7 @@ import {
   ReceiptSchema,
   RequestEditSchema,
   GiveRefundSchema,
-  RejectVoucherSchema,
   ReversalRequestSchema,
-  VoucherListSchema,
-  VoucherSchema,
 } from "./schema";
 import { addItem, changeItem, createStructure, discardEdit, getStructure, linkLevels, listStructures, requestEdit, sendStructure, startNextPeriod, unlinkLevel, type Failure } from "./structures";
 
@@ -66,8 +61,6 @@ export function fail(c: Context<AppEnv>, failure: Failure | { ok: false; reason:
 
 const DRAFT = { action: "fees.structure.draft" } as const;
 const CASH = { action: "fees.cash.record" } as const;
-const VOUCHER_UPLOAD = { action: "fees.voucher.upload" } as const;
-const VOUCHER_VERIFY = { action: "fees.voucher.verify" } as const;
 const ONLINE = { action: "fees.online.pay" } as const;
 const RECEIPTS = { action: "fees.receipts.view" } as const;
 const DISCOUNT = { action: "fees.discount.give" } as const;
@@ -77,7 +70,6 @@ const PRICE_CHANGES = { action: "fees.pricechange.view" } as const;
 const REVERSAL = { action: "fees.reversal.request" } as const;
 const REFUND = { action: "fees.refund.give" } as const;
 const REPORTS = { action: "reports.fees" } as const;
-const REMINDERS = { action: "fees.reminders.send" } as const;
 const ClassQuery = z.object({ classId: PublicIdSchema.optional() });
 
 const paid = (c: Context<AppEnv>, result: PayResult) =>
@@ -393,74 +385,6 @@ export function registerFees(app: App): void {
     app,
     {
       method: "post",
-      path: "/api/fees/me/vouchers",
-      operationId: "submit_voucher",
-      tags: ["fees"],
-      description: "The student reports a bank deposit (the bank and its reference; no scan while file storage is off). The Accountant verifies it.",
-      access: VOUCHER_UPLOAD,
-      request: { body: { required: true, content: json(VoucherSchema) } },
-      responses: { 201: { description: "Reported", content: json(Created) }, ...failures },
-    },
-    async (c) => {
-      const result = await submitVoucher(c.env.DB, c.env.AUDIT_HMAC_KEY, c.get("auth")!.userPublicId, c.req.valid("json"));
-      return result.ok ? c.json({ id: result.publicId }, 201) : fail(c, result);
-    },
-  );
-
-  defineRoute(
-    app,
-    {
-      method: "get",
-      path: "/api/fees/vouchers",
-      operationId: "list_vouchers",
-      tags: ["fees"],
-      description: "Vouchers waiting for the Accountant, oldest first, in their sections.",
-      access: VOUCHER_VERIFY,
-      responses: { 200: { description: "The vouchers", content: json(VoucherListSchema) } },
-    },
-    async (c) => {
-      c.header("Cache-Control", "no-store");
-      return c.json(await listVouchers(c.env.DB, c.get("grant")!), 200);
-    },
-  );
-
-  defineRoute(
-    app,
-    {
-      method: "post",
-      path: "/api/fees/vouchers/{id}/verify",
-      operationId: "verify_voucher",
-      tags: ["fees"],
-      description: "Verifies a voucher: it becomes a payment with a numbered receipt, in one batch. Once.",
-      access: VOUCHER_VERIFY,
-      request: { params: IdParam },
-      responses: { 201: { description: "Paid", content: json(PaidSchema) }, ...failures },
-    },
-    async (c) => paid(c, await verifyVoucher(c.env.DB, c.env.AUDIT_HMAC_KEY, c.get("auth")!.userPublicId, c.req.valid("param").id)),
-  );
-
-  defineRoute(
-    app,
-    {
-      method: "post",
-      path: "/api/fees/vouchers/{id}/reject",
-      operationId: "reject_voucher",
-      tags: ["fees"],
-      description: "Rejects a voucher, with a reason. The student may report the deposit again, corrected.",
-      access: VOUCHER_VERIFY,
-      request: { params: IdParam, body: { required: true, content: json(RejectVoucherSchema) } },
-      responses: { 200: { description: "Rejected", content: json(z.object({ ok: z.literal(true) })) }, ...failures },
-    },
-    async (c) => {
-      const result = await rejectVoucher(c.env.DB, c.env.AUDIT_HMAC_KEY, c.get("auth")!.userPublicId, c.req.valid("param").id, c.req.valid("json").reason);
-      return result.ok ? c.json({ ok: true as const }, 200) : fail(c, result);
-    },
-  );
-
-  defineRoute(
-    app,
-    {
-      method: "post",
       path: "/api/fees/me/online-payments",
       operationId: "start_online_payment",
       tags: ["fees"],
@@ -705,26 +629,6 @@ export function registerFees(app: App): void {
       c.header("Cache-Control", "no-store");
       c.header("Content-Disposition", 'attachment; filename="dues.csv"');
       return c.body(csv, 200, { "Content-Type": "text/csv; charset=utf-8" });
-    },
-  );
-
-  defineRoute(
-    app,
-    {
-      method: "post",
-      path: "/api/fees/reminders",
-      operationId: "send_overdue_reminders",
-      tags: ["fees"],
-      description: "Emails every student in the Accountant's sections who has something overdue. Once per student per day: pressing it again sends nothing new.",
-      access: REMINDERS,
-      responses: { 200: { description: "Queued", content: json(z.object({ queued: z.number().int() })) } },
-    },
-    async (c) => {
-      const result = await sendOverdueReminders(c.env.DB, c.env.AUDIT_HMAC_KEY, c.env.DATA_KEY, c.get("auth")!.userPublicId, c.get("grant")!);
-      // Deliver what was just queued, as the other modules that send email do; the cron sweep retries the rest.
-      const pending = runInBackground(c, runOutbox(c.env));
-      if (pending) await pending;
-      return c.json(result, 200);
     },
   );
 }

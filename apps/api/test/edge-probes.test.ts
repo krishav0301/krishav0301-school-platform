@@ -42,12 +42,6 @@ describe("money inputs", () => {
     }
   });
 
-  it("a bank deposit dated in the future is refused", async () => {
-    const r = await post("/api/fees/me/vouchers", { amountPaisa: 1_000, bank: "Nabil", reference: `F-${key().slice(0, 8)}`, paidOn: tomorrow() }, fixture.pupils[0]!.person);
-    expect(r.status).toBeGreaterThanOrEqual(400);
-    expect(r.status).toBeLessThan(500);
-  });
-
   it("a cash payment for an enrollment that does not exist is 404, not a crash", async () => {
     expect((await post("/api/fees/payments/cash", { enrollmentId: key(), amountPaisa: 100, idempotencyKey: key() }, accountant)).status).toBe(404);
   });

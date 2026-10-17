@@ -317,16 +317,13 @@ describe.each([
     }
   });
 
-  it("fees: cash with a retried key, a voucher, a demo online payment with repeated callbacks, gapless receipts", async () => {
+  it("fees: cash with a retried key, a second payment, a demo online payment with repeated callbacks, gapless receipts", async () => {
     const asha = s.students.Asha!.enrollmentId;
     const k = key();
     const first = await ok(await post("/api/fees/payments/cash", { enrollmentId: asha, amountPaisa: 1_000_000, idempotencyKey: k }, c.accountant), 201);
     const retry = await ok(await post("/api/fees/payments/cash", { enrollmentId: asha, amountPaisa: 1_000_000, idempotencyKey: k }, c.accountant), 201);
     expect((retry.receipt as { number: string }).number).toBe((first.receipt as { number: string }).number);
-    const voucher = await ok(await post("/api/fees/me/vouchers", { amountPaisa: 250_000, bank: "Nabil", reference: `Y-${tag}`, paidOn: nepalDate(new Date()) }, c.Asha), 201);
-    expect((await post("/api/fees/me/vouchers", { amountPaisa: 250_000, bank: "Nabil", reference: `Y-${tag}`, paidOn: nepalDate(new Date()) }, c.Bina)).status).toBe(409); // a reference is claimed once
-    const verified = await ok(await post(`/api/fees/vouchers/${voucher.id}/verify`, {}, c.accountant), 201);
-    expect((await post(`/api/fees/vouchers/${voucher.id}/verify`, {}, c.accountant)).status).toBe(409);
+    const verified = await ok(await post("/api/fees/payments/cash", { enrollmentId: asha, amountPaisa: 250_000, idempotencyKey: key() }, c.accountant), 201);
     const online = await ok(await post("/api/fees/me/online-payments", { amountPaisa: 250_000 }, c.Asha), 201);
     for (let i = 0; i < 3; i++) await ok(await post("/api/fees/gateway/callback", { gatewayReference: online.gatewayReference }, undefined));
     const seq = (r: unknown) => Number((r as { number: string }).number.split("-").at(-1));
@@ -361,7 +358,7 @@ describe.each([
     expect((await call(`/api/fees/enrollments/${bina}`, { cookie: c.Asha })).status).toBe(404);
   });
 
-  it("fees: a late joiner is charged as they join; dues, CSV and reminders agree", async () => {
+  it("fees: a late joiner is charged as they join; dues and CSV agree", async () => {
     const email = `late-${tag}@example.com`;
     const late = await ok(await post("/api/admissions/walk-ins", { firstName: "Late", lastName: "Joiner", dob: "2009-01-01", phone: "9812345678", email, guardianName: "G", guardianPhone: "9800000041", levelId: s.levelId, classId: s.classId }, c.coordinator), 201);
     c.Late = await firstSignIn(email, late.temporaryPassword as string);
@@ -372,7 +369,6 @@ describe.each([
     expect(dues.totals.duePaisa).toBe(dues.students.reduce((sum, x) => sum + x.duePaisa, 0));
     const csv = await (await call(`/api/fees/dues.csv?classId=${s.classId}`, { cookie: c.admin })).text();
     expect(csv.split("\r\n").filter(Boolean)).toHaveLength(dues.students.length + 1);
-    await ok(await post("/api/fees/reminders", undefined, c.accountant));
   });
 
   // --- 5. Results across three terminals ----------------------------------------------------------

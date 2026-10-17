@@ -106,9 +106,7 @@ The Co-ordinator has **no** fees access at all.
 | Ask the Principal to let an approved fee structure be edited (`fees.structure.edit_request`) | — | — | — | inst | — | — | 6 |
 | Link an approved fee structure to levels, or unlink one that has no payment yet (`fees.structure.link`) | — | — | — | inst | — | — | 6 |
 | View fees, dues, ledger (`fees.view`) | own | — | — | inst | read | ✓ | 6 |
-| Upload a payment voucher (`fees.voucher.upload`) | own | — | — | — | — | — | 6 |
 | Pay online through the gateway (demo adapter only until Phase 9) (`fees.online.pay`) | own | — | — | — | — | — | 6 |
-| Verify or reject a voucher (`fees.voucher.verify`) | — | — | — | inst | — | — | 6 |
 | Record cash payment (`fees.cash.record`) | — | — | — | inst | — | — | 6 |
 | Give a student a discount (the Principal alone; no approval) (`fees.discount.give`) | — | — | — | — | ✓ | — | 6 |
 | Read the report of discounts given (`fees.discount.report`) | — | — | — | — | ✓ | — | 6 |
@@ -118,7 +116,6 @@ The Co-ordinator has **no** fees access at all.
 | Approve a reversal (`fees.reversal.approve`) | — | — | — | — | ✓ | — | 6 |
 | Pay back a student's credit (up to the credit; no approval) (`fees.refund.give`) | — | — | — | inst | — | — | 6 |
 | View and download receipts (`fees.receipts.view`) | own | — | — | inst | read | ✓ | 6 |
-| Send overdue reminders (email) (`fees.reminders.send`) | — | — | — | inst | — | — | 6 |
 
 ### Marks and results
 

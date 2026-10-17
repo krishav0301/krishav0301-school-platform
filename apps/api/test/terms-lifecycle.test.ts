@@ -125,6 +125,8 @@ describe("a semester school beside a yearly one", () => {
     // Bikash owes nothing yet: his charge was made too, so pay it all.
     const owed = (await db.prepare("SELECT SUM(le.amount_paisa) AS n FROM ledger_entries le JOIN enrollments en ON en.id = le.enrollment_id WHERE en.public_id = ?1").bind(s.enrollments.Bikash).first<{ n: number }>())!.n;
     await ok(await post("/api/fees/payments/cash", { enrollmentId: s.enrollments.Bikash, amountPaisa: owed, idempotencyKey: newPublicId() }, accountant), 201);
+    // Chandra has paid 200 ahead of any charge: a credit. It goes with her into the next term, as an unpaid due would.
+    await ok(await post("/api/fees/payments/cash", { enrollmentId: s.enrollments.Chandra, amountPaisa: 20_000, idempotencyKey: newPublicId() }, accountant), 201);
   });
 
   it("the Principal cannot close the term until every class's results are published; then it closes and refuses writes", async () => {
@@ -206,6 +208,14 @@ describe("a semester school beside a yearly one", () => {
       ),
     );
     expect(second.results).toMatchObject([{ ok: true, pending: true }, { ok: true, carriedDues: false }]);
+    // Her credit is in the new term's account (a payment entry with no receipt, which cannot be reversed), once.
+    const newChandra = (second.results[1] as { newEnrollmentId?: string }).newEnrollmentId!;
+    const credit = () => db.prepare("SELECT le.amount_paisa, le.source_type FROM ledger_entries le JOIN enrollments en ON en.id = le.enrollment_id WHERE en.public_id = ?1").bind(newChandra).all<{ amount_paisa: number; source_type: string }>().then((r) => r.results);
+    expect(await credit()).toEqual([{ amount_paisa: -20_000, source_type: "carried_credit" }]);
+    await post("/api/promotions", { moves: [{ enrollmentId: s.enrollments.Chandra, action: "promote", classId: s.nextClasses.sem4 }] }, coordinator);
+    expect((await credit()).length).toBe(1);
+    const carriedId = (await db.prepare("SELECT le.public_id FROM ledger_entries le JOIN enrollments en ON en.id = le.enrollment_id WHERE en.public_id = ?1").bind(newChandra).first<{ public_id: string }>())!.public_id;
+    expect((await post(`/api/fees/payments/${carriedId}/reversal`, { reason: "Trying to undo the carried credit" }, accountant)).status).toBe(404);
     const statusOfBikash = async () => (await db.prepare("SELECT st.status FROM students st JOIN enrollments en ON en.student_id = st.id WHERE en.public_id = ?1").bind(s.enrollments.Bikash).first<{ status: string }>())!.status;
     expect(await statusOfBikash()).toBe("active"); // not Left until the Principal approves
     const requestId = (await db.prepare("SELECT ar.public_id FROM approval_requests ar JOIN student_leave_requests lr ON lr.public_id = ar.subject_public_id JOIN enrollments en ON en.id = lr.enrollment_id WHERE en.public_id = ?1").bind(s.enrollments.Bikash).first<{ public_id: string }>())!.public_id;

@@ -9,7 +9,7 @@ import { useSession } from "@/session/SessionProvider";
 import setupStyles from "@/setup/setup.module.css";
 import { PortalShell } from "@/shell/PortalShell";
 
-/** The fee places for staff: students, structures, vouchers (the Accountant checks them), dues. A student has no tabs. */
+/** The fee places for staff: structures and dues (and the Principal's Discounts). A student has no tabs. */
 export function FeesTabs({ pathname }: { pathname: string }) {
   const { me } = useSession();
   const roles = me?.roles.map((r) => r.role) ?? [];

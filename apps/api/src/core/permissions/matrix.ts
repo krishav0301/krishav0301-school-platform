@@ -161,9 +161,7 @@ export const MATRIX = [
   row(G.fees, "fees.structure.edit_request", "Ask the Principal to let an approved fee structure be edited", 6, { ACC: inst }),
   row(G.fees, "fees.structure.link", "Link an approved fee structure to levels, or unlink one that has no payment yet", 6, { ACC: inst }),
   row(G.fees, "fees.view", "View fees, dues, ledger", 6, { STU: own, ACC: inst, ADM: read, SUP: all }),
-  row(G.fees, "fees.voucher.upload", "Upload a payment voucher", 6, { STU: own }),
   row(G.fees, "fees.online.pay", "Pay online through the gateway (demo adapter only until Phase 9)", 6, { STU: own }),
-  row(G.fees, "fees.voucher.verify", "Verify or reject a voucher", 6, { ACC: inst }),
   row(G.fees, "fees.cash.record", "Record cash payment", 6, { ACC: inst }),
   row(G.fees, "fees.discount.give", "Give a student a discount (the Principal alone; no approval)", 6, { ADM: all }),
   row(G.fees, "fees.discount.report", "Read the report of discounts given", 6, { ADM: all }),
@@ -173,7 +171,6 @@ export const MATRIX = [
   row(G.fees, "fees.reversal.approve", "Approve a reversal", 6, { ADM: all }),
   row(G.fees, "fees.refund.give", "Pay back a student's credit (up to the credit; no approval)", 6, { ACC: inst }),
   row(G.fees, "fees.receipts.view", "View and download receipts", 6, { STU: own, ACC: inst, ADM: read, SUP: all }),
-  row(G.fees, "fees.reminders.send", "Send overdue reminders (email)", 6, { ACC: inst }),
 
   // --- Marks and results
   row(G.results, "results.electives.set", "Record each student's elective picks (D-056)", 7, { COO: inst, SUP: all }),

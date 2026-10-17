@@ -67,17 +67,6 @@ describe("money and approvals", () => {
     expect((await account(pupil)).paidPaisa).toBe(0);
   });
 
-  it("one voucher verified by two Accountants at the same moment makes one payment", async () => {
-    const pupil = fixture.pupils[2]!;
-    const sent = await post("/api/fees/me/vouchers", { amountPaisa: 25_000, bank: "Nabil Bank", reference: `TXN-${key().slice(0, 8)}`, paidOn: "2026-09-20" }, pupil.person);
-    expect(sent.status).toBe(201);
-    const id = ((await sent.json()) as { id: string }).id;
-    const other = await person("accountant", "institution");
-    const statuses = (await Promise.all([post(`/api/fees/vouchers/${id}/verify`, {}, accountant), post(`/api/fees/vouchers/${id}/verify`, {}, other)])).map((r) => r.status).sort();
-    expect(statuses).toEqual([201, 409]);
-    expect((await account(pupil.enrollmentId)).paidPaisa).toBe(25_000);
-  });
-
   it("a class needing more charges than one write chunk gets every one of them", async () => {
     // Eight lines for each of 16 students give 128 charges, past one write chunk of 100.
     const big = await classWith("plus2", 16);
