@@ -17,8 +17,7 @@ export function FeesTabs({ pathname }: { pathname: string }) {
   if (!staff) return null;
   const here = pathname.length > 1 ? pathname.replace(/\/$/, "") : pathname;
   const tabs = [
-    { href: "/portal/fees", label: t("fees.tab.students"), current: here === "/portal/fees" || here.startsWith("/portal/fees/student") || here.startsWith("/portal/fees/receipt") },
-    { href: "/portal/fees/structures", label: t("fees.tab.structures"), current: here.startsWith("/portal/fees/structure") },
+    { href: "/portal/fees/structures", label: t("fees.tab.structures"), current: here === "/portal/fees" || here.startsWith("/portal/fees/structure") },
     { href: "/portal/fees/dues", label: t("fees.tab.dues"), current: here === "/portal/fees/dues" },
     ...(roles.includes("admin") ? [{ href: "/portal/fees/discounts", label: t("fees.tab.discounts"), current: here === "/portal/fees/discounts" }] : []),
   ];

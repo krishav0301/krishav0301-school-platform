@@ -53,14 +53,12 @@ describe("what each role can do (the PM, 2026-10-01)", () => {
     expect(off).toContain("See your results and marks card");
   });
 
-  it("the Accountant's home shows its brief, and with a second role the other's too", () => {
-    expect(render(<PortalPage />, royal, [{ role: "accountant", scope: "institution" }])).toContain("What you can do as Accountant");
+  it("the Accountant has no home page of their own (they land on Students); with a student role the student's brief shows", () => {
+    expect(render(<PortalPage />, royal, [{ role: "accountant", scope: "institution" }])).not.toContain("What you can do as Accountant");
     const both = render(<PortalPage />, royal, [
       { role: "accountant", scope: "institution" },
       { role: "student", scope: "own" },
     ]);
-    expect(both).toContain("What you can do as Accountant");
     expect(both).toContain("What you can do as Student");
-    expect(both.match(/<h1/g)).toHaveLength(1);
   });
 });

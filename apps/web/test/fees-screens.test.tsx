@@ -106,9 +106,9 @@ describe("fees places", () => {
     expect(inContext(<FeesTabs pathname="/portal/fees" />, as("student", "own"))).toBe("");
   });
 
-  it("a student lands on their own fees; staff on the same Students page the Principal has", () => {
+  it("a student lands on their own fees; staff on the fee structures (Students is its own tab, D-172)", () => {
     expect(inContext(<FeesHome />, as("student", "own"))).toContain("Your fees");
-    expect(inContext(<FeesHome />)).toContain("Every student, by Wing, Course, Level and class");
+    expect(inContext(<FeesHome />)).toContain("Fee structures");
   });
 
   it("the dues list shows the shape of the page while it loads", () => {

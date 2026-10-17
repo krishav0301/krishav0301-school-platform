@@ -3,20 +3,20 @@
 import { CircleAlert, ReceiptText, Scale, Wallet } from "lucide-react";
 import Link from "next/link";
 
-import { StudentsScreen } from "@/admissions/StudentsScreen";
 import type { StudentSummary } from "@/admissions/model";
 import { t } from "@/i18n/messages";
 import { useSession } from "@/session/SessionProvider";
 import { OpenLink, ReadTable, type Figure } from "@/read/ReadView";
 
 import { OwnFees } from "./OwnFees";
+import { StructuresScreen } from "./StructuresScreen";
 import { BalanceWord, nprShort } from "./ReadFees";
 
 /** Fees (D-078): a student sees their own account; staff find a student to open theirs. */
 export function FeesHome() {
   const { me } = useSession();
   const student = me?.roles.some((r) => r.role === "student") ?? false;
-  return student ? <OwnFees /> : <StudentsScreen />;
+  return student ? <OwnFees /> : <StructuresScreen />;
 }
 
 type Totals = { chargedPaisa: number; discountPaisa: number; paidPaisa: number; duePaisa: number; overduePaisa: number };

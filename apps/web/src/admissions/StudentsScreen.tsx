@@ -82,7 +82,7 @@ export function nextFilters(current: Filters, patch: Partial<Filters>): Filters 
 }
 
 /** Loads one page as the filters change; the newest request wins. The counts and lists stay while a new page loads. */
-function useStudents() {
+export function useStudents() {
   const { api } = useSession();
   const [filters, setFilters] = useState<Filters>(NO_FILTERS);
   const [typed, setTyped] = useState("");
@@ -257,7 +257,7 @@ function ListState({ view, filtered, onRetry, onClear }: { view: View; filtered:
 const STATUS_WORD: Record<BrowsedStudent["status"], MessageKey> = { active: "admissions.student.active", left: "admissions.student.left", graduated: "admissions.student.graduated" };
 
 /** One row per student: name and SID, class, term, guardian's phone, status, and the record. Pure. */
-export function StudentsTable({ students }: { students: readonly BrowsedStudent[] }) {
+export function StudentsTable({ students, payment = false }: { students: readonly BrowsedStudent[]; payment?: boolean }) {
   return (
     <table className={styles.table}>
       <thead>
@@ -276,7 +276,8 @@ export function StudentsTable({ students }: { students: readonly BrowsedStudent[
       <tbody>
         {students.map((s) => {
           const name = `${s.firstName} ${s.lastName}`;
-          const href = `/portal/admissions/student?id=${s.id}`;
+          // The Accountant's list opens the fee account to record a payment; everyone else's opens the record.
+          const href = payment ? `/portal/fees/student?id=${s.id}` : `/portal/admissions/student?id=${s.id}`;
           return (
             <tr key={s.id}>
               <td className={styles.nameCell}>
@@ -318,8 +319,8 @@ export function StudentsTable({ students }: { students: readonly BrowsedStudent[
                 </span>
               </td>
               <td className={styles.actionsCell}>
-                <Link href={href} className={styles.viewLink} aria-label={t("admissions.search.open", { name })}>
-                  {t("students.openRecord")}
+                <Link href={href} className={styles.viewLink} aria-label={t(payment ? "payments.openNamed" : "admissions.search.open", { name })}>
+                  {t(payment ? "payments.record" : "students.openRecord")}
                 </Link>
               </td>
             </tr>

@@ -39,7 +39,7 @@ describe("the real menu", () => {
     // Reports too: the Co-ordinator holds the student and results reports (Co-ordinator FUT F-10).
     expect(seen("coordinator", "institution")).toEqual(["content", "setup", "people", "admissions", "attendance", "classwork", "reports", "settings"]);
     expect(seen("coordinator", "section")).toEqual(["content", "setup", "people", "admissions", "attendance", "classwork", "reports", "settings"]);
-    expect(seen("accountant", "institution")).toEqual(["dashboard", "settings"]);
+    expect(seen("accountant", "institution")).toEqual(["settings"]);
     expect(seen("teacher", "assigned")).toEqual(["classes", "attendance", "classwork", "settings"]);
     expect(seen("student", "own")).toEqual(["classwork", "settings"]);
     // D-091: Settings is everyone's; Reports only the Principal's and Support's.
@@ -47,7 +47,7 @@ describe("the real menu", () => {
 
   it("fees are in the menu for the Accountant and the student; never the Co-ordinator or a teacher; the Principal reads them on a student's record (D-121)", () => {
     const withFees = { attendance: true, activity_log: true, fees: true };
-    expect(seen("accountant", "institution", withFees)).toEqual(["dashboard", "fees", "settings"]); // no Admissions: the Students page is a tab of Fees (the PM, 2026-10-17)
+    expect(seen("accountant", "institution", withFees)).toEqual(["payments", "fees", "settings"]); // no Overview, no Admissions: Students (record a payment) and Fees (the PM, 2026-10-17)
     expect(seen("student", "own", withFees)).toEqual(["classwork", "fees", "settings"]);
     expect(seen("admin", "institution", withFees)).not.toContain("fees");
     expect(seen("coordinator", "institution", withFees)).not.toContain("fees");

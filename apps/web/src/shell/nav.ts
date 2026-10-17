@@ -36,7 +36,7 @@ export const MAX_TABS = 5;
 
 export const NAV_ITEMS: readonly NavItem[] = [
   // The Principal's dashboard and the Accountant's fees day. The Co-ordinator, Teacher and Student have no Overview: they open on a hero page and start from the menu (the PM, 2026-10-17).
-  { id: "dashboard", labelKey: "nav.dashboard", href: "/portal", roles: ["admin", "super_admin", "accountant"], icon: "overview" },
+  { id: "dashboard", labelKey: "nav.dashboard", href: "/portal", roles: ["admin", "super_admin"], icon: "overview" },
   // FUT point 19 (D-116): a class as one page, for the staff who work with classes. A teacher sees the classes they teach.
   // D-130 (the PM): the Co-ordinator reaches the same page as Setup's Classes tab, so it is not in their menu.
   { id: "classes", labelKey: "nav.classes", href: "/portal/classes", roles: ["teacher", "admin", "super_admin"], icon: "classes" },
@@ -63,7 +63,9 @@ export const NAV_ITEMS: readonly NavItem[] = [
   // Phase 5, slice 3: the daily activity log; notes and homework join it in slice 4 (D-071).
   { id: "classwork", labelKey: "nav.classwork", href: "/portal/classwork", roles: ["teacher", "student", "coordinator", "super_admin"], module: ["activity_log", "homework", "notes"], icon: "classwork" },
   // Phase 6: fees. The Accountant works here, the Admin looks, a student sees their own; never the Co-ordinator (D-078).
-  { id: "fees", labelKey: "nav.fees", href: "/portal/fees", roles: ["accountant", "super_admin", "student"], module: "fees", icon: "fees" },
+  // The Accountant's Students: find a student and record a payment (the PM, 2026-10-17). No Overview for the Accountant: they open here.
+  { id: "payments", labelKey: "nav.payments", href: "/portal/payments", roles: ["accountant"], module: "fees", icon: "admissions" },
+  { id: "fees", labelKey: "nav.fees", href: "/portal/fees", opensAt: "/portal/fees/structures", roles: ["accountant", "super_admin", "student"], module: "fees", icon: "fees" },
   // Phase 7: results. The teacher enters marks, the Co-ordinator verifies and publishes, a student sees their own, the Admin reads (D-082).
   { id: "results", labelKey: "nav.results", href: "/portal/results", roles: ["teacher", "student", "coordinator", "super_admin"], module: "results", icon: "results" },
   // D-091: everything the Principal reads but does not change, in one place. The Co-ordinator holds the student and

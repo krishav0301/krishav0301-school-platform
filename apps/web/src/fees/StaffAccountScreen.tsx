@@ -57,7 +57,7 @@ export function StaffAccountScreen() {
       <ReadHeader
         title={account.studentName}
         subtitle={[account.sid, account.className, account.yearLabel].join(" · ")}
-        crumbs={[{ label: t("fees.title"), href: "/portal/fees" }, { label: account.studentName }]}
+        crumbs={[accountant ? { label: t("nav.payments"), href: "/portal/payments" } : { label: t("fees.title"), href: "/portal/fees" }, { label: account.studentName }]}
         actions={
           account.closed ? null : principal ? (
             <div className={styles.headerActions}>
