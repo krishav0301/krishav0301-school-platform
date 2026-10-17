@@ -3,6 +3,7 @@
 import { KeyRound, UserCheck, UserX, UsersRound } from "lucide-react";
 import { useCallback, useId, useState, type FormEvent } from "react";
 
+import { CardPanel } from "@/cards/CardPanel";
 import { useConfig } from "@/config/ConfigProvider";
 import { useAddressQuery } from "@/content/address";
 import { t, type MessageKey } from "@/i18n/messages";
@@ -122,7 +123,7 @@ export function StaffView({ staff, roles, sections, onManage }: { staff: readonl
 /** One person, opened from their card: the facts, then switch off or on, or a new temporary password. */
 function ManagePanel({ member, sections, onClose }: { member: StaffMember; sections: readonly Section[]; onClose: (changed: boolean) => void }) {
   const { api } = useSession();
-  const { term } = useConfig();
+  const { term, moduleEnabled } = useConfig();
   const [busy, setBusy] = useState<"toggle" | "password" | null>(null);
   const [outcome, setOutcome] = useState<{ tone: "ok" | "bad"; text: string } | null>(null);
   const [secret, setSecret] = useState<string | null>(null);
@@ -185,6 +186,11 @@ function ManagePanel({ member, sections, onClose }: { member: StaffMember; secti
           ]}
         />
       </PanelSection>
+      {moduleEnabled("card_attendance") ? (
+        <PanelSection title={t("cards.title")}>
+          <CardPanel owner="people" id={member.id} canManage />
+        </PanelSection>
+      ) : null}
       {active ? <p className={readStyles.rowMeta}>{t("people.manageHint")}</p> : null}
     </SidePanel>
   );

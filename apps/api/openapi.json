@@ -6662,6 +6662,170 @@
           "days"
         ]
       },
+      "CardView": {
+        "type": "object",
+        "properties": {
+          "owner": {
+            "type": "object",
+            "properties": {
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "student",
+                  "person"
+                ]
+              },
+              "name": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "kind",
+              "name"
+            ]
+          },
+          "current": {
+            "type": [
+              "object",
+              "null"
+            ],
+            "properties": {
+              "cardNumber": {
+                "type": "string"
+              },
+              "issuedAt": {
+                "type": "string"
+              },
+              "issuedOnBs": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "usable": {
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "cardNumber",
+              "issuedAt",
+              "issuedOnBs",
+              "usable"
+            ]
+          },
+          "history": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "cardNumber": {
+                  "type": "string"
+                },
+                "issuedAt": {
+                  "type": "string"
+                },
+                "retiredAt": {
+                  "type": "string"
+                },
+                "retiredOnBs": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "reason": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "cardNumber",
+                "issuedAt",
+                "retiredAt",
+                "retiredOnBs",
+                "reason"
+              ]
+            }
+          }
+        },
+        "required": [
+          "owner",
+          "current",
+          "history"
+        ]
+      },
+      "CardError": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "error"
+        ]
+      },
+      "CardOk": {
+        "type": "object",
+        "properties": {
+          "ok": {
+            "type": "boolean",
+            "enum": [
+              true
+            ]
+          }
+        },
+        "required": [
+          "ok"
+        ]
+      },
+      "CardInvalid": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "string",
+            "enum": [
+              "invalid"
+            ]
+          },
+          "message": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "error",
+          "message"
+        ]
+      },
+      "LinkCard": {
+        "type": "object",
+        "properties": {
+          "cardNumber": {
+            "type": "string",
+            "maxLength": 100
+          },
+          "reason": {
+            "type": "string",
+            "maxLength": 300
+          }
+        },
+        "required": [
+          "cardNumber"
+        ],
+        "additionalProperties": false
+      },
+      "RetireCard": {
+        "type": "object",
+        "properties": {
+          "reason": {
+            "type": "string",
+            "maxLength": 300
+          }
+        },
+        "required": [
+          "reason"
+        ],
+        "additionalProperties": false
+      },
       "MyActivityToday": {
         "type": "object",
         "properties": {
@@ -18448,6 +18612,354 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/AttendanceInvalid"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/cards/students/{id}": {
+      "get": {
+        "operationId": "get_student_card",
+        "tags": [
+          "cards"
+        ],
+        "description": "A student's card in use and the cards retired before it. The number is what the reader types. `usable` is false while the person has left, graduated or been switched off.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{32}$"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The card and its history",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CardView"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such person, not one the caller may manage, no card to retire, or cards are switched off for this school",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CardError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "operationId": "link_student_card",
+        "tags": [
+          "cards"
+        ],
+        "description": "Links a card to a student, or replaces the one they have (then a reason is required and the old card is retired). Sending the same number again changes nothing. A number belongs to one person for good.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{32}$"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LinkCard"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Linked (or already linked to this person)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CardOk"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such person, not one the caller may manage, no card to retire, or cards are switched off for this school",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CardError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "That number is another person's, or was retired (`card_in_use`), or the person's card changed meanwhile (`changed`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CardError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "The number is the wrong shape, or a replacement has no reason",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CardInvalid"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/cards/students/{id}/retire": {
+      "post": {
+        "operationId": "retire_student_card",
+        "tags": [
+          "cards"
+        ],
+        "description": "Retires a student's card with a reason, for example when it is lost. Nothing is deleted, and the number can never be linked again.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{32}$"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RetireCard"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Retired",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CardOk"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such person, not one the caller may manage, no card to retire, or cards are switched off for this school",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CardError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "No reason given",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CardInvalid"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/cards/people/{id}": {
+      "get": {
+        "operationId": "get_person_card",
+        "tags": [
+          "cards"
+        ],
+        "description": "A staff member (a teacher, Co-ordinator, Accountant or Admin)'s card in use and the cards retired before it. The number is what the reader types. `usable` is false while the person has left, graduated or been switched off.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{32}$"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The card and its history",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CardView"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such person, not one the caller may manage, no card to retire, or cards are switched off for this school",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CardError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "operationId": "link_person_card",
+        "tags": [
+          "cards"
+        ],
+        "description": "Links a card to a staff member (a teacher, Co-ordinator, Accountant or Admin), or replaces the one they have (then a reason is required and the old card is retired). Sending the same number again changes nothing. A number belongs to one person for good.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{32}$"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LinkCard"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Linked (or already linked to this person)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CardOk"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such person, not one the caller may manage, no card to retire, or cards are switched off for this school",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CardError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "That number is another person's, or was retired (`card_in_use`), or the person's card changed meanwhile (`changed`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CardError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "The number is the wrong shape, or a replacement has no reason",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CardInvalid"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/cards/people/{id}/retire": {
+      "post": {
+        "operationId": "retire_person_card",
+        "tags": [
+          "cards"
+        ],
+        "description": "Retires a staff member (a teacher, Co-ordinator, Accountant or Admin)'s card with a reason, for example when it is lost. Nothing is deleted, and the number can never be linked again.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{32}$"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RetireCard"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Retired",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CardOk"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such person, not one the caller may manage, no card to retire, or cards are switched off for this school",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CardError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "No reason given",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CardInvalid"
                 }
               }
             }

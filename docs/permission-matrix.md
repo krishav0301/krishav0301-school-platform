@@ -77,6 +77,8 @@ Phase is the build phase where the action first exists. The action id in code fo
 | Correct personal details (reason required; SID never editable) (`students.personal.correct`) | — | — | inst | — | — | ✓ | 4 |
 | Mark Graduated (zero dues only) (`students.status.set`) | — | — | inst | — | — | ✓ | 8 |
 | Ask for a student to be marked Left (the Principal decides) (`students.leave.request`) | — | — | inst | — | — | ✓ | 8 |
+| See a person's RFID card and the cards retired before it (only where the school uses cards, D-174) (`cards.view`) | — | — | inst | — | read | ✓ | 8 |
+| Link, replace or retire a person's RFID card (D-174) (`cards.manage`) | — | — | students, teachers | — | co-ordinators, accountants | ✓ | 8 |
 | Year rollover: Promote, Repeat, Leaving (`students.rollover`) | — | — | inst | — | — | ✓ | 8 |
 
 ### Daily school life

@@ -1590,6 +1590,76 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/cards/students/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description A student's card in use and the cards retired before it. The number is what the reader types. `usable` is false while the person has left, graduated or been switched off. */
+        get: operations["get_student_card"];
+        /** @description Links a card to a student, or replaces the one they have (then a reason is required and the old card is retired). Sending the same number again changes nothing. A number belongs to one person for good. */
+        put: operations["link_student_card"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/cards/students/{id}/retire": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Retires a student's card with a reason, for example when it is lost. Nothing is deleted, and the number can never be linked again. */
+        post: operations["retire_student_card"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/cards/people/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description A staff member (a teacher, Co-ordinator, Accountant or Admin)'s card in use and the cards retired before it. The number is what the reader types. `usable` is false while the person has left, graduated or been switched off. */
+        get: operations["get_person_card"];
+        /** @description Links a card to a staff member (a teacher, Co-ordinator, Accountant or Admin), or replaces the one they have (then a reason is required and the old card is retired). Sending the same number again changes nothing. A number belongs to one person for good. */
+        put: operations["link_person_card"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/cards/people/{id}/retire": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Retires a staff member (a teacher, Co-ordinator, Accountant or Admin)'s card with a reason, for example when it is lost. Nothing is deleted, and the number can never be linked again. */
+        post: operations["retire_person_card"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/activity/mine": {
         parameters: {
             query?: never;
@@ -4289,6 +4359,45 @@ export interface components {
                 /** @enum {string|null} */
                 status: "present" | "absent" | "leave" | null;
             }[];
+        };
+        CardView: {
+            owner: {
+                /** @enum {string} */
+                kind: "student" | "person";
+                name: string;
+            };
+            current: {
+                cardNumber: string;
+                issuedAt: string;
+                issuedOnBs: string | null;
+                usable: boolean;
+            } | null;
+            history: {
+                cardNumber: string;
+                issuedAt: string;
+                retiredAt: string;
+                retiredOnBs: string | null;
+                reason: string;
+            }[];
+        };
+        CardError: {
+            error: string;
+        };
+        CardOk: {
+            /** @enum {boolean} */
+            ok: true;
+        };
+        CardInvalid: {
+            /** @enum {string} */
+            error: "invalid";
+            message: string;
+        };
+        LinkCard: {
+            cardNumber: string;
+            reason?: string;
+        };
+        RetireCard: {
+            reason: string;
         };
         MyActivityToday: {
             date: string;
@@ -10458,6 +10567,262 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AttendanceInvalid"];
+                };
+            };
+        };
+    };
+    get_student_card: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The card and its history */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CardView"];
+                };
+            };
+            /** @description No such person, not one the caller may manage, no card to retire, or cards are switched off for this school */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CardError"];
+                };
+            };
+        };
+    };
+    link_student_card: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LinkCard"];
+            };
+        };
+        responses: {
+            /** @description Linked (or already linked to this person) */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CardOk"];
+                };
+            };
+            /** @description No such person, not one the caller may manage, no card to retire, or cards are switched off for this school */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CardError"];
+                };
+            };
+            /** @description That number is another person's, or was retired (`card_in_use`), or the person's card changed meanwhile (`changed`) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CardError"];
+                };
+            };
+            /** @description The number is the wrong shape, or a replacement has no reason */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CardInvalid"];
+                };
+            };
+        };
+    };
+    retire_student_card: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RetireCard"];
+            };
+        };
+        responses: {
+            /** @description Retired */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CardOk"];
+                };
+            };
+            /** @description No such person, not one the caller may manage, no card to retire, or cards are switched off for this school */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CardError"];
+                };
+            };
+            /** @description No reason given */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CardInvalid"];
+                };
+            };
+        };
+    };
+    get_person_card: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The card and its history */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CardView"];
+                };
+            };
+            /** @description No such person, not one the caller may manage, no card to retire, or cards are switched off for this school */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CardError"];
+                };
+            };
+        };
+    };
+    link_person_card: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LinkCard"];
+            };
+        };
+        responses: {
+            /** @description Linked (or already linked to this person) */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CardOk"];
+                };
+            };
+            /** @description No such person, not one the caller may manage, no card to retire, or cards are switched off for this school */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CardError"];
+                };
+            };
+            /** @description That number is another person's, or was retired (`card_in_use`), or the person's card changed meanwhile (`changed`) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CardError"];
+                };
+            };
+            /** @description The number is the wrong shape, or a replacement has no reason */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CardInvalid"];
+                };
+            };
+        };
+    };
+    retire_person_card: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RetireCard"];
+            };
+        };
+        responses: {
+            /** @description Retired */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CardOk"];
+                };
+            };
+            /** @description No such person, not one the caller may manage, no card to retire, or cards are switched off for this school */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CardError"];
+                };
+            };
+            /** @description No reason given */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CardInvalid"];
                 };
             };
         };

@@ -140,6 +140,12 @@ export const MATRIX = [
   row(G.people, "students.personal.correct", "Correct personal details (reason required; SID never editable)", 4, { COO: inst, SUP: all }),
   row(G.people, "students.status.set", "Mark Graduated (zero dues only)", 8, { COO: inst, SUP: all }),
   row(G.people, "students.leave.request", "Ask for a student to be marked Left (the Principal decides)", 8, { COO: inst, SUP: all }),
+  row(G.people, "cards.view", "See a person's RFID card and the cards retired before it (only where the school uses cards, D-174)", 8, { COO: inst, ADM: read, SUP: all }),
+  row(G.people, "cards.manage", "Link, replace or retire a person's RFID card (D-174)", 8, {
+    COO: only(inst, "students, teachers"),
+    ADM: only(all, "co-ordinators, accountants"),
+    SUP: all,
+  }),
   row(G.people, "students.rollover", "Year rollover: Promote, Repeat, Leaving", 8, { COO: inst, SUP: all }),
 
   // --- Daily school life
