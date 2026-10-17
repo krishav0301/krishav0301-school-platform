@@ -1,6 +1,6 @@
 import type { ApiClient } from "@/api/client";
 
-import type { Account, AdjustmentList, DuesList, FeeStructure, FeeStructureList, Receipt, VoucherList } from "./model";
+import type { Account, AdjustmentList, DiscountList, DuesList, FeeStructure, FeeStructureList, Receipt, VoucherList } from "./model";
 
 /** What the fee screens ask of the server, as plain results. Nothing here throws. */
 export type Loaded<T> = { ok: true; data: T } | { ok: false; reason: "forbidden" | "not_found" | "failed" };
@@ -47,13 +47,15 @@ async function send<T>(run: () => Promise<{ data?: T; error?: unknown; response:
 }
 
 export const recordCash = (api: ApiClient, body: { enrollmentId: string; amountPaisa: number; idempotencyKey: string }) => send(() => api.POST("/api/fees/payments/cash", { body }));
-export const proposeDiscount = (api: ApiClient, enrollmentId: string, body: { amountPaisa?: number; percent?: number; reason: "scholarship" | "sibling" | "staff_child" | "other"; note?: string }) =>
-  send(() => api.POST("/api/fees/enrollments/{id}/discounts", { params: { path: { id: enrollmentId } }, body }));
+export type DiscountBody = { amountPaisa?: number; percent?: number; reason: "scholarship" | "sibling" | "staff_child" | "other"; note?: string };
+export const giveDiscount = (api: ApiClient, enrollmentId: string, body: DiscountBody) => send(() => api.POST("/api/fees/enrollments/{id}/discounts", { params: { path: { id: enrollmentId } }, body }));
+export const changeDiscount = (api: ApiClient, id: string, body: DiscountBody) => send(() => api.PATCH("/api/fees/discounts/{id}", { params: { path: { id } }, body }));
+export const removeDiscount = (api: ApiClient, id: string) => send(() => api.DELETE("/api/fees/discounts/{id}", { params: { path: { id } } }));
+export const loadDiscounts = (api: ApiClient, enrollmentId: string): Promise<Loaded<DiscountList>> =>
+  load(() => api.GET("/api/fees/enrollments/{id}/discounts", { params: { path: { id: enrollmentId } } }));
 export const requestReversal = (api: ApiClient, paymentId: string, reason: string) => send(() => api.POST("/api/fees/payments/{id}/reversal", { params: { path: { id: paymentId } }, body: { reason } }));
-export const requestRefund = (api: ApiClient, enrollmentId: string, body: { amountPaisa: number; reason: string }) =>
+export const giveRefund = (api: ApiClient, enrollmentId: string, body: { amountPaisa: number; method: "cash" | "bank_transfer" | "cheque"; reference?: string; reason?: string }) =>
   send(() => api.POST("/api/fees/enrollments/{id}/refunds", { params: { path: { id: enrollmentId } }, body }));
-export const recordRefund = (api: ApiClient, id: string, body: { method: "cash" | "bank_transfer" | "cheque"; reference?: string }) =>
-  send(() => api.POST("/api/fees/refunds/{id}/record", { params: { path: { id } }, body }));
 export const createStructure = (api: ApiClient, body: { name: string; sectionKey: string; startDate: string; endDate: string }) => send(() => api.POST("/api/fees/structures", { body }));
 export const addFeeItem = (api: ApiClient, structureId: string, body: { name: string; amountPaisa: number }) =>
   send(() => api.POST("/api/fees/structures/{id}/items", { params: { path: { id: structureId } }, body }));

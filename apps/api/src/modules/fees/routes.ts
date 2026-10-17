@@ -7,7 +7,8 @@ import { paymentGateway } from "../../core/payments";
 import { defineRoute } from "../../core/routes";
 import type { App, AppEnv } from "../../core/types";
 import { enrollmentOfStudent, getReceipt, listAdjustments, ownAccount, staffAccount } from "./account";
-import { proposeDiscount, recordRefund, requestRefund, requestReversal } from "./adjustments";
+import { giveRefund, requestReversal } from "./adjustments";
+import { changeDiscount, discountsOf, giveDiscount, removeDiscount } from "./discounts";
 import { duesCsv, listDues, sendOverdueReminders } from "./dues";
 import { gatewayCallback, listVouchers, recordCash, rejectVoucher, startOnlinePayment, submitVoucher, verifyVoucher, type PayResult } from "./payments";
 import {
@@ -26,12 +27,12 @@ import {
   NewStructureSchema,
   OnlinePaymentSchema,
   PaidSchema,
-  ProposeDiscountSchema,
+  GiveDiscountSchema,
+  DiscountListSchema,
   PublicIdSchema,
   ReceiptSchema,
   RequestEditSchema,
-  RecordRefundSchema,
-  RefundRequestSchema,
+  GiveRefundSchema,
   RejectVoucherSchema,
   ReversalRequestSchema,
   VoucherListSchema,
@@ -66,10 +67,10 @@ const VOUCHER_UPLOAD = { action: "fees.voucher.upload" } as const;
 const VOUCHER_VERIFY = { action: "fees.voucher.verify" } as const;
 const ONLINE = { action: "fees.online.pay" } as const;
 const RECEIPTS = { action: "fees.receipts.view" } as const;
-const DISCOUNT = { action: "fees.discount.propose" } as const;
+const DISCOUNT = { action: "fees.discount.give" } as const;
+const DISCOUNT_CHANGE = { action: "fees.discount.change" } as const;
 const REVERSAL = { action: "fees.reversal.request" } as const;
-const REFUND = { action: "fees.refund.request" } as const;
-const REFUND_RECORD = { action: "fees.refund.record" } as const;
+const REFUND = { action: "fees.refund.give" } as const;
 const REPORTS = { action: "reports.fees" } as const;
 const REMINDERS = { action: "fees.reminders.send" } as const;
 const ClassQuery = z.object({ classId: PublicIdSchema.optional() });
@@ -499,16 +500,74 @@ export function registerFees(app: App): void {
     {
       method: "post",
       path: "/api/fees/enrollments/{id}/discounts",
-      operationId: "propose_discount",
+      operationId: "give_discount",
       tags: ["fees"],
-      description: "Proposes a discount (an amount, or a percentage of what was charged, with a reason) and sends it to the Admins. Nothing changes until one approves it.",
+      description: "The Principal gives a discount (an amount, or a percentage of what was charged, with a reason), never more than the fees in all. It applies at once; for 15 days the Principal can change or remove it, then it is frozen.",
       access: DISCOUNT,
-      request: { params: IdParam, body: { required: true, content: json(ProposeDiscountSchema) } },
-      responses: { 201: { description: "Sent for approval; the request's own id", content: json(Created) }, ...failures },
+      request: { params: IdParam, body: { required: true, content: json(GiveDiscountSchema) } },
+      responses: { 201: { description: "Given; the discount's own id", content: json(Created) }, ...failures },
     },
     async (c) => {
-      const result = await proposeDiscount(c.env.DB, c.env.AUDIT_HMAC_KEY, c.get("auth")!.userPublicId, c.req.valid("param").id, c.req.valid("json"));
+      const result = await giveDiscount(c.env.DB, c.env.AUDIT_HMAC_KEY, c.get("auth")!.userPublicId, c.req.valid("param").id, c.req.valid("json"));
       return result.ok ? c.json({ id: result.publicId }, 201) : fail(c, result);
+    },
+  );
+
+  defineRoute(
+    app,
+    {
+      method: "get",
+      path: "/api/fees/enrollments/{id}/discounts",
+      operationId: "list_discounts",
+      tags: ["fees"],
+      description: "The discounts given on one student's account, newest first, with whether the Principal can still change each.",
+      access: VIEW,
+      request: { params: IdParam },
+      responses: { 200: { description: "The discounts", content: json(DiscountListSchema) }, 404: failures[404] },
+    },
+    async (c) => {
+      c.header("Cache-Control", "no-store");
+      const grant = c.get("grant")!;
+      if (!grant.institution && grant.sections.length === 0) return c.json({ error: "not_found" }, 404);
+      const id = c.req.valid("param").id;
+      const found = await listAdjustments(c.env.DB, grant, id);
+      return found ? c.json({ discounts: await discountsOf(c.env.DB, id) }, 200) : c.json({ error: "not_found" }, 404);
+    },
+  );
+
+  defineRoute(
+    app,
+    {
+      method: "patch",
+      path: "/api/fees/discounts/{id}",
+      operationId: "change_discount",
+      tags: ["fees"],
+      description: "The Principal changes a discount within 15 days of giving it: the old one is taken back and the new one given in one step. After 15 days it is frozen.",
+      access: DISCOUNT_CHANGE,
+      request: { params: IdParam, body: { required: true, content: json(GiveDiscountSchema) } },
+      responses: { 200: { description: "Changed; the new discount's id", content: json(Created) }, ...failures },
+    },
+    async (c) => {
+      const result = await changeDiscount(c.env.DB, c.env.AUDIT_HMAC_KEY, c.get("auth")!.userPublicId, c.req.valid("param").id, c.req.valid("json"));
+      return result.ok ? c.json({ id: result.publicId }, 200) : fail(c, result);
+    },
+  );
+
+  defineRoute(
+    app,
+    {
+      method: "delete",
+      path: "/api/fees/discounts/{id}",
+      operationId: "remove_discount",
+      tags: ["fees"],
+      description: "The Principal takes a discount back within 15 days of giving it: a new entry cancels it and the student owes it again. After 15 days it is frozen.",
+      access: DISCOUNT_CHANGE,
+      request: { params: IdParam },
+      responses: { 200: { description: "Taken back", content: json(z.object({ ok: z.literal(true) })) }, ...failures },
+    },
+    async (c) => {
+      const result = await removeDiscount(c.env.DB, c.env.AUDIT_HMAC_KEY, c.get("auth")!.userPublicId, c.req.valid("param").id);
+      return result.ok ? c.json({ ok: true as const }, 200) : fail(c, result);
     },
   );
 
@@ -535,36 +594,16 @@ export function registerFees(app: App): void {
     {
       method: "post",
       path: "/api/fees/enrollments/{id}/refunds",
-      operationId: "request_refund",
+      operationId: "give_refund",
       tags: ["fees"],
-      description: "Asks the Admins to refund credit (what was paid over what is owed). Approved, it is recorded as paid back, and only then written to the ledger.",
+      description: "The Accountant pays back a student's credit (what was paid over what is owed), up to the credit and no more. It is written to the ledger at once; no approval.",
       access: REFUND,
-      request: { params: IdParam, body: { required: true, content: json(RefundRequestSchema) } },
-      responses: { 201: { description: "Sent for approval", content: json(Created) }, ...failures },
+      request: { params: IdParam, body: { required: true, content: json(GiveRefundSchema) } },
+      responses: { 201: { description: "Paid back", content: json(Created) }, ...failures },
     },
     async (c) => {
-      const { amountPaisa, reason } = c.req.valid("json");
-      const result = await requestRefund(c.env.DB, c.env.AUDIT_HMAC_KEY, c.get("auth")!.userPublicId, c.req.valid("param").id, amountPaisa, reason);
+      const result = await giveRefund(c.env.DB, c.env.AUDIT_HMAC_KEY, c.get("auth")!.userPublicId, c.req.valid("param").id, c.req.valid("json"));
       return result.ok ? c.json({ id: result.publicId }, 201) : fail(c, result);
-    },
-  );
-
-  defineRoute(
-    app,
-    {
-      method: "post",
-      path: "/api/fees/refunds/{id}/record",
-      operationId: "record_refund",
-      tags: ["fees"],
-      description: "Records how an approved refund was paid back. The ledger takes the refund in the same batch. Once.",
-      access: REFUND_RECORD,
-      request: { params: IdParam, body: { required: true, content: json(RecordRefundSchema) } },
-      responses: { 200: { description: "Recorded", content: json(z.object({ ok: z.literal(true) })) }, ...failures },
-    },
-    async (c) => {
-      const { method, reference } = c.req.valid("json");
-      const result = await recordRefund(c.env.DB, c.env.AUDIT_HMAC_KEY, c.get("auth")!.userPublicId, c.req.valid("param").id, method, reference);
-      return result.ok ? c.json({ ok: true as const }, 200) : fail(c, result);
     },
   );
 

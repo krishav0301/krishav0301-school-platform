@@ -173,7 +173,7 @@ export type Receipt = z.infer<typeof ReceiptSchema>;
 /** OPEN: CLAUDE.md section 9 default reasons; the client publishes a scholarship the list may need its own entry for. */
 export const DiscountReasonSchema = z.enum(["scholarship", "sibling", "staff_child", "other"]);
 
-export const ProposeDiscountSchema = z
+export const GiveDiscountSchema = z
   .strictObject({
     amountPaisa: PaisaSchema.optional(),
     percent: z.number().int().min(1).max(100).optional(),
@@ -181,13 +181,36 @@ export const ProposeDiscountSchema = z
     note: z.string().trim().max(300).optional(),
   })
   .refine((b) => (b.amountPaisa === undefined) !== (b.percent === undefined), "Give an amount or a percentage, not both")
-  .openapi("ProposeDiscount");
+  .openapi("GiveDiscount");
 
 export const ReversalRequestSchema = z.strictObject({ reason: z.string().trim().min(1, "Say why the payment is being reversed").max(300) }).openapi("ReversalRequest");
-export const RefundRequestSchema = z.strictObject({ amountPaisa: PaisaSchema, reason: z.string().trim().min(1, "Say why").max(300) }).openapi("RefundRequest");
-export const RecordRefundSchema = z
-  .strictObject({ method: z.enum(["cash", "bank_transfer", "cheque"]), reference: z.string().trim().min(1).max(80).optional() })
-  .openapi("RecordRefund");
+export const GiveRefundSchema = z
+  .strictObject({
+    amountPaisa: PaisaSchema,
+    method: z.enum(["cash", "bank_transfer", "cheque"]),
+    reference: z.string().trim().min(1).max(80).optional(),
+    reason: z.string().trim().min(1).max(300).optional(),
+  })
+  .openapi("GiveRefund");
+
+export const DiscountListSchema = z
+  .object({
+    discounts: z.array(
+      z.object({
+        id: z.string(),
+        amountPaisa: z.number().int(),
+        percent: z.number().int().nullable(),
+        reason: DiscountReasonSchema,
+        note: z.string().nullable(),
+        status: z.enum(["active", "removed", "replaced"]),
+        /** The moment the Principal can no longer change or remove it (15 days after it was first given). */
+        changeableUntil: z.string(),
+        canChange: z.boolean(),
+        createdAt: z.string(),
+      }),
+    ),
+  })
+  .openapi("DiscountList");
 
 export const AdjustmentListSchema = z
   .object({

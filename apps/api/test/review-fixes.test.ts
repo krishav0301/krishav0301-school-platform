@@ -37,16 +37,11 @@ beforeAll(async () => {
 });
 
 describe("money and approvals", () => {
-  it("two discounts approved at the same moment by two Admins: one applies, the other is refused, never more than was charged", async () => {
+  it("two discounts given at the same moment by two Principals: one applies, the other is refused, never more than the fees", async () => {
     const pupil = fixture.pupils[0]!.enrollmentId;
-    const propose = async () => {
-      const response = await post(`/api/fees/enrollments/${pupil}/discounts`, { amountPaisa: 300_000, reason: "scholarship" }, accountant);
-      expect(response.status).toBe(201);
-      return requestOf(((await response.json()) as { id: string }).id);
-    };
-    const [first, second] = [await propose(), await propose()];
-    const statuses = (await Promise.all([approve(first, admin), approve(second, secondAdmin)])).map((r) => r.status).sort();
-    expect(statuses).toEqual([200, 409]);
+    const give = (who: Person) => post(`/api/fees/enrollments/${pupil}/discounts`, { amountPaisa: 300_000, reason: "scholarship" }, who);
+    const statuses = (await Promise.all([give(admin), give(secondAdmin)])).map((r) => r.status).sort();
+    expect(statuses).toEqual([201, 409]);
     const after = await account(pupil);
     expect(after.discountPaisa).toBe(300_000);
     expect(after.discountPaisa).toBeLessThanOrEqual(after.chargedPaisa);

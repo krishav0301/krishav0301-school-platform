@@ -118,7 +118,7 @@ describe("every action, every role, over HTTP", () => {
     decoded.roles = [{ role: "admin", scope: "institution" }];
     const forged = btoa(JSON.stringify(decoded)).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
 
-    expect((await get(app, "fees.refund.approve", `${name}=${forged}.${signature}`)).status).toBe(401);
+    expect((await get(app, "fees.refund.give", `${name}=${forged}.${signature}`)).status).toBe(401);
   });
 });
 

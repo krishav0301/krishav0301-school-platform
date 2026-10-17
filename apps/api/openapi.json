@@ -8439,7 +8439,7 @@
         ],
         "additionalProperties": false
       },
-      "ProposeDiscount": {
+      "GiveDiscount": {
         "type": "object",
         "properties": {
           "amountPaisa": {
@@ -8471,6 +8471,77 @@
         ],
         "additionalProperties": false
       },
+      "DiscountList": {
+        "type": "object",
+        "properties": {
+          "discounts": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "amountPaisa": {
+                  "type": "integer"
+                },
+                "percent": {
+                  "type": [
+                    "integer",
+                    "null"
+                  ]
+                },
+                "reason": {
+                  "type": "string",
+                  "enum": [
+                    "scholarship",
+                    "sibling",
+                    "staff_child",
+                    "other"
+                  ]
+                },
+                "note": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "status": {
+                  "type": "string",
+                  "enum": [
+                    "active",
+                    "removed",
+                    "replaced"
+                  ]
+                },
+                "changeableUntil": {
+                  "type": "string"
+                },
+                "canChange": {
+                  "type": "boolean"
+                },
+                "createdAt": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "id",
+                "amountPaisa",
+                "percent",
+                "reason",
+                "note",
+                "status",
+                "changeableUntil",
+                "canChange",
+                "createdAt"
+              ]
+            }
+          }
+        },
+        "required": [
+          "discounts"
+        ]
+      },
       "ReversalRequest": {
         "type": "object",
         "properties": {
@@ -8485,7 +8556,7 @@
         ],
         "additionalProperties": false
       },
-      "RefundRequest": {
+      "GiveRefund": {
         "type": "object",
         "properties": {
           "amountPaisa": {
@@ -8493,21 +8564,6 @@
             "exclusiveMinimum": 0,
             "maximum": 10000000000
           },
-          "reason": {
-            "type": "string",
-            "minLength": 1,
-            "maxLength": 300
-          }
-        },
-        "required": [
-          "amountPaisa",
-          "reason"
-        ],
-        "additionalProperties": false
-      },
-      "RecordRefund": {
-        "type": "object",
-        "properties": {
           "method": {
             "type": "string",
             "enum": [
@@ -8520,9 +8576,15 @@
             "type": "string",
             "minLength": 1,
             "maxLength": 80
+          },
+          "reason": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 300
           }
         },
         "required": [
+          "amountPaisa",
           "method"
         ],
         "additionalProperties": false
@@ -20722,11 +20784,11 @@
     },
     "/api/fees/enrollments/{id}/discounts": {
       "post": {
-        "operationId": "propose_discount",
+        "operationId": "give_discount",
         "tags": [
           "fees"
         ],
-        "description": "Proposes a discount (an amount, or a percentage of what was charged, with a reason) and sends it to the Admins. Nothing changes until one approves it.",
+        "description": "The Principal gives a discount (an amount, or a percentage of what was charged, with a reason), never more than the fees in all. It applies at once; for 15 days the Principal can change or remove it, then it is frozen.",
         "parameters": [
           {
             "schema": {
@@ -20743,14 +20805,14 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/ProposeDiscount"
+                "$ref": "#/components/schemas/GiveDiscount"
               }
             }
           }
         },
         "responses": {
           "201": {
-            "description": "Sent for approval; the request's own id",
+            "description": "Given; the discount's own id",
             "content": {
               "application/json": {
                 "schema": {
@@ -20762,6 +20824,217 @@
                   },
                   "required": [
                     "id"
+                  ]
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FeesError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such item, or not one the person may reach",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FeesError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Not possible in its current state (not a draft, not live, already there, or the year is closed)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FeesError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Not valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FeesInvalid"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "operationId": "list_discounts",
+        "tags": [
+          "fees"
+        ],
+        "description": "The discounts given on one student's account, newest first, with whether the Principal can still change each.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{32}$"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The discounts",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DiscountList"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such item, or not one the person may reach",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FeesError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/fees/discounts/{id}": {
+      "patch": {
+        "operationId": "change_discount",
+        "tags": [
+          "fees"
+        ],
+        "description": "The Principal changes a discount within 15 days of giving it: the old one is taken back and the new one given in one step. After 15 days it is frozen.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{32}$"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GiveDiscount"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Changed; the new discount's id",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "id"
+                  ]
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FeesError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such item, or not one the person may reach",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FeesError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Not possible in its current state (not a draft, not live, already there, or the year is closed)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FeesError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Not valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FeesInvalid"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "operationId": "remove_discount",
+        "tags": [
+          "fees"
+        ],
+        "description": "The Principal takes a discount back within 15 days of giving it: a new entry cancels it and the student owes it again. After 15 days it is frozen.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{32}$"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Taken back",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": {
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
+                    }
+                  },
+                  "required": [
+                    "ok"
                   ]
                 }
               }
@@ -20902,11 +21175,11 @@
     },
     "/api/fees/enrollments/{id}/refunds": {
       "post": {
-        "operationId": "request_refund",
+        "operationId": "give_refund",
         "tags": [
           "fees"
         ],
-        "description": "Asks the Admins to refund credit (what was paid over what is owed). Approved, it is recorded as paid back, and only then written to the ledger.",
+        "description": "The Accountant pays back a student's credit (what was paid over what is owed), up to the credit and no more. It is written to the ledger at once; no approval.",
         "parameters": [
           {
             "schema": {
@@ -20923,14 +21196,14 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/RefundRequest"
+                "$ref": "#/components/schemas/GiveRefund"
               }
             }
           }
         },
         "responses": {
           "201": {
-            "description": "Sent for approval",
+            "description": "Paid back",
             "content": {
               "application/json": {
                 "schema": {
@@ -20942,99 +21215,6 @@
                   },
                   "required": [
                     "id"
-                  ]
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Not allowed",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/FeesError"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "No such item, or not one the person may reach",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/FeesError"
-                }
-              }
-            }
-          },
-          "409": {
-            "description": "Not possible in its current state (not a draft, not live, already there, or the year is closed)",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/FeesError"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Not valid",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/FeesInvalid"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/fees/refunds/{id}/record": {
-      "post": {
-        "operationId": "record_refund",
-        "tags": [
-          "fees"
-        ],
-        "description": "Records how an approved refund was paid back. The ledger takes the refund in the same batch. Once.",
-        "parameters": [
-          {
-            "schema": {
-              "type": "string",
-              "pattern": "^[0-9a-f]{32}$"
-            },
-            "required": true,
-            "name": "id",
-            "in": "path"
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/RecordRefund"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Recorded",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "ok": {
-                      "type": "boolean",
-                      "enum": [
-                        true
-                      ]
-                    }
-                  },
-                  "required": [
-                    "ok"
                   ]
                 }
               }

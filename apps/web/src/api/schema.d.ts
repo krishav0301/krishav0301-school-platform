@@ -2261,14 +2261,33 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get?: never;
+        /** @description The discounts given on one student's account, newest first, with whether the Principal can still change each. */
+        get: operations["list_discounts"];
         put?: never;
-        /** @description Proposes a discount (an amount, or a percentage of what was charged, with a reason) and sends it to the Admins. Nothing changes until one approves it. */
-        post: operations["propose_discount"];
+        /** @description The Principal gives a discount (an amount, or a percentage of what was charged, with a reason), never more than the fees in all. It applies at once; for 15 days the Principal can change or remove it, then it is frozen. */
+        post: operations["give_discount"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
+        trace?: never;
+    };
+    "/api/fees/discounts/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** @description The Principal takes a discount back within 15 days of giving it: a new entry cancels it and the student owes it again. After 15 days it is frozen. */
+        delete: operations["remove_discount"];
+        options?: never;
+        head?: never;
+        /** @description The Principal changes a discount within 15 days of giving it: the old one is taken back and the new one given in one step. After 15 days it is frozen. */
+        patch: operations["change_discount"];
         trace?: never;
     };
     "/api/fees/payments/{id}/reversal": {
@@ -2297,25 +2316,8 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** @description Asks the Admins to refund credit (what was paid over what is owed). Approved, it is recorded as paid back, and only then written to the ledger. */
-        post: operations["request_refund"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/fees/refunds/{id}/record": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** @description Records how an approved refund was paid back. The ledger takes the refund in the same batch. Once. */
-        post: operations["record_refund"];
+        /** @description The Accountant pays back a student's credit (what was paid over what is owed), up to the credit and no more. It is written to the ledger at once; no approval. */
+        post: operations["give_refund"];
         delete?: never;
         options?: never;
         head?: never;
@@ -4710,24 +4712,37 @@ export interface components {
         GatewayCallback: {
             gatewayReference: string;
         };
-        ProposeDiscount: {
+        GiveDiscount: {
             amountPaisa?: number;
             percent?: number;
             /** @enum {string} */
             reason: "scholarship" | "sibling" | "staff_child" | "other";
             note?: string;
         };
+        DiscountList: {
+            discounts: {
+                id: string;
+                amountPaisa: number;
+                percent: number | null;
+                /** @enum {string} */
+                reason: "scholarship" | "sibling" | "staff_child" | "other";
+                note: string | null;
+                /** @enum {string} */
+                status: "active" | "removed" | "replaced";
+                changeableUntil: string;
+                canChange: boolean;
+                createdAt: string;
+            }[];
+        };
         ReversalRequest: {
             reason: string;
         };
-        RefundRequest: {
+        GiveRefund: {
             amountPaisa: number;
-            reason: string;
-        };
-        RecordRefund: {
             /** @enum {string} */
             method: "cash" | "bank_transfer" | "cheque";
             reference?: string;
+            reason?: string;
         };
         AdjustmentList: {
             adjustments: {
@@ -12288,7 +12303,38 @@ export interface operations {
             };
         };
     };
-    propose_discount: {
+    list_discounts: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The discounts */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DiscountList"];
+                };
+            };
+            /** @description No such item, or not one the person may reach */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeesError"];
+                };
+            };
+        };
+    };
+    give_discount: {
         parameters: {
             query?: never;
             header?: never;
@@ -12299,12 +12345,137 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["ProposeDiscount"];
+                "application/json": components["schemas"]["GiveDiscount"];
             };
         };
         responses: {
-            /** @description Sent for approval; the request's own id */
+            /** @description Given; the discount's own id */
             201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        id: string;
+                    };
+                };
+            };
+            /** @description Not allowed */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeesError"];
+                };
+            };
+            /** @description No such item, or not one the person may reach */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeesError"];
+                };
+            };
+            /** @description Not possible in its current state (not a draft, not live, already there, or the year is closed) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeesError"];
+                };
+            };
+            /** @description Not valid */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeesInvalid"];
+                };
+            };
+        };
+    };
+    remove_discount: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Taken back */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {boolean} */
+                        ok: true;
+                    };
+                };
+            };
+            /** @description Not allowed */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeesError"];
+                };
+            };
+            /** @description No such item, or not one the person may reach */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeesError"];
+                };
+            };
+            /** @description Not possible in its current state (not a draft, not live, already there, or the year is closed) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeesError"];
+                };
+            };
+            /** @description Not valid */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeesInvalid"];
+                };
+            };
+        };
+    };
+    change_discount: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["GiveDiscount"];
+            };
+        };
+        responses: {
+            /** @description Changed; the new discount's id */
+            200: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -12416,7 +12587,7 @@ export interface operations {
             };
         };
     };
-    request_refund: {
+    give_refund: {
         parameters: {
             query?: never;
             header?: never;
@@ -12427,11 +12598,11 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["RefundRequest"];
+                "application/json": components["schemas"]["GiveRefund"];
             };
         };
         responses: {
-            /** @description Sent for approval */
+            /** @description Paid back */
             201: {
                 headers: {
                     [name: string]: unknown;
@@ -12439,71 +12610,6 @@ export interface operations {
                 content: {
                     "application/json": {
                         id: string;
-                    };
-                };
-            };
-            /** @description Not allowed */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["FeesError"];
-                };
-            };
-            /** @description No such item, or not one the person may reach */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["FeesError"];
-                };
-            };
-            /** @description Not possible in its current state (not a draft, not live, already there, or the year is closed) */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["FeesError"];
-                };
-            };
-            /** @description Not valid */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["FeesInvalid"];
-                };
-            };
-        };
-    };
-    record_refund: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["RecordRefund"];
-            };
-        };
-        responses: {
-            /** @description Recorded */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        /** @enum {boolean} */
-                        ok: true;
                     };
                 };
             };

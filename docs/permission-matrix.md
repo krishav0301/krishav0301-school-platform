@@ -109,13 +109,11 @@ The Co-ordinator has **no** fees access at all.
 | Pay online through the gateway (demo adapter only until Phase 9) (`fees.online.pay`) | own | — | — | — | — | — | 6 |
 | Verify or reject a voucher (`fees.voucher.verify`) | — | — | — | inst | — | — | 6 |
 | Record cash payment (`fees.cash.record`) | — | — | — | inst | — | — | 6 |
-| Propose a discount (`fees.discount.propose`) | — | — | — | inst | — | — | 6 |
-| Approve a discount (`fees.discount.approve`) | — | — | — | — | ✓ | — | 6 |
+| Give a student a discount (the Principal alone; no approval) (`fees.discount.give`) | — | — | — | — | ✓ | — | 6 |
+| Change or remove a discount within 15 days of giving it (`fees.discount.change`) | — | — | — | — | ✓ | — | 6 |
 | Request a payment reversal (`fees.reversal.request`) | — | — | — | inst | — | — | 6 |
 | Approve a reversal (`fees.reversal.approve`) | — | — | — | — | ✓ | — | 6 |
-| Request a refund (`fees.refund.request`) | — | — | — | inst | — | — | 6 |
-| Approve a refund (`fees.refund.approve`) | — | — | — | — | ✓ | — | 6 |
-| Record how an approved refund was paid (`fees.refund.record`) | — | — | — | inst | — | — | 6 |
+| Pay back a student's credit (up to the credit; no approval) (`fees.refund.give`) | — | — | — | inst | — | — | 6 |
 | View and download receipts (`fees.receipts.view`) | own | — | — | inst | read | ✓ | 6 |
 | Send overdue reminders (email) (`fees.reminders.send`) | — | — | — | inst | — | — | 6 |
 

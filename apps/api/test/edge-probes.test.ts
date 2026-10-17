@@ -36,7 +36,7 @@ describe("money inputs", () => {
       expect(r.status, `cash ${amountPaisa}`).toBeLessThan(500);
     }
     for (const percent of [0, 101, -5]) {
-      const r = await post(`/api/fees/enrollments/${enrollmentId}/discounts`, { percent, reason: "sibling" }, accountant);
+      const r = await post(`/api/fees/enrollments/${enrollmentId}/discounts`, { percent, reason: "sibling" }, admin);
       expect(r.status, `discount ${percent}%`).toBeGreaterThanOrEqual(400);
       expect(r.status).toBeLessThan(500);
     }

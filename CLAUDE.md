@@ -32,7 +32,7 @@ Rules, enforced in CI:
 8. A school is a **pack** (`packs/<school>/pack.json`), applied with `npm run provision`. Packs only add and update, never delete, and are safe to repeat. Only known optional modules and known terms can be changed; mandatory modules cannot be switched off. A theme must pass the contrast check (server-side) before it is saved (D-026).
 9. `scripts/check-boundaries.mjs` (CI) enforces rule 1, that modules do not reach into each other, and that the public addresses the Worker answers itself (`PAGES` and `CRAWLER_FILES` in `modules/site`) match `run_worker_first` in `apps/api/wrangler.jsonc` (D-046, D-049). A route's permission is checked before its body is validated (D-027).
 
-Extension points, version 1: policies (grading, ranking and tie-break, student-ID format, fee billing schedule, promotion, admission rules, attendance rules, approval policy), adapters (payment gateway, SMS, email, file storage), documents (marks card, receipt, certificate, ID card), data and UI (custom fields on Student, Application, Staff; slots), events (after-commit domain events). Some rules stay fixed in the core, such as refunds and reversals always needing Admin approval.
+Extension points, version 1: policies (grading, ranking and tie-break, student-ID format, fee billing schedule, promotion, admission rules, attendance rules, approval policy), adapters (payment gateway, SMS, email, file storage), documents (marks card, receipt, certificate, ID card), data and UI (custom fields on Student, Application, Staff; slots), events (after-commit domain events). Some rules stay fixed in the core, such as payment reversals always needing Admin approval and discounts being the Principal's alone.
 
 **Demo mode** is a flag, never a separate code path. It enables the persona switcher (logged in the audit trail), a "Sample, fake data" banner, and seed and reset commands. The app refuses to start with demo mode on in production. Demo and test data is loaded through the same service functions the screens use, never direct SQL. Royal Softech's data and branding never appear in demos to other schools.
 
@@ -116,13 +116,14 @@ A role assignment carries a **scope**: the whole institution, or one section (+2
 - The balance is **never stored**. It is the sum of an **append-only ledger** (charge, discount, payment, reversal, refund, carried dues). Append-only is enforced by triggers **and** a hash chain: each row stores a hash of the previous row, so an edit is detectable even if a guard is removed. A daily export of the chain is copied to a second location.
 - Money is **whole paisa integers**. Never floats or decimals. Currency NPR, shown with Nepali grouping (12,50,000).
 - A payment is never edited or deleted. Mistakes are reversed. Reversals and refunds are new entries pointing to the original.
+- **Discounts (D-172) are the Principal's alone**, given on the student's fees page with a confirm step, never more than the fees in all, with no approval. For 15 days the Principal can change or remove one (a new ledger entry cancels the old one); then it is frozen. The Accountant cannot discount. **The Accountant pays back credit alone** (what was paid over what is owed), up to the credit and no more, with no approval.
 - Payments apply to the oldest due first. Partial payments allowed. Late fees are out of scope.
 - The gateway reference is unique, so repeated callbacks cannot double-credit.
 - Receipts come from a gapless sequence per section and term (D-110) (a counter row incremented in the same batch as the payment, so a failed payment rolls the number back), are generated from the ledger, and are never edited.
 - The Accountant owns fees. The Co-ordinator has **no Fees view**. The Accountant's student profile shows only Personal and Fees.
 
 **Approvals (Admin)**
-- Five types: website content, yearly fee structure, discount, payment reversal, refund. Any one Admin can approve.
+- Types: website content, fee structure (a priced period, D-172), fee structure edit (the Accountant asks, the Principal decides), payment reversal. Any one Admin can approve. (Discounts and refunds of credit need no approval since D-172.)
 - Approve-and-apply is **one batch** (all or nothing) with a conditional update, so a race has exactly one winner. A second click or retry returns "already resolved". Nothing is applied twice.
 - A request goes stale if what it refers to changes. Nobody approves their own request.
 
@@ -199,7 +200,7 @@ The PM's standard is that this product looks and feels like Apple made it: calm,
 | View-only trustee role | Not built. All Admins approve |
 | Holidays | Config placeholders |
 | Discount reasons | Scholarship, Sibling, Staff child, Other |
-| Refund rules | Every refund needs Admin approval |
+| Refund rules | A refund pays back credit only; the Accountant does it alone (D-172). Payment reversals still need Admin approval |
 | Attendance alert threshold | 75% placeholder |
 | Homework retention | One year after the year closes |
 | Programme and stream names | Working list in `docs/client-profile.md`, unconfirmed |

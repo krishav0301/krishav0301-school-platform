@@ -74,38 +74,6 @@ async function send(db: D1Database, key: string, actor: string, kind: Kind, publ
 
 const INSERT = `INSERT INTO fee_adjustments (public_id, kind, enrollment_id, amount_paisa, percent, reason_code, note, payment_entry_id, created_by_user_id, created_at)`;
 
-export async function proposeDiscount(
-  db: D1Database,
-  key: string,
-  actor: string,
-  enrollmentId: string,
-  input: { amountPaisa?: number; percent?: number; reason: "scholarship" | "sibling" | "staff_child" | "other"; note?: string },
-): Promise<Created> {
-  const state = await accountState(db, actor, enrollmentId);
-  if (!state.allowed) return { ok: false, reason: "not_found" };
-  if (state.closed) return { ok: false, reason: "year_closed" };
-  const note = input.note?.trim() || null;
-  if (input.reason === "other" && !note) return invalid("Say what the discount is for");
-  const amount = input.percent !== undefined ? Math.floor((state.charged * input.percent) / 100) : input.amountPaisa!;
-  if (amount <= 0) return invalid("There is nothing charged yet to discount");
-  if (amount > state.charged) return invalid("A discount cannot be more than what was charged");
-  // Together with the discounts already given, never more than was charged (D-085). One pending beside another is
-  // caught when the first is approved: that makes the second stale (see currentVersion), and asked again it lands here.
-  if (amount + state.discounted > state.charged) return invalid("With the discounts already given, this would be more than was charged");
-  const publicId = newPublicId();
-  return makeAndSend(
-    db,
-    key,
-    actor,
-    "discount",
-    db
-      .prepare(`${INSERT} SELECT ?1, 'discount', en.id, ?3, ?4, ?5, ?6, NULL, u.id, ?7 FROM enrollments en, users u WHERE en.public_id = ?2 AND u.public_id = ?8 AND ${accountantFor(8, enrollmentSection(2))}`)
-      .bind(publicId, enrollmentId, amount, input.percent ?? null, input.reason, note, now(), actor),
-    publicId,
-    `Discount of ${amount} paisa proposed (${input.reason})`,
-  );
-}
-
 export async function requestReversal(db: D1Database, key: string, actor: string, paymentId: string, reason: string): Promise<Created> {
   const payment = await db
     .prepare(
@@ -141,75 +109,57 @@ export async function requestReversal(db: D1Database, key: string, actor: string
   );
 }
 
-export async function requestRefund(db: D1Database, key: string, actor: string, enrollmentId: string, amountPaisa: number, reason: string): Promise<Created> {
-  const state = await accountState(db, actor, enrollmentId);
-  if (!state.allowed) return { ok: false, reason: "not_found" };
-  if (state.closed) return { ok: false, reason: "year_closed" };
-  if (amountPaisa > state.credit) return invalid("A refund can only return credit: this is more than the student has paid over what is owed");
-  const publicId = newPublicId();
-  return makeAndSend(
-    db,
-    key,
-    actor,
-    "refund",
-    db
-      .prepare(`${INSERT} SELECT ?1, 'refund', en.id, ?3, NULL, NULL, ?4, NULL, u.id, ?5 FROM enrollments en, users u WHERE en.public_id = ?2 AND u.public_id = ?6 AND ${accountantFor(6, enrollmentSection(2))}`)
-      .bind(publicId, enrollmentId, amountPaisa, reason, now(), actor),
-    publicId,
-    `Refund of ${amountPaisa} paisa requested`,
-  );
-}
-
-/** Records how an approved refund was paid back: then, and only then, the ledger takes the refund. Once. */
-export async function recordRefund(
+/**
+ * The Accountant pays back credit (what was paid over what is owed), on their own, up to the credit and no more (D-172):
+ * no approval. The refund and its record go in one batch that the credit check gates, so two refunds at once cannot pay back
+ * more than there is.
+ */
+export async function giveRefund(
   db: D1Database,
   key: string,
   actor: string,
-  adjustmentId: string,
-  method: "cash" | "bank_transfer" | "cheque",
-  reference: string | undefined,
-): Promise<{ ok: true } | { ok: false; reason: "not_found" | "conflict" | "year_closed" }> {
-  const row = await db
-    .prepare("SELECT fa.status, fa.amount_paisa, en.public_id AS enrollment_id FROM fee_adjustments fa JOIN enrollments en ON en.id = fa.enrollment_id WHERE fa.public_id = ?1 AND fa.kind = 'refund'")
-    .bind(adjustmentId)
-    .first<{ status: string; amount_paisa: number; enrollment_id: string }>();
-  if (!row) return { ok: false, reason: "not_found" };
-  const state = await accountState(db, actor, row.enrollment_id);
+  enrollmentId: string,
+  input: { amountPaisa: number; method: "cash" | "bank_transfer" | "cheque"; reference?: string; reason?: string },
+): Promise<Created> {
+  const state = await accountState(db, actor, enrollmentId);
   if (!state.allowed) return { ok: false, reason: "not_found" };
-  if (row.status !== "approved" || row.amount_paisa > state.credit) return { ok: false, reason: "conflict" };
-
+  if (state.closed) return { ok: false, reason: "year_closed" };
+  if (input.amountPaisa > state.credit) return invalid("A refund can only return credit: this is more than the student has paid over what is owed");
+  const publicId = newPublicId();
   const at = now();
+  const reference = input.reference?.trim() || null;
+  const reason = input.reason?.trim() || null;
   const draft: LedgerDraft = {
     publicId: newPublicId(),
-    enrollmentPublicId: row.enrollment_id,
+    enrollmentPublicId: enrollmentId,
     kind: "refund",
-    amountPaisa: row.amount_paisa,
+    amountPaisa: input.amountPaisa,
     sourceType: "refund",
-    sourcePublicId: adjustmentId,
-    memo: `Refund paid back (${method}${reference ? ` ${reference}` : ""})`,
+    sourcePublicId: publicId,
+    memo: `Refund paid back (${input.method}${reference ? ` ${reference}` : ""})${reason ? `: ${reason}` : ""}`.slice(0, 500),
     actorPublicId: actor,
     createdAt: at,
   };
   const outcome = await writeMoney(
     db,
     key,
-    { action: "fees.refund.recorded", entityType: "fee_adjustment", entityPublicId: adjustmentId, actorPublicId: actor, summary: `Refund of ${row.amount_paisa} paisa paid back`, after: { method, reference: reference ?? null } },
+    { action: "fees.refund.recorded", entityType: "fee_adjustment", entityPublicId: publicId, actorPublicId: actor, summary: `Refund of ${input.amountPaisa} paisa paid back`, after: { method: input.method, reference } },
     async (head) => [
       db
         .prepare(
-          `UPDATE fee_adjustments SET status = 'recorded', refund_method = ?2, refund_reference = ?3
-            WHERE public_id = ?1 AND kind = 'refund' AND status = 'approved'
-              -- Only credit goes back, checked here inside the batch so two refunds recorded at once cannot both pass (D-085):
-              -- the credit is minus the balance (the sum of every entry), so after this refund the sum must not go above zero.
-              AND (SELECT COALESCE(SUM(le.amount_paisa), 0) FROM ledger_entries le WHERE le.enrollment_id = fee_adjustments.enrollment_id) + fee_adjustments.amount_paisa <= 0
-              AND ${accountantFor(4, "(SELECT pv.section_id FROM enrollments en JOIN classes cl ON cl.id = en.class_id JOIN levels lv ON lv.id = cl.level_id JOIN programmes pv ON pv.id = lv.programme_id WHERE en.id = fee_adjustments.enrollment_id)")}`,
+          `INSERT INTO fee_adjustments (public_id, kind, enrollment_id, amount_paisa, note, status, refund_method, refund_reference, created_by_user_id, created_at)
+           SELECT ?1, 'refund', en.id, ?3, ?4, 'recorded', ?5, ?6, u.id, ?7 FROM enrollments en, users u
+            WHERE en.public_id = ?2 AND u.public_id = ?8 AND ${accountantFor(8, enrollmentSection(2))}
+              -- Only credit goes back, checked here inside the batch (D-085): the credit is minus the balance, so after this refund the sum must not pass zero.
+              AND (SELECT COALESCE(SUM(le.amount_paisa), 0) FROM ledger_entries le WHERE le.enrollment_id = en.id) + ?3 <= 0`,
         )
-        .bind(adjustmentId, method, reference ?? null, actor),
+        .bind(publicId, enrollmentId, input.amountPaisa, reason, input.method, reference, at, actor),
       ...(await ledgerInserts(db, key, head, [draft], { chainFirst: true })).statements,
     ],
   );
-  if (outcome === "done") return { ok: true };
+  if (outcome === "done") return { ok: true, publicId };
   if (outcome === "year_closed") return { ok: false, reason: "year_closed" };
+  if (outcome === "rejected") return invalid("That refund is not complete");
   return { ok: false, reason: "conflict" };
 }
 

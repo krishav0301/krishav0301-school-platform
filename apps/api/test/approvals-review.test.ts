@@ -71,15 +71,6 @@ describe("a fee structure", () => {
 });
 
 describe("money requests", () => {
-  it("a discount shows the student, class, amount, percentage, reason and note (F-06)", async () => {
-    const { id } = (await (await post(`/api/fees/enrollments/${fixture.pupils[0]!.enrollmentId}/discounts`, { percent: 10, reason: "other", note: "Flood relief" }, accountant)).json()) as { id: string };
-    const r = await review(await requestOf(id));
-    expect(r.detail).toMatchObject({ kind: "discount", percent: 10, reason: "other", note: "Flood relief" });
-    expect(typeof r.detail!.sid).toBe("string");
-    expect(r.detail!.amountPaisa).toBeGreaterThan(0);
-    expect(r.detail!.className).toEqual(expect.stringContaining(" · "));
-  });
-
   it("a reversal shows the original payment: its amount, day and receipt", async () => {
     const paid = (await (await post("/api/fees/payments/cash", { enrollmentId: fixture.pupils[1]!.enrollmentId, amountPaisa: 25_000, idempotencyKey: key() }, accountant)).json()) as { paymentId: string; receipt: { number: string } };
     const { id } = (await (await post(`/api/fees/payments/${paid.paymentId}/reversal`, { reason: "Payment recorded twice" }, accountant)).json()) as { id: string };
@@ -88,14 +79,6 @@ describe("money requests", () => {
     expect((r.detail!.payment as { paidOnBs: string }).paidOnBs).toMatch(/^\d{4}-\d{2}-\d{2}$/);
   });
 
-  it("a refund shows the student's credit now; how it is paid back is left to the Accountant", async () => {
-    const owed = ((await (await call(`/api/fees/enrollments/${fixture.pupils[0]!.enrollmentId}`, { cookie: accountant.cookie })).json()) as { balancePaisa: number }).balancePaisa;
-    await post("/api/fees/payments/cash", { enrollmentId: fixture.pupils[0]!.enrollmentId, amountPaisa: owed + 18_000, idempotencyKey: key() }, accountant);
-    const { id } = (await (await post(`/api/fees/enrollments/${fixture.pupils[0]!.enrollmentId}/refunds`, { amountPaisa: 18_000, reason: "Excess payment" }, accountant)).json()) as { id: string };
-    const r = await review(await requestOf(id));
-    expect(r.detail).toMatchObject({ kind: "refund", amountPaisa: 18_000, availableCreditPaisa: 18_000 });
-    expect(r.detail).not.toHaveProperty("method");
-  });
 });
 
 describe("website content, and the reader's own requests", () => {

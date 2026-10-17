@@ -123,12 +123,12 @@ describe.each([
     expect(seq(verified.receipt.number)).toBe(seq(cash.receipt.number) + 1);
   });
 
-  it("a discount and a reversal apply only once an Admin approves them", async () => {
+  it("a discount applies at once when the Principal gives it; a reversal only once an Admin approves it", async () => {
     const before = (await (await call("/api/fees/me", { cookie: cookies.Sita })).json()) as { enrollmentId: string; discountPaisa: number; paidPaisa: number };
-    const discountId = await idOf(await post(`/api/fees/enrollments/${before.enrollmentId}/discounts`, { amountPaisa: 20_000, reason: "sibling" }, cookies.accountant));
+    const discountId = await idOf(await post(`/api/fees/enrollments/${before.enrollmentId}/discounts`, { amountPaisa: 20_000, reason: "sibling" }, cookies.admin));
     const reversalId = await idOf(await post(`/api/fees/payments/${state.paymentId}/reversal`, { reason: "Recorded twice" }, cookies.accountant));
-    expect(((await (await call("/api/fees/me", { cookie: cookies.Sita })).json()) as { discountPaisa: number }).discountPaisa).toBe(0);
-    expect((await approveLatest(discountId, cookies.admin)).status).toBe(200);
+    expect(((await (await call("/api/fees/me", { cookie: cookies.Sita })).json()) as { discountPaisa: number }).discountPaisa).toBe(20_000);
+    expect(discountId).toBeTruthy();
     expect((await approveLatest(reversalId, cookies.admin)).status).toBe(200);
     const after = (await (await call("/api/fees/me", { cookie: cookies.Sita })).json()) as { discountPaisa: number; paidPaisa: number; receipts: { reversed: boolean }[] };
     expect(after.discountPaisa).toBe(20_000);
