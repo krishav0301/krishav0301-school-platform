@@ -6826,15 +6826,18 @@
         ],
         "additionalProperties": false
       },
-      "GateDeviceList": {
+      "GateAccountList": {
         "type": "object",
         "properties": {
-          "devices": {
+          "accounts": {
             "type": "array",
             "items": {
               "type": "object",
               "properties": {
                 "id": {
+                  "type": "string"
+                },
+                "gateId": {
                   "type": "string"
                 },
                 "name": {
@@ -6844,48 +6847,80 @@
                   "type": "string",
                   "enum": [
                     "active",
-                    "revoked"
+                    "disabled"
                   ]
                 },
                 "createdAt": {
                   "type": "string"
                 },
-                "lastSeenAt": {
-                  "type": [
-                    "string",
-                    "null"
-                  ]
-                },
-                "lastSeenOnBs": {
-                  "type": [
-                    "string",
-                    "null"
-                  ]
-                },
-                "lastSeenTime": {
-                  "type": [
-                    "string",
-                    "null"
-                  ]
+                "computers": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string"
+                      },
+                      "label": {
+                        "type": "string"
+                      },
+                      "status": {
+                        "type": "string",
+                        "enum": [
+                          "active",
+                          "revoked"
+                        ]
+                      },
+                      "signedInAt": {
+                        "type": "string"
+                      },
+                      "lastSeenAt": {
+                        "type": [
+                          "string",
+                          "null"
+                        ]
+                      },
+                      "lastSeenOnBs": {
+                        "type": [
+                          "string",
+                          "null"
+                        ]
+                      },
+                      "lastSeenTime": {
+                        "type": [
+                          "string",
+                          "null"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "id",
+                      "label",
+                      "status",
+                      "signedInAt",
+                      "lastSeenAt",
+                      "lastSeenOnBs",
+                      "lastSeenTime"
+                    ]
+                  }
                 }
               },
               "required": [
                 "id",
+                "gateId",
                 "name",
                 "status",
                 "createdAt",
-                "lastSeenAt",
-                "lastSeenOnBs",
-                "lastSeenTime"
+                "computers"
               ]
             }
           }
         },
         "required": [
-          "devices"
+          "accounts"
         ]
       },
-      "GateDeviceCreated": {
+      "GateLoginIssued": {
         "type": "object",
         "properties": {
           "id": {
@@ -6894,14 +6929,34 @@
           "name": {
             "type": "string"
           },
-          "key": {
+          "gateId": {
             "type": "string"
+          },
+          "password": {
+            "type": "string"
+          },
+          "authenticator": {
+            "type": "object",
+            "properties": {
+              "secret": {
+                "type": "string"
+              },
+              "uri": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "secret",
+              "uri"
+            ]
           }
         },
         "required": [
           "id",
           "name",
-          "key"
+          "gateId",
+          "password",
+          "authenticator"
         ]
       },
       "GateError": {
@@ -6933,7 +6988,7 @@
           "message"
         ]
       },
-      "GateDeviceName": {
+      "GateAccountName": {
         "type": "object",
         "properties": {
           "name": {
@@ -6960,23 +7015,77 @@
           "ok"
         ]
       },
-      "GateDeviceMe": {
+      "GateSignedIn": {
         "type": "object",
         "properties": {
-          "device": {
+          "key": {
+            "type": "string"
+          },
+          "account": {
+            "type": "string"
+          },
+          "computer": {
             "type": "object",
             "properties": {
-              "name": {
+              "id": {
+                "type": "string"
+              },
+              "label": {
                 "type": "string"
               }
             },
             "required": [
-              "name"
+              "id",
+              "label"
             ]
           }
         },
         "required": [
-          "device"
+          "key",
+          "account",
+          "computer"
+        ]
+      },
+      "GateSignIn": {
+        "type": "object",
+        "properties": {
+          "gateId": {
+            "type": "string",
+            "maxLength": 100
+          },
+          "password": {
+            "type": "string",
+            "maxLength": 300
+          },
+          "code": {
+            "type": "string",
+            "maxLength": 30
+          },
+          "computer": {
+            "type": "string",
+            "maxLength": 200
+          }
+        },
+        "required": [
+          "gateId",
+          "password",
+          "code"
+        ],
+        "additionalProperties": false
+      },
+      "GateMe": {
+        "type": "object",
+        "properties": {
+          "account": {
+            "type": "string"
+          },
+          "computer": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "account",
+          "computer"
         ]
       },
       "GateScanResult": {
@@ -19210,20 +19319,20 @@
         }
       }
     },
-    "/api/gate/devices": {
+    "/api/gate/accounts": {
       "get": {
-        "operationId": "list_gate_devices",
+        "operationId": "list_gate_accounts",
         "tags": [
           "gate"
         ],
-        "description": "The registered gate computers, newest first, with when each last sent a tap. Never a key.",
+        "description": "The gate accounts, newest first, each with the computers signed in with it and when each last sent a tap. Never a password, a secret or a key.",
         "responses": {
           "200": {
-            "description": "The gate computers",
+            "description": "The gate accounts",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/GateDeviceList"
+                  "$ref": "#/components/schemas/GateAccountList"
                 }
               }
             }
@@ -19231,28 +19340,28 @@
         }
       },
       "post": {
-        "operationId": "register_gate_device",
+        "operationId": "create_gate_account",
         "tags": [
           "gate"
         ],
-        "description": "Registers a gate computer. The answer carries its secret key, shown once and never again: it is typed into the gate page on that computer.",
+        "description": "Makes a gate account: a special ID, a password and an authenticator, all made by the server and shown once, never again. Any number of computers can sign in with it at /gate.",
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/GateDeviceName"
+                "$ref": "#/components/schemas/GateAccountName"
               }
             }
           }
         },
         "responses": {
           "201": {
-            "description": "Registered, with the key (never cached)",
+            "description": "Made, with its login (never cached)",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/GateDeviceCreated"
+                  "$ref": "#/components/schemas/GateLoginIssued"
                 }
               }
             }
@@ -19280,13 +19389,13 @@
         }
       }
     },
-    "/api/gate/devices/{id}/revoke": {
+    "/api/gate/accounts/{id}/new-login": {
       "post": {
-        "operationId": "revoke_gate_device",
+        "operationId": "reissue_gate_login",
         "tags": [
           "gate"
         ],
-        "description": "Revokes a gate computer for good. Its key stops working at once.",
+        "description": "Gives an account a new password and a new authenticator, shown once, and signs out every computer signed in with it: for a lost password or phone.",
         "parameters": [
           {
             "schema": {
@@ -19300,7 +19409,59 @@
         ],
         "responses": {
           "200": {
-            "description": "Revoked",
+            "description": "The new login (never cached)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GateLoginIssued"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GateError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such active gate account",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GateError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/gate/accounts/{id}/disable": {
+      "post": {
+        "operationId": "disable_gate_account",
+        "tags": [
+          "gate"
+        ],
+        "description": "Disables a gate account for good. It can no longer sign in, and every computer signed in with it stops at once.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{32}$"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Disabled",
             "content": {
               "application/json": {
                 "schema": {
@@ -19310,7 +19471,100 @@
             }
           },
           "404": {
-            "description": "No such active gate computer",
+            "description": "No such active gate account",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GateError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/gate/computers/{id}/revoke": {
+      "post": {
+        "operationId": "revoke_gate_computer",
+        "tags": [
+          "gate"
+        ],
+        "description": "Signs one computer out of the gate. Its key stops working at once; it can sign in again with the account's login.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{32}$"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Signed out",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GateOk"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such signed-in computer",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GateError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/gate/sign-in": {
+      "post": {
+        "operationId": "sign_in_gate",
+        "tags": [
+          "gate"
+        ],
+        "description": "A computer signs in to the gate with an account's special ID, its password and the code from its authenticator app. The answer carries the computer's secret key, which the gate page keeps. A code works once. Wrong ID, password and code all answer the same.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GateSignIn"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Signed in, with the computer's key (never cached)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GateSignedIn"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "The ID, password or code is wrong",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GateError"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many recent failed attempts",
             "content": {
               "application/json": {
                 "schema": {
@@ -19324,18 +19578,18 @@
     },
     "/api/gate/me": {
       "get": {
-        "operationId": "get_gate_device",
+        "operationId": "get_gate_computer",
         "tags": [
           "gate"
         ],
-        "description": "Which gate computer the key in the `x-gate-key` header belongs to; the gate page asks this when it opens.",
+        "description": "Which gate account and computer the key in the `x-gate-key` header belongs to; the gate page asks this when it opens.",
         "responses": {
           "200": {
-            "description": "The device",
+            "description": "The computer",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/GateDeviceMe"
+                  "$ref": "#/components/schemas/GateMe"
                 }
               }
             }

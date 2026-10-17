@@ -6,9 +6,9 @@ import { useCallback, useEffect, useRef, useState, type FormEvent, type Keyboard
 import { ConfigGate } from "@/config/ConfigGate";
 import { useConfig } from "@/config/ConfigProvider";
 import { t } from "@/i18n/messages";
-import { Button, Field, Notice } from "@/ui";
+import { Button, Field, Notice, PasswordField } from "@/ui";
 
-import { checkKey, sendScan } from "./client";
+import { checkKey, sendScan, signInComputer } from "./client";
 import { KEY_KEY, SAME_TAP_MS, look, newScanId, nepalClock, readQueue, savedLook, unreadableLook, writeQueue, type Look, type PendingScan } from "./model";
 import styles from "./gate.module.css";
 
@@ -62,7 +62,7 @@ function Gate() {
       }
       keyRef.current = key;
       // Unreachable at start-up still opens the gate: taps are kept and sent when the connection returns.
-      setDevice(result.kind === "ok" ? result.device : "");
+      setDevice(result.kind === "ok" ? result.account : "");
       setPhase("ready");
     })();
     return () => {
@@ -85,35 +85,52 @@ function Gate() {
   return <Reader keyRef={keyRef} device={device} onBadKey={() => setPhase("connect")} />;
 }
 
-function Connect({ onConnected }: { onConnected: (key: string, device: string) => void }) {
-  const [key, setKey] = useState("");
+function Connect({ onConnected }: { onConnected: (key: string, account: string) => void }) {
+  const [gateId, setGateId] = useState("");
+  const [password, setPassword] = useState("");
+  const [code, setCode] = useState("");
+  const [computer, setComputer] = useState("");
   const [problem, setProblem] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const ready = gateId.trim().length > 0 && password.length > 0 && code.replace(/s+/g, "").length === 6;
   async function submit(event: FormEvent) {
     event.preventDefault();
-    const typed = key.trim();
-    if (busy || !typed) return;
+    if (busy || !ready) return;
     setBusy(true);
     setProblem(null);
-    const result = await checkKey(typed);
+    const result = await signInComputer({ gateId: gateId.trim(), password: password.trim(), code: code.replace(/s+/g, ""), computer: computer.trim() });
     setBusy(false);
     if (result.kind === "ok") {
       try {
-        localStorage.setItem(KEY_KEY, typed);
+        localStorage.setItem(KEY_KEY, result.key);
       } catch {
         /* the gate still works until the page is closed */
       }
-      return onConnected(typed, result.device);
+      return onConnected(result.key, result.account);
     }
-    setProblem(t(result.kind === "bad_key" ? "gate.connect.bad" : "gate.connect.unreachable"));
+    // The code is good once, so a wrong try needs a new one; clear it so the next is typed fresh.
+    setCode("");
+    setProblem(t(result.kind === "wrong" ? "gate.connect.bad" : result.kind === "throttled" ? "gate.connect.throttled" : "gate.connect.unreachable"));
   }
   return (
     <form onSubmit={submit} noValidate className={styles.connect}>
       <h1 className={styles.connectTitle}>{t("gate.connect.title")}</h1>
       <p className={styles.muted}>{t("gate.connect.body")}</p>
       {problem ? <Notice tone="bad">{problem}</Notice> : null}
-      <Field label={t("gate.connect.field")} value={key} onChange={(event) => setKey(event.target.value)} autoComplete="off" spellCheck={false} autoFocus />
-      <Button type="submit" loading={busy} loadingLabel={t("gate.connect.connecting")} disabled={!key.trim()}>
+      <Field label={t("gate.connect.id")} value={gateId} onChange={(event) => setGateId(event.target.value)} autoComplete="username" autoCapitalize="none" spellCheck={false} autoFocus />
+      <PasswordField
+        label={t("gate.connect.password")}
+        value={password}
+        onChange={(event) => setPassword(event.target.value)}
+        autoComplete="current-password"
+        showText={t("signIn.show")}
+        hideText={t("signIn.hide")}
+        showLabel={t("signIn.showPassword")}
+        hideLabel={t("signIn.hidePassword")}
+      />
+      <Field label={t("gate.connect.code")} hint={t("gate.connect.codeHint")} value={code} onChange={(event) => setCode(event.target.value)} inputMode="numeric" autoComplete="one-time-code" maxLength={7} />
+      <Field label={t("gate.connect.computer")} hint={t("gate.connect.computerHint")} value={computer} onChange={(event) => setComputer(event.target.value)} maxLength={60} autoComplete="off" />
+      <Button type="submit" loading={busy} loadingLabel={t("gate.connect.connecting")} disabled={!ready}>
         {t("gate.connect.button")}
       </Button>
     </form>

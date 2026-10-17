@@ -237,3 +237,26 @@
   flex-direction: column;
   gap: var(--space-3);
 }
+
+.secrets {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  margin: 0;
+}
+
+.secrets dt {
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+}
+
+.secrets dd {
+  margin: 0;
+}
+
+/* The QR code keeps its own black and white (it is read by a machine); only its size is set here. */
+.qr {
+  width: 11rem;
+  max-width: 100%;
+  height: auto;
+}

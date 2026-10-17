@@ -1660,25 +1660,25 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/gate/devices": {
+    "/api/gate/accounts": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        /** @description The registered gate computers, newest first, with when each last sent a tap. Never a key. */
-        get: operations["list_gate_devices"];
+        /** @description The gate accounts, newest first, each with the computers signed in with it and when each last sent a tap. Never a password, a secret or a key. */
+        get: operations["list_gate_accounts"];
         put?: never;
-        /** @description Registers a gate computer. The answer carries its secret key, shown once and never again: it is typed into the gate page on that computer. */
-        post: operations["register_gate_device"];
+        /** @description Makes a gate account: a special ID, a password and an authenticator, all made by the server and shown once, never again. Any number of computers can sign in with it at /gate. */
+        post: operations["create_gate_account"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/gate/devices/{id}/revoke": {
+    "/api/gate/accounts/{id}/new-login": {
         parameters: {
             query?: never;
             header?: never;
@@ -1687,8 +1687,59 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** @description Revokes a gate computer for good. Its key stops working at once. */
-        post: operations["revoke_gate_device"];
+        /** @description Gives an account a new password and a new authenticator, shown once, and signs out every computer signed in with it: for a lost password or phone. */
+        post: operations["reissue_gate_login"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/gate/accounts/{id}/disable": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Disables a gate account for good. It can no longer sign in, and every computer signed in with it stops at once. */
+        post: operations["disable_gate_account"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/gate/computers/{id}/revoke": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Signs one computer out of the gate. Its key stops working at once; it can sign in again with the account's login. */
+        post: operations["revoke_gate_computer"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/gate/sign-in": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description A computer signs in to the gate with an account's special ID, its password and the code from its authenticator app. The answer carries the computer's secret key, which the gate page keeps. A code works once. Wrong ID, password and code all answer the same. */
+        post: operations["sign_in_gate"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1702,8 +1753,8 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** @description Which gate computer the key in the `x-gate-key` header belongs to; the gate page asks this when it opens. */
-        get: operations["get_gate_device"];
+        /** @description Which gate account and computer the key in the `x-gate-key` header belongs to; the gate page asks this when it opens. */
+        get: operations["get_gate_computer"];
         put?: never;
         post?: never;
         delete?: never;
@@ -4468,22 +4519,35 @@ export interface components {
         RetireCard: {
             reason: string;
         };
-        GateDeviceList: {
-            devices: {
+        GateAccountList: {
+            accounts: {
                 id: string;
+                gateId: string;
                 name: string;
                 /** @enum {string} */
-                status: "active" | "revoked";
+                status: "active" | "disabled";
                 createdAt: string;
-                lastSeenAt: string | null;
-                lastSeenOnBs: string | null;
-                lastSeenTime: string | null;
+                computers: {
+                    id: string;
+                    label: string;
+                    /** @enum {string} */
+                    status: "active" | "revoked";
+                    signedInAt: string;
+                    lastSeenAt: string | null;
+                    lastSeenOnBs: string | null;
+                    lastSeenTime: string | null;
+                }[];
             }[];
         };
-        GateDeviceCreated: {
+        GateLoginIssued: {
             id: string;
             name: string;
-            key: string;
+            gateId: string;
+            password: string;
+            authenticator: {
+                secret: string;
+                uri: string;
+            };
         };
         GateError: {
             error: string;
@@ -4493,17 +4557,30 @@ export interface components {
             error: "invalid";
             message: string;
         };
-        GateDeviceName: {
+        GateAccountName: {
             name: string;
         };
         GateOk: {
             /** @enum {boolean} */
             ok: true;
         };
-        GateDeviceMe: {
-            device: {
-                name: string;
+        GateSignedIn: {
+            key: string;
+            account: string;
+            computer: {
+                id: string;
+                label: string;
             };
+        };
+        GateSignIn: {
+            gateId: string;
+            password: string;
+            code: string;
+            computer?: string;
+        };
+        GateMe: {
+            account: string;
+            computer: string;
         };
         GateScanResult: {
             /** @enum {string} */
@@ -10951,7 +11028,7 @@ export interface operations {
             };
         };
     };
-    list_gate_devices: {
+    list_gate_accounts: {
         parameters: {
             query?: never;
             header?: never;
@@ -10960,18 +11037,18 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description The gate computers */
+            /** @description The gate accounts */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["GateDeviceList"];
+                    "application/json": components["schemas"]["GateAccountList"];
                 };
             };
         };
     };
-    register_gate_device: {
+    create_gate_account: {
         parameters: {
             query?: never;
             header?: never;
@@ -10980,17 +11057,17 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["GateDeviceName"];
+                "application/json": components["schemas"]["GateAccountName"];
             };
         };
         responses: {
-            /** @description Registered, with the key (never cached) */
+            /** @description Made, with its login (never cached) */
             201: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["GateDeviceCreated"];
+                    "application/json": components["schemas"]["GateLoginIssued"];
                 };
             };
             /** @description Not allowed */
@@ -11013,7 +11090,7 @@ export interface operations {
             };
         };
     };
-    revoke_gate_device: {
+    reissue_gate_login: {
         parameters: {
             query?: never;
             header?: never;
@@ -11024,16 +11101,25 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description Revoked */
+            /** @description The new login (never cached) */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["GateOk"];
+                    "application/json": components["schemas"]["GateLoginIssued"];
                 };
             };
-            /** @description No such active gate computer */
+            /** @description Not allowed */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GateError"];
+                };
+            };
+            /** @description No such active gate account */
             404: {
                 headers: {
                     [name: string]: unknown;
@@ -11044,7 +11130,111 @@ export interface operations {
             };
         };
     };
-    get_gate_device: {
+    disable_gate_account: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Disabled */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GateOk"];
+                };
+            };
+            /** @description No such active gate account */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GateError"];
+                };
+            };
+        };
+    };
+    revoke_gate_computer: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Signed out */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GateOk"];
+                };
+            };
+            /** @description No such signed-in computer */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GateError"];
+                };
+            };
+        };
+    };
+    sign_in_gate: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["GateSignIn"];
+            };
+        };
+        responses: {
+            /** @description Signed in, with the computer's key (never cached) */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GateSignedIn"];
+                };
+            };
+            /** @description The ID, password or code is wrong */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GateError"];
+                };
+            };
+            /** @description Too many recent failed attempts */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GateError"];
+                };
+            };
+        };
+    };
+    get_gate_computer: {
         parameters: {
             query?: never;
             header?: never;
@@ -11053,13 +11243,13 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description The device */
+            /** @description The computer */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["GateDeviceMe"];
+                    "application/json": components["schemas"]["GateMe"];
                 };
             };
             /** @description The key is missing, wrong or revoked */

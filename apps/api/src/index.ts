@@ -2,6 +2,7 @@ import { createApp } from "./app";
 import { runOutbox } from "./core/notifications";
 import type { Bindings } from "./core/types";
 import { expireStaleApplications } from "./modules/admissions/service";
+import { closeAttendanceDay } from "./modules/attendance";
 import { applyPriceChanges, chargeLinked } from "./modules/fees";
 import { isCrawlerFile, isFilledPage, isSchoolFile, renderCrawlerFile, renderFavicon, renderPublicPage } from "./modules/site";
 
@@ -30,5 +31,7 @@ export default {
     ctx.waitUntil(applyPriceChanges(env.DB, env.AUDIT_HMAC_KEY).then((result) => console.warn(`Fee price-change sweep: ${JSON.stringify(result)}`)));
     ctx.waitUntil(chargeLinked(env.DB, env.AUDIT_HMAC_KEY).then((result) => console.warn(`Fee charge sweep: ${JSON.stringify(result)}`)));
     ctx.waitUntil(expireStaleApplications(env.DB).then((result) => console.warn(`Application expiry sweep: ${JSON.stringify(result)}`)));
+    // The end of the school day (D-176): once the day has closed, those with no Present mark are marked Absent, or the day is a holiday. A no-op before closing time and once decided.
+    ctx.waitUntil(closeAttendanceDay(env.DB).then((result) => console.warn(`Attendance close: ${JSON.stringify(result)}`)));
   },
 };

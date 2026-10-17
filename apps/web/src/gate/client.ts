@@ -2,7 +2,9 @@ import type { components } from "@/api/schema";
 
 import type { GateScanResult, PendingScan } from "./model";
 
-export type DeviceList = components["schemas"]["GateDeviceList"];
+export type AccountList = components["schemas"]["GateAccountList"];
+export type IssuedLogin = components["schemas"]["GateLoginIssued"];
+
 export type GateOutcome =
   | { kind: "answer"; answer: GateScanResult }
   | { kind: "bad_key" }
@@ -29,14 +31,39 @@ export async function sendScan(key: string, scan: PendingScan): Promise<GateOutc
   }
 }
 
-export type CheckOutcome = { kind: "ok"; device: string } | { kind: "bad_key" } | { kind: "unreachable" };
+export type CheckOutcome = { kind: "ok"; account: string; computer: string } | { kind: "bad_key" } | { kind: "unreachable" };
 
-/** Asks which device a key belongs to; the page opens with this. */
+/** Asks which account and computer a key belongs to; the page opens with this. */
 export async function checkKey(key: string): Promise<CheckOutcome> {
   try {
     const response = await fetch("/api/gate/me", { headers: { "x-gate-key": key }, cache: "no-store" });
-    if (response.ok) return { kind: "ok", device: ((await response.json()) as components["schemas"]["GateDeviceMe"]).device.name };
+    if (response.ok) {
+      const body = (await response.json()) as components["schemas"]["GateMe"];
+      return { kind: "ok", account: body.account, computer: body.computer };
+    }
     return response.status === 401 || response.status === 404 ? { kind: "bad_key" } : { kind: "unreachable" };
+  } catch {
+    return { kind: "unreachable" };
+  }
+}
+
+export type SignInOutcome = { kind: "ok"; key: string; account: string; computer: string } | { kind: "wrong" } | { kind: "throttled" } | { kind: "unreachable" };
+
+/** A computer signs in with the account's special ID, password and the code from its authenticator app. */
+export async function signInComputer(login: { gateId: string; password: string; code: string; computer: string }): Promise<SignInOutcome> {
+  try {
+    const response = await fetch("/api/gate/sign-in", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ gateId: login.gateId, password: login.password, code: login.code, ...(login.computer ? { computer: login.computer } : {}) }),
+      cache: "no-store",
+    });
+    if (response.ok) {
+      const body = (await response.json()) as components["schemas"]["GateSignedIn"];
+      return { kind: "ok", key: body.key, account: body.account, computer: body.computer.label };
+    }
+    if (response.status === 429) return { kind: "throttled" };
+    return response.status === 401 || response.status === 404 ? { kind: "wrong" } : { kind: "unreachable" };
   } catch {
     return { kind: "unreachable" };
   }

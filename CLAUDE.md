@@ -130,6 +130,7 @@ A role assignment carries a **scope**: the whole institution, or one section (+2
 **Attendance**
 - Students: once a day, by the class's Class Teacher, Present or Absent only. Same-day edits only. No in and out times.
 - Teachers: marked by the Co-ordinator in a daily list pre-filled Present. Past days are editable with a reason recorded.
+- **Where a school uses ID cards (D-174 to D-176, optional module `card_attendance`, off unless the pack turns it on):** a card tap at the gate marks a student or teacher Present, with the time kept; at the end of the day (18:00 placeholder) everyone with no Present mark is marked Absent; and if 98% or more of the students (or of the teachers) have none, the day is a holiday for that group and nobody is marked Absent. The Class Teacher and the Co-ordinator then only correct exceptions.
 
 **Marks and results**
 - Marks are entered per component in a bulk grid. Teachers can edit until the Co-ordinator verifies.

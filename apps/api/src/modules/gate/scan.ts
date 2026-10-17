@@ -1,5 +1,5 @@
 import { nepalDate } from "../../core/dates";
-import { deviceByKey } from "./devices";
+import { deviceByKey } from "./keys";
 import { ScanInputSchema, type ScanResult } from "./schema";
 
 export interface ScanOptions {
@@ -129,7 +129,7 @@ export async function recordScan(db: D1Database, key: string, input: unknown, no
       db
         .prepare(
           `INSERT INTO student_attendance (enrollment_id, on_date, status, marked_by_user_id, marked_at, updated_at)
-           SELECT ?1, ?2, 'present', g.user_id, ?3, ?3 FROM gate_devices g WHERE g.id = ?4 AND g.status = 'active'
+           SELECT ?1, ?2, 'present', a.user_id, ?3, ?3 FROM gate_devices g JOIN gate_accounts a ON a.id = g.account_id WHERE g.id = ?4 AND g.status = 'active' AND a.status = 'active'
            ON CONFLICT (enrollment_id, on_date) DO UPDATE SET status = 'present', marked_by_user_id = excluded.marked_by_user_id, updated_at = excluded.updated_at`,
         )
         .bind(card!.enrollment_id, onDate, received, device.id),
@@ -139,7 +139,7 @@ export async function recordScan(db: D1Database, key: string, input: unknown, no
       db
         .prepare(
           `INSERT INTO teacher_attendance (user_id, on_date, status, reason, marked_by_user_id, marked_at, updated_at)
-           SELECT ?1, ?2, 'present', NULL, g.user_id, ?3, ?3 FROM gate_devices g WHERE g.id = ?4 AND g.status = 'active'
+           SELECT ?1, ?2, 'present', NULL, a.user_id, ?3, ?3 FROM gate_devices g JOIN gate_accounts a ON a.id = g.account_id WHERE g.id = ?4 AND g.status = 'active' AND a.status = 'active'
            ON CONFLICT (user_id, on_date) DO UPDATE SET status = 'present', reason = NULL, marked_by_user_id = excluded.marked_by_user_id, updated_at = excluded.updated_at`,
         )
         .bind(card!.user_id, onDate, received, device.id),
@@ -149,7 +149,7 @@ export async function recordScan(db: D1Database, key: string, input: unknown, no
     db
       .prepare(
         `INSERT INTO card_scans (device_id, client_scan_id, card_number, card_id, student_id, user_id, scanned_at, received_at, on_date, result)
-         SELECT g.id, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10 FROM gate_devices g WHERE g.id = ?1 AND g.status = 'active'`,
+         SELECT g.id, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10 FROM gate_devices g JOIN gate_accounts a ON a.id = g.account_id WHERE g.id = ?1 AND g.status = 'active' AND a.status = 'active'`,
       )
       .bind(device.id, scanId, number, card?.card_id ?? null, card?.student_id ?? null, card?.user_id ?? null, scannedAt, received, onDate, result),
     db.prepare("UPDATE gate_devices SET last_seen_at = ?2 WHERE id = ?1").bind(device.id, received),

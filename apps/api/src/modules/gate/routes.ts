@@ -3,9 +3,11 @@ import type { Context } from "hono";
 
 import { defineRoute } from "../../core/routes";
 import type { App, AppEnv } from "../../core/types";
-import { deviceByKey, listDevices, registerDevice, revokeDevice } from "./devices";
+import { createAccount, disableAccount, listAccounts, reissueLogin, revokeComputer, type AccountResult } from "./accounts";
+import { deviceByKey } from "./keys";
 import { recordScan } from "./scan";
-import { DeviceBodySchema, DeviceCreatedSchema, DeviceListSchema, DeviceMeSchema, PublicIdSchema, ScanBodySchema, ScanResponseSchema } from "./schema";
+import { AccountBodySchema, AccountListSchema, IssuedLoginSchema, MeSchema, PublicIdSchema, ScanBodySchema, ScanResponseSchema, SignInBodySchema, SignInResponseSchema } from "./schema";
+import { signInGate } from "./signin";
 
 const json = <T extends z.ZodType>(schema: T) => ({ "application/json": { schema } });
 const ErrorSchema = z.object({ error: z.string() }).openapi("GateError");
@@ -16,26 +18,35 @@ const IdParam = z.object({ id: PublicIdSchema });
 const KEY_HEADER = "x-gate-key";
 const keyOf = (c: Context<AppEnv>): string => c.req.header(KEY_HEADER) ?? "";
 
+/** Turns an account result into the documented answer (the cast is because one function serves several routes' answer types). */
+function issued(c: Context<AppEnv>, result: AccountResult, status: 200 | 201): never {
+  c.header("Cache-Control", "no-store");
+  if (result.ok) return c.json({ id: result.id, name: result.name, gateId: result.gateId, password: result.password, authenticator: result.authenticator }, status) as never;
+  if (result.reason === "invalid") return c.json({ error: "invalid" as const, message: result.message }, 422) as never;
+  return c.json({ error: result.reason === "not_found" ? "not_found" : "forbidden" }, result.reason === "not_found" ? 404 : 403) as never;
+}
+
 /**
- * The gate (D-175): registering the computers at the school gate, and taking the card taps they send. The taps and the
- * check that a gate computer is who it says are public routes: they carry the device's secret key in a header, not a
- * person's sign-in. Everything here is "not found" while the school's `card_attendance` module is off.
+ * The gate (D-175, D-176): the accounts people at the gate sign in with, the computers signed in, and the card taps they
+ * send. A computer signs in with its account's special ID, password and authenticator code, and holds a secret key from
+ * then on; the taps and the key check are public routes that carry that key in a header, not a person's session.
+ * Everything here is "not found" while the school's `card_attendance` module is off.
  */
 export function registerGate(app: App): void {
   defineRoute(
     app,
     {
       method: "get",
-      path: "/api/gate/devices",
-      operationId: "list_gate_devices",
+      path: "/api/gate/accounts",
+      operationId: "list_gate_accounts",
       tags: ["gate"],
-      description: "The registered gate computers, newest first, with when each last sent a tap. Never a key.",
+      description: "The gate accounts, newest first, each with the computers signed in with it and when each last sent a tap. Never a password, a secret or a key.",
       access: { action: "gate.manage" },
-      responses: { 200: { description: "The gate computers", content: json(DeviceListSchema) } },
+      responses: { 200: { description: "The gate accounts", content: json(AccountListSchema) } },
     },
     async (c) => {
       c.header("Cache-Control", "no-store");
-      return c.json(await listDevices(c.env.DB), 200);
+      return c.json(await listAccounts(c.env.DB), 200);
     },
   );
 
@@ -43,24 +54,56 @@ export function registerGate(app: App): void {
     app,
     {
       method: "post",
-      path: "/api/gate/devices",
-      operationId: "register_gate_device",
+      path: "/api/gate/accounts",
+      operationId: "create_gate_account",
       tags: ["gate"],
-      description: "Registers a gate computer. The answer carries its secret key, shown once and never again: it is typed into the gate page on that computer.",
+      description:
+        "Makes a gate account: a special ID, a password and an authenticator, all made by the server and shown once, never again. Any number of computers can sign in with it at /gate.",
       access: { action: "gate.manage" },
-      request: { body: { required: true, content: json(DeviceBodySchema) } },
+      request: { body: { required: true, content: json(AccountBodySchema) } },
       responses: {
-        201: { description: "Registered, with the key (never cached)", content: json(DeviceCreatedSchema) },
+        201: { description: "Made, with its login (never cached)", content: json(IssuedLoginSchema) },
         403: { description: "Not allowed", content: json(ErrorSchema) },
         422: { description: "The name is missing or too long", content: json(InvalidSchema) },
       },
     },
+    async (c) => issued(c, await createAccount(c.env.DB, c.env.AUDIT_HMAC_KEY, c.env.DATA_KEY, c.get("auth")!.userPublicId, c.req.valid("json")), 201),
+  );
+
+  defineRoute(
+    app,
+    {
+      method: "post",
+      path: "/api/gate/accounts/{id}/new-login",
+      operationId: "reissue_gate_login",
+      tags: ["gate"],
+      description: "Gives an account a new password and a new authenticator, shown once, and signs out every computer signed in with it: for a lost password or phone.",
+      access: { action: "gate.manage" },
+      request: { params: IdParam },
+      responses: {
+        200: { description: "The new login (never cached)", content: json(IssuedLoginSchema) },
+        403: { description: "Not allowed", content: json(ErrorSchema) },
+        404: { description: "No such active gate account", content: json(ErrorSchema) },
+      },
+    },
+    async (c) => issued(c, await reissueLogin(c.env.DB, c.env.AUDIT_HMAC_KEY, c.env.DATA_KEY, c.get("auth")!.userPublicId, c.req.valid("param").id), 200),
+  );
+
+  defineRoute(
+    app,
+    {
+      method: "post",
+      path: "/api/gate/accounts/{id}/disable",
+      operationId: "disable_gate_account",
+      tags: ["gate"],
+      description: "Disables a gate account for good. It can no longer sign in, and every computer signed in with it stops at once.",
+      access: { action: "gate.manage" },
+      request: { params: IdParam },
+      responses: { 200: { description: "Disabled", content: json(OkSchema) }, 404: { description: "No such active gate account", content: json(ErrorSchema) } },
+    },
     async (c) => {
-      const result = await registerDevice(c.env.DB, c.env.AUDIT_HMAC_KEY, c.get("auth")!.userPublicId, c.req.valid("json"));
-      c.header("Cache-Control", "no-store");
-      if (result.ok) return c.json({ id: result.id, name: result.name, key: result.key }, 201);
-      if (result.reason === "invalid") return c.json({ error: "invalid" as const, message: result.message }, 422);
-      return c.json({ error: "forbidden" }, 403);
+      const result = await disableAccount(c.env.DB, c.env.AUDIT_HMAC_KEY, c.get("auth")!.userPublicId, c.req.valid("param").id);
+      return result.ok ? c.json({ ok: true as const }, 200) : c.json({ error: "not_found" }, 404);
     },
   );
 
@@ -68,17 +111,47 @@ export function registerGate(app: App): void {
     app,
     {
       method: "post",
-      path: "/api/gate/devices/{id}/revoke",
-      operationId: "revoke_gate_device",
+      path: "/api/gate/computers/{id}/revoke",
+      operationId: "revoke_gate_computer",
       tags: ["gate"],
-      description: "Revokes a gate computer for good. Its key stops working at once.",
+      description: "Signs one computer out of the gate. Its key stops working at once; it can sign in again with the account's login.",
       access: { action: "gate.manage" },
       request: { params: IdParam },
-      responses: { 200: { description: "Revoked", content: json(OkSchema) }, 404: { description: "No such active gate computer", content: json(ErrorSchema) } },
+      responses: { 200: { description: "Signed out", content: json(OkSchema) }, 404: { description: "No such signed-in computer", content: json(ErrorSchema) } },
     },
     async (c) => {
-      const result = await revokeDevice(c.env.DB, c.env.AUDIT_HMAC_KEY, c.get("auth")!.userPublicId, c.req.valid("param").id);
+      const result = await revokeComputer(c.env.DB, c.env.AUDIT_HMAC_KEY, c.get("auth")!.userPublicId, c.req.valid("param").id);
       return result.ok ? c.json({ ok: true as const }, 200) : c.json({ error: "not_found" }, 404);
+    },
+  );
+
+  defineRoute(
+    app,
+    {
+      method: "post",
+      path: "/api/gate/sign-in",
+      operationId: "sign_in_gate",
+      tags: ["gate"],
+      description:
+        "A computer signs in to the gate with an account's special ID, its password and the code from its authenticator app. The answer carries the computer's secret key, which the gate page keeps. A code works once. Wrong ID, password and code all answer the same.",
+      access: { public: true },
+      request: { body: { required: true, content: json(SignInBodySchema) } },
+      responses: {
+        200: { description: "Signed in, with the computer's key (never cached)", content: json(SignInResponseSchema) },
+        401: { description: "The ID, password or code is wrong", content: json(ErrorSchema) },
+        429: { description: "Too many recent failed attempts", content: json(ErrorSchema) },
+      },
+    },
+    async (c) => {
+      c.header("Cache-Control", "no-store");
+      const body = c.req.valid("json");
+      const result = await signInGate(c.env.DB, c.env.DATA_KEY, { ...body, ip: c.req.header("CF-Connecting-IP") ?? null, userAgent: c.req.header("User-Agent") ?? null });
+      if (result.ok) return c.json({ key: result.key, account: result.account, computer: result.computer }, 200);
+      if (result.reason === "throttled") {
+        c.header("Retry-After", String(15 * 60));
+        return c.json({ error: "too_many_attempts" }, 429);
+      }
+      return c.json({ error: "invalid_credentials" }, 401);
     },
   );
 
@@ -87,16 +160,16 @@ export function registerGate(app: App): void {
     {
       method: "get",
       path: "/api/gate/me",
-      operationId: "get_gate_device",
+      operationId: "get_gate_computer",
       tags: ["gate"],
-      description: "Which gate computer the key in the `x-gate-key` header belongs to; the gate page asks this when it opens.",
+      description: "Which gate account and computer the key in the `x-gate-key` header belongs to; the gate page asks this when it opens.",
       access: { public: true },
-      responses: { 200: { description: "The device", content: json(DeviceMeSchema) }, 401: { description: "The key is missing, wrong or revoked", content: json(ErrorSchema) } },
+      responses: { 200: { description: "The computer", content: json(MeSchema) }, 401: { description: "The key is missing, wrong or revoked", content: json(ErrorSchema) } },
     },
     async (c) => {
       c.header("Cache-Control", "no-store");
       const device = await deviceByKey(c.env.DB, keyOf(c));
-      return device ? c.json({ device: { name: device.name } }, 200) : c.json({ error: "bad_key" }, 401);
+      return device ? c.json({ account: device.name, computer: device.label }, 200) : c.json({ error: "bad_key" }, 401);
     },
   );
 

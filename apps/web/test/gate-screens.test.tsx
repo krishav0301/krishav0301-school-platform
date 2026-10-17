@@ -2,7 +2,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 
 import { ConfigContext, makeConfigValue, type PublicConfig } from "@/config/ConfigProvider";
-import { GateDevicesCard } from "@/gate/GateDevices";
+import { GateAccountsCard } from "@/gate/GateAccounts";
 import { GateScreen } from "@/gate/GateScreen";
 import { QUEUE_KEY, QUEUE_LIMIT, look, nepalClock, readQueue, writeQueue, type GateScanResult, type PendingScan } from "@/gate/model";
 import { SessionContext } from "@/session/SessionProvider";
@@ -96,7 +96,7 @@ const settingsCard = (cards: boolean, role: string) =>
   renderToStaticMarkup(
     <ConfigContext.Provider value={makeConfigValue("ready", config(cards))}>
       <SessionContext.Provider value={asRole(role)}>
-        <GateDevicesCard />
+        <GateAccountsCard />
       </SessionContext.Provider>
     </ConfigContext.Provider>,
   );
@@ -113,7 +113,7 @@ describe("the gate screen", () => {
   });
 });
 
-describe("the gate computers card on Settings", () => {
+describe("the gate logins card on Settings", () => {
   it("is left out where the school does not use cards, and for anyone but the Admin and Support", () => {
     expect(settingsCard(false, "admin")).toBe("");
     for (const role of ["coordinator", "accountant", "teacher", "student"]) expect(settingsCard(true, role)).toBe("");
@@ -122,8 +122,8 @@ describe("the gate computers card on Settings", () => {
   it("is shown to the Admin and to Support where cards are used", () => {
     for (const role of ["admin", "super_admin"]) {
       const html = settingsCard(true, role);
-      expect(html).toContain("Gate computers");
-      expect(html).toContain("Register");
+      expect(html).toContain("Gate logins");
+      expect(html).toContain("Make a login");
     }
   });
 });

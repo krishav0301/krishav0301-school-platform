@@ -2,7 +2,8 @@ import { beforeAll, describe, expect, it } from "vitest";
 
 import { nepalDate } from "../src/core/dates";
 import { recordScan, type ScanOptions, type ScanOutcome } from "../src/modules/gate";
-import { auditActions, call, count, db, person, type Person } from "./academics-helpers";
+import { call, count, db, person, type Person } from "./academics-helpers";
+import { makeAccount, signInComputer } from "./gate-helpers";
 import { classWith, setModule, teacherIn, type ClassFixture } from "./schoolday-helpers";
 
 /**
@@ -12,9 +13,8 @@ import { classWith, setModule, teacherIn, type ClassFixture } from "./schoolday-
  */
 
 let plus2: ClassFixture;
-let coordinator: Person, admin: Person, accountant: Person, teacher: Person, otherTeacher: Person, superAdmin: Person;
+let coordinator: Person, admin: Person, accountant: Person, teacher: Person, otherTeacher: Person;
 let key: string;
-let deviceId: string;
 
 const now = new Date();
 const today = nepalDate(now);
@@ -39,79 +39,17 @@ beforeAll(async () => {
   plus2 = await classWith("plus2", 8);
   coordinator = await person("coordinator", "institution");
   admin = await person("admin", "institution");
-  superAdmin = await person("super_admin", "institution");
   accountant = await person("accountant", "institution");
   teacher = await teacherIn("plus2");
   otherTeacher = await teacherIn("plus2");
-  const made = await call("/api/gate/devices", { method: "POST", cookie: admin.cookie, body: { name: "Main gate" } });
-  const body = (await made.json()) as { id: string; key: string };
-  key = body.key;
-  deviceId = body.id;
+  const account = await makeAccount(admin, "Main gate");
+  const signedIn = await signInComputer(account);
+  if (!signedIn.ok) throw new Error("the gate computer could not sign in");
+  key = signedIn.key;
 });
 
-describe("registering a gate computer", () => {
-  it("the Admin registers one and sees its key once; the list never shows the key", async () => {
-    const made = await call("/api/gate/devices", { method: "POST", cookie: admin.cookie, body: { name: "Back gate" } });
-    expect(made.status).toBe(201);
-    const body = (await made.json()) as { id: string; name: string; key: string };
-    expect(body.key).toMatch(/^gk_[A-Za-z0-9_-]{30,}$/);
-
-    const list = await call("/api/gate/devices", { cookie: admin.cookie });
-    expect(list.status).toBe(200);
-    const text = await list.text();
-    expect(text).toContain("Back gate");
-    expect(text).not.toContain(body.key);
-    // Only a hash of the key is kept.
-    expect(await count("SELECT COUNT(*) AS n FROM gate_devices WHERE key_hash = ?1", body.key)).toBe(0);
-    expect(await auditActions(body.id)).toContain("gate.device_registered");
-  });
-
-  it("the Super Admin may; the Co-ordinator, Accountant, a teacher and a student may not; nor a signed-out caller", async () => {
-    expect((await call("/api/gate/devices", { method: "POST", cookie: superAdmin.cookie, body: { name: "Support gate" } })).status).toBe(201);
-    for (const who of [coordinator, accountant, teacher, plus2.pupils[0]!.person]) {
-      expect((await call("/api/gate/devices", { method: "POST", cookie: who.cookie, body: { name: "Not allowed" } })).status).toBe(403);
-      expect((await call("/api/gate/devices", { cookie: who.cookie })).status).toBe(403);
-    }
-    expect((await call("/api/gate/devices", { method: "POST", body: { name: "Anyone" } })).status).toBe(401);
-  });
-
-  it("each device gets its own switched-off system user that cannot sign in", async () => {
-    const row = await db.prepare("SELECT u.is_active, (SELECT COUNT(*) FROM role_assignments WHERE user_id = u.id) AS roles FROM gate_devices d JOIN users u ON u.id = d.user_id WHERE d.public_id = ?1").bind(deviceId).first<{ is_active: number; roles: number }>();
-    expect(row).toEqual({ is_active: 0, roles: 0 });
-  });
-
-  it("is answered 'not found' while the cards module is off", async () => {
-    await setModule("card_attendance", false);
-    expect((await call("/api/gate/devices", { cookie: admin.cookie })).status).toBe(404);
-    expect((await call("/api/gate/me", { headers: { "x-gate-key": key } })).status).toBe(404);
-    await setModule("card_attendance", true);
-  });
-});
-
-describe("the gate key", () => {
-  it("opens the gate page: /api/gate/me names the device", async () => {
-    const response = await call("/api/gate/me", { headers: { "x-gate-key": key } });
-    expect(response.status).toBe(200);
-    expect(await response.json()).toEqual({ device: { name: "Main gate" } });
-  });
-
-  it("a missing, wrong or revoked key is refused everywhere, and a scan is not recorded", async () => {
-    expect((await call("/api/gate/me")).status).toBe(401);
-    expect((await call("/api/gate/me", { headers: { "x-gate-key": "gk_nonsense" } })).status).toBe(401);
-    const before = await count("SELECT COUNT(*) AS n FROM card_scans");
-    const bad = await call("/api/gate/scan", { method: "POST", headers: { "x-gate-key": "gk_nonsense" }, body: { cardNumber: "ABCD1234", scanId: scanId() } });
-    expect(bad.status).toBe(401);
-    expect(await count("SELECT COUNT(*) AS n FROM card_scans")).toBe(before);
-
-    const made = (await (await call("/api/gate/devices", { method: "POST", cookie: admin.cookie, body: { name: "Old gate" } })).json()) as { id: string; key: string };
-    expect((await call("/api/gate/me", { headers: { "x-gate-key": made.key } })).status).toBe(200);
-    expect((await call(`/api/gate/devices/${made.id}/revoke`, { method: "POST", cookie: admin.cookie })).status).toBe(200);
-    expect((await call("/api/gate/me", { headers: { "x-gate-key": made.key } })).status).toBe(401);
-    expect((await call("/api/gate/scan", { method: "POST", headers: { "x-gate-key": made.key }, body: { cardNumber: "ABCD1234", scanId: scanId() } })).status).toBe(401);
-    expect(await auditActions(made.id)).toContain("gate.device_revoked");
-  });
-
-  it("a scan through the real route works the same as through the service", async () => {
+describe("a scan through the real route", () => {
+  it("works the same as through the service, and a wrong key is refused without recording anything", async () => {
     const number = fresh();
     await link("students", plus2.pupils[7]!.studentId, coordinator.cookie, number);
     const response = await call("/api/gate/scan", { method: "POST", headers: { "x-gate-key": key }, body: { cardNumber: number.toLowerCase(), scanId: scanId() } });
@@ -120,6 +58,11 @@ describe("the gate key", () => {
     // On a Saturday in Nepal this is the weekly holiday; any other day it is a first tap.
     expect(["marked", "no_school"]).toContain(body.result);
     expect(body.person?.name).toContain("Sita");
+
+    const before = await count("SELECT COUNT(*) AS n FROM card_scans");
+    const bad = await call("/api/gate/scan", { method: "POST", headers: { "x-gate-key": "gk_nonsense" }, body: { cardNumber: "ABCD1234", scanId: scanId() } });
+    expect(bad.status).toBe(401);
+    expect(await count("SELECT COUNT(*) AS n FROM card_scans")).toBe(before);
   });
 });
 
@@ -287,6 +230,8 @@ describe("the database itself", () => {
     await expect(db.prepare("UPDATE card_scans SET result = 'marked'").run()).rejects.toThrow(/never changed/);
     await expect(db.prepare("DELETE FROM card_scans").run()).rejects.toThrow(/never deleted/);
     await expect(db.prepare("DELETE FROM gate_devices").run()).rejects.toThrow(/never deleted/);
-    await expect(db.prepare("UPDATE gate_devices SET key_hash = 'x' WHERE public_id = ?1").bind(deviceId).run()).rejects.toThrow(/last seen/);
+    await expect(db.prepare("UPDATE gate_devices SET key_hash = 'x'").run()).rejects.toThrow(/last seen/);
+    await expect(db.prepare("DELETE FROM gate_accounts").run()).rejects.toThrow(/never deleted/);
+    await expect(db.prepare("UPDATE gate_accounts SET gate_id = 'gate-other'").run()).rejects.toThrow(/keeps its ID/);
   });
 });
