@@ -99,16 +99,16 @@ describe("the account", () => {
 });
 
 describe("fees places", () => {
-  it("the Accountant gets Students, Fee structures, Vouchers and Dues; the Admin no Vouchers; a student no tabs", () => {
+  it("the Accountant gets Students, Fee structures and Dues, no Vouchers; a student no tabs", () => {
     const accountant = inContext(<FeesTabs pathname="/portal/fees" />);
-    for (const href of ["/portal/fees/structures", "/portal/fees/vouchers", "/portal/fees/dues"]) expect(accountant).toContain(href);
-    expect(inContext(<FeesTabs pathname="/portal/fees" />, as("admin"))).not.toContain("/portal/fees/vouchers");
+    for (const href of ["/portal/fees/structures", "/portal/fees/dues"]) expect(accountant).toContain(href);
+    expect(accountant).not.toContain("/portal/fees/vouchers");
     expect(inContext(<FeesTabs pathname="/portal/fees" />, as("student", "own"))).toBe("");
   });
 
-  it("a student lands on their own fees; staff on the student finder", () => {
+  it("a student lands on their own fees; staff on the same Students page the Principal has", () => {
     expect(inContext(<FeesHome />, as("student", "own"))).toContain("Your fees");
-    expect(inContext(<FeesHome />)).toContain("Find a student");
+    expect(inContext(<FeesHome />)).toContain("Every student, by Wing, Course, Level and class");
   });
 
   it("the dues list shows the shape of the page while it loads", () => {

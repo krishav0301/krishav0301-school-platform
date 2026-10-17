@@ -8,12 +8,13 @@ import { useConfig } from "@/config/ConfigProvider";
 import { BsDateField } from "@/content/BsDateField";
 import { toAd } from "@/content/client";
 import { t } from "@/i18n/messages";
-import { EmptyLine, FigureTiles, OpenLink, Panel, ReadFailure, ReadHeader, ReadOnlyNote, ReadTable, StatusWord, TableSkeleton, readStyles, type Figure } from "@/read/ReadView";
+import { OpenLink, ReadFailure, ReadHeader, ReadOnlyNote, ReadTable, StatusWord, TableSkeleton, readStyles, type Figure } from "@/read/ReadView";
 import { useSession, type RoleClaim } from "@/session/SessionProvider";
 import { useLoad } from "@/setup/useLoad";
 import { AddDialog, Button, Field, Notice, Select } from "@/ui";
 
 import { createStructure, gateFailure, loadStructures } from "./client";
+import { LiveStructures, OtherStructures, StructuresBanner } from "./StructuresBoard";
 import styles from "./fees.module.css";
 import { STATUS_LABEL, type FeeStructure, type FeeStructureList } from "./model";
 import { nprShort } from "./ReadFees";
@@ -60,14 +61,9 @@ export function StructuresScreen() {
       {view.status === "failed" || view.status === "forbidden" ? <ReadFailure status={view.status} onRetry={() => void reload()} /> : null}
       {view.status === "ready" ? (
         <>
-          {view.data.structures.length > 0 ? <FigureTiles figures={structureFigures(view.data)} label={t("fees.structures.figures")} /> : null}
-          {view.data.structures.length === 0 ? (
-            <EmptyLine>{t("fees.structures.empty")}</EmptyLine>
-          ) : (
-            <Panel>
-              <StructuresTable structures={view.data.structures} sections={config?.sections ?? []} />
-            </Panel>
-          )}
+          <StructuresBanner />
+          <LiveStructures structures={view.data.structures} sections={config?.sections ?? []} />
+          <OtherStructures structures={view.data.structures} sections={config?.sections ?? []} />
           {accountant ? null : <ReadOnlyNote>{t("fees.structures.readOnly", { accountant: term("role.accountant") })}</ReadOnlyNote>}
         </>
       ) : null}
