@@ -156,13 +156,13 @@ Tests first. Fee structure with Admin approval, charge generation through the bi
 Grading policies (NEB credit-weighted GPA, percentage and division), bulk marks grid with draft-save, verify workflow, publish per class with gating, snapshot marks cards (2-3 templates), Top 20 with a tie-break rule, recheck, whole-class sheet, student result view, results-day load test.
 **Needs from client:** grading and ranking rules, optional subjects, year versus semester, components and maximum marks, marks-card format.
 
-**Progress** (approved 2026-09-28 with defaults; the NEB scale is unverified, D-079; design in `docs/superpowers/specs/2026-09-28-phase7-results-design.md`):
+**Progress** (approved 2026-09-28 with defaults; the NEB scale was accepted by the PM as it is, D-173; design in `docs/superpowers/specs/2026-09-28-phase7-results-design.md`):
 - [x] 1. Grading policies: NEB GPA (unverified, `OPEN:`) and percentage with division, ties sharing a rank, the policy on the programme (D-079)
 - [x] 2. Elective picks and the marks grid: draft-save, missing flagged, submit (D-080)
 - [x] 3. Verify, send back, bulk verify; publish a whole class per terminal with snapshot marks cards (D-081)
 - [x] 4. The student's results and card, the Top 20, the whole-class sheet and CSV, the screens and browser check (D-082)
 - [x] 5. Rechecks and the exit test for both schools (D-083)
-- [x] **Phase 7 complete (2026-09-28).** Not done: NEB verification, card templates and PDF, native Excel, the results-day load test, SMS; see D-083
+- [x] **Phase 7 complete (2026-09-28).** Not done: card templates and PDF (the NEB scale was accepted by the PM, D-173), native Excel, the results-day load test, SMS; see D-083
 - [x] **Rebuilt on the exam pattern (2026-10-06, D-117, at the PM's request):** one exam pattern per term, out of 100 (Grade system yes or no, terminals with weights adding up to 100, the practical per terminal, minimum % for theory and practical, grade ranges); a subject's paper (full marks, optional practical split); marks entered out of the paper and scaled; pass or fail on the final result only, published automatically with the last terminal; Top 20 on the final only. The per-programme grading policy, the coded NEB scale and GPA, the division and the free mark components are gone. Not done: credit hours and GPA (`OPEN:`), the design review with the `apple-design` skill (not installed in that session)
 
 ### Phase 8: Academic terms and their lifecycle (rewritten 2026-10-04, D-109)
@@ -171,9 +171,9 @@ Academic terms of any length replace the academic year as the unit of time: the 
 
 **Progress** (approved 2026-10-04):
 - [x] 1. Terms, their levels, opening and closing, the next term, and moving students with dues carried; screens for the Principal and the Co-ordinator; wording at every login (D-110)
-- [ ] 2. Waive-dues flow, +2 to Bachelor's handover, reactivation
+- [x] 2. Dropped by the PM (D-173): the +2 to Bachelor's handover and reactivation are fresh admissions, and the waive-dues flow is the Principal's discount (D-172). **Phase 8 is complete.**
 
-### Phase 9: Paid integrations
+### Phase 9: Paid integrations (parked by the PM, D-173: no gateway, SMS or paid service for now)
 Payment gateway with server-side confirmation, reconciliation job and exceptions screen. SMS provider (2FA, approvals, overdue, results published) with budget alert. Production email, error tracking, uptime, CDN.
 **Needs:** the school's merchant account, an SMS vendor, gateway sandbox access.
 
