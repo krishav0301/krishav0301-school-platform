@@ -263,17 +263,16 @@ describe("automatic charging", () => {
     expect(await chargesOf(fixture.pupils[0]!.enrollmentId)).toEqual([]);
   });
 
-  it("linking charges every student of the level once, each line due on the start date or the day they joined, with the balance right and the chain whole", async () => {
+  it("linking charges every student of the level once, each line due on the structure's last day, with the balance right and the chain whole", async () => {
     const linked = await link(accountant, structureId, [fixture.levelId]);
     expect(linked.body).toMatchObject({ charged: 4, pending: false });
     for (const pupil of fixture.pupils) {
       const charges = await chargesOf(pupil.enrollmentId);
-      // These pupils joined after the structure began, so each line is due on the day they joined.
       const joined = nepalDate(new Date((await db.prepare("SELECT created_at FROM enrollments WHERE public_id = ?1").bind(pupil.enrollmentId).first<{ created_at: string }>())!.created_at));
       expect(joined > YEAR.startDate).toBe(true);
       expect(charges.map((c) => [c.memo, c.amount_paisa, c.due_on])).toEqual([
-        ["Tuition", 800_000, joined],
-        ["Exam", 50_000, joined],
+        ["Tuition", 800_000, YEAR.endDate],
+        ["Exam", 50_000, YEAR.endDate],
       ]);
       expect(charges.every((c) => c.actor === accountant.publicId)).toBe(true); // the one who linked
     }

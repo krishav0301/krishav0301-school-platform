@@ -24,7 +24,7 @@ beforeAll(async () => {
   admin = await person("admin", "institution");
   coordinator = await person("coordinator", "institution");
   fixture = await classWith("plus2", 3);
-  await liveFees({ accountant, admin, sectionKey: "plus2", levelIds: [fixture.levelId], items: [{ name: "Annual fee", amountPaisa: 125_000_000 }] });
+  await liveFees({ accountant, admin, sectionKey: "plus2", levelIds: [fixture.levelId], items: [{ name: "Annual fee", amountPaisa: 125_000_000 }], endDate: "2026-10-01" }); // ended: what is unpaid is overdue (due on the last day)
   // Pupil 0 pays in full; pupil 1 pays part; pupil 2 pays nothing and has an email address.
   await post("/api/fees/payments/cash", { enrollmentId: fixture.pupils[0]!.enrollmentId, amountPaisa: 125_000_000, idempotencyKey: crypto.randomUUID().replace(/-/g, "") }, accountant);
   await post("/api/fees/payments/cash", { enrollmentId: fixture.pupils[1]!.enrollmentId, amountPaisa: 25_000_000, idempotencyKey: crypto.randomUUID().replace(/-/g, "") }, accountant);
@@ -51,6 +51,13 @@ describe("the dues list", () => {
     expect(row(0)).toMatchObject({ paidPaisa: 125_000_000, duePaisa: 0 });
     expect(row(1)).toMatchObject({ paidPaisa: 25_000_000, duePaisa: 100_000_000, overduePaisa: 100_000_000 });
     expect(list.totals.duePaisa).toBe(225_000_000);
+  });
+
+  it("a structure still running has nothing overdue: the fee is due on its last day, so it is only due until then", async () => {
+    const running = await classWith("bachelors", 1);
+    await liveFees({ accountant, admin, sectionKey: "bachelors", levelIds: [running.levelId], items: [{ name: "Running", amountPaisa: 500_000 }], endDate: "2099-12-31" });
+    const list = (await (await call(`/api/fees/dues?classId=${running.classId}`, { cookie: accountant.cookie })).json()) as { students: { enrollmentId: string; duePaisa: number; overduePaisa: number }[] };
+    expect(list.students.find((x) => x.enrollmentId === running.pupils[0]!.enrollmentId)).toMatchObject({ duePaisa: 500_000, overduePaisa: 0 });
   });
 
   it("names each student's own id, so a row opens their fee account (D-104)", async () => {

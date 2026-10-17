@@ -71,7 +71,7 @@ as the unlink, so a payment arriving at that moment cannot slip past it. After t
 period (section 5).
 
 **Charges and the statement.** A charge is a ledger entry for a line of the live version (the existing columns and the
-one-charge-per-line-per-student index hold). The **whole total is due on the period's start date** (the PM, 2026-10-17); a
+one-charge-per-line-per-student index hold). The **whole total is due on the period's last day** (changed 2026-10-17 from the start date: a fee is overdue only once the period has ended unpaid) (the PM, 2026-10-17); a
 student who joins later is due on the day they join, if that is after the start date. A student's fee statement
 reads: lines (their prices) → **total fees** → discount lines (the Principal's, negative) → **net fees** → payments →
 **balance**. The balance is the ledger's sum, never stored.
@@ -172,7 +172,7 @@ Each goes into `DECISIONS.md` as the PM's decision and into `CLAUDE.md`.
 
 ## 9. Decided by the PM (2026-10-17)
 
-The whole total of a period is due on its start date. A student the Co-ordinator asks to mark Left is marked Left only
+The whole total of a period is due on its last day. A student the Co-ordinator asks to mark Left is marked Left only
 when the Principal approves; then the fee account closes and freezes, any unpaid amount stays as owed, and no one can
 change it. Negotiations are done before the approval. There are no open questions.
 
@@ -258,4 +258,4 @@ staging first. Royal's staging fee data is UAT data. Lahan has fees off.
 ## 15. Not in this design
 
 Per-class fee overrides; late fees (out of scope, `CLAUDE.md` section 10); a real payment gateway (Phase 9);
-instalment plans (the whole total is due on the start date); partial reversal of a payment; reopening a closed account (never, section 8).
+instalment plans (the whole total is due on the last day); partial reversal of a payment; reopening a closed account (never, section 8).
