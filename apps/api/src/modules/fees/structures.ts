@@ -452,10 +452,9 @@ export async function chargeLinked(db: D1Database, key: string, scope: ChargeSco
   for (const w of work) {
     for (const line of lines.filter((l) => l.structure_id === w.version_id)) {
       const year = { bsYear: adToBs(w.start_date).year, startDate: w.start_date, endDate: w.end_date };
-      // Only a student who joined between the structure's first and last day is charged under it (the PM, 2026-10-17): one who
-      // joins after it ended is not (it is as if unlinked), nor is one who joined before it began.
-      const joinedOn = nepalDate(new Date(w.created_at));
-      if (line.frequency === "one_time" && (joinedOn < w.start_date || joinedOn > w.end_date)) continue;
+      // A student who joined by the structure's last day is charged under it, once it is linked and approved (one admitted early
+      // included); one who joins after it ended is not (the PM, 2026-10-17): it is as if unlinked.
+      if (line.frequency === "one_time" && nepalDate(new Date(w.created_at)) > w.end_date) continue;
       for (const charge of billingSchedule(line, year, { enrolledOn: nepalDate(new Date(w.created_at)), firstInProgramme: w.first_in_programme === 1 })) {
         // Billed under any version of this structure already (a line of an edited version is the same line, by its name).
         if (have.has(`${w.enrollment}|${w.root_id}|${line.name.toLowerCase()}|${charge.period}`)) continue;

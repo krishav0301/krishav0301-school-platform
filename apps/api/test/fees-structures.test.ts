@@ -370,7 +370,7 @@ describe("unlinking", () => {
   });
 });
 
-describe("a student is charged only for a structure they joined between the dates of (the PM, 2026-10-17)", () => {
+describe("a student is charged for a structure unless they joined after its last day (the PM, 2026-10-17)", () => {
   const plusDays = (days: number) => new Date(Date.now() + days * 86_400_000 + 345 * 60_000).toISOString().slice(0, 10);
 
   it("a structure whose last day has passed is as if unlinked: it cannot be linked again, and charges no one", async () => {
@@ -386,7 +386,7 @@ describe("a student is charged only for a structure they joined between the date
     expect(list.structures.find((x) => x.id === id)?.ended).toBe(true);
   });
 
-  it("only a student who joined between the first and last day is charged: not one who joins after it ended, nor one who joined before it began", async () => {
+  it("a student admitted early is charged once the structure is linked and approved; one who joins after it ended is not", async () => {
     const fixture = await classWith("plus2", 0);
     const id = await draftStructure(accountant, { sectionKey: "plus2", startDate: plusDays(-5), endDate: plusDays(5), items: [{ name: "Window", amountPaisa: 200_000 }] });
     await approveStructure(accountant, admin, id);
@@ -401,6 +401,6 @@ describe("a student is charged only for a structure they joined between the date
     await chargeLinked(db, auditKey);
     expect((await chargesOf(inside.enrollmentId)).map((c) => [c.memo, c.amount_paisa, c.due_on])).toEqual([["Window", 200_000, plusDays(5)]]);
     expect(await chargesOf(after.enrollmentId)).toEqual([]);
-    expect(await chargesOf(before.enrollmentId)).toEqual([]);
+    expect((await chargesOf(before.enrollmentId)).map((c) => [c.memo, c.amount_paisa])).toEqual([["Window", 200_000]]); // admitted before it began, charged once linked
   });
 });
