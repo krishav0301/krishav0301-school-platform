@@ -9,7 +9,7 @@ import { bsToAd, daysInMonth, todayBs } from "../../src/core/dates";
  * Made: the active year (or this BS year, made and activated), its exam pattern (D-117: graded, three terminals of
  * 30, 30 and 40, the practical in the second and last), class "A" of each level, five subjects (Physics and
  * Chemistry with a 75/25 practical) with credit hours, three teachers hired and assigned (a Class Teacher
- * for each class), six walk-in students per class, and a fee structure per level (approved by the Admin, charged).
+ * for each class), six walk-in students per class, and one fee structure for the programme (approved by the Admin, linked to both levels, so every student is charged).
  *
  * `OPEN:` the subjects, marks split, grade ranges, credit hours and fee amounts are stand-ins until the college gives
  * its own. The grade ranges are the widely republished NEB scale, unverified (D-079): a stand-in, not the real one.
@@ -84,10 +84,11 @@ const STUDENTS = [
   ["Sabina", "Tamang"],
 ] as const;
 
+/** The lines of the starter fee structure (D-172): one price each, the whole total due on the term's first day. */
 const FEES = [
-  { name: "Tuition", amountPaisa: 250_000, frequency: "monthly" },
-  { name: "Examination", amountPaisa: 300_000, frequency: "yearly" },
-  { name: "Admission", amountPaisa: 1_000_000, frequency: "one_time" },
+  { name: "Tuition", amountPaisa: 3_000_000 },
+  { name: "Examination", amountPaisa: 300_000 },
+  { name: "Admission", amountPaisa: 1_000_000 },
 ] as const;
 
 export class SeedError extends Error {}
@@ -117,7 +118,7 @@ export async function seedUat(call: Call, options: { tag: string; emailDomain?: 
 
   // The term (D-110): the open term that already runs these levels (a level is in only one open term); else this BS
   // year's, made by the Principal with them. Its levels are added if missing, and it is opened if still a draft.
-  type Year = { id: string; bsYear: number; label: string; status: string; levels: { id: string }[] };
+  type Year = { id: string; bsYear: number; label: string; status: string; startDate: string; endDate: string; levels: { id: string }[] };
   const levelIds = levels.map((l) => l.id);
   const { years } = await get<{ years: Year[] }>("/api/academics/years", "admin");
   const b = todayBs().year;
@@ -195,17 +196,20 @@ export async function seedUat(call: Call, options: { tag: string; emailDomain?: 
       });
       accounts.push({ role: "student", name: `${firstName} ${lastName}`, email: address, temporaryPassword: admitted.temporaryPassword, sid: admitted.sid, className });
     }
-
-    // Fees for the level: drafted by the Accountant, approved by the Admin, charged to the class.
-    const structureId = (await post<{ id: string }>("/api/fees/structures", "accountant", { levelId: level.id })).id;
-    for (const item of FEES) await post(`/api/fees/structures/${structureId}/items`, "accountant", item);
-    await post(`/api/fees/structures/${structureId}/send`, "accountant", {});
-    const { requests } = await get<{ requests: { id: string; subjectId: string }[] }>("/api/approvals", "admin");
-    const request = requests.find((r) => r.subjectId === structureId);
-    if (!request) throw new SeedError("The fee structure's approval request did not reach the Admin.");
-    await post(`/api/approvals/${request.id}/approve`, "admin");
-    await post(`/api/fees/structures/${structureId}/charges`, "accountant", { classId });
   }
+
+  // Fees: one structure for the programme, drafted by the Accountant, approved by the Admin, then linked to both levels, with
+  // no approval; every student of the two classes is charged at once (D-172).
+  const structureId = (
+    await post<{ id: string }>("/api/fees/structures", "accountant", { name: `${programme.name} fees`, sectionKey: programme.section.key, startDate: year.startDate, endDate: year.endDate })
+  ).id;
+  for (const item of FEES) await post(`/api/fees/structures/${structureId}/items`, "accountant", item);
+  await post(`/api/fees/structures/${structureId}/send`, "accountant", {});
+  const { requests } = await get<{ requests: { id: string; subjectId: string }[] }>("/api/approvals", "admin");
+  const request = requests.find((r) => r.subjectId === structureId);
+  if (!request) throw new SeedError("The fee structure's approval request did not reach the Admin.");
+  await post(`/api/approvals/${request.id}/approve`, "admin");
+  await post(`/api/fees/structures/${structureId}/levels`, "accountant", { levelIds: levels.map((l) => l.id) });
 
   return { yearLabel: year.label, classes, accounts };
 }

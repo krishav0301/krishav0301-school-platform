@@ -1,7 +1,9 @@
 import { beforeAll, describe, expect, it } from "vitest";
 
 import { formatNpr } from "../src/modules/fees/money";
-import { call, count, db, person, seedSections, type Person } from "./academics-helpers";
+import { call, db, person, seedSections, type Person } from "./academics-helpers";
+import { afterEach, vi } from "vitest";
+import { liveFees } from "./fees-helpers";
 import { classWith, type ClassFixture } from "./schoolday-helpers";
 
 /**
@@ -15,6 +17,13 @@ let fixture: ClassFixture;
 let accountant: Person, admin: Person, coordinator: Person;
 const post = (path: string, body: unknown, who: Person) => call(path, { method: "POST", body, cookie: who.cookie });
 
+afterEach(() => vi.useRealTimers());
+/** Three days on, after the structure has ended, with a fresh sign-in (a token is short-lived). */
+async function afterTheEnd(role: "accountant" | "admin"): Promise<Person> {
+  vi.useFakeTimers({ toFake: ["Date"], now: Date.now() + 3 * 86_400_000 });
+  return person(role, "institution");
+}
+
 beforeAll(async () => {
   await seedSections();
   // An email names the school, so the school must exist for one to be delivered.
@@ -23,12 +32,7 @@ beforeAll(async () => {
   admin = await person("admin", "institution");
   coordinator = await person("coordinator", "institution");
   fixture = await classWith("plus2", 3);
-  const structure = ((await (await post("/api/fees/structures", { levelId: fixture.levelId }, accountant)).json()) as { id: string }).id;
-  await post(`/api/fees/structures/${structure}/items`, { name: "Annual fee", amountPaisa: 125_000_000, frequency: "yearly" }, accountant);
-  await post(`/api/fees/structures/${structure}/send`, {}, accountant);
-  const request = (await db.prepare("SELECT public_id FROM approval_requests WHERE subject_public_id = ?1").bind(structure).first<{ public_id: string }>())!.public_id;
-  await post(`/api/approvals/${request}/approve`, undefined, admin);
-  await post(`/api/fees/structures/${structure}/charges`, { classId: fixture.classId }, accountant);
+  await liveFees({ accountant, admin, sectionKey: "plus2", levelIds: [fixture.levelId], items: [{ name: "Annual fee", amountPaisa: 125_000_000 }], endDate: new Date(Date.now() + 86_400_000).toISOString().slice(0, 10) }); // ends tomorrow: what is unpaid is overdue only once it has ended (due on the last day)
   // Pupil 0 pays in full; pupil 1 pays part; pupil 2 pays nothing and has an email address.
   await post("/api/fees/payments/cash", { enrollmentId: fixture.pupils[0]!.enrollmentId, amountPaisa: 125_000_000, idempotencyKey: crypto.randomUUID().replace(/-/g, "") }, accountant);
   await post("/api/fees/payments/cash", { enrollmentId: fixture.pupils[1]!.enrollmentId, amountPaisa: 25_000_000, idempotencyKey: crypto.randomUUID().replace(/-/g, "") }, accountant);
@@ -48,13 +52,21 @@ describe("NPR", () => {
 
 describe("the dues list", () => {
   it("gives each student's charged, paid, due and overdue, and the totals", async () => {
-    const response = await call(`/api/fees/dues?classId=${fixture.classId}`, { cookie: accountant.cookie });
+    const later = await afterTheEnd("accountant");
+    const response = await call(`/api/fees/dues?classId=${fixture.classId}`, { cookie: later.cookie });
     expect(response.status).toBe(200);
     const list = (await response.json()) as { students: { enrollmentId: string; paidPaisa: number; duePaisa: number; overduePaisa: number }[]; totals: { duePaisa: number } };
     const row = (i: number) => list.students.find((s) => s.enrollmentId === fixture.pupils[i]!.enrollmentId)!;
     expect(row(0)).toMatchObject({ paidPaisa: 125_000_000, duePaisa: 0 });
     expect(row(1)).toMatchObject({ paidPaisa: 25_000_000, duePaisa: 100_000_000, overduePaisa: 100_000_000 });
     expect(list.totals.duePaisa).toBe(225_000_000);
+  });
+
+  it("a structure still running has nothing overdue: the fee is due on its last day, so it is only due until then", async () => {
+    const running = await classWith("bachelors", 1);
+    await liveFees({ accountant, admin, sectionKey: "bachelors", levelIds: [running.levelId], items: [{ name: "Running", amountPaisa: 500_000 }], endDate: "2099-12-31" });
+    const list = (await (await call(`/api/fees/dues?classId=${running.classId}`, { cookie: accountant.cookie })).json()) as { students: { enrollmentId: string; duePaisa: number; overduePaisa: number }[] };
+    expect(list.students.find((x) => x.enrollmentId === running.pupils[0]!.enrollmentId)).toMatchObject({ duePaisa: 500_000, overduePaisa: 0 });
   });
 
   it("names each student's own id, so a row opens their fee account (D-104)", async () => {
@@ -76,22 +88,5 @@ describe("the dues list", () => {
   it("the Co-ordinator has no fees reports; a student none either", async () => {
     expect((await call("/api/fees/dues", { cookie: coordinator.cookie })).status).toBe(403);
     expect((await call("/api/fees/dues", { cookie: fixture.pupils[0]!.person.cookie })).status).toBe(403);
-  });
-});
-
-describe("overdue reminders", () => {
-  it("email the students with something overdue and an address, once a day however often it is pressed", async () => {
-    const before = await count("SELECT COUNT(*) AS n FROM outbox_events WHERE dedupe_key LIKE 'fee_overdue:%'");
-    const first = await post("/api/fees/reminders", undefined, accountant);
-    expect(first.status).toBe(200);
-    expect(((await first.json()) as { queued: number }).queued).toBe(1); // pupil 1 is overdue but has no email
-    await post("/api/fees/reminders", undefined, accountant);
-    expect(await count("SELECT COUNT(*) AS n FROM outbox_events WHERE dedupe_key LIKE 'fee_overdue:%'")).toBe(before + 1);
-    const mail = await db.prepare("SELECT body FROM dev_mailbox WHERE to_email = 'pupil2@example.com' ORDER BY id DESC LIMIT 1").first<{ body: string }>();
-    expect(mail?.body ?? "").toContain("12,50,000.00");
-  });
-
-  it("only the Accountant sends them", async () => {
-    for (const who of [admin, coordinator]) expect((await post("/api/fees/reminders", undefined, who)).status).toBe(403);
   });
 });

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 
 import { t, type MessageKey } from "@/i18n/messages";
+import { nprShort } from "@/fees/ReadFees";
 import { initials } from "@/people/access-model";
 import { FilterSelect, ListSkeleton, Pager, SearchBox } from "@/people/ListParts";
 import styles from "@/people/people-access.module.css";
@@ -82,7 +83,7 @@ export function nextFilters(current: Filters, patch: Partial<Filters>): Filters 
 }
 
 /** Loads one page as the filters change; the newest request wins. The counts and lists stay while a new page loads. */
-function useStudents() {
+export function useStudents() {
   const { api } = useSession();
   const [filters, setFilters] = useState<Filters>(NO_FILTERS);
   const [typed, setTyped] = useState("");
@@ -257,7 +258,7 @@ function ListState({ view, filtered, onRetry, onClear }: { view: View; filtered:
 const STATUS_WORD: Record<BrowsedStudent["status"], MessageKey> = { active: "admissions.student.active", left: "admissions.student.left", graduated: "admissions.student.graduated" };
 
 /** One row per student: name and SID, class, term, guardian's phone, status, and the record. Pure. */
-export function StudentsTable({ students }: { students: readonly BrowsedStudent[] }) {
+export function StudentsTable({ students, payment = false, balances }: { students: readonly BrowsedStudent[]; payment?: boolean; balances?: ReadonlyMap<string, { duePaisa: number; balancePaisa: number }> | null }) {
   return (
     <table className={styles.table}>
       <thead>
@@ -265,9 +266,9 @@ export function StudentsTable({ students }: { students: readonly BrowsedStudent[
           <th scope="col">{t("students.col.name")}</th>
           <th scope="col">{t("students.col.course")}</th>
           <th scope="col">{t("students.col.class")}</th>
-          <th scope="col">{t("students.col.term")}</th>
+          <th scope="col">{t(payment ? "payments.col.due" : "students.col.term")}</th>
           <th scope="col">{t("students.col.guardian")}</th>
-          <th scope="col">{t("content.col.status")}</th>
+          <th scope="col">{t(payment ? "payments.col.credit" : "content.col.status")}</th>
           <th scope="col">
             <span className="sr-only">{t("content.col.actions")}</span>
           </th>
@@ -276,7 +277,8 @@ export function StudentsTable({ students }: { students: readonly BrowsedStudent[
       <tbody>
         {students.map((s) => {
           const name = `${s.firstName} ${s.lastName}`;
-          const href = `/portal/admissions/student?id=${s.id}`;
+          // The Accountant's list opens the fee account to record a payment; everyone else's opens the record.
+          const href = payment ? `/portal/fees/student?id=${s.id}` : `/portal/admissions/student?id=${s.id}`;
           return (
             <tr key={s.id}>
               <td className={styles.nameCell}>
@@ -309,17 +311,25 @@ export function StudentsTable({ students }: { students: readonly BrowsedStudent[
                   <span className={styles.muted}>{t("students.noClass")}</span>
                 )}
               </td>
-              <td data-label={t("students.col.term")}>{s.term ? s.term.label : <span className={styles.muted}>—</span>}</td>
+              {payment ? (
+                <td data-label={t("payments.col.due")}>{balances?.get(s.id) ? nprShort(balances.get(s.id)!.duePaisa) : <span className={styles.muted}>—</span>}</td>
+              ) : (
+                <td data-label={t("students.col.term")}>{s.term ? s.term.label : <span className={styles.muted}>—</span>}</td>
+              )}
               <td data-label={t("students.col.guardian")}>{s.guardianPhone}</td>
-              <td data-label={t("content.col.status")}>
-                <span className={styles.statusPill} data-active={s.status === "active"}>
-                  <span className={styles.dot} aria-hidden />
-                  {t(STATUS_WORD[s.status])}
-                </span>
-              </td>
+              {payment ? (
+                <td data-label={t("payments.col.credit")}>{balances?.get(s.id) ? nprShort(Math.max(0, -balances.get(s.id)!.balancePaisa)) : <span className={styles.muted}>—</span>}</td>
+              ) : (
+                <td data-label={t("content.col.status")}>
+                  <span className={styles.statusPill} data-active={s.status === "active"}>
+                    <span className={styles.dot} aria-hidden />
+                    {t(STATUS_WORD[s.status])}
+                  </span>
+                </td>
+              )}
               <td className={styles.actionsCell}>
-                <Link href={href} className={styles.viewLink} aria-label={t("admissions.search.open", { name })}>
-                  {t("students.openRecord")}
+                <Link href={href} className={styles.viewLink} aria-label={t(payment ? "payments.openNamed" : "admissions.search.open", { name })}>
+                  {t(payment ? "payments.record" : "students.openRecord")}
                 </Link>
               </td>
             </tr>

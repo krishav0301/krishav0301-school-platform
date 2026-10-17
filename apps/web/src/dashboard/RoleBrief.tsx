@@ -11,7 +11,6 @@ import {
   Globe,
   NotebookPen,
   PencilLine,
-  Receipt,
   School,
   Search,
   UserCheck,
@@ -55,7 +54,6 @@ export const ROLE_BRIEFS: Record<"coordinator" | "accountant" | "teacher" | "stu
     lines: [
       { href: "/portal/fees/structures", icon: FileText, title: "brief.accountant.structures", module: "fees" },
       { href: "/portal/fees", icon: Wallet, title: "brief.accountant.payments", module: "fees" },
-      { href: "/portal/fees/vouchers", icon: Receipt, title: "brief.accountant.vouchers", module: "fees" },
       { href: "/portal/fees/dues", icon: Search, title: "brief.accountant.dues", module: "fees" },
       { href: "/portal/admissions/register", icon: ClipboardList, title: "brief.accountant.register" },
     ],

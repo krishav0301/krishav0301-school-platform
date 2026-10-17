@@ -99,33 +99,35 @@ describe.each([
   });
 
   it("the fee structure: drafted, not the Co-ordinator's, approved by an Admin, charges made", async () => {
-    expect((await post("/api/fees/structures", { levelId: state.levelId }, cookies.coordinator)).status).toBe(403);
-    state.structureId = await idOf(await post("/api/fees/structures", { levelId: state.levelId }, cookies.accountant));
-    expect((await post(`/api/fees/structures/${state.structureId}/items`, { name: "Tuition", amountPaisa: 150_000, frequency: "monthly" }, cookies.accountant)).status).toBe(201);
-    expect((await post(`/api/fees/structures/${state.structureId}/items`, { name: "Exam", amountPaisa: 200_000, frequency: "yearly" }, cookies.accountant)).status).toBe(201);
+    const b = todayBs().year;
+    const shape = { name: "Exit fees", sectionKey: pack.sections[0]!.key, startDate: bsToAd({ year: b, month: 1, day: 1 }), endDate: bsToAd({ year: b, month: 12, day: daysInMonth(b, 12) }) };
+    expect((await post("/api/fees/structures", shape, cookies.coordinator)).status).toBe(403);
+    state.structureId = await idOf(await post("/api/fees/structures", shape, cookies.accountant));
+    expect((await post(`/api/fees/structures/${state.structureId}/items`, { name: "Tuition", amountPaisa: 150_000 }, cookies.accountant)).status).toBe(201);
+    expect((await post(`/api/fees/structures/${state.structureId}/items`, { name: "Exam", amountPaisa: 200_000 }, cookies.accountant)).status).toBe(201);
     expect((await post(`/api/fees/structures/${state.structureId}/send`, {}, cookies.accountant)).status).toBe(201);
     expect((await approveLatest(state.structureId!, cookies.admin)).status).toBe(200);
-    const made = await post(`/api/fees/structures/${state.structureId}/charges`, { classId: state.classId }, cookies.accountant);
-    expect(((await made.json()) as { created: number }).created).toBeGreaterThanOrEqual(4);
+    // Linked to the level, with no approval: every student of it is charged at once.
+    const made = await post(`/api/fees/structures/${state.structureId}/levels`, { levelIds: [state.levelId] }, cookies.accountant);
+    expect(((await made.json()) as { charged: number }).charged).toBeGreaterThanOrEqual(4);
   });
 
-  it("payments: cash and a verified voucher, each with the next receipt number", async () => {
+  it("payments: two cash payments, each with the next receipt number", async () => {
     const sita = (await (await call("/api/fees/me", { cookie: cookies.Sita })).json()) as { enrollmentId: string; chargedPaisa: number };
     expect(sita.chargedPaisa).toBeGreaterThan(0);
     const cash = (await (await post("/api/fees/payments/cash", { enrollmentId: sita.enrollmentId, amountPaisa: 100_000, idempotencyKey: key() }, cookies.accountant)).json()) as { paymentId: string; receipt: { number: string } };
     state.paymentId = cash.paymentId;
-    const voucherId = await idOf(await post("/api/fees/me/vouchers", { amountPaisa: 50_000, bank: "Nabil Bank", reference: `EXIT-${key().slice(0, 6)}`, paidOn: bsToAd(todayBs()) }, cookies.Sita));
-    const verified = (await (await post(`/api/fees/vouchers/${voucherId}/verify`, {}, cookies.accountant)).json()) as { receipt: { number: string } };
+    const verified = (await (await post("/api/fees/payments/cash", { enrollmentId: sita.enrollmentId, amountPaisa: 50_000, idempotencyKey: key() }, cookies.accountant)).json()) as { receipt: { number: string } };
     const seq = (n: string) => Number(n.split("-").at(-1));
     expect(seq(verified.receipt.number)).toBe(seq(cash.receipt.number) + 1);
   });
 
-  it("a discount and a reversal apply only once an Admin approves them", async () => {
+  it("a discount applies at once when the Principal gives it; a reversal only once an Admin approves it", async () => {
     const before = (await (await call("/api/fees/me", { cookie: cookies.Sita })).json()) as { enrollmentId: string; discountPaisa: number; paidPaisa: number };
-    const discountId = await idOf(await post(`/api/fees/enrollments/${before.enrollmentId}/discounts`, { amountPaisa: 20_000, reason: "sibling" }, cookies.accountant));
+    const discountId = await idOf(await post(`/api/fees/enrollments/${before.enrollmentId}/discounts`, { amountPaisa: 20_000, reason: "sibling" }, cookies.admin));
     const reversalId = await idOf(await post(`/api/fees/payments/${state.paymentId}/reversal`, { reason: "Recorded twice" }, cookies.accountant));
-    expect(((await (await call("/api/fees/me", { cookie: cookies.Sita })).json()) as { discountPaisa: number }).discountPaisa).toBe(0);
-    expect((await approveLatest(discountId, cookies.admin)).status).toBe(200);
+    expect(((await (await call("/api/fees/me", { cookie: cookies.Sita })).json()) as { discountPaisa: number }).discountPaisa).toBe(20_000);
+    expect(discountId).toBeTruthy();
     expect((await approveLatest(reversalId, cookies.admin)).status).toBe(200);
     const after = (await (await call("/api/fees/me", { cookie: cookies.Sita })).json()) as { discountPaisa: number; paidPaisa: number; receipts: { reversed: boolean }[] };
     expect(after.discountPaisa).toBe(20_000);

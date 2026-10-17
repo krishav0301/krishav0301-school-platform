@@ -249,7 +249,7 @@ describe("a student's record from the Students page (admin FUT F-09)", () => {
   it("search results open the record, which shows the personal details read only", () => {
     const html = inContext(
       <StudentDetails
-        student={{ id: "s1", sid: "2083-00012", firstName: "Rishav", middleName: null, lastName: "Kumar", dob: "2008-05-01", dobBs: "2065-01-19", phone: "9800000000", email: null, guardianName: "Ram Kumar", guardianPhone: "9811111111", previousSchool: null, status: "active", className: "BBS · Year 1", place: { wing: "Bachelor of Engineering", course: "Information Science and Engineering", level: "4th Semester", section: "Evening", term: "2083" }, createdAt: "2026-09-01T00:00:00Z" }}
+        student={{ id: "s1", sid: "2083-00012", firstName: "Rishav", middleName: null, lastName: "Kumar", dob: "2008-05-01", dobBs: "2065-01-19", phone: "9800000000", email: null, guardianName: "Ram Kumar", guardianPhone: "9811111111", previousSchool: null, status: "active", className: "BBS · Year 1", place: { wing: "Bachelor of Engineering", course: "Information Science and Engineering", level: "4th Semester", section: "Evening", term: "2083" }, createdAt: "2026-09-01T00:00:00Z", enrollmentId: null, leaveRequested: false }}
       />,
       as("admin"),
     );
@@ -264,7 +264,7 @@ describe("a student's record from the Students page (admin FUT F-09)", () => {
   });
 
   it("says Active, Left or Graduated in words, and offers the fee account only where asked (D-104)", () => {
-    const student = { id: "s1", sid: "2083-00012", firstName: "Rishav", middleName: null, lastName: "Kumar", dob: "2008-05-01", dobBs: "2065-01-19", phone: null, email: null, guardianName: "Ram Kumar", guardianPhone: "9811111111", previousSchool: null, status: "left" as const, className: null, place: null, createdAt: "2026-09-01T00:00:00Z" };
+    const student = { id: "s1", sid: "2083-00012", firstName: "Rishav", middleName: null, lastName: "Kumar", dob: "2008-05-01", dobBs: "2065-01-19", phone: null, email: null, guardianName: "Ram Kumar", guardianPhone: "9811111111", previousSchool: null, status: "left" as const, className: null, place: null, createdAt: "2026-09-01T00:00:00Z", enrollmentId: null, leaveRequested: false };
     const html = inContext(<StudentDetails student={student} feesLink />, as("admin"));
     expect(html).toContain(">Left<");
     expect(html).toContain('href="/portal/fees/student?id=s1"');
@@ -307,7 +307,7 @@ describe("a student entered with only a name (the PM, 2026-10-10)", () => {
   it("the record says Not given for what was left out, not a blank or a dash", () => {
     const html = inContext(
       <StudentDetails
-        student={{ id: "s1", sid: "2083-00013", firstName: "Gita", middleName: null, lastName: "", dob: null, dobBs: null, phone: "", email: "gita@student.com", guardianName: "", guardianPhone: "", previousSchool: null, status: "active", className: null, place: null, createdAt: "2026-09-01T00:00:00Z" }}
+        student={{ id: "s1", sid: "2083-00013", firstName: "Gita", middleName: null, lastName: "", dob: null, dobBs: null, phone: "", email: "gita@student.com", guardianName: "", guardianPhone: "", previousSchool: null, status: "active", className: null, place: null, createdAt: "2026-09-01T00:00:00Z", enrollmentId: null, leaveRequested: false }}
       />,
       as("coordinator"),
     );

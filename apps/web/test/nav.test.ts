@@ -39,7 +39,7 @@ describe("the real menu", () => {
     // Reports too: the Co-ordinator holds the student and results reports (Co-ordinator FUT F-10).
     expect(seen("coordinator", "institution")).toEqual(["content", "setup", "people", "admissions", "attendance", "classwork", "reports", "settings"]);
     expect(seen("coordinator", "section")).toEqual(["content", "setup", "people", "admissions", "attendance", "classwork", "reports", "settings"]);
-    expect(seen("accountant", "institution")).toEqual(["dashboard", "admissions", "settings"]);
+    expect(seen("accountant", "institution")).toEqual(["settings"]);
     expect(seen("teacher", "assigned")).toEqual(["classes", "attendance", "classwork", "settings"]);
     expect(seen("student", "own")).toEqual(["classwork", "settings"]);
     // D-091: Settings is everyone's; Reports only the Principal's and Support's.
@@ -47,7 +47,7 @@ describe("the real menu", () => {
 
   it("fees are in the menu for the Accountant and the student; never the Co-ordinator or a teacher; the Principal reads them on a student's record (D-121)", () => {
     const withFees = { attendance: true, activity_log: true, fees: true };
-    expect(seen("accountant", "institution", withFees)).toEqual(["dashboard", "admissions", "fees", "settings"]);
+    expect(seen("accountant", "institution", withFees)).toEqual(["payments", "fees", "settings"]); // no Overview, no Admissions: Students (record a payment) and Fees (the PM, 2026-10-17)
     expect(seen("student", "own", withFees)).toEqual(["classwork", "fees", "settings"]);
     expect(seen("admin", "institution", withFees)).not.toContain("fees");
     expect(seen("coordinator", "institution", withFees)).not.toContain("fees");
@@ -197,10 +197,10 @@ describe("the Classwork entry follows the daily log, homework and notes (D-139, 
 describe("the Principal's menu says Students where the others say Admissions (the PM, 2026-10-11)", () => {
   const label = (roles: { role: string; scope: "institution" }[]) => visibleNav(NAV_ITEMS, roles, { activity_log: true }).find((i) => i.id === "admissions")?.labelKey;
 
-  it("the Principal alone sees Students; the Co-ordinator, the Accountant and a Principal who is also a Co-ordinator keep Admissions", () => {
+  it("the Principal alone sees Students; the Co-ordinator and a Principal who is also a Co-ordinator keep Admissions; the Accountant has none", () => {
     expect(label([{ role: "admin", scope: "institution" }])).toBe("nav.students");
     expect(label([{ role: "coordinator", scope: "institution" }])).toBe("nav.admissions");
-    expect(label([{ role: "accountant", scope: "institution" }])).toBe("nav.admissions");
+    expect(label([{ role: "accountant", scope: "institution" }])).toBeUndefined();
     expect(label([{ role: "admin", scope: "institution" }, { role: "coordinator", scope: "institution" }])).toBe("nav.admissions");
   });
 });

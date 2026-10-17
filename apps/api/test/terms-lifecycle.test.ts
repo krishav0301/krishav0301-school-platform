@@ -6,6 +6,7 @@ import { newPublicId } from "../src/core/ids";
 import { verifyLedgerChain } from "../src/modules/fees/ledger";
 import { billingSchedule, termMonths } from "../src/modules/fees/policy";
 import { auditKey, call, count, db, person, seedSections, type Person } from "./academics-helpers";
+import { liveFees } from "./fees-helpers";
 
 /**
  * A semester school through the real routes (D-109, D-110): the Principal makes a semester term beside a yearly one, the
@@ -114,12 +115,7 @@ describe("a semester school beside a yearly one", () => {
   });
 
   it("the Accountant bills the term once; a receipt carries the term's code", async () => {
-    const structure = (await ok<{ id: string }>(await post("/api/fees/structures", { levelId: s.sems[0] }, accountant), 201)).id;
-    await ok(await post(`/api/fees/structures/${structure}/items`, { name: "Tuition", amountPaisa: 600_000, frequency: "yearly" }, accountant), 201);
-    await ok(await post(`/api/fees/structures/${structure}/send`, {}, accountant), 201);
-    const request = (await db.prepare("SELECT public_id FROM approval_requests WHERE subject_public_id = ?1").bind(structure).first<{ public_id: string }>())!.public_id;
-    await ok(await post(`/api/approvals/${request}/approve`, undefined, principal));
-    await ok(await post(`/api/fees/structures/${structure}/charges`, { classId: s.classes.sem1 }, accountant));
+    await liveFees({ accountant, admin: principal, sectionKey: "bachelors", levelIds: [s.sems[0]!], items: [{ name: "Tuition", amountPaisa: 600_000 }], startDate: termStart, endDate: new Date(Date.now() + 120 * 86_400_000).toISOString().slice(0, 10) }); // runs until after today: these students joined today, between its dates
     // Once a term (D-110): one charge.
     expect(await count("SELECT COUNT(*) AS n FROM ledger_entries le JOIN enrollments en ON en.id = le.enrollment_id WHERE en.public_id = ?1 AND le.kind = 'charge'", s.enrollments.Asha!)).toBe(1);
 
@@ -129,6 +125,8 @@ describe("a semester school beside a yearly one", () => {
     // Bikash owes nothing yet: his charge was made too, so pay it all.
     const owed = (await db.prepare("SELECT SUM(le.amount_paisa) AS n FROM ledger_entries le JOIN enrollments en ON en.id = le.enrollment_id WHERE en.public_id = ?1").bind(s.enrollments.Bikash).first<{ n: number }>())!.n;
     await ok(await post("/api/fees/payments/cash", { enrollmentId: s.enrollments.Bikash, amountPaisa: owed, idempotencyKey: newPublicId() }, accountant), 201);
+    // Chandra has paid 200 ahead of any charge: a credit. It goes with her into the next term, as an unpaid due would.
+    await ok(await post("/api/fees/payments/cash", { enrollmentId: s.enrollments.Chandra, amountPaisa: 20_000, idempotencyKey: newPublicId() }, accountant), 201);
   });
 
   it("the Principal cannot close the term until every class's results are published; then it closes and refuses writes", async () => {
@@ -166,7 +164,7 @@ describe("a semester school beside a yearly one", () => {
     s.nextClasses.sem4 = (await ok<{ id: string }>(await post("/api/academics/classes", { yearId: s.next, levelId: s.sems[3], label: "A" }, coordinator), 201)).id;
   });
 
-  it("the Co-ordinator moves each student on: promote carries what is owed, once; leaving needs nothing owed", async () => {
+  it("the Co-ordinator moves each student on: promote carries what is owed, once; leaving goes to the Principal", async () => {
     const board = await ok<{ termId: string; classes: { classId: string; nextLevelId: string | null; students: { enrollmentId: string; outcome: string; balancePaisa: number }[] }[]; targets: { classId: string }[] }>(
       await get("/api/promotions", coordinator),
     );
@@ -201,7 +199,7 @@ describe("a semester school beside a yearly one", () => {
     expect(again.results[0]).toEqual({ enrollmentId: s.enrollments.Asha, ok: false, reason: "already_moved" });
     expect(await carried()).toBe(1);
 
-    // Bikash paid everything, so he may leave; Chandra is promoted to Semester 4 with nothing owed.
+    // Bikash leaves (the Principal decides, owed or not); Chandra is promoted to Semester 4 with nothing owed.
     const second = await ok<{ results: { ok: boolean; carriedDues?: boolean }[] }>(
       await post(
         "/api/promotions",
@@ -209,16 +207,27 @@ describe("a semester school beside a yearly one", () => {
         coordinator,
       ),
     );
-    expect(second.results).toMatchObject([{ ok: true }, { ok: true, carriedDues: false }]);
-    expect((await db.prepare("SELECT st.status FROM students st JOIN enrollments en ON en.student_id = st.id WHERE en.public_id = ?1").bind(s.enrollments.Bikash).first<{ status: string }>())!.status).toBe("left");
+    expect(second.results).toMatchObject([{ ok: true, pending: true }, { ok: true, carriedDues: false }]);
+    // Her credit is in the new term's account (a payment entry with no receipt, which cannot be reversed), once.
+    const newChandra = (second.results[1] as { newEnrollmentId?: string }).newEnrollmentId!;
+    const credit = () => db.prepare("SELECT le.amount_paisa, le.source_type FROM ledger_entries le JOIN enrollments en ON en.id = le.enrollment_id WHERE en.public_id = ?1").bind(newChandra).all<{ amount_paisa: number; source_type: string }>().then((r) => r.results);
+    expect(await credit()).toEqual([{ amount_paisa: -20_000, source_type: "carried_credit" }]);
+    await post("/api/promotions", { moves: [{ enrollmentId: s.enrollments.Chandra, action: "promote", classId: s.nextClasses.sem4 }] }, coordinator);
+    expect((await credit()).length).toBe(1);
+    const carriedId = (await db.prepare("SELECT le.public_id FROM ledger_entries le JOIN enrollments en ON en.id = le.enrollment_id WHERE en.public_id = ?1").bind(newChandra).first<{ public_id: string }>())!.public_id;
+    expect((await post(`/api/fees/payments/${carriedId}/reversal`, { reason: "Trying to undo the carried credit" }, accountant)).status).toBe(404);
+    const statusOfBikash = async () => (await db.prepare("SELECT st.status FROM students st JOIN enrollments en ON en.student_id = st.id WHERE en.public_id = ?1").bind(s.enrollments.Bikash).first<{ status: string }>())!.status;
+    expect(await statusOfBikash()).toBe("active"); // not Left until the Principal approves
+    const requestId = (await db.prepare("SELECT ar.public_id FROM approval_requests ar JOIN student_leave_requests lr ON lr.public_id = ar.subject_public_id JOIN enrollments en ON en.id = lr.enrollment_id WHERE en.public_id = ?1").bind(s.enrollments.Bikash).first<{ public_id: string }>())!.public_id;
+    await ok(await post(`/api/approvals/${requestId}/approve`, undefined, principal));
+    expect(await statusOfBikash()).toBe("left");
 
     const after = await ok<{ classes: { students: { enrollmentId: string; outcome: string; movedTo: string | null }[] }[] }>(await get(`/api/promotions?term=${s.odd}`, coordinator));
     const outcomes = Object.fromEntries(after.classes.flatMap((c) => c.students).map((st) => [st.enrollmentId, st.outcome]));
     expect(outcomes).toEqual({ [s.enrollments.Asha!]: "promoted", [s.enrollments.Bikash!]: "left", [s.enrollments.Chandra!]: "promoted" });
   });
 
-  it("leaving with dues is refused; another section's Co-ordinator and a student get nothing", async () => {
-    // A fresh student in the new term owes nothing there yet, but Asha's carried dues stop her leaving after the next close.
+  it("another section's Co-ordinator and a student get nothing", async () => {
     expect((await get("/api/promotions", student)).status).toBe(403);
     const theirs = await ok<{ classes: unknown[] }>(await get(`/api/promotions?term=${s.odd}`, plus2Coordinator));
     expect(theirs.classes).toEqual([]);

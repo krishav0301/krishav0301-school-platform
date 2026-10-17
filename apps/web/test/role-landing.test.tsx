@@ -55,18 +55,18 @@ describe("the landing page of the Co-ordinator, Teacher and Student (the PM, 202
     expect(new Set(codes).size).toBe(3);
   });
 
-  it("is the portal's home for these three roles; the Principal keeps the dashboard and the Accountant their fees day", () => {
+  it("is the portal's home for these three roles; the Principal keeps the dashboard; the Accountant lands on Students", () => {
     expect(render(<PortalPage />, [{ role: "coordinator", scope: "institution" }])).toContain("Choose a place in the menu to begin.");
     expect(render(<PortalPage />, [{ role: "student", scope: "own" }])).toContain("Choose a place in the menu to begin.");
-    expect(render(<PortalPage />, [{ role: "accountant", scope: "institution" }])).toContain("What you can do as Accountant");
+    expect(render(<PortalPage />, [{ role: "accountant", scope: "institution" }])).not.toContain("Choose a place in the menu");
     expect(render(<PortalPage />, [{ role: "admin", scope: "institution" }])).not.toContain("Choose a place in the menu");
   });
 
-  it("their menu has no Overview; the Principal, Support and the Accountant keep theirs", () => {
+  it("their menu has no Overview; the Principal and Support keep theirs", () => {
     const has = (role: string) => visibleNav(NAV_ITEMS, [{ role }], { results: true, attendance: true, fees: true }).some((i) => i.id === "dashboard");
-    expect(["coordinator", "teacher", "student"].map(has)).toEqual([false, false, false]);
-    expect(["admin", "super_admin", "accountant"].map(has)).toEqual([true, true, true]);
+    expect(["coordinator", "teacher", "student", "accountant"].map(has)).toEqual([false, false, false, false]);
+    expect(["admin", "super_admin"].map(has)).toEqual([true, true]);
     // Someone with two roles keeps it if either needs it.
-    expect(visibleNav(NAV_ITEMS, [{ role: "teacher" }, { role: "accountant" }], {}).some((i) => i.id === "dashboard")).toBe(true);
+    expect(visibleNav(NAV_ITEMS, [{ role: "teacher" }, { role: "admin" }], {}).some((i) => i.id === "dashboard")).toBe(true);
   });
 });

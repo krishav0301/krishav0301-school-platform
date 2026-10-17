@@ -22,19 +22,21 @@ export async function enrollmentBalances(db: D1Database, enrollmentPublicIds: re
   return new Map(results.map((r) => [r.public_id, r.balance]));
 }
 
-export type CarryResult = "carried" | "nothing_owed" | "already_carried" | "not_applied";
+export type CarryResult = "carried" | "credit_carried" | "nothing_owed" | "already_carried" | "not_applied";
 
 /**
- * Carries what `from` still owes into `to`, due on `dueOn`. Safe to repeat: a second call finds it already carried. Only
- * an amount owed is carried; a credit stays with the old enrollment (OPEN: what happens to a credit at promotion).
+ * Carries what `from` still owes into `to`, due on `dueOn`, or the credit it holds (D-172: a credit goes with the student too,
+ * and is used up when the new term's fees are charged). A credit is a negative `payment` entry from source `carried_credit`: it
+ * has no receipt, so it cannot be reversed. Safe to repeat: a second call finds it already carried.
  */
 export async function carryDues(db: D1Database, key: string, actor: string, from: string, to: string, dueOn: string): Promise<CarryResult> {
   const owed = (await enrollmentBalances(db, [from])).get(from) ?? 0;
-  if (owed <= 0) return "nothing_owed";
+  if (owed === 0) return "nothing_owed";
+  const credit = owed < 0;
   const outcome = await writeMoney(
     db,
     key,
-    { action: "fees.dues.carried", entityType: "enrollment", entityPublicId: to, actorPublicId: actor, summary: `Dues of ${owed} paisa carried into the new term`, after: { from, amountPaisa: owed } },
+    { action: credit ? "fees.credit.carried" : "fees.dues.carried", entityType: "enrollment", entityPublicId: to, actorPublicId: actor, summary: credit ? `Credit of ${-owed} paisa carried into the new term` : `Dues of ${owed} paisa carried into the new term`, after: { from, amountPaisa: owed } },
     async (head) =>
       (
         await ledgerInserts(
@@ -45,12 +47,12 @@ export async function carryDues(db: D1Database, key: string, actor: string, from
             {
               publicId: newPublicId(),
               enrollmentPublicId: to,
-              kind: "carried_dues",
+              kind: credit ? "payment" : "carried_dues",
               amountPaisa: owed,
-              dueOn,
-              sourceType: "carried_dues",
+              ...(credit ? {} : { dueOn }),
+              sourceType: credit ? "carried_credit" : "carried_dues",
               sourcePublicId: from,
-              memo: "Carried from the previous term",
+              memo: credit ? "Credit carried from the previous term" : "Carried from the previous term",
               actorPublicId: actor,
               createdAt: new Date().toISOString(),
             },
@@ -60,7 +62,7 @@ export async function carryDues(db: D1Database, key: string, actor: string, from
         )
       ).statements,
   );
-  if (outcome === "done") return "carried";
+  if (outcome === "done") return credit ? "credit_carried" : "carried";
   if (outcome === "duplicate") return "already_carried";
   return "not_applied";
 }

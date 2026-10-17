@@ -11,7 +11,8 @@ import { registerSetupMap } from "./modules/academics/map-routes";
 import { registerSubjects } from "./modules/academics/subject-routes";
 import { registerAccounts } from "./modules/accounts/routes";
 import { registerStaff } from "./modules/accounts/staff-routes";
-import { registerAdmissions } from "./modules/admissions";
+import { registerAdmissions, studentLeaveApprovalHandler } from "./modules/admissions";
+import { registerApprovalHandler } from "./modules/approvals/service";
 import { registerAttendance } from "./modules/attendance";
 import { registerClasswork } from "./modules/classwork";
 import { registerApprovals } from "./modules/approvals/routes";
@@ -50,6 +51,7 @@ export function createApp() {
   // never imports a specific kind's module (D-061).
   registerContentApprovalHandler();
   registerFeesApprovalHandlers();
+  registerApprovalHandler("student_leave", studentLeaveApprovalHandler);
 
   registerHealth(app);
   registerAuth(app);

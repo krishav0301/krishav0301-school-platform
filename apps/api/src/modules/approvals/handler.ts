@@ -32,10 +32,22 @@ export interface ApprovalHandler {
   detail?(db: D1Database, subjectId: number): Promise<ApprovalDetail | null>;
   /** The subject's own version fingerprint right now. Null when gone. */
   currentVersion(db: D1Database, subjectId: number): Promise<number | null>;
+  /**
+   * Something that must be put right before this request can be approved: its plain-words reason, or null when nothing stands in
+   * the way (a student's fee account must be settled before they are marked Left, D-172). Checked before the approval, and the
+   * handler's own statements check it again inside the batch.
+   */
+  blocker?(db: D1Database, subjectId: number): Promise<string | null>;
   /** Runs FIRST in the "send for approval" batch, conditioned on the subject's own "may be sent" state. */
   onRequested(db: D1Database, subjectId: number): D1PreparedStatement[];
   /** Runs FIRST in the "approve" batch, conditioned on the subject's own "is pending" state. */
   onApproved(db: D1Database, subjectId: number, context: ApprovalContext): Statements;
+  /**
+   * Runs after an approval has been applied, outside its batch and best effort (a failure is logged, never undone): work the
+   * approval started but that is too large or too slow for the batch itself, and that its owner can also finish later (fees:
+   * the price corrections of a new version, D-172).
+   */
+  afterApproved?(db: D1Database, auditKey: string, subjectId: number): Promise<void>;
   /** Runs FIRST in the "decline" or "withdraw" batch: reverts the subject to its pre-request state. */
   onResolved(db: D1Database, subjectId: number): D1PreparedStatement[];
 }

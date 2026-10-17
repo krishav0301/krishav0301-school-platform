@@ -36,7 +36,7 @@ export const MAX_TABS = 5;
 
 export const NAV_ITEMS: readonly NavItem[] = [
   // The Principal's dashboard and the Accountant's fees day. The Co-ordinator, Teacher and Student have no Overview: they open on a hero page and start from the menu (the PM, 2026-10-17).
-  { id: "dashboard", labelKey: "nav.dashboard", href: "/portal", roles: ["admin", "super_admin", "accountant"], icon: "overview" },
+  { id: "dashboard", labelKey: "nav.dashboard", href: "/portal", roles: ["admin", "super_admin"], icon: "overview" },
   // FUT point 19 (D-116): a class as one page, for the staff who work with classes. A teacher sees the classes they teach.
   // D-130 (the PM): the Co-ordinator reaches the same page as Setup's Classes tab, so it is not in their menu.
   { id: "classes", labelKey: "nav.classes", href: "/portal/classes", roles: ["teacher", "admin", "super_admin"], icon: "classes" },
@@ -55,7 +55,7 @@ export const NAV_ITEMS: readonly NavItem[] = [
   { id: "approvals", labelKey: "nav.approvals", href: "/portal/approvals", roles: ["admin", "super_admin"], icon: "approvals" },
   // Phase 4: applications, the review queue, walk-ins and the Students page. The Principal reads students here (D-118),
   // with each student's fees on their record, since Fees left the Principal's menu (D-121). Not the Super Admin.
-  { id: "admissions", labelKey: "nav.admissions", adminLabelKey: "nav.students", href: "/portal/admissions", roles: ["coordinator", "accountant", "admin"], icon: "admissions" },
+  { id: "admissions", labelKey: "nav.admissions", adminLabelKey: "nav.students", href: "/portal/admissions", roles: ["coordinator", "admin"], icon: "admissions" },
   // D-121 (the PM, 2026-10-06): the Principal reaches attendance, classwork and results through Classes, and fees
   // through a student's record, so these four are not in the Principal's menu. The pages still open by address.
   // Phase 5, slice 1: student attendance. The Class Teacher marks it; the Co-ordinator and the Admin look (D-069).
@@ -63,7 +63,9 @@ export const NAV_ITEMS: readonly NavItem[] = [
   // Phase 5, slice 3: the daily activity log; notes and homework join it in slice 4 (D-071).
   { id: "classwork", labelKey: "nav.classwork", href: "/portal/classwork", roles: ["teacher", "student", "coordinator", "super_admin"], module: ["activity_log", "homework", "notes"], icon: "classwork" },
   // Phase 6: fees. The Accountant works here, the Admin looks, a student sees their own; never the Co-ordinator (D-078).
-  { id: "fees", labelKey: "nav.fees", href: "/portal/fees", roles: ["accountant", "super_admin", "student"], module: "fees", icon: "fees" },
+  // The Accountant's Students: find a student and record a payment (the PM, 2026-10-17). No Overview for the Accountant: they open here.
+  { id: "payments", labelKey: "nav.payments", href: "/portal/payments", roles: ["accountant"], module: "fees", icon: "admissions" },
+  { id: "fees", labelKey: "nav.fees", href: "/portal/fees", opensAt: "/portal/fees/structures", roles: ["accountant", "super_admin", "student"], module: "fees", icon: "fees" },
   // Phase 7: results. The teacher enters marks, the Co-ordinator verifies and publishes, a student sees their own, the Admin reads (D-082).
   { id: "results", labelKey: "nav.results", href: "/portal/results", roles: ["teacher", "student", "coordinator", "super_admin"], module: "results", icon: "results" },
   // D-091: everything the Principal reads but does not change, in one place. The Co-ordinator holds the student and

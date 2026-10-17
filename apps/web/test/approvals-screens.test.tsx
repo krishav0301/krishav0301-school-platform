@@ -54,14 +54,14 @@ const fee = request({
   requesterRole: "accountant",
   createdOnBs: "2083-06-16",
   snapshot: {
-    programme: "+2 Science",
-    level: "Grade 11",
-    year: "2083",
+    name: "+2 Science fees",
+    startDate: "2026-04-14",
+    endDate: "2027-04-13",
     items: [
-      { name: "Tuition", amountPaisa: 350_000, frequency: "monthly" },
+      { name: "Tuition", amountPaisa: 350_000, frequency: "one_time" },
       { name: "Admission", amountPaisa: 1_500_000, frequency: "one_time" },
     ],
-    yearlyTotalPaisa: 6_200_000,
+    totalPaisa: 1_850_000,
   },
 });
 const discount = request({ id: "d1", kind: "discount", requesterRole: "accountant", snapshot: { student: "Rishav Kumar", amountPaisa: 500_000, percent: null, reason: "sibling" } });
@@ -70,13 +70,13 @@ describe("the approvals inbox (D-102)", () => {
   it("each card says the kind, the subject, a short summary, who sent it and when, the status in words, and offers Review", () => {
     const html = inContext(<ApprovalsList requests={[fee, request()]} filtered={false} onReview={noop} />);
     expect(html).toContain(">Fee structure</h2>");
-    expect(html).toContain("+2 Science · Grade 11 · 2083");
-    expect(html).toContain("Tuition 3,500 / month · Admission 15,000 once");
-    expect(html).toContain("Term total: NPR 62,000");
+    expect(html).toContain("+2 Science fees");
+    expect(html).toContain("Tuition 3,500 once · Admission 15,000 once");
+    expect(html).toContain("Total fees: NPR 18,500");
     expect(html).toContain("Sent by Gita Thapa");
     expect(html).toContain("16 Ashwin 2083");
     expect(html).toContain(">Waiting<");
-    expect(html).toContain('aria-label="Review Fee structure: +2 Science · Grade 11 · 2083"');
+    expect(html).toContain('aria-label="Review Fee structure: +2 Science fees"');
     // One prominent button per view (D-030): a card offers Review, never a filled Approve.
     expect(html).not.toContain("Approve");
   });
@@ -117,13 +117,15 @@ describe("the approvals inbox (D-102)", () => {
 });
 
 describe("the review panel's details, for each kind (D-102)", () => {
-  it("a fee structure: every item, the yearly total, the programme and year, and what approving does", () => {
-    const html = inContext(<DetailBody detail={{ kind: "fee_structure", programme: "+2 Science", level: "Grade 11", year: "2083", items: [{ name: "Tuition", amountPaisa: 350_000, frequency: "monthly" }, { name: "Laboratory", amountPaisa: 200_000, frequency: "yearly" }], yearlyTotalPaisa: 4_400_000 }} />);
-    expect(html).toContain("<dt>Tuition</dt><dd>NPR 3,500 / month</dd>");
-    expect(html).toContain("<dt>Laboratory</dt><dd>NPR 2,000 / term</dd>");
-    expect(html).toContain("<dt>Term total</dt><dd>NPR 44,000</dd>");
-    expect(html).toContain("+2 Science · Grade 11 · 2083");
-    expect(html).toContain("If approved, this fee structure will take effect for the selected programme and term.");
+  it("a fee structure: every line, the total, its name and dates, and what approving does", () => {
+    const html = inContext(<DetailBody detail={{ kind: "fee_structure", name: "+2 Science fees", startDate: "2026-04-14", endDate: "2027-04-13", startDateBs: "2083-01-01", endDateBs: "2083-12-30", items: [{ name: "Tuition", amountPaisa: 350_000, frequency: "one_time" }, { name: "Laboratory", amountPaisa: 200_000, frequency: "one_time" }], totalPaisa: 550_000, previous: null }} />);
+    expect(html).toContain("<dt>Tuition</dt><dd>NPR 3,500 once</dd>");
+    expect(html).toContain("<dt>Laboratory</dt><dd>NPR 2,000 once</dd>");
+    expect(html).toContain("<dt>Total fees</dt><dd>NPR 5,500</dd>");
+    expect(html).toContain("+2 Science fees · 2083-01-01 to 2083-12-30");
+    expect(html).toContain("If approved, this fee structure can be linked to levels, and then every student of those levels is charged.");
+    // A structure from before D-172 keeps how its lines were billed.
+    expect(inContext(<DetailBody detail={{ kind: "fee_structure", name: "Old", startDate: "2026-04-14", endDate: "2027-04-13", startDateBs: null, endDateBs: null, items: [{ name: "Tuition", amountPaisa: 350_000, frequency: "monthly" }], totalPaisa: 4_200_000, previous: null }} />)).toContain("<dt>Tuition</dt><dd>NPR 3,500 / month</dd>");
   });
 
   it("a percentage discount: the percentage and its amount, the reason, and the note when Other", () => {
@@ -213,7 +215,7 @@ describe("the filters follow whether the school collects fees (D-137)", () => {
 
   it("a school with fees off offers the website's requests only, and no filter bar", () => {
     expect(kindsFor(false)).toEqual(["website_content"]);
-    expect(kindsFor(true)).toHaveLength(5);
+    expect(kindsFor(true)).toHaveLength(6);
     const html = inContext(<InboxScreen />);
     for (const label of ["Fee structure", "Discount", "Reversal", "Refund"]) expect(html).not.toContain(label);
   });

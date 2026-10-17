@@ -46,6 +46,8 @@ import {
 const KIND_ICON: Record<ApprovalKind, { icon: LucideIcon; tone: "accent" | "ok" | "bad" | "warn" }> = {
   website_content: { icon: FileText, tone: "ok" },
   fee_structure: { icon: ReceiptText, tone: "accent" },
+  fee_structure_edit: { icon: ReceiptText, tone: "warn" },
+  student_leave: { icon: Undo2, tone: "warn" },
   discount: { icon: Percent, tone: "bad" },
   reversal: { icon: Undo2, tone: "warn" },
   refund: { icon: Wallet, tone: "accent" },
@@ -207,17 +209,59 @@ export function DetailBody({ detail }: { detail: ApprovalDetail }) {
             <Facts
               rows={[
                 ...detail.items.map((item) => ({ name: item.name, value: feeAmount(item.amountPaisa, item.frequency) })),
-                { name: t("approvals.detail.yearlyTotal"), value: npr(detail.yearlyTotalPaisa), total: true },
+                { name: t("approvals.detail.total"), value: npr(detail.totalPaisa), total: true },
               ]}
             />
           </Section>
-          <Section title={t("approvals.detail.programmeLevel")}>
-            <p className={styles.subject}>{t("approvals.detail.programmeLine", { programme: detail.programme, level: detail.level, year: detail.year })}</p>
+          <Section title={t("approvals.detail.structure")}>
+            <p className={styles.subject}>{t("approvals.detail.structureLine", { name: detail.name, start: detail.startDateBs ?? detail.startDate, end: detail.endDateBs ?? detail.endDate })}</p>
           </Section>
           <Notice>
             <span className={styles.failed}>
               <Info aria-hidden width={18} height={18} />
               {t("approvals.effect.feeStructure")}
+            </span>
+          </Notice>
+        </>
+      );
+    case "student_leave":
+      return (
+        <>
+          <Section title={t("approvals.detail.student")}>
+            <p className={styles.subject}>{[detail.student, detail.sid, detail.className].filter(Boolean).join(" · ")}</p>
+          </Section>
+          <Section title={t("approvals.detail.leaveReason")}>
+            <p className={styles.line}>{detail.reason}</p>
+          </Section>
+          <Section title={detail.owedPaisa >= 0 ? t("approvals.detail.owed") : t("approvals.detail.credit")}>
+            <p className={styles.line}>{npr(Math.abs(detail.owedPaisa))}</p>
+          </Section>
+          <Notice>
+            <span className={styles.failed}>
+              <Info aria-hidden width={18} height={18} />
+              {t("approvals.effect.studentLeave")}
+            </span>
+          </Notice>
+        </>
+      );
+    case "fee_structure_edit":
+      return (
+        <>
+          <Section title={t("approvals.detail.editReason")}>
+            <p className={styles.line}>{detail.reason}</p>
+          </Section>
+          <Section title={t("approvals.detail.feeItems")}>
+            <Facts
+              rows={[
+                ...detail.items.map((item) => ({ name: item.name, value: npr(item.amountPaisa) })),
+                { name: t("approvals.detail.total"), value: npr(detail.totalPaisa), total: true },
+              ]}
+            />
+          </Section>
+          <Notice>
+            <span className={styles.failed}>
+              <Info aria-hidden width={18} height={18} />
+              {t("approvals.effect.feeStructureEdit")}
             </span>
           </Notice>
         </>
@@ -374,7 +418,7 @@ function ReviewDrawer({ request, onClose }: { request: ApprovalSummary; onClose:
     if (result.ok) return setStep("approved");
     if (result.reason === "stale") return setStale(true);
     if (result.reason === "already_decided") return setStep("already");
-    setProblem(t(result.reason === "own_request" ? "approvals.error.ownRequest" : "approvals.error.approveFailed"));
+    setProblem(result.message ?? t(result.reason === "own_request" ? "approvals.error.ownRequest" : "approvals.error.approveFailed"));
   }
 
   async function doDecline(event: FormEvent) {

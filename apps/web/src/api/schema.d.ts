@@ -1445,8 +1445,25 @@ export interface paths {
         /** @description A closed term's classes in the person's sections, with each student, what they owe, and where they have gone; and the open terms' classes they can move into. With no term asked for, the most recently closed term that still has students to move. */
         get: operations["get_promotion_board"];
         put?: never;
-        /** @description Moves students of a closed term: promote (a class of the next level in an open term), repeat (the same level), leave, or graduate (last level). Leaving and graduating need nothing owed. What is owed is carried into the new term. Each student is answered on its own; a repeat finds the move already made. */
+        /** @description Moves students of a closed term: promote (a class of the next level in an open term), repeat (the same level), leave (sent to the Principal; no zero-dues rule), or graduate (last level; needs nothing owed). What is owed is carried into the new term. Each student is answered on its own; a repeat finds the move already made. */
         post: operations["move_students"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/students/leave-requests": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description The Co-ordinator asks for a student to be marked Left, with a reason. The Principal decides it; when approved, in one step the student is marked Left and their fee account is closed for everyone (what is unpaid stays owed). Settle any fees with the family before asking. */
+        post: operations["request_student_leave"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1903,10 +1920,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** @description The active year's fee structures in the person's sections. Not for students (their own fees are at /api/fees/me). */
+        /** @description The fee structures in the person's wings, newest period first. Not for students (their own fees are at /api/fees/me). */
         get: operations["list_fee_structures"];
         put?: never;
-        /** @description Drafts the active year's fee structure for a programme level. One per level and year. */
+        /** @description Drafts a fee structure in a wing: a name, a start date and an end date. Lines are added to the draft; the Principal approves it; then it is linked to levels. */
         post: operations["create_fee_structure"];
         delete?: never;
         options?: never;
@@ -1921,7 +1938,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** @description One fee structure: its items, its yearly total, and the classes of its level with their student counts. */
+        /** @description One fee structure: its lines, its total, and the levels it is linked to with their student counts. */
         get: operations["get_fee_structure"];
         put?: never;
         post?: never;
@@ -1940,7 +1957,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** @description Adds an item to a draft: a name, an amount in whole paisa, and how often it is billed. */
+        /** @description Adds a line to a draft: a name and a price in whole paisa. The lines add up to the structure's total, due on its start date. */
         post: operations["add_fee_item"];
         delete?: never;
         options?: never;
@@ -1961,7 +1978,7 @@ export interface paths {
         delete?: never;
         options?: never;
         head?: never;
-        /** @description Changes a draft's item, or switches it off. A structure waiting for approval or live does not change. */
+        /** @description Changes a draft's line, or switches it off. A structure waiting for approval or live does not change. */
         patch: operations["change_fee_item"];
         trace?: never;
     };
@@ -1974,7 +1991,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** @description Sends a draft with at least one item to the Admins for approval. It is locked while it waits. */
+        /** @description Sends a draft with at least one line to the Principal for approval. It is locked while it waits. */
         post: operations["send_fee_structure"];
         delete?: never;
         options?: never;
@@ -1982,7 +1999,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/fees/structures/{id}/charges": {
+    "/api/fees/structures/{id}/next-period": {
         parameters: {
             query?: never;
             header?: never;
@@ -1991,9 +2008,77 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** @description Makes every missing charge for the active students of one class of the structure's level, from the live structure. Safe to repeat. */
-        post: operations["generate_fee_charges"];
+        /** @description Starts the next period of a structure: a new draft of the same name and wing with the new dates and a copy of its lines, to edit and send for approval. Reuse for next year. */
+        post: operations["start_next_fee_period"];
         delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/fees/structures/{id}/edit-request": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Asks the Principal to let an approved structure be edited, with a reason. The approved version stays in force. When the Principal approves the request, a draft copy appears for the Accountant to edit and send for approval again. */
+        post: operations["request_fee_structure_edit"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/fees/structures/{id}/discard": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Gives up a draft edit of an approved structure (only a draft that replaces an approved version). The approved version is untouched, and a new edit can be asked for. */
+        post: operations["discard_fee_structure_edit"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/fees/structures/{id}/levels": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Links an approved structure to levels of its wing, with no approval. Every student of a linked level is then charged automatically, and so is one who joins later. A level has one structure for any dates. */
+        post: operations["link_fee_levels"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/fees/structures/{id}/levels/{levelId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** @description Removes a level's link. Refused (409 in_use) once any student of the level, charged under it, has paid anything. */
+        delete: operations["unlink_fee_level"];
         options?: never;
         head?: never;
         patch?: never;
@@ -2084,74 +2169,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/fees/me/vouchers": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** @description The student reports a bank deposit (the bank and its reference; no scan while file storage is off). The Accountant verifies it. */
-        post: operations["submit_voucher"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/fees/vouchers": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** @description Vouchers waiting for the Accountant, oldest first, in their sections. */
-        get: operations["list_vouchers"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/fees/vouchers/{id}/verify": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** @description Verifies a voucher: it becomes a payment with a numbered receipt, in one batch. Once. */
-        post: operations["verify_voucher"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/fees/vouchers/{id}/reject": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** @description Rejects a voucher, with a reason. The student may report the deposit again, corrected. */
-        post: operations["reject_voucher"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/fees/me/online-payments": {
         parameters: {
             query?: never;
@@ -2193,14 +2210,67 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get?: never;
+        /** @description The discounts given on one student's account, newest first, with whether the Principal can still change each. */
+        get: operations["list_discounts"];
         put?: never;
-        /** @description Proposes a discount (an amount, or a percentage of what was charged, with a reason) and sends it to the Admins. Nothing changes until one approves it. */
-        post: operations["propose_discount"];
+        /** @description The Principal gives a discount (an amount, or a percentage of what was charged, with a reason), never more than the fees in all. It applies at once; for 15 days the Principal can change or remove it, then it is frozen. */
+        post: operations["give_discount"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
+        trace?: never;
+    };
+    "/api/fees/discounts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description The Principal's report of every discount given: the student, class, amount, reason, day and who gave it, and what the active ones add up to. */
+        get: operations["discount_report"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/fees/structures/{id}/price-changes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description The students whose billing a structure's approved edits changed: the net change for each and what they owe now. */
+        get: operations["list_price_changes"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/fees/discounts/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** @description The Principal takes a discount back within 15 days of giving it: a new entry cancels it and the student owes it again. After 15 days it is frozen. */
+        delete: operations["remove_discount"];
+        options?: never;
+        head?: never;
+        /** @description The Principal changes a discount within 15 days of giving it: the old one is taken back and the new one given in one step. After 15 days it is frozen. */
+        patch: operations["change_discount"];
         trace?: never;
     };
     "/api/fees/payments/{id}/reversal": {
@@ -2229,25 +2299,8 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** @description Asks the Admins to refund credit (what was paid over what is owed). Approved, it is recorded as paid back, and only then written to the ledger. */
-        post: operations["request_refund"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/fees/refunds/{id}/record": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** @description Records how an approved refund was paid back. The ledger takes the refund in the same batch. Once. */
-        post: operations["record_refund"];
+        /** @description The Accountant pays back a student's credit (what was paid over what is owed), up to the credit and no more. It is written to the ledger at once; no approval. */
+        post: operations["give_refund"];
         delete?: never;
         options?: never;
         head?: never;
@@ -2299,23 +2352,6 @@ export interface paths {
         get: operations["export_dues"];
         put?: never;
         post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/fees/reminders": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** @description Emails every student in the Accountant's sections who has something overdue. Once per student per day: pressing it again sends nothing new. */
-        post: operations["send_overdue_reminders"];
         delete?: never;
         options?: never;
         head?: never;
@@ -3704,7 +3740,7 @@ export interface components {
             subjectId: string;
         };
         /** @enum {string} */
-        ApprovalKind: "website_content" | "fee_structure" | "discount" | "reversal" | "refund";
+        ApprovalKind: "website_content" | "fee_structure" | "fee_structure_edit" | "discount" | "reversal" | "refund" | "student_leave";
         ApprovalsOk: {
             /** @enum {boolean} */
             ok: true;
@@ -3753,16 +3789,45 @@ export interface components {
         } | {
             /** @enum {string} */
             kind: "fee_structure";
-            programme: string;
-            level: string;
-            year: string;
+            name: string;
+            startDate: string;
+            endDate: string;
+            startDateBs: string | null;
+            endDateBs: string | null;
             items: {
                 name: string;
                 amountPaisa: number;
                 /** @enum {string} */
                 frequency: "one_time" | "monthly" | "yearly" | "whole_course";
             }[];
-            yearlyTotalPaisa: number;
+            totalPaisa: number;
+            previous: {
+                items: {
+                    name: string;
+                    amountPaisa: number;
+                }[];
+                totalPaisa: number;
+            } | null;
+        } | {
+            /** @enum {string} */
+            kind: "student_leave";
+            student: string;
+            sid: string;
+            className: string | null;
+            reason: string;
+            owedPaisa: number;
+        } | {
+            /** @enum {string} */
+            kind: "fee_structure_edit";
+            name: string;
+            startDateBs: string | null;
+            endDateBs: string | null;
+            reason: string;
+            items: {
+                name: string;
+                amountPaisa: number;
+            }[];
+            totalPaisa: number;
         } | {
             /** @enum {string} */
             kind: "discount";
@@ -4028,6 +4093,8 @@ export interface components {
                 term: string;
             } | null;
             createdAt: string;
+            enrollmentId: string | null;
+            leaveRequested: boolean;
         };
         CorrectStudent: {
             firstName?: string;
@@ -4075,6 +4142,10 @@ export interface components {
                 termLabel: string;
             }[];
         };
+        LeaveRequest: {
+            enrollmentId: string;
+            reason: string;
+        };
         MoveResults: {
             results: components["schemas"]["MoveResult"][];
         };
@@ -4086,6 +4157,7 @@ export interface components {
             message?: string;
             newEnrollmentId?: string;
             carriedDues?: boolean;
+            pending?: boolean;
         };
         Moves: {
             moves: {
@@ -4437,14 +4509,18 @@ export interface components {
         FeeStructureList: {
             structures: {
                 id: string;
-                levelId: string;
+                name: string;
+                sectionKey: string;
+                startDate: string;
+                endDate: string;
+                startDateBs: string | null;
+                endDateBs: string | null;
                 /** @enum {string} */
                 status: "draft" | "waiting" | "live";
-                yearLabel: string;
-                programmeName: string;
-                levelName: string;
-                sectionKey: string;
-                yearlyTotalPaisa: number;
+                totalPaisa: number;
+                levelsLinked: number;
+                ended: boolean;
+                editing: boolean;
             }[];
         };
         FeesError: {
@@ -4452,14 +4528,18 @@ export interface components {
         };
         FeeStructure: {
             id: string;
-            levelId: string;
+            name: string;
+            sectionKey: string;
+            startDate: string;
+            endDate: string;
+            startDateBs: string | null;
+            endDateBs: string | null;
             /** @enum {string} */
             status: "draft" | "waiting" | "live";
-            yearLabel: string;
-            programmeName: string;
-            levelName: string;
-            sectionKey: string;
-            yearlyTotalPaisa: number;
+            totalPaisa: number;
+            levelsLinked: number;
+            ended: boolean;
+            editing: boolean;
             items: {
                 id: string;
                 name: string;
@@ -4467,9 +4547,15 @@ export interface components {
                 /** @enum {string} */
                 frequency: "one_time" | "monthly" | "yearly" | "whole_course";
             }[];
-            classes: {
+            inForce: {
                 id: string;
-                label: string;
+                totalPaisa: number;
+            } | null;
+            editRequested: boolean;
+            levels: {
+                levelId: string;
+                programmeName: string;
+                levelName: string;
                 students: number;
             }[];
         };
@@ -4479,23 +4565,39 @@ export interface components {
             message: string;
         };
         NewFeeStructure: {
-            levelId: string;
+            name: string;
+            sectionKey: string;
+            startDate: string;
+            endDate: string;
         };
         NewFeeItem: {
             name: string;
             amountPaisa: number;
-            /** @enum {string} */
-            frequency: "one_time" | "monthly" | "yearly" | "whole_course";
         };
         ChangeFeeItem: {
             name?: string;
             amountPaisa?: number;
-            /** @enum {string} */
-            frequency?: "one_time" | "monthly" | "yearly" | "whole_course";
             isActive?: boolean;
         };
-        GenerateCharges: {
-            classId: string;
+        NewFeePeriod: {
+            startDate: string;
+            endDate: string;
+        };
+        RequestFeeEdit: {
+            reason: string;
+        };
+        LinkFeeLevelsResult: {
+            levels: {
+                levelId: string;
+                ok: boolean;
+                /** @enum {string} */
+                reason?: "not_found" | "not_live" | "wrong_wing" | "conflict" | "ended";
+            }[];
+            charged: number;
+            pending: boolean;
+        };
+        LinkFeeLevels: {
+            levelIds: string[];
         };
         FeeAccount: {
             enrollmentId: string;
@@ -4535,6 +4637,10 @@ export interface components {
                 issuedOnBs: string | null;
                 reversed: boolean;
             }[];
+            closed: {
+                closedOnBs: string | null;
+                owedPaisa: number;
+            } | null;
         };
         Receipt: {
             id: string;
@@ -4564,53 +4670,74 @@ export interface components {
             idempotencyKey: string;
             memo?: string;
         };
-        Voucher: {
-            amountPaisa: number;
-            bank: string;
-            reference: string;
-            paidOn: string;
-        };
-        VoucherList: {
-            vouchers: {
-                id: string;
-                enrollmentId: string;
-                studentName: string;
-                sid: string;
-                amountPaisa: number;
-                bank: string;
-                reference: string;
-                paidOn: string;
-                paidOnBs: string | null;
-                submittedAt: string;
-            }[];
-        };
-        RejectVoucher: {
-            reason: string;
-        };
         OnlinePayment: {
             amountPaisa: number;
         };
         GatewayCallback: {
             gatewayReference: string;
         };
-        ProposeDiscount: {
+        GiveDiscount: {
             amountPaisa?: number;
             percent?: number;
             /** @enum {string} */
             reason: "scholarship" | "sibling" | "staff_child" | "other";
             note?: string;
         };
+        DiscountList: {
+            discounts: {
+                id: string;
+                amountPaisa: number;
+                percent: number | null;
+                /** @enum {string} */
+                reason: "scholarship" | "sibling" | "staff_child" | "other";
+                note: string | null;
+                /** @enum {string} */
+                status: "active" | "removed" | "replaced";
+                changeableUntil: string;
+                canChange: boolean;
+                createdAt: string;
+            }[];
+        };
+        DiscountReport: {
+            discounts: {
+                id: string;
+                studentName: string;
+                sid: string;
+                className: string;
+                amountPaisa: number;
+                percent: number | null;
+                /** @enum {string} */
+                reason: "scholarship" | "sibling" | "staff_child" | "other";
+                note: string | null;
+                /** @enum {string} */
+                status: "active" | "removed" | "replaced";
+                givenOnBs: string | null;
+                givenBy: string;
+            }[];
+            activePaisa: number;
+            activeCount: number;
+        };
+        PriceChangeList: {
+            students: {
+                enrollmentId: string;
+                studentId: string;
+                studentName: string;
+                sid: string;
+                className: string;
+                changePaisa: number;
+                balancePaisa: number;
+                closed: boolean;
+            }[];
+        };
         ReversalRequest: {
             reason: string;
         };
-        RefundRequest: {
+        GiveRefund: {
             amountPaisa: number;
-            reason: string;
-        };
-        RecordRefund: {
             /** @enum {string} */
             method: "cash" | "bank_transfer" | "cheque";
             reference?: string;
+            reason?: string;
         };
         AdjustmentList: {
             adjustments: {
@@ -4635,6 +4762,7 @@ export interface components {
                 classId: string;
                 className: string;
                 hasEmail: boolean;
+                closed: boolean;
                 chargedPaisa: number;
                 discountPaisa: number;
                 paidPaisa: number;
@@ -9951,6 +10079,59 @@ export interface operations {
             };
         };
     };
+    request_student_leave: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LeaveRequest"];
+            };
+        };
+        responses: {
+            /** @description Sent; the request's id */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        id: string;
+                    };
+                };
+            };
+            /** @description Not allowed */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdmissionsError"];
+                };
+            };
+            /** @description No such student, or not one the person may reach */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdmissionsError"];
+                };
+            };
+            /** @description A request for this student is already waiting */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdmissionsError"];
+                };
+            };
+        };
+    };
     list_attendance_classes: {
         parameters: {
             query?: never;
@@ -11381,7 +11562,7 @@ export interface operations {
             };
         };
     };
-    generate_fee_charges: {
+    start_next_fee_period: {
         parameters: {
             query?: never;
             header?: never;
@@ -11392,18 +11573,267 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["GenerateCharges"];
+                "application/json": components["schemas"]["NewFeePeriod"];
             };
         };
         responses: {
-            /** @description Made */
+            /** @description Drafted */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        id: string;
+                    };
+                };
+            };
+            /** @description Not allowed */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeesError"];
+                };
+            };
+            /** @description No such item, or not one the person may reach */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeesError"];
+                };
+            };
+            /** @description Not possible in its current state (not a draft, not live, already there, or the year is closed) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeesError"];
+                };
+            };
+            /** @description Not valid */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeesInvalid"];
+                };
+            };
+        };
+    };
+    request_fee_structure_edit: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RequestFeeEdit"];
+            };
+        };
+        responses: {
+            /** @description Asked; the approval request's id */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        id: string;
+                    };
+                };
+            };
+            /** @description Not allowed */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeesError"];
+                };
+            };
+            /** @description No such item, or not one the person may reach */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeesError"];
+                };
+            };
+            /** @description Not possible in its current state (not a draft, not live, already there, or the year is closed) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeesError"];
+                };
+            };
+            /** @description Not valid */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeesInvalid"];
+                };
+            };
+        };
+    };
+    discard_fee_structure_edit: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Discarded */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
                     "application/json": {
-                        created: number;
+                        /** @enum {boolean} */
+                        ok: true;
+                    };
+                };
+            };
+            /** @description Not allowed */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeesError"];
+                };
+            };
+            /** @description No such item, or not one the person may reach */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeesError"];
+                };
+            };
+            /** @description Not possible in its current state (not a draft, not live, already there, or the year is closed) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeesError"];
+                };
+            };
+            /** @description Not valid */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeesInvalid"];
+                };
+            };
+        };
+    };
+    link_fee_levels: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LinkFeeLevels"];
+            };
+        };
+        responses: {
+            /** @description What happened to each level, and how many charges were made now */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LinkFeeLevelsResult"];
+                };
+            };
+            /** @description Not allowed */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeesError"];
+                };
+            };
+            /** @description No such item, or not one the person may reach */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeesError"];
+                };
+            };
+            /** @description Not possible in its current state (not a draft, not live, already there, or the year is closed) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeesError"];
+                };
+            };
+            /** @description Not valid */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeesInvalid"];
+                };
+            };
+        };
+    };
+    unlink_fee_level: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                levelId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Unlinked */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {boolean} */
+                        ok: true;
                     };
                 };
             };
@@ -11636,211 +12066,6 @@ export interface operations {
             };
         };
     };
-    submit_voucher: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["Voucher"];
-            };
-        };
-        responses: {
-            /** @description Reported */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        id: string;
-                    };
-                };
-            };
-            /** @description Not allowed */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["FeesError"];
-                };
-            };
-            /** @description No such item, or not one the person may reach */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["FeesError"];
-                };
-            };
-            /** @description Not possible in its current state (not a draft, not live, already there, or the year is closed) */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["FeesError"];
-                };
-            };
-            /** @description Not valid */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["FeesInvalid"];
-                };
-            };
-        };
-    };
-    list_vouchers: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description The vouchers */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["VoucherList"];
-                };
-            };
-        };
-    };
-    verify_voucher: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Paid */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Paid"];
-                };
-            };
-            /** @description Not allowed */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["FeesError"];
-                };
-            };
-            /** @description No such item, or not one the person may reach */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["FeesError"];
-                };
-            };
-            /** @description Not possible in its current state (not a draft, not live, already there, or the year is closed) */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["FeesError"];
-                };
-            };
-            /** @description Not valid */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["FeesInvalid"];
-                };
-            };
-        };
-    };
-    reject_voucher: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["RejectVoucher"];
-            };
-        };
-        responses: {
-            /** @description Rejected */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        /** @enum {boolean} */
-                        ok: true;
-                    };
-                };
-            };
-            /** @description Not allowed */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["FeesError"];
-                };
-            };
-            /** @description No such item, or not one the person may reach */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["FeesError"];
-                };
-            };
-            /** @description Not possible in its current state (not a draft, not live, already there, or the year is closed) */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["FeesError"];
-                };
-            };
-            /** @description Not valid */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["FeesInvalid"];
-                };
-            };
-        };
-    };
     start_online_payment: {
         parameters: {
             query?: never;
@@ -11922,7 +12147,38 @@ export interface operations {
             };
         };
     };
-    propose_discount: {
+    list_discounts: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The discounts */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DiscountList"];
+                };
+            };
+            /** @description No such item, or not one the person may reach */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeesError"];
+                };
+            };
+        };
+    };
+    give_discount: {
         parameters: {
             query?: never;
             header?: never;
@@ -11933,12 +12189,188 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["ProposeDiscount"];
+                "application/json": components["schemas"]["GiveDiscount"];
             };
         };
         responses: {
-            /** @description Sent for approval; the request's own id */
+            /** @description Given; the discount's own id */
             201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        id: string;
+                    };
+                };
+            };
+            /** @description Not allowed */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeesError"];
+                };
+            };
+            /** @description No such item, or not one the person may reach */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeesError"];
+                };
+            };
+            /** @description Not possible in its current state (not a draft, not live, already there, or the year is closed) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeesError"];
+                };
+            };
+            /** @description Not valid */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeesInvalid"];
+                };
+            };
+        };
+    };
+    discount_report: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The report */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DiscountReport"];
+                };
+            };
+        };
+    };
+    list_price_changes: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The students */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PriceChangeList"];
+                };
+            };
+            /** @description No such item, or not one the person may reach */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeesError"];
+                };
+            };
+        };
+    };
+    remove_discount: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Taken back */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {boolean} */
+                        ok: true;
+                    };
+                };
+            };
+            /** @description Not allowed */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeesError"];
+                };
+            };
+            /** @description No such item, or not one the person may reach */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeesError"];
+                };
+            };
+            /** @description Not possible in its current state (not a draft, not live, already there, or the year is closed) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeesError"];
+                };
+            };
+            /** @description Not valid */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeesInvalid"];
+                };
+            };
+        };
+    };
+    change_discount: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["GiveDiscount"];
+            };
+        };
+        responses: {
+            /** @description Changed; the new discount's id */
+            200: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -12050,7 +12482,7 @@ export interface operations {
             };
         };
     };
-    request_refund: {
+    give_refund: {
         parameters: {
             query?: never;
             header?: never;
@@ -12061,11 +12493,11 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["RefundRequest"];
+                "application/json": components["schemas"]["GiveRefund"];
             };
         };
         responses: {
-            /** @description Sent for approval */
+            /** @description Paid back */
             201: {
                 headers: {
                     [name: string]: unknown;
@@ -12073,71 +12505,6 @@ export interface operations {
                 content: {
                     "application/json": {
                         id: string;
-                    };
-                };
-            };
-            /** @description Not allowed */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["FeesError"];
-                };
-            };
-            /** @description No such item, or not one the person may reach */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["FeesError"];
-                };
-            };
-            /** @description Not possible in its current state (not a draft, not live, already there, or the year is closed) */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["FeesError"];
-                };
-            };
-            /** @description Not valid */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["FeesInvalid"];
-                };
-            };
-        };
-    };
-    record_refund: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["RecordRefund"];
-            };
-        };
-        responses: {
-            /** @description Recorded */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        /** @enum {boolean} */
-                        ok: true;
                     };
                 };
             };
@@ -12250,28 +12617,6 @@ export interface operations {
                 };
                 content: {
                     "text/csv": string;
-                };
-            };
-        };
-    };
-    send_overdue_reminders: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Queued */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        queued: number;
-                    };
                 };
             };
         };

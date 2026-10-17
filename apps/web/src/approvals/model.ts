@@ -10,7 +10,7 @@ export type ApprovalDetail = NonNullable<components["schemas"]["ApprovalDetail"]
 export type ApprovalKind = ApprovalSummary["kind"];
 
 /** The five kinds, in the order the filters show them (CLAUDE.md section 6: there are exactly five). */
-export const KINDS: readonly ApprovalKind[] = ["website_content", "fee_structure", "discount", "reversal", "refund"];
+export const KINDS: readonly ApprovalKind[] = ["website_content", "fee_structure", "fee_structure_edit", "discount", "reversal", "refund"];
 
 /** The kinds a school can be asked about: the four fee kinds only where the school collects fees (D-137); otherwise only the website's. Pure. */
 export const kindsFor = (feesOn: boolean): readonly ApprovalKind[] => (feesOn ? KINDS : ["website_content"]);
@@ -19,6 +19,8 @@ export const kindsFor = (feesOn: boolean): readonly ApprovalKind[] => (feesOn ? 
 export const KIND_LABEL: Record<ApprovalKind, MessageKey> = {
   website_content: "approvals.kind.websiteContent",
   fee_structure: "approvals.kind.feeStructure",
+  fee_structure_edit: "approvals.kind.feeStructureEdit",
+  student_leave: "approvals.kind.studentLeave",
   discount: "approvals.kind.discount",
   reversal: "approvals.kind.reversal",
   refund: "approvals.kind.refund",
@@ -27,6 +29,8 @@ export const KIND_LABEL: Record<ApprovalKind, MessageKey> = {
 export const KIND_FILTER_LABEL: Record<ApprovalKind, MessageKey> = {
   website_content: "approvals.filter.website",
   fee_structure: "approvals.filter.feeStructure",
+  fee_structure_edit: "approvals.filter.feeStructureEdit",
+  student_leave: "approvals.filter.studentLeave",
   discount: "approvals.filter.discount",
   reversal: "approvals.filter.reversal",
   refund: "approvals.filter.refund",
@@ -92,11 +96,11 @@ export const contentKindLabel = (kind: string | undefined): string => t(CONTENT_
 // --- The card: what a request is about, from the snapshot taken when it was sent ------------------------------
 
 interface FeeSnapshot {
-  programme?: string;
-  level?: string;
-  year?: string;
+  name?: string;
+  startDate?: string;
+  endDate?: string;
   items?: { name: string; amountPaisa: number; frequency: string }[];
-  yearlyTotalPaisa?: number;
+  totalPaisa?: number;
 }
 interface AdjustmentSnapshot {
   student?: string;
@@ -122,12 +126,20 @@ export function cardLines(request: ApprovalSummary): { subject: string; lines: s
   switch (request.kind) {
     case "fee_structure": {
       const s = snap as FeeSnapshot;
-      if (!s.programme || !s.items) return { subject: request.summary, lines: [] };
+      if (!s.name || !s.items) return { subject: request.summary, lines: [] };
       const items = s.items.map((i) => `${i.name} ${feeAmount(i.amountPaisa, i.frequency).replace(/^NPR /, "")}`).join(" · ");
       return {
-        subject: [s.programme, s.level, s.year].filter(Boolean).join(" · "),
-        lines: [items, ...(s.yearlyTotalPaisa !== undefined ? [t("approvals.card.yearlyTotal", { amount: npr(s.yearlyTotalPaisa) })] : [])],
+        subject: s.name,
+        lines: [items, ...(s.totalPaisa !== undefined ? [t("approvals.card.total", { amount: npr(s.totalPaisa) })] : [])],
       };
+    }
+    case "student_leave": {
+      const s = snap as { student?: string; sid?: string; reason?: string };
+      return { subject: s.student ? `${s.student} (${s.sid ?? ""})` : request.summary, lines: s.reason ? [t("approvals.card.reason", { reason: s.reason })] : [] };
+    }
+    case "fee_structure_edit": {
+      const s = snap as { name?: string; reason?: string };
+      return { subject: s.name ?? request.summary, lines: s.reason ? [t("approvals.card.reason", { reason: s.reason })] : [] };
     }
     case "website_content": {
       const s = snap as ContentSnapshot;
@@ -179,9 +191,13 @@ export function effectLines(detail: ApprovalDetail | null, kind: ApprovalKind): 
   switch (kind) {
     case "fee_structure": {
       const d = detail?.kind === "fee_structure" ? detail : null;
-      const what = d ? `${d.programme}, ${d.level}, ${d.year}` : "";
+      const what = d ? d.name : "";
       return { confirm: t("approvals.effect.feeStructure"), done: d ? t("approvals.done.feeStructure", { what }) : t("approvals.done.generic") };
     }
+    case "fee_structure_edit":
+      return { confirm: t("approvals.effect.feeStructureEdit"), done: t("approvals.done.feeStructureEdit") };
+    case "student_leave":
+      return { confirm: t("approvals.effect.studentLeave"), done: t("approvals.done.generic") };
     case "website_content":
       return { confirm: t("approvals.effect.content"), done: t("approvals.done.content") };
     case "discount":
@@ -193,13 +209,17 @@ export function effectLines(detail: ApprovalDetail | null, kind: ApprovalKind): 
   }
 }
 
-/** Two short lines naming the request, for the confirmation: "Fee structure" / "+2 Science · Grade 11 · 2083". */
+/** Two short lines naming the request, for the confirmation: "Fee structure" / "Science fees". */
 export function confirmSubject(request: ApprovalSummary, detail: ApprovalDetail | null): { kind: string; subject: string; amountLabel: string | null; amount: string | null } {
   const kind = kindLabel(request.kind);
   if (!detail) return { kind, subject: cardLines(request).subject, amountLabel: null, amount: null };
   switch (detail.kind) {
     case "fee_structure":
-      return { kind, subject: `${detail.programme} · ${detail.level} · ${detail.year}`, amountLabel: t("approvals.detail.yearlyTotal"), amount: npr(detail.yearlyTotalPaisa) };
+      return { kind, subject: detail.name, amountLabel: t("approvals.detail.total"), amount: npr(detail.totalPaisa) };
+    case "fee_structure_edit":
+      return { kind, subject: detail.name, amountLabel: t("approvals.detail.total"), amount: npr(detail.totalPaisa) };
+    case "student_leave":
+      return { kind, subject: `${detail.student} (${detail.sid})`, amountLabel: detail.owedPaisa >= 0 ? t("approvals.detail.owed") : t("approvals.detail.credit"), amount: npr(Math.abs(detail.owedPaisa)) };
     case "website_content":
       return { kind, subject: `${contentKindLabel(detail.contentKind)}: ${detail.title}`, amountLabel: null, amount: null };
     case "discount":

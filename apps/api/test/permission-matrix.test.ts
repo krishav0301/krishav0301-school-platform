@@ -74,19 +74,19 @@ describe("sensitive rules, stated independently (docs/source/sample-creation-inf
   const exactly: Record<string, RoleCode[]> = {
     // Only an Admin approves anything that changes money or the public site.
     "fees.structure.approve": ["ADM"],
-    "fees.discount.approve": ["ADM"],
     "fees.reversal.approve": ["ADM"],
-    "fees.refund.approve": ["ADM"],
     "approvals.decide": ["ADM", "SUP"],
     "approvals.request": ["COO", "ADM", "SUP"],
     // The Accountant owns fees and payments. Nobody else touches them.
     "fees.structure.draft": ["ACC"],
-    "fees.voucher.verify": ["ACC"],
     "fees.cash.record": ["ACC"],
-    "fees.discount.propose": ["ACC"],
+    // A discount is the Principal's alone (D-172); the Accountant takes the money and pays back credit.
+    "fees.discount.give": ["ADM"],
+    "fees.discount.change": ["ADM"],
     "fees.reversal.request": ["ACC"],
-    "fees.refund.request": ["ACC"],
-    "fees.refund.record": ["ACC"],
+    "fees.refund.give": ["ACC"],
+    "fees.structure.link": ["ACC"],
+    "fees.structure.edit_request": ["ACC"],
     // The audit log is read by Admins and Super Admin, and edited by nobody at all.
     "audit.view": ["ADM", "SUP"],
     "audit.edit": [],
@@ -163,7 +163,6 @@ describe("sensitive rules, stated independently (docs/source/sample-creation-inf
         "notes.view",
         "assignments.submit",
         "fees.view",
-        "fees.voucher.upload",
         // Source 6.4, "Payments: online (parked)": the student pays their own fees online (demo adapter only, D-076).
         "fees.online.pay",
         "fees.receipts.view",

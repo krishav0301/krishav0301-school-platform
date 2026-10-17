@@ -4092,9 +4092,11 @@
         "enum": [
           "website_content",
           "fee_structure",
+          "fee_structure_edit",
           "discount",
           "reversal",
-          "refund"
+          "refund",
+          "student_leave"
         ]
       },
       "ApprovalsOk": {
@@ -4323,14 +4325,26 @@
                   "fee_structure"
                 ]
               },
-              "programme": {
+              "name": {
                 "type": "string"
               },
-              "level": {
+              "startDate": {
                 "type": "string"
               },
-              "year": {
+              "endDate": {
                 "type": "string"
+              },
+              "startDateBs": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "endDateBs": {
+                "type": [
+                  "string",
+                  "null"
+                ]
               },
               "items": {
                 "type": "array",
@@ -4360,17 +4374,149 @@
                   ]
                 }
               },
-              "yearlyTotalPaisa": {
+              "totalPaisa": {
+                "type": "integer"
+              },
+              "previous": {
+                "type": [
+                  "object",
+                  "null"
+                ],
+                "properties": {
+                  "items": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "name": {
+                          "type": "string"
+                        },
+                        "amountPaisa": {
+                          "type": "integer"
+                        }
+                      },
+                      "required": [
+                        "name",
+                        "amountPaisa"
+                      ]
+                    }
+                  },
+                  "totalPaisa": {
+                    "type": "integer"
+                  }
+                },
+                "required": [
+                  "items",
+                  "totalPaisa"
+                ]
+              }
+            },
+            "required": [
+              "kind",
+              "name",
+              "startDate",
+              "endDate",
+              "startDateBs",
+              "endDateBs",
+              "items",
+              "totalPaisa",
+              "previous"
+            ]
+          },
+          {
+            "type": "object",
+            "properties": {
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "student_leave"
+                ]
+              },
+              "student": {
+                "type": "string"
+              },
+              "sid": {
+                "type": "string"
+              },
+              "className": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "reason": {
+                "type": "string"
+              },
+              "owedPaisa": {
                 "type": "integer"
               }
             },
             "required": [
               "kind",
-              "programme",
-              "level",
-              "year",
+              "student",
+              "sid",
+              "className",
+              "reason",
+              "owedPaisa"
+            ]
+          },
+          {
+            "type": "object",
+            "properties": {
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "fee_structure_edit"
+                ]
+              },
+              "name": {
+                "type": "string"
+              },
+              "startDateBs": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "endDateBs": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "reason": {
+                "type": "string"
+              },
+              "items": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "name": {
+                      "type": "string"
+                    },
+                    "amountPaisa": {
+                      "type": "integer"
+                    }
+                  },
+                  "required": [
+                    "name",
+                    "amountPaisa"
+                  ]
+                }
+              },
+              "totalPaisa": {
+                "type": "integer"
+              }
+            },
+            "required": [
+              "kind",
+              "name",
+              "startDateBs",
+              "endDateBs",
+              "reason",
               "items",
-              "yearlyTotalPaisa"
+              "totalPaisa"
             ]
           },
           {
@@ -5589,6 +5735,15 @@
           },
           "createdAt": {
             "type": "string"
+          },
+          "enrollmentId": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "leaveRequested": {
+            "type": "boolean"
           }
         },
         "required": [
@@ -5607,7 +5762,9 @@
           "status",
           "className",
           "place",
-          "createdAt"
+          "createdAt",
+          "enrollmentId",
+          "leaveRequested"
         ]
       },
       "CorrectStudent": {
@@ -5836,6 +5993,25 @@
           "targets"
         ]
       },
+      "LeaveRequest": {
+        "type": "object",
+        "properties": {
+          "enrollmentId": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{32}$"
+          },
+          "reason": {
+            "type": "string",
+            "minLength": 3,
+            "maxLength": 500
+          }
+        },
+        "required": [
+          "enrollmentId",
+          "reason"
+        ],
+        "additionalProperties": false
+      },
       "MoveResults": {
         "type": "object",
         "properties": {
@@ -5876,6 +6052,9 @@
             "type": "string"
           },
           "carriedDues": {
+            "type": "boolean"
+          },
+          "pending": {
             "type": "boolean"
           }
         },
@@ -7491,8 +7670,29 @@
                 "id": {
                   "type": "string"
                 },
-                "levelId": {
+                "name": {
                   "type": "string"
+                },
+                "sectionKey": {
+                  "type": "string"
+                },
+                "startDate": {
+                  "type": "string"
+                },
+                "endDate": {
+                  "type": "string"
+                },
+                "startDateBs": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "endDateBs": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
                 },
                 "status": {
                   "type": "string",
@@ -7502,31 +7702,32 @@
                     "live"
                   ]
                 },
-                "yearLabel": {
-                  "type": "string"
-                },
-                "programmeName": {
-                  "type": "string"
-                },
-                "levelName": {
-                  "type": "string"
-                },
-                "sectionKey": {
-                  "type": "string"
-                },
-                "yearlyTotalPaisa": {
+                "totalPaisa": {
                   "type": "integer"
+                },
+                "levelsLinked": {
+                  "type": "integer"
+                },
+                "ended": {
+                  "type": "boolean"
+                },
+                "editing": {
+                  "type": "boolean"
                 }
               },
               "required": [
                 "id",
-                "levelId",
-                "status",
-                "yearLabel",
-                "programmeName",
-                "levelName",
+                "name",
                 "sectionKey",
-                "yearlyTotalPaisa"
+                "startDate",
+                "endDate",
+                "startDateBs",
+                "endDateBs",
+                "status",
+                "totalPaisa",
+                "levelsLinked",
+                "ended",
+                "editing"
               ]
             }
           }
@@ -7552,8 +7753,29 @@
           "id": {
             "type": "string"
           },
-          "levelId": {
+          "name": {
             "type": "string"
+          },
+          "sectionKey": {
+            "type": "string"
+          },
+          "startDate": {
+            "type": "string"
+          },
+          "endDate": {
+            "type": "string"
+          },
+          "startDateBs": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "endDateBs": {
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "status": {
             "type": "string",
@@ -7563,20 +7785,17 @@
               "live"
             ]
           },
-          "yearLabel": {
-            "type": "string"
-          },
-          "programmeName": {
-            "type": "string"
-          },
-          "levelName": {
-            "type": "string"
-          },
-          "sectionKey": {
-            "type": "string"
-          },
-          "yearlyTotalPaisa": {
+          "totalPaisa": {
             "type": "integer"
+          },
+          "levelsLinked": {
+            "type": "integer"
+          },
+          "ended": {
+            "type": "boolean"
+          },
+          "editing": {
+            "type": "boolean"
           },
           "items": {
             "type": "array",
@@ -7610,15 +7829,39 @@
               ]
             }
           },
-          "classes": {
+          "inForce": {
+            "type": [
+              "object",
+              "null"
+            ],
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "totalPaisa": {
+                "type": "integer"
+              }
+            },
+            "required": [
+              "id",
+              "totalPaisa"
+            ]
+          },
+          "editRequested": {
+            "type": "boolean"
+          },
+          "levels": {
             "type": "array",
             "items": {
               "type": "object",
               "properties": {
-                "id": {
+                "levelId": {
                   "type": "string"
                 },
-                "label": {
+                "programmeName": {
+                  "type": "string"
+                },
+                "levelName": {
                   "type": "string"
                 },
                 "students": {
@@ -7626,8 +7869,9 @@
                 }
               },
               "required": [
-                "id",
-                "label",
+                "levelId",
+                "programmeName",
+                "levelName",
                 "students"
               ]
             }
@@ -7635,15 +7879,21 @@
         },
         "required": [
           "id",
-          "levelId",
-          "status",
-          "yearLabel",
-          "programmeName",
-          "levelName",
+          "name",
           "sectionKey",
-          "yearlyTotalPaisa",
+          "startDate",
+          "endDate",
+          "startDateBs",
+          "endDateBs",
+          "status",
+          "totalPaisa",
+          "levelsLinked",
+          "ended",
+          "editing",
           "items",
-          "classes"
+          "inForce",
+          "editRequested",
+          "levels"
         ]
       },
       "FeesInvalid": {
@@ -7667,13 +7917,30 @@
       "NewFeeStructure": {
         "type": "object",
         "properties": {
-          "levelId": {
+          "name": {
             "type": "string",
-            "pattern": "^[0-9a-f]{32}$"
+            "minLength": 1,
+            "maxLength": 80
+          },
+          "sectionKey": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 40
+          },
+          "startDate": {
+            "type": "string",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+          },
+          "endDate": {
+            "type": "string",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
           }
         },
         "required": [
-          "levelId"
+          "name",
+          "sectionKey",
+          "startDate",
+          "endDate"
         ],
         "additionalProperties": false
       },
@@ -7689,21 +7956,11 @@
             "type": "integer",
             "exclusiveMinimum": 0,
             "maximum": 10000000000
-          },
-          "frequency": {
-            "type": "string",
-            "enum": [
-              "one_time",
-              "monthly",
-              "yearly",
-              "whole_course"
-            ]
           }
         },
         "required": [
           "name",
-          "amountPaisa",
-          "frequency"
+          "amountPaisa"
         ],
         "additionalProperties": false
       },
@@ -7720,31 +7977,103 @@
             "exclusiveMinimum": 0,
             "maximum": 10000000000
           },
-          "frequency": {
-            "type": "string",
-            "enum": [
-              "one_time",
-              "monthly",
-              "yearly",
-              "whole_course"
-            ]
-          },
           "isActive": {
             "type": "boolean"
           }
         },
         "additionalProperties": false
       },
-      "GenerateCharges": {
+      "NewFeePeriod": {
         "type": "object",
         "properties": {
-          "classId": {
+          "startDate": {
             "type": "string",
-            "pattern": "^[0-9a-f]{32}$"
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+          },
+          "endDate": {
+            "type": "string",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
           }
         },
         "required": [
-          "classId"
+          "startDate",
+          "endDate"
+        ],
+        "additionalProperties": false
+      },
+      "RequestFeeEdit": {
+        "type": "object",
+        "properties": {
+          "reason": {
+            "type": "string",
+            "minLength": 3,
+            "maxLength": 500
+          }
+        },
+        "required": [
+          "reason"
+        ],
+        "additionalProperties": false
+      },
+      "LinkFeeLevelsResult": {
+        "type": "object",
+        "properties": {
+          "levels": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "levelId": {
+                  "type": "string"
+                },
+                "ok": {
+                  "type": "boolean"
+                },
+                "reason": {
+                  "type": "string",
+                  "enum": [
+                    "not_found",
+                    "not_live",
+                    "wrong_wing",
+                    "conflict",
+                    "ended"
+                  ]
+                }
+              },
+              "required": [
+                "levelId",
+                "ok"
+              ]
+            }
+          },
+          "charged": {
+            "type": "integer"
+          },
+          "pending": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "levels",
+          "charged",
+          "pending"
+        ]
+      },
+      "LinkFeeLevels": {
+        "type": "object",
+        "properties": {
+          "levelIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{32}$"
+            },
+            "minItems": 1,
+            "maxItems": 60
+          }
+        },
+        "required": [
+          "levelIds"
         ],
         "additionalProperties": false
       },
@@ -7916,6 +8245,27 @@
                 "reversed"
               ]
             }
+          },
+          "closed": {
+            "type": [
+              "object",
+              "null"
+            ],
+            "properties": {
+              "closedOnBs": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "owedPaisa": {
+                "type": "integer"
+              }
+            },
+            "required": [
+              "closedOnBs",
+              "owedPaisa"
+            ]
           }
         },
         "required": [
@@ -7934,7 +8284,8 @@
           "creditPaisa",
           "nextDue",
           "entries",
-          "receipts"
+          "receipts",
+          "closed"
         ]
       },
       "Receipt": {
@@ -8055,112 +8406,6 @@
         ],
         "additionalProperties": false
       },
-      "Voucher": {
-        "type": "object",
-        "properties": {
-          "amountPaisa": {
-            "type": "integer",
-            "exclusiveMinimum": 0,
-            "maximum": 10000000000
-          },
-          "bank": {
-            "type": "string",
-            "minLength": 1,
-            "maxLength": 80
-          },
-          "reference": {
-            "type": "string",
-            "minLength": 1,
-            "maxLength": 80
-          },
-          "paidOn": {
-            "type": "string",
-            "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
-          }
-        },
-        "required": [
-          "amountPaisa",
-          "bank",
-          "reference",
-          "paidOn"
-        ],
-        "additionalProperties": false
-      },
-      "VoucherList": {
-        "type": "object",
-        "properties": {
-          "vouchers": {
-            "type": "array",
-            "items": {
-              "type": "object",
-              "properties": {
-                "id": {
-                  "type": "string"
-                },
-                "enrollmentId": {
-                  "type": "string"
-                },
-                "studentName": {
-                  "type": "string"
-                },
-                "sid": {
-                  "type": "string"
-                },
-                "amountPaisa": {
-                  "type": "integer"
-                },
-                "bank": {
-                  "type": "string"
-                },
-                "reference": {
-                  "type": "string"
-                },
-                "paidOn": {
-                  "type": "string"
-                },
-                "paidOnBs": {
-                  "type": [
-                    "string",
-                    "null"
-                  ]
-                },
-                "submittedAt": {
-                  "type": "string"
-                }
-              },
-              "required": [
-                "id",
-                "enrollmentId",
-                "studentName",
-                "sid",
-                "amountPaisa",
-                "bank",
-                "reference",
-                "paidOn",
-                "paidOnBs",
-                "submittedAt"
-              ]
-            }
-          }
-        },
-        "required": [
-          "vouchers"
-        ]
-      },
-      "RejectVoucher": {
-        "type": "object",
-        "properties": {
-          "reason": {
-            "type": "string",
-            "minLength": 1,
-            "maxLength": 300
-          }
-        },
-        "required": [
-          "reason"
-        ],
-        "additionalProperties": false
-      },
       "OnlinePayment": {
         "type": "object",
         "properties": {
@@ -8189,7 +8434,7 @@
         ],
         "additionalProperties": false
       },
-      "ProposeDiscount": {
+      "GiveDiscount": {
         "type": "object",
         "properties": {
           "amountPaisa": {
@@ -8221,6 +8466,217 @@
         ],
         "additionalProperties": false
       },
+      "DiscountList": {
+        "type": "object",
+        "properties": {
+          "discounts": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "amountPaisa": {
+                  "type": "integer"
+                },
+                "percent": {
+                  "type": [
+                    "integer",
+                    "null"
+                  ]
+                },
+                "reason": {
+                  "type": "string",
+                  "enum": [
+                    "scholarship",
+                    "sibling",
+                    "staff_child",
+                    "other"
+                  ]
+                },
+                "note": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "status": {
+                  "type": "string",
+                  "enum": [
+                    "active",
+                    "removed",
+                    "replaced"
+                  ]
+                },
+                "changeableUntil": {
+                  "type": "string"
+                },
+                "canChange": {
+                  "type": "boolean"
+                },
+                "createdAt": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "id",
+                "amountPaisa",
+                "percent",
+                "reason",
+                "note",
+                "status",
+                "changeableUntil",
+                "canChange",
+                "createdAt"
+              ]
+            }
+          }
+        },
+        "required": [
+          "discounts"
+        ]
+      },
+      "DiscountReport": {
+        "type": "object",
+        "properties": {
+          "discounts": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "studentName": {
+                  "type": "string"
+                },
+                "sid": {
+                  "type": "string"
+                },
+                "className": {
+                  "type": "string"
+                },
+                "amountPaisa": {
+                  "type": "integer"
+                },
+                "percent": {
+                  "type": [
+                    "integer",
+                    "null"
+                  ]
+                },
+                "reason": {
+                  "type": "string",
+                  "enum": [
+                    "scholarship",
+                    "sibling",
+                    "staff_child",
+                    "other"
+                  ]
+                },
+                "note": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "status": {
+                  "type": "string",
+                  "enum": [
+                    "active",
+                    "removed",
+                    "replaced"
+                  ]
+                },
+                "givenOnBs": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "givenBy": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "id",
+                "studentName",
+                "sid",
+                "className",
+                "amountPaisa",
+                "percent",
+                "reason",
+                "note",
+                "status",
+                "givenOnBs",
+                "givenBy"
+              ]
+            }
+          },
+          "activePaisa": {
+            "type": "integer"
+          },
+          "activeCount": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "discounts",
+          "activePaisa",
+          "activeCount"
+        ]
+      },
+      "PriceChangeList": {
+        "type": "object",
+        "properties": {
+          "students": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "enrollmentId": {
+                  "type": "string"
+                },
+                "studentId": {
+                  "type": "string"
+                },
+                "studentName": {
+                  "type": "string"
+                },
+                "sid": {
+                  "type": "string"
+                },
+                "className": {
+                  "type": "string"
+                },
+                "changePaisa": {
+                  "type": "integer"
+                },
+                "balancePaisa": {
+                  "type": "integer"
+                },
+                "closed": {
+                  "type": "boolean"
+                }
+              },
+              "required": [
+                "enrollmentId",
+                "studentId",
+                "studentName",
+                "sid",
+                "className",
+                "changePaisa",
+                "balancePaisa",
+                "closed"
+              ]
+            }
+          }
+        },
+        "required": [
+          "students"
+        ]
+      },
       "ReversalRequest": {
         "type": "object",
         "properties": {
@@ -8235,7 +8691,7 @@
         ],
         "additionalProperties": false
       },
-      "RefundRequest": {
+      "GiveRefund": {
         "type": "object",
         "properties": {
           "amountPaisa": {
@@ -8243,21 +8699,6 @@
             "exclusiveMinimum": 0,
             "maximum": 10000000000
           },
-          "reason": {
-            "type": "string",
-            "minLength": 1,
-            "maxLength": 300
-          }
-        },
-        "required": [
-          "amountPaisa",
-          "reason"
-        ],
-        "additionalProperties": false
-      },
-      "RecordRefund": {
-        "type": "object",
-        "properties": {
           "method": {
             "type": "string",
             "enum": [
@@ -8270,9 +8711,15 @@
             "type": "string",
             "minLength": 1,
             "maxLength": 80
+          },
+          "reason": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 300
           }
         },
         "required": [
+          "amountPaisa",
           "method"
         ],
         "additionalProperties": false
@@ -8373,6 +8820,9 @@
                 "hasEmail": {
                   "type": "boolean"
                 },
+                "closed": {
+                  "type": "boolean"
+                },
                 "chargedPaisa": {
                   "type": "integer"
                 },
@@ -8400,6 +8850,7 @@
                 "classId",
                 "className",
                 "hasEmail",
+                "closed",
                 "chargedPaisa",
                 "discountPaisa",
                 "paidPaisa",
@@ -17477,7 +17928,7 @@
         "tags": [
           "admissions"
         ],
-        "description": "Moves students of a closed term: promote (a class of the next level in an open term), repeat (the same level), leave, or graduate (last level). Leaving and graduating need nothing owed. What is owed is carried into the new term. Each student is answered on its own; a repeat finds the move already made.",
+        "description": "Moves students of a closed term: promote (a class of the next level in an open term), repeat (the same level), leave (sent to the Principal; no zero-dues rule), or graduate (last level; needs nothing owed). What is owed is carried into the new term. Each student is answered on its own; a repeat finds the move already made.",
         "requestBody": {
           "required": true,
           "content": {
@@ -17495,6 +17946,75 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/MoveResults"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/students/leave-requests": {
+      "post": {
+        "operationId": "request_student_leave",
+        "tags": [
+          "admissions"
+        ],
+        "description": "The Co-ordinator asks for a student to be marked Left, with a reason. The Principal decides it; when approved, in one step the student is marked Left and their fee account is closed for everyone (what is unpaid stays owed). Settle any fees with the family before asking.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LeaveRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Sent; the request's id",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "id"
+                  ]
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdmissionsError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such student, or not one the person may reach",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdmissionsError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "A request for this student is already waiting",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdmissionsError"
                 }
               }
             }
@@ -18998,7 +19518,7 @@
         "tags": [
           "fees"
         ],
-        "description": "The active year's fee structures in the person's sections. Not for students (their own fees are at /api/fees/me).",
+        "description": "The fee structures in the person's wings, newest period first. Not for students (their own fees are at /api/fees/me).",
         "responses": {
           "200": {
             "description": "The structures",
@@ -19027,7 +19547,7 @@
         "tags": [
           "fees"
         ],
-        "description": "Drafts the active year's fee structure for a programme level. One per level and year.",
+        "description": "Drafts a fee structure in a wing: a name, a start date and an end date. Lines are added to the draft; the Principal approves it; then it is linked to levels.",
         "requestBody": {
           "required": true,
           "content": {
@@ -19106,7 +19626,7 @@
         "tags": [
           "fees"
         ],
-        "description": "One fee structure: its items, its yearly total, and the classes of its level with their student counts.",
+        "description": "One fee structure: its lines, its total, and the levels it is linked to with their student counts.",
         "parameters": [
           {
             "schema": {
@@ -19158,7 +19678,7 @@
         "tags": [
           "fees"
         ],
-        "description": "Adds an item to a draft: a name, an amount in whole paisa, and how often it is billed.",
+        "description": "Adds a line to a draft: a name and a price in whole paisa. The lines add up to the structure's total, due on its start date.",
         "parameters": [
           {
             "schema": {
@@ -19248,7 +19768,7 @@
         "tags": [
           "fees"
         ],
-        "description": "Changes a draft's item, or switches it off. A structure waiting for approval or live does not change.",
+        "description": "Changes a draft's line, or switches it off. A structure waiting for approval or live does not change.",
         "parameters": [
           {
             "schema": {
@@ -19341,7 +19861,7 @@
         "tags": [
           "fees"
         ],
-        "description": "Sends a draft with at least one item to the Admins for approval. It is locked while it waits.",
+        "description": "Sends a draft with at least one line to the Principal for approval. It is locked while it waits.",
         "parameters": [
           {
             "schema": {
@@ -19415,13 +19935,13 @@
         }
       }
     },
-    "/api/fees/structures/{id}/charges": {
+    "/api/fees/structures/{id}/next-period": {
       "post": {
-        "operationId": "generate_fee_charges",
+        "operationId": "start_next_fee_period",
         "tags": [
           "fees"
         ],
-        "description": "Makes every missing charge for the active students of one class of the structure's level, from the live structure. Safe to repeat.",
+        "description": "Starts the next period of a structure: a new draft of the same name and wing with the new dates and a copy of its lines, to edit and send for approval. Reuse for next year.",
         "parameters": [
           {
             "schema": {
@@ -19438,25 +19958,372 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/GenerateCharges"
+                "$ref": "#/components/schemas/NewFeePeriod"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Drafted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "id"
+                  ]
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FeesError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such item, or not one the person may reach",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FeesError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Not possible in its current state (not a draft, not live, already there, or the year is closed)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FeesError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Not valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FeesInvalid"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/fees/structures/{id}/edit-request": {
+      "post": {
+        "operationId": "request_fee_structure_edit",
+        "tags": [
+          "fees"
+        ],
+        "description": "Asks the Principal to let an approved structure be edited, with a reason. The approved version stays in force. When the Principal approves the request, a draft copy appears for the Accountant to edit and send for approval again.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{32}$"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RequestFeeEdit"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Asked; the approval request's id",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "id"
+                  ]
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FeesError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such item, or not one the person may reach",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FeesError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Not possible in its current state (not a draft, not live, already there, or the year is closed)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FeesError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Not valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FeesInvalid"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/fees/structures/{id}/discard": {
+      "post": {
+        "operationId": "discard_fee_structure_edit",
+        "tags": [
+          "fees"
+        ],
+        "description": "Gives up a draft edit of an approved structure (only a draft that replaces an approved version). The approved version is untouched, and a new edit can be asked for.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{32}$"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Discarded",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": {
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
+                    }
+                  },
+                  "required": [
+                    "ok"
+                  ]
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FeesError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such item, or not one the person may reach",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FeesError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Not possible in its current state (not a draft, not live, already there, or the year is closed)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FeesError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Not valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FeesInvalid"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/fees/structures/{id}/levels": {
+      "post": {
+        "operationId": "link_fee_levels",
+        "tags": [
+          "fees"
+        ],
+        "description": "Links an approved structure to levels of its wing, with no approval. Every student of a linked level is then charged automatically, and so is one who joins later. A level has one structure for any dates.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{32}$"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LinkFeeLevels"
               }
             }
           }
         },
         "responses": {
           "200": {
-            "description": "Made",
+            "description": "What happened to each level, and how many charges were made now",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LinkFeeLevelsResult"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FeesError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such item, or not one the person may reach",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FeesError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Not possible in its current state (not a draft, not live, already there, or the year is closed)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FeesError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Not valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FeesInvalid"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/fees/structures/{id}/levels/{levelId}": {
+      "delete": {
+        "operationId": "unlink_fee_level",
+        "tags": [
+          "fees"
+        ],
+        "description": "Removes a level's link. Refused (409 in_use) once any student of the level, charged under it, has paid anything.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{32}$"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{32}$"
+            },
+            "required": true,
+            "name": "levelId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Unlinked",
             "content": {
               "application/json": {
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "created": {
-                      "type": "integer"
+                    "ok": {
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
                     }
                   },
                   "required": [
-                    "created"
+                    "ok"
                   ]
                 }
               }
@@ -19743,271 +20610,6 @@
         }
       }
     },
-    "/api/fees/me/vouchers": {
-      "post": {
-        "operationId": "submit_voucher",
-        "tags": [
-          "fees"
-        ],
-        "description": "The student reports a bank deposit (the bank and its reference; no scan while file storage is off). The Accountant verifies it.",
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/Voucher"
-              }
-            }
-          }
-        },
-        "responses": {
-          "201": {
-            "description": "Reported",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "id": {
-                      "type": "string"
-                    }
-                  },
-                  "required": [
-                    "id"
-                  ]
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Not allowed",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/FeesError"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "No such item, or not one the person may reach",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/FeesError"
-                }
-              }
-            }
-          },
-          "409": {
-            "description": "Not possible in its current state (not a draft, not live, already there, or the year is closed)",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/FeesError"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Not valid",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/FeesInvalid"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/fees/vouchers": {
-      "get": {
-        "operationId": "list_vouchers",
-        "tags": [
-          "fees"
-        ],
-        "description": "Vouchers waiting for the Accountant, oldest first, in their sections.",
-        "responses": {
-          "200": {
-            "description": "The vouchers",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/VoucherList"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/fees/vouchers/{id}/verify": {
-      "post": {
-        "operationId": "verify_voucher",
-        "tags": [
-          "fees"
-        ],
-        "description": "Verifies a voucher: it becomes a payment with a numbered receipt, in one batch. Once.",
-        "parameters": [
-          {
-            "schema": {
-              "type": "string",
-              "pattern": "^[0-9a-f]{32}$"
-            },
-            "required": true,
-            "name": "id",
-            "in": "path"
-          }
-        ],
-        "responses": {
-          "201": {
-            "description": "Paid",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Paid"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Not allowed",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/FeesError"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "No such item, or not one the person may reach",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/FeesError"
-                }
-              }
-            }
-          },
-          "409": {
-            "description": "Not possible in its current state (not a draft, not live, already there, or the year is closed)",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/FeesError"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Not valid",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/FeesInvalid"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/fees/vouchers/{id}/reject": {
-      "post": {
-        "operationId": "reject_voucher",
-        "tags": [
-          "fees"
-        ],
-        "description": "Rejects a voucher, with a reason. The student may report the deposit again, corrected.",
-        "parameters": [
-          {
-            "schema": {
-              "type": "string",
-              "pattern": "^[0-9a-f]{32}$"
-            },
-            "required": true,
-            "name": "id",
-            "in": "path"
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/RejectVoucher"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Rejected",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "ok": {
-                      "type": "boolean",
-                      "enum": [
-                        true
-                      ]
-                    }
-                  },
-                  "required": [
-                    "ok"
-                  ]
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Not allowed",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/FeesError"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "No such item, or not one the person may reach",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/FeesError"
-                }
-              }
-            }
-          },
-          "409": {
-            "description": "Not possible in its current state (not a draft, not live, already there, or the year is closed)",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/FeesError"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Not valid",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/FeesInvalid"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
     "/api/fees/me/online-payments": {
       "post": {
         "operationId": "start_online_payment",
@@ -20125,11 +20727,11 @@
     },
     "/api/fees/enrollments/{id}/discounts": {
       "post": {
-        "operationId": "propose_discount",
+        "operationId": "give_discount",
         "tags": [
           "fees"
         ],
-        "description": "Proposes a discount (an amount, or a percentage of what was charged, with a reason) and sends it to the Admins. Nothing changes until one approves it.",
+        "description": "The Principal gives a discount (an amount, or a percentage of what was charged, with a reason), never more than the fees in all. It applies at once; for 15 days the Principal can change or remove it, then it is frozen.",
         "parameters": [
           {
             "schema": {
@@ -20146,14 +20748,14 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/ProposeDiscount"
+                "$ref": "#/components/schemas/GiveDiscount"
               }
             }
           }
         },
         "responses": {
           "201": {
-            "description": "Sent for approval; the request's own id",
+            "description": "Given; the discount's own id",
             "content": {
               "application/json": {
                 "schema": {
@@ -20165,6 +20767,280 @@
                   },
                   "required": [
                     "id"
+                  ]
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FeesError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such item, or not one the person may reach",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FeesError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Not possible in its current state (not a draft, not live, already there, or the year is closed)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FeesError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Not valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FeesInvalid"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "operationId": "list_discounts",
+        "tags": [
+          "fees"
+        ],
+        "description": "The discounts given on one student's account, newest first, with whether the Principal can still change each.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{32}$"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The discounts",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DiscountList"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such item, or not one the person may reach",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FeesError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/fees/discounts": {
+      "get": {
+        "operationId": "discount_report",
+        "tags": [
+          "fees"
+        ],
+        "description": "The Principal's report of every discount given: the student, class, amount, reason, day and who gave it, and what the active ones add up to.",
+        "responses": {
+          "200": {
+            "description": "The report",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DiscountReport"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/fees/structures/{id}/price-changes": {
+      "get": {
+        "operationId": "list_price_changes",
+        "tags": [
+          "fees"
+        ],
+        "description": "The students whose billing a structure's approved edits changed: the net change for each and what they owe now.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{32}$"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The students",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PriceChangeList"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such item, or not one the person may reach",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FeesError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/fees/discounts/{id}": {
+      "patch": {
+        "operationId": "change_discount",
+        "tags": [
+          "fees"
+        ],
+        "description": "The Principal changes a discount within 15 days of giving it: the old one is taken back and the new one given in one step. After 15 days it is frozen.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{32}$"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GiveDiscount"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Changed; the new discount's id",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "id"
+                  ]
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FeesError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such item, or not one the person may reach",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FeesError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Not possible in its current state (not a draft, not live, already there, or the year is closed)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FeesError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Not valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FeesInvalid"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "operationId": "remove_discount",
+        "tags": [
+          "fees"
+        ],
+        "description": "The Principal takes a discount back within 15 days of giving it: a new entry cancels it and the student owes it again. After 15 days it is frozen.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{32}$"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Taken back",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": {
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
+                    }
+                  },
+                  "required": [
+                    "ok"
                   ]
                 }
               }
@@ -20305,11 +21181,11 @@
     },
     "/api/fees/enrollments/{id}/refunds": {
       "post": {
-        "operationId": "request_refund",
+        "operationId": "give_refund",
         "tags": [
           "fees"
         ],
-        "description": "Asks the Admins to refund credit (what was paid over what is owed). Approved, it is recorded as paid back, and only then written to the ledger.",
+        "description": "The Accountant pays back a student's credit (what was paid over what is owed), up to the credit and no more. It is written to the ledger at once; no approval.",
         "parameters": [
           {
             "schema": {
@@ -20326,14 +21202,14 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/RefundRequest"
+                "$ref": "#/components/schemas/GiveRefund"
               }
             }
           }
         },
         "responses": {
           "201": {
-            "description": "Sent for approval",
+            "description": "Paid back",
             "content": {
               "application/json": {
                 "schema": {
@@ -20345,99 +21221,6 @@
                   },
                   "required": [
                     "id"
-                  ]
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Not allowed",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/FeesError"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "No such item, or not one the person may reach",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/FeesError"
-                }
-              }
-            }
-          },
-          "409": {
-            "description": "Not possible in its current state (not a draft, not live, already there, or the year is closed)",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/FeesError"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Not valid",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/FeesInvalid"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/fees/refunds/{id}/record": {
-      "post": {
-        "operationId": "record_refund",
-        "tags": [
-          "fees"
-        ],
-        "description": "Records how an approved refund was paid back. The ledger takes the refund in the same batch. Once.",
-        "parameters": [
-          {
-            "schema": {
-              "type": "string",
-              "pattern": "^[0-9a-f]{32}$"
-            },
-            "required": true,
-            "name": "id",
-            "in": "path"
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/RecordRefund"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Recorded",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "ok": {
-                      "type": "boolean",
-                      "enum": [
-                        true
-                      ]
-                    }
-                  },
-                  "required": [
-                    "ok"
                   ]
                 }
               }
@@ -20585,35 +21368,6 @@
               "text/csv": {
                 "schema": {
                   "type": "string"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/fees/reminders": {
-      "post": {
-        "operationId": "send_overdue_reminders",
-        "tags": [
-          "fees"
-        ],
-        "description": "Emails every student in the Accountant's sections who has something overdue. Once per student per day: pressing it again sends nothing new.",
-        "responses": {
-          "200": {
-            "description": "Queued",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "queued": {
-                      "type": "integer"
-                    }
-                  },
-                  "required": [
-                    "queued"
-                  ]
                 }
               }
             }

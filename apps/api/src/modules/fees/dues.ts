@@ -1,14 +1,12 @@
 import { rowsOf, type DashboardPart } from "../../core/dashboard";
-import { recordAudit } from "../../core/audit";
 import { nepalDate } from "../../core/dates";
-import { queueEmailIf } from "../../core/notifications";
 import type { Grant } from "../../core/permissions";
 import { allocate, type LedgerKind } from "./allocation";
 import { formatNpr } from "./money";
 import type { DuesList } from "./schema";
 
 /**
- * The dues list and overdue reminders (D-078): every student of the active year in the person's sections, with what
+ * The dues list (D-078; the overdue reminder email was removed, D-172): every student of the active year in the person's sections, with what
  * was charged, discounted and paid, and what is due and overdue, computed from the ledger (oldest due first).
  */
 
@@ -18,10 +16,12 @@ export async function listDues(db: D1Database, grant: Grant, classId: string | n
   const [students, entries] = await db.batch([
     db
       .prepare(
-        `SELECT en.public_id, st.public_id AS student_id, st.first_name, st.last_name, st.sid, st.email, pv.name AS programme_name, lv.name AS level_name, cl.label, cl.public_id AS class_id
+        `SELECT en.public_id, st.public_id AS student_id, st.first_name, st.last_name, st.sid, st.email, pv.name AS programme_name, lv.name AS level_name, cl.label, cl.public_id AS class_id,
+                EXISTS (SELECT 1 FROM fee_account_closures fc WHERE fc.enrollment_id = en.id) AS closed
            FROM enrollments en JOIN students st ON st.id = en.student_id JOIN academic_years ay ON ay.id = en.academic_year_id
            JOIN classes cl ON cl.id = en.class_id JOIN levels lv ON lv.id = cl.level_id JOIN programmes pv ON pv.id = lv.programme_id JOIN sections s ON s.id = pv.section_id
-          WHERE ay.status = 'active' AND (?1 IS NULL OR s.key IN (SELECT value FROM json_each(?1))) AND (?2 IS NULL OR cl.public_id = ?2)
+          WHERE ay.status = 'active' AND NOT EXISTS (SELECT 1 FROM fee_account_closures fc WHERE fc.enrollment_id = en.id)
+            AND (?1 IS NULL OR s.key IN (SELECT value FROM json_each(?1))) AND (?2 IS NULL OR cl.public_id = ?2)
           ORDER BY s.ordering, pv.ordering, lv.ordinal, cl.label, st.last_name, st.first_name`,
       )
       .bind(sectionFilter(grant), classId),
@@ -30,7 +30,8 @@ export async function listDues(db: D1Database, grant: Grant, classId: string | n
         `SELECT en.public_id AS enrollment, le.public_id, le.kind, le.amount_paisa, le.due_on
            FROM ledger_entries le JOIN enrollments en ON en.id = le.enrollment_id JOIN academic_years ay ON ay.id = en.academic_year_id
            JOIN classes cl ON cl.id = en.class_id JOIN levels lv ON lv.id = cl.level_id JOIN programmes pv ON pv.id = lv.programme_id JOIN sections s ON s.id = pv.section_id
-          WHERE ay.status = 'active' AND (?1 IS NULL OR s.key IN (SELECT value FROM json_each(?1))) AND (?2 IS NULL OR cl.public_id = ?2)`,
+          WHERE ay.status = 'active' AND NOT EXISTS (SELECT 1 FROM fee_account_closures fc WHERE fc.enrollment_id = en.id)
+            AND (?1 IS NULL OR s.key IN (SELECT value FROM json_each(?1))) AND (?2 IS NULL OR cl.public_id = ?2)`,
       )
       .bind(sectionFilter(grant), classId),
   ]);
@@ -40,7 +41,7 @@ export async function listDues(db: D1Database, grant: Grant, classId: string | n
     list.push(e);
     byEnrollment.set(e.enrollment, list);
   }
-  const rows = (students!.results as unknown as { public_id: string; student_id: string; first_name: string; last_name: string; sid: string; email: string | null; programme_name: string; level_name: string; label: string; class_id: string }[]).map((st) => {
+  const rows = (students!.results as unknown as { public_id: string; student_id: string; first_name: string; last_name: string; sid: string; email: string | null; programme_name: string; level_name: string; label: string; class_id: string; closed: number }[]).map((st) => {
     const lines = byEnrollment.get(st.public_id) ?? [];
     const sum = (kinds: LedgerKind[]) => lines.filter((l) => kinds.includes(l.kind)).reduce((s, l) => s + l.amount_paisa, 0);
     const alloc = allocate(lines.map((l) => ({ id: l.public_id, kind: l.kind, amountPaisa: l.amount_paisa, dueOn: l.due_on })), today);
@@ -52,6 +53,7 @@ export async function listDues(db: D1Database, grant: Grant, classId: string | n
       classId: st.class_id,
       className: [st.programme_name, st.level_name, st.label].filter(Boolean).join(" · "),
       hasEmail: Boolean(st.email),
+      closed: st.closed === 1,
       chargedPaisa: sum(["charge", "carried_dues"]),
       discountPaisa: -sum(["discount"]),
       paidPaisa: -sum(["payment"]) - sum(["reversal"]),
@@ -86,40 +88,6 @@ export function duesCsv(list: DuesList): string {
   const money = (p: number) => formatNpr(p);
   const lines = [CSV_HEADER, ...list.students.map((r) => [r.sid, r.studentName, r.className, money(r.chargedPaisa), money(r.discountPaisa), money(r.paidPaisa), money(r.duePaisa), money(r.overduePaisa)])];
   return `﻿${lines.map((line) => line.map(csvField).join(",")).join("\r\n")}\r\n`;
-}
-
-/**
- * Emails every student in reach who has something overdue and an email address. Once per student per day (the
- * outbox's dedupe key), so pressing it twice sends nothing new. In-app and email only; SMS waits for Phase 9.
- */
-export async function sendOverdueReminders(db: D1Database, key: string, dataKey: string, actor: string, grant: Grant, today = nepalDate(new Date())): Promise<{ queued: number }> {
-  const list = await listDues(db, grant, null, today);
-  const due = list.students.filter((s) => s.overduePaisa > 0 && s.hasEmail);
-  if (due.length === 0) return { queued: 0 };
-  const emails = await db
-    .prepare(`SELECT en.public_id, st.email FROM enrollments en JOIN students st ON st.id = en.student_id WHERE en.public_id IN (SELECT value FROM json_each(?1))`)
-    .bind(JSON.stringify(due.map((s) => s.enrollmentId)))
-    .all<{ public_id: string; email: string }>();
-  const address = new Map(emails.results.map((r) => [r.public_id, r.email]));
-  let queued = 0;
-  for (let i = 0; i < due.length; i += 50) {
-    const chunk = due.slice(i, i + 50);
-    const statements = await Promise.all(
-      chunk.map((s) =>
-        // Only if not already queued today: a second press sends nothing new.
-        queueEmailIf(
-          db,
-          dataKey,
-          { template: "fee_overdue", to: address.get(s.enrollmentId)!, data: { name: s.studentName, sid: s.sid, overdue: formatNpr(s.overduePaisa) }, dedupeKey: `fee_overdue:${s.enrollmentId}:${today}` },
-          "SELECT 1 WHERE NOT EXISTS (SELECT 1 FROM outbox_events WHERE dedupe_key = ?5)",
-          `fee_overdue:${s.enrollmentId}:${today}`,
-        ),
-      ),
-    );
-    await recordAudit(db, key, { action: "fees.reminders.sent", entityType: "fees", actorPublicId: actor, summary: `Overdue reminders queued for ${chunk.length} students`, after: { today, enrollments: chunk.map((s) => s.enrollmentId) } }, statements);
-    queued += chunk.length;
-  }
-  return { queued };
 }
 
 export interface FeesDashboard {

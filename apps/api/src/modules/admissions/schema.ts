@@ -162,6 +162,10 @@ export const StudentDetailSchema = z
     /** Where the student is, each part apart (PM, 2026-10-06): their most recent enrollment's wing, course, level, the class's section label ("" when it has none) and term. Null: in no class. */
     place: z.object({ wing: z.string(), course: z.string(), level: z.string(), section: z.string(), term: z.string() }).nullable(),
     createdAt: z.string(),
+    /** The enrollment the Co-ordinator can ask to mark Left: the latest one, when it is still active. Null otherwise. */
+    enrollmentId: z.string().nullable(),
+    /** A request to mark the student Left is waiting for the Principal. */
+    leaveRequested: z.boolean(),
   })
   .openapi("StudentDetail");
 export type StudentDetail = z.infer<typeof StudentDetailSchema>;
@@ -257,6 +261,10 @@ export const MoveInputSchema = z
   .refine((m) => (m.action === "promote" || m.action === "repeat") === (m.classId !== undefined), { path: ["classId"], message: "Promote and repeat need a class; leaving and graduating do not" });
 export type MoveInput = z.infer<typeof MoveInputSchema>;
 
+export const LeaveRequestSchema = z
+  .strictObject({ enrollmentId: PublicIdSchema, reason: z.string().trim().min(3, "Say why the student is leaving, in at least 3 characters").max(500, "Keep the reason to 500 characters") })
+  .openapi("LeaveRequest");
+
 export const MovesSchema = z.strictObject({ moves: z.array(MoveInputSchema).min(1, "Choose at least one student").max(300, "Move at most 300 students at once") }).openapi("Moves");
 
 export const MoveResultSchema = z
@@ -267,6 +275,8 @@ export const MoveResultSchema = z
     message: z.string().optional(),
     newEnrollmentId: z.string().optional(),
     carriedDues: z.boolean().optional(),
+    /** Leaving was sent to the Principal; the student is marked Left only when it is approved. */
+    pending: z.boolean().optional(),
   })
   .openapi("MoveResult");
 export type MoveResult = z.infer<typeof MoveResultSchema>;

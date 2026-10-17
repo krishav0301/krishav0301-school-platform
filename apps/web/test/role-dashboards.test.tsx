@@ -42,12 +42,12 @@ describe("the Accountant's home (D-107)", () => {
     expect(inContext(<DayList rows={[]} />)).toContain("Nothing needs you right now.");
   });
 
-  it("the Accountant's day: deposits to check, students overdue, what is due, structures waiting", () => {
-    const day = { vouchers: 1, overdue: { students: 3, paisa: 450_000 }, duePaisa: 6_000_000, structures: { draft: 1, waiting: 0, live: 2 } };
-    expect(feesFigures(day).map((f) => f.value)).toEqual(["1", "3", "NPR 60,000", "0"]);
+  it("the Accountant's day: students overdue, what is due, structures waiting", () => {
+    const day = { overdue: { students: 3, paisa: 450_000 }, duePaisa: 6_000_000, structures: { draft: 1, waiting: 0, live: 2 } };
+    expect(feesFigures(day).map((f) => f.value)).toEqual(["3", "NPR 60,000", "0"]);
     const rows = feesRows(day);
-    expect(rows.map((r) => [r.key, r.todo])).toEqual([["vouchers", true], ["overdue", true], ["structures", true]]);
-    expect(rows[1]!.meta).toBe("3 students owe NPR 4,500 past the due day");
-    expect(rows[2]!.meta).toBe("2 live, 0 waiting for approval, 1 drafts");
+    expect(rows.map((r) => [r.key, r.todo])).toEqual([["overdue", true], ["structures", true]]);
+    expect(rows[0]!.meta).toBe("3 students owe NPR 4,500 past the due day");
+    expect(rows[1]!.meta).toBe("2 live, 0 waiting for approval, 1 drafts");
   });
 });

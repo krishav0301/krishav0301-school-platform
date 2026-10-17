@@ -151,9 +151,10 @@ export async function writeMoney(db: D1Database, key: string, event: AuditEventI
         await sleep(Math.random() * 10 * Math.min(attempt, 5));
         continue;
       }
-      if (/academic year is closed/i.test(message)) return "year_closed";
+      // A closed fee account (a student who left) answers like a closed year: nothing can be added to it.
+      if (/academic year is closed|fee account is closed/i.test(message)) return "year_closed";
       if (/UNIQUE constraint failed/i.test(message)) return "duplicate";
-      if (/CHECK constraint failed|must cancel one payment|must be the next|only for a payment/i.test(message)) return "rejected";
+      if (/CHECK constraint failed|must cancel one payment|must cancel one discount|must be the next|only for a payment/i.test(message)) return "rejected";
       throw error;
     }
   }

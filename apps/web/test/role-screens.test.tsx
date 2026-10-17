@@ -7,7 +7,6 @@ import type { AssignmentDetail, StudentAssignments, TeacherAssignments } from "@
 import { ConfigContext, makeConfigValue, type PublicConfig } from "@/config/ConfigProvider";
 import { totalsFigures } from "@/fees/FeesHome";
 import { structureFigures } from "@/fees/StructuresScreen";
-import { VoucherRows, voucherFigures } from "@/fees/VouchersScreen";
 import { MySheetsTable, currentTerminal, mySheetFigures, sheetsOf } from "@/results/MarkSheetScreen";
 import { SessionContext } from "@/session/SessionProvider";
 import { fakeSession } from "./session";
@@ -122,15 +121,6 @@ describe("a teacher's mark sheets (D-107)", () => {
 });
 
 describe("the Accountant's lists (D-107)", () => {
-  it("deposits to check: the count and amount, each row named, with Check", () => {
-    const list = { vouchers: [{ id: "v1", enrollmentId: "e1", studentName: "Kritika Jha", sid: "2083-00007", amountPaisa: 350_000, bank: "Nabil Bank", reference: "NB-1", paidOn: "2026-10-03", paidOnBs: "2083-06-17", submittedAt: "2026-10-03T00:00:00Z" }] };
-    expect(voucherFigures(list).map((f) => f.value)).toEqual(["1", "NPR 3,500"]);
-    const html = inContext(<VoucherRows vouchers={list.vouchers} onOpen={() => {}} />, as("accountant", "institution"));
-    expect(html).toContain("2083-00007 · Nabil Bank · NB-1 · 17 Ashwin 2083");
-    expect(html).toContain('aria-label="Check Kritika Jha&#x27;s deposit"');
-    expect(inContext(<VoucherRows vouchers={[]} />, as("accountant", "institution"))).toContain("No vouchers waiting.");
-  });
-
   it("the year's totals and the structures at a glance", () => {
     expect(totalsFigures({ chargedPaisa: 4_250_000, discountPaisa: 0, paidPaisa: 2_000_000, duePaisa: 2_250_000, overduePaisa: 0 }).map((f) => [f.value, f.tone])).toEqual([
       ["NPR 42,500", "accent"],
@@ -138,7 +128,8 @@ describe("the Accountant's lists (D-107)", () => {
       ["NPR 22,500", "warn"],
       ["NPR 0", "ok"],
     ]);
-    const s = (id: string, status: "draft" | "waiting" | "live") => ({ id, levelId: id, status, yearLabel: "2083", programmeName: "+2 Science", levelName: "Grade 11", sectionKey: "plus2", yearlyTotalPaisa: 0 });
-    expect(structureFigures({ structures: [s("a", "live"), s("b", "waiting"), s("c", "draft")] }, 2).map((f) => f.value)).toEqual(["1", "1", "1", "2"]);
+    const s = (id: string, status: "draft" | "waiting" | "live", levelsLinked = 0) => ({ id, name: id, status, startDate: "2026-04-14", endDate: "2027-04-13", startDateBs: null, endDateBs: null, sectionKey: "plus2", totalPaisa: 0, levelsLinked, editing: false, ended: false });
+    // Live, waiting, draft, and live structures not yet linked to a level.
+    expect(structureFigures({ structures: [s("a", "live"), s("b", "waiting"), s("c", "draft"), s("d", "live", 3)] }).map((f) => f.value)).toEqual(["2", "1", "1", "1"]);
   });
 });

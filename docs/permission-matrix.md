@@ -75,7 +75,8 @@ Phase is the build phase where the action first exists. The action id in code fo
 | Search students (`students.search`) | — | sid+name (assigned) | inst | inst | inst | ✓ | 4 |
 | View personal details (`students.personal.view`) | own | — | inst | read | read | ✓ | 4 |
 | Correct personal details (reason required; SID never editable) (`students.personal.correct`) | — | — | inst | — | — | ✓ | 4 |
-| Mark Left or Graduated (zero dues only) (`students.status.set`) | — | — | inst | — | — | ✓ | 8 |
+| Mark Graduated (zero dues only) (`students.status.set`) | — | — | inst | — | — | ✓ | 8 |
+| Ask for a student to be marked Left (the Principal decides) (`students.leave.request`) | — | — | inst | — | — | ✓ | 8 |
 | Year rollover: Promote, Repeat, Leaving (`students.rollover`) | — | — | inst | — | — | ✓ | 8 |
 
 ### Daily school life
@@ -102,21 +103,19 @@ The Co-ordinator has **no** fees access at all.
 |---|---|---|---|---|---|---|---|
 | Draft yearly fee structure (`fees.structure.draft`) | — | — | — | inst | — | — | 6 |
 | Approve fee structure (`fees.structure.approve`) | — | — | — | — | ✓ | — | 6 |
-| Generate the year's charges from a live fee structure (`fees.charges.generate`) | — | — | — | inst | — | — | 6 |
+| Ask the Principal to let an approved fee structure be edited (`fees.structure.edit_request`) | — | — | — | inst | — | — | 6 |
+| Link an approved fee structure to levels, or unlink one that has no payment yet (`fees.structure.link`) | — | — | — | inst | — | — | 6 |
 | View fees, dues, ledger (`fees.view`) | own | — | — | inst | read | ✓ | 6 |
-| Upload a payment voucher (`fees.voucher.upload`) | own | — | — | — | — | — | 6 |
 | Pay online through the gateway (demo adapter only until Phase 9) (`fees.online.pay`) | own | — | — | — | — | — | 6 |
-| Verify or reject a voucher (`fees.voucher.verify`) | — | — | — | inst | — | — | 6 |
 | Record cash payment (`fees.cash.record`) | — | — | — | inst | — | — | 6 |
-| Propose a discount (`fees.discount.propose`) | — | — | — | inst | — | — | 6 |
-| Approve a discount (`fees.discount.approve`) | — | — | — | — | ✓ | — | 6 |
+| Give a student a discount (the Principal alone; no approval) (`fees.discount.give`) | — | — | — | — | ✓ | — | 6 |
+| Read the report of discounts given (`fees.discount.report`) | — | — | — | — | ✓ | — | 6 |
+| See the students a fee structure's price change affected (`fees.pricechange.view`) | — | — | — | inst | read | ✓ | 6 |
+| Change or remove a discount within 15 days of giving it (`fees.discount.change`) | — | — | — | — | ✓ | — | 6 |
 | Request a payment reversal (`fees.reversal.request`) | — | — | — | inst | — | — | 6 |
 | Approve a reversal (`fees.reversal.approve`) | — | — | — | — | ✓ | — | 6 |
-| Request a refund (`fees.refund.request`) | — | — | — | inst | — | — | 6 |
-| Approve a refund (`fees.refund.approve`) | — | — | — | — | ✓ | — | 6 |
-| Record how an approved refund was paid (`fees.refund.record`) | — | — | — | inst | — | — | 6 |
+| Pay back a student's credit (up to the credit; no approval) (`fees.refund.give`) | — | — | — | inst | — | — | 6 |
 | View and download receipts (`fees.receipts.view`) | own | — | — | inst | read | ✓ | 6 |
-| Send overdue reminders (email) (`fees.reminders.send`) | — | — | — | inst | — | — | 6 |
 
 ### Marks and results
 

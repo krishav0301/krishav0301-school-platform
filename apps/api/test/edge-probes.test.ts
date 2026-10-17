@@ -1,6 +1,7 @@
 import { beforeAll, describe, expect, it } from "vitest";
 
-import { call, db, person, seedSections, type Person } from "./academics-helpers";
+import { call, person, seedSections, type Person } from "./academics-helpers";
+import { liveFees } from "./fees-helpers";
 import { addSubject, enterAndSubmit, examTerm, pattern, resultsClass, sheetIdOf, sheetPath, type Subject, type Term } from "./results-helpers";
 import { classWith, type ClassFixture } from "./schoolday-helpers";
 
@@ -23,12 +24,7 @@ beforeAll(async () => {
   coordinator = await person("coordinator", "institution");
   admin = await person("admin", "institution");
   fixture = await classWith("plus2", 2);
-  const structure = ((await (await post("/api/fees/structures", { levelId: fixture.levelId }, accountant)).json()) as { id: string }).id;
-  await post(`/api/fees/structures/${structure}/items`, { name: "Annual", amountPaisa: 100_000, frequency: "yearly" }, accountant);
-  await post(`/api/fees/structures/${structure}/send`, {}, accountant);
-  const request = (await db.prepare("SELECT public_id FROM approval_requests WHERE subject_public_id = ?1").bind(structure).first<{ public_id: string }>())!.public_id;
-  await post(`/api/approvals/${request}/approve`, undefined, admin);
-  await post(`/api/fees/structures/${structure}/charges`, { classId: fixture.classId }, accountant);
+  await liveFees({ accountant, admin, sectionKey: "plus2", levelIds: [fixture.levelId], items: [{ name: "Annual", amountPaisa: 100_000 }] });
 });
 
 describe("money inputs", () => {
@@ -40,16 +36,10 @@ describe("money inputs", () => {
       expect(r.status, `cash ${amountPaisa}`).toBeLessThan(500);
     }
     for (const percent of [0, 101, -5]) {
-      const r = await post(`/api/fees/enrollments/${enrollmentId}/discounts`, { percent, reason: "sibling" }, accountant);
+      const r = await post(`/api/fees/enrollments/${enrollmentId}/discounts`, { percent, reason: "sibling" }, admin);
       expect(r.status, `discount ${percent}%`).toBeGreaterThanOrEqual(400);
       expect(r.status).toBeLessThan(500);
     }
-  });
-
-  it("a bank deposit dated in the future is refused", async () => {
-    const r = await post("/api/fees/me/vouchers", { amountPaisa: 1_000, bank: "Nabil", reference: `F-${key().slice(0, 8)}`, paidOn: tomorrow() }, fixture.pupils[0]!.person);
-    expect(r.status).toBeGreaterThanOrEqual(400);
-    expect(r.status).toBeLessThan(500);
   });
 
   it("a cash payment for an enrollment that does not exist is 404, not a crash", async () => {

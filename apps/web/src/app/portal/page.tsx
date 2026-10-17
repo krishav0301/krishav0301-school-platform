@@ -1,8 +1,10 @@
 "use client";
 
+import { useRouter } from "next/navigation";
+import { useEffect } from "react";
+
 import { AdminDashboard } from "@/dashboard/AdminDashboard";
 import { RoleBriefLinks } from "@/dashboard/RoleBrief";
-import { AccountantDashboard } from "@/dashboard/RoleDashboards";
 import { RoleLanding } from "@/dashboard/RoleLanding";
 import { t } from "@/i18n/messages";
 import { EmptyLine, Panel, readStyles } from "@/read/ReadView";
@@ -21,20 +23,26 @@ function Dashboard() {
   if (has("admin") || has("super_admin")) return <AdminDashboard />;
   if (has("coordinator")) return <RoleLanding role="coordinator" />;
   if (has("teacher")) return <RoleLanding role="teacher" />;
-  if (has("accountant")) {
-    return (
-      <div className={readStyles.page}>
-        <AccountantDashboard />
-        {has("student") ? <RoleBriefLinks role="student" /> : null}
-      </div>
-    );
-  }
+  if (has("accountant")) return <AccountantHome student={has("student")} />;
   if (has("student")) return <RoleLanding role="student" />;
   return (
     <Panel>
       <EmptyLine>{t("portal.nothingYet")}</EmptyLine>
     </Panel>
   );
+}
+
+/** The Accountant has no Overview: signing in lands on Students, where a payment is recorded (the PM, 2026-10-17). Someone who is also a student keeps their own brief. */
+function AccountantHome({ student }: { student: boolean }) {
+  const router = useRouter();
+  useEffect(() => {
+    if (!student) router.replace("/portal/payments");
+  }, [student, router]);
+  return student ? (
+    <div className={readStyles.page}>
+      <RoleBriefLinks role="student" />
+    </div>
+  ) : null;
 }
 
 export default function PortalPage() {

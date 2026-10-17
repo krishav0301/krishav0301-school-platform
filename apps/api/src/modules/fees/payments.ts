@@ -1,14 +1,12 @@
 import { recordAudit } from "../../core/audit";
-import { adToBsText, nepalDate } from "../../core/dates";
 import { newPublicId } from "../../core/ids";
-import type { Grant } from "../../core/permissions";
 import type { PaymentGateway } from "../../core/payments";
 import { accountantFor, enrollmentSection } from "./guard";
 import { ledgerInserts, writeMoney, type LedgerDraft, type MoneyOutcome } from "./ledger";
-import { CashPaymentSchema, VoucherSchema, type CashPayment, type Voucher, type VoucherList } from "./schema";
+import { CashPaymentSchema, type CashPayment } from "./schema";
 
 /**
- * Payments (D-076): cash at the counter, a verified voucher, or a confirmed online attempt. Each becomes one ledger
+ * Payments (D-076): cash at the counter, or a confirmed online attempt (a reported bank voucher is not offered for now, D-172). Each becomes one ledger
  * payment entry and one receipt, with the receipt counter and the audit entry, in one batch: a payment that fails
  * takes its receipt number back with it, so numbers stay gapless. Each source applies once (the ledger's unique index
  * on the source), so a retry or a repeated callback cannot credit twice.
@@ -124,7 +122,7 @@ export async function recordCash(db: D1Database, key: string, actor: string, inp
   return result;
 }
 
-// --- Vouchers ------------------------------------------------------------------------------------------
+// --- The student's own enrollment ------------------------------------------------------------------------
 
 /** The student's own enrollment in an open (active) term, the newest if ever more than one, found from the sign-in. `?1` the student's user public id. */
 const OWN_ENROLLMENT = `(SELECT en.public_id FROM enrollments en JOIN students st ON st.id = en.student_id JOIN academic_years ay ON ay.id = en.academic_year_id
@@ -135,129 +133,6 @@ export async function ownEnrollment(db: D1Database, userPublicId: string): Promi
 }
 
 export type Created = { ok: true; publicId: string } | { ok: false; reason: "not_found" | "conflict" } | { ok: false; reason: "invalid"; message: string };
-
-export async function submitVoucher(db: D1Database, key: string, userPublicId: string, input: Voucher): Promise<Created> {
-  const parsed = VoucherSchema.safeParse(input);
-  if (!parsed.success) return { ok: false, reason: "invalid", message: parsed.error.issues[0]?.message ?? "That is not valid" };
-  if (adToBsText(parsed.data.paidOn) === null) return { ok: false, reason: "invalid", message: "That day is outside the verified calendar" };
-  // A deposit cannot have been made after today, Nepal time (found by the year test, D-084).
-  if (parsed.data.paidOn > nepalDate(new Date())) return { ok: false, reason: "invalid", message: "The deposit day cannot be after today" };
-  const publicId = newPublicId();
-  try {
-    const { applied } = await recordAudit(
-      db,
-      key,
-      { action: "fees.voucher.submitted", entityType: "fee_voucher", entityPublicId: publicId, actorPublicId: userPublicId, summary: `Voucher reported: ${parsed.data.bank} ${parsed.data.reference}`, after: parsed.data },
-      [
-        db
-          .prepare(
-            `INSERT INTO fee_vouchers (public_id, enrollment_id, amount_paisa, bank, reference, paid_on, submitted_at)
-             SELECT ?2, en.id, ?3, ?4, ?5, ?6, ?7 FROM enrollments en WHERE en.public_id = ${OWN_ENROLLMENT}`,
-          )
-          .bind(userPublicId, publicId, parsed.data.amountPaisa, parsed.data.bank, parsed.data.reference, parsed.data.paidOn, now()),
-      ],
-      { onlyIfLastChanged: true },
-    );
-    return applied ? { ok: true, publicId } : { ok: false, reason: "not_found" };
-  } catch (error) {
-    if (/UNIQUE constraint failed/i.test(error instanceof Error ? error.message : String(error))) return { ok: false, reason: "conflict" };
-    throw error;
-  }
-}
-
-export async function listVouchers(db: D1Database, grant: Grant): Promise<VoucherList> {
-  const { results } = await db
-    .prepare(
-      `SELECT v.public_id, en.public_id AS enrollment_id, st.first_name || ' ' || st.last_name AS student_name, st.sid, v.amount_paisa, v.bank, v.reference, v.paid_on, v.submitted_at
-         FROM fee_vouchers v JOIN enrollments en ON en.id = v.enrollment_id JOIN students st ON st.id = en.student_id
-         JOIN classes cl ON cl.id = en.class_id JOIN levels lv ON lv.id = cl.level_id JOIN programmes pv ON pv.id = lv.programme_id JOIN sections s ON s.id = pv.section_id
-        WHERE v.status = 'submitted' AND (?1 IS NULL OR s.key IN (SELECT value FROM json_each(?1)))
-        ORDER BY v.submitted_at`,
-    )
-    .bind(grant.institution ? null : JSON.stringify(grant.sections))
-    .all<{ public_id: string; enrollment_id: string; student_name: string; sid: string; amount_paisa: number; bank: string; reference: string; paid_on: string; submitted_at: string }>();
-  return {
-    vouchers: results.map((r) => ({
-      id: r.public_id,
-      enrollmentId: r.enrollment_id,
-      studentName: r.student_name,
-      sid: r.sid,
-      amountPaisa: r.amount_paisa,
-      bank: r.bank,
-      reference: r.reference,
-      paidOn: r.paid_on,
-      paidOnBs: adToBsText(r.paid_on),
-      submittedAt: r.submitted_at,
-    })),
-  };
-}
-
-/** A voucher's section guard: this actor is the Accountant for the voucher's student. `?16` the actor, `?17` the voucher. */
-const VOUCHER_GUARD = (actorN: number, voucherN: number) =>
-  accountantFor(actorN, `(SELECT pv.section_id FROM fee_vouchers v JOIN enrollments en ON en.id = v.enrollment_id JOIN classes cl ON cl.id = en.class_id JOIN levels lv ON lv.id = cl.level_id JOIN programmes pv ON pv.id = lv.programme_id WHERE v.public_id = ?${voucherN})`);
-
-export async function verifyVoucher(db: D1Database, key: string, actor: string, voucherId: string): Promise<PayResult> {
-  const voucher = await db
-    .prepare("SELECT v.status, v.amount_paisa, v.bank, v.reference, en.public_id AS enrollment_id FROM fee_vouchers v JOIN enrollments en ON en.id = v.enrollment_id WHERE v.public_id = ?1")
-    .bind(voucherId)
-    .first<{ status: string; amount_paisa: number; bank: string; reference: string; enrollment_id: string }>();
-  if (!voucher) return { ok: false, reason: "not_found" };
-  const allowed = await db.prepare(`SELECT ${VOUCHER_GUARD(1, 2)} AS ok`).bind(actor, voucherId).first<{ ok: number }>();
-  if (allowed?.ok !== 1) return { ok: false, reason: "not_found" };
-  if (voucher.status !== "submitted") return { ok: false, reason: "conflict" };
-  const at = now();
-  const result = await pay(
-    db,
-    key,
-    { action: "fees.payment.voucher", entityType: "fee_voucher", entityPublicId: voucherId, actorPublicId: actor, summary: `Voucher verified: ${voucher.bank} ${voucher.reference}`, after: { amountPaisa: voucher.amount_paisa } },
-    {
-      publicId: newPublicId(),
-      enrollmentPublicId: voucher.enrollment_id,
-      kind: "payment",
-      amountPaisa: -voucher.amount_paisa,
-      sourceType: "voucher",
-      sourcePublicId: voucherId,
-      memo: `Voucher ${voucher.bank} ${voucher.reference}`,
-      actorPublicId: actor,
-      createdAt: at,
-    },
-    {
-      before: [
-        db
-          .prepare(
-            `UPDATE fee_vouchers SET status = 'verified', decided_by_user_id = (SELECT id FROM users WHERE public_id = ?1), decided_at = ?3
-              WHERE public_id = ?2 AND status = 'submitted' AND ${VOUCHER_GUARD(1, 2)}`,
-          )
-          .bind(actor, voucherId, at),
-      ],
-    },
-  );
-  if (result.ok || result.reason !== "not_found") return result;
-  // Nothing was written: another person verified or rejected it a moment ago (D-108), which is a conflict, not a
-  // missing voucher.
-  const after = await db.prepare("SELECT status FROM fee_vouchers WHERE public_id = ?1").bind(voucherId).first<{ status: string }>();
-  return after && after.status !== "submitted" ? { ok: false, reason: "conflict" } : result;
-}
-
-export async function rejectVoucher(db: D1Database, key: string, actor: string, voucherId: string, reason: string): Promise<{ ok: true } | { ok: false; reason: "not_found" | "conflict" }> {
-  const { applied } = await recordAudit(
-    db,
-    key,
-    { action: "fees.voucher.rejected", entityType: "fee_voucher", entityPublicId: voucherId, actorPublicId: actor, summary: "Voucher rejected", reason },
-    [
-      db
-        .prepare(
-          `UPDATE fee_vouchers SET status = 'rejected', reason = ?3, decided_by_user_id = (SELECT id FROM users WHERE public_id = ?1), decided_at = ?4
-            WHERE public_id = ?2 AND status = 'submitted' AND ${VOUCHER_GUARD(1, 2)}`,
-        )
-        .bind(actor, voucherId, reason, now()),
-    ],
-    { onlyIfLastChanged: true },
-  );
-  if (applied) return { ok: true };
-  const exists = await db.prepare("SELECT status FROM fee_vouchers WHERE public_id = ?1").bind(voucherId).first<{ status: string }>();
-  return { ok: false, reason: exists && exists.status !== "submitted" ? "conflict" : "not_found" };
-}
 
 // --- Online, through the gateway interface ----------------------------------------------------------------
 

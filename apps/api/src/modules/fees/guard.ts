@@ -18,8 +18,7 @@ export const anyAccountant = (n: number): string =>
 export const levelSection = (n: number): string => `(SELECT pv.section_id FROM levels lv JOIN programmes pv ON pv.id = lv.programme_id WHERE lv.public_id = ?${n})`;
 
 /** The section id of a fee structure, by its internal id expression. */
-export const structureSection = (structureId: string): string =>
-  `(SELECT pv.section_id FROM fee_structures fs JOIN levels lv ON lv.id = fs.level_id JOIN programmes pv ON pv.id = lv.programme_id WHERE fs.id = ${structureId})`;
+export const structureSection = (structureId: string): string => `(SELECT fs.section_id FROM fee_structures fs WHERE fs.id = ${structureId})`;
 
 /** The section id of an enrollment, by its public id bound at `?n`. */
 export const enrollmentSection = (n: number): string =>

@@ -22,8 +22,10 @@ beforeAll(async () => {
   const structure = newPublicId();
   await db
     .prepare(
-      `INSERT INTO fee_structures (public_id, academic_year_id, level_id, created_by_user_id, created_at)
-       SELECT ?1, c.academic_year_id, c.level_id, u.id, ?3 FROM classes c, users u WHERE c.public_id = ?2 AND u.public_id = ?4`,
+      `INSERT INTO fee_structures (public_id, section_id, name, start_date, end_date, created_by_user_id, created_at)
+       SELECT ?1, pv.section_id, 'Ledger test fees ' || ?1, y.start_date, y.end_date, u.id, ?3
+         FROM classes c JOIN levels lv ON lv.id = c.level_id JOIN programmes pv ON pv.id = lv.programme_id JOIN academic_years y ON y.id = c.academic_year_id, users u
+        WHERE c.public_id = ?2 AND u.public_id = ?4`,
     )
     .bind(structure, fixture.classId, now(), accountant.publicId)
     .run();

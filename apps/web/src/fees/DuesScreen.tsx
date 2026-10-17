@@ -6,17 +6,16 @@ import { useCallback, useState } from "react";
 
 import { t } from "@/i18n/messages";
 import { useSession } from "@/session/SessionProvider";
-import { EmptyLine, FigureTiles, Panel, ReadFailure, ReadHeader, ReadTable, TableSkeleton, readStyles, type Figure } from "@/read/ReadView";
+import { EmptyLine, FigureTiles, Panel, ReadFailure, ReadHeader, ReadTable, StatusWord, TableSkeleton, readStyles, type Figure } from "@/read/ReadView";
 import { useLoad } from "@/setup/useLoad";
-import { Button, buttonClass, Notice, Select } from "@/ui";
+import { buttonClass, Select } from "@/ui";
 
-import { gateFailure, loadDues, sendReminders } from "./client";
+import { gateFailure, loadDues } from "./client";
 import styles from "./fees.module.css";
 import type { DuesList } from "./model";
 import { BalanceWord, nprShort } from "./ReadFees";
-import { sentMessage } from "./OwnFees";
 
-/** The dues list (source 6.5): every student this year with what is due and overdue, a CSV download, and overdue reminders. */
+/** The dues list (source 6.5): every student this year with what is due and overdue, and a CSV download. */
 /** What a dues row says: nothing charged yet, paid up, or what is due (admin FUT F-10: nothing charged is not paid up). */
 export function dueState(row: { chargedPaisa: number; paidPaisa: number; duePaisa: number }): "nothing" | "clear" | "due" {
   if (row.chargedPaisa === 0 && row.paidPaisa === 0) return "nothing";
@@ -47,30 +46,20 @@ export function DuesTable({ students }: { students: DuesList["students"] }) {
         { key: "class", label: t("attendance.col.class"), cell: (x) => x.className },
         { key: "due", label: t("fees.summary.due"), align: "end", cell: (x) => nprShort(x.duePaisa) },
         { key: "overdue", label: t("fees.summary.overdue"), align: "end", cell: (x) => nprShort(x.overduePaisa) },
-        { key: "status", label: t("attendance.class.status"), cell: (x) => <BalanceWord row={x} amounts={false} /> },
+        { key: "status", label: t("attendance.class.status"), cell: (x) => (x.closed ? <StatusWord tone="bad">{t("fees.dues.closed")}</StatusWord> : <BalanceWord row={x} amounts={false} />) },
       ]}
     />
   );
 }
 
 export function DuesScreen() {
-  const { api, me } = useSession();
-  const accountant = me?.roles.some((r) => r.role === "accountant") ?? false;
-  const [message, setMessage] = useState<{ tone: "ok" | "bad"; text: string } | null>(null);
-  const [busy, setBusy] = useState(false);
+  const { api } = useSession();
   const [classId, setClassId] = useState("");
   const loadNow = useCallback(async () => {
     const result = await loadDues(api);
     return result.ok ? result : gateFailure(result.reason);
   }, [api]);
   const { view, reload } = useLoad<DuesList>(loadNow);
-
-  async function remind() {
-    setBusy(true);
-    const sent = await sendReminders(api);
-    setBusy(false);
-    setMessage(sent.ok ? { tone: "ok", text: t("fees.dues.reminded", { count: (sent.data as { queued: number }).queued }) } : { tone: "bad", text: sentMessage(sent)! });
-  }
 
   const classes = view.status === "ready" ? [...new Map(view.data.students.map((x) => [x.classId, x.className])).entries()] : [];
   const shown = view.status === "ready" ? view.data.students.filter((x) => !classId || x.classId === classId) : [];
@@ -86,11 +75,6 @@ export function DuesScreen() {
               <Download aria-hidden width={18} height={18} />
               {t("fees.dues.export")}
             </a>
-            {accountant && view.status === "ready" && view.data.students.some((x) => x.overduePaisa > 0) ? (
-              <Button className={styles.wrapLabel} variant="secondary" onClick={() => void remind()} loading={busy} loadingLabel={t("fees.saving")}>
-                {t("fees.dues.remind")}
-              </Button>
-            ) : null}
           </div>
         }
       />
@@ -107,7 +91,6 @@ export function DuesScreen() {
             <div className={readStyles.search}>
               <Select label={t("fees.dues.class")} options={[{ value: "", label: t("fees.dues.allClasses") }, ...classes.map(([value, label]) => ({ value, label }))]} value={classId} onChange={(event) => setClassId(event.target.value)} />
             </div>
-            {message ? <Notice tone={message.tone}>{message.text}</Notice> : null}
             <Panel>
               <DuesTable students={shown} />
             </Panel>

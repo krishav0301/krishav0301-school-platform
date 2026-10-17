@@ -8,7 +8,8 @@ import type { ApprovalReview, ApprovalSummary, FailReason, MyApproval } from "./
  */
 
 export type Loaded<T> = { ok: true; data: T } | { ok: false; reason: "forbidden" | "failed" };
-export type WriteResult = { ok: true } | { ok: false; reason: FailReason };
+/** `message` is the server's own words for a refusal it explains (422), such as a student's fee account not yet settled. */
+export type WriteResult = { ok: true } | { ok: false; reason: FailReason; message?: string };
 
 function reasonOf(status: number): FailReason {
   if (status === 403) return "forbidden";
@@ -92,7 +93,8 @@ export async function approve(api: ApiClient, id: string): Promise<WriteResult> 
     const { response, error } = await api.POST("/api/approvals/{id}/approve", { params: { path: { id } } });
     announceApprovalsChanged(); // approved, stale or decided by someone else: the waiting count may have moved
     if (response.ok) return { ok: true };
-    return { ok: false, reason: decisionReason(response.status, error) };
+    const explained = response.status === 422 ? (error as { message?: string } | undefined)?.message : undefined;
+    return { ok: false, reason: decisionReason(response.status, error), ...(explained ? { message: explained } : {}) };
   } catch {
     return { ok: false, reason: "failed" };
   }
