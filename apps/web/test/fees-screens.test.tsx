@@ -54,6 +54,7 @@ const account: Account = {
     { id: "p1", kind: "payment", amountPaisa: -25_000_000, memo: "Cash at the counter", period: null, dueOnBs: null, createdOnBs: "2083-06-12", reversed: true, receiptId: "r1" },
   ],
   receipts: [{ id: "r1", number: "plus2-2083-00001", amountPaisa: 25_000_000, issuedOnBs: "2083-06-12", reversed: true }],
+  closed: null,
 };
 
 describe("fees on a student's record (PM, 2026-10-06)", () => {

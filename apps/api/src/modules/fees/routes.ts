@@ -9,6 +9,7 @@ import type { App, AppEnv } from "../../core/types";
 import { enrollmentOfStudent, getReceipt, listAdjustments, ownAccount, staffAccount } from "./account";
 import { giveRefund, requestReversal } from "./adjustments";
 import { changeDiscount, discountsOf, giveDiscount, removeDiscount } from "./discounts";
+import { discountReport, listPriceChanges } from "./reports";
 import { duesCsv, listDues, sendOverdueReminders } from "./dues";
 import { gatewayCallback, listVouchers, recordCash, rejectVoucher, startOnlinePayment, submitVoucher, verifyVoucher, type PayResult } from "./payments";
 import {
@@ -29,6 +30,8 @@ import {
   PaidSchema,
   GiveDiscountSchema,
   DiscountListSchema,
+  DiscountReportSchema,
+  PriceChangeListSchema,
   PublicIdSchema,
   ReceiptSchema,
   RequestEditSchema,
@@ -69,6 +72,8 @@ const ONLINE = { action: "fees.online.pay" } as const;
 const RECEIPTS = { action: "fees.receipts.view" } as const;
 const DISCOUNT = { action: "fees.discount.give" } as const;
 const DISCOUNT_CHANGE = { action: "fees.discount.change" } as const;
+const DISCOUNT_REPORT = { action: "fees.discount.report" } as const;
+const PRICE_CHANGES = { action: "fees.pricechange.view" } as const;
 const REVERSAL = { action: "fees.reversal.request" } as const;
 const REFUND = { action: "fees.refund.give" } as const;
 const REPORTS = { action: "reports.fees" } as const;
@@ -532,6 +537,42 @@ export function registerFees(app: App): void {
       const id = c.req.valid("param").id;
       const found = await listAdjustments(c.env.DB, grant, id);
       return found ? c.json({ discounts: await discountsOf(c.env.DB, id) }, 200) : c.json({ error: "not_found" }, 404);
+    },
+  );
+
+  defineRoute(
+    app,
+    {
+      method: "get",
+      path: "/api/fees/discounts",
+      operationId: "discount_report",
+      tags: ["fees"],
+      description: "The Principal's report of every discount given: the student, class, amount, reason, day and who gave it, and what the active ones add up to.",
+      access: DISCOUNT_REPORT,
+      responses: { 200: { description: "The report", content: json(DiscountReportSchema) } },
+    },
+    async (c) => {
+      c.header("Cache-Control", "no-store");
+      return c.json(await discountReport(c.env.DB), 200);
+    },
+  );
+
+  defineRoute(
+    app,
+    {
+      method: "get",
+      path: "/api/fees/structures/{id}/price-changes",
+      operationId: "list_price_changes",
+      tags: ["fees"],
+      description: "The students whose billing a structure's approved edits changed: the net change for each and what they owe now.",
+      access: PRICE_CHANGES,
+      request: { params: IdParam },
+      responses: { 200: { description: "The students", content: json(PriceChangeListSchema) }, 404: failures[404] },
+    },
+    async (c) => {
+      c.header("Cache-Control", "no-store");
+      const found = await listPriceChanges(c.env.DB, c.get("grant")!, c.req.valid("param").id);
+      return found ? c.json(found, 200) : c.json({ error: "not_found" }, 404);
     },
   );
 

@@ -21,6 +21,7 @@ export function FeesTabs({ pathname }: { pathname: string }) {
     { href: "/portal/fees/structures", label: t("fees.tab.structures"), current: here.startsWith("/portal/fees/structure") },
     ...(roles.includes("accountant") ? [{ href: "/portal/fees/vouchers", label: t("fees.tab.vouchers"), current: here === "/portal/fees/vouchers" }] : []),
     { href: "/portal/fees/dues", label: t("fees.tab.dues"), current: here === "/portal/fees/dues" },
+    ...(roles.includes("admin") ? [{ href: "/portal/fees/discounts", label: t("fees.tab.discounts"), current: here === "/portal/fees/discounts" }] : []),
   ];
   return (
     <nav aria-label={t("fees.tabs")}>

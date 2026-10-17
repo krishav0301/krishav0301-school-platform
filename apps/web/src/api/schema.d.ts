@@ -2289,6 +2289,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/fees/discounts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description The Principal's report of every discount given: the student, class, amount, reason, day and who gave it, and what the active ones add up to. */
+        get: operations["discount_report"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/fees/structures/{id}/price-changes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description The students whose billing a structure's approved edits changed: the net change for each and what they owe now. */
+        get: operations["list_price_changes"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/fees/discounts/{id}": {
         parameters: {
             query?: never;
@@ -4686,6 +4720,10 @@ export interface components {
                 issuedOnBs: string | null;
                 reversed: boolean;
             }[];
+            closed: {
+                closedOnBs: string | null;
+                owedPaisa: number;
+            } | null;
         };
         Receipt: {
             id: string;
@@ -4766,6 +4804,37 @@ export interface components {
                 createdAt: string;
             }[];
         };
+        DiscountReport: {
+            discounts: {
+                id: string;
+                studentName: string;
+                sid: string;
+                className: string;
+                amountPaisa: number;
+                percent: number | null;
+                /** @enum {string} */
+                reason: "scholarship" | "sibling" | "staff_child" | "other";
+                note: string | null;
+                /** @enum {string} */
+                status: "active" | "removed" | "replaced";
+                givenOnBs: string | null;
+                givenBy: string;
+            }[];
+            activePaisa: number;
+            activeCount: number;
+        };
+        PriceChangeList: {
+            students: {
+                enrollmentId: string;
+                studentId: string;
+                studentName: string;
+                sid: string;
+                className: string;
+                changePaisa: number;
+                balancePaisa: number;
+                closed: boolean;
+            }[];
+        };
         ReversalRequest: {
             reason: string;
         };
@@ -4799,6 +4868,7 @@ export interface components {
                 classId: string;
                 className: string;
                 hasEmail: boolean;
+                closed: boolean;
                 chargedPaisa: number;
                 discountPaisa: number;
                 paidPaisa: number;
@@ -12479,6 +12549,57 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["FeesInvalid"];
+                };
+            };
+        };
+    };
+    discount_report: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The report */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DiscountReport"];
+                };
+            };
+        };
+    };
+    list_price_changes: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The students */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PriceChangeList"];
+                };
+            };
+            /** @description No such item, or not one the person may reach */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeesError"];
                 };
             };
         };

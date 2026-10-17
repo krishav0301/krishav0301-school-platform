@@ -9,6 +9,8 @@ export type VoucherList = components["schemas"]["VoucherList"];
 export type DuesList = components["schemas"]["DuesList"];
 export type AdjustmentList = components["schemas"]["AdjustmentList"];
 export type DiscountList = components["schemas"]["DiscountList"];
+export type DiscountReport = components["schemas"]["DiscountReport"];
+export type PriceChangeList = components["schemas"]["PriceChangeList"];
 export type Frequency = FeeStructure["items"][number]["frequency"];
 export type LedgerKind = Account["entries"][number]["kind"];
 

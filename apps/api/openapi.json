@@ -8236,6 +8236,27 @@
                 "reversed"
               ]
             }
+          },
+          "closed": {
+            "type": [
+              "object",
+              "null"
+            ],
+            "properties": {
+              "closedOnBs": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "owedPaisa": {
+                "type": "integer"
+              }
+            },
+            "required": [
+              "closedOnBs",
+              "owedPaisa"
+            ]
           }
         },
         "required": [
@@ -8254,7 +8275,8 @@
           "creditPaisa",
           "nextDue",
           "entries",
-          "receipts"
+          "receipts",
+          "closed"
         ]
       },
       "Receipt": {
@@ -8612,6 +8634,146 @@
           "discounts"
         ]
       },
+      "DiscountReport": {
+        "type": "object",
+        "properties": {
+          "discounts": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "studentName": {
+                  "type": "string"
+                },
+                "sid": {
+                  "type": "string"
+                },
+                "className": {
+                  "type": "string"
+                },
+                "amountPaisa": {
+                  "type": "integer"
+                },
+                "percent": {
+                  "type": [
+                    "integer",
+                    "null"
+                  ]
+                },
+                "reason": {
+                  "type": "string",
+                  "enum": [
+                    "scholarship",
+                    "sibling",
+                    "staff_child",
+                    "other"
+                  ]
+                },
+                "note": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "status": {
+                  "type": "string",
+                  "enum": [
+                    "active",
+                    "removed",
+                    "replaced"
+                  ]
+                },
+                "givenOnBs": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "givenBy": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "id",
+                "studentName",
+                "sid",
+                "className",
+                "amountPaisa",
+                "percent",
+                "reason",
+                "note",
+                "status",
+                "givenOnBs",
+                "givenBy"
+              ]
+            }
+          },
+          "activePaisa": {
+            "type": "integer"
+          },
+          "activeCount": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "discounts",
+          "activePaisa",
+          "activeCount"
+        ]
+      },
+      "PriceChangeList": {
+        "type": "object",
+        "properties": {
+          "students": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "enrollmentId": {
+                  "type": "string"
+                },
+                "studentId": {
+                  "type": "string"
+                },
+                "studentName": {
+                  "type": "string"
+                },
+                "sid": {
+                  "type": "string"
+                },
+                "className": {
+                  "type": "string"
+                },
+                "changePaisa": {
+                  "type": "integer"
+                },
+                "balancePaisa": {
+                  "type": "integer"
+                },
+                "closed": {
+                  "type": "boolean"
+                }
+              },
+              "required": [
+                "enrollmentId",
+                "studentId",
+                "studentName",
+                "sid",
+                "className",
+                "changePaisa",
+                "balancePaisa",
+                "closed"
+              ]
+            }
+          }
+        },
+        "required": [
+          "students"
+        ]
+      },
       "ReversalRequest": {
         "type": "object",
         "properties": {
@@ -8755,6 +8917,9 @@
                 "hasEmail": {
                   "type": "boolean"
                 },
+                "closed": {
+                  "type": "boolean"
+                },
                 "chargedPaisa": {
                   "type": "integer"
                 },
@@ -8782,6 +8947,7 @@
                 "classId",
                 "className",
                 "hasEmail",
+                "closed",
                 "chargedPaisa",
                 "discountPaisa",
                 "paidPaisa",
@@ -21034,6 +21200,69 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/DiscountList"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such item, or not one the person may reach",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FeesError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/fees/discounts": {
+      "get": {
+        "operationId": "discount_report",
+        "tags": [
+          "fees"
+        ],
+        "description": "The Principal's report of every discount given: the student, class, amount, reason, day and who gave it, and what the active ones add up to.",
+        "responses": {
+          "200": {
+            "description": "The report",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DiscountReport"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/fees/structures/{id}/price-changes": {
+      "get": {
+        "operationId": "list_price_changes",
+        "tags": [
+          "fees"
+        ],
+        "description": "The students whose billing a structure's approved edits changed: the net change for each and what they owe now.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{32}$"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The students",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PriceChangeList"
                 }
               }
             }

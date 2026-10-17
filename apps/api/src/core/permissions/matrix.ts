@@ -166,6 +166,8 @@ export const MATRIX = [
   row(G.fees, "fees.voucher.verify", "Verify or reject a voucher", 6, { ACC: inst }),
   row(G.fees, "fees.cash.record", "Record cash payment", 6, { ACC: inst }),
   row(G.fees, "fees.discount.give", "Give a student a discount (the Principal alone; no approval)", 6, { ADM: all }),
+  row(G.fees, "fees.discount.report", "Read the report of discounts given", 6, { ADM: all }),
+  row(G.fees, "fees.pricechange.view", "See the students a fee structure's price change affected", 6, { ACC: inst, ADM: read, SUP: all }),
   row(G.fees, "fees.discount.change", "Change or remove a discount within 15 days of giving it", 6, { ADM: all }),
   row(G.fees, "fees.reversal.request", "Request a payment reversal", 6, { ACC: inst }),
   row(G.fees, "fees.reversal.approve", "Approve a reversal", 6, { ADM: all }),

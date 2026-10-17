@@ -145,6 +145,8 @@ export const AccountSchema = z
       }),
     ),
     receipts: z.array(z.object({ id: z.string(), number: z.string(), amountPaisa: z.number().int(), issuedOnBs: z.string().nullable(), reversed: z.boolean() })),
+    /** Set when a student who left closed the account: nothing can be added to it again (D-172). */
+    closed: z.object({ closedOnBs: z.string().nullable(), owedPaisa: z.number().int() }).nullable(),
   })
   .openapi("FeeAccount");
 export type Account = z.infer<typeof AccountSchema>;
@@ -244,6 +246,8 @@ export const DuesListSchema = z
         classId: z.string(),
         className: z.string(),
         hasEmail: z.boolean(),
+        /** The student left and the fee account is closed; what is owed stays owed. */
+        closed: z.boolean(),
         chargedPaisa: z.number().int(),
         discountPaisa: z.number().int(),
         paidPaisa: z.number().int(),
@@ -256,3 +260,49 @@ export const DuesListSchema = z
   })
   .openapi("DuesList");
 export type DuesList = z.infer<typeof DuesListSchema>;
+
+// --- Reports (slice 6) ----------------------------------------------------------------------------------
+
+export const DiscountReportSchema = z
+  .object({
+    discounts: z.array(
+      z.object({
+        id: z.string(),
+        studentName: z.string(),
+        sid: z.string(),
+        className: z.string(),
+        amountPaisa: z.number().int(),
+        percent: z.number().int().nullable(),
+        reason: DiscountReasonSchema,
+        note: z.string().nullable(),
+        status: z.enum(["active", "removed", "replaced"]),
+        givenOnBs: z.string().nullable(),
+        givenBy: z.string(),
+      }),
+    ),
+    /** What the active discounts add up to, and how many there are. */
+    activePaisa: z.number().int(),
+    activeCount: z.number().int(),
+  })
+  .openapi("DiscountReport");
+export type DiscountReport = z.infer<typeof DiscountReportSchema>;
+
+export const PriceChangeListSchema = z
+  .object({
+    students: z.array(
+      z.object({
+        enrollmentId: z.string(),
+        studentId: z.string(),
+        studentName: z.string(),
+        sid: z.string(),
+        className: z.string(),
+        /** The net effect of the price changes on what the student owes: negative, they owe less. */
+        changePaisa: z.number().int(),
+        /** What the student owes now (negative: credit). */
+        balancePaisa: z.number().int(),
+        closed: z.boolean(),
+      }),
+    ),
+  })
+  .openapi("PriceChangeList");
+export type PriceChangeList = z.infer<typeof PriceChangeListSchema>;

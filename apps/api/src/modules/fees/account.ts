@@ -40,7 +40,7 @@ const HEAD = `SELECT en.public_id, st.first_name, st.last_name, st.sid, pv.name 
 
 /** The account, for staff (scoped to their sections) or for the student themselves (`where` names their own enrollment). */
 async function accountWhere(db: D1Database, where: string, binds: unknown[], today: string): Promise<Account | null> {
-  const [head, entries, receipts] = await db.batch([
+  const [head, entries, receipts, closure] = await db.batch([
     db.prepare(`${HEAD} WHERE ${where}`).bind(...binds),
     db
       .prepare(
@@ -65,9 +65,19 @@ async function accountWhere(db: D1Database, where: string, binds: unknown[], tod
           ORDER BY r.id DESC`,
       )
       .bind(...binds),
+    db
+      .prepare(
+        `SELECT fc.closed_at, fc.owed_paisa
+           FROM fee_account_closures fc JOIN enrollments en ON en.id = fc.enrollment_id JOIN students st ON st.id = en.student_id
+           JOIN academic_years ay ON ay.id = en.academic_year_id JOIN classes cl ON cl.id = en.class_id JOIN levels lv ON lv.id = cl.level_id
+           JOIN programmes pv ON pv.id = lv.programme_id JOIN sections s ON s.id = pv.section_id
+          WHERE ${where}`,
+      )
+      .bind(...binds),
   ]);
   const h = head!.results[0] as HeadRow | undefined;
   if (!h) return null;
+  const closed = closure!.results[0] as { closed_at: string; owed_paisa: number } | undefined;
   const rows = entries!.results as unknown as EntryRow[];
   const sum = (kinds: LedgerKind[]) => rows.filter((r) => kinds.includes(r.kind)).reduce((s, r) => s + r.amount_paisa, 0);
   const alloc = allocate(rows.map((r) => ({ id: r.public_id, kind: r.kind, amountPaisa: r.amount_paisa, dueOn: r.due_on })), today);
@@ -104,6 +114,7 @@ async function accountWhere(db: D1Database, where: string, binds: unknown[], tod
       issuedOnBs: adToBsText(nepalDate(new Date(r.issued_at))),
       reversed: r.reversed === 1,
     })),
+    closed: closed ? { closedOnBs: adToBsText(nepalDate(new Date(closed.closed_at))), owedPaisa: closed.owed_paisa } : null,
   };
 }
 

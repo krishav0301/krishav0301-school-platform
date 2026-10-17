@@ -18,7 +18,8 @@ export async function listDues(db: D1Database, grant: Grant, classId: string | n
   const [students, entries] = await db.batch([
     db
       .prepare(
-        `SELECT en.public_id, st.public_id AS student_id, st.first_name, st.last_name, st.sid, st.email, pv.name AS programme_name, lv.name AS level_name, cl.label, cl.public_id AS class_id
+        `SELECT en.public_id, st.public_id AS student_id, st.first_name, st.last_name, st.sid, st.email, pv.name AS programme_name, lv.name AS level_name, cl.label, cl.public_id AS class_id,
+                EXISTS (SELECT 1 FROM fee_account_closures fc WHERE fc.enrollment_id = en.id) AS closed
            FROM enrollments en JOIN students st ON st.id = en.student_id JOIN academic_years ay ON ay.id = en.academic_year_id
            JOIN classes cl ON cl.id = en.class_id JOIN levels lv ON lv.id = cl.level_id JOIN programmes pv ON pv.id = lv.programme_id JOIN sections s ON s.id = pv.section_id
           WHERE ay.status = 'active' AND (?1 IS NULL OR s.key IN (SELECT value FROM json_each(?1))) AND (?2 IS NULL OR cl.public_id = ?2)
@@ -40,7 +41,7 @@ export async function listDues(db: D1Database, grant: Grant, classId: string | n
     list.push(e);
     byEnrollment.set(e.enrollment, list);
   }
-  const rows = (students!.results as unknown as { public_id: string; student_id: string; first_name: string; last_name: string; sid: string; email: string | null; programme_name: string; level_name: string; label: string; class_id: string }[]).map((st) => {
+  const rows = (students!.results as unknown as { public_id: string; student_id: string; first_name: string; last_name: string; sid: string; email: string | null; programme_name: string; level_name: string; label: string; class_id: string; closed: number }[]).map((st) => {
     const lines = byEnrollment.get(st.public_id) ?? [];
     const sum = (kinds: LedgerKind[]) => lines.filter((l) => kinds.includes(l.kind)).reduce((s, l) => s + l.amount_paisa, 0);
     const alloc = allocate(lines.map((l) => ({ id: l.public_id, kind: l.kind, amountPaisa: l.amount_paisa, dueOn: l.due_on })), today);
@@ -52,6 +53,7 @@ export async function listDues(db: D1Database, grant: Grant, classId: string | n
       classId: st.class_id,
       className: [st.programme_name, st.level_name, st.label].filter(Boolean).join(" · "),
       hasEmail: Boolean(st.email),
+      closed: st.closed === 1,
       chargedPaisa: sum(["charge", "carried_dues"]),
       discountPaisa: -sum(["discount"]),
       paidPaisa: -sum(["payment"]) - sum(["reversal"]),

@@ -111,6 +111,8 @@ The Co-ordinator has **no** fees access at all.
 | Verify or reject a voucher (`fees.voucher.verify`) | — | — | — | inst | — | — | 6 |
 | Record cash payment (`fees.cash.record`) | — | — | — | inst | — | — | 6 |
 | Give a student a discount (the Principal alone; no approval) (`fees.discount.give`) | — | — | — | — | ✓ | — | 6 |
+| Read the report of discounts given (`fees.discount.report`) | — | — | — | — | ✓ | — | 6 |
+| See the students a fee structure's price change affected (`fees.pricechange.view`) | — | — | — | inst | read | ✓ | 6 |
 | Change or remove a discount within 15 days of giving it (`fees.discount.change`) | — | — | — | — | ✓ | — | 6 |
 | Request a payment reversal (`fees.reversal.request`) | — | — | — | inst | — | — | 6 |
 | Approve a reversal (`fees.reversal.approve`) | — | — | — | — | ✓ | — | 6 |

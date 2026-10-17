@@ -6,7 +6,7 @@ import { useCallback, useState } from "react";
 
 import { t } from "@/i18n/messages";
 import { useSession } from "@/session/SessionProvider";
-import { EmptyLine, FigureTiles, Panel, ReadFailure, ReadHeader, ReadTable, TableSkeleton, readStyles, type Figure } from "@/read/ReadView";
+import { EmptyLine, FigureTiles, Panel, ReadFailure, ReadHeader, ReadTable, StatusWord, TableSkeleton, readStyles, type Figure } from "@/read/ReadView";
 import { useLoad } from "@/setup/useLoad";
 import { Button, buttonClass, Notice, Select } from "@/ui";
 
@@ -47,7 +47,7 @@ export function DuesTable({ students }: { students: DuesList["students"] }) {
         { key: "class", label: t("attendance.col.class"), cell: (x) => x.className },
         { key: "due", label: t("fees.summary.due"), align: "end", cell: (x) => nprShort(x.duePaisa) },
         { key: "overdue", label: t("fees.summary.overdue"), align: "end", cell: (x) => nprShort(x.overduePaisa) },
-        { key: "status", label: t("attendance.class.status"), cell: (x) => <BalanceWord row={x} amounts={false} /> },
+        { key: "status", label: t("attendance.class.status"), cell: (x) => (x.closed ? <StatusWord tone="bad">{t("fees.dues.closed")}</StatusWord> : <BalanceWord row={x} amounts={false} />) },
       ]}
     />
   );

@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useState, type FormEvent } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 
 import { loadOpenLevels } from "@/admissions/client";
@@ -15,9 +16,9 @@ import { EmptyLine, Panel, ReadFailure, ReadHeader, ReadOnlyNote, ReadTable, Tab
 import { useLoad } from "@/setup/useLoad";
 import { AddDialog, Button, Checkbox, Field, Notice } from "@/ui";
 
-import { addFeeItem, discardFeeEdit, gateFailure, linkLevels, loadStructure, removeFeeItem, requestFeeEdit, sendStructure, startNextPeriod, unlinkLevel, type Sent } from "./client";
+import { addFeeItem, discardFeeEdit, gateFailure, linkLevels, loadPriceChanges, loadStructure, removeFeeItem, requestFeeEdit, sendStructure, startNextPeriod, unlinkLevel, type Sent } from "./client";
 import styles from "./fees.module.css";
-import { FREQUENCY_LABEL, type FeeStructure } from "./model";
+import { FREQUENCY_LABEL, type FeeStructure, type PriceChangeList } from "./model";
 import { formatNprShort, parseNpr } from "./money";
 import { nprShort } from "./ReadFees";
 import { StructureStatus, periodText } from "./StructuresScreen";
@@ -141,8 +142,36 @@ export function StructureScreen() {
           />
         </Panel>
       ) : null}
+      {s.status === "live" ? <PriceChanges structureId={s.id} /> : null}
       {accountant ? null : <ReadOnlyNote>{t("fees.structures.readOnly", { accountant: term("role.accountant") })}</ReadOnlyNote>}
     </div>
+  );
+}
+
+/** After an approved edit: the students whose billing it changed, with the net change and what they owe now. Nothing shows for a structure never edited. */
+function PriceChanges({ structureId }: { structureId: string }) {
+  const { api } = useSession();
+  const loadNow = useCallback(async () => {
+    const result = await loadPriceChanges(api, structureId);
+    return result.ok ? result : gateFailure(result.reason);
+  }, [api, structureId]);
+  const { view } = useLoad<PriceChangeList>(loadNow);
+  if (view.status !== "ready" || view.data.students.length === 0) return null;
+  return (
+    <Panel title={t("fees.structure.priceChanges")} labelledBy="price-changes-heading">
+      <p className={readStyles.rowMeta}>{t("fees.structure.priceChangesIntro")}</p>
+      <ReadTable
+        caption={t("fees.structure.priceChanges")}
+        rows={view.data.students}
+        rowKey={(x) => x.enrollmentId}
+        columns={[
+          { key: "name", label: t("fees.col.student"), primary: true, cell: (x) => <Link href={`/portal/fees/student?id=${x.studentId}`}>{x.studentName}</Link> },
+          { key: "class", label: t("attendance.col.class"), hidePhone: true, cell: (x) => x.className },
+          { key: "change", label: t("fees.structure.priceChange"), align: "end", cell: (x) => (x.changePaisa < 0 ? t("fees.structure.priceLess", { amount: nprShort(-x.changePaisa) }) : t("fees.structure.priceMore", { amount: nprShort(x.changePaisa) })) },
+          { key: "owes", label: t("fees.structure.owesNow"), align: "end", cell: (x) => (x.balancePaisa > 0 ? nprShort(x.balancePaisa) : x.balancePaisa < 0 ? t("fees.balance.credit", { amount: nprShort(-x.balancePaisa) }) : t("fees.dues.clear")) },
+        ]}
+      />
+    </Panel>
   );
 }
 

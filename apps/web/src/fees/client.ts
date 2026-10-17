@@ -1,6 +1,6 @@
 import type { ApiClient } from "@/api/client";
 
-import type { Account, AdjustmentList, DiscountList, DuesList, FeeStructure, FeeStructureList, Receipt, VoucherList } from "./model";
+import type { Account, AdjustmentList, DiscountList, DiscountReport, DuesList, FeeStructure, FeeStructureList, PriceChangeList, Receipt, VoucherList } from "./model";
 
 /** What the fee screens ask of the server, as plain results. Nothing here throws. */
 export type Loaded<T> = { ok: true; data: T } | { ok: false; reason: "forbidden" | "not_found" | "failed" };
@@ -23,6 +23,9 @@ export const loadOwnAccount = (api: ApiClient): Promise<Loaded<Account>> => load
 export const loadStudentAccount = (api: ApiClient, studentId: string): Promise<Loaded<Account>> => load(() => api.GET("/api/fees/students/{id}", { params: { path: { id: studentId } } }));
 export const loadAdjustments = (api: ApiClient, enrollmentId: string): Promise<Loaded<AdjustmentList>> =>
   load(() => api.GET("/api/fees/enrollments/{id}/adjustments", { params: { path: { id: enrollmentId } } }));
+export const loadDiscountReport = (api: ApiClient): Promise<Loaded<DiscountReport>> => load(() => api.GET("/api/fees/discounts"));
+export const loadPriceChanges = (api: ApiClient, structureId: string): Promise<Loaded<PriceChangeList>> =>
+  load(() => api.GET("/api/fees/structures/{id}/price-changes", { params: { path: { id: structureId } } }));
 export const loadReceipt = (api: ApiClient, id: string): Promise<Loaded<Receipt>> => load(() => api.GET("/api/fees/receipts/{id}", { params: { path: { id } } }));
 export const loadStructures = (api: ApiClient): Promise<Loaded<FeeStructureList>> => load(() => api.GET("/api/fees/structures"));
 export const loadStructure = (api: ApiClient, id: string): Promise<Loaded<FeeStructure>> => load(() => api.GET("/api/fees/structures/{id}", { params: { path: { id } } }));

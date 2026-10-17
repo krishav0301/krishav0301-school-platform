@@ -6,7 +6,7 @@ import type { ReactNode } from "react";
 
 import { formatBsDate } from "@/content/model";
 import { t } from "@/i18n/messages";
-import { EmptyLine, FigureTiles, OpenLink, Panel, ReadTable, StatusWord, readStyles, type Figure } from "@/read/ReadView";
+import { EmptyLine, FigureTiles, OpenLink, Panel, ReadOnlyNote, ReadTable, StatusWord, readStyles, type Figure } from "@/read/ReadView";
 
 import styles from "./fees.module.css";
 import { KIND_LABEL, type Account } from "./model";
@@ -102,6 +102,7 @@ export function ReceiptsTable({ receipts }: { receipts: Account["receipts"] }) {
 export function AccountView({ account, entryAction }: { account: Account; entryAction?: (entry: Entry) => ReactNode }) {
   return (
     <>
+      {account.closed ? <ReadOnlyNote>{account.closed.owedPaisa > 0 ? t("fees.closed.owing", { date: account.closed.closedOnBs ? formatBsDate(account.closed.closedOnBs) : "", amount: formatNprShort(account.closed.owedPaisa) }) : account.closed.owedPaisa < 0 ? t("fees.closed.credit", { date: account.closed.closedOnBs ? formatBsDate(account.closed.closedOnBs) : "", amount: formatNprShort(-account.closed.owedPaisa) }) : t("fees.closed.clear", { date: account.closed.closedOnBs ? formatBsDate(account.closed.closedOnBs) : "" })}</ReadOnlyNote> : null}
       <FigureTiles figures={accountFigures(account)} label={t("fees.figures")} />
       <p className={readStyles.subtitle}>{dueLine(account)}</p>
       <Panel title={t("fees.history.title")} labelledBy="fees-history">

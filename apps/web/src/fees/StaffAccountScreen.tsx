@@ -59,7 +59,7 @@ export function StaffAccountScreen() {
         subtitle={[account.sid, account.className, account.yearLabel].join(" · ")}
         crumbs={[{ label: t("fees.title"), href: "/portal/fees" }, { label: account.studentName }]}
         actions={
-          principal ? (
+          account.closed ? null : principal ? (
             <div className={styles.headerActions}>
               <AddDialog label={t("fees.discount.title")} title={t("fees.discount.title")} variant="secondary" plus={false}>
                 {(close) => <DiscountForm account={account} onDone={(text) => (close(), finished(text))} />}
@@ -83,7 +83,7 @@ export function StaffAccountScreen() {
       <AccountView
         account={account}
         entryAction={
-          accountant
+          accountant && !account.closed
             ? (entry) =>
                 entry.kind === "payment" && !entry.reversed ? (
                   <Button className={`${styles.wrapLabel} ${styles.rowButton}`} variant="quiet" onClick={() => setReversing(entry)} aria-label={t("fees.reversal.askFor", { amount: nprShort(Math.abs(entry.amountPaisa)) })}>
@@ -312,7 +312,7 @@ function Discounts({ discounts, account, principal, onDone }: { discounts: Disco
               <StatusWord tone={d.canChange ? "warn" : "ok"}>{d.canChange ? t("fees.discounts.open") : t("fees.discounts.frozen")}</StatusWord>
             </div>
             <p className={readStyles.rowMeta}>{[t(REASON_LABEL[d.reason]), d.note, d.canChange ? t("fees.discounts.until", { date: formatBsDate(d.changeableUntil.slice(0, 10)) }) : null].filter(Boolean).join(" · ")}</p>
-            {principal && d.canChange ? (
+            {principal && d.canChange && !account.closed ? (
               <div className={styles.rowActions}>
                 <AddDialog label={t("fees.discounts.change")} title={t("fees.discounts.change")} variant="secondary" plus={false}>
                   {(close) => <DiscountForm account={account} existing={d} onDone={(text) => (close(), onDone(text))} />}
