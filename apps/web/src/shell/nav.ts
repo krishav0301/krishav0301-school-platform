@@ -56,10 +56,10 @@ export const NAV_ITEMS: readonly NavItem[] = [
   // Phase 4: applications, the review queue, walk-ins and the Students page. The Principal reads students here (D-118),
   // with each student's fees on their record, since Fees left the Principal's menu (D-121). Not the Super Admin.
   { id: "admissions", labelKey: "nav.admissions", adminLabelKey: "nav.students", href: "/portal/admissions", roles: ["coordinator", "admin"], icon: "admissions" },
-  // D-121 (the PM, 2026-10-06): the Principal reaches attendance, classwork and results through Classes, and fees
-  // through a student's record, so these four are not in the Principal's menu. The pages still open by address.
+  // D-121 (the PM, 2026-10-06): the Principal reaches classwork and results through Classes, and fees
+  // through a student's record, so these are not in the Principal's menu. Attendance came back on 2026-10-18 (D-181). The pages still open by address.
   // Phase 5, slice 1: student attendance. The Class Teacher marks it; the Co-ordinator and the Admin look (D-069).
-  { id: "attendance", labelKey: "nav.attendance", href: "/portal/attendance", roles: ["teacher", "coordinator", "super_admin"], module: "attendance", icon: "attendance" },
+  { id: "attendance", labelKey: "nav.attendance", href: "/portal/attendance", roles: ["teacher", "admin", "coordinator", "super_admin"], module: "attendance", icon: "attendance" },
   // Phase 5, slice 3: the daily activity log; notes and homework join it in slice 4 (D-071).
   { id: "classwork", labelKey: "nav.classwork", href: "/portal/classwork", roles: ["teacher", "student", "coordinator", "super_admin"], module: ["activity_log", "homework", "notes"], icon: "classwork" },
   // Phase 6: fees. The Accountant works here, the Admin looks, a student sees their own; never the Co-ordinator (D-078).

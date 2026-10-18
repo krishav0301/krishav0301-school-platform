@@ -28,12 +28,13 @@ import { signAccessToken, type RoleClaim } from "../src/core/tokens";
 import { createUser } from "../src/modules/accounts/service";
 import royalJson from "../../../packs/royal-softech/pack.json";
 import sampleJson from "../../../packs/sample-basic-school/pack.json";
-import { seedProgrammes, testPack } from "./programme-fixtures";
+import { seedProgrammes, testPack, withEmailLink } from "./programme-fixtures";
 
 const app = createApp();
 
 describe.each([
-  { label: "Royal Softech", json: royalJson, database: () => env.DB },
+  // Royal takes applications without the link (D-168); this exit check walks through the verifying flow, so it turns the link on.
+  { label: "Royal Softech", json: withEmailLink(royalJson), database: () => env.DB },
   { label: "Sample Basic School", json: sampleJson, database: () => env.SCRATCH_DB },
 ])("Phase 4 exit check: $label", ({ json, database }) => {
   const pack: Pack = testPack(json);

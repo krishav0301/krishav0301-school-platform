@@ -16,11 +16,11 @@ describe("themeToCss", () => {
     const css = themeToCss(withDark());
 
     expect(css).toContain(":root{");
-    expect(css).toContain("--color-primary:#1a56db;");
+    expect(css).toContain(`--color-primary:${royal.theme.light.primary};`);
     expect(css).toContain("--color-primary-text:#ffffff;");
-    expect(css).toContain("--color-text-muted:#5b5b62;");
-    expect(css).toContain("--radius-card:18px;");
-    expect(css).toContain("--radius-control:12px;");
+    expect(css).toContain(`--color-text-muted:${royal.theme.light.textMuted};`);
+    expect(css).toContain(`--radius-card:${royal.theme.shape.radiusCard}px;`);
+    expect(css).toContain(`--radius-control:${royal.theme.shape.radiusControl}px;`);
     expect(css).toContain("color-scheme:light;");
     expect(css).toContain("@media (prefers-color-scheme:dark){:root{");
     expect(css).toContain("--color-primary:#4c8dff;");
@@ -60,7 +60,7 @@ describe("themeToCss", () => {
     const css = themeToCss(royal.theme);
     for (const v of ["--color-accent:", "--color-accent-soft:", "--color-warn:", "--color-warn-soft:"]) expect(css).toContain(v);
     expect(themeToCss({ ...clone(royal.theme), headingFont: "source-serif" })).toContain(`--font-heading:${HEADING_STACKS["source-serif"]};`);
-    expect(css).toContain("--font-heading:var(--font-body);"); // Royal's headings are the heavy body font since D-127
+    expect(css).toContain(`--font-heading:${HEADING_STACKS["source-serif"]};`); // Royal's headings are the serif since D-179 (they were the body font under D-127)
     expect(themeToCss(sample.theme)).toContain("--font-heading:var(--font-body);");
     expect(HEADING_STACKS["source-serif"]).toContain("Noto Sans Devanagari"); // Nepali headings still have a font
     const bad = clone(royal.theme) as Record<string, unknown>;

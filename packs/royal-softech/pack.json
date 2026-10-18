@@ -6,73 +6,255 @@
     "currency": "NPR",
     "timezone": "Asia/Kathmandu",
     "region": "nepal",
-    "template": "plus2-and-bachelors"
+    "template": "plus2-and-bachelors",
+    "publicApplyNeedsLink": false,
+    "adminTwoFactor": false
   },
   "sections": [],
-  "modules": { "homework": false, "notes": false, "activity_log": false, "card_attendance": true },
-  "terminology": { "role.admin": "Principal", "term.programme": "Department" },
+  "modules": {
+    "homework": false,
+    "notes": false,
+    "activity_log": false,
+    "card_attendance": true
+  },
+  "terminology": {
+    "role.admin": "Principal",
+    "term.programme": "Department"
+  },
   "site": {
+    "layout": "immersive",
+    "immersive": {
+      "photosFolder": "royal",
+      "hero": {
+        "headline": "Quality education, *bright* future.",
+        "tagline": "NEB +2 and Purbanchal and Tribhuvan University bachelor's programmes, taught on one campus in Lahan, Siraha.",
+        "image": {
+          "file": "hero-students.webp",
+          "alt": "Students in uniform and teachers gathered in the college courtyard"
+        }
+      },
+      "areas": {
+        "heading": "Our *Programmes*",
+        "intro": "Science, Management, Computer Science and Education at +2, and BBS, B.Ed and BSc at bachelor's level."
+      },
+      "facilities": {
+        "heading": "Campus *Facilities*",
+        "images": [
+          {
+            "name": "Smart classrooms",
+            "file": "sample-smart-classrooms.webp",
+            "alt": "Students taking notes at a table during a seminar"
+          },
+          {
+            "name": "Computer lab",
+            "file": "sample-computer-lab.webp",
+            "alt": "A teacher helping students at computers in a lab"
+          },
+          {
+            "name": "Biology lab",
+            "file": "sample-biology-lab.webp",
+            "alt": "A student in a lab coat holding up a flask of purple liquid in a laboratory"
+          },
+          {
+            "name": "Chemistry lab",
+            "file": "sample-chemistry-lab.webp",
+            "alt": "Two students in lab coats carrying out an experiment"
+          },
+          {
+            "name": "CCTV surveillance",
+            "file": "sample-cctv.webp",
+            "alt": "A security camera mounted on a brick wall"
+          },
+          {
+            "name": "Drinking water",
+            "file": "sample-drinking-water.webp",
+            "alt": "Water being poured from a glass jug into a glass"
+          }
+        ]
+      },
+      "programmes": {
+        "heading": "Choose Your *Pathway*",
+        "intro": "Each programme is affiliated with its board or university and offered in morning and evening classes.",
+        "images": {
+          "plus2-sample": {
+            "file": "programme-plus-two.webp",
+            "alt": "Two students holding a framed award, with classmates behind them"
+          },
+          "bachelors-sample": {
+            "file": "programme-bachelors.webp",
+            "alt": "Teachers and staff of the college standing together, holding a framed plaque"
+          },
+          "scholarships": {
+            "file": "programme-scholarships.webp",
+            "alt": "Students seated on a stage holding certificates of appreciation, with teachers standing behind them"
+          }
+        }
+      },
+      "why": {
+        "heading": "Why Royal *Softech*",
+        "intro": "What students and families can expect.",
+        "items": [
+          {
+            "title": "Affiliated programmes",
+            "text": "NEB for +2, and Purbanchal and Tribhuvan Universities for bachelor's degrees."
+          },
+          {
+            "title": "Practical learning",
+            "text": "60 to 80% theory and 20 to 40% practical work, supported by laboratories and, in B.Ed and BBS, an internship from the second year."
+          },
+          {
+            "title": "Flexible schedules",
+            "text": "Morning and evening classes, with online evening sessions from 5 pm to 8 pm."
+          },
+          {
+            "title": "Scholarships",
+            "text": "Scholarships of 20 to 50% for Dalit students, and scholarship opportunities for Class 11 admissions."
+          }
+        ]
+      }
+    },
     "home": {
       "headline": "Royal Softech College, Lahan",
-      "summary": "A private college on the East-West Highway in Lahan, Siraha, offering NEB-affiliated +2 and university bachelor's programmes since 2068 BS."
+      "summary": "Royal Softech College offers NEB +2 and Purbanchal and Tribhuvan University programmes on the East-West Highway in Lahan, Siraha."
     },
     "programmes": [
-      { "key": "plus2-sample", "name": "+2 Programmes", "section": "plus2", "affiliation": "National Examinations Board (NEB)", "duration": "2 years (Grade 11 and 12)", "summary": "Grade 11 and 12 under the National Examinations Board, with streams in Science, Management and Computer Science.", "options": ["Science", "Management", "Computer Science"] },
-      { "key": "bachelors-sample", "name": "Bachelor's Degrees", "section": "bachelors", "affiliation": "Purbanchal University and Tribhuvan University", "duration": "4 years", "summary": "Four-year bachelor's degrees in business studies, IT education and science, affiliated with Purbanchal University and Tribhuvan University." }
+      {
+        "key": "plus2-sample",
+        "name": "+2 Programmes",
+        "section": "plus2",
+        "affiliation": "National Examinations Board (NEB)",
+        "duration": "2 years (Grade 11 and 12)",
+        "summary": "Grade 11 and 12 under the National Examinations Board, across Science, Management, Education, Humanities and Law.",
+        "options": [
+          "Science",
+          "Computer Science",
+          "Management",
+          "Education",
+          "Humanities",
+          "Law",
+          "Hotel Management",
+          "Agriculture"
+        ]
+      },
+      {
+        "key": "bachelors-sample",
+        "name": "Bachelor's Degrees",
+        "section": "bachelors",
+        "affiliation": "Purbanchal University and Tribhuvan University",
+        "duration": "4 years",
+        "summary": "Bachelor's degrees in business studies, IT education and science, affiliated with Purbanchal University and Tribhuvan University.",
+        "options": [
+          "BBS (IT special)",
+          "B.Ed (IT)",
+          "B.Ed Social Studies",
+          "B.Ed Nepali, English or Math",
+          "BSc Microbiology",
+          "BSc Zoology",
+          "BSc Botany",
+          "BSc Chemistry",
+          "BSc Physics"
+        ]
+      }
     ],
     "admission": {
-      "intro": "Admission runs in five steps, from your first enquiry to the start of classes.",
+      "intro": "Admission follows five steps, from your first enquiry to the start of classes.",
       "steps": [
-        { "title": "Enquiry and counselling", "body": "Visit the admission desk or call the college office to discuss the programme that fits you." },
-        { "title": "Check eligibility", "body": "+2 needs an SEE (or equivalent) result meeting the programme's GPA and subject requirements. Bachelor's needs +2 or equivalent in a relevant stream." },
-        { "title": "Submit your application", "body": "Apply with your transcripts, character certificate, recent photographs and a copy of your citizenship." },
-        { "title": "Selection", "body": "Applications are reviewed on merit under the board's or university's own rules; some programmes include a short interview." },
-        { "title": "Enrol", "body": "Complete the fee formalities and attend orientation to confirm your subjects and class schedule." }
+        {
+          "title": "Enquiry and counselling",
+          "body": "Visit the college or call the office to discuss which programme suits you."
+        },
+        {
+          "title": "Eligibility",
+          "body": "+2 requires an SEE result (or equivalent) that meets the programme's requirements. Bachelor's programmes require +2 or an equivalent qualification in a relevant stream."
+        },
+        {
+          "title": "Application",
+          "body": "Submit the application with academic transcripts, a character certificate, recent photographs and a copy of the citizenship certificate."
+        },
+        {
+          "title": "Selection",
+          "body": "Applications are reviewed under the rules of the relevant board or university; some programmes include an interview."
+        },
+        {
+          "title": "Enrolment",
+          "body": "Complete the fee formalities and attend orientation to confirm your subjects and class schedule."
+        }
       ]
     },
     "scholarships": {
-      "intro": "Royal Softech offers merit- and need-based support to students who qualify.",
+      "intro": "Scholarships are available to eligible students.",
       "items": [
-        { "title": "Merit scholarship", "body": "Awarded to top-ranking students in the entrance and board examinations." },
-        { "title": "Need-based support", "body": "For students from economically weaker, Janajati and other marginalised backgrounds, including fee support for Dalit students after verification." }
+        {
+          "title": "Dalit students",
+          "body": "A scholarship of 20 to 50% for Dalit students in BSc, B.Ed and BBS."
+        },
+        {
+          "title": "Dr. Kavita Sah Scholarship Scheme",
+          "body": "Scholarship opportunities for students entering Class 11."
+        }
       ]
     },
     "facilities": {
-      "intro": "The campus is built for both study and student life.",
+      "intro": "Laboratories and classrooms equipped for the courses we teach.",
       "items": [
-        { "name": "Library" },
-        { "name": "Science and computer laboratories", "body": "Equipped for +2 Science practicals and BSc specialisations." },
-        { "name": "Sports ground", "body": "Football, basketball, volleyball and track events." },
-        { "name": "Cafeteria" },
-        { "name": "Multimedia hall" }
+        {
+          "name": "Smart classrooms"
+        },
+        {
+          "name": "Computer lab",
+          "body": "Supports computer science and the IT components of B.Ed and BBS."
+        },
+        {
+          "name": "Biology lab",
+          "body": "Practical work for +2 Science and BSc."
+        },
+        {
+          "name": "Chemistry lab",
+          "body": "Practical work for +2 Science and BSc."
+        },
+        {
+          "name": "CCTV surveillance",
+          "body": "Surveillance across the campus."
+        },
+        {
+          "name": "Drinking water",
+          "body": "Cold and normal drinking water."
+        }
       ]
     },
     "contact": {
-      "address": "Lahan Municipality-3, Siraha, Madhesh Province",
-      "phones": ["+977-33-561234", "+977-9801234567"],
-      "email": "info@royalsoftech.edu.np",
-      "hours": "Sunday to Friday, 10:00 am to 4:00 pm"
+      "address": "East-West Highway, Lahan-3 (Raghunathpur), Siraha",
+      "phones": [
+        "+977-33-561718",
+        "+977-9802061718",
+        "+977-9801461718",
+        "+977-9801561718",
+        "+977-9801560097"
+      ]
     }
   },
   "theme": {
-    "name": "Royal Softech (placeholder brand)",
+    "name": "Royal Softech navy and ivory",
     "font": "inter",
-    "headingFont": "body",
-    "shape": { "radiusCard": 18, "radiusControl": 12 },
+    "headingFont": "source-serif",
+    "shape": {
+      "radiusCard": 8,
+      "radiusControl": 8
+    },
     "light": {
-      "background": "#f5f5f7",
+      "background": "#f7f4ee",
       "surface": "#ffffff",
-      "text": "#1d1d1f",
-      "textMuted": "#5b5b62",
-      "border": "#d2d2d7",
-      "primary": "#1a56db",
+      "text": "#101a33",
+      "textMuted": "#505669",
+      "border": "#ddd5c4",
+      "primary": "#16264c",
       "primaryText": "#ffffff",
       "ok": "#146c2e",
       "okSoft": "#dcf5e3",
       "bad": "#b42318",
       "badSoft": "#fde4e1",
-      "accent": "#6941c6",
-      "accentSoft": "#f1ecfd",
+      "accent": "#8a6417",
+      "accentSoft": "#f3e8cc",
       "warn": "#b54708",
       "warnSoft": "#fef0e1"
     }

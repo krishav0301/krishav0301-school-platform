@@ -16,7 +16,7 @@ import { describe, expect, it } from "vitest";
 import { createApp } from "../src/app";
 import { verifyAuditChain } from "../src/core/audit";
 import { applyPack, type Pack } from "../src/core/config";
-import { testPack } from "./programme-fixtures";
+import { testPack, withAdminSecondStep } from "./programme-fixtures";
 import { schoolNameWords } from "../src/core/passwords";
 import { allowedSections, authorize, canAccessSection } from "../src/core/permissions";
 import { runOutbox } from "../src/core/notifications";
@@ -32,7 +32,8 @@ const codeAt = (secret: string, ms: number) =>
   new OTPAuth.TOTP({ secret: OTPAuth.Secret.fromBase32(secret), digits: 6, period: 30, algorithm: "SHA1" }).generate({ timestamp: ms });
 
 describe.each([
-  { label: "Royal Softech", json: royalJson, database: () => env.DB },
+  // Royal has the Admin's second step off for now (D-184); this check is about the second step, so it uses the default.
+  { label: "Royal Softech", json: withAdminSecondStep(royalJson), database: () => env.DB },
   { label: "Sample Basic School", json: sampleJson, database: () => env.SCRATCH_DB },
 ])("foundation exit check: $label", ({ json, database }) => {
   const pack: Pack = testPack(json);

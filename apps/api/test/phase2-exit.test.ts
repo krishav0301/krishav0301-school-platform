@@ -2,7 +2,7 @@
  * The Phase 2 exit check (docs/build-plan.md): the public website and its editable content working together, for
  * BOTH schools, through the real HTTP API, the real Worker page renderer and the real database schema.
  *
- *  - the school's six fixed pages carry ITS words, and none of the other school's
+ *  - the school's front page carries ITS name, and none of the other school's words; the old pages are gone (D-177)
  *  - the Admin publishes a notice and it appears on the public site; taking it down removes it; an ended one never shows
  *  - a person who is not the Admin cannot edit, and nobody signed out can
  *  - the pages, the sitemap and `llms.txt` list the same pages, and a production site invites search but not AI training
@@ -81,17 +81,24 @@ describe.each([
     cookies.coordinator = await signedIn("coordinator", "institution");
   });
 
-  it("each of the six fixed pages carries this school's words, and none of the other school's", async () => {
-    for (const path of ["/", "/programmes", "/admission", "/scholarships", "/facilities", "/contact"]) {
-      const copy = await pageCopy(path);
-      expect(copy, path).not.toBe("");
-      expect(copy, `${path} has no ${rival.school.name}`).not.toContain(escape(rival.site.home.headline));
-      for (const programme of rival.site.programmes) expect(copy, `${path}: ${programme.name}`).not.toContain(escape(programme.name));
+  it("the front page carries this school's name and a way to sign in, none of the other school's words, and the five old pages are gone (D-177)", async () => {
+    const copy = await pageCopy("/");
+    expect(copy).not.toBe("");
+    // A classic school's copy is its name and a sign-in link; an immersive one (Royal Softech, D-178) is its own words.
+    if (pack.site.layout === "classic") {
+      expect(copy).toContain(escape(pack.school.name));
+      expect(copy).toContain('<a href="/sign-in">Sign in</a>');
+    } else {
+      expect(copy).toContain("<h1>");
+      expect(copy).toContain('href="/sign-in"');
     }
-    expect(await pageCopy("/")).toContain(escape(pack.site.home.headline));
-    for (const programme of pack.site.programmes) expect(await pageCopy("/programmes"), programme.name).toContain(escape(programme.name));
-    for (const step of pack.site.admission.steps) expect(await pageCopy("/admission"), step.title).toContain(escape(step.title));
-    for (const phone of pack.site.contact.phones) expect(await pageCopy("/contact"), phone).toContain(escape(phone));
+    expect(copy).not.toContain(escape(rival.school.name));
+    for (const programme of rival.site.programmes) expect(copy, programme.name).not.toContain(escape(programme.name));
+    for (const path of ["/programmes", "/admission", "/scholarships", "/facilities", "/contact"]) {
+      const response = await renderPublicPage(new Request(`https://school.example${path}`), bindings({ ENVIRONMENT: "production" }) as never);
+      expect(response.status, path).toBe(302);
+      expect(response.headers.get("Location"), path).toBe("/");
+    }
   });
 
   it("the sitemap, llms.txt and the pages agree on which pages there are, and the school's name is its own", async () => {

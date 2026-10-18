@@ -5,7 +5,7 @@ import { resolveTerms, type TermKey } from "./terminology";
 
 /** What the web app needs to draw itself for this school. Public, and the same for every visitor. */
 export interface PublicConfig {
-  school: { name: string; shortName: string; currency: string; timezone: string; region: string; template: string | null; studentKeepsPin: boolean; passMarksPerSubject: boolean; publicApplyNeedsLink: boolean; publicLayout: "classic" | "scroll" };
+  school: { name: string; shortName: string; currency: string; timezone: string; region: string; template: string | null; studentKeepsPin: boolean; passMarksPerSubject: boolean; publicApplyNeedsLink: boolean; publicLayout: "classic" | "scroll" | "immersive" };
   sections: { key: string; name: string }[];
   modules: Record<string, boolean>;
   terms: Record<TermKey, string>;
@@ -42,7 +42,7 @@ function buildConfig(results: D1Result[]): PublicConfig | null {
   }
 
   return {
-    school: { name: row.name, shortName: row.short_name, currency: row.currency, timezone: row.timezone, region: row.region_pack, template: row.template_key, studentKeepsPin: row.student_keeps_pin === 1, passMarksPerSubject: row.pass_marks_per_subject === 1, publicApplyNeedsLink: row.public_apply_verifies_email === 1, publicLayout: row.public_layout === "scroll" ? "scroll" : "classic" },
+    school: { name: row.name, shortName: row.short_name, currency: row.currency, timezone: row.timezone, region: row.region_pack, template: row.template_key, studentKeepsPin: row.student_keeps_pin === 1, passMarksPerSubject: row.pass_marks_per_subject === 1, publicApplyNeedsLink: row.public_apply_verifies_email === 1, publicLayout: row.public_layout === "scroll" || row.public_layout === "immersive" ? row.public_layout : "classic" },
     sections: sections!.results as unknown as { key: string; name: string }[],
     modules: resolveModules(switchMap),
     terms: resolveTerms(termMap),

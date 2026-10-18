@@ -198,7 +198,7 @@ describe("the two schools really are different (so the second-school test means 
     // Both are always light now: the PM chose one light look for the portal (D-088).
     expect((royal.theme as { dark?: unknown }).dark).toBeUndefined();
     expect((sample.theme as { dark?: unknown }).dark).toBeUndefined();
-    expect(royal.theme.headingFont).toBe("body"); // Royal's headings are its heavy body font since D-127 (the PM); the sample school sets none
+    expect(royal.theme.headingFont).toBe("source-serif"); // Royal's headings are the serif since D-179 (the body font under D-127); the sample school sets none
     expect((sample.theme as { headingFont?: string }).headingFont).toBeUndefined();
   });
 });

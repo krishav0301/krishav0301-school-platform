@@ -3,8 +3,6 @@ import { describe, expect, it, vi } from "vitest";
 
 import ContentPage from "@/app/portal/content/page";
 import EditContentPage from "@/app/portal/content/edit/page";
-import { HomeView } from "@/site/HomeView";
-import { siteFrom } from "./site-fixture";
 import NoticesPage from "@/app/notices/page";
 import { ConfigContext, makeConfigValue, type PublicConfig } from "@/config/ConfigProvider";
 import { ContentEditor, ContentForm } from "@/content/ContentForm";
@@ -400,18 +398,6 @@ describe("the public notice board", () => {
     expect(html).toContain("Loading notices");
     expect(html).toContain('aria-busy="true"');
     expect(html).not.toContain('role="alert"');
-  });
-
-  it("the home page links to it as a quiet action, leaving How to apply the one prominent button", () => {
-    const html = renderToStaticMarkup(
-      <ConfigContext.Provider value={makeConfigValue("ready", config)}>
-        <SessionContext.Provider value={fakeSession()}>
-          <HomeView site={siteFrom(royal)} sections={TEST_SECTIONS.royal} urgent={[]} />
-        </SessionContext.Provider>
-      </ConfigContext.Provider>,
-    );
-    expect(html).toMatch(/<a[^>]*href="\/notices"[^>]*>Notices and updates<\/a>/);
-    expect(count(html, /class="[^"]*\bprimary\b[^"]*"/g)).toBe(1);
   });
 });
 

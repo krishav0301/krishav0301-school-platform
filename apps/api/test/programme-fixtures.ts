@@ -68,3 +68,22 @@ export const wingOfLevel = async (db: D1Database, levelPublicId: string): Promis
     .prepare("SELECT s.key FROM levels l JOIN programmes p ON p.id = l.programme_id JOIN sections s ON s.id = p.section_id WHERE l.public_id = ?1")
     .bind(levelPublicId)
     .first<{ key: string }>())!.key;
+
+/** The school's pack as a classic one: the sign-in-only front page, with no immersive content (D-177). */
+export function classicOf(json: unknown): unknown {
+  const copy = structuredClone(json) as { site: Record<string, unknown> };
+  copy.site.layout = "classic";
+  delete copy.site.immersive;
+  return copy;
+}
+
+/** The pack with the emailed confirmation link turned on, for the tests that walk through verifying an applicant's email (D-168 turns it off for Royal and Lahan). */
+export function withEmailLink<T extends { school: object }>(json: T): T {
+  return { ...json, school: { ...json.school, publicApplyNeedsLink: true } };
+}
+
+/** The pack with the Admin's second step left at its default (on): Royal turns it off for now (D-184), and the tests of the second step need it on. */
+export function withAdminSecondStep<T extends { school: object }>(json: T): T {
+  const { adminTwoFactor: _off, ...school } = json.school as Record<string, unknown>;
+  return { ...json, school } as T;
+}

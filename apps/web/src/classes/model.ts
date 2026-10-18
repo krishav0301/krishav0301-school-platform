@@ -61,7 +61,18 @@ export interface CourseGroup {
   unassigned: number;
 }
 
-const matches = (c: ClassHubItem, f: ClassFilters): boolean => {
+/** What the search and the four filters read of a class: Classes' own items have it, and so does anything mapped to it (D-181). */
+export interface Filterable {
+  wing: string;
+  course: string;
+  courseId: string;
+  level: string;
+  levelId: string;
+  section: string;
+  classTeacher: string | null;
+}
+
+export const matches = (c: Filterable, f: ClassFilters): boolean => {
   if (f.wing && c.wing !== f.wing) return false;
   if (f.course && c.courseId !== f.course) return false;
   if (f.level && c.levelId !== f.level) return false;
@@ -93,7 +104,7 @@ export function groupClasses(classes: readonly ClassHubItem[], filters: ClassFil
  * What each filter offers: wings; the courses of the chosen wing; the levels of the chosen course (else of the wing);
  * the sections of what is left. Each list is built from the classes that pass the filters above it. Pure.
  */
-export function classFilterOptions(classes: readonly ClassHubItem[], f: ClassFilters) {
+export function classFilterOptions<C extends Filterable>(classes: readonly C[], f: ClassFilters) {
   const unique = <T,>(items: T[], key: (item: T) => string) => items.filter((item, i) => items.findIndex((other) => key(other) === key(item)) === i);
   const inWing = classes.filter((c) => !f.wing || c.wing === f.wing);
   const inCourse = inWing.filter((c) => !f.course || c.courseId === f.course);

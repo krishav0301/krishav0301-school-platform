@@ -1,7 +1,8 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 
-import { AttendanceScreen, ClassesTable, attendanceFigures } from "@/attendance/AttendanceScreen";
+import { AttendanceScreen, ClassGroups, ClassesTable, attendanceFigures, filterAttendanceClasses, groupByProgramme } from "@/attendance/AttendanceScreen";
+import { NO_CLASS_FILTERS } from "@/classes/model";
 import { DayTable, YearTable } from "@/attendance/ClassAttendanceScreen";
 import { OwnAttendanceView, StudentAttendanceScreen, ownFigures } from "@/attendance/StudentAttendanceScreen";
 import { Register, registerFigures } from "@/attendance/Register";
@@ -214,6 +215,9 @@ describe("the Principal reads attendance (D-103, after the PM's topic 7 referenc
     levelName: "Grade 11",
     label: id.toUpperCase(),
     sectionKey: "plus2",
+    wing: "+2",
+    courseId: "course-science",
+    levelId: "level-11",
     students,
     markedToday,
     absentToday,
@@ -244,6 +248,45 @@ describe("the Principal reads attendance (D-103, after the PM's topic 7 referenc
     expect(html).toContain("2 absent");
     expect(html).toContain('href="/portal/attendance/class?id=b"');
     expect(html).toContain('data-label="Class Teacher"'); // each value keeps its name when stacked on a phone
+  });
+
+  it("groups the classes by programme, as Classes does (D-181): the programmes in name order, each with its counts", () => {
+    const other = { ...cls("d", true, 1, "Mina Rai", 8), programmeName: "BBS", wing: "Bachelor's", courseId: "course-bbs" };
+    const groups = groupByProgramme([...list.classes, other]);
+    expect(groups.map((g) => g.programme)).toEqual(["+2 Science", "BBS"]);
+    expect(groups[0]).toMatchObject({ classes: expect.any(Array), students: 50, notMarked: 1, absent: 2 });
+    expect(groups[0]!.classes).toHaveLength(3);
+    expect(groups[1]).toMatchObject({ students: 8, notMarked: 0, absent: 1 });
+  });
+
+  it("shows the programme cards all closed to begin with, with the counts on each (D-181)", () => {
+    const other = { ...cls("d", true, 1, "Mina Rai", 8), programmeName: "BBS", wing: "Bachelor's", courseId: "course-bbs" };
+    const html = inContext(<ClassGroups classes={[other, ...list.classes]} />, as("admin"));
+    expect(html).toContain("+2 Science");
+    expect(html).toContain("BBS");
+    expect(html).not.toContain('aria-expanded="true"');
+    expect(html).toContain('aria-expanded="false"');
+    expect(html).not.toContain("Bikash Chaudhary"); // the classes are inside the closed cards, so not drawn
+    expect(html).not.toContain("Mina Rai");
+    expect(html).not.toContain('href="/portal/attendance/class?id=b"');
+  });
+
+  it("has the Classes page's search box and its four filters above the cards, all on All to begin with (D-181)", () => {
+    const html = inContext(<ClassGroups classes={list.classes} />, as("admin"));
+    expect(html).toContain('type="search"');
+    expect(html).toContain(", section or teacher");
+    for (const label of ["Wing", "Course", "Level", "Section"]) expect(html).toContain(`>${label}</label>`);
+    expect(html).not.toContain("Clear filters");
+  });
+
+  it("filters the attendance classes with the very same rules as Classes: search, wing, department, level, section", () => {
+    const other = { ...cls("d", true, 1, "Mina Rai", 8), programmeName: "BBS", wing: "Bachelor's", courseId: "course-bbs", levelId: "level-y1", levelName: "Year 1", label: "" };
+    const all = [...list.classes, other];
+    expect(filterAttendanceClasses(all, { ...NO_CLASS_FILTERS, wing: "Bachelor's" }).map((c) => c.id)).toEqual(["d"]);
+    expect(filterAttendanceClasses(all, { ...NO_CLASS_FILTERS, q: "puja" }).map((c) => c.id)).toEqual(["c"]); // the Class Teacher
+    expect(filterAttendanceClasses(all, { ...NO_CLASS_FILTERS, q: "science" }).map((c) => c.id)).toEqual(["a", "b", "c"]); // the department
+    expect(filterAttendanceClasses(all, { ...NO_CLASS_FILTERS, section: "-" }).map((c) => c.id)).toEqual(["d"]); // no section
+    expect(filterAttendanceClasses(all, { ...NO_CLASS_FILTERS, level: "level-11", section: "B" }).map((c) => c.id)).toEqual(["b"]);
   });
 
   it("a day's register says Present and Absent in words, with no controls", () => {

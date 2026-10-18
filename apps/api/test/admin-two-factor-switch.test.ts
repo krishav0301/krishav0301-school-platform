@@ -78,8 +78,10 @@ describe("signing in", () => {
 describe("the pack says it", () => {
   it("a pack leaves the Admin's second step on unless it says adminTwoFactor: false, and applying it sets the school's flag", async () => {
     const { applyPack, parsePack } = await import("../src/core/config");
-    const royal = (await import("../../../packs/royal-softech/pack.json")).default;
-    const { testPack } = await import("./programme-fixtures");
+    const royalPack = (await import("../../../packs/royal-softech/pack.json")).default;
+    const { testPack, withAdminSecondStep } = await import("./programme-fixtures");
+    expect(royalPack.school.adminTwoFactor).toBe(false); // Royal turned it off for now (D-184)
+    const royal = withAdminSecondStep(royalPack);
     expect(parsePack(testPack(royal)).school.adminTwoFactor).toBe(true);
     const off = { ...testPack(royal), school: { ...testPack(royal).school, adminTwoFactor: false } };
     await applyPack(db, parsePack(off));

@@ -75,7 +75,7 @@ describe("readability check", () => {
   });
 
   it("catches a button whose label cannot be read", () => {
-    const failures = checkContrast(with_((t) => (t.light.primaryText = "#8fb0ff")));
+    const failures = checkContrast(with_((t) => (t.light.primaryText = "#2a3a66")));
     expect(failures.map((f) => f.rule)).toContain("primary-text");
   });
 

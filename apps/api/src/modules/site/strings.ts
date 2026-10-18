@@ -6,7 +6,6 @@
  * with the language toggle.
  */
 export const STRINGS = {
-  "home.notices": "Notices and updates",
   "shell.signIn": "Sign in",
   "notices.title": "Notices and updates",
   "notices.intro": "News, notices, holidays, events, routines, vacancies and information from the school.",
@@ -24,11 +23,6 @@ export const STRINGS = {
   "content.kind.information": "Information",
   "content.holidayOn": "Holiday on {date}",
   "content.holidayFromTo": "Holiday from {from} to {to}",
-  "site.programmes.title": "Programmes",
-  "site.admission.title": "Admission",
-  "site.scholarships.title": "Scholarships",
-  "site.facilities.title": "Facilities",
-  "site.contact.title": "Contact",
 } as const;
 
 export type StringKey = keyof typeof STRINGS;
@@ -40,22 +34,13 @@ export const CRAWLER_ONLY = {
   "llms.contact": "Contact",
   "llms.home": "Home",
   "llms.homeSummary": "The home page of {school}: its programmes, how to apply and how to get in touch.",
-  "site.programmes.description": "The programmes offered by {school}, with their levels, affiliations and durations.",
-  "site.admission.description": "How to apply to {school}: the admission steps, from enquiry to enrolment.",
-  "site.scholarships.description": "Scholarships offered by {school} and who can apply.",
-  "site.facilities.description": "The facilities at {school}.",
-  "site.contact.description": "The address and phone numbers of {school}.",
-  "site.admission.howTo": "How to apply to {school}",
-  "site.home.apply": "How to apply",
-  "site.home.seeProgrammes": "See every programme",
-  "site.home.seeAdmission": "Read the full admission process",
-  "site.home.seeContact": "See all contact details",
-  "site.affiliation": "Affiliation",
-  "site.duration": "Duration",
-  "site.options": "Options",
+  "llms.signInSummary": "The front page of {school}: a way to sign in.",
+  "site.signIn.description": "Sign in to {school}.",
   "site.address": "Address",
   "site.phone": "Phone",
   "site.scroll.school": "The School",
+  "site.immersive.scholarships": "Scholarships",
+  "site.immersive.apply": "How to apply",
   "site.scroll.notices": "Notices",
   "site.scroll.about": "About the school",
   "site.scroll.facebook": "The school's Facebook page",

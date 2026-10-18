@@ -27,7 +27,7 @@ Rules, enforced in CI:
 3. **Seam before builder.** Where a variation is already visible, cut an interface and a default now. Build a settings screen only when a second school needs it.
 4. Extension interfaces are versioned and contract-tested. Extensions are written by us only. No customer-uploaded code.
 5. **Second-school test.** `packs/sample-basic-school` (Nursery to Grade 10, percentage grading, monthly fees, a different theme) runs every flow in CI beside Royal Softech.
-6. Portal layout is identical for every school. Slots may add dashboard cards, profile tabs and menu items. Only the public site has layout variants (2 or 3).
+6. Portal layout is identical for every school. Slots may add dashboard cards, profile tabs and menu items. Only the public site has layout variants (2 or 3). **The old "classic" public layout is deleted (D-177): a school with no one-page layout has a Sign in button in the middle of its front page and nothing else.**
 7. Two requests for the same extension: promote it to the core.
 8. A school is a **pack** (`packs/<school>/pack.json`), applied with `npm run provision`. Packs only add and update, never delete, and are safe to repeat. Only known optional modules and known terms can be changed; mandatory modules cannot be switched off. A theme must pass the contrast check (server-side) before it is saved (D-026).
 9. `scripts/check-boundaries.mjs` (CI) enforces rule 1, that modules do not reach into each other, and that the public addresses the Worker answers itself (`PAGES` and `CRAWLER_FILES` in `modules/site`) match `run_worker_first` in `apps/api/wrangler.jsonc` (D-046, D-049). A route's permission is checked before its body is validated (D-027).
@@ -69,7 +69,7 @@ Extension points, version 1: policies (grading, ranking and tie-break, student-I
 - **Second step and reset (D-035, D-036, D-038):** the Super Admin must, and the Admin by default (a school's pack may turn the Admin's off, D-138), sign in with an authenticator-app code (RFC 6238 via `otpauth`, sealed secret, a code works once, ten recovery codes). Sign-in returns a challenge, never a session, until the second step is done. Password reset tokens are 256-bit, hash-only, single-use, one hour, and travel in the URL fragment. A password may not contain the school's own name (`schoolNameWords`). The first Super Admin on a deployment is made with `npm run dev:user -- --remote` (see `README.md`).
 - **Files:** private storage behind short-lived signed links. **R2 is not enabled yet (D-020).** Build the storage interface, and hold uploads until the PM says R2 is needed.
 - **Documents:** HTML rendered with Cloudflare Browser Rendering. Generate in batches inside one browser session, because the free plan rate-limits browser starts. Embed a self-hosted Noto Sans Devanagari. The database is the record, never the PDF (its text layer is unreliable for Nepali).
-- **Hosting:** one free Cloudflare account, one Worker and one D1 database per school. Never introduce servers, Kubernetes, Redis, or a second database per school.
+- **Hosting:** one free Cloudflare account per school (D-182: the free-plan limits are per account), with one Worker and one D1 database in it. Never introduce servers, Kubernetes, Redis, or a second database per school.
 - Excel export through a standard library. BS dates: see section 6.
 
 ## 5. Roles and scopes

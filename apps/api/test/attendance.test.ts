@@ -164,6 +164,13 @@ describe("who may look", () => {
     expect(rows.find((r) => r.id === plus2.classId)!.classTeacher).toBe(name);
   });
 
+  it("each class says where it sits (wing, course, level), so the list filters like Classes (D-181)", async () => {
+    const rows = ((await (await call("/api/attendance/classes", { cookie: admin.cookie })).json()) as { classes: { id: string; wing: string; courseId: string; levelId: string }[] }).classes;
+    const row = rows.find((r) => r.id === plus2.classId)!;
+    const hub = ((await (await call("/api/classes", { cookie: admin.cookie })).json()) as { classes: { id: string; wing: string; courseId: string; levelId: string }[] }).classes.find((c) => c.id === plus2.classId)!;
+    expect([row.wing, row.courseId, row.levelId]).toEqual([hub.wing, hub.courseId, hub.levelId]);
+  });
+
   it("a date outside the verified calendar, or not a date, is refused rather than guessed", async () => {
     expect((await roster(plus2, coordinator.cookie, "2099-01-01")).status).toBe(422);
     expect((await roster(plus2, coordinator.cookie, "yesterday")).status).toBe(400);

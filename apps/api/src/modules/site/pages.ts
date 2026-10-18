@@ -3,7 +3,7 @@ import { listPublicContent } from "../content";
 import { escapeHtml } from "./html";
 import { textToHtml } from "./text-format";
 import type { Builder, PageContext, PageParts } from "./page-types";
-import { admission, breadcrumb, contact, facilities, home, programmes, scholarships } from "./site-pages";
+import { breadcrumb, home } from "./site-pages";
 import { say, type StringKey } from "./strings";
 
 export type { PageContext, PageParts };
@@ -70,33 +70,30 @@ const notices: Builder = async (ctx) => {
 const PAGES: Record<string, Builder> = {
   "/": home,
   "/notices": notices,
-  "/programmes": programmes,
-  "/admission": admission,
-  "/scholarships": scholarships,
-  "/facilities": facilities,
-  "/contact": contact,
 };
 
 export const FILLED_PAGES: readonly string[] = Object.keys(PAGES);
 
-/** The five pages only a school with the classic layout has. A scroll school sends a visitor of one of them to its front page (D-167). */
-export const CLASSIC_ONLY_PAGES: ReadonlySet<string> = new Set(["/programmes", "/admission", "/scholarships", "/facilities", "/contact"]);
+/**
+ * The five old public pages (Programmes, Admission, Scholarships, Facilities, Contact), gone for every school (PM, 2026-10-18,
+ * D-177). Their addresses stay in `run_worker_first` so an old link is sent to the front page instead of a missing page, as
+ * a school with the one-page layout has always been (D-167). This list is read by `scripts/check-boundaries.mjs`.
+ */
+export const REMOVED_PAGES: ReadonlySet<string> = new Set(["/programmes", "/admission", "/scholarships", "/facilities", "/contact"]);
 
-/** The pages a school of this layout has: a scroll school has one long page and the notices (D-167). */
-export const filledPagesFor = (layout: "classic" | "scroll"): readonly string[] => (layout === "scroll" ? ["/", "/notices"] : FILLED_PAGES);
+export const isRemovedPage = (pathname: string): boolean => REMOVED_PAGES.has(normalizePath(pathname));
 
 /** How each page is introduced in `llms.txt`: its name and a line about it. Every filled page must be here (a test checks). */
 const SUMMARIES: Record<string, (school: string) => { name: string; summary: string }> = {
   "/": (school) => ({ name: say("llms.home"), summary: say("llms.homeSummary", { school }) }),
   "/notices": (school) => ({ name: say("notices.title"), summary: say("notices.description", { school }) }),
-  "/programmes": (school) => ({ name: say("site.programmes.title"), summary: say("site.programmes.description", { school }) }),
-  "/admission": (school) => ({ name: say("site.admission.title"), summary: say("site.admission.description", { school }) }),
-  "/scholarships": (school) => ({ name: say("site.scholarships.title"), summary: say("site.scholarships.description", { school }) }),
-  "/facilities": (school) => ({ name: say("site.facilities.title"), summary: say("site.facilities.description", { school }) }),
-  "/contact": (school) => ({ name: say("site.contact.title"), summary: say("site.contact.description", { school }) }),
 };
 
-export const pageSummary = (path: string, school: string): { name: string; summary: string } => SUMMARIES[normalizePath(path)]!(school);
+/** A school with no one-page layout has only a sign-in page for a front page (D-177), and says so. */
+const SIGN_IN_SUMMARY = (school: string) => ({ name: say("llms.home"), summary: say("llms.signInSummary", { school }) });
+
+export const pageSummary = (path: string, school: string, layout: "classic" | "scroll" | "immersive" = "scroll"): { name: string; summary: string } =>
+  normalizePath(path) === "/" && layout === "classic" ? SIGN_IN_SUMMARY(school) : SUMMARIES[normalizePath(path)]!(school);
 export const pagesWithoutSummary = (): string[] => FILLED_PAGES.filter((path) => !(path in SUMMARIES));
 
 /** `/notices/` is the same page as `/notices`; the home page is `/`. Anything else is not a page we fill. */

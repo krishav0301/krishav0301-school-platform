@@ -7,19 +7,16 @@ import { useConfig } from "@/config/ConfigProvider";
 import { t } from "@/i18n/messages";
 
 import { PublicHeader } from "./PublicHeader";
-import { siteLinksFor } from "./site-links";
 import styles from "./shell.module.css";
 
 /**
- * The frame around public pages: a header and a footer that both link to the public pages, and the page.
- * The header's "Sign in" is deliberately quiet, so a page's own main action stays the only prominent
- * button; on the sign-in page itself it is left out (`showSignIn={false}`), because the form is right there.
- * The footer repeats the page links, so they are reachable without the header's Menu.
+ * The frame around the public pages that are left (notices, privacy, reset password): a header with the school's name and Sign
+ * in, and a footer with the privacy notice. The header's "Sign in" is deliberately quiet, so a page's own main action stays the
+ * only prominent button; on the sign-in page itself it is left out (`showSignIn={false}`), because the form is right there.
  */
 export function PublicShell({ children, showSignIn = true }: { children: ReactNode; showSignIn?: boolean }) {
   const { config } = useConfig();
   const school = config?.school;
-  const links = siteLinksFor(config);
 
   return (
     <div className={styles.frame}>
@@ -31,22 +28,7 @@ export function PublicShell({ children, showSignIn = true }: { children: ReactNo
         {children}
       </main>
       <footer className={styles.footer}>
-        {links.length > 0 ? (
-        <nav aria-label={t("site.footerNavLabel")}>
-          <ul className={styles.footerLinks}>
-            {links.map((link) => (
-              // These links repeat the header's, which already prefetches them.
-              <li key={link.href}>
-                <Link href={link.href} prefetch={false} className={styles.footerLink}>
-                  {t(link.labelKey)}
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </nav>
-        ) : null}
         {school ? <p>{t("shell.footer", { school: school.name })}</p> : null}
-        {/* Not part of SITE_LINKS: a legal page, not one of the Worker's crawler-filled pages (site-links.test.ts checks that list exactly). */}
         <p>
           <Link href="/privacy" prefetch={false} className={styles.footerLink}>
             {t("shell.privacy")}

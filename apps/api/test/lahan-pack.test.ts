@@ -4,6 +4,7 @@ import { parsePack } from "../src/core/config";
 import { contrastRatio } from "../src/core/theme/contrast";
 import royalJson from "../../../packs/royal-softech/pack.json";
 import lahanJson from "../../../packs/lahan-manakamana/pack.json";
+import sampleJson from "../../../packs/sample-basic-school/pack.json";
 
 /**
  * The first real school (the PM, 2026-10-11): Lahan Manakamana Secondary English Boarding School runs only the result system.
@@ -41,11 +42,12 @@ describe("the Lahan Manakamana school file", () => {
     expect(JSON.stringify(lahanJson)).not.toMatch(/royal|softech/i);
   });
 
-  it("is a scroll site that takes applications without an email link, and no other school does (D-167, D-168)", () => {
+  it("is a scroll site that takes applications without an email link, and the sample school still needs one (D-167, D-168)", () => {
     expect(pack.site.layout).toBe("scroll");
     expect(pack.school.publicApplyNeedsLink).toBe(false);
-    expect(parsePack(royalJson).school.publicApplyNeedsLink).toBe(true);
-    expect(parsePack(royalJson).site.layout).toBe("classic");
+    expect(parsePack(sampleJson).school.publicApplyNeedsLink).toBe(true);
+    expect(parsePack(royalJson).school.publicApplyNeedsLink).toBe(false); // Royal turned it off too (D-183)
+    expect(parsePack(royalJson).site.layout).not.toBe("scroll");
   });
 
   it("says what the school stands for at the top of Our School, in the PM's chosen words (2026-10-13), and does not repeat the first card", () => {

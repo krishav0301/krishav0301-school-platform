@@ -9,13 +9,12 @@ import { PortalShell } from "@/shell/PortalShell";
 import { PublicShell } from "@/shell/PublicShell";
 import { Badge, Button, Field, Notice, Table } from "@/ui";
 import DesignGallery from "@/app/design/page";
-import { HomeView } from "@/site/HomeView";
-import { siteFrom } from "./site-fixture";
+import { SignInHome } from "@/site/SignInHome";
 import PortalPage from "@/app/portal/page";
 import SignInPage from "@/app/sign-in/page";
 import royal from "../../../packs/royal-softech/pack.json";
 import sample from "../../../packs/sample-basic-school/pack.json";
-import { TEST_SECTIONS, sectionsOf } from "./sections";
+import { sectionsOf } from "./sections";
 
 vi.mock("next/navigation", () => ({
   usePathname: () => "/portal",
@@ -220,7 +219,7 @@ describe("the public shell and sign-in page", () => {
   });
 
   it("the home page also has exactly one prominent button", () => {
-    const home = page(<HomeView site={siteFrom(royal)} sections={TEST_SECTIONS.royal} urgent={[]} />, royal, signedOut);
+    const home = page(<SignInHome schoolName={royal.school.name} signedIn={false} />, royal, signedOut);
     expect(home.match(/class="button primary/g)).toHaveLength(1);
   });
 

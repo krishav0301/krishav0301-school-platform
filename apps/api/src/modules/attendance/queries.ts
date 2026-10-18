@@ -17,6 +17,9 @@ interface ClassRow {
   level_name: string;
   label: string;
   section_key: string;
+  wing: string;
+  course_id: string;
+  level_id: string;
   class_teacher_user_id: number | null;
   me_id: number | null;
 }
@@ -24,7 +27,7 @@ interface ClassRow {
 const naming = (r: ClassRow) => ({ id: r.public_id, programmeName: r.programme_name, levelName: r.level_name, label: r.label, sectionKey: r.section_key });
 const fullName = (first: string, last: string) => `${first} ${last}`;
 
-const CLASS_COLUMNS = `cl.public_id, pv.name AS programme_name, lv.name AS level_name, cl.label, s.key AS section_key, cl.class_teacher_user_id,
+const CLASS_COLUMNS = `cl.public_id, pv.name AS programme_name, lv.name AS level_name, cl.label, s.key AS section_key, s.name AS wing, pv.public_id AS course_id, lv.public_id AS level_id, cl.class_teacher_user_id,
                        (SELECT id FROM users WHERE public_id = ?1) AS me_id`;
 
 /** One class, if the person may see it. Parameters: 1 to 4 the reach, 5 the class. */
@@ -62,6 +65,9 @@ export async function listClasses(db: D1Database, reach: Reach, today: string): 
       todayBs: adToBsText(today),
       classes: rows.map((r) => ({
         ...naming(r),
+        wing: r.wing,
+        courseId: r.course_id,
+        levelId: r.level_id,
         students: r.students,
         markedToday: r.marked > 0,
         absentToday: r.absent,

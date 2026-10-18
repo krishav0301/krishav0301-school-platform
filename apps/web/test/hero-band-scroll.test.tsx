@@ -9,14 +9,14 @@ import { TEST_SECTIONS } from "./sections";
 const here = vi.hoisted(() => ({ path: "/privacy" }));
 vi.mock("next/navigation", () => ({ usePathname: () => here.path, useRouter: () => ({ replace: vi.fn(), push: vi.fn() }) }));
 
-const config = (layout: "classic" | "scroll"): PublicConfig => ({
+const config = (layout: "classic" | "scroll" | "immersive"): PublicConfig => ({
   school: { name: "Some School", shortName: "Some", currency: "NPR", timezone: "Asia/Kathmandu", region: "nepal", template: null, publicLayout: layout },
   sections: TEST_SECTIONS.royal,
   modules: {},
   terms: {},
   theme: royalJson.theme as PublicConfig["theme"],
 });
-const band = (path: string, layout: "classic" | "scroll", art?: "W11" | "P2" | null) => {
+const band = (path: string, layout: "classic" | "scroll" | "immersive", art?: "W11" | "P2" | null) => {
   here.path = path;
   return renderToStaticMarkup(
     <ConfigContext.Provider value={makeConfigValue("ready", config(layout))}>
@@ -28,6 +28,11 @@ const band = (path: string, layout: "classic" | "scroll", art?: "W11" | "P2" | n
 describe("the page band on a school's public pages", () => {
   it("draws no picture for a school with the one-page layout (its shared pages are just words, PM 2026-10-13)", () => {
     for (const path of ["/privacy", "/notices", "/reset-password", "/sign-in"]) expect(band(path, "scroll"), path).not.toMatch(/W\d+|artSide|illustrations/);
+  });
+
+  it("draws none for a school with the immersive layout either (D-178)", () => {
+    for (const path of ["/privacy", "/notices", "/reset-password", "/sign-in"]) expect(band(path, "immersive"), path).not.toMatch(/Wd+|artSide|illustrations/);
+    expect(band("/portal/people", "immersive")).toMatch(/P13/);
   });
 
   it("still draws its picture for every other school", () => {
