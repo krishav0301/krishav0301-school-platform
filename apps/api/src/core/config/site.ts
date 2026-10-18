@@ -1,8 +1,8 @@
 import { z } from "@hono/zod-openapi";
 
 /**
- * The words of a school's six fixed public pages (Home, Programmes, Admission, Scholarships, Facilities,
- * Contact). They are part of the school's pack (D-008), stored as one JSON row by `applyPack`, and read by
+ * The words of a school's public site (what Programmes, Admission, Scholarships, Facilities and Contact say, and the home
+ * page's own). They are part of the school's pack (D-008), stored as one JSON row by `applyPack`, and read by
  * the public pages. The Admin does not edit them in Phase 2 (D-039): a change is a change to the pack.
  * Every text is trimmed and capped, and unknown keys are refused.
  */
@@ -42,10 +42,37 @@ export const ScrollContentSchema = z.strictObject({
 });
 export type ScrollContent = z.infer<typeof ScrollContentSchema>;
 
+/** A heading with one accent word: the accent is written between asterisks, "Explore Our *Programmes*". At most one. */
+const Heading = (max: number) =>
+  Text(max).refine((heading) => !heading.includes("*") || /^[^*]*\*[^*\s][^*]*\*[^*]*$/.test(heading), "an accent word, written between two asterisks, at most one");
+
+const Picture = z.strictObject({ file: HeroFile, alt: Text(160) });
+
+/**
+ * The words of the immersive one-page public site (PM, 2026-10-18, D-178): a school whose pack says `layout: "immersive"`
+ * has them. What the programmes, facilities, scholarships, admission steps and contact say comes from the rest of `site`;
+ * this adds the page's own headline, headings and reasons. Every picture is optional (a school with none gets a gradient
+ * drawn in CSS); a picture needs the school's `photosFolder`, and no file is used twice.
+ */
+export const ImmersiveContentSchema = z.strictObject({
+  photosFolder: PhotosFolder.optional(),
+  hero: z.strictObject({ headline: Heading(120), tagline: Text(200), image: Picture.optional() }),
+  areas: z.strictObject({ heading: Heading(80), intro: Text(300) }),
+  facilities: z.strictObject({ heading: Heading(80), images: z.array(Picture.extend({ name: Text(80) })).max(30).optional() }),
+  programmes: z.strictObject({ heading: Heading(80), intro: Text(300), images: z.record(Slug, Picture).optional() }),
+  why: z.strictObject({
+    heading: Heading(80),
+    intro: Text(300).optional(),
+    items: z.array(z.strictObject({ title: Text(80), text: Text(300) })).min(2).max(6),
+  }),
+});
+export type ImmersiveContent = z.infer<typeof ImmersiveContentSchema>;
+
 export const SiteContentSchema = z.strictObject({
-  /** `classic` is the six fixed pages; `scroll` is one long page (D-167). Classic unless the pack says otherwise. */
-  layout: z.enum(["classic", "scroll"]).default("classic"),
+  /** `scroll` is one long page (D-167); `immersive` is another (D-178); anything else is only a Sign in button (D-177). Classic unless the pack says otherwise. */
+  layout: z.enum(["classic", "scroll", "immersive"]).default("classic"),
   scroll: ScrollContentSchema.optional(),
+  immersive: ImmersiveContentSchema.optional(),
   home: z.strictObject({ headline: Text(120), summary: Text(400) }),
   programmes: z
     .array(

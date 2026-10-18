@@ -75,6 +75,28 @@ export function parsePack(input: unknown): Pack {
   // No picture shows twice on the page (PM, 2026-10-13): the hero, the cards and the strip all name different files.
   const pictureFiles = [...(pack.site.scroll?.hero.images ?? []), ...(pack.site.scroll?.gallery ?? []), ...(pack.site.scroll?.cards.flatMap((card) => (card.image ? [card.image] : [])) ?? [])].map((image) => image.file);
   if (new Set(pictureFiles).size !== pictureFiles.length) problems.push("site.scroll: a picture file is named more than once (hero, cards and gallery)");
+  const immersive = pack.site.immersive;
+  if (pack.site.layout === "immersive" && !immersive) problems.push("site.immersive: required when site.layout is immersive");
+  if (pack.site.layout !== "immersive" && immersive) problems.push("site.immersive: only an immersive layout may have immersive words");
+  if (immersive) {
+    const pictures = [
+      ...(immersive.hero.image ? [immersive.hero.image] : []),
+      ...(immersive.facilities.images ?? []),
+      ...Object.values(immersive.programmes.images ?? {}),
+    ];
+    if (pictures.length > 0 && !immersive.photosFolder) problems.push("site.immersive.photosFolder: required when the page has a picture");
+    const files = pictures.map((picture) => picture.file);
+    if (new Set(files).size !== files.length) problems.push("site.immersive: a picture file is named more than once");
+    // The scholarships card sits after the programmes and may have a picture too, under the key `scholarships`.
+    const known = new Set([...pack.site.programmes.map((p) => p.key), "scholarships"]);
+    for (const programmeKey of Object.keys(immersive.programmes.images ?? {})) {
+      if (!known.has(programmeKey)) problems.push(`site.immersive.programmes.images.${programmeKey}: not a programme of this pack`);
+    }
+    const facilityNames = new Set(pack.site.facilities.items.map((item) => item.name));
+    for (const image of immersive.facilities.images ?? []) {
+      if (!facilityNames.has(image.name)) problems.push(`site.immersive.facilities.images: "${image.name}" is not a facility of this pack`);
+    }
+  }
   const cardTitles = pack.site.scroll?.cards.map((card) => card.title) ?? [];
   if (new Set(cardTitles).size !== cardTitles.length) problems.push("site.scroll.cards: titles must be unique");
 

@@ -5,10 +5,10 @@ import { applyPack, loadConfig, parsePack } from "../src/core/config";
 import { nepalDate } from "../src/core/dates";
 import { createUser } from "../src/modules/accounts/service";
 import { createContent, publishContent } from "../src/modules/content/service";
-import { FILLED_PAGES, filledPagesFor, renderCrawlerFile, renderPublicPage } from "../src/modules/site";
+import { FILLED_PAGES, renderCrawlerFile, renderPublicPage } from "../src/modules/site";
 import lahanJson from "../../../packs/lahan-manakamana/pack.json";
 import royalJson from "../../../packs/royal-softech/pack.json";
-import { testPack } from "./programme-fixtures";
+import { classicOf, testPack } from "./programme-fixtures";
 
 const db = env.DB;
 const key = env.AUDIT_HMAC_KEY;
@@ -67,14 +67,14 @@ describe("the layout stamped on the page, so the front page knows which school i
 
   it("says scroll for a scroll school and classic for a classic one", async () => {
     expect(await stamp("/")).toBe("scroll");
-    await applyPack(db, testPack(royalJson));
+    await applyPack(db, testPack(classicOf(royalJson)));
     expect(await stamp("/")).toBe("classic");
-    expect(await stamp("/programmes")).toBe("classic");
+    expect(await stamp("/notices")).toBe("classic");
     await applyPack(db, parsePack(lahanJson));
   });
 });
 
-describe("the classic pages on a scroll school", () => {
+describe("the old public pages on a scroll school", () => {
   it("send the visitor to the front page instead: there is no way to reach an old page (PM, 2026-10-13)", async () => {
     for (const path of ["/programmes", "/admission", "/scholarships", "/facilities", "/contact", "/programmes/"]) {
       const response = await renderPublicPage(new Request(`https://lahan.example${path}`), { ...env, ASSETS: assets, SITE_ORIGIN: "https://lahan.example" });
@@ -93,7 +93,7 @@ describe("the classic pages on a scroll school", () => {
   });
 
   it("the sitemap and llms.txt list only the front page and the notices", async () => {
-    expect([...filledPagesFor("scroll")]).toEqual(["/", "/notices"]);
+    expect([...FILLED_PAGES]).toEqual(["/", "/notices"]);
     const sitemap = await file("/sitemap.xml");
     expect(sitemap).toContain("https://lahan.example/notices");
     expect(sitemap).not.toContain("/programmes");
@@ -103,21 +103,41 @@ describe("the classic pages on a scroll school", () => {
   });
 });
 
-describe("a classic school is unchanged", () => {
-  it("is classic in the public configuration, and still serves every page", async () => {
-    await applyPack(db, testPack(royalJson));
+describe("a school without the one-page layout (PM, 2026-10-18, D-177): a Sign in button and nothing else", () => {
+  it("is classic in the public configuration", async () => {
+    await applyPack(db, testPack(classicOf(royalJson)));
     expect((await loadConfig(db))!.school.publicLayout).toBe("classic");
+  });
+
+  it("sends the five old public pages to the front page too: they are gone for every school", async () => {
+    await applyPack(db, testPack(classicOf(royalJson)));
     for (const path of ["/programmes", "/admission", "/scholarships", "/facilities", "/contact"]) {
-      expect((await renderPublicPage(new Request(`https://lahan.example${path}`), { ...env, ASSETS: assets, SITE_ORIGIN: "https://lahan.example" })).status, path).toBe(200);
+      const response = await renderPublicPage(new Request(`https://lahan.example${path}`), { ...env, ASSETS: assets, SITE_ORIGIN: "https://lahan.example" });
+      expect(response.status, path).toBe(302);
+      expect(response.headers.get("Location"), path).toBe("/");
     }
   });
 
-  it("lists all its pages", async () => {
-    expect([...filledPagesFor("classic")]).toEqual([...FILLED_PAGES]);
-    await applyPack(db, testPack(royalJson));
+  it("sends the old pages to the front page even before the school is set up, and writes nothing to the database to do it", async () => {
+    const response = await renderPublicPage(new Request("https://lahan.example/programmes"), { ...env, DB: undefined as never, ASSETS: assets, SITE_ORIGIN: "https://lahan.example" });
+    expect(response.status).toBe(302);
+  });
+
+  it("gives the front page's crawler copy only its name and a link to sign in", async () => {
+    await applyPack(db, testPack(classicOf(royalJson)));
+    const copy = copyOf(await page("/"));
+    expect(copy).toContain(`<h1>${royalJson.school.name}</h1>`);
+    expect(copy).toContain('<a href="/sign-in">Sign in</a>');
+    for (const word of ["/programmes", "/admission", "/contact", "Programmes", "How to apply"]) expect(copy, word).not.toContain(word);
+  });
+
+  it("lists only the front page and the notices in the sitemap and llms.txt, and says the front page is a way to sign in", async () => {
+    await applyPack(db, testPack(classicOf(royalJson)));
     const sitemap = await file("/sitemap.xml");
-    for (const path of FILLED_PAGES) expect(sitemap, path).toContain(`https://lahan.example${path === "/" ? "/" : path}`);
-    const programmes = copyOf(await page("/programmes"));
-    expect(programmes).toContain("<h1>");
+    expect([...sitemap.matchAll(/<loc>([^<]+)<\/loc>/g)].map((m) => m[1])).toEqual(["https://lahan.example/", "https://lahan.example/notices"]);
+    const llms = await file("/llms.txt");
+    expect(llms).toContain("(https://lahan.example/): The front page of");
+    expect(llms).toContain("a way to sign in");
+    expect(llms).not.toContain("/programmes");
   });
 });

@@ -1,0 +1,839 @@
+/*
+ * The immersive one-page site (D-178). Tokens only: no colour, font or motion is written out here; every gradient is mixed from
+ * the school's own theme colours. Mobile first. Anything that moves animates transform and opacity only, and for a visitor who
+ * asked for less motion nothing is pinned, nothing slides and nothing fades in: the page is the same words in a plain column.
+ */
+
+.page {
+  --bar: 3.75rem;
+  background: var(--color-background);
+  color: var(--color-text);
+  /* One column exactly as wide as the screen, so enlarged text wraps instead of widening the page. */
+  min-width: 0;
+  overflow-x: clip;
+}
+
+.skip {
+  position: fixed;
+  top: var(--space-2);
+  left: var(--space-2);
+  z-index: 40;
+  padding: var(--space-3) var(--space-4);
+  background: var(--color-surface);
+  color: var(--color-text);
+  border-radius: var(--radius-control);
+  transform: translateY(-200%);
+}
+
+.skip:focus-visible {
+  transform: none;
+  outline: var(--focus-ring);
+}
+
+/* ---- Grain: a fine noise laid over a gradient, drawn once as a small tile ------------------------------------ */
+
+.grain {
+  position: relative;
+  isolation: isolate;
+}
+
+.grain::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0.07;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+.grain > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* ---- Top bar ------------------------------------------------------------------------------------------------- */
+
+.topBar {
+  position: fixed;
+  inset: 0 0 auto 0;
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  min-height: var(--bar);
+  padding: var(--space-2) var(--page-gutter);
+  color: var(--color-background);
+}
+
+/* The solid bar fades in under the words once the page has scrolled (opacity only). */
+.topBar::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: var(--color-surface);
+  border-bottom: 1px solid var(--color-border);
+  opacity: 0;
+  transition: opacity var(--motion-fast) var(--motion-ease);
+}
+
+.topBar[data-scrolled="true"] {
+  color: var(--color-text);
+}
+
+.topBar[data-scrolled="true"]::before {
+  opacity: 1;
+}
+
+.brand {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--control-height);
+  max-width: 11rem;
+  color: inherit;
+  font-family: var(--font-heading);
+  font-size: var(--text-lg);
+  line-height: 1.15;
+  text-decoration: none;
+}
+
+.barActions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.barLink,
+.barApply {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--control-height);
+  padding: 0 var(--space-4);
+  border: 1px solid transparent;
+  border-radius: 999px;
+  color: inherit;
+  font-weight: var(--weight-medium);
+  text-decoration: none;
+}
+
+/* Sign in is in the menu on a phone and beside Apply once there is room. */
+.barLink {
+  display: none;
+}
+
+/* Apply is outlined, never filled: the hero's button and each card's strip stay the one prominent action in view. */
+.barApply {
+  border-color: currentColor;
+}
+
+.menuButton {
+  min-height: var(--control-height);
+  padding: 0 var(--space-4);
+  border: 1px solid currentColor;
+  border-radius: 999px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-weight: var(--weight-medium);
+  cursor: pointer;
+}
+
+.menu {
+  position: fixed;
+  inset: var(--bar) 0 auto 0;
+  z-index: 29;
+  max-height: calc(100svh - var(--bar));
+  overflow-y: auto;
+  padding: var(--space-4) var(--page-gutter) var(--space-6);
+  background: var(--color-text);
+  color: var(--color-background);
+}
+
+.menu[data-open="false"] {
+  display: none;
+}
+
+.menu ul {
+  display: grid;
+  gap: var(--space-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.menuLink {
+  display: flex;
+  align-items: center;
+  min-height: var(--control-height);
+  color: inherit;
+  font-family: var(--font-heading);
+  font-size: var(--text-2xl);
+  text-decoration: none;
+}
+
+.menuSignIn {
+  border-top: 1px solid color-mix(in srgb, var(--color-background) 25%, transparent);
+  margin-top: var(--space-2);
+}
+
+@media (min-width: 40rem) {
+  .barLink {
+    display: inline-flex;
+  }
+
+  .menuSignIn {
+    display: none;
+  }
+}
+
+/* ---- The hero: a gradient with grain, pinned while the page slides up over it ------------------------------- */
+
+.hero {
+  position: relative;
+}
+
+.heroScene {
+  position: sticky;
+  top: 0;
+  z-index: 0;
+  display: grid;
+  align-content: end;
+  min-height: 100svh;
+  overflow: hidden;
+  isolation: isolate;
+  padding: calc(var(--bar) + var(--space-6)) var(--page-gutter) calc(var(--space-8) + var(--space-5));
+  color: var(--color-background);
+  background:
+    radial-gradient(60rem 40rem at 85% 0%, color-mix(in srgb, var(--color-primary) 70%, transparent), transparent 66%),
+    var(--color-text);
+}
+
+.heroPhoto {
+  position: absolute;
+  inset: 0;
+  z-index: -2;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: 50% 38%;
+}
+
+/* A wash that deepens toward the words, so they stay readable over any picture. */
+.heroShade {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background:
+    linear-gradient(to top, color-mix(in srgb, var(--color-text) 96%, transparent) 6%, color-mix(in srgb, var(--color-text) 72%, transparent) 50%, color-mix(in srgb, var(--color-text) 34%, transparent) 100%);
+}
+
+.heroContent {
+  display: grid;
+  justify-items: start;
+  gap: var(--space-5);
+  max-width: 64rem;
+}
+
+.heroTitle {
+  margin: 0;
+  font-family: var(--font-heading);
+  font-size: clamp(2.75rem, 8.5vw, 5.75rem);
+  font-weight: var(--weight-regular);
+  letter-spacing: -0.025em;
+  line-height: 1.04;
+  text-wrap: balance;
+}
+
+.heroTagline {
+  margin: 0;
+  max-width: 34rem;
+  font-size: var(--text-lg);
+  line-height: var(--leading-normal);
+  color: color-mix(in srgb, var(--color-background) 86%, transparent);
+}
+
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: var(--control-height);
+  max-width: 100%;
+  padding: 0 var(--space-5);
+  border-radius: 999px;
+  white-space: normal;
+  text-align: center;
+}
+
+.pill svg {
+  width: 1.1em;
+  height: 1.1em;
+}
+
+/* ---- The sheet that slides over the hero ---------------------------------------------------------------------- */
+
+.rise {
+  position: relative;
+  z-index: 1;
+  margin-top: calc(-1 * var(--space-6));
+  border-radius: var(--radius-hero) var(--radius-hero) 0 0;
+  background: var(--color-background);
+  box-shadow: 0 -28px 60px -30px color-mix(in srgb, var(--color-text) 60%, transparent);
+}
+
+.section {
+  padding: var(--space-8) var(--page-gutter);
+}
+
+.tinted {
+  background: var(--color-surface);
+}
+
+.dark {
+  background: var(--color-text);
+  color: var(--color-background);
+}
+
+.center {
+  display: grid;
+  justify-items: center;
+  gap: var(--space-4);
+  max-width: 48rem;
+  margin-inline: auto;
+  text-align: center;
+}
+
+.heading {
+  margin: 0;
+  font-family: var(--font-heading);
+  font-size: clamp(2rem, 6vw, 3.75rem);
+  font-weight: var(--weight-regular);
+  letter-spacing: -0.015em;
+  line-height: 1.08;
+  text-wrap: balance;
+}
+
+/* The accent word: lifted toward the page colour on a dark ground, the brand colour on a light one. */
+.accent {
+  color: color-mix(in srgb, var(--color-accent) 55%, var(--color-background));
+}
+
+.section:not(.dark) .accent {
+  color: var(--color-accent);
+}
+
+.lead {
+  margin: 0;
+  max-width: 40rem;
+  font-size: var(--text-lg);
+  line-height: var(--leading-normal);
+  color: var(--color-text-muted);
+}
+
+.dark .lead {
+  color: color-mix(in srgb, var(--color-background) 78%, transparent);
+}
+
+/* ---- Areas: tilted tags around the heading --------------------------------------------------------------------- */
+
+.tags {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--space-3) var(--space-4);
+  max-width: 44rem;
+  margin-bottom: var(--space-3);
+}
+
+.tag {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: var(--control-height);
+  padding: 0 var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--color-text);
+  font-weight: var(--weight-medium);
+  text-decoration: none;
+  transition: transform var(--motion-fast) var(--motion-ease);
+}
+
+.tag svg {
+  width: 1em;
+  height: 1em;
+  color: var(--color-accent);
+}
+
+.tag:hover,
+.tag:focus-visible {
+  transform: translateY(-2px);
+}
+
+.viewAll {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--control-height);
+  margin-top: var(--space-2);
+  color: var(--color-primary);
+  font-weight: var(--weight-medium);
+  text-decoration: underline;
+  text-underline-offset: 0.25em;
+}
+
+/* ---- Facilities: tiles that move sideways ----------------------------------------------------------------------- */
+
+.galleryFrame {
+  margin-top: var(--space-6);
+}
+
+.gallery {
+  display: flex;
+  gap: var(--space-4);
+  max-width: 64rem;
+  margin-inline: auto;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: none;
+  padding: var(--space-2) var(--page-gutter);
+  cursor: grab;
+}
+
+.gallery::-webkit-scrollbar {
+  display: none;
+}
+
+.gallery:focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: -4px;
+}
+
+.tile {
+  position: relative;
+  isolation: isolate;
+  display: grid;
+  flex: 0 0 min(82vw, 22rem);
+  align-content: end;
+  aspect-ratio: 4 / 3;
+  overflow: hidden;
+  padding: var(--space-5);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-card);
+  background: var(--color-background);
+  color: var(--color-text);
+  scroll-snap-align: start;
+}
+
+.tile[data-photo="true"] {
+  border-color: transparent;
+  color: var(--color-background);
+}
+
+.tilePhoto {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.tile[data-photo="true"]::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background: linear-gradient(to top, color-mix(in srgb, var(--color-text) 72%, transparent), transparent 58%);
+}
+
+.tileText {
+  position: relative;
+  z-index: 2;
+  display: grid;
+  gap: var(--space-2);
+}
+
+.tileText h3 {
+  margin: 0;
+  font-family: var(--font-heading);
+  font-size: var(--text-2xl);
+  font-weight: var(--weight-regular);
+  line-height: 1.1;
+}
+
+.tileText p {
+  margin: 0;
+  color: var(--color-text-muted);
+}
+
+.tile[data-photo="true"] .tileText p {
+  color: color-mix(in srgb, var(--color-background) 88%, transparent);
+}
+
+.galleryButtons {
+  display: flex;
+  justify-content: center;
+  gap: var(--space-3);
+  margin-top: var(--space-4);
+}
+
+.galleryButton {
+  display: grid;
+  place-items: center;
+  min-width: var(--control-height);
+  min-height: var(--control-height);
+  border: 1px solid var(--color-border);
+  border-radius: 50%;
+  background: var(--color-surface);
+  color: var(--color-text);
+  cursor: pointer;
+}
+
+.galleryButton svg {
+  width: 1.25rem;
+  height: 1.25rem;
+}
+
+/* ---- Programme cards: each stays in view while the next slides over it ----------------------------------------- */
+
+.cards {
+  display: grid;
+  gap: var(--space-5);
+  max-width: 64rem;
+  margin: var(--space-7) auto 0;
+}
+
+.card {
+  position: sticky;
+  top: calc(var(--bar) + var(--i, 0) * var(--space-4));
+  display: grid;
+  grid-template-rows: 1fr auto;
+  min-height: min(32rem, 78svh);
+  overflow: hidden;
+  border-radius: var(--radius-hero);
+  background: var(--color-surface);
+  color: var(--color-text);
+  box-shadow: 0 30px 60px -30px color-mix(in srgb, var(--color-text) 85%, transparent);
+}
+
+.cardBody {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.cardText {
+  display: grid;
+  align-content: center;
+  gap: var(--space-3);
+  padding: var(--space-6) var(--space-5);
+}
+
+.cardText h3 {
+  margin: 0;
+  font-family: var(--font-heading);
+  font-size: clamp(1.75rem, 4vw, 2.5rem);
+  font-weight: var(--weight-regular);
+  line-height: 1.1;
+}
+
+.cardText p {
+  margin: 0;
+  color: var(--color-text-muted);
+  line-height: var(--leading-normal);
+}
+
+.eyebrow {
+  color: var(--color-accent);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin: var(--space-2) 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.chips li {
+  padding: var(--space-1) var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  color: var(--color-text);
+  font-size: var(--text-sm);
+}
+
+.cardList {
+  display: grid;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  color: var(--color-text-muted);
+}
+
+.cardList strong {
+  color: var(--color-text);
+}
+
+.cardVisual {
+  position: relative;
+  display: grid;
+  place-items: center;
+  min-height: 13rem;
+  overflow: hidden;
+  color: var(--color-background);
+  background: linear-gradient(150deg, var(--color-primary), var(--color-text));
+}
+
+.cardPhoto {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: 50% 30%;
+}
+
+.visualWord {
+  position: relative;
+  z-index: 1;
+  padding: var(--space-4);
+  font-family: var(--font-heading);
+  font-size: clamp(2.5rem, 8vw, 4.5rem);
+  letter-spacing: -0.02em;
+  line-height: 1.05;
+  text-align: center;
+  text-wrap: balance;
+}
+
+.strip {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: var(--control-height);
+  padding: var(--space-4);
+  background: var(--action-fill);
+  color: var(--color-primary-text);
+  font-size: var(--text-lg);
+  font-weight: var(--weight-medium);
+  text-align: center;
+  text-decoration: none;
+}
+
+@media (min-width: 48rem) {
+  .cardBody {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+
+  .cardText {
+    padding: var(--space-7) var(--space-6);
+  }
+}
+
+/* ---- Why us ------------------------------------------------------------------------------------------------------ */
+
+.whyGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 14rem), 1fr));
+  gap: var(--space-6);
+  max-width: 64rem;
+  margin: var(--space-7) auto 0;
+  padding: 0;
+  list-style: none;
+}
+
+.whyCard {
+  display: grid;
+  align-content: start;
+  gap: var(--space-3);
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--color-text);
+}
+
+.whyCard h3 {
+  margin: 0;
+  font-family: var(--font-heading);
+  font-size: var(--text-xl);
+  font-weight: var(--weight-regular);
+  line-height: 1.2;
+}
+
+.whyCard p {
+  margin: 0;
+  color: var(--color-text-muted);
+  line-height: var(--leading-normal);
+}
+
+/* ---- Notices (on a dark ground) ------------------------------------------------------------------------------------- */
+
+.noticeList {
+  display: grid;
+  gap: var(--space-2);
+  max-width: 48rem;
+  margin: var(--space-6) auto var(--space-5);
+  padding: 0;
+  list-style: none;
+}
+
+.noticeRow {
+  display: grid;
+  gap: var(--space-1);
+  width: 100%;
+  min-height: var(--control-height);
+  padding: var(--space-4) var(--space-5);
+  border: 1px solid color-mix(in srgb, var(--color-background) 20%, transparent);
+  border-radius: var(--radius-card);
+  background: color-mix(in srgb, var(--color-background) 8%, transparent);
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: transform var(--motion-fast) var(--motion-ease);
+}
+
+.noticeRow:hover,
+.noticeRow:focus-visible {
+  transform: translateX(4px);
+}
+
+.noticeMeta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--text-sm);
+  color: color-mix(in srgb, var(--color-background) 75%, transparent);
+}
+
+.noticeTitle {
+  font-size: var(--text-lg);
+  font-weight: var(--weight-medium);
+}
+
+/* ---- Admission ------------------------------------------------------------------------------------------------------- */
+
+.formWrap,
+.formShape {
+  max-width: 40rem;
+  margin: var(--space-6) auto 0;
+}
+
+.formShape {
+  display: grid;
+  gap: var(--space-3);
+}
+
+/* ---- Contact and the foot ----------------------------------------------------------------------------------------------- */
+
+.facts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+  gap: var(--space-5);
+  width: 100%;
+  max-width: 56rem;
+  margin: var(--space-4) 0 0;
+  text-align: left;
+}
+
+.facts dt {
+  margin-bottom: var(--space-1);
+  font-size: var(--text-sm);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--color-background) 70%, transparent);
+}
+
+.facts dd {
+  display: grid;
+  gap: var(--space-1);
+  margin: 0;
+  font-size: var(--text-lg);
+  overflow-wrap: anywhere;
+}
+
+.reach {
+  color: inherit;
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+}
+
+.footer {
+  display: grid;
+  gap: var(--space-3);
+  padding: var(--space-7) var(--page-gutter) var(--space-6);
+  color: var(--color-background);
+  background: var(--color-text);
+  border-top: 1px solid color-mix(in srgb, var(--color-background) 16%, transparent);
+}
+
+.footerName {
+  margin: 0;
+  font-family: var(--font-heading);
+  font-size: var(--text-xl);
+}
+
+.footerLinks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-5);
+}
+
+.footerLink {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--control-height);
+  color: inherit;
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+}
+
+/* ---- Appearing and moving: only where scripts run and only when motion is allowed -------------------------------------- */
+
+@media (prefers-reduced-motion: no-preference) {
+  :global(.js) .reveal {
+    transition:
+      opacity 520ms var(--motion-ease),
+      transform 520ms var(--motion-ease);
+  }
+
+  :global(.js) .reveal:not([data-revealed="true"]) {
+    opacity: 0;
+    transform: translateY(1.5rem);
+  }
+}
+
+/* The headline lifts and fades as the page slides up over it, in browsers that can tie a movement to the scroll. */
+@keyframes heroOut {
+  to {
+    opacity: 0;
+    transform: translateY(-3.5rem) scale(0.97);
+  }
+}
+
+@supports (animation-timeline: view()) {
+  @media (prefers-reduced-motion: no-preference) {
+    .heroContent {
+      animation: heroOut linear both;
+      animation-timeline: scroll(root);
+      animation-range: 0 85svh;
+    }
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .heroScene { position: relative; min-height: 80svh; }
+  .card { position: static; }
+  .heroContent, .reveal { animation: none; transition: none; }
+  .tag, .tag:hover, .tag:focus-visible { transform: none; transition: none; }
+  .noticeRow, .noticeRow:hover { transform: none; transition: none; }
+  .gallery { scroll-behavior: auto; }
+}

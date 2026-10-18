@@ -37,6 +37,10 @@ export const AttendanceClassListSchema = z
     classes: z.array(
       z.object({
         ...ClassNaming,
+        /** Where the class sits, for the list's filters, as on Classes (D-181). */
+        wing: z.string(),
+        courseId: z.string(),
+        levelId: z.string(),
         students: z.number().int(),
         markedToday: z.boolean(),
         absentToday: z.number().int(),

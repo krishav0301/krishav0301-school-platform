@@ -2,7 +2,7 @@ import { loadConfigAndSite } from "../../core/config";
 import type { Bindings } from "../../core/types";
 import { escapeHtml, jsonLdScript } from "./html";
 import { isProduction } from "./crawler-files";
-import { CLASSIC_ONLY_PAGES, builderFor, isFilledPage, normalizePath } from "./pages";
+import { builderFor, isFilledPage, isRemovedPage, normalizePath } from "./pages";
 
 /** How long a browser may keep a filled page. The content can change at any time, so it is short. */
 export const FILLED_PAGE_CACHE = "public, max-age=60";
@@ -17,6 +17,8 @@ export const FILLED_PAGE_CACHE = "public, max-age=60";
  */
 export async function renderPublicPage(request: Request, env: Bindings): Promise<Response> {
   const url = new URL(request.url);
+  // The five old public pages are gone for every school (PM, 2026-10-18, D-177): whoever asks for one is sent to the front page.
+  if (isRemovedPage(url.pathname)) return new Response(null, { status: 302, headers: { Location: "/" } });
   // A browser that holds an older copy asks "has it changed?" with validators of THAT copy. The static files
   // would answer "no" (304, no body), and there would be nothing to fill in. Ask for the whole file every time.
   const assetHeaders = new Headers(request.headers);
@@ -30,8 +32,6 @@ export async function renderPublicPage(request: Request, env: Bindings): Promise
 
   const path = normalizePath(url.pathname);
   const origin = (env.SITE_ORIGIN ?? url.origin).replace(/\/+$/, "");
-  // A school with the one-page layout has none of the old pages: whoever asks for one is sent to the front page (PM, 2026-10-13).
-  if (site?.layout === "scroll" && CLASSIC_ONLY_PAGES.has(path)) return new Response(null, { status: 302, headers: { Location: "/" } });
   const parts = await builderFor(url.pathname)({
     db: env.DB,
     school: config.school,
@@ -61,7 +61,7 @@ export async function renderPublicPage(request: Request, env: Bindings): Promise
     .on('meta[name="description"]', { element: (el) => void el.remove() })
     .on('link[rel="canonical"]', { element: (el) => void el.remove() })
     // Which layout this school uses, before any script runs: the front page then knows whether to wait with an empty page or to draw its usual frame.
-    .on("html", { element: (el) => void el.setAttribute("data-public-layout", site?.layout === "scroll" ? "scroll" : "classic") })
+    .on("html", { element: (el) => void el.setAttribute("data-public-layout", site?.layout === "scroll" || site?.layout === "immersive" ? site.layout : "classic") })
     .on("head", { element: (el) => void el.append(head, { html: true }) })
     .on("body", { element: (el) => void el.prepend(body, { html: true }) })
     .transform(asset);

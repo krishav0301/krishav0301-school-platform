@@ -2,7 +2,7 @@ import { env } from "cloudflare:test";
 import { beforeAll, describe, expect, it } from "vitest";
 
 import { applyPack, parsePack } from "../src/core/config";
-import { testPack } from "./programme-fixtures";
+import { classicOf, testPack } from "./programme-fixtures";
 import worker from "../src/index";
 import { CRAWLER_FILES, FILLED_PAGES, isCrawlerFile, pagesWithoutSummary, renderCrawlerFile } from "../src/modules/site";
 import royalJson from "../../../packs/royal-softech/pack.json";
@@ -16,7 +16,7 @@ const ask = async (path: string, over: Record<string, unknown> = {}, method = "G
 const production = { ENVIRONMENT: "production", SITE_ORIGIN: "https://royal.example" };
 
 beforeAll(async () => {
-  await applyPack(env.DB, testPack(royalJson));
+  await applyPack(env.DB, testPack(classicOf(royalJson)));
 });
 
 describe("which files the Worker writes", () => {
@@ -117,9 +117,10 @@ describe("sitemap.xml", () => {
     expect((await ask("/sitemap.xml", production)).text).not.toContain("<lastmod>");
   });
 
-  it("lists the six fixed pages and the notice board", async () => {
+  it("lists the front page and the notice board, and none of the old public pages (D-177)", async () => {
     const { text } = await ask("/sitemap.xml", production);
-    for (const path of ["/", "/programmes", "/admission", "/scholarships", "/facilities", "/contact", "/notices"]) expect(text, path).toContain(`<loc>https://royal.example${path}</loc>`);
+    for (const path of ["/", "/notices"]) expect(text, path).toContain(`<loc>https://royal.example${path}</loc>`);
+    for (const path of ["/programmes", "/admission", "/scholarships", "/facilities", "/contact"]) expect(text, path).not.toContain(path);
   });
 
   it("escapes the address, so an odd site address cannot break the XML", async () => {
@@ -146,21 +147,21 @@ describe("llms.txt", () => {
     expect(text).toContain("- [Notices and updates](https://royal.example/notices): Notices, holidays, routines and vacancies from Royal Softech College.");
   });
 
-  it("introduces every fixed page with its own line", async () => {
+  it("introduces the front page (a way to sign in) and the notices, each with its own line, and none of the old pages (D-177)", async () => {
     const { text } = await ask("/llms.txt", production);
-    expect(text).toContain("- [Programmes](https://royal.example/programmes): The programmes offered by Royal Softech College, with their levels, affiliations and durations.");
-    expect(text).toContain("- [Admission](https://royal.example/admission): How to apply to Royal Softech College: the admission steps, from enquiry to enrolment.");
-    for (const path of ["/scholarships", "/facilities", "/contact"]) expect(text, path).toContain(`](https://royal.example${path}): `);
+    expect(text).toContain("- [Home](https://royal.example/): The front page of Royal Softech College: a way to sign in.");
+    expect(text).toContain("](https://royal.example/notices): ");
+    for (const path of ["/programmes", "/admission", "/scholarships", "/facilities", "/contact"]) expect(text, path).not.toContain(path);
   });
 
   it("opens with the school's own summary and says how to reach it, from what the pack says", async () => {
     const { text } = await ask("/llms.txt", production);
-    const site = testPack(royalJson).site;
+    const site = testPack(classicOf(royalJson)).site;
     expect(text).toContain(`\n> ${site.home.summary}\n`);
     expect(text).toContain("\n## Contact\n");
     expect(text).toContain(`- Address: ${site.contact.address}`);
     expect(text).toContain(`- Phone: ${site.contact.phones.join(", ")}`);
-    expect(text).toContain(`- Email: ${site.contact.email}`); // Royal's pack now has one
+    expect(text).not.toContain("- Email:"); // Royal has no public email (PM, 2026-10-18)
     expect(text.indexOf("## Pages")).toBeLessThan(text.indexOf("## Contact"));
   });
 
@@ -174,7 +175,7 @@ describe("llms.txt", () => {
     expect(text).not.toMatch(/^## (Injected|Also injected)/m);
     expect(text.match(/^# /gm)).toHaveLength(1);
     expect(text.match(/^## /gm)).toHaveLength(2); // Pages and Contact, nothing else
-    await applyPack(env.DB, testPack(royalJson));
+    await applyPack(env.DB, testPack(classicOf(royalJson)));
   });
 
   it("before the school has site words, falls back to the sections line and has no Contact section", async () => {
@@ -182,7 +183,7 @@ describe("llms.txt", () => {
     const { text } = await ask("/llms.txt", production);
     expect(text).toContain("\n> Royal Softech College: +2, Bachelor's.\n");
     expect(text).not.toContain("## Contact");
-    await applyPack(env.DB, testPack(royalJson));
+    await applyPack(env.DB, testPack(classicOf(royalJson)));
   });
 
   it("says nothing before the school is set up (there is nothing true to say): 404, on a database with no school in it", async () => {
@@ -196,7 +197,7 @@ describe("llms.txt", () => {
     expect(text).not.toMatch(/^## Injected/m);
     expect(text.split("\n")[0]).toMatch(/^# Evil College/);
     expect(text.match(/^# /gm)).toHaveLength(1);
-    await applyPack(env.DB, testPack(royalJson));
+    await applyPack(env.DB, testPack(classicOf(royalJson)));
   });
 });
 

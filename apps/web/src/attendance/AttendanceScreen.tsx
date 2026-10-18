@@ -1,11 +1,14 @@
 "use client";
 
-import { CalendarCheck, CircleAlert, ClipboardList, UserMinus } from "lucide-react";
-import { useCallback } from "react";
+import { CalendarCheck, CircleAlert, ClipboardList, GraduationCap, UserMinus } from "lucide-react";
+import { useCallback, useState } from "react";
 
+import { ClassFilterBar } from "@/classes/ClassFilterBar";
+import { classFilterOptions, matches, NO_CLASS_FILTERS, type ClassFilters } from "@/classes/model";
 import { useConfig } from "@/config/ConfigProvider";
 import { t } from "@/i18n/messages";
-import { dayLine, EmptyLine, FigureTiles, OpenLink, Panel, ReadFailure, ReadHeader, ReadTable, StatusWord, TableSkeleton, readStyles, type Figure } from "@/read/ReadView";
+import { GROUP_TONES, GroupCard, GroupList } from "@/read/GroupCard";
+import { dayLine, EmptyLine, FigureTiles, OpenLink, ReadFailure, ReadHeader, ReadTable, StatusWord, TableSkeleton, readStyles, type Figure } from "@/read/ReadView";
 import { useSession } from "@/session/SessionProvider";
 import { useLoad } from "@/setup/useLoad";
 
@@ -35,6 +38,81 @@ export function attendanceFigures(list: AttendanceClassList, teachers: TeacherDa
 
 /** Classes not marked yet come first: they are what the Principal looks for (D-103). The order is otherwise the school's own. */
 export const classesForOverview = (classes: readonly AttendanceClass[]): AttendanceClass[] => [...classes.filter((c) => !c.markedToday), ...classes.filter((c) => c.markedToday)];
+
+export interface ProgrammeGroup {
+  courseId: string;
+  programme: string;
+  wing: string;
+  classes: AttendanceClass[];
+  students: number;
+  notMarked: number;
+  absent: number;
+}
+
+/** A class as the Classes page's search and filters read it: its department is the programme, its section the class label. */
+const filterable = (c: AttendanceClass) => ({ ...c, course: c.programmeName, level: c.levelName, section: c.label });
+
+/** The classes that pass the search and the four filters of Classes, by the very same rules (D-181). Pure. */
+export const filterAttendanceClasses = (classes: readonly AttendanceClass[], filters: ClassFilters): AttendanceClass[] => classes.filter((c) => matches(filterable(c), filters));
+
+/**
+ * The classes grouped by programme, the grouping Classes uses (D-181): programmes in name order, the classes inside each
+ * with the ones not marked yet first. The counts are the same ones the figures use: absent counts only marked classes. Pure.
+ */
+export function groupByProgramme(classes: readonly AttendanceClass[]): ProgrammeGroup[] {
+  const groups = new Map<string, ProgrammeGroup>();
+  for (const c of classesForOverview(classes)) {
+    const g = groups.get(c.courseId) ?? { courseId: c.courseId, programme: c.programmeName, wing: c.wing, classes: [], students: 0, notMarked: 0, absent: 0 };
+    g.classes.push(c);
+    g.students += c.students;
+    if (c.markedToday) g.absent += c.absentToday;
+    else g.notMarked++;
+    groups.set(c.courseId, g);
+  }
+  return [...groups.values()].sort((x, y) => x.programme.localeCompare(y.programme, undefined, { numeric: true }));
+}
+
+/**
+ * The Classes page's list on the attendance screen (D-181): the same search box and four filters, then one programme card
+ * each with its classes inside. Every programme card starts closed (PM, 2026-10-18); while a search or filter
+ * is set every matching programme is open, as on Classes.
+ */
+export function ClassGroups({ classes }: { classes: readonly AttendanceClass[] }) {
+  const [filters, setFilters] = useState<ClassFilters>(NO_CLASS_FILTERS);
+  const [toggled, setToggled] = useState<Record<string, boolean>>({});
+  const options = classFilterOptions(classes.map(filterable), filters);
+  const groups = groupByProgramme(filterAttendanceClasses(classes, filters));
+  const filtered = Object.values(filters).some(Boolean);
+  const isOpen = (id: string) => toggled[id] ?? filtered;
+  return (
+    <>
+      <ClassFilterBar filters={filters} options={options} onChange={setFilters} />
+      {groups.length === 0 ? <EmptyLine>{t("classes.noneFound")}</EmptyLine> : null}
+      <GroupList>
+        {groups.map((g, i) => (
+          <GroupCard
+            key={g.courseId}
+            title={g.programme}
+            subtitle={g.wing}
+            icon={<GraduationCap />}
+            tone={GROUP_TONES[i % GROUP_TONES.length]!}
+            stats={[
+              { label: t("attendance.group.classes"), value: g.classes.length },
+              { label: t("attendance.group.students"), value: g.students },
+              { label: t("attendance.group.notMarked"), value: g.notMarked },
+              { label: t("attendance.group.absent"), value: g.absent },
+            ]}
+            open={isOpen(g.courseId)}
+            onToggle={() => setToggled((now) => ({ ...now, [g.courseId]: !isOpen(g.courseId) }))}
+            toggleLabel={t(isOpen(g.courseId) ? "attendance.group.hide" : "attendance.group.show", { name: g.programme })}
+          >
+            <ClassesTable classes={g.classes} />
+          </GroupCard>
+        ))}
+      </GroupList>
+    </>
+  );
+}
 
 /** The classes, each with its Class Teacher and today's state, opening its register. Pure, so tests draw it. */
 export function ClassesTable({ classes }: { classes: readonly AttendanceClass[] }) {
@@ -94,9 +172,7 @@ export function AttendanceScreen() {
                 ))}
                 {overseer && list.classes.length > 0 ? <FigureTiles figures={attendanceFigures(list, teachers)} label={t("attendance.figures")} /> : null}
                 {others.length > 0 ? (
-                  <Panel title={t("attendance.classes.title")} labelledBy="attendance-classes">
-                    <ClassesTable classes={others} />
-                  </Panel>
+                  <ClassGroups classes={others} />
                 ) : null}
                 {list.classes.length === 0 ? <EmptyLine>{overseer ? t("attendance.classes.empty") : t("attendance.classes.none")}</EmptyLine> : null}
               </>

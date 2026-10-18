@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { InvalidPackError, parsePack } from "../src/core/config";
 import royalJson from "../../../packs/royal-softech/pack.json";
+import { classicOf } from "./programme-fixtures";
 
 const scroll = {
   photosFolder: "demo",
@@ -10,14 +11,16 @@ const scroll = {
   cards: [{ title: "Kindergarten to Class 10", text: "A school for every stage.", image: { file: "card-1.webp", alt: "A card photo" } }, { title: "Learning With Technology", text: "Students use the lab." }],
   about: { story: "Our story.", facebook: "https://www.facebook.com/profile.php?id=100090093189751" },
 };
-const withSite = (patch: Record<string, unknown>) => ({ ...royalJson, site: { ...royalJson.site, ...patch } });
+const classic = classicOf(royalJson) as typeof royalJson;
+const withSite = (patch: Record<string, unknown>) => ({ ...classic, site: { ...classic.site, ...patch } });
 
 describe("the scroll layout in a pack", () => {
   it("a pack with no layout is a classic site, as before", () => {
-    const pack = parsePack(royalJson);
+    const pack = parsePack(classic);
     expect(pack.site.layout).toBe("classic");
     expect(pack.site.scroll).toBeUndefined();
-    expect(pack.school.publicApplyNeedsLink).toBe(true);
+    // The link is on unless a pack turns it off: take Royal's own off-switch away and the default shows.
+    expect(parsePack({ ...classic, school: { ...classic.school, publicApplyNeedsLink: undefined } }).school.publicApplyNeedsLink).toBe(true);
   });
 
   it("accepts the scroll layout with its words", () => {

@@ -3719,7 +3719,7 @@ export interface components {
                 passMarksPerSubject?: boolean;
                 publicApplyNeedsLink?: boolean;
                 /** @enum {string} */
-                publicLayout?: "classic" | "scroll";
+                publicLayout?: "classic" | "scroll" | "immersive";
             };
             sections: {
                 key: string;
@@ -4366,6 +4366,9 @@ export interface components {
                 levelName: string;
                 label: string;
                 sectionKey: string;
+                wing: string;
+                courseId: string;
+                levelId: string;
                 students: number;
                 markedToday: boolean;
                 absentToday: number;
@@ -5612,7 +5615,7 @@ export interface components {
                  * @default classic
                  * @enum {string}
                  */
-                layout: "classic" | "scroll";
+                layout: "classic" | "scroll" | "immersive";
                 scroll?: {
                     photosFolder: string;
                     hero: {
@@ -5640,6 +5643,47 @@ export interface components {
                     about: {
                         story?: string;
                         facebook?: string;
+                    };
+                };
+                immersive?: {
+                    photosFolder?: string;
+                    hero: {
+                        headline: string;
+                        tagline: string;
+                        image?: {
+                            file: string;
+                            alt: string;
+                        };
+                    };
+                    areas: {
+                        heading: string;
+                        intro: string;
+                    };
+                    facilities: {
+                        heading: string;
+                        images?: {
+                            file: string;
+                            alt: string;
+                            name: string;
+                        }[];
+                    };
+                    programmes: {
+                        heading: string;
+                        intro: string;
+                        images?: {
+                            [key: string]: {
+                                file: string;
+                                alt: string;
+                            };
+                        };
+                    };
+                    why: {
+                        heading: string;
+                        intro?: string;
+                        items: {
+                            title: string;
+                            text: string;
+                        }[];
                     };
                 };
                 home: {

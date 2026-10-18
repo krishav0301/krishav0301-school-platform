@@ -169,10 +169,9 @@ describe("the message catalog has no dead words", () => {
 describe("touch targets", () => {
   const css = (name: string) => read(join(src, name));
 
-  it("the brand link, menu entries and buttons are at least a full control tall (44px)", () => {
+  it("the brand link, tab-bar entries and buttons are at least a full control tall (44px)", () => {
     expect(css("shell/shell.module.css")).toMatch(/\.brand\s*\{[^}]*min-height:\s*var\(--control-height\)/);
     expect(css("shell/shell.module.css")).toMatch(/\.navLink\s*\{[^}]*min-height:\s*3\.25rem/); // tab bar: 52px
-    expect(css("shell/shell.module.css")).toMatch(/\.siteLink\s*\{[^}]*min-height:\s*var\(--control-height\)/);
     expect(css("shell/shell.module.css")).toMatch(/\.footerLink\s*\{[^}]*min-height:\s*var\(--control-height\)/);
     expect(css("ui/Button.module.css")).toMatch(/\.button\s*\{[^}]*min-height:\s*var\(--control-height\)/);
     expect(css("ui/Field.module.css")).toMatch(/\.input\s*\{[^}]*min-height:\s*var\(--control-height\)/);

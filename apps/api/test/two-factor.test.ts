@@ -5,7 +5,7 @@ import { describe, expect, it } from "vitest";
 import { createApp } from "../src/app";
 import { verifyAuditChain } from "../src/core/audit";
 import { applyPack } from "../src/core/config";
-import { testPack } from "./programme-fixtures";
+import { testPack, withAdminSecondStep } from "./programme-fixtures";
 import { seal } from "../src/core/crypto-box";
 import { signChallenge } from "../src/core/two-factor/challenge";
 import { hashRecoveryCode } from "../src/core/two-factor/recovery";
@@ -74,7 +74,7 @@ const eventsFor = async (email: string, reason: string) =>
 
 describe("the school is set up", () => {
   it("has a name to show in the authenticator app", async () => {
-    await applyPack(db, testPack(royalJson));
+    await applyPack(db, testPack(withAdminSecondStep(royalJson))); // Royal has the Admin's second step off for now (D-184); these tests are about it, so use the default
   });
 });
 

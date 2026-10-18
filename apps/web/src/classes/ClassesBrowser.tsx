@@ -7,7 +7,6 @@ import { useCallback, useId, useState, type FormEvent } from "react";
 
 import { useConfig } from "@/config/ConfigProvider";
 import { t } from "@/i18n/messages";
-import { FilterSelect, SearchBox } from "@/people/ListParts";
 import accessStyles from "@/people/people-access.module.css";
 import { setClassTeacher, loadTeaching } from "@/people/teaching-client";
 import { REASON_MESSAGE as TEACHING_REASON } from "@/people/teaching-model";
@@ -21,13 +20,12 @@ import { REASON_MESSAGE } from "@/setup/model";
 import { AddDialog, Button, Field, Notice, RowMenu, Select, type MenuAction } from "@/ui";
 
 import styles from "./classes.module.css";
+import { ClassFilterBar } from "./ClassFilterBar";
 import {
   classFilterOptions,
   classPlace,
   groupClasses,
-  nextClassFilters,
   NO_CLASS_FILTERS,
-  NO_SECTION,
   bareSection,
   sectionBadge,
   type ClassFilters,
@@ -73,30 +71,7 @@ export function ClassesBrowser({ classes, canManage, onChanged, startOpen }: { c
   if (classes.length === 0) return <EmptyLine>{t("classes.empty")}</EmptyLine>;
   return (
     <>
-      <div className={styles.toolbar}>
-        <SearchBox label="classes.search" value={filters.q} onChange={(q) => setFilters((f) => ({ ...f, q }))} />
-        <div className={accessStyles.filters}>
-          <FilterSelect label="classes.filter.wing" value={filters.wing} onChange={(v) => setFilters((f) => nextClassFilters(f, { wing: v }))} options={[{ value: "", label: t("content.filterAll") }, ...options.wings.map((w) => ({ value: w, label: w }))]} />
-          <FilterSelect label="classes.filter.course" value={filters.course} onChange={(v) => setFilters((f) => nextClassFilters(f, { course: v }))} options={[{ value: "", label: t("content.filterAll") }, ...options.courses.map((c) => ({ value: c.id, label: c.name }))]} />
-          <FilterSelect
-            label="classes.filter.level"
-            value={filters.level}
-            onChange={(v) => setFilters((f) => nextClassFilters(f, { level: v }))}
-            options={[{ value: "", label: t("content.filterAll") }, ...options.levels.map((l) => ({ value: l.id, label: filters.course ? l.name : t("classes.levelOf", { level: l.name, course: l.course }) }))]}
-          />
-          <FilterSelect
-            label="classes.filter.section"
-            value={filters.section}
-            onChange={(v) => setFilters((f) => nextClassFilters(f, { section: v }))}
-            options={[{ value: "", label: t("content.filterAll") }, ...options.sections.map((s) => ({ value: s, label: s === NO_SECTION ? t("classes.noSection") : s }))]}
-          />
-          {filtered ? (
-            <Button variant="secondary" className={styles.clear} onClick={() => setFilters(NO_CLASS_FILTERS)}>
-              {t("content.clearFilters")}
-            </Button>
-          ) : null}
-        </div>
-      </div>
+      <ClassFilterBar filters={filters} options={options} onChange={setFilters} />
 
       {flash ? <Notice tone={flash.tone}>{flash.text}</Notice> : null}
       {groups.length === 0 ? <EmptyLine>{t("classes.noneFound")}</EmptyLine> : null}

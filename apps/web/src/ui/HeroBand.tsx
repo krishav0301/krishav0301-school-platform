@@ -20,8 +20,9 @@ import styles from "./HeroBand.module.css";
  */
 export function HeroBand({ art, children, className }: { art?: ArtCode | null; children: ReactNode; className?: string }) {
   const pathname = usePathname();
-  // A school with the one-page layout (D-167) keeps its public pages to words: the band draws no picture there. The portal keeps its own.
-  const justWords = useContext(ConfigContext)?.config?.school.publicLayout === "scroll" && !(pathname ?? "").startsWith("/portal");
+  // A school with a one-page layout (D-167, D-178) keeps its public pages to words: the band draws no picture there. The portal keeps its own.
+  const layout = useContext(ConfigContext)?.config?.school.publicLayout;
+  const justWords = (layout === "scroll" || layout === "immersive") && !(pathname ?? "").startsWith("/portal");
   const code = art !== undefined ? art : justWords ? null : artForPath(pathname);
   const slogan = code ? SLOGANS[code] : undefined;
   return (

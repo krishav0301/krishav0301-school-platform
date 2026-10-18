@@ -15,8 +15,8 @@ describe("the words the server copy of a public page shares with the app", () =>
     }
   });
 
-  it("covers what a crawler needs to read: the page headings, the empty message, the dates, every kind", () => {
-    for (const key of ["home.notices", "notices.title", "notices.intro", "notices.empty", "notices.posted", "notices.postedUntil", "content.contact", "content.urgent", "content.kind.notice", "content.kind.holiday", "content.kind.routine", "content.kind.vacancy", "content.kind.post", "site.programmes.title", "site.admission.title", "site.scholarships.title", "site.facilities.title", "site.contact.title"]) {
+  it("covers what a crawler needs to read: the way to sign in, the notices' headings, the empty message, the dates, every kind", () => {
+    for (const key of ["shell.signIn", "notices.title", "notices.intro", "notices.empty", "notices.posted", "notices.postedUntil", "content.contact", "content.urgent", "content.kind.notice", "content.kind.holiday", "content.kind.routine", "content.kind.vacancy", "content.kind.post"]) {
       expect(SHARED_KEYS, key).toContain(key);
     }
   });

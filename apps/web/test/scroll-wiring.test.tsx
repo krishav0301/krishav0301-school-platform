@@ -29,30 +29,20 @@ describe("which front page a school gets", () => {
   });
 });
 
-describe("the classic pages on a scroll school", () => {
-  const frame = (site: typeof scrollSite, classicOnly = true) =>
+describe("a page every school has, such as the privacy notice", () => {
+  const frame = (site: typeof scrollSite) =>
     renderToStaticMarkup(
-      <SiteFrameView title="Programmes" view={{ status: "ready", site } as SiteView} onRetry={() => {}} classicOnly={classicOnly}>
-        {() => <p>CLASSIC-WORDS</p>}
+      <SiteFrameView title="Privacy" view={{ status: "ready", site } as SiteView} onRetry={() => {}}>
+        {() => <p>PAGE-WORDS</p>}
       </SiteFrameView>,
     );
 
-  it("say the page is not available, and lead home, instead of showing placeholder words", () => {
-    const html = frame(scrollSite);
-    expect(html).not.toContain("CLASSIC-WORDS");
-    expect(html).toContain("This Page Is Not Available");
-    expect(html).toMatch(/<a[^>]*href="\/"/);
-  });
-
-  it("leave a page that every school has, such as the privacy notice, readable on a scroll school (review I1)", () => {
-    const html = frame(scrollSite, false);
-    expect(html).toContain("CLASSIC-WORDS");
-    expect(html).not.toContain("This Page Is Not Available");
-  });
-
-  it("are unchanged for a classic school", () => {
-    expect(frame(classicSite)).toContain("CLASSIC-WORDS");
-    expect(frame(classicSite)).not.toContain("This Page Is Not Available");
+  it("is readable for a scroll school and for every other school (the old classic-only pages are gone, D-177)", () => {
+    for (const site of [scrollSite, classicSite]) {
+      const html = frame(site);
+      expect(html).toContain("PAGE-WORDS");
+      expect(html).not.toContain("This Page Is Not Available");
+    }
   });
 });
 

@@ -3,11 +3,11 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useSyncExternalStore } from "react";
 
-import { ApplyScreen, VerifyScreen } from "@/admissions/ApplyScreen";
+import { VerifyScreen } from "@/admissions/ApplyScreen";
 import { ConfigGate } from "@/config/ConfigGate";
 import { PublicShell } from "@/shell/PublicShell";
 import { tokenFromHash } from "@/reset/token";
-import { applyRedirectFor } from "@/site/scroll/choose-home";
+import { applyRedirect } from "@/site/front-stage";
 import { useSite } from "@/site/SiteFrame";
 import { Skeleton } from "@/ui";
 
@@ -24,15 +24,17 @@ const readHash = () => window.location.hash;
 const noHashOnServer = () => "";
 
 /**
- * Apply for admission: open to everyone, no sign-in. A school with the one-page layout has its form on the front page and
- * no apply page of its own (D-167, PM 2026-10-13): a visitor is sent there, and sees none of this page meanwhile.
+ * Confirms an applicant's email from the link in the message, open to everyone, no sign-in. The form itself is on the front
+ * page of a school with the one-page layout (D-167); a school without one has no form (D-177). Whoever opens this page without
+ * a link is sent to the front page, and sees none of this page meanwhile.
  */
 export default function ApplyPage() {
   const hash = useSyncExternalStore(subscribeToHash, readHash, noHashOnServer);
   const token = tokenFromHash(hash);
   const { view } = useSite();
   const router = useRouter();
-  const redirect = applyRedirectFor(view);
+  // Only the confirmation link (`#token=`) is left of this page for a school without a form of its own; anyone else goes to the front page (D-177).
+  const redirect = applyRedirect(view) ?? (view.status !== "loading" && !token ? "/" : null);
 
   useEffect(() => {
     if (redirect) router.replace(redirect);
@@ -41,7 +43,7 @@ export default function ApplyPage() {
   return (
     <PublicShell>
       <div className={styles.page}>
-        {view.status === "loading" || redirect ? <Skeleton height="12rem" /> : <ConfigGate>{token ? <VerifyScreen token={token} /> : <ApplyScreen />}</ConfigGate>}
+        {view.status === "loading" || redirect ? <Skeleton height="12rem" /> : <ConfigGate>{token ? <VerifyScreen token={token} /> : null}</ConfigGate>}
       </div>
     </PublicShell>
   );
