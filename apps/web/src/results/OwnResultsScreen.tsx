@@ -12,6 +12,7 @@ import setupStyles from "@/setup/setup.module.css";
 import { Gate, useLoad } from "@/setup/useLoad";
 import { AddDialog, Button, Field, Notice, Select } from "@/ui";
 
+import { GradeSheetScreen } from "./GradeSheetDocument";
 import { gateFailure, loadCard, loadOwnResults, loadTop20, requestRecheck } from "./client";
 import { sentText } from "./MarkSheetScreen";
 import { RECHECK_LABEL, className, formatMarks, hundredthsText, percentText, type FinalCard, type MarksCard, type OwnResults, type TerminalCard, type Top20 } from "./model";
@@ -216,8 +217,16 @@ function RecheckForm({ result, onSent }: { result: Result; onSent: () => void })
   );
 }
 
-/** A marks card (`?id=`): the snapshot kept at publish or at a recheck, printable. A student finds their own; staff by id. */
+/**
+ * A marks card (`?id=`): the snapshot kept at publish or at a recheck, printable. A student finds their own; staff by id.
+ * A school whose file has the grade-point layout (2026-10-28) gets its own GRADE-SHEET instead.
+ */
 export function MarksCardScreen() {
+  const { config } = useConfig();
+  return config?.school.gradeSheet ? <GradeSheetScreen /> : <PlainMarksCardScreen />;
+}
+
+function PlainMarksCardScreen() {
   const { api, me } = useSession();
   const { config } = useConfig();
   const search = useAddressQuery();

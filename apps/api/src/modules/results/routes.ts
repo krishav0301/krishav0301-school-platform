@@ -5,6 +5,7 @@ import type { Grant } from "../../core/permissions";
 import { defineRoute } from "../../core/routes";
 import type { App, AppEnv } from "../../core/types";
 import { classElectives, setPicks } from "./electives";
+import { gradeSheetFor, ledgerFor } from "./documents";
 import { reachOf, type Reach } from "./guard";
 import { publishClass } from "./publish";
 import { decideRecheck, listRechecks, requestRecheck } from "./rechecks";
@@ -14,6 +15,8 @@ import {
   ClassElectivesSchema,
   ClassSheetSchema,
   DecideRecheckSchema,
+  GradeSheetSchema,
+  MarkLedgerSchema,
   MarkSheetSchema,
   MarksCardSchema,
   MyMarkSheetsSchema,
@@ -386,6 +389,78 @@ export function registerResults(app: App): void {
           ? await classSheet(c.env.DB, { institution: 1, sections: null }, classId, terminalId, c.get("auth")!.userPublicId)
           : null;
       return sheet ? c.json(sheet, 200) : c.json({ error: "not_found" }, 404);
+    },
+  );
+
+  defineRoute(
+    app,
+    {
+      method: "get",
+      path: "/api/results/grade-sheets/{cardId}",
+      operationId: "get_grade_sheet",
+      tags: ["results"],
+      description: "One marks card as the school's grade-point GRADE-SHEET: each subject's theory and practical, letters, grade point and the class's highest grade point, the percentage, division, average grade point and the rank in the class. A student reads only their own; staff those their wings reach. Not found for a school whose file has no such layout.",
+      access: VIEW,
+      request: { params: z.object({ cardId: PublicIdSchema }) },
+      responses: { 200: { description: "The grade sheet", content: json(GradeSheetSchema) }, 404: failures[404] },
+    },
+    async (c) => {
+      const staff = staffReach(c.get("grant")!);
+      const sheet = await gradeSheetFor(c.env.DB, staff ? { reach: staff } : { student: c.get("auth")!.userPublicId }, c.req.valid("param").cardId);
+      c.header("Cache-Control", "no-store");
+      return sheet ? c.json(sheet, 200) : c.json({ error: "not_found" }, 404);
+    },
+  );
+
+  defineRoute(
+    app,
+    {
+      method: "get",
+      path: "/api/results/classes/{classId}/terminals/{terminalId}/ledger",
+      operationId: "get_class_mark_ledger",
+      tags: ["results"],
+      description: "The class's mark ledger for a published terminal: every student's marks in every subject, the total, the percentage and the rank in the class. A Class Teacher reads their own class's. Not found for a school whose file has no such layout.",
+      access: CLASS_SHEET,
+      request: { params: ClassTerminal },
+      responses: { 200: { description: "The ledger", content: json(MarkLedgerSchema) }, 404: failures[404] },
+    },
+    async (c) => {
+      const grant = c.get("grant")!;
+      const staff = staffReach(grant);
+      const { classId, terminalId } = c.req.valid("param");
+      const ledger = staff
+        ? await ledgerFor(c.env.DB, staff, classId, terminalId)
+        : grant.classOnly
+          ? await ledgerFor(c.env.DB, { institution: 1, sections: null }, classId, terminalId, c.get("auth")!.userPublicId)
+          : null;
+      c.header("Cache-Control", "no-store");
+      return ledger ? c.json(ledger, 200) : c.json({ error: "not_found" }, 404);
+    },
+  );
+
+  defineRoute(
+    app,
+    {
+      method: "get",
+      path: "/api/results/classes/{classId}/final/ledger",
+      operationId: "get_class_final_ledger",
+      tags: ["results"],
+      description: "The class's mark ledger for the final result (each subject out of 100). A Class Teacher reads their own class's. Not found for a school whose file has no such layout.",
+      access: CLASS_SHEET,
+      request: { params: ClassOnly },
+      responses: { 200: { description: "The ledger", content: json(MarkLedgerSchema) }, 404: failures[404] },
+    },
+    async (c) => {
+      const grant = c.get("grant")!;
+      const staff = staffReach(grant);
+      const { classId } = c.req.valid("param");
+      const ledger = staff
+        ? await ledgerFor(c.env.DB, staff, classId, null)
+        : grant.classOnly
+          ? await ledgerFor(c.env.DB, { institution: 1, sections: null }, classId, null, c.get("auth")!.userPublicId)
+          : null;
+      c.header("Cache-Control", "no-store");
+      return ledger ? c.json(ledger, 200) : c.json({ error: "not_found" }, 404);
     },
   );
 

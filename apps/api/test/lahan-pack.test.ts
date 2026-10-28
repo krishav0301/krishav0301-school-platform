@@ -38,6 +38,17 @@ describe("the Lahan Manakamana school file", () => {
     expect(parsePack(royalJson).school.passMarksPerSubject).toBe(false);
   });
 
+  it("prints the grade-point marks card and the mark ledger, with the school's own scale; no other school has them (2026-10-28)", () => {
+    const sheet = pack.school.gradeSheet!;
+    expect(sheet.address).toBe("Lahan Municipality-8, Siraha");
+    expect(sheet.rankStyle).toBe("dense");
+    expect(sheet.boundary).toBe("above");
+    expect(sheet.scale.map((b) => b.grade)).toEqual(["A+", "A", "B+", "B", "C+", "C", "D", "NG"]);
+    expect(sheet.divisions.map((d) => d.name)).toEqual(["Distinction", "First Division", "Second Division", "Third Division"]);
+    expect(parsePack(royalJson).school.gradeSheet).toBeUndefined();
+    expect(parsePack(sampleJson).school.gradeSheet).toBeUndefined();
+  });
+
   it("says nothing of Royal Softech anywhere (D-008: one school's name or data never appears in another's)", () => {
     expect(JSON.stringify(lahanJson)).not.toMatch(/royal|softech/i);
   });

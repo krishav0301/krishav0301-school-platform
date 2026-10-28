@@ -259,3 +259,10 @@
   margin: 0;
   color: var(--color-text-muted);
 }
+
+/* A printed page has no tabs. */
+@media print {
+  .tabs {
+    display: none;
+  }
+}

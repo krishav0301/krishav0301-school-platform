@@ -347,3 +347,86 @@ export const RecheckListSchema = z
   })
   .openapi("RecheckList");
 export type RecheckList = z.infer<typeof RecheckListSchema>;
+
+// --- The grade-point marks card and the mark ledger (the first school, 2026-10-28) -------------------
+
+const SchoolHead = z.object({ name: z.string(), address: z.string(), contact: z.string().nullable(), /** A file under /site/, or null. */ crest: z.string().nullable() });
+
+/** One line of the grade-point marks card: a subject with its paper, its letters and its grade point. */
+const GradeSheetSubject = z.object({
+  offeringId: z.string(),
+  name: z.string(),
+  fullHundredths: z.number().int(),
+  /** Null when the card has no theory/practical split (a final result). */
+  theory: PartMarksSchema.nullable(),
+  practical: PartMarksSchema.nullable(),
+  /** Obtained in the subject, in all (a final result: out of 100). */
+  obtainedHundredths: z.number().int(),
+  theoryGrade: z.string().nullable(),
+  practicalGrade: z.string().nullable(),
+  finalGrade: z.string(),
+  pointHundredths: z.number().int(),
+  /** The highest grade point anyone in the class got in this subject. */
+  highestPointHundredths: z.number().int(),
+});
+
+/**
+ * The marks card as the school prints it: a GRADE-SHEET of grade points (the PM, 2026-10-28). Worked out from the stored
+ * snapshot and the school's own scale; nothing is stored. Attendance and exam remarks and other activities are filled in
+ * by hand on the printed copy.
+ */
+export const GradeSheetSchema = z
+  .object({
+    cardId: z.string(),
+    version: z.number().int(),
+    school: SchoolHead,
+    /** The terminal's name, or null for the final result. */
+    examName: z.string().nullable(),
+    yearLabel: z.string(),
+    student: z.object({ name: z.string(), sid: z.string(), rollNo: z.number().int().nullable(), dateOfBirthBs: z.string().nullable() }),
+    className: z.string(),
+    subjects: z.array(GradeSheetSubject),
+    totalFullHundredths: z.number().int(),
+    totalObtainedHundredths: z.number().int(),
+    /** Total obtained over total full marks, in hundredths of a percent. */
+    percentHundredths: z.number().int(),
+    /** Null when the student failed a subject, or the percentage is below the lowest division. */
+    division: z.string().nullable(),
+    /** The letter of the whole percentage. */
+    overallGrade: z.string(),
+    /** The mean of the subjects' grade points, to a tenth (3.4 is 34). */
+    averagePointTenths: z.number().int(),
+    /** Rank in the class, and how many are ranked. */
+    rank: z.number().int(),
+    classSize: z.number().int(),
+    issuedOnBs: z.string().nullable(),
+    scale: z.array(z.object({ grade: z.string(), from: z.number().int(), upTo: z.number().int().nullable(), pointHundredths: z.number().int(), remark: z.string() })),
+  })
+  .openapi("GradeSheet");
+export type GradeSheet = z.infer<typeof GradeSheetSchema>;
+
+/** The class mark ledger: students by subjects, with the marks themselves, the total, the percentage and the rank. */
+export const MarkLedgerSchema = z
+  .object({
+    classId: z.string(),
+    school: SchoolHead,
+    yearLabel: z.string(),
+    className: z.string(),
+    /** The terminal's name, or null for the final result. */
+    examName: z.string().nullable(),
+    subjects: z.array(z.object({ offeringId: z.string(), name: z.string(), code: z.string().nullable() })),
+    students: z.array(
+      z.object({
+        enrollmentId: z.string(),
+        rollNo: z.number().int().nullable(),
+        name: z.string(),
+        /** One per subject, in the subjects' order; null when the student does not take it. */
+        marks: z.array(z.object({ valueHundredths: z.number().int(), absent: z.boolean() }).nullable()),
+        totalHundredths: z.number().int(),
+        percentHundredths: z.number().int(),
+        rank: z.number().int(),
+      }),
+    ),
+  })
+  .openapi("MarkLedger");
+export type MarkLedger = z.infer<typeof MarkLedgerSchema>;

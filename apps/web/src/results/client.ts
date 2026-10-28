@@ -1,6 +1,6 @@
 import type { ApiClient } from "@/api/client";
 
-import type { ClassElectives, ClassSheet, MarkSheet, MarksCard, MyMarkSheets, OwnResults, Part, PublishedResults, RecheckList, ReviewBoard, Top20 } from "./model";
+import type { ClassElectives, ClassSheet, GradeSheet, MarkLedger, MarkSheet, MarksCard, MyMarkSheets, OwnResults, Part, PublishedResults, RecheckList, ReviewBoard, Top20 } from "./model";
 
 /** What the results screens ask of the server, as plain results. Nothing here throws. */
 export type Loaded<T> = { ok: true; data: T } | { ok: false; reason: "forbidden" | "not_found" | "failed" };
@@ -42,6 +42,13 @@ export const loadOwnResults = (api: ApiClient): Promise<Loaded<OwnResults>> => l
 /** A student's published results, for the staff who may open their record (the PM, 2026-10-11). */
 export const loadStudentResults = (api: ApiClient, studentId: string): Promise<Loaded<OwnResults>> => load(() => api.GET("/api/results/students/{studentId}", { params: { path: { studentId } } }));
 export const loadCard = (api: ApiClient, cardId: string): Promise<Loaded<MarksCard>> => load(() => api.GET("/api/results/cards/{cardId}", { params: { path: { cardId } } }));
+/** A marks card as the school's grade-point GRADE-SHEET (a school whose file has the layout). */
+export const loadGradeSheet = (api: ApiClient, cardId: string): Promise<Loaded<GradeSheet>> => load(() => api.GET("/api/results/grade-sheets/{cardId}", { params: { path: { cardId } } }));
+/** A class's mark ledger for one terminal, or for the final result (`terminalId` null). */
+export const loadLedger = (api: ApiClient, classId: string, terminalId: string | null): Promise<Loaded<MarkLedger>> =>
+  terminalId === null
+    ? load(() => api.GET("/api/results/classes/{classId}/final/ledger", { params: { path: { classId } } }))
+    : load(() => api.GET("/api/results/classes/{classId}/terminals/{terminalId}/ledger", { params: { path: { classId, terminalId } } }));
 /** The Top 20 ranks the final result only (D-117). */
 export const loadTop20 = (api: ApiClient): Promise<Loaded<Top20>> => load(() => api.GET("/api/results/top20"));
 /** A class's sheet for one terminal, or for the final result (`terminalId` null). */
