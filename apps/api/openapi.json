@@ -23994,7 +23994,7 @@
         "tags": [
           "results"
         ],
-        "description": "One marks card (any version), for staff whose sections reach the class.",
+        "description": "One marks card (any version), for staff whose sections reach the class, or a Class Teacher for a class they lead.",
         "parameters": [
           {
             "schema": {

@@ -130,6 +130,7 @@ The Co-ordinator has **no** fees access at all.
 | Verify, send back, bulk approve (`marks.verify`) | — | — | inst | — | — | ✓ | 7 |
 | Publish a whole class (all subjects verified) (`results.publish`) | — | — | inst | — | — | ✓ | 7 |
 | View published results and marks card (`results.view`) | own | — | inst | — | read | ✓ | 7 |
+| Open one marks card: the student's own; a Class Teacher's for the class they lead (2026-10-29) (`results.card.view`) | own | class | inst | — | read | ✓ | 7 |
 | View a class's published result sheet, every subject (FUT point 19) (`results.class_sheet.view`) | — | class | inst | — | read | ✓ | 7 |
 | Top 20 (`results.top20.view`) | name and rank only, own section, published | — | inst | — | inst | ✓ | 7 |
 | Request a recheck (`results.recheck.request`) | own | — | — | — | — | — | 7 |

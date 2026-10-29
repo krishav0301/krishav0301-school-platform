@@ -112,6 +112,10 @@ describe("sensitive rules, stated independently (docs/source/sample-creation-inf
     // result sheet: the Co-ordinator and the Principal, and a Class Teacher for their own class only, published only.
     "classes.view": ["TEA", "COO", "ADM", "SUP"],
     "results.class_sheet.view": ["TEA", "COO", "ADM", "SUP"],
+    // One marks card: the student's own, and a Class Teacher's for the class they lead (2026-10-29), besides the Co-ordinator, Admin and Support.
+    // Everything else under results.view stays as it was: a teacher has no part in it.
+    "results.card.view": ["STU", "TEA", "COO", "ADM", "SUP"],
+    "results.view": ["STU", "COO", "ADM", "SUP"],
     // Attendance: the Class Teacher marks students; the Co-ordinator marks teachers.
     "attendance.student.mark": ["TEA"],
     "attendance.teacher.mark": ["COO", "SUP"],
@@ -167,6 +171,7 @@ describe("sensitive rules, stated independently (docs/source/sample-creation-inf
         "fees.online.pay",
         "fees.receipts.view",
         "results.view",
+        "results.card.view",
         "results.top20.view",
         "results.recheck.request",
       ].sort(),

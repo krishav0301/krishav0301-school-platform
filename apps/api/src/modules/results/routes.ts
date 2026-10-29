@@ -55,11 +55,22 @@ function fail(c: Context<AppEnv>, failure: { reason: string; message?: string })
 /** Staff reach for a read a Student may also hold for their own record: null for a person whose grant is only `own`. */
 const staffReach = (grant: Grant): Reach | null => (grant.institution || grant.sections.length > 0 ? reachOf(grant) : null);
 
+/**
+ * How far a person's reach goes to open a card: staff by wing, or a Class Teacher (any wing, only the class they lead), or null for
+ * someone who reaches no class (a student, who has their own path).
+ */
+const cardReach = (grant: Grant, me: string): { reach: Reach; classTeacher: string | null } | null => {
+  const staff = staffReach(grant);
+  if (staff) return { reach: staff, classTeacher: null };
+  return grant.classOnly ? { reach: { institution: 1, sections: null }, classTeacher: me } : null;
+};
+
 const ELECTIVES = { action: "results.electives.set" } as const;
 const ENTER = { action: "marks.enter" } as const;
 const VERIFY = { action: "marks.verify" } as const;
 const PUBLISH = { action: "results.publish" } as const;
 const VIEW = { action: "results.view" } as const;
+const CARD = { action: "results.card.view" } as const;
 const CLASS_SHEET = { action: "results.class_sheet.view" } as const;
 const TOP20 = { action: "results.top20.view" } as const;
 const RECHECK = { action: "results.recheck.request" } as const;
@@ -309,14 +320,14 @@ export function registerResults(app: App): void {
       path: "/api/results/cards/{cardId}",
       operationId: "get_marks_card",
       tags: ["results"],
-      description: "One marks card (any version), for staff whose sections reach the class.",
-      access: VIEW,
+      description: "One marks card (any version), for staff whose sections reach the class, or a Class Teacher for a class they lead.",
+      access: CARD,
       request: { params: z.object({ cardId: PublicIdSchema }) },
       responses: { 200: { description: "The card", content: json(MarksCardSchema) }, 404: failures[404] },
     },
     async (c) => {
-      const reach = staffReach(c.get("grant")!);
-      const card = reach ? await staffCard(c.env.DB, reach, c.req.valid("param").cardId) : null;
+      const via = cardReach(c.get("grant")!, c.get("auth")!.userPublicId);
+      const card = via ? await staffCard(c.env.DB, via.reach, c.req.valid("param").cardId, via.classTeacher) : null;
       return card ? c.json(card, 200) : c.json({ error: "not_found" }, 404);
     },
   );
@@ -400,13 +411,13 @@ export function registerResults(app: App): void {
       operationId: "get_grade_sheet",
       tags: ["results"],
       description: "One marks card as the school's grade-point GRADE-SHEET: each subject's theory and practical, letters, grade point and the class's highest grade point, the percentage, division, average grade point and the rank in the class. A student reads only their own; staff those their wings reach. Not found for a school whose file has no such layout.",
-      access: VIEW,
+      access: CARD,
       request: { params: z.object({ cardId: PublicIdSchema }) },
       responses: { 200: { description: "The grade sheet", content: json(GradeSheetSchema) }, 404: failures[404] },
     },
     async (c) => {
-      const staff = staffReach(c.get("grant")!);
-      const sheet = await gradeSheetFor(c.env.DB, staff ? { reach: staff } : { student: c.get("auth")!.userPublicId }, c.req.valid("param").cardId);
+      const via = cardReach(c.get("grant")!, c.get("auth")!.userPublicId);
+      const sheet = await gradeSheetFor(c.env.DB, via ? { reach: via.reach, classTeacher: via.classTeacher } : { student: c.get("auth")!.userPublicId }, c.req.valid("param").cardId);
       c.header("Cache-Control", "no-store");
       return sheet ? c.json(sheet, 200) : c.json({ error: "not_found" }, 404);
     },

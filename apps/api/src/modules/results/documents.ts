@@ -34,11 +34,12 @@ const SCHOOL = `SELECT name, grade_sheet_json FROM school WHERE id = 1`;
 
 /**
  * The marks card of one card id as a grade-point sheet. `viewer`: a student, found by their sign-in and shown only their own
- * card; or staff, whose reach must cover the class. Null when there is no such card for them, or the school has no such layout.
+ * card; or staff, whose reach must cover the class, or a Class Teacher (`classTeacher`) for a class they lead. Null when there is no such card for them, or the school has no such layout.
  */
-export async function gradeSheetFor(db: D1Database, viewer: { student: string } | { reach: Reach }, cardId: string): Promise<GradeSheet | null> {
+export async function gradeSheetFor(db: D1Database, viewer: { student: string } | { reach: Reach; classTeacher?: string | null }, cardId: string): Promise<GradeSheet | null> {
   const student = "student" in viewer ? viewer.student : null;
   const reach: Reach = "reach" in viewer ? viewer.reach : { institution: 0, sections: null };
+  const classTeacher = "reach" in viewer ? (viewer.classTeacher ?? null) : null;
   const [school, card, latest] = await db.batch([
     db.prepare(SCHOOL),
     db
@@ -47,9 +48,9 @@ export async function gradeSheetFor(db: D1Database, viewer: { student: string } 
            FROM marks_cards mc JOIN result_publications rp ON rp.id = mc.publication_id JOIN classes cl ON cl.id = rp.class_id ${CLASS_JOINS}
            JOIN enrollments en ON en.id = mc.enrollment_id JOIN students st ON st.id = en.student_id
           WHERE mc.public_id = ?1
-            AND ((?2 IS NOT NULL AND st.user_id = (SELECT id FROM users WHERE public_id = ?2)) OR (?2 IS NULL AND ${sectionInReach(3)}))`,
+            AND ((?2 IS NOT NULL AND st.user_id = (SELECT id FROM users WHERE public_id = ?2)) OR (?2 IS NULL AND ${sectionInReach(3)} AND (?5 IS NULL OR cl.class_teacher_user_id = (SELECT id FROM users WHERE public_id = ?5))))`,
       )
-      .bind(cardId, student, reach.institution, reach.sections),
+      .bind(cardId, student, reach.institution, reach.sections, classTeacher),
     // Every student's latest card in the same publication: for the highest grade point, the rank and the class size. Only totals are kept.
     db
       .prepare(

@@ -112,7 +112,7 @@ describe("who may read what", () => {
     // The Accountant has neither right. A subject teacher has no right to a marks card, and finds no such class sheet (as for the class sheet itself).
     expect((await call(`/api/results/grade-sheets/${card}`, { cookie: accountant.cookie })).status).toBe(403);
     expect((await call(ledgerPath(a), { cookie: accountant.cookie })).status).toBe(403);
-    expect((await call(`/api/results/grade-sheets/${card}`, { cookie: teacher.cookie })).status).toBe(403);
+    expect((await call(`/api/results/grade-sheets/${card}`, { cookie: teacher.cookie })).status).toBe(404); // a teacher who does not lead this class
     expect((await call(ledgerPath(a), { cookie: teacher.cookie })).status).toBe(404);
     expect((await call(`/api/results/grade-sheets/${card}`)).status).toBe(401);
     expect((await call(ledgerPath(a))).status).toBe(401);
@@ -123,9 +123,25 @@ describe("who may read what", () => {
     expect((await call(ledgerPath(a), { cookie: otherWing.cookie })).status).toBe(404);
   });
 
-  it("a Class Teacher reads the ledger of their own class and no other; no student card of theirs is opened by this route", async () => {
+  it("a Class Teacher reads the ledger and every card of their own class, and nothing of another class", async () => {
     expect((await call(ledgerPath(a), { cookie: a.classTeacher.cookie })).status).toBe(200);
     expect((await call(ledgerPath(b), { cookie: a.classTeacher.cookie })).status).toBe(404);
+    for (let i = 0; i < 5; i++) {
+      const id = await cardOf(a, i);
+      expect((await call(`/api/results/grade-sheets/${id}`, { cookie: a.classTeacher.cookie })).status).toBe(200);
+      expect((await call(`/api/results/cards/${id}`, { cookie: a.classTeacher.cookie })).status).toBe(200);
+    }
+    const other = await cardOf(b, 0);
+    expect((await call(`/api/results/grade-sheets/${other}`, { cookie: a.classTeacher.cookie })).status).toBe(404);
+    expect((await call(`/api/results/cards/${other}`, { cookie: a.classTeacher.cookie })).status).toBe(404);
+    // Another class's teacher opens neither this class's cards nor its ledger.
+    expect((await call(`/api/results/grade-sheets/${await cardOf(a, 0)}`, { cookie: b.classTeacher.cookie })).status).toBe(404);
+  });
+
+  it("opening cards gives a Class Teacher nothing else: still refused the rechecks, a student's whole results and own results, as before", async () => {
+    expect((await call("/api/results/rechecks", { cookie: a.classTeacher.cookie })).status).toBe(403);
+    expect((await call(`/api/results/students/${a.pupils[0]!.studentId}`, { cookie: a.classTeacher.cookie })).status).toBe(403);
+    expect((await call("/api/results/me", { cookie: a.classTeacher.cookie })).status).toBe(403);
   });
 
   it("odd ids are refused or not found, never a crash", async () => {

@@ -2760,7 +2760,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** @description One marks card (any version), for staff whose sections reach the class. */
+        /** @description One marks card (any version), for staff whose sections reach the class, or a Class Teacher for a class they lead. */
         get: operations["get_marks_card"];
         put?: never;
         post?: never;
