@@ -111,15 +111,15 @@ export async function studentResults(db: D1Database, reach: Reach, studentId: st
   return toOwnResults(cards!.results as unknown as ResultRow[], []);
 }
 
-/** One card by id, for staff whose sections reach its class. Any version (a recheck keeps the old ones). */
-export async function staffCard(db: D1Database, reach: Reach, cardId: string): Promise<MarksCard | null> {
+/** One card by id, for staff whose sections reach its class, or a Class Teacher (`classTeacher`) for a class they lead. Any version (a recheck keeps the old ones). */
+export async function staffCard(db: D1Database, reach: Reach, cardId: string, classTeacher: string | null = null): Promise<MarksCard | null> {
   const row = await db
     .prepare(
       `SELECT mc.public_id AS card_id, mc.version, mc.body, mc.reason, mc.created_at, rp.published_at
          FROM marks_cards mc JOIN result_publications rp ON rp.id = mc.publication_id JOIN classes cl ON cl.id = rp.class_id ${CLASS_JOINS}
-        WHERE mc.public_id = ?1 AND ${sectionInReach(2)}`,
+        WHERE mc.public_id = ?1 AND ${sectionInReach(2)} AND (?4 IS NULL OR cl.class_teacher_user_id = (SELECT id FROM users WHERE public_id = ?4))`,
     )
-    .bind(cardId, reach.institution, reach.sections)
+    .bind(cardId, reach.institution, reach.sections, classTeacher)
     .first<CardRow>();
   return row ? toCard(row) : null;
 }
@@ -165,7 +165,7 @@ export async function top20(db: D1Database, viewer: { student: string } | { reac
 
   const { results } = await db
     .prepare(
-      `SELECT en.public_id AS enrollment_id, st.first_name || ' ' || st.last_name AS name,
+      `SELECT en.public_id AS enrollment_id, TRIM(st.first_name || ' ' || st.last_name) AS name,
               pv.name || ' ' || lv.name || CASE WHEN cl.label = '' THEN '' ELSE ' ' || cl.label END AS class_name,
               ay.id AS term_id, ay.label AS term_label, s.key AS section_key, s.name AS section_name, lv.ordinal AS level_ordinal, lv.name AS level_name,
               mc.percent_hundredths, mc.passed

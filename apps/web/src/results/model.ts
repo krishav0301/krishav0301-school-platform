@@ -9,6 +9,8 @@ export type PublishedResults = components["schemas"]["PublishedResults"];
 export type MarksCard = components["schemas"]["MarksCard"];
 export type Top20 = components["schemas"]["Top20"];
 export type ClassSheet = components["schemas"]["ClassResultSheet"];
+export type GradeSheet = components["schemas"]["GradeSheet"];
+export type MarkLedger = components["schemas"]["MarkLedger"];
 export type RecheckList = components["schemas"]["RecheckList"];
 export type ClassElectives = components["schemas"]["ClassElectives"];
 export type SheetStatus = MarkSheet["status"];
@@ -71,3 +73,12 @@ export const className = (c: { programmeName: string; levelName: string; label: 
 
 /** A part of a paper in the school's words: Theory or Practical (D-117). */
 export const partName = (part: Part): string => t(part === "practical" ? "results.card.practical" : "results.card.theory");
+
+/** A grade point in hundredths, to one place as the school prints it: 360 -> "3.6", 400 -> "4.0". */
+export const pointText = (hundredths: number): string => (hundredths / 100).toFixed(1);
+
+/** A grade point in hundredths, to two places, as the grade table prints it: 140 -> "1.40". */
+export const pointTableText = (hundredths: number): string => (hundredths / 100).toFixed(2);
+
+/** The average grade point, kept in tenths: 34 -> "3.4". */
+export const tenthsText = (tenths: number): string => (tenths / 10).toFixed(1);

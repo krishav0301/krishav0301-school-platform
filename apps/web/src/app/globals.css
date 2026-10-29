@@ -20,6 +20,14 @@ body {
   background-attachment: fixed;
 }
 
+/* Paper has no wash. */
+@media print {
+  html,
+  body {
+    background: none;
+  }
+}
+
 html,
 body {
   color: var(--color-text);

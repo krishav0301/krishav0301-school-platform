@@ -1,6 +1,6 @@
 "use client";
 
-import { CircleCheck, Download, Hourglass, PenLine, UsersRound } from "lucide-react";
+import { CircleCheck, Download, Hourglass, PenLine, Printer, UsersRound } from "lucide-react";
 import Link from "next/link";
 import { useCallback, useMemo, useState } from "react";
 
@@ -185,6 +185,7 @@ export function SheetTable({ sheet }: { sheet: ClassSheet }) {
 /** One published sheet. `exportable`: offer the CSV, which needs the reports permission (not a Class Teacher's, FUT point 19). */
 export function ClassSheetView({ classId, terminalId, exportable = true, bare = false }: { classId: string; terminalId: string; exportable?: boolean; bare?: boolean }) {
   const { api } = useSession();
+  const { config } = useConfig();
   const [missing, setMissing] = useState(false);
   const isFinal = terminalId === FINAL;
   const loadNow = useCallback(async () => {
@@ -202,11 +203,22 @@ export function ClassSheetView({ classId, terminalId, exportable = true, bare = 
       title={bare ? undefined : t("results.sheets.caption", { name: className(sheet), terminal: sheetName(sheet) })}
       labelledBy="sheet-heading"
       actions={
-        exportable ? (
-        <a className={`${buttonClass({ variant: "secondary" })} ${styles.wrapLabel}`} href={isFinal ? `/api/results/classes/${classId}/final/sheet.csv` : `/api/results/classes/${classId}/terminals/${terminalId}/sheet.csv`} download>
-          <Download aria-hidden width={18} height={18} />
-          {t("results.sheets.export")}
-        </a>
+        // The mark ledger is for everyone who reads the class sheet (a Class Teacher too); the Excel file only for those who may export.
+        config?.school.gradeSheet || exportable ? (
+          <>
+            {config?.school.gradeSheet ? (
+              <Link className={`${buttonClass({ variant: "secondary" })} ${styles.wrapLabel}`} href={`/portal/results/ledger?class=${classId}&exam=${isFinal ? FINAL : terminalId}`} aria-label={t("results.doc.openLedgerLabel")}>
+                <Printer aria-hidden width={18} height={18} />
+                {t("results.doc.openLedger")}
+              </Link>
+            ) : null}
+            {exportable ? (
+              <a className={`${buttonClass({ variant: "secondary" })} ${styles.wrapLabel}`} href={isFinal ? `/api/results/classes/${classId}/final/sheet.csv` : `/api/results/classes/${classId}/terminals/${terminalId}/sheet.csv`} download>
+                <Download aria-hidden width={18} height={18} />
+                {t("results.sheets.export")}
+              </a>
+            ) : null}
+          </>
         ) : undefined
       }
     >

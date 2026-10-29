@@ -1,0 +1,321 @@
+/* The grade-point marks card and the mark ledger, as the school prints them (2026-10-28). Tokens only: no colour, font or motion is written out here. */
+
+.sheet {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  max-width: 52rem;
+  width: 100%;
+  margin: 0 auto;
+  padding: min(var(--space-5), 5vw);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-card);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font-size: var(--text-sm);
+}
+
+.ledger {
+  max-width: 64rem;
+}
+
+/* The school's head: the crest at the left, the name and address in the middle. */
+.head {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-1);
+  text-align: center;
+}
+
+.crest {
+  align-self: flex-start;
+  width: 4rem;
+  height: 4rem;
+  object-fit: contain;
+}
+
+.schoolName {
+  margin: 0;
+  font-family: var(--font-heading);
+  font-size: var(--text-lg);
+  font-weight: var(--weight-bold);
+  line-height: var(--leading-tight);
+  overflow-wrap: anywhere;
+}
+
+.line {
+  margin: 0;
+  color: var(--color-text-muted);
+  overflow-wrap: anywhere;
+}
+
+.docTitle {
+  margin: var(--space-3) 0 0;
+  font-family: var(--font-heading);
+  font-size: var(--text-xl);
+  font-weight: var(--weight-heavy);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+/* The exam's name in its rounded box. */
+.examBox {
+  margin: 0;
+  padding: var(--space-2) var(--space-4);
+  border: 1px solid var(--color-text);
+  border-radius: var(--radius-control);
+  font-size: var(--text-base);
+  text-align: center;
+  overflow-wrap: anywhere;
+}
+
+/* Who the card is for: labels on the left, answers after them, and the roll on the right. */
+.who {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: var(--space-1) var(--space-5);
+}
+
+.who dl {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  gap: var(--space-1) var(--space-3);
+  margin: 0;
+}
+
+.who dt {
+  text-transform: uppercase;
+}
+
+.who dd {
+  margin: 0;
+  font-weight: var(--weight-bold);
+  overflow-wrap: anywhere;
+}
+
+/* A table that keeps its columns: on a narrow screen it scrolls inside its own box, on paper it fits the page. */
+.scroll {
+  overflow-x: auto;
+}
+
+.grid {
+  width: 100%;
+  border-collapse: collapse;
+  font-variant-numeric: tabular-nums;
+}
+
+.grid th,
+.grid td {
+  padding: var(--space-1) var(--space-2);
+  border: 1px solid var(--color-text);
+  text-align: center;
+  vertical-align: middle;
+}
+
+.grid th {
+  font-weight: var(--weight-bold);
+  text-transform: uppercase;
+}
+
+.grid .left {
+  text-align: start;
+}
+
+.grid .total td {
+  font-weight: var(--weight-bold);
+}
+
+/* A cell kept empty for the teacher to fill in by hand. */
+/* The main table takes up the spare height of the sheet, its rows growing evenly. */
+.grow {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+}
+
+.grow > .grid {
+  flex: 1 1 auto;
+}
+
+.blank {
+  min-width: 4rem;
+}
+
+.remarks {
+  height: 2rem;
+}
+
+.range {
+  white-space: nowrap;
+}
+
+.pair {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-4);
+}
+
+.signatures {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: var(--space-5);
+  margin-top: var(--space-6);
+}
+
+.signature {
+  min-width: 9rem;
+  padding-top: var(--space-1);
+  border-top: 1px solid var(--color-text);
+  text-align: center;
+}
+
+/* The ledger's meta lines: year and class at the left, the exam at the right. */
+.meta {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: var(--space-1) var(--space-5);
+}
+
+.meta dl {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  gap: var(--space-1) var(--space-3);
+  margin: 0;
+}
+
+.meta dt {
+  color: var(--color-text-muted);
+}
+
+.meta dd {
+  margin: 0;
+  font-weight: var(--weight-bold);
+}
+
+.ledgerGrid th,
+.ledgerGrid td {
+  padding: var(--space-1);
+}
+
+.ledgerGrid .left {
+  white-space: nowrap;
+}
+
+/* A student's name stays on one line while it fits, and wraps past this, so a very long name cannot push Total, Per and Rank off the page. */
+.nameCell {
+  display: inline-block;
+  max-width: 14rem;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.number {
+  text-align: end;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+}
+
+@media (min-width: 40rem) {
+  .pair {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+}
+
+/* The page is the whole sheet: the document's own padding is its margin, so a coloured paper reaches the edges. */
+@page {
+  size: A4;
+  margin: 0;
+}
+
+/* A card with many subjects: closer, so it still fits one sheet. */
+.dense .grid th,
+.dense .grid td {
+  padding-block: 0;
+}
+
+.dense .remarks {
+  height: 1.2rem;
+}
+
+@media print {
+  .noPrint {
+    display: none;
+  }
+
+  .sheet {
+    max-width: none;
+    border: 0;
+    border-radius: 0;
+    background: none;
+  }
+
+  .scroll {
+    overflow: visible;
+  }
+
+  /* On paper: the whole A4 sheet for a card, and for a whole class (a longer class runs on to the next sheet). */
+  .sheet {
+    box-sizing: border-box;
+    min-height: 296mm;
+    padding: 8mm;
+    gap: var(--space-2);
+    font-size: 9pt;
+  }
+
+  .grid th,
+  .grid td {
+    padding: 1px var(--space-1);
+  }
+
+  /* A row is never cut between two sheets. */
+  .grid tr {
+    break-inside: avoid;
+  }
+
+  .remarks {
+    height: 1.4rem;
+  }
+
+  .signatures {
+    margin-top: var(--space-4);
+  }
+
+  .pair {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+}
+
+/* The marks card on the school's own paper: the theme's soft accent (a school's yellow). Printed too, and in the PDF. */
+.sheet.paper {
+  --color-text-muted: var(--color-text);
+  background: var(--color-accent-soft);
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
+
+/* While the PDF's picture is taken: whole tables, no scroll boxes, as wide as the widest table needs, on a plain rectangle. */
+.capture {
+  width: max-content;
+  min-width: 52rem;
+}
+
+.capture .sheet {
+  box-sizing: border-box;
+  max-width: none;
+  padding: 2.5rem;
+  border: 0;
+  border-radius: 0;
+  aspect-ratio: 210 / 297;
+}
+
+.capture .scroll {
+  overflow: visible;
+}

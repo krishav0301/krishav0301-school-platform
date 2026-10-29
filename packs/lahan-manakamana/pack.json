@@ -9,7 +9,31 @@
     "adminTwoFactor": false,
     "studentKeepsPin": true,
     "passMarksPerSubject": true,
-    "publicApplyNeedsLink": false
+    "publicApplyNeedsLink": false,
+    "gradeSheet": {
+      "address": "Lahan Municipality-8, Siraha",
+      "contact": "Contact No: 9814753921, Email: lahanmanakamanaschool@gmail.com",
+      "crest": "lahan/crest.webp",
+      "paper": "accent",
+      "boundary": "above",
+      "rankStyle": "dense",
+      "scale": [
+        { "grade": "A+", "from": 90, "pointHundredths": 400, "remark": "Outstanding" },
+        { "grade": "A", "from": 80, "pointHundredths": 360, "remark": "Excellent" },
+        { "grade": "B+", "from": 70, "pointHundredths": 320, "remark": "Very Good" },
+        { "grade": "B", "from": 60, "pointHundredths": 280, "remark": "Good" },
+        { "grade": "C+", "from": 50, "pointHundredths": 240, "remark": "Satisfactory" },
+        { "grade": "C", "from": 40, "pointHundredths": 200, "remark": "Acceptable" },
+        { "grade": "D+", "from": 35, "pointHundredths": 160, "remark": "Partially Acceptable" },
+        { "grade": "NG", "from": 0, "pointHundredths": 0, "remark": "Not Graded" }
+      ],
+      "divisions": [
+        { "name": "Distinction", "from": 80 },
+        { "name": "First Division", "from": 60 },
+        { "name": "Second Division", "from": 45 },
+        { "name": "Third Division", "from": 35 }
+      ]
+    }
   },
   "sections": [],
   "modules": {

@@ -51,7 +51,7 @@ export interface StudentPapers {
 export function marksQuery(db: D1Database, classId: string, terminalId: string | null, enrollmentId: string | null): D1PreparedStatement {
   return db
     .prepare(
-      `SELECT en.public_id AS enrollment_id, st.sid, st.first_name || ' ' || st.last_name AS name, en.roll_no,
+      `SELECT en.public_id AS enrollment_id, st.sid, TRIM(st.first_name || ' ' || st.last_name) AS name, en.roll_no,
               o.public_id AS offering_id, sb.name AS subject_name, t.public_id AS terminal_id, t.name AS terminal_name, t.weight,
               COALESCE(ms.theory_max_hundredths, CASE WHEN t.has_practical = 1 AND o.practical_hundredths IS NOT NULL THEN o.full_marks_hundredths - o.practical_hundredths ELSE o.full_marks_hundredths END) AS theory_max,
               CASE WHEN ms.id IS NOT NULL THEN ms.practical_max_hundredths WHEN t.has_practical = 1 THEN o.practical_hundredths END AS practical_max,

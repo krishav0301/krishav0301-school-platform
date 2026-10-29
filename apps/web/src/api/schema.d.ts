@@ -904,6 +904,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/classes/{id}/roll-numbers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Gives every active student of the class who has no roll number the next numbers, alphabetically by name. Numbers already given never change, and a number is never given twice in a class. 409 when nobody is waiting for one or the term is closed. */
+        post: operations["give_roll_numbers"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/config/public": {
         parameters: {
             query?: never;
@@ -2743,7 +2760,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** @description One marks card (any version), for staff whose sections reach the class. */
+        /** @description One marks card (any version), for staff whose sections reach the class, or a Class Teacher for a class they lead. */
         get: operations["get_marks_card"];
         put?: never;
         post?: never;
@@ -2796,6 +2813,57 @@ export interface paths {
         };
         /** @description The whole-class sheet of a published terminal: students by subjects, with the percentage and the grade when graded. For information: no pass, fail or rank. A Class Teacher reads their own class's (FUT point 19). */
         get: operations["get_class_result_sheet"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/results/grade-sheets/{cardId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description One marks card as the school's grade-point GRADE-SHEET: each subject's theory and practical, letters, grade point and the class's highest grade point, the percentage, division, average grade point and the rank in the class. A student reads only their own; staff those their wings reach. Not found for a school whose file has no such layout. */
+        get: operations["get_grade_sheet"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/results/classes/{classId}/terminals/{terminalId}/ledger": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description The class's mark ledger for a published terminal: every student's marks in every subject, the total, the percentage and the rank in the class. A Class Teacher reads their own class's. Not found for a school whose file has no such layout. */
+        get: operations["get_class_mark_ledger"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/results/classes/{classId}/final/ledger": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description The class's mark ledger for the final result (each subject out of 100). A Class Teacher reads their own class's. Not found for a school whose file has no such layout. */
+        get: operations["get_class_final_ledger"];
         put?: never;
         post?: never;
         delete?: never;
@@ -3699,6 +3767,7 @@ export interface components {
                 name: string;
                 published: boolean;
             }[];
+            rollsToGive: number;
             students: {
                 enrollmentId: string;
                 rollNo: number | null;
@@ -3706,6 +3775,9 @@ export interface components {
                 sid: string | null;
                 studentId: string | null;
             }[];
+        };
+        RollNumbersResult: {
+            numbered: number;
         };
         PublicConfig: {
             school: {
@@ -3718,6 +3790,7 @@ export interface components {
                 studentKeepsPin?: boolean;
                 passMarksPerSubject?: boolean;
                 publicApplyNeedsLink?: boolean;
+                gradeSheet?: boolean;
                 /** @enum {string} */
                 publicLayout?: "classic" | "scroll" | "immersive";
             };
@@ -5403,6 +5476,93 @@ export interface components {
                     percentHundredths: number;
                     passed?: boolean | null;
                 } | null)[];
+            }[];
+        };
+        GradeSheet: {
+            cardId: string;
+            version: number;
+            school: {
+                name: string;
+                address: string;
+                contact: string | null;
+                crest: string | null;
+            };
+            examName: string | null;
+            yearLabel: string;
+            student: {
+                name: string;
+                sid: string;
+                rollNo: number | null;
+                dateOfBirthBs: string | null;
+            };
+            className: string;
+            subjects: {
+                offeringId: string;
+                name: string;
+                fullHundredths: number;
+                theory: {
+                    maxHundredths: number;
+                    valueHundredths: number | null;
+                    absent: boolean;
+                } | null;
+                practical: {
+                    maxHundredths: number;
+                    valueHundredths: number | null;
+                    absent: boolean;
+                } | null;
+                obtainedHundredths: number;
+                theoryGrade: string | null;
+                practicalGrade: string | null;
+                finalGrade: string;
+                pointHundredths: number;
+                highestPointHundredths: number;
+            }[];
+            totalFullHundredths: number;
+            totalObtainedHundredths: number;
+            percentHundredths: number;
+            division: string | null;
+            overallGrade: string;
+            averagePointTenths: number;
+            rank: number;
+            classSize: number;
+            issuedOnBs: string | null;
+            /** @enum {string} */
+            paper: "plain" | "accent";
+            scale: {
+                grade: string;
+                from: number;
+                upTo: number | null;
+                pointHundredths: number;
+                remark: string;
+            }[];
+        };
+        MarkLedger: {
+            classId: string;
+            school: {
+                name: string;
+                address: string;
+                contact: string | null;
+                crest: string | null;
+            };
+            yearLabel: string;
+            className: string;
+            examName: string | null;
+            subjects: {
+                offeringId: string;
+                name: string;
+                code: string | null;
+            }[];
+            students: {
+                enrollmentId: string;
+                rollNo: number | null;
+                name: string;
+                marks: ({
+                    valueHundredths: number;
+                    absent: boolean;
+                } | null)[];
+                totalHundredths: number;
+                percentHundredths: number;
+                rank: number;
             }[];
         };
         Top20: {
@@ -8892,6 +9052,46 @@ export interface operations {
             };
             /** @description No such class, or not one the person opens */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AcademicsError"];
+                };
+            };
+        };
+    };
+    give_roll_numbers: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Numbered */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RollNumbersResult"];
+                };
+            };
+            /** @description No such class, or not one the person may number */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AcademicsError"];
+                };
+            };
+            /** @description Nobody is waiting for a roll number, or the term is closed */
+            409: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -14089,6 +14289,100 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ClassResultSheet"];
+                };
+            };
+            /** @description No such item, or not one the person may reach */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResultsError"];
+                };
+            };
+        };
+    };
+    get_grade_sheet: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                cardId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The grade sheet */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GradeSheet"];
+                };
+            };
+            /** @description No such item, or not one the person may reach */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResultsError"];
+                };
+            };
+        };
+    };
+    get_class_mark_ledger: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                classId: string;
+                terminalId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The ledger */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MarkLedger"];
+                };
+            };
+            /** @description No such item, or not one the person may reach */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResultsError"];
+                };
+            };
+        };
+    };
+    get_class_final_ledger: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                classId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The ledger */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MarkLedger"];
                 };
             };
             /** @description No such item, or not one the person may reach */

@@ -827,3 +827,24 @@
   flex-direction: column;
   align-items: center;
 }
+
+/* A printed page is only the page: no header, menu or tab bar (the grade-point marks card and the ledger, 2026-10-28). */
+@media print {
+  .skip,
+  .header,
+  .nav,
+  .sidebarBrand,
+  .sideCard {
+    display: none;
+  }
+
+  .frame {
+    background: none;
+  }
+
+  .main,
+  .withTabs .main {
+    max-width: none;
+    padding: 0;
+  }
+}

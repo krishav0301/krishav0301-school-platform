@@ -259,3 +259,14 @@
   margin: 0;
   color: var(--color-text-muted);
 }
+
+/* A printed page has no tabs, and no gap where they were. */
+@media print {
+  .tabs {
+    display: none;
+  }
+
+  .page {
+    gap: 0;
+  }
+}

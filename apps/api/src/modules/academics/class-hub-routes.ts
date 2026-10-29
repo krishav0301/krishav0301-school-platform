@@ -1,10 +1,12 @@
 import { defineRoute } from "../../core/routes";
 import type { App } from "../../core/types";
 import { getClassHub, listClassHub } from "./class-hub";
+import { giveRollNumbers } from "./rolls";
 import { ErrorSchema, IdParam, json } from "./routes";
-import { ClassHubListSchema, ClassHubSchema } from "./schema";
+import { ClassHubListSchema, ClassHubSchema, RollNumbersResultSchema } from "./schema";
 
 const VIEW = { action: "classes.view" } as const;
+const GIVE_ROLLS = { action: "classes.rolls.generate" } as const;
 
 /** A class as one page (FUT point 19, D-116): the classes a person opens, and one of them with its students. */
 export function registerClassHub(app: App): void {
@@ -42,6 +44,31 @@ export function registerClassHub(app: App): void {
       c.header("Cache-Control", "no-store");
       const hub = await getClassHub(c.env.DB, c.get("grant")!, c.get("auth")!.userPublicId, c.req.valid("param").id);
       return hub ? c.json(hub, 200) : c.json({ error: "not_found" }, 404);
+    },
+  );
+
+  defineRoute(
+    app,
+    {
+      method: "post",
+      path: "/api/classes/{id}/roll-numbers",
+      operationId: "give_roll_numbers",
+      tags: ["academics"],
+      description:
+        "Gives every active student of the class who has no roll number the next numbers, alphabetically by name. Numbers already given never change, and a number is never given twice in a class. 409 when nobody is waiting for one or the term is closed.",
+      access: GIVE_ROLLS,
+      request: { params: IdParam },
+      responses: {
+        200: { description: "Numbered", content: json(RollNumbersResultSchema) },
+        404: { description: "No such class, or not one the person may number", content: json(ErrorSchema) },
+        409: { description: "Nobody is waiting for a roll number, or the term is closed", content: json(ErrorSchema) },
+      },
+    },
+    async (c) => {
+      const result = await giveRollNumbers(c.env.DB, c.env.AUDIT_HMAC_KEY, c.get("auth")!.userPublicId, c.req.valid("param").id);
+      if (result.ok) return c.json(result.result, 200);
+      if (result.reason === "not_found" || result.reason === "not_allowed") return c.json({ error: "not_found" }, 404);
+      return c.json({ error: result.reason }, 409);
     },
   );
 }

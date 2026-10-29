@@ -2996,6 +2996,9 @@
               ]
             }
           },
+          "rollsToGive": {
+            "type": "integer"
+          },
           "students": {
             "type": "array",
             "items": {
@@ -3043,7 +3046,19 @@
           "mySubjects",
           "taughtSubjects",
           "terminals",
+          "rollsToGive",
           "students"
+        ]
+      },
+      "RollNumbersResult": {
+        "type": "object",
+        "properties": {
+          "numbered": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "numbered"
         ]
       },
       "PublicConfig": {
@@ -3080,6 +3095,9 @@
                 "type": "boolean"
               },
               "publicApplyNeedsLink": {
+                "type": "boolean"
+              },
+              "gradeSheet": {
                 "type": "boolean"
               },
               "publicLayout": {
@@ -10872,6 +10890,427 @@
           "students"
         ]
       },
+      "GradeSheet": {
+        "type": "object",
+        "properties": {
+          "cardId": {
+            "type": "string"
+          },
+          "version": {
+            "type": "integer"
+          },
+          "school": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "address": {
+                "type": "string"
+              },
+              "contact": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "crest": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            },
+            "required": [
+              "name",
+              "address",
+              "contact",
+              "crest"
+            ]
+          },
+          "examName": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "yearLabel": {
+            "type": "string"
+          },
+          "student": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "sid": {
+                "type": "string"
+              },
+              "rollNo": {
+                "type": [
+                  "integer",
+                  "null"
+                ]
+              },
+              "dateOfBirthBs": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            },
+            "required": [
+              "name",
+              "sid",
+              "rollNo",
+              "dateOfBirthBs"
+            ]
+          },
+          "className": {
+            "type": "string"
+          },
+          "subjects": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "offeringId": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "fullHundredths": {
+                  "type": "integer"
+                },
+                "theory": {
+                  "type": [
+                    "object",
+                    "null"
+                  ],
+                  "properties": {
+                    "maxHundredths": {
+                      "type": "integer"
+                    },
+                    "valueHundredths": {
+                      "type": [
+                        "integer",
+                        "null"
+                      ]
+                    },
+                    "absent": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "maxHundredths",
+                    "valueHundredths",
+                    "absent"
+                  ]
+                },
+                "practical": {
+                  "type": [
+                    "object",
+                    "null"
+                  ],
+                  "properties": {
+                    "maxHundredths": {
+                      "type": "integer"
+                    },
+                    "valueHundredths": {
+                      "type": [
+                        "integer",
+                        "null"
+                      ]
+                    },
+                    "absent": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "maxHundredths",
+                    "valueHundredths",
+                    "absent"
+                  ]
+                },
+                "obtainedHundredths": {
+                  "type": "integer"
+                },
+                "theoryGrade": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "practicalGrade": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "finalGrade": {
+                  "type": "string"
+                },
+                "pointHundredths": {
+                  "type": "integer"
+                },
+                "highestPointHundredths": {
+                  "type": "integer"
+                }
+              },
+              "required": [
+                "offeringId",
+                "name",
+                "fullHundredths",
+                "theory",
+                "practical",
+                "obtainedHundredths",
+                "theoryGrade",
+                "practicalGrade",
+                "finalGrade",
+                "pointHundredths",
+                "highestPointHundredths"
+              ]
+            }
+          },
+          "totalFullHundredths": {
+            "type": "integer"
+          },
+          "totalObtainedHundredths": {
+            "type": "integer"
+          },
+          "percentHundredths": {
+            "type": "integer"
+          },
+          "division": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "overallGrade": {
+            "type": "string"
+          },
+          "averagePointTenths": {
+            "type": "integer"
+          },
+          "rank": {
+            "type": "integer"
+          },
+          "classSize": {
+            "type": "integer"
+          },
+          "issuedOnBs": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "paper": {
+            "type": "string",
+            "enum": [
+              "plain",
+              "accent"
+            ]
+          },
+          "scale": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "grade": {
+                  "type": "string"
+                },
+                "from": {
+                  "type": "integer"
+                },
+                "upTo": {
+                  "type": [
+                    "integer",
+                    "null"
+                  ]
+                },
+                "pointHundredths": {
+                  "type": "integer"
+                },
+                "remark": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "grade",
+                "from",
+                "upTo",
+                "pointHundredths",
+                "remark"
+              ]
+            }
+          }
+        },
+        "required": [
+          "cardId",
+          "version",
+          "school",
+          "examName",
+          "yearLabel",
+          "student",
+          "className",
+          "subjects",
+          "totalFullHundredths",
+          "totalObtainedHundredths",
+          "percentHundredths",
+          "division",
+          "overallGrade",
+          "averagePointTenths",
+          "rank",
+          "classSize",
+          "issuedOnBs",
+          "paper",
+          "scale"
+        ]
+      },
+      "MarkLedger": {
+        "type": "object",
+        "properties": {
+          "classId": {
+            "type": "string"
+          },
+          "school": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "address": {
+                "type": "string"
+              },
+              "contact": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "crest": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            },
+            "required": [
+              "name",
+              "address",
+              "contact",
+              "crest"
+            ]
+          },
+          "yearLabel": {
+            "type": "string"
+          },
+          "className": {
+            "type": "string"
+          },
+          "examName": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "subjects": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "offeringId": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "code": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                }
+              },
+              "required": [
+                "offeringId",
+                "name",
+                "code"
+              ]
+            }
+          },
+          "students": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "enrollmentId": {
+                  "type": "string"
+                },
+                "rollNo": {
+                  "type": [
+                    "integer",
+                    "null"
+                  ]
+                },
+                "name": {
+                  "type": "string"
+                },
+                "marks": {
+                  "type": "array",
+                  "items": {
+                    "type": [
+                      "object",
+                      "null"
+                    ],
+                    "properties": {
+                      "valueHundredths": {
+                        "type": "integer"
+                      },
+                      "absent": {
+                        "type": "boolean"
+                      }
+                    },
+                    "required": [
+                      "valueHundredths",
+                      "absent"
+                    ]
+                  }
+                },
+                "totalHundredths": {
+                  "type": "integer"
+                },
+                "percentHundredths": {
+                  "type": "integer"
+                },
+                "rank": {
+                  "type": "integer"
+                }
+              },
+              "required": [
+                "enrollmentId",
+                "rollNo",
+                "name",
+                "marks",
+                "totalHundredths",
+                "percentHundredths",
+                "rank"
+              ]
+            }
+          }
+        },
+        "required": [
+          "classId",
+          "school",
+          "yearLabel",
+          "className",
+          "examName",
+          "subjects",
+          "students"
+        ]
+      },
       "Top20": {
         "type": "object",
         "properties": {
@@ -16512,6 +16951,58 @@
           },
           "404": {
             "description": "No such class, or not one the person opens",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AcademicsError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/classes/{id}/roll-numbers": {
+      "post": {
+        "operationId": "give_roll_numbers",
+        "tags": [
+          "academics"
+        ],
+        "description": "Gives every active student of the class who has no roll number the next numbers, alphabetically by name. Numbers already given never change, and a number is never given twice in a class. 409 when nobody is waiting for one or the term is closed.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{32}$"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Numbered",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RollNumbersResult"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such class, or not one the person may number",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AcademicsError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Nobody is waiting for a roll number, or the term is closed",
             "content": {
               "application/json": {
                 "schema": {
@@ -23503,7 +23994,7 @@
         "tags": [
           "results"
         ],
-        "description": "One marks card (any version), for staff whose sections reach the class.",
+        "description": "One marks card (any version), for staff whose sections reach the class, or a Class Teacher for a class they lead.",
         "parameters": [
           {
             "schema": {
@@ -23636,6 +24127,141 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ClassResultSheet"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such item, or not one the person may reach",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultsError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/results/grade-sheets/{cardId}": {
+      "get": {
+        "operationId": "get_grade_sheet",
+        "tags": [
+          "results"
+        ],
+        "description": "One marks card as the school's grade-point GRADE-SHEET: each subject's theory and practical, letters, grade point and the class's highest grade point, the percentage, division, average grade point and the rank in the class. A student reads only their own; staff those their wings reach. Not found for a school whose file has no such layout.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{32}$"
+            },
+            "required": true,
+            "name": "cardId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The grade sheet",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GradeSheet"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such item, or not one the person may reach",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultsError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/results/classes/{classId}/terminals/{terminalId}/ledger": {
+      "get": {
+        "operationId": "get_class_mark_ledger",
+        "tags": [
+          "results"
+        ],
+        "description": "The class's mark ledger for a published terminal: every student's marks in every subject, the total, the percentage and the rank in the class. A Class Teacher reads their own class's. Not found for a school whose file has no such layout.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{32}$"
+            },
+            "required": true,
+            "name": "classId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{32}$"
+            },
+            "required": true,
+            "name": "terminalId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The ledger",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MarkLedger"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such item, or not one the person may reach",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultsError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/results/classes/{classId}/final/ledger": {
+      "get": {
+        "operationId": "get_class_final_ledger",
+        "tags": [
+          "results"
+        ],
+        "description": "The class's mark ledger for the final result (each subject out of 100). A Class Teacher reads their own class's. Not found for a school whose file has no such layout.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{32}$"
+            },
+            "required": true,
+            "name": "classId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The ledger",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MarkLedger"
                 }
               }
             }

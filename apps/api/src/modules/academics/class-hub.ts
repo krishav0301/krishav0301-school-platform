@@ -118,6 +118,7 @@ export async function getClassHub(db: D1Database, grant: Grant, actor: string, c
     // Classwork stays a teacher's own subjects, a Class Teacher's too (the PM, FUT point 19).
     taughtSubjects: allSubjects.filter((s) => taught.has(s.offeringId)),
     terminals: (terminals!.results as { id: string; name: string; published: number }[]).map((r) => ({ id: r.id, name: r.name, published: r.published === 1 })),
+    rollsToGive: (students!.results as { roll_no: number | null }[]).filter((r) => r.roll_no === null).length,
     students: (students!.results as { enrollment_id: string; roll_no: number | null; student_id: string; sid: string; name: string }[]).map((r) => ({
       enrollmentId: r.enrollment_id,
       rollNo: r.roll_no,

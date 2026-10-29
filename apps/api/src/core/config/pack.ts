@@ -13,6 +13,46 @@ import { isKnownTerm } from "./terminology";
 
 const SectionKey = z.string().regex(/^[a-z][a-z0-9_]{0,30}$/, "lower-case letters, digits and underscores");
 
+/**
+ * The grade-point marks card and the mark ledger (the PM, 2026-10-28, the first school). The scale lists the letters
+ * highest first: each starts at a whole percent, carries its grade point in hundredths (4.00 is 400) and its remark;
+ * the last starts at 0, so every mark gets a letter. Divisions are listed highest first too; a result below the last is
+ * given none.
+ */
+export const GradeSheetSchema = z
+  .strictObject({
+    address: z.string().min(1).max(120),
+    contact: z.string().min(1).max(160).optional(),
+    /** The crest printed at the top, as a file under `/site/` (for example `myschool/crest.webp`). */
+    crest: z
+      .string()
+      .regex(/^[a-z0-9-]+\/[a-z0-9._-]+\.(?:webp|png|jpg|svg)$/, "A file in a folder under /site/")
+      .optional(),
+    scale: z
+      .array(z.strictObject({ grade: z.string().min(1).max(4), from: z.number().int().min(0).max(100), pointHundredths: z.number().int().min(0).max(1000), remark: z.string().min(1).max(40) }))
+      .min(2)
+      .max(12),
+    divisions: z.array(z.strictObject({ name: z.string().min(1).max(40), from: z.number().int().min(1).max(100) })).max(6).default([]),
+    /** The marks card's paper: `plain` (the page's own surface) or `accent` (the theme's soft accent colour, the school's yellow). */
+    paper: z.enum(["plain", "accent"]).default("plain"),
+    /**
+     * Where a band starts. `from`: a mark of exactly 90 is in the band that starts at 90 (the printed table's plain reading).
+     * `above`: a band starts just above its number, so exactly 90 is still in the band below (how the first school's own cards
+     * come out: 90 is an A, 80 a B+, 70 a B).
+     */
+    boundary: z.enum(["from", "above"]).default("from"),
+    /** `dense`: tied students share a rank and the next rank follows (1, 2, 2, 3); `competition`: it skips (1, 2, 2, 4). */
+    rankStyle: z.enum(["dense", "competition"]).default("competition"),
+  })
+  .superRefine((g, ctx) => {
+    const down = (list: { from: number }[]) => list.every((x, i) => i === 0 || x.from < list[i - 1]!.from);
+    if (!down(g.scale)) ctx.addIssue({ code: "custom", path: ["scale"], message: "List the grades highest first, each starting lower than the one above" });
+    if (g.scale[g.scale.length - 1]!.from !== 0) ctx.addIssue({ code: "custom", path: ["scale"], message: "The last grade must start at 0, so every mark gets a grade" });
+    if (new Set(g.scale.map((b) => b.grade.toLowerCase())).size !== g.scale.length) ctx.addIssue({ code: "custom", path: ["scale"], message: "A grade is listed twice" });
+    if (!down(g.divisions)) ctx.addIssue({ code: "custom", path: ["divisions"], message: "List the divisions highest first, each starting lower than the one above" });
+  });
+export type GradeSheetConfig = z.infer<typeof GradeSheetSchema>;
+
 export const PackSchema = z.strictObject({
   packVersion: z.literal(1),
   school: z.strictObject({
@@ -30,6 +70,8 @@ export const PackSchema = z.strictObject({
     passMarksPerSubject: z.boolean().default(false),
     /** Whether a public application must confirm an email link before it reaches the Co-ordinator (D-063). A school may turn it off (D-168): the backend then makes the email. */
     publicApplyNeedsLink: z.boolean().default(true),
+    /** The grade-point marks card and the mark ledger. Absent: the school keeps the marks card as it is. */
+    gradeSheet: GradeSheetSchema.optional(),
   }),
   /**
    * Sections the pack adds. A school's own pack lists none (D-095): the Admin makes them on the Programs screen. Demo
@@ -141,13 +183,14 @@ export function packOperations(pack: Pack): Operation[] {
   const ops: Operation[] = [];
 
   ops.push({
-    sql: `INSERT INTO school (id, name, short_name, currency, timezone, template_key, region_pack, admin_two_factor, student_keeps_pin, pass_marks_per_subject, public_apply_verifies_email)
-          VALUES (1, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    sql: `INSERT INTO school (id, name, short_name, currency, timezone, template_key, region_pack, admin_two_factor, student_keeps_pin, pass_marks_per_subject, public_apply_verifies_email, grade_sheet_json)
+          VALUES (1, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
           ON CONFLICT (id) DO UPDATE SET name = excluded.name, short_name = excluded.short_name,
             currency = excluded.currency, timezone = excluded.timezone,
             template_key = excluded.template_key, region_pack = excluded.region_pack, admin_two_factor = excluded.admin_two_factor, student_keeps_pin = excluded.student_keeps_pin,
-            pass_marks_per_subject = excluded.pass_marks_per_subject, public_apply_verifies_email = excluded.public_apply_verifies_email`,
-    params: [pack.school.name, pack.school.shortName, pack.school.currency, pack.school.timezone, pack.school.template ?? null, pack.school.region, pack.school.adminTwoFactor ? 1 : 0, pack.school.studentKeepsPin ? 1 : 0, pack.school.passMarksPerSubject ? 1 : 0, pack.school.publicApplyNeedsLink ? 1 : 0],
+            pass_marks_per_subject = excluded.pass_marks_per_subject, public_apply_verifies_email = excluded.public_apply_verifies_email,
+            grade_sheet_json = excluded.grade_sheet_json`,
+    params: [pack.school.name, pack.school.shortName, pack.school.currency, pack.school.timezone, pack.school.template ?? null, pack.school.region, pack.school.adminTwoFactor ? 1 : 0, pack.school.studentKeepsPin ? 1 : 0, pack.school.passMarksPerSubject ? 1 : 0, pack.school.publicApplyNeedsLink ? 1 : 0, pack.school.gradeSheet ? JSON.stringify(pack.school.gradeSheet) : null],
   });
 
   pack.sections.forEach((section, index) =>
