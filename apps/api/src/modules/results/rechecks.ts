@@ -67,7 +67,7 @@ export async function listRechecks(db: D1Database, reach: Reach): Promise<Rechec
     .prepare(
       `SELECT r.public_id AS id, o.public_id AS offering_id, sb.name AS subject_name, r.reason, r.status, r.requested_at, r.decision_reason, r.decided_at,
               CASE WHEN EXISTS (SELECT 1 FROM role_assignments ra WHERE ra.user_id = du.id AND ra.role = 'super_admin') THEN 'Support' ELSE du.full_name END AS decided_by, cl.public_id AS class_id, ${NAMING_COLUMNS}, t.name AS terminal_name,
-              st.first_name || ' ' || st.last_name AS student_name, st.sid,
+              TRIM(st.first_name || ' ' || st.last_name) AS student_name, st.sid,
               ms.theory_max_hundredths AS theory_max, ms.practical_max_hundredths AS practical_max,
               (SELECT json_group_array(json_object('p', m.part, 'v', m.value_hundredths, 'a', m.absent))
                  FROM marks m WHERE m.sheet_id = ms.id AND m.enrollment_id = r.enrollment_id) AS marks

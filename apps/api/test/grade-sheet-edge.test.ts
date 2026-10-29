@@ -162,6 +162,13 @@ describe("odd data", () => {
     expect(((await response.json()) as Sheet).student.dateOfBirthBs).toBeNull();
   });
 
+  it("a student entered with just a name has no date of birth, and their card still prints, with it blank", async () => {
+    await db.prepare("UPDATE students SET dob_ad = NULL WHERE public_id = ?1").bind(a.pupils[3]!.studentId).run();
+    const response = await call(`/api/results/grade-sheets/${await cardOf(a, 3)}`, { cookie: coordinator.cookie });
+    expect(response.status).toBe(200);
+    expect(((await response.json()) as Sheet).student.dateOfBirthBs).toBeNull();
+  });
+
   it("a student who left stays on the class's ledger and in its rank (they sat the exam)", async () => {
     await db.prepare("UPDATE enrollments SET status = 'left' WHERE public_id = ?1").bind(a.pupils[3]!.enrollmentId).run();
     const ledger = (await (await call(ledgerPath(a), { cookie: coordinator.cookie })).json()) as { students: unknown[] };

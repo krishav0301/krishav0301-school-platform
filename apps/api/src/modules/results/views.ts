@@ -165,7 +165,7 @@ export async function top20(db: D1Database, viewer: { student: string } | { reac
 
   const { results } = await db
     .prepare(
-      `SELECT en.public_id AS enrollment_id, st.first_name || ' ' || st.last_name AS name,
+      `SELECT en.public_id AS enrollment_id, TRIM(st.first_name || ' ' || st.last_name) AS name,
               pv.name || ' ' || lv.name || CASE WHEN cl.label = '' THEN '' ELSE ' ' || cl.label END AS class_name,
               ay.id AS term_id, ay.label AS term_label, s.key AS section_key, s.name AS section_name, lv.ordinal AS level_ordinal, lv.name AS level_name,
               mc.percent_hundredths, mc.passed

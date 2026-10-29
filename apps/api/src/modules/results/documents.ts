@@ -61,7 +61,7 @@ export async function gradeSheetFor(db: D1Database, viewer: { student: string } 
       .bind(cardId),
   ]);
   const layout = configOf(school!.results[0] as SchoolRow | undefined);
-  const row = card!.results[0] as { card_id: string; version: number; body: string; published_at: string; enrollment_id: string; roll_no: number | null; dob_ad: string; student_name: string; level_name: string; label: string } | undefined;
+  const row = card!.results[0] as { card_id: string; version: number; body: string; published_at: string; enrollment_id: string; roll_no: number | null; dob_ad: string | null; student_name: string; level_name: string; label: string } | undefined;
   if (!layout || !row) return null;
   const classCards: ClassCard[] = (latest!.results as unknown as { enrollment_id: string; body: string }[]).map((r) => ({ enrollmentId: r.enrollment_id, body: JSON.parse(r.body) as CardBody }));
   const body = JSON.parse(row.body) as CardBody;
@@ -69,7 +69,7 @@ export async function gradeSheetFor(db: D1Database, viewer: { student: string } 
   const among = classCards.some((c) => c.enrollmentId === row.enrollment_id) ? classCards.map((c) => (c.enrollmentId === row.enrollment_id ? { ...c, body } : c)) : [...classCards, { enrollmentId: row.enrollment_id, body }];
   return buildGradeSheet(
     layout.config,
-    { school: layout.school, cardId: row.card_id, version: row.version, enrollmentId: row.enrollment_id, className: classText(row), dateOfBirthBs: bsOf(row.dob_ad), rollNo: row.roll_no, studentName: row.student_name, issuedOnBs: bsOf(row.published_at) },
+    { school: layout.school, cardId: row.card_id, version: row.version, enrollmentId: row.enrollment_id, className: classText(row), dateOfBirthBs: row.dob_ad ? bsOf(row.dob_ad) : null, rollNo: row.roll_no, studentName: row.student_name, issuedOnBs: bsOf(row.published_at) },
     body,
     among,
   );

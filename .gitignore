@@ -56,3 +56,9 @@ wrangler.*.jsonc
 
 # Third-party skill (reproduces Apple text); installed per developer, not redistributed
 .claude/skills/apple-design/
+
+# local rehearsal output
+scripts/rehearsal/state*.json
+scripts/rehearsal/snap-*.json
+scripts/rehearsal/shots*/
+scripts/rehearsal/dl*/

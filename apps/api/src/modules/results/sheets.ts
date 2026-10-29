@@ -121,7 +121,7 @@ export async function loadSheet(db: D1Database, viewer: Viewer, classId: string,
       .bind(...[classId, offeringId, terminalId], ...("teacher" in viewer ? [viewer.teacher] : [null, viewer.reach.institution, viewer.reach.sections])),
     db
       .prepare(
-        `SELECT en.public_id AS enrollment_id, st.sid, st.first_name || ' ' || st.last_name AS name, en.roll_no,
+        `SELECT en.public_id AS enrollment_id, st.sid, TRIM(st.first_name || ' ' || st.last_name) AS name, en.roll_no,
                 (SELECT json_group_array(json_object('c', m.part, 'v', m.value_hundredths, 'a', m.absent))
                    FROM marks m JOIN mark_sheets ms ON ms.id = m.sheet_id
                   WHERE m.enrollment_id = en.id AND ms.class_id = cl.id AND ms.offering_id = o.id AND ms.terminal_id = t.id) AS marks

@@ -24,7 +24,7 @@ export async function classElectives(db: D1Database, reach: Reach, classId: stri
       .bind(classId),
     db
       .prepare(
-        `SELECT en.public_id AS enrollment_id, st.sid, st.first_name || ' ' || st.last_name AS name,
+        `SELECT en.public_id AS enrollment_id, st.sid, TRIM(st.first_name || ' ' || st.last_name) AS name,
                 (SELECT json_group_array(o.public_id) FROM elective_picks ep JOIN subject_offerings o ON o.id = ep.offering_id
                   WHERE ep.enrollment_id = en.id AND ep.is_active = 1) AS picks
            FROM classes cl JOIN enrollments en ON en.class_id = cl.id AND en.status = 'active' JOIN students st ON st.id = en.student_id
