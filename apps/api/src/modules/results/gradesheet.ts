@@ -37,7 +37,11 @@ export const percentOf = (obtained: number, full: number): number => (full <= 0 
 type Band = GradeSheetConfig["scale"][number];
 
 /** Whether obtained / full reaches a whole percent `from`: at it (`from`), or only above it (`above`). Exact, by cross-multiplying. */
-export const reaches = (boundary: GradeSheetConfig["boundary"], obtained: number, full: number, from: number): boolean => (boundary === "above" ? obtained * 100 > from * full : obtained * 100 >= from * full);
+export const reaches = (boundary: GradeSheetConfig["boundary"], obtained: number, full: number, from: number): boolean => {
+  // Nothing out of nothing reaches nothing: a paper with no full marks must not come out as the top grade.
+  if (full <= 0) return false;
+  return boundary === "above" ? obtained * 100 > from * full : obtained * 100 >= from * full;
+};
 
 /** The first band (highest first) that obtained / full reaches. The last band starts at 0, so there is always one. */
 export const bandFor = (config: GradeSheetConfig, obtained: number, full: number): Band => config.scale.find((b) => reaches(config.boundary, obtained, full, b.from)) ?? lowest(config.scale);
@@ -91,6 +95,8 @@ export interface SheetContext {
   enrollmentId: string;
   className: string;
   dateOfBirthBs: string | null;
+  /** The student's name now, as the record spells it (a correction after publishing shows; marks stay as published). */
+  studentName: string | null;
   /** The student's roll number now (roll numbers are given after the class is made, so a card published earlier still shows it). */
   rollNo: number | null;
   issuedOnBs: string | null;
@@ -131,7 +137,7 @@ export function buildGradeSheet(config: GradeSheetConfig, ctx: SheetContext, bod
     school: ctx.school,
     examName: body.kind === "terminal" ? body.terminal.name : null,
     yearLabel: body.class.yearLabel,
-    student: { name: body.student.name, sid: body.student.sid, rollNo: ctx.rollNo ?? body.student.rollNo, dateOfBirthBs: ctx.dateOfBirthBs },
+    student: { name: ctx.studentName ?? body.student.name, sid: body.student.sid, rollNo: ctx.rollNo ?? body.student.rollNo, dateOfBirthBs: ctx.dateOfBirthBs },
     className: ctx.className,
     subjects: lines,
     totalFullHundredths: full,

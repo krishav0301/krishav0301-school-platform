@@ -205,6 +205,14 @@
   white-space: nowrap;
 }
 
+/* A student's name stays on one line while it fits, and wraps past this, so a very long name cannot push Total, Per and Rank off the page. */
+.nameCell {
+  display: inline-block;
+  max-width: 14rem;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
 .number {
   text-align: end;
 }
@@ -225,6 +233,16 @@
 @page {
   size: A4;
   margin: 0;
+}
+
+/* A card with many subjects: closer, so it still fits one sheet. */
+.dense .grid th,
+.dense .grid td {
+  padding-block: 0;
+}
+
+.dense .remarks {
+  height: 1.2rem;
 }
 
 @media print {
@@ -255,6 +273,11 @@
   .grid th,
   .grid td {
     padding: 1px var(--space-1);
+  }
+
+  /* A row is never cut between two sheets. */
+  .grid tr {
+    break-inside: avoid;
   }
 
   .remarks {

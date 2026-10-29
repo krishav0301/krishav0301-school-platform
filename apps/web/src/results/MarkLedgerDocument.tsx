@@ -70,7 +70,9 @@ export function MarkLedgerDocument({ ledger }: { ledger: MarkLedger }) {
             {ledger.students.map((s) => (
               <tr key={s.enrollmentId}>
                 <td>{s.rollNo ?? ""}</td>
-                <td className={styles.left}>{s.name}</td>
+                <td className={styles.left}>
+                  <span className={styles.nameCell}>{s.name}</span>
+                </td>
                 {s.marks.map((m, i) => (
                   <td key={ledger.subjects[i]!.offeringId}>{markCell(m)}</td>
                 ))}
@@ -113,7 +115,7 @@ export function MarkLedgerScreen() {
     setBusy(true);
     setFailed(false);
     try {
-      await downloadAsPdf(page.current, fileSafe("Mark ledger", ledger.className, ledger.examName ?? "final", ledger.yearLabel), styles.capture);
+      await downloadAsPdf(page.current, fileSafe("Mark ledger", ledger.className, ledger.examName ?? "final", ledger.yearLabel), styles.capture, { rows: "tbody tr", header: "thead" });
     } catch {
       setFailed(true);
     }

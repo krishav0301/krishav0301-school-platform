@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 
 import { GradeSheetDocument, partCell, rangeText } from "@/results/GradeSheetDocument";
 import { MarkLedgerDocument, columnName, markCell } from "@/results/MarkLedgerDocument";
-import { fileSafe, fitOnA4 } from "@/results/download-pdf";
+import { fileSafe, fitOnA4, planSheets } from "@/results/download-pdf";
 import { pointTableText, pointText, tenthsText, type GradeSheet, type MarkLedger } from "@/results/model";
 
 /**
@@ -183,5 +183,76 @@ describe("the PDF download", () => {
       expect(at.y + at.height).toBeLessThanOrEqual(297.001);
       expect(at.width / at.height).toBeCloseTo(w / h, 5);
     }
+  });
+});
+
+describe("a long table over several sheets", () => {
+  const rows = (n: number, h: number, start = 100) => Array.from({ length: n }, (_, i) => start + (i + 1) * h);
+
+  it("is one sheet when it fits, however many rows", () => {
+    expect(planSheets(900, rows(8, 100), 100, 1000)).toEqual([{ from: 0, to: 900, withHeader: false }]);
+  });
+
+  it("cuts only between rows, repeats the column heads on every sheet after the first, and loses nothing", () => {
+    const total = 100 + 70 * 20; // heads and 70 rows of 20
+    const plan = planSheets(total, rows(70, 20), 100, 600);
+    expect(plan.length).toBeGreaterThan(2);
+    expect(plan[0]!.withHeader).toBe(false);
+    expect(plan.slice(1).every((s) => s.withHeader)).toBe(true);
+    expect(plan[0]!.from).toBe(0);
+    expect(plan[plan.length - 1]!.to).toBe(total);
+    for (let i = 1; i < plan.length; i++) expect(plan[i]!.from).toBe(plan[i - 1]!.to);
+    for (const [i, s] of plan.entries()) {
+      expect(s.to - s.from + (s.withHeader ? 100 : 0)).toBeLessThanOrEqual(600 * 1.01);
+      if (i < plan.length - 1) expect(rows(70, 20)).toContain(s.to); // a row's bottom, never mid-row
+    }
+  });
+
+  it("does not loop forever on a row taller than a sheet", () => {
+    const plan = planSheets(5000, [4800], 100, 600);
+    expect(plan.length).toBeLessThan(20);
+    expect(plan[plan.length - 1]!.to).toBe(5000);
+  });
+
+  it("an empty table is one sheet", () => {
+    expect(planSheets(300, [], 0, 1000)).toHaveLength(1);
+  });
+});
+
+describe("edge cases of the documents", () => {
+  it("a file name keeps the student's ID, so two students with Nepali-only names get different files", () => {
+    expect(fileSafe("आदर्श मण्डल", "2083-00012", "First Terminal Examination", "2083")).toBe("2083-00012-First-Terminal-Examination-2083");
+    expect(fileSafe("राम", "2083-00013", "First", "2083")).not.toBe(fileSafe("श्याम", "2083-00012", "First", "2083"));
+  });
+
+  it("a card with many subjects is drawn closer and has fewer empty activity rows, so it fits one sheet", () => {
+    const many = renderToStaticMarkup(<GradeSheetDocument sheet={{ ...sheet, subjects: Array.from({ length: 18 }, (_, i) => ({ ...sheet.subjects[1]!, offeringId: `o${i}`, name: `Subject ${i}` })) }} />);
+    expect(many).toMatch(/class="sheet paper dense"/);
+    const rowsOf = (html: string) => (html.split("Other activities")[1] ?? "").split("<tr>").length - 1;
+    expect(rowsOf(many)).toBeLessThan(rowsOf(renderToStaticMarkup(<GradeSheetDocument sheet={sheet} />)));
+  });
+
+  it("a card with no subjects still prints its head, tables and signatures without failing", () => {
+    const html = renderToStaticMarkup(<GradeSheetDocument sheet={{ ...sheet, subjects: [], division: null }} />);
+    expect(html).toContain("GRADE-SHEET");
+    expect(html).toContain("Guardian signature");
+  });
+
+  it("HTML in a name is shown as text, never as markup", () => {
+    const html = renderToStaticMarkup(<GradeSheetDocument sheet={{ ...sheet, student: { ...sheet.student, name: "<img src=x onerror=alert(1)>" } }} />);
+    expect(html).not.toContain("<img src=x");
+    expect(html).toContain("&lt;img src=x");
+  });
+
+  it("a ledger with no students or one student still prints its head and signatures", () => {
+    const base = { ...ledger, students: [] };
+    expect(renderToStaticMarkup(<MarkLedgerDocument ledger={base} />)).toContain("Approved by");
+    expect(renderToStaticMarkup(<MarkLedgerDocument ledger={{ ...ledger, students: ledger.students.slice(0, 1) }} />)).toContain("Aadarsh Mandal");
+  });
+
+  it("a very long name sits in a capped cell so it wraps instead of pushing the last columns off the page", () => {
+    const long = "Raghunandan Chaudhary Shrivastava Subramaniam Venkataraghavan Krishnamurthy";
+    const html = renderToStaticMarkup(<MarkLedgerDocument ledger={{ ...ledger, students: [{ ...ledger.students[0]!, name: long }] }} />);
+    expect(html).toMatch(/<span class="nameCell">Raghunandan/);
   });
 });

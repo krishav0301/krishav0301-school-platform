@@ -27,6 +27,8 @@ export function rangeText(band: GradeSheet["scale"][number]): string {
 }
 
 const OTHER_ACTIVITY_ROWS = 8;
+/** A card with this many subjects or more is drawn closer, so it still fits one sheet. */
+export const DENSE_FROM = 13;
 
 /**
  * The marks card as the school prints it, a GRADE-SHEET of grade points (the PM, 2026-10-28). The school's name, grade table,
@@ -36,7 +38,7 @@ const OTHER_ACTIVITY_ROWS = 8;
 export function GradeSheetDocument({ sheet }: { sheet: GradeSheet }) {
   const exam = sheet.examName === null ? t("results.doc.finalExam", { year: sheet.yearLabel }) : t("results.doc.exam", { exam: sheet.examName, year: sheet.yearLabel });
   return (
-    <article className={sheet.paper === "accent" ? `${styles.sheet} ${styles.paper}` : styles.sheet} aria-labelledby="gradesheet-heading">
+    <article className={[styles.sheet, sheet.paper === "accent" ? styles.paper : "", sheet.subjects.length >= DENSE_FROM ? styles.dense : ""].filter(Boolean).join(" ")} aria-labelledby="gradesheet-heading">
       <header className={styles.head}>
         {/* eslint-disable-next-line @next/next/no-img-element -- a pre-sized crest in a static export */}
         {sheet.school.crest ? <img className={styles.crest} src={`/site/${sheet.school.crest}`} alt={t("results.doc.crestAlt")} width={64} height={64} /> : null}
@@ -179,7 +181,7 @@ export function GradeSheetDocument({ sheet }: { sheet: GradeSheet }) {
               </tr>
             </thead>
             <tbody>
-              {Array.from({ length: OTHER_ACTIVITY_ROWS }, (_, i) => (
+              {Array.from({ length: sheet.subjects.length >= DENSE_FROM ? 4 : OTHER_ACTIVITY_ROWS }, (_, i) => (
                 <tr key={i}>
                   <td className={styles.remarks} />
                   <td />
@@ -217,7 +219,7 @@ export function GradeSheetScreen() {
     setBusy(true);
     setFailed(false);
     try {
-      await downloadAsPdf(page.current, fileSafe(sheet.student.name, sheet.examName ?? "final", sheet.yearLabel), styles.capture);
+      await downloadAsPdf(page.current, fileSafe(sheet.student.name, sheet.student.sid, sheet.examName ?? "final", sheet.yearLabel), styles.capture);
     } catch {
       setFailed(true);
     }

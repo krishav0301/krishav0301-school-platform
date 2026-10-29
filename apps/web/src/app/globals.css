@@ -22,6 +22,7 @@ body {
 
 /* Paper has no wash. */
 @media print {
+  html,
   body {
     background: none;
   }

@@ -43,7 +43,7 @@ export async function gradeSheetFor(db: D1Database, viewer: { student: string } 
     db.prepare(SCHOOL),
     db
       .prepare(
-        `SELECT mc.public_id AS card_id, mc.version, mc.body, rp.id AS publication_id, rp.published_at, en.public_id AS enrollment_id, en.roll_no, st.dob_ad, ${NAMING_COLUMNS}
+        `SELECT mc.public_id AS card_id, mc.version, mc.body, rp.id AS publication_id, rp.published_at, en.public_id AS enrollment_id, en.roll_no, st.dob_ad, trim(st.first_name || ' ' || COALESCE(st.middle_name || ' ', '') || st.last_name) AS student_name, ${NAMING_COLUMNS}
            FROM marks_cards mc JOIN result_publications rp ON rp.id = mc.publication_id JOIN classes cl ON cl.id = rp.class_id ${CLASS_JOINS}
            JOIN enrollments en ON en.id = mc.enrollment_id JOIN students st ON st.id = en.student_id
           WHERE mc.public_id = ?1
@@ -60,7 +60,7 @@ export async function gradeSheetFor(db: D1Database, viewer: { student: string } 
       .bind(cardId),
   ]);
   const layout = configOf(school!.results[0] as SchoolRow | undefined);
-  const row = card!.results[0] as { card_id: string; version: number; body: string; published_at: string; enrollment_id: string; roll_no: number | null; dob_ad: string; level_name: string; label: string } | undefined;
+  const row = card!.results[0] as { card_id: string; version: number; body: string; published_at: string; enrollment_id: string; roll_no: number | null; dob_ad: string; student_name: string; level_name: string; label: string } | undefined;
   if (!layout || !row) return null;
   const classCards: ClassCard[] = (latest!.results as unknown as { enrollment_id: string; body: string }[]).map((r) => ({ enrollmentId: r.enrollment_id, body: JSON.parse(r.body) as CardBody }));
   const body = JSON.parse(row.body) as CardBody;
@@ -68,7 +68,7 @@ export async function gradeSheetFor(db: D1Database, viewer: { student: string } 
   const among = classCards.some((c) => c.enrollmentId === row.enrollment_id) ? classCards.map((c) => (c.enrollmentId === row.enrollment_id ? { ...c, body } : c)) : [...classCards, { enrollmentId: row.enrollment_id, body }];
   return buildGradeSheet(
     layout.config,
-    { school: layout.school, cardId: row.card_id, version: row.version, enrollmentId: row.enrollment_id, className: classText(row), dateOfBirthBs: bsOf(row.dob_ad), rollNo: row.roll_no, issuedOnBs: bsOf(row.published_at) },
+    { school: layout.school, cardId: row.card_id, version: row.version, enrollmentId: row.enrollment_id, className: classText(row), dateOfBirthBs: bsOf(row.dob_ad), rollNo: row.roll_no, studentName: row.student_name, issuedOnBs: bsOf(row.published_at) },
     body,
     among,
   );
@@ -92,9 +92,9 @@ export async function ledgerFor(db: D1Database, reach: Reach, classId: string, t
       .bind(classId, terminalId, reach.institution, reach.sections, classTeacher),
     db
       .prepare(
-        `SELECT en.public_id AS enrollment_id, en.roll_no, mc.body
+        `SELECT en.public_id AS enrollment_id, en.roll_no, trim(st.first_name || ' ' || COALESCE(st.middle_name || ' ', '') || st.last_name) AS student_name, mc.body
            FROM classes cl JOIN result_publications rp ON rp.class_id = cl.id LEFT JOIN terminals t ON t.id = rp.terminal_id
-           JOIN marks_cards mc ON mc.publication_id = rp.id AND ${LATEST} JOIN enrollments en ON en.id = mc.enrollment_id
+           JOIN marks_cards mc ON mc.publication_id = rp.id AND ${LATEST} JOIN enrollments en ON en.id = mc.enrollment_id JOIN students st ON st.id = en.student_id
           WHERE cl.public_id = ?1 AND (CASE WHEN ?2 IS NULL THEN rp.terminal_id IS NULL ELSE t.public_id = ?2 END)
           ORDER BY en.roll_no IS NULL, en.roll_no, en.id`,
       )
@@ -111,9 +111,9 @@ export async function ledgerFor(db: D1Database, reach: Reach, classId: string, t
   const layout = configOf(school!.results[0] as SchoolRow | undefined);
   const h = head!.results[0] as { class_id: string; level_name: string; label: string; year_label: string; terminal_name: string | null } | undefined;
   if (!layout || !h) return null;
-  const students: LedgerStudent[] = (cards!.results as unknown as { enrollment_id: string; roll_no: number | null; body: string }[]).map((r) => {
+  const students: LedgerStudent[] = (cards!.results as unknown as { enrollment_id: string; roll_no: number | null; student_name: string; body: string }[]).map((r) => {
     const body = JSON.parse(r.body) as CardBody;
-    return { enrollmentId: r.enrollment_id, body, name: body.student.name, rollNo: r.roll_no };
+    return { enrollmentId: r.enrollment_id, body, name: r.student_name, rollNo: r.roll_no };
   });
   const subjects = (offerings!.results as unknown as { offering_id: string; name: string; code: string | null }[]).map((o) => ({ offeringId: o.offering_id, name: o.name, code: o.code }));
   return buildLedger(layout.config, { classId: h.class_id, school: layout.school, yearLabel: h.year_label, className: classText(h), examName: h.terminal_name }, subjects, students);
