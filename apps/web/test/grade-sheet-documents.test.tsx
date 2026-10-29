@@ -159,6 +159,14 @@ describe("the mark ledger", () => {
 });
 
 describe("the PDF download", () => {
+  it("fills the whole sheet when the page has the sheet's shape", () => {
+    const at = fitOnA4(2100, 2970);
+    expect(at.x).toBeCloseTo(0, 5);
+    expect(at.y).toBe(0);
+    expect(at.width).toBeCloseTo(210, 5);
+    expect(at.height).toBeCloseTo(297, 5);
+  });
+
   it("names the file from letters and digits only", () => {
     expect(fileSafe("Apsara Singh", "First Terminal Examination", "2083")).toBe("Apsara-Singh-First-Terminal-Examination-2083");
     expect(fileSafe("  ", "")).toBe("document");

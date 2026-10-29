@@ -22,7 +22,7 @@ export function fitOnA4(w: number, h: number): { x: number; y: number; width: nu
   const room = { width: A4_MM.width - 2 * MARGIN_MM, height: A4_MM.height - 2 * MARGIN_MM };
   const scale = Math.min(room.width / w, room.height / h);
   const width = w * scale;
-  return { x: (A4_MM.width - width) / 2, y: MARGIN_MM, width, height: h * scale };
+  return { x: Math.max(0, (A4_MM.width - width) / 2), y: MARGIN_MM, width, height: h * scale };
 }
 
 /**
