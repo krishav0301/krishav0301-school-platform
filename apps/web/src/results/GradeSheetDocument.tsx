@@ -9,7 +9,7 @@ import { useSession } from "@/session/SessionProvider";
 import { Gate, useLoad } from "@/setup/useLoad";
 import { Button, Notice } from "@/ui";
 
-import { gateFailure, loadGradeSheet } from "./client";
+import { gateFailure, loadGradeSheet, notForYou } from "./client";
 import styles from "./documents.module.css";
 import { downloadAsPdf, fileSafe } from "./download-pdf";
 import { formatMarks, hundredthsText, pointTableText, pointText, tenthsText, type GradeSheet } from "./model";
@@ -208,7 +208,7 @@ export function GradeSheetScreen() {
   const loadNow = useCallback(async () => {
     if (!id) return gateFailure("failed");
     const result = await loadGradeSheet(api, id);
-    return result.ok ? result : gateFailure(result.reason);
+    return result.ok ? result : notForYou(result.reason);
   }, [api, id]);
   const { view, reload } = useLoad<GradeSheet>(loadNow);
   const page = useRef<HTMLDivElement>(null);

@@ -203,19 +203,22 @@ export function ClassSheetView({ classId, terminalId, exportable = true, bare = 
       title={bare ? undefined : t("results.sheets.caption", { name: className(sheet), terminal: sheetName(sheet) })}
       labelledBy="sheet-heading"
       actions={
-        exportable ? (
-        <>
-        {config?.school.gradeSheet ? (
-          <Link className={`${buttonClass({ variant: "secondary" })} ${styles.wrapLabel}`} href={`/portal/results/ledger?class=${classId}&exam=${isFinal ? FINAL : terminalId}`} aria-label={t("results.doc.openLedgerLabel")}>
-            <Printer aria-hidden width={18} height={18} />
-            {t("results.doc.openLedger")}
-          </Link>
-        ) : null}
-        <a className={`${buttonClass({ variant: "secondary" })} ${styles.wrapLabel}`} href={isFinal ? `/api/results/classes/${classId}/final/sheet.csv` : `/api/results/classes/${classId}/terminals/${terminalId}/sheet.csv`} download>
-          <Download aria-hidden width={18} height={18} />
-          {t("results.sheets.export")}
-        </a>
-        </>
+        // The mark ledger is for everyone who reads the class sheet (a Class Teacher too); the Excel file only for those who may export.
+        config?.school.gradeSheet || exportable ? (
+          <>
+            {config?.school.gradeSheet ? (
+              <Link className={`${buttonClass({ variant: "secondary" })} ${styles.wrapLabel}`} href={`/portal/results/ledger?class=${classId}&exam=${isFinal ? FINAL : terminalId}`} aria-label={t("results.doc.openLedgerLabel")}>
+                <Printer aria-hidden width={18} height={18} />
+                {t("results.doc.openLedger")}
+              </Link>
+            ) : null}
+            {exportable ? (
+              <a className={`${buttonClass({ variant: "secondary" })} ${styles.wrapLabel}`} href={isFinal ? `/api/results/classes/${classId}/final/sheet.csv` : `/api/results/classes/${classId}/terminals/${terminalId}/sheet.csv`} download>
+                <Download aria-hidden width={18} height={18} />
+                {t("results.sheets.export")}
+              </a>
+            ) : null}
+          </>
         ) : undefined
       }
     >

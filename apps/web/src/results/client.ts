@@ -23,6 +23,12 @@ export const gateFailure = (reason: "forbidden" | "not_found" | "failed") =>
     reason: reason === "forbidden" ? "forbidden" : "failed",
   }) as const;
 
+/**
+ * For the pages of a document someone may not open (a card that is not theirs, a class they do not lead): "not found" is told as
+ * "not for you", the same words as "forbidden", rather than as a failure with a Retry that could never work.
+ */
+export const notForYou = (reason: "forbidden" | "not_found" | "failed") => ({ ok: false, reason: reason === "failed" ? "failed" : "forbidden" }) as const;
+
 export const loadMySheets = (api: ApiClient): Promise<Loaded<MyMarkSheets>> => load(() => api.GET("/api/results/mine"));
 export const loadSheet = (api: ApiClient, classId: string, offeringId: string, terminalId: string): Promise<Loaded<MarkSheet>> =>
   load(() => api.GET("/api/results/classes/{classId}/subjects/{offeringId}/terminals/{terminalId}", { params: { path: { classId, offeringId, terminalId } } }));

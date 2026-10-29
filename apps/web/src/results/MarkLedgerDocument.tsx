@@ -9,7 +9,7 @@ import { useSession } from "@/session/SessionProvider";
 import { Gate, useLoad } from "@/setup/useLoad";
 import { Button, Notice } from "@/ui";
 
-import { gateFailure, loadLedger } from "./client";
+import { gateFailure, loadLedger, notForYou } from "./client";
 import styles from "./documents.module.css";
 import { downloadAsPdf, fileSafe } from "./download-pdf";
 import { hundredthsText, type MarkLedger } from "./model";
@@ -104,7 +104,7 @@ export function MarkLedgerScreen() {
   const loadNow = useCallback(async () => {
     if (!classId || !exam) return gateFailure("failed");
     const result = await loadLedger(api, classId, exam === "final" ? null : exam);
-    return result.ok ? result : gateFailure(result.reason);
+    return result.ok ? result : notForYou(result.reason);
   }, [api, classId, exam]);
   const { view, reload } = useLoad<MarkLedger>(loadNow);
   const page = useRef<HTMLDivElement>(null);

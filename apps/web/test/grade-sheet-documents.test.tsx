@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 
 import { GradeSheetDocument, partCell, rangeText } from "@/results/GradeSheetDocument";
 import { MarkLedgerDocument, columnName, markCell } from "@/results/MarkLedgerDocument";
+import { notForYou } from "@/results/client";
 import { fileSafe, fitOnA4, planSheets } from "@/results/download-pdf";
 import { pointTableText, pointText, tenthsText, type GradeSheet, type MarkLedger } from "@/results/model";
 
@@ -254,5 +255,13 @@ describe("edge cases of the documents", () => {
     const long = "Raghunandan Chaudhary Shrivastava Subramaniam Venkataraghavan Krishnamurthy";
     const html = renderToStaticMarkup(<MarkLedgerDocument ledger={{ ...ledger, students: [{ ...ledger.students[0]!, name: long }] }} />);
     expect(html).toMatch(/<span class="nameCell">Raghunandan/);
+  });
+});
+
+describe("a document someone may not open", () => {
+  it("is told as 'not for you', never as a failure with a Retry that could not work", () => {
+    expect(notForYou("forbidden")).toEqual({ ok: false, reason: "forbidden" });
+    expect(notForYou("not_found")).toEqual({ ok: false, reason: "forbidden" });
+    expect(notForYou("failed")).toEqual({ ok: false, reason: "failed" });
   });
 });
