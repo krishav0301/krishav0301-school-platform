@@ -176,10 +176,11 @@ describe("the PDF download", () => {
   it("puts the page as large as fits on A4, inside its margins and centred, never off the page", () => {
     for (const [w, h] of [[800, 1100], [1000, 3000], [3000, 800]] as const) {
       const at = fitOnA4(w, h);
+      // A thousandth of a millimetre of slack for floating-point rounding.
       expect(at.x).toBeGreaterThanOrEqual(0);
       expect(at.y).toBeGreaterThanOrEqual(0);
-      expect(at.x + at.width).toBeLessThanOrEqual(210);
-      expect(at.y + at.height).toBeLessThanOrEqual(297);
+      expect(at.x + at.width).toBeLessThanOrEqual(210.001);
+      expect(at.y + at.height).toBeLessThanOrEqual(297.001);
       expect(at.width / at.height).toBeCloseTo(w / h, 5);
     }
   });
