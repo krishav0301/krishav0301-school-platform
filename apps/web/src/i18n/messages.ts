@@ -753,7 +753,7 @@ export const en = {
   "setup.curriculum.fullMarks": "Full marks",
   "setup.curriculum.fullMarksHint": "What the paper is out of. Usually 100.",
   "setup.curriculum.hasPractical": "This subject has a practical",
-  "setup.curriculum.hasPracticalHint": "Its practical marks are entered only in exams that hold the practical.",
+  "setup.curriculum.hasPracticalHint": "Add the subject once, with its practical here. Do not add the practical as a separate subject: the marks card shows theory and practical side by side on one line. Practical marks are entered only in exams that hold the practical.",
   "setup.curriculum.practicalMarks": "Practical marks",
   "setup.curriculum.practicalMarksHint": "Out of the full marks. For a 75/25 split, enter 25.",
   "setup.curriculum.paperNote": "A change applies to marks entered from now on. Marks already entered keep the paper they were entered against.",
