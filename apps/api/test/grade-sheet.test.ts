@@ -68,20 +68,22 @@ describe("the pack's grade sheet", () => {
 describe("the grade of a mark", () => {
   const at = (config: GradeSheetConfig, got: number, full: number) => bandFor(config, got, full).grade;
 
-  it("on this school's cards, a mark exactly on a band's number belongs to the band below (90 is an A, 80 a B+, 70 a B)", () => {
-    expect([90, 80, 70, 60, 50].map((n) => at(lahan, n, 100))).toEqual(["A", "B+", "B", "C+", "C"]);
-    expect([91, 81, 71, 61, 51, 41, 36].map((n) => at(lahan, n, 100))).toEqual(["A+", "A", "B+", "B", "C+", "C", "D"]);
-    expect(at(lahan, 0, 100)).toBe("NG");
+  it("Lahan's file follows the printed grade table as it reads: a mark on a band's number is in that band (90 is A+, 35 is D)", () => {
+    expect([90, 80, 70, 60, 50, 40, 35].map((n) => at(lahan, n, 100))).toEqual(["A+", "A", "B+", "B", "C+", "C", "D"]);
+    expect([89, 79, 69, 59, 49, 39, 34, 0].map((n) => at(lahan, n, 100))).toEqual(["A", "B+", "B", "C+", "C", "D", "NG", "NG"]);
   });
 
-  it("with the plain reading, a band starts at its number", () => {
-    const plain = { ...lahan, boundary: "from" as const };
-    expect([90, 80, 70, 35, 34].map((n) => at(plain, n, 100))).toEqual(["A+", "A", "B+", "D", "NG"]);
+  it("the other reading is still there for a school whose cards grade the other way: a mark on a band's number is in the band below", () => {
+    const below = { ...lahan, boundary: "above" as const };
+    expect([90, 80, 70, 60, 50].map((n) => at(below, n, 100))).toEqual(["A", "B+", "B", "C+", "C"]);
+    expect([91, 81, 71, 61, 51, 41, 36].map((n) => at(below, n, 100))).toEqual(["A+", "A", "B+", "B", "C+", "C", "D"]);
+    expect(at(below, 0, 100)).toBe("NG");
   });
 
-  it("works on a mark out of any full marks, with no rounding: 45 of 50 is 90 per cent", () => {
-    expect(at(lahan, 45, 50)).toBe("A");
-    expect(at(lahan, 4501, 5000)).toBe("A+");
+  it("works on a mark out of any full marks, with no rounding: 45 of 50 is exactly 90 per cent", () => {
+    expect(at(lahan, 45, 50)).toBe("A+");
+    expect(at({ ...lahan, boundary: "above" }, 45, 50)).toBe("A");
+    expect(at(lahan, 4499, 5000)).toBe("A");
   });
 });
 
@@ -112,7 +114,9 @@ describe("the grade sheet of the UKG card", () => {
     { enrollmentId: "n", body: nitesh },
     { enrollmentId: "o", body: card("Other", [subject("English", 99, 100), subject("Nepali", 80, 100), subject("Science", 40, 100), subject("Mathematics", 91, 100), subject("Conversation", 50, 50), subject("Hand writing", 60, 100), subject("Social studies", 20, 100)]) },
   ];
-  const sheet = buildGradeSheet(lahan, sheetCtx("n"), nitesh, classmates);
+  // The old paper card graded a mark on a band's number into the band below; its figures (3.4, 545 of 650) come out only that way.
+  const paperReading = { ...lahan, boundary: "above" as const };
+  const sheet = buildGradeSheet(paperReading, sheetCtx("n"), nitesh, classmates);
 
   it("totals the full marks and the marks obtained, and the percentage is the total's (545 of 650 is 83.85)", () => {
     expect(sheet.totalFullHundredths).toBe(65_000);
@@ -139,6 +143,15 @@ describe("the grade sheet of the UKG card", () => {
   it("prints the scale as the school's table: each band's range, point and remark", () => {
     expect(sheet.scale[0]).toEqual({ grade: "A+", from: 90, upTo: null, pointHundredths: 400, remark: "Outstanding" });
     expect(sheet.scale[7]).toMatchObject({ grade: "NG", from: 0, upTo: 35, pointHundredths: 0 });
+  });
+
+  it("under Lahan's file (the printed table as it reads) the same card is graded one step up on its two lines on a band's number, so the average is 3.6", () => {
+    const now = buildGradeSheet(lahan, sheetCtx("n"), nitesh, classmates);
+    const by = Object.fromEntries(now.subjects.map((x) => [x.name, x]));
+    expect([by.English!.finalGrade, by.English!.pointHundredths]).toEqual(["B+", 320]);
+    expect([by.Science!.finalGrade, by.Science!.pointHundredths]).toEqual(["A+", 400]);
+    expect(now.averagePointTenths).toBe(36);
+    expect(now.division).toBe("Distinction");
   });
 
   it("gives no division to a student who failed a subject, and NG with a grade point of 0 to a subject that failed its own pass marks", () => {

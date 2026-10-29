@@ -74,7 +74,7 @@ describe("ties, absences and a paper with a practical", () => {
   it("shows theory and practical on their own, each graded on its own marks", async () => {
     const s = (await sheetOf(a, 3)).subjects[0]!;
     expect(s.theory).toMatchObject({ valueHundredths: 3000, maxHundredths: 7500 });
-    expect([s.theoryGrade, s.practicalGrade, s.finalGrade]).toEqual(["D", "D", "D"]); // 40 per cent: just above 35 on this school's reading
+    expect([s.theoryGrade, s.practicalGrade, s.finalGrade]).toEqual(["C", "C", "C"]); // 40 per cent is the start of C in the printed table
     expect((await sheetOf(a, 0)).subjects[0]).toMatchObject({ theoryGrade: "A+", practicalGrade: "A+", finalGrade: "A+", pointHundredths: 400 });
   });
 
@@ -89,7 +89,7 @@ describe("ties, absences and a paper with a practical", () => {
 
   it("the highest grade point is the class's best, shown on every student's own card", async () => {
     for (let i = 0; i < 5; i++) expect((await sheetOf(a, i)).subjects[0]!.highestPointHundredths).toBe(400);
-    expect((await sheetOf(b, 0)).subjects[0]!.highestPointHundredths).toBe(280); // class B's best is 70 per cent: a B, since a mark on a band's number is in the band below
+    expect((await sheetOf(b, 0)).subjects[0]!.highestPointHundredths).toBe(320); // class B's best is 70 per cent: B+, since the printed table starts B+ at 70
   });
 });
 

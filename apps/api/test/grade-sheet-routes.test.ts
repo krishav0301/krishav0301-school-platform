@@ -51,10 +51,10 @@ describe("the grade sheet of a card", () => {
     expect(sheet.school).toMatchObject({ address: "Lahan Municipality-8, Siraha" });
     expect(sheet.examName).toBe("First Terminal Examination");
     expect(sheet.subjects).toHaveLength(2);
-    // 90 per cent is an A on this school's cards (a mark on a band's number belongs to the band below).
-    expect(sheet.subjects.map((s) => [s.finalGrade, s.pointHundredths, s.highestPointHundredths])).toEqual([["A", 360, 360], ["A", 360, 360]]);
+    // 90 per cent is A+ by the printed table (a mark on a band's number is in that band).
+    expect(sheet.subjects.map((s) => [s.finalGrade, s.pointHundredths, s.highestPointHundredths])).toEqual([["A+", 400, 400], ["A+", 400, 400]]);
     expect([sheet.totalObtainedHundredths, sheet.totalFullHundredths, sheet.percentHundredths]).toEqual([13_500, 15_000, 9000]);
-    expect([sheet.averagePointTenths, sheet.rank, sheet.classSize, sheet.division]).toEqual([36, 1, 3, "Distinction"]);
+    expect([sheet.averagePointTenths, sheet.rank, sheet.classSize, sheet.division]).toEqual([40, 1, 3, "Distinction"]);
     expect(sheet.scale).toHaveLength(8);
     expect((sheet as unknown as { paper: string }).paper).toBe("accent");
   });

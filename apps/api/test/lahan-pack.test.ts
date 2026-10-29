@@ -42,7 +42,7 @@ describe("the Lahan Manakamana school file", () => {
     const sheet = pack.school.gradeSheet!;
     expect(sheet.address).toBe("Lahan Municipality-8, Siraha");
     expect(sheet.rankStyle).toBe("dense");
-    expect(sheet.boundary).toBe("above");
+    expect(sheet.boundary).toBe("from"); // the printed table as it reads: a band starts at its number (PM, 2026-10-29)
     // The marks card is on the school's yellow (the theme's soft accent), and its text must read on it.
     expect(sheet.paper).toBe("accent");
     const light = (lahanJson.theme as { light: { text: string; textMuted: string; accentSoft: string } }).light;
