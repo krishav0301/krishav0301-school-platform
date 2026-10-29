@@ -904,6 +904,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/classes/{id}/roll-numbers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Gives every active student of the class who has no roll number the next numbers, alphabetically by name. Numbers already given never change, and a number is never given twice in a class. 409 when nobody is waiting for one or the term is closed. */
+        post: operations["give_roll_numbers"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/config/public": {
         parameters: {
             query?: never;
@@ -3750,6 +3767,7 @@ export interface components {
                 name: string;
                 published: boolean;
             }[];
+            rollsToGive: number;
             students: {
                 enrollmentId: string;
                 rollNo: number | null;
@@ -3757,6 +3775,9 @@ export interface components {
                 sid: string | null;
                 studentId: string | null;
             }[];
+        };
+        RollNumbersResult: {
+            numbered: number;
         };
         PublicConfig: {
             school: {
@@ -9031,6 +9052,46 @@ export interface operations {
             };
             /** @description No such class, or not one the person opens */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AcademicsError"];
+                };
+            };
+        };
+    };
+    give_roll_numbers: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Numbered */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RollNumbersResult"];
+                };
+            };
+            /** @description No such class, or not one the person may number */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AcademicsError"];
+                };
+            };
+            /** @description Nobody is waiting for a roll number, or the term is closed */
+            409: {
                 headers: {
                     [name: string]: unknown;
                 };

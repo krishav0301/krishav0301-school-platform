@@ -39,7 +39,7 @@ const card = (student: string, subjects: ReturnType<typeof subject>[]): CardBody
   grade: null,
   outcome: "",
 });
-const sheetCtx = (enrollmentId: string) => ({ school, cardId: "c", version: 1, enrollmentId, className: "UKG-A", dateOfBirthBs: null, issuedOnBs: "2083/05/10" });
+const sheetCtx = (enrollmentId: string) => ({ school, cardId: "c", version: 1, enrollmentId, className: "UKG-A", dateOfBirthBs: null, rollNo: null, issuedOnBs: "2083/05/10" });
 
 describe("the pack's grade sheet", () => {
   it("Lahan's file carries the printed scale, highest first, and no other school has one", () => {

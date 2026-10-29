@@ -534,7 +534,9 @@ export async function approveApplication(
       db
         .prepare(
           `INSERT INTO enrollments (public_id, student_id, academic_year_id, class_id, roll_no, status, created_at)
-           SELECT ?1, (SELECT id FROM students WHERE public_id = ?2), cl.academic_year_id, cl.id, ?4, 'active', ?5
+           SELECT ?1, (SELECT id FROM students WHERE public_id = ?2), cl.academic_year_id, cl.id,
+                  -- A roll number typed in is kept. Otherwise a class that is already numbered gives the newcomer the next number, at the end whatever their name (the PM, 2026-10-29); a class not yet numbered leaves it for the Co-ordinator's one click.
+                  COALESCE(?4, (SELECT MAX(e.roll_no) + 1 FROM enrollments e WHERE e.class_id = cl.id AND e.roll_no IS NOT NULL)), 'active', ?5
              FROM applications ap JOIN classes cl ON cl.public_id = ?3 WHERE ap.public_id = ?6 AND changes() > 0`,
         )
         .bind(enrollmentPublicId, studentPublicId, input.classId, input.rollNo ?? null, at, applicationPublicId),

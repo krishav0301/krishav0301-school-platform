@@ -91,6 +91,8 @@ export interface SheetContext {
   enrollmentId: string;
   className: string;
   dateOfBirthBs: string | null;
+  /** The student's roll number now (roll numbers are given after the class is made, so a card published earlier still shows it). */
+  rollNo: number | null;
   issuedOnBs: string | null;
 }
 
@@ -129,7 +131,7 @@ export function buildGradeSheet(config: GradeSheetConfig, ctx: SheetContext, bod
     school: ctx.school,
     examName: body.kind === "terminal" ? body.terminal.name : null,
     yearLabel: body.class.yearLabel,
-    student: { name: body.student.name, sid: body.student.sid, rollNo: body.student.rollNo, dateOfBirthBs: ctx.dateOfBirthBs },
+    student: { name: body.student.name, sid: body.student.sid, rollNo: ctx.rollNo ?? body.student.rollNo, dateOfBirthBs: ctx.dateOfBirthBs },
     className: ctx.className,
     subjects: lines,
     totalFullHundredths: full,

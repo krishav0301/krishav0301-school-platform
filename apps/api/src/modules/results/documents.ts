@@ -43,7 +43,7 @@ export async function gradeSheetFor(db: D1Database, viewer: { student: string } 
     db.prepare(SCHOOL),
     db
       .prepare(
-        `SELECT mc.public_id AS card_id, mc.version, mc.body, rp.id AS publication_id, rp.published_at, en.public_id AS enrollment_id, st.dob_ad, ${NAMING_COLUMNS}
+        `SELECT mc.public_id AS card_id, mc.version, mc.body, rp.id AS publication_id, rp.published_at, en.public_id AS enrollment_id, en.roll_no, st.dob_ad, ${NAMING_COLUMNS}
            FROM marks_cards mc JOIN result_publications rp ON rp.id = mc.publication_id JOIN classes cl ON cl.id = rp.class_id ${CLASS_JOINS}
            JOIN enrollments en ON en.id = mc.enrollment_id JOIN students st ON st.id = en.student_id
           WHERE mc.public_id = ?1
@@ -60,7 +60,7 @@ export async function gradeSheetFor(db: D1Database, viewer: { student: string } 
       .bind(cardId),
   ]);
   const layout = configOf(school!.results[0] as SchoolRow | undefined);
-  const row = card!.results[0] as { card_id: string; version: number; body: string; published_at: string; enrollment_id: string; dob_ad: string; level_name: string; label: string } | undefined;
+  const row = card!.results[0] as { card_id: string; version: number; body: string; published_at: string; enrollment_id: string; roll_no: number | null; dob_ad: string; level_name: string; label: string } | undefined;
   if (!layout || !row) return null;
   const classCards: ClassCard[] = (latest!.results as unknown as { enrollment_id: string; body: string }[]).map((r) => ({ enrollmentId: r.enrollment_id, body: JSON.parse(r.body) as CardBody }));
   const body = JSON.parse(row.body) as CardBody;
@@ -68,7 +68,7 @@ export async function gradeSheetFor(db: D1Database, viewer: { student: string } 
   const among = classCards.some((c) => c.enrollmentId === row.enrollment_id) ? classCards.map((c) => (c.enrollmentId === row.enrollment_id ? { ...c, body } : c)) : [...classCards, { enrollmentId: row.enrollment_id, body }];
   return buildGradeSheet(
     layout.config,
-    { school: layout.school, cardId: row.card_id, version: row.version, enrollmentId: row.enrollment_id, className: classText(row), dateOfBirthBs: bsOf(row.dob_ad), issuedOnBs: bsOf(row.published_at) },
+    { school: layout.school, cardId: row.card_id, version: row.version, enrollmentId: row.enrollment_id, className: classText(row), dateOfBirthBs: bsOf(row.dob_ad), rollNo: row.roll_no, issuedOnBs: bsOf(row.published_at) },
     body,
     among,
   );

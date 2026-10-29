@@ -536,6 +536,8 @@ export const ClassHubSchema = z
     taughtSubjects: z.array(HubSubjectSchema),
     /** The term's exams, and whether this class's results are published for each. */
     terminals: z.array(z.object({ id: z.string(), name: z.string(), published: z.boolean() })),
+    /** How many of the class's active students have no roll number yet (the Co-ordinator may give them one). */
+    rollsToGive: z.number().int(),
     /** The students, by roll number. `sid` and `studentId` are null for a subject teacher (names only). */
     students: z.array(z.object({ enrollmentId: z.string(), rollNo: z.number().int().nullable(), name: z.string(), sid: z.string().nullable(), studentId: z.string().nullable() })),
   })
@@ -573,3 +575,7 @@ export const SetupMapSchema = z
   })
   .openapi("SetupMap");
 export type SetupMap = z.infer<typeof SetupMapSchema>;
+
+/** What giving a class its roll numbers did: how many students were numbered. */
+export const RollNumbersResultSchema = z.object({ numbered: z.number().int() }).openapi("RollNumbersResult");
+export type RollNumbersResult = z.infer<typeof RollNumbersResultSchema>;

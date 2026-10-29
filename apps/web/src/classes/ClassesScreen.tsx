@@ -7,7 +7,7 @@ import { ClassActivityScreen } from "@/classwork/ClassActivityScreen";
 import { useConfig } from "@/config/ConfigProvider";
 import { useAddressQuery } from "@/content/address";
 import { t, type MessageKey } from "@/i18n/messages";
-import { AddDialog } from "@/ui";
+import { AddDialog, Notice } from "@/ui";
 import { EmptyLine, OpenLink, Panel, ReadFailure, ReadHeader, ReadTable, Segments, TableSkeleton, readStyles } from "@/read/ReadView";
 import { ClassSheetView } from "@/results/StaffScreens";
 import { MyMarksByExam, TerminalCards } from "./TerminalGroups";
@@ -19,6 +19,7 @@ import { useTermChoice } from "@/shell/TermChoice";
 import { useLoad } from "@/setup/useLoad";
 
 import { AddClassDialog } from "./AddClassDialog";
+import { GiveRollsDialog } from "./GiveRollsDialog";
 import { ClassesBrowser } from "./ClassesBrowser";
 import { loadClassHub, loadClassHubList } from "./client";
 import { classPlace, classTabs, pickTab, type ClassHub, type ClassTab } from "./model";
@@ -110,6 +111,7 @@ export function ClassPageScreen() {
   const id = search === null ? "" : (new URLSearchParams(search).get("id") ?? "");
   const askedTab = search === null ? null : new URLSearchParams(search).get("tab");
   const [chosen, setChosen] = useState<ClassTab | null>(null);
+  const [rollsMessage, setRollsMessage] = useState<string | null>(null);
   const loadNow = useCallback(async () => {
     if (!id) return { ok: false as const, reason: "failed" as const };
     return loadClassHub(api, id);
@@ -153,12 +155,25 @@ export function ClassPageScreen() {
         <Panel
           actions={
             canImport ? (
-              <AddDialog label={t("classes.import.open")} title={t("classes.import.title")} variant="secondary" plus={false} openSignal={importSignal}>
-                {() => <ImportStudents classId={hub.class.id} levelId={hub.class.levelId} className={place} />}
-              </AddDialog>
+              <>
+                {hub.rollsToGive > 0 ? (
+                  <GiveRollsDialog
+                    classId={hub.class.id}
+                    waiting={hub.rollsToGive}
+                    onGiven={(message) => {
+                      setRollsMessage(message);
+                      void reload();
+                    }}
+                  />
+                ) : null}
+                <AddDialog label={t("classes.import.open")} title={t("classes.import.title")} variant="secondary" plus={false} openSignal={importSignal}>
+                  {() => <ImportStudents classId={hub.class.id} levelId={hub.class.levelId} className={place} />}
+                </AddDialog>
+              </>
             ) : undefined
           }
         >
+          {rollsMessage ? <Notice tone="ok">{rollsMessage}</Notice> : null}
           <StudentsTable hub={hub} canOpenRecord={canOpenRecord} />
         </Panel>
       ) : null}

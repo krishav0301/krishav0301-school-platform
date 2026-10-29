@@ -31,6 +31,7 @@ const hub = (over: Partial<ClassHub> = {}): ClassHub => ({
   mySubjects: [subject("o1", "English"), subject("o2", "Chemistry")],
   taughtSubjects: [],
   terminals: [{ id: "t1", name: "First terminal", published: false }],
+  rollsToGive: 1,
   students: [
     { enrollmentId: "e1", rollNo: 1, name: "Sita Yadav", sid: "2083-00001", studentId: "s1" },
     { enrollmentId: "e2", rollNo: null, name: "Ram Shah", sid: "2083-00002", studentId: "s2" },

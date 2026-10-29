@@ -161,6 +161,7 @@ export const MATRIX = [
   row(G.life, "assignments.manage", "Create and grade assignments", 5, { TEA: assigned }),
   row(G.life, "assignments.submit", "Submit an assignment", 5, { STU: own }),
   row(G.life, "classes.view", "Open a class: its students, and the parts of it the person works with (FUT point 19)", 5, { TEA: assigned, COO: inst, ADM: read, SUP: all }),
+  row(G.life, "classes.rolls.generate", "Give roll numbers to the students of a class who have none, alphabetically", 5, { COO: inst, SUP: all }),
 
   // --- Fees and money
   row(G.fees, "fees.structure.draft", "Draft yearly fee structure", 6, { ACC: inst }),

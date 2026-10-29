@@ -359,3 +359,10 @@
   color: var(--color-text);
   font-weight: var(--weight-medium);
 }
+
+/* The roll-number dialog: what will happen, then the one button. */
+.rollsForm {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}

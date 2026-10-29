@@ -2996,6 +2996,9 @@
               ]
             }
           },
+          "rollsToGive": {
+            "type": "integer"
+          },
           "students": {
             "type": "array",
             "items": {
@@ -3043,7 +3046,19 @@
           "mySubjects",
           "taughtSubjects",
           "terminals",
+          "rollsToGive",
           "students"
+        ]
+      },
+      "RollNumbersResult": {
+        "type": "object",
+        "properties": {
+          "numbered": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "numbered"
         ]
       },
       "PublicConfig": {
@@ -16936,6 +16951,58 @@
           },
           "404": {
             "description": "No such class, or not one the person opens",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AcademicsError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/classes/{id}/roll-numbers": {
+      "post": {
+        "operationId": "give_roll_numbers",
+        "tags": [
+          "academics"
+        ],
+        "description": "Gives every active student of the class who has no roll number the next numbers, alphabetically by name. Numbers already given never change, and a number is never given twice in a class. 409 when nobody is waiting for one or the term is closed.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{32}$"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Numbered",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RollNumbersResult"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such class, or not one the person may number",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AcademicsError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Nobody is waiting for a roll number, or the term is closed",
             "content": {
               "application/json": {
                 "schema": {

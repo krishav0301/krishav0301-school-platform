@@ -97,6 +97,7 @@ Phase is the build phase where the action first exists. The action id in code fo
 | Create and grade assignments (`assignments.manage`) | — | assigned | — | — | — | — | 5 |
 | Submit an assignment (`assignments.submit`) | own | — | — | — | — | — | 5 |
 | Open a class: its students, and the parts of it the person works with (FUT point 19) (`classes.view`) | — | assigned | inst | — | read | ✓ | 5 |
+| Give roll numbers to the students of a class who have none, alphabetically (`classes.rolls.generate`) | — | — | inst | — | — | ✓ | 5 |
 
 ### Fees and money
 

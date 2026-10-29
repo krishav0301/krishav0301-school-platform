@@ -66,6 +66,13 @@ describe("the grade sheet of a card", () => {
     expect(sheet.subjects.map((s) => [s.fullHundredths, s.theory])).toEqual([[10_000, null], [10_000, null]]);
   });
 
+  it("shows the roll number the student has now, even if it was given after the class was published", async () => {
+    await db.prepare("UPDATE enrollments SET roll_no = 17 WHERE public_id = ?1").bind(fixture.pupils[0]!.enrollmentId).run();
+    const sheet = (await (await sheetOf(await cardIdOf(0), fixture.pupils[0]!.person)).json()) as { student: { rollNo: number | null } };
+    expect(sheet.student.rollNo).toBe(17);
+    await db.prepare("UPDATE enrollments SET roll_no = NULL WHERE public_id = ?1").bind(fixture.pupils[0]!.enrollmentId).run(); // the other tests do not number the class
+  });
+
   it("is refused to another student (they get what a missing card gets), and read by the Co-ordinator", async () => {
     const first = await cardIdOf(0);
     expect((await sheetOf(first, fixture.pupils[1]!.person)).status).toBe(404);
