@@ -1,16 +1,17 @@
 "use client";
 
-import { Printer } from "lucide-react";
-import { useCallback, useMemo } from "react";
+import { Download, Printer } from "lucide-react";
+import { useCallback, useMemo, useRef, useState } from "react";
 
 import { useAddressQuery } from "@/content/address";
 import { t } from "@/i18n/messages";
 import { useSession } from "@/session/SessionProvider";
 import { Gate, useLoad } from "@/setup/useLoad";
-import { Button } from "@/ui";
+import { Button, Notice } from "@/ui";
 
 import { gateFailure, loadGradeSheet } from "./client";
 import styles from "./documents.module.css";
+import { downloadAsPdf, fileSafe } from "./download-pdf";
 import { formatMarks, hundredthsText, pointTableText, pointText, tenthsText, type GradeSheet } from "./model";
 
 type Part = NonNullable<GradeSheet["subjects"][number]["theory"]>;
@@ -35,7 +36,7 @@ const OTHER_ACTIVITY_ROWS = 8;
 export function GradeSheetDocument({ sheet }: { sheet: GradeSheet }) {
   const exam = sheet.examName === null ? t("results.doc.finalExam", { year: sheet.yearLabel }) : t("results.doc.exam", { exam: sheet.examName, year: sheet.yearLabel });
   return (
-    <article className={styles.sheet} aria-labelledby="gradesheet-heading">
+    <article className={sheet.paper === "accent" ? `${styles.sheet} ${styles.paper}` : styles.sheet} aria-labelledby="gradesheet-heading">
       <header className={styles.head}>
         {/* eslint-disable-next-line @next/next/no-img-element -- a pre-sized crest in a static export */}
         {sheet.school.crest ? <img className={styles.crest} src={`/site/${sheet.school.crest}`} alt={t("results.doc.crestAlt")} width={64} height={64} /> : null}
@@ -208,12 +209,33 @@ export function GradeSheetScreen() {
     return result.ok ? result : gateFailure(result.reason);
   }, [api, id]);
   const { view, reload } = useLoad<GradeSheet>(loadNow);
+  const page = useRef<HTMLDivElement>(null);
+  const [busy, setBusy] = useState(false);
+  const [failed, setFailed] = useState(false);
+  async function download(sheet: GradeSheet) {
+    if (!page.current) return;
+    setBusy(true);
+    setFailed(false);
+    try {
+      await downloadAsPdf(page.current, fileSafe(sheet.student.name, sheet.examName ?? "final", sheet.yearLabel), styles.capture);
+    } catch {
+      setFailed(true);
+    }
+    setBusy(false);
+  }
   return (
     <Gate view={view} onRetry={() => void reload()}>
       {(sheet) => (
         <>
-          <GradeSheetDocument sheet={sheet} />
+          <div ref={page}>
+            <GradeSheetDocument sheet={sheet} />
+          </div>
+          {failed ? <Notice tone="bad">{t("results.doc.downloadFailed")}</Notice> : null}
           <div className={`${styles.actions} ${styles.noPrint}`}>
+            <Button variant="secondary" loading={busy} loadingLabel={t("results.doc.downloading")} onClick={() => void download(sheet)}>
+              <Download aria-hidden width={18} height={18} />
+              {t("results.doc.download")}
+            </Button>
             <Button variant="secondary" onClick={() => window.print()}>
               <Printer aria-hidden width={18} height={18} />
               {t("results.doc.print")}

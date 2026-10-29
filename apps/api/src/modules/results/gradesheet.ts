@@ -141,6 +141,7 @@ export function buildGradeSheet(config: GradeSheetConfig, ctx: SheetContext, bod
     rank: ranked.get(ctx.enrollmentId) ?? classCards.length,
     classSize: classCards.length,
     issuedOnBs: ctx.issuedOnBs,
+    paper: config.paper,
     scale: config.scale.map((b, i) => ({ grade: b.grade, from: b.from, upTo: i === 0 ? null : config.scale[i - 1]!.from, pointHundredths: b.pointHundredths, remark: b.remark })),
   };
 }

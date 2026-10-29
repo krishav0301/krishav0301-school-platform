@@ -43,6 +43,10 @@ describe("the Lahan Manakamana school file", () => {
     expect(sheet.address).toBe("Lahan Municipality-8, Siraha");
     expect(sheet.rankStyle).toBe("dense");
     expect(sheet.boundary).toBe("above");
+    // The marks card is on the school's yellow (the theme's soft accent), and its text must read on it.
+    expect(sheet.paper).toBe("accent");
+    const light = (lahanJson.theme as { light: { text: string; textMuted: string; accentSoft: string } }).light;
+    expect(contrastRatio(light.text, light.accentSoft)).toBeGreaterThanOrEqual(7);
     expect(sheet.scale.map((b) => b.grade)).toEqual(["A+", "A", "B+", "B", "C+", "C", "D", "NG"]);
     expect(sheet.divisions.map((d) => d.name)).toEqual(["Distinction", "First Division", "Second Division", "Third Division"]);
     expect(parsePack(royalJson).school.gradeSheet).toBeUndefined();

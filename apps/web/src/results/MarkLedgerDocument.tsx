@@ -1,16 +1,17 @@
 "use client";
 
-import { Printer } from "lucide-react";
-import { useCallback, useMemo } from "react";
+import { Download, Printer } from "lucide-react";
+import { useCallback, useMemo, useRef, useState } from "react";
 
 import { useAddressQuery } from "@/content/address";
 import { t } from "@/i18n/messages";
 import { useSession } from "@/session/SessionProvider";
 import { Gate, useLoad } from "@/setup/useLoad";
-import { Button } from "@/ui";
+import { Button, Notice } from "@/ui";
 
 import { gateFailure, loadLedger } from "./client";
 import styles from "./documents.module.css";
+import { downloadAsPdf, fileSafe } from "./download-pdf";
 import { hundredthsText, type MarkLedger } from "./model";
 
 /** What heads a subject's column: the short name the school set (Eng, Nep, Sci), else the subject's name. Pure. */
@@ -104,12 +105,33 @@ export function MarkLedgerScreen() {
     return result.ok ? result : gateFailure(result.reason);
   }, [api, classId, exam]);
   const { view, reload } = useLoad<MarkLedger>(loadNow);
+  const page = useRef<HTMLDivElement>(null);
+  const [busy, setBusy] = useState(false);
+  const [failed, setFailed] = useState(false);
+  async function download(ledger: MarkLedger) {
+    if (!page.current) return;
+    setBusy(true);
+    setFailed(false);
+    try {
+      await downloadAsPdf(page.current, fileSafe("Mark ledger", ledger.className, ledger.examName ?? "final", ledger.yearLabel), styles.capture);
+    } catch {
+      setFailed(true);
+    }
+    setBusy(false);
+  }
   return (
     <Gate view={view} onRetry={() => void reload()}>
       {(ledger) => (
         <>
-          <MarkLedgerDocument ledger={ledger} />
+          <div ref={page}>
+            <MarkLedgerDocument ledger={ledger} />
+          </div>
+          {failed ? <Notice tone="bad">{t("results.doc.downloadFailed")}</Notice> : null}
           <div className={`${styles.actions} ${styles.noPrint}`}>
+            <Button variant="secondary" loading={busy} loadingLabel={t("results.doc.downloading")} onClick={() => void download(ledger)}>
+              <Download aria-hidden width={18} height={18} />
+              {t("results.doc.download")}
+            </Button>
             <Button variant="secondary" onClick={() => window.print()}>
               <Printer aria-hidden width={18} height={18} />
               {t("results.doc.print")}

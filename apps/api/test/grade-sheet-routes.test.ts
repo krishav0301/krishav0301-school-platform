@@ -56,6 +56,7 @@ describe("the grade sheet of a card", () => {
     expect([sheet.totalObtainedHundredths, sheet.totalFullHundredths, sheet.percentHundredths]).toEqual([13_500, 15_000, 9000]);
     expect([sheet.averagePointTenths, sheet.rank, sheet.classSize, sheet.division]).toEqual([36, 1, 3, "Distinction"]);
     expect(sheet.scale).toHaveLength(8);
+    expect((sheet as unknown as { paper: string }).paper).toBe("accent");
   });
 
   it("on the final result is out of 100 a subject, with no exam name", async () => {

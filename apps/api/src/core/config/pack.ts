@@ -33,6 +33,8 @@ export const GradeSheetSchema = z
       .min(2)
       .max(12),
     divisions: z.array(z.strictObject({ name: z.string().min(1).max(40), from: z.number().int().min(1).max(100) })).max(6).default([]),
+    /** The marks card's paper: `plain` (the page's own surface) or `accent` (the theme's soft accent colour, the school's yellow). */
+    paper: z.enum(["plain", "accent"]).default("plain"),
     /**
      * Where a band starts. `from`: a mark of exactly 90 is in the band that starts at 90 (the printed table's plain reading).
      * `above`: a band starts just above its number, so exactly 90 is still in the band below (how the first school's own cards

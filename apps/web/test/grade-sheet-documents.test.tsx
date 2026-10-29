@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 
 import { GradeSheetDocument, partCell, rangeText } from "@/results/GradeSheetDocument";
 import { MarkLedgerDocument, columnName, markCell } from "@/results/MarkLedgerDocument";
+import { fileSafe, fitOnA4 } from "@/results/download-pdf";
 import { pointTableText, pointText, tenthsText, type GradeSheet, type MarkLedger } from "@/results/model";
 
 /**
@@ -38,6 +39,7 @@ const sheet: GradeSheet = {
   rank: 18,
   classSize: 26,
   issuedOnBs: "2083/05/10",
+  paper: "accent",
   scale,
 };
 
@@ -97,6 +99,11 @@ describe("the grade-sheet", () => {
     expect(final).not.toContain("<img");
   });
 
+  it("is on the school's yellow paper when its file says so, and on the plain surface otherwise", () => {
+    expect(html).toMatch(/class="sheet paper"/);
+    expect(renderToStaticMarkup(<GradeSheetDocument sheet={{ ...sheet, paper: "plain" }} />)).not.toMatch(/paper"/);
+  });
+
   it("formats grade points and ranges as the paper does", () => {
     expect([pointText(360), pointText(400), pointTableText(140), tenthsText(34)]).toEqual(["3.6", "4.0", "1.40", "3.4"]);
     expect(rangeText(scale[0]!)).toBe("90 to 100");
@@ -148,5 +155,24 @@ describe("the mark ledger", () => {
 
   it("ends with Prepared by, Checked by and Approved by", () => {
     for (const word of ["Prepared by", "Checked by", "Approved by"]) expect(html).toContain(word);
+  });
+});
+
+describe("the PDF download", () => {
+  it("names the file from letters and digits only", () => {
+    expect(fileSafe("Apsara Singh", "First Terminal Examination", "2083")).toBe("Apsara-Singh-First-Terminal-Examination-2083");
+    expect(fileSafe("  ", "")).toBe("document");
+    expect(fileSafe("राम", "x/y")).toBe("x-y");
+  });
+
+  it("puts the page as large as fits on A4, inside its margins and centred, never off the page", () => {
+    for (const [w, h] of [[800, 1100], [1000, 3000], [3000, 800]] as const) {
+      const at = fitOnA4(w, h);
+      expect(at.x).toBeGreaterThanOrEqual(0);
+      expect(at.y).toBeGreaterThanOrEqual(0);
+      expect(at.x + at.width).toBeLessThanOrEqual(210);
+      expect(at.y + at.height).toBeLessThanOrEqual(297);
+      expect(at.width / at.height).toBeCloseTo(w / h, 5);
+    }
   });
 });

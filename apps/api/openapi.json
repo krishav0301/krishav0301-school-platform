@@ -11091,6 +11091,13 @@
               "null"
             ]
           },
+          "paper": {
+            "type": "string",
+            "enum": [
+              "plain",
+              "accent"
+            ]
+          },
           "scale": {
             "type": "array",
             "items": {
@@ -11143,6 +11150,7 @@
           "rank",
           "classSize",
           "issuedOnBs",
+          "paper",
           "scale"
         ]
       },

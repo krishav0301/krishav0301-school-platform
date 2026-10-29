@@ -400,6 +400,8 @@ export const GradeSheetSchema = z
     rank: z.number().int(),
     classSize: z.number().int(),
     issuedOnBs: z.string().nullable(),
+    /** The paper's colour: the page's own surface, or the theme's soft accent (the school's yellow). */
+    paper: z.enum(["plain", "accent"]),
     scale: z.array(z.object({ grade: z.string(), from: z.number().int(), upTo: z.number().int().nullable(), pointHundredths: z.number().int(), remark: z.string() })),
   })
   .openapi("GradeSheet");

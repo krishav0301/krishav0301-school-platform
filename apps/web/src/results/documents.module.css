@@ -255,3 +255,27 @@
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   }
 }
+
+/* The marks card on the school's own paper: the theme's soft accent (a school's yellow). Printed too, and in the PDF. */
+.sheet.paper {
+  --color-text-muted: var(--color-text);
+  background: var(--color-accent-soft);
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
+
+/* While the PDF's picture is taken: whole tables, no scroll boxes, as wide as the widest table needs, on a plain rectangle. */
+.capture {
+  width: max-content;
+  min-width: 52rem;
+}
+
+.capture .sheet {
+  max-width: none;
+  border: 0;
+  border-radius: 0;
+}
+
+.capture .scroll {
+  overflow: visible;
+}

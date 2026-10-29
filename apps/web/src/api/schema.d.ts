@@ -5505,6 +5505,8 @@ export interface components {
             rank: number;
             classSize: number;
             issuedOnBs: string | null;
+            /** @enum {string} */
+            paper: "plain" | "accent";
             scale: {
                 grade: string;
                 from: number;

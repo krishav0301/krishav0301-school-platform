@@ -47,6 +47,14 @@ describe("the pack's grade sheet", () => {
     expect(lahan.rankStyle).toBe("dense");
   });
 
+  it("gives a plain paper unless the file says otherwise, and takes only the two papers", () => {
+    const base = { address: "x", scale: [{ grade: "A", from: 50, pointHundredths: 400, remark: "r" }, { grade: "B", from: 0, pointHundredths: 200, remark: "r" }] };
+    expect(GradeSheetSchema.parse(base).paper).toBe("plain");
+    expect(GradeSheetSchema.parse({ ...base, paper: "accent" }).paper).toBe("accent");
+    expect(GradeSheetSchema.safeParse({ ...base, paper: "#ffd800" }).success).toBe(false);
+    expect(lahan.paper).toBe("accent");
+  });
+
   it("refuses a scale that is out of order, repeats a grade, or does not reach 0", () => {
     const base = { address: "x", scale: [{ grade: "A", from: 50, pointHundredths: 400, remark: "r" }, { grade: "B", from: 0, pointHundredths: 200, remark: "r" }] };
     expect(GradeSheetSchema.safeParse(base).success).toBe(true);
