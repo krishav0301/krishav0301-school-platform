@@ -7,8 +7,8 @@ import type { CardBody, GradeSheet, MarkLedger } from "./schema";
  * compared with a band by cross-multiplying (no rounding decides a grade), and rounded half up only to be shown.
  *
  * OPEN: a subject whose card says it failed its own pass marks shows NG and a grade point of 0, as the card's letter does.
- * OPEN: the division is none for a student who failed a subject; the paper shows only Distinction and First Division, so
- * the lower divisions' cut-offs are the pack's.
+ * A division is "this percentage and above" (80 is Distinction), whatever the grade edges do; the PM confirmed the four cut-offs
+ * (2026-10-29). A student who failed a subject gets none.
  * OPEN: the average grade point is the plain mean of the subjects' points, to a tenth, as the paper's cards add up.
  */
 
@@ -125,7 +125,7 @@ export function buildGradeSheet(config: GradeSheetConfig, ctx: SheetContext, bod
   const { obtained, full } = totals(subjects);
   const failed = lines.some((l, i) => !subjects[i]!.passed || l.finalGrade === lowest(config.scale).grade);
   const percentHundredths = percentOf(obtained, full);
-  const division = failed ? null : (config.divisions.find((d) => reaches(config.boundary, obtained, full, d.from))?.name ?? null);
+  const division = failed ? null : (config.divisions.find((d) => reaches("from", obtained, full, d.from))?.name ?? null);
   const pointSum = lines.reduce((a, l) => a + l.pointHundredths, 0);
   const ranked = rankByRatio(
     classCards.map((c) => ({ id: c.enrollmentId, ...totalsOf(c.body) })),

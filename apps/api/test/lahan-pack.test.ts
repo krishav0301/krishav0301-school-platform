@@ -42,12 +42,14 @@ describe("the Lahan Manakamana school file", () => {
     const sheet = pack.school.gradeSheet!;
     expect(sheet.address).toBe("Lahan Municipality-8, Siraha");
     expect(sheet.rankStyle).toBe("dense");
-    expect(sheet.boundary).toBe("from"); // the printed table as it reads: a band starts at its number (PM, 2026-10-29)
+    expect(sheet.boundary).toBe("above"); // the grades the shared cards award: a mark on a band's number stays in the band below (PM, 2026-10-29)
     // The marks card is on the school's yellow (the theme's soft accent), and its text must read on it.
     expect(sheet.paper).toBe("accent");
     const light = (lahanJson.theme as { light: { text: string; textMuted: string; accentSoft: string } }).light;
     expect(contrastRatio(light.text, light.accentSoft)).toBeGreaterThanOrEqual(7);
-    expect(sheet.scale.map((b) => b.grade)).toEqual(["A+", "A", "B+", "B", "C+", "C", "D", "NG"]);
+    expect(sheet.scale.map((b) => b.grade)).toEqual(["A+", "A", "B+", "B", "C+", "C", "D+", "NG"]);
+    expect(sheet.scale.map((b) => b.pointHundredths)).toEqual([400, 360, 320, 280, 240, 200, 160, 0]);
+    expect(sheet.divisions.map((d) => [d.name, d.from])).toEqual([["Distinction", 80], ["First Division", 60], ["Second Division", 45], ["Third Division", 35]]);
     expect(sheet.divisions.map((d) => d.name)).toEqual(["Distinction", "First Division", "Second Division", "Third Division"]);
     expect(parsePack(royalJson).school.gradeSheet).toBeUndefined();
     expect(parsePack(sampleJson).school.gradeSheet).toBeUndefined();
