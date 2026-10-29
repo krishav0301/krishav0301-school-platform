@@ -5,7 +5,8 @@
  * page: it is for keeping and sending, and its text cannot be searched or copied (the database is the record, never the PDF).
  */
 const A4_MM = { width: 210, height: 297 };
-const MARGIN_MM = 6;
+/** The document carries its own margin, so the picture is the whole sheet. */
+const MARGIN_MM = 0;
 
 /** A file name made of letters and digits, from any words: "Apsara Singh" -> "Apsara-Singh". */
 export const fileSafe = (...parts: string[]): string =>
@@ -16,7 +17,7 @@ export const fileSafe = (...parts: string[]): string =>
     .replace(/^-+|-+$/g, "")
     .slice(0, 80) || "document";
 
-/** Where an image `w` by `h` lands on an A4 page inside the margins: as large as fits, centred across, at the top. Pure. */
+/** Where an image `w` by `h` lands on an A4 page inside the margins: as large as fits, centred across, at the top (the whole sheet when the page has the sheet's shape). Pure. */
 export function fitOnA4(w: number, h: number): { x: number; y: number; width: number; height: number } {
   const room = { width: A4_MM.width - 2 * MARGIN_MM, height: A4_MM.height - 2 * MARGIN_MM };
   const scale = Math.min(room.width / w, room.height / h);

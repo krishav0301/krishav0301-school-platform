@@ -842,7 +842,8 @@
     background: none;
   }
 
-  .main {
+  .main,
+  .withTabs .main {
     max-width: none;
     padding: 0;
   }

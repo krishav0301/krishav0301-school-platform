@@ -50,7 +50,7 @@ export function MarkLedgerDocument({ ledger }: { ledger: MarkLedger }) {
           <dd>{ledger.examName ?? t("results.doc.finalExamName")}</dd>
         </dl>
       </div>
-      <div className={styles.scroll}>
+      <div className={`${styles.scroll} ${styles.grow}`}>
         <table className={`${styles.grid} ${styles.ledgerGrid}`}>
           <thead>
             <tr>

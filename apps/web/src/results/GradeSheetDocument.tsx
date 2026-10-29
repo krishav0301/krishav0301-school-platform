@@ -63,7 +63,7 @@ export function GradeSheetDocument({ sheet }: { sheet: GradeSheet }) {
           <dd>{sheet.student.rollNo ?? ""}</dd>
         </dl>
       </div>
-      <div className={styles.scroll}>
+      <div className={`${styles.scroll} ${styles.grow}`}>
         <table className={styles.grid}>
           <thead>
             <tr>
