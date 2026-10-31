@@ -2389,6 +2389,7 @@ export const en = {
   "results.doc.gradeSheet": "GRADE-SHEET",
   "results.doc.exam": "{exam} - {year}",
   "results.doc.finalExam": "Final Result - {year}",
+  "results.doc.swipe": "Swipe the tables sideways to see every column.",
   "results.doc.studentName": "Name of student",
   "results.doc.class": "Class",
   "results.doc.dateOfBirth": "Date of birth",

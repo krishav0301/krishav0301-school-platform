@@ -337,3 +337,27 @@
 .capture .scroll {
   overflow: visible;
 }
+
+/* "Swipe sideways" above a card's tables, on a phone only (never on paper or in the PDF). */
+.swipeHint {
+  display: none;
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+}
+
+@media (max-width: 40rem) {
+  .swipeHint {
+    display: block;
+  }
+}
+
+@media print {
+  .swipeHint {
+    display: none;
+  }
+}
+
+.capture .swipeHint {
+  display: none;
+}

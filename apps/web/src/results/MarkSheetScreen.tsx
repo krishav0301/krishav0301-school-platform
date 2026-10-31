@@ -318,26 +318,60 @@ const key = markKey;
 /** True when no further digit could follow: two whole digits typed (three where the box allows 100 or more and a third could still fit), no point, no "AB". */
 export function markComplete(text: string, maxHundredths: number): boolean {
   if (!/^\d+$/.test(text)) return false;
+  if (Number(text) * 100 > maxHundredths) return false; // over the box's maximum: stay, so the red box is seen
   const max = Math.floor(maxHundredths / 100);
   const digits = text.length;
   if (digits >= String(max).length && digits >= 2) return true;
   return digits >= 2 && Number(text) * 10 > max;
 }
 
+/** The last automatic move, so a point typed straight after it goes back to the mark it belongs to (62, then ".5"). */
+type Jump = {
+  from: HTMLInputElement;
+  fromKey: string;
+  to: HTMLInputElement;
+  toBefore: string;
+  at: number;
+};
+let lastJump: Jump | null = null;
+
 /** Moves to the next mark box in the grid (the next component, then the next student's first), once a mark is complete. */
-function advance(event: ChangeEvent<HTMLInputElement>, maxHundredths: number) {
-  const input = event.target;
-  if (!markComplete(input.value, maxHundredths)) return;
+function advance(
+  input: HTMLInputElement,
+  key: string,
+  maxHundredths: number,
+): Jump | null {
+  if (!markComplete(input.value, maxHundredths)) return null;
   const boxes = Array.from(
     input
       .closest("table")
       ?.querySelectorAll<HTMLInputElement>("input[data-mark]") ?? [],
   );
   const next = boxes[boxes.indexOf(input) + 1];
-  if (next) {
-    next.focus();
-    next.select();
-  }
+  if (!next) return null;
+  const jump = {
+    from: input,
+    fromKey: key,
+    to: next,
+    toBefore: next.value,
+    at: Date.now(),
+  };
+  next.focus();
+  next.select();
+  return jump;
+}
+
+/** A point typed within two seconds of a move, as the first thing in the new box, belongs to the mark just left: the half mark 62.5 can be typed straight through. */
+function pointBack(box: HTMLInputElement): Jump | null {
+  const jump = lastJump;
+  lastJump = null;
+  return jump &&
+    jump.to === box &&
+    Date.now() - jump.at < 2000 &&
+    box.value.startsWith(".") &&
+    /^\d+$/.test(jump.from.value)
+    ? jump
+    : null;
 }
 
 /** The marks grid: students down, components across; on a phone each student is a card with the boxes under the name. Read-only unless `editable`. */
@@ -413,9 +447,25 @@ export function SheetGrid({
                         })}
                         aria-invalid={bad ? true : undefined}
                         value={value}
+                        maxLength={6}
+                        onFocus={(event) => event.target.select()}
                         onChange={(event) => {
-                          onChange?.(k, event.target.value);
-                          advance(event, c.maxHundredths);
+                          const box = event.target;
+                          const back = pointBack(box);
+                          if (back) {
+                            onChange?.(back.fromKey, `${back.from.value}.`);
+                            onChange?.(k, back.toBefore);
+                            setTimeout(() => {
+                              back.from.focus();
+                              back.from.setSelectionRange(
+                                back.from.value.length,
+                                back.from.value.length,
+                              );
+                            }, 0);
+                            return;
+                          }
+                          onChange?.(k, box.value);
+                          lastJump = advance(box, k, c.maxHundredths);
                         }}
                       />
                     ) : (

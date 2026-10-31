@@ -125,6 +125,7 @@ describe("moving on after a mark", () => {
     expect(markComplete("7", 500)).toBe(false);
     expect(markComplete("75", 7500)).toBe(true);
     expect(markComplete("5", 500)).toBe(false);
+    expect(markComplete("99", 7500)).toBe(false);
     expect(markComplete("4", 300)).toBe(false);
   });
   it("waits while a decimal point, AB or a possible 100 is still being typed", () => {
