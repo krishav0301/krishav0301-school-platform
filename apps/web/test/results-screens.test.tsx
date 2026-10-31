@@ -146,6 +146,7 @@ describe("the marks grid", () => {
     expect(html).toContain('value="62.5"');
     expect(html).toContain('value="AB"');
     expect(html).toContain('inputMode="decimal"');
+    expect(html).toContain("Mark Theory for Sita Sharma as absent");
     expect(html).toMatch(/<th scope="row" class="[^"]*">Sita Sharma/);
   });
 
