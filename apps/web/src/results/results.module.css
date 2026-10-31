@@ -335,35 +335,3 @@ a.wrapLabel {
     color: var(--color-text-muted);
   }
 }
-
-/* A mark box with its Absent button beside it. The button is pressed (filled) when the mark is AB. */
-.markCell {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-2);
-  max-inline-size: 100%;
-}
-
-.absentButton {
-  min-block-size: var(--control-height);
-  min-inline-size: var(--control-height);
-  padding: 0 var(--space-3);
-  border: 1px solid var(--color-text-muted);
-  border-radius: var(--radius-control);
-  background: var(--color-surface);
-  color: var(--color-text);
-  font: inherit;
-  font-size: var(--text-sm);
-  cursor: pointer;
-}
-
-.absentButton[aria-pressed="true"] {
-  border-color: var(--color-text);
-  background: var(--color-text);
-  color: var(--color-surface);
-}
-
-.absentButton:focus-visible {
-  outline: var(--focus-ring);
-  outline-offset: 2px;
-}

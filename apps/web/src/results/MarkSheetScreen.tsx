@@ -326,10 +326,8 @@ export function markComplete(text: string, maxHundredths: number): boolean {
 
 /** Moves to the next mark box in the grid (the next component, then the next student's first), once a mark is complete. */
 function advance(event: ChangeEvent<HTMLInputElement>, maxHundredths: number) {
-  if (markComplete(event.target.value, maxHundredths)) focusNext(event.target);
-}
-
-function focusNext(input: HTMLInputElement) {
+  const input = event.target;
+  if (!markComplete(input.value, maxHundredths)) return;
   const boxes = Array.from(
     input
       .closest("table")
@@ -390,7 +388,6 @@ export function SheetGrid({
                 const k = key(s.enrollmentId, c.id);
                 const value = draft[k] ?? "";
                 const parsed = parseMark(value);
-                const absent = parsed?.absent === true;
                 const bad =
                   parsed === null ||
                   (parsed.valueHundredths !== null &&
@@ -405,41 +402,22 @@ export function SheetGrid({
                     })}
                   >
                     {editable ? (
-                      <span className={styles.markCell}>
-                        <input
-                          data-mark=""
-                          className={styles.markInput}
-                          inputMode="decimal"
-                          autoComplete="off"
-                          aria-label={t("results.grid.markLabel", {
-                            student: s.name,
-                            component: partName(c.id),
-                          })}
-                          aria-invalid={bad ? true : undefined}
-                          value={value}
-                          onChange={(event) => {
-                            onChange?.(k, event.target.value);
-                            advance(event, c.maxHundredths);
-                          }}
-                        />
-                        <button
-                          type="button"
-                          className={styles.absentButton}
-                          aria-pressed={absent}
-                          aria-label={t("results.grid.absentLabel", {
-                            student: s.name,
-                            component: partName(c.id),
-                          })}
-                          onClick={(event) => {
-                            const box = event.currentTarget
-                              .previousElementSibling as HTMLInputElement;
-                            onChange?.(k, absent ? "" : "AB");
-                            if (!absent) focusNext(box);
-                          }}
-                        >
-                          {t("results.grid.absent")}
-                        </button>
-                      </span>
+                      <input
+                        data-mark=""
+                        className={styles.markInput}
+                        inputMode="decimal"
+                        autoComplete="off"
+                        aria-label={t("results.grid.markLabel", {
+                          student: s.name,
+                          component: partName(c.id),
+                        })}
+                        aria-invalid={bad ? true : undefined}
+                        value={value}
+                        onChange={(event) => {
+                          onChange?.(k, event.target.value);
+                          advance(event, c.maxHundredths);
+                        }}
+                      />
                     ) : (
                       value || "–"
                     )}
