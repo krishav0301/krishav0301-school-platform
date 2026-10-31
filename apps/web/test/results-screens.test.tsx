@@ -2,7 +2,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 
 import { ConfigContext, makeConfigValue, type PublicConfig } from "@/config/ConfigProvider";
-import { SheetGrid, draftOf } from "@/results/MarkSheetScreen";
+import { SheetGrid, draftOf, markComplete } from "@/results/MarkSheetScreen";
 import { formatMarks, markText, parseMark, scoreText, type MarkSheet } from "@/results/model";
 import { ResultsHome } from "@/results/ResultsHome";
 import { ResultsTabs } from "@/results/ResultsTabs";
@@ -119,6 +119,24 @@ const sheet: MarkSheet = {
   missing: 2,
 };
 
+describe("moving on after a mark", () => {
+  it("moves on after two digits, or when no further digit can fit", () => {
+    expect(markComplete("7", 7500)).toBe(false);
+    expect(markComplete("7", 500)).toBe(false);
+    expect(markComplete("75", 7500)).toBe(true);
+    expect(markComplete("5", 500)).toBe(false);
+    expect(markComplete("4", 300)).toBe(false);
+  });
+  it("waits while a decimal point, AB or a possible 100 is still being typed", () => {
+    expect(markComplete("7.", 10000)).toBe(false);
+    expect(markComplete("7.5", 10000)).toBe(false);
+    expect(markComplete("A", 10000)).toBe(false);
+    expect(markComplete("10", 10000)).toBe(false);
+    expect(markComplete("100", 10000)).toBe(true);
+    expect(markComplete("11", 10000)).toBe(true);
+  });
+});
+
 describe("the marks grid", () => {
   it("labels every box with the student and part, shows the paper's own maximum, and starts from the saved marks", () => {
     const html = inContext(<SheetGrid sheet={sheet} draft={draftOf(sheet)} editable />);
@@ -128,7 +146,7 @@ describe("the marks grid", () => {
     expect(html).toContain('value="62.5"');
     expect(html).toContain('value="AB"');
     expect(html).toContain('inputMode="decimal"');
-    expect(html).toContain('<th scope="row">Sita Sharma');
+    expect(html).toMatch(/<th scope="row" class="[^"]*">Sita Sharma/);
   });
 
   it("read-only shows the marks as text, with no boxes", () => {
