@@ -1,71 +1,227 @@
 "use client";
 
 import { CircleCheck, Hourglass, PenLine, Undo2 } from "lucide-react";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+  type ChangeEvent,
+} from "react";
 
 import { useAddressQuery } from "@/content/address";
 import { t } from "@/i18n/messages";
-import { EmptyLine, FigureTiles, OpenLink, Panel, ReadFailure, ReadHeader, ReadOnlyNote, ReadTable, Segments, StatusWord, TableSkeleton, readStyles, type Figure } from "@/read/ReadView";
+import {
+  EmptyLine,
+  FigureTiles,
+  OpenLink,
+  Panel,
+  ReadFailure,
+  ReadHeader,
+  ReadOnlyNote,
+  ReadTable,
+  Segments,
+  StatusWord,
+  TableSkeleton,
+  readStyles,
+  type Figure,
+} from "@/read/ReadView";
 import { useSession } from "@/session/SessionProvider";
 import { useLoad } from "@/setup/useLoad";
-import { Button, Notice, Table } from "@/ui";
+import { Button, Notice } from "@/ui";
 
 import { readLastTerminal, rememberTerminal } from "./last-terminal";
 import { MarksExcel } from "./MarksExcel";
 import { MySheetGroups } from "./MySheetGroups";
-import { gateFailure, loadMySheets, loadSheet, saveMarks, submitSheet, type Sent } from "./client";
-import { STATUS_LABEL, className, formatMarks, markKey, markText, parseMark, partName, type MarkSheet, type MyMarkSheets, type SheetStatus } from "./model";
+import {
+  gateFailure,
+  loadMySheets,
+  loadSheet,
+  saveMarks,
+  submitSheet,
+  type Sent,
+} from "./client";
+import {
+  STATUS_LABEL,
+  className,
+  formatMarks,
+  markKey,
+  markText,
+  parseMark,
+  partName,
+  type MarkSheet,
+  type MyMarkSheets,
+  type SheetStatus,
+} from "./model";
 import styles from "./results.module.css";
 
 export function sentText(sent: Sent): string | null {
   if (sent.ok) return null;
-  if (sent.reason === "invalid" || sent.reason === "refused") return sent.message ?? t("results.refused");
+  if (sent.reason === "invalid" || sent.reason === "refused")
+    return sent.message ?? t("results.refused");
   if (sent.reason === "closed") return t("results.closed");
   return t("results.failed");
 }
 
-export type MySheet = { classId: string; offeringId: string; subjectName: string; className: string; levelName: string; place: string; terminalId: string; status: SheetStatus; sentBack: boolean };
+export type MySheet = {
+  classId: string;
+  offeringId: string;
+  subjectName: string;
+  className: string;
+  levelName: string;
+  place: string;
+  terminalId: string;
+  status: SheetStatus;
+  sentBack: boolean;
+};
 
 /** Every sheet of one terminal, the ones that need the teacher first (sent back, then started, then not started). Pure. */
 export function sheetsOf(mine: MyMarkSheets, terminalId: string): MySheet[] {
   const rows = mine.subjects.flatMap((s) =>
-    s.sheets.filter((x) => x.terminalId === terminalId).map((x) => ({ classId: s.classId, offeringId: s.offeringId, subjectName: s.subjectName, className: className(s), levelName: s.levelName, place: [s.programmeName, s.label].filter(Boolean).join(" · "), terminalId, status: x.status, sentBack: x.status === "draft" && x.note !== null })),
+    s.sheets
+      .filter((x) => x.terminalId === terminalId)
+      .map((x) => ({
+        classId: s.classId,
+        offeringId: s.offeringId,
+        subjectName: s.subjectName,
+        className: className(s),
+        levelName: s.levelName,
+        place: [s.programmeName, s.label].filter(Boolean).join(" · "),
+        terminalId,
+        status: x.status,
+        sentBack: x.status === "draft" && x.note !== null,
+      })),
   );
-  const rank = (r: MySheet) => (r.sentBack ? 0 : r.status === "draft" ? 1 : r.status === "not_started" ? 2 : 3);
+  const rank = (r: MySheet) =>
+    r.sentBack
+      ? 0
+      : r.status === "draft"
+        ? 1
+        : r.status === "not_started"
+          ? 2
+          : 3;
   return rows.sort((a, b) => rank(a) - rank(b));
 }
 
 /** The terminal to show first: the one last worked in if it still exists, else the latest one the teacher has started, else the first. */
-export function currentTerminal(mine: MyMarkSheets, last: string | null = null): string {
+export function currentTerminal(
+  mine: MyMarkSheets,
+  last: string | null = null,
+): string {
   if (last && mine.terminals.some((term) => term.id === last)) return last;
-  const started = mine.terminals.filter((term) => mine.subjects.some((s) => s.sheets.some((x) => x.terminalId === term.id && x.status !== "not_started")));
+  const started = mine.terminals.filter((term) =>
+    mine.subjects.some((s) =>
+      s.sheets.some(
+        (x) => x.terminalId === term.id && x.status !== "not_started",
+      ),
+    ),
+  );
   return (started[started.length - 1] ?? mine.terminals[0])?.id ?? "";
 }
 
 export function mySheetFigures(rows: readonly MySheet[]): Figure[] {
   const count = (test: (r: MySheet) => boolean) => rows.filter(test).length;
   return [
-    { key: "todo", icon: PenLine, tone: count((r) => r.status === "not_started" || r.status === "draft") > 0 ? "warn" : "ok", value: String(count((r) => r.status === "not_started" || r.status === "draft")), label: t("results.mine.figure.todo") },
-    { key: "back", icon: Undo2, tone: count((r) => r.sentBack) > 0 ? "bad" : "ok", value: String(count((r) => r.sentBack)), label: t("results.mine.figure.sentBack") },
-    { key: "review", icon: Hourglass, tone: "accent", value: String(count((r) => r.status === "under_review")), label: t("results.mine.figure.review") },
-    { key: "done", icon: CircleCheck, tone: "ok", value: String(count((r) => r.status === "verified" || r.status === "published")), label: t("results.mine.figure.done") },
+    {
+      key: "todo",
+      icon: PenLine,
+      tone:
+        count((r) => r.status === "not_started" || r.status === "draft") > 0
+          ? "warn"
+          : "ok",
+      value: String(
+        count((r) => r.status === "not_started" || r.status === "draft"),
+      ),
+      label: t("results.mine.figure.todo"),
+    },
+    {
+      key: "back",
+      icon: Undo2,
+      tone: count((r) => r.sentBack) > 0 ? "bad" : "ok",
+      value: String(count((r) => r.sentBack)),
+      label: t("results.mine.figure.sentBack"),
+    },
+    {
+      key: "review",
+      icon: Hourglass,
+      tone: "accent",
+      value: String(count((r) => r.status === "under_review")),
+      label: t("results.mine.figure.review"),
+    },
+    {
+      key: "done",
+      icon: CircleCheck,
+      tone: "ok",
+      value: String(
+        count((r) => r.status === "verified" || r.status === "published"),
+      ),
+      label: t("results.mine.figure.done"),
+    },
   ];
 }
 
-const sheetTone = (r: MySheet): "ok" | "bad" | "warn" | undefined => (r.sentBack ? "bad" : r.status === "draft" || r.status === "not_started" ? "warn" : r.status === "under_review" ? undefined : "ok");
+const sheetTone = (r: MySheet): "ok" | "bad" | "warn" | undefined =>
+  r.sentBack
+    ? "bad"
+    : r.status === "draft" || r.status === "not_started"
+      ? "warn"
+      : r.status === "under_review"
+        ? undefined
+        : "ok";
 
 /** One terminal's sheets: subject, class, status in words, and the sheet to open. Inside a class card the class column is left out. Pure. */
-export function MySheetsTable({ rows, terminalName, showClass = true, classCaption }: { rows: readonly MySheet[]; terminalName: string; showClass?: boolean; classCaption?: string }) {
-  if (rows.length === 0) return <EmptyLine>{t("results.mine.empty")}</EmptyLine>;
+export function MySheetsTable({
+  rows,
+  terminalName,
+  showClass = true,
+  classCaption,
+}: {
+  rows: readonly MySheet[];
+  terminalName: string;
+  showClass?: boolean;
+  classCaption?: string;
+}) {
+  if (rows.length === 0)
+    return <EmptyLine>{t("results.mine.empty")}</EmptyLine>;
   return (
     <ReadTable
-      caption={classCaption ? t("results.mine.captionClass", { class: classCaption, terminal: terminalName }) : t("results.mine.caption", { terminal: terminalName })}
+      caption={
+        classCaption
+          ? t("results.mine.captionClass", {
+              class: classCaption,
+              terminal: terminalName,
+            })
+          : t("results.mine.caption", { terminal: terminalName })
+      }
       rows={rows}
       rowKey={(r) => `${r.classId}-${r.offeringId}`}
       columns={[
-        { key: "subject", label: t("results.mine.subject"), primary: true, cell: (r) => r.subjectName },
-        ...(showClass ? [{ key: "class", label: t("attendance.col.class"), cell: (r: MySheet) => r.className }] : []),
-        { key: "status", label: t("attendance.class.status"), cell: (r) => <StatusWord tone={sheetTone(r)}>{t(r.sentBack ? "results.status.sentBack" : STATUS_LABEL[r.status])}</StatusWord> },
+        {
+          key: "subject",
+          label: t("results.mine.subject"),
+          primary: true,
+          cell: (r) => r.subjectName,
+        },
+        ...(showClass
+          ? [
+              {
+                key: "class",
+                label: t("attendance.col.class"),
+                cell: (r: MySheet) => r.className,
+              },
+            ]
+          : []),
+        {
+          key: "status",
+          label: t("attendance.class.status"),
+          cell: (r) => (
+            <StatusWord tone={sheetTone(r)}>
+              {t(
+                r.sentBack ? "results.status.sentBack" : STATUS_LABEL[r.status],
+              )}
+            </StatusWord>
+          ),
+        },
         {
           key: "open",
           label: t("results.mine.sheet"),
@@ -74,8 +230,15 @@ export function MySheetsTable({ rows, terminalName, showClass = true, classCapti
           cell: (r) => (
             <OpenLink
               href={`/portal/results/sheet?class=${r.classId}&subject=${r.offeringId}&terminal=${r.terminalId}`}
-              label={t("results.mine.openNamed", { subject: r.subjectName, name: r.className })}
-              text={t(r.status === "not_started" || r.status === "draft" ? "results.mine.enter" : "read.open")}
+              label={t("results.mine.openNamed", {
+                subject: r.subjectName,
+                name: r.className,
+              })}
+              text={t(
+                r.status === "not_started" || r.status === "draft"
+                  ? "results.mine.enter"
+                  : "read.open",
+              )}
             />
           ),
         },
@@ -94,26 +257,53 @@ export function MySheetsScreen() {
   const { view, reload } = useLoad<MyMarkSheets>(loadNow);
   const [picked, setPicked] = useState<string | null>(null);
   const mine = view.status === "ready" ? view.data : null;
-  const terminalId = mine ? (picked ?? currentTerminal(mine, readLastTerminal())) : "";
-  const terminalName = mine?.terminals.find((x) => x.id === terminalId)?.name ?? "";
+  const terminalId = mine
+    ? (picked ?? currentTerminal(mine, readLastTerminal()))
+    : "";
+  const terminalName =
+    mine?.terminals.find((x) => x.id === terminalId)?.name ?? "";
   const rows = mine ? sheetsOf(mine, terminalId) : [];
   return (
     <div className={readStyles.page}>
-      <ReadHeader title={t("results.mine.title")} subtitle={t("results.mine.subtitle")} />
+      <ReadHeader
+        title={t("results.mine.title")}
+        subtitle={t("results.mine.subtitle")}
+      />
       {view.status === "loading" ? <TableSkeleton rows={5} tiles={4} /> : null}
-      {view.status === "failed" || view.status === "forbidden" ? <ReadFailure status={view.status} onRetry={() => void reload()} /> : null}
+      {view.status === "failed" || view.status === "forbidden" ? (
+        <ReadFailure status={view.status} onRetry={() => void reload()} />
+      ) : null}
       {mine ? (
         mine.subjects.length === 0 || mine.terminals.length === 0 ? (
           <Panel>
-            <EmptyLine>{t(mine.subjects.length === 0 ? "results.mine.empty" : "results.mine.noTerminals")}</EmptyLine>
+            <EmptyLine>
+              {t(
+                mine.subjects.length === 0
+                  ? "results.mine.empty"
+                  : "results.mine.noTerminals",
+              )}
+            </EmptyLine>
           </Panel>
         ) : (
           <>
-            {mine.terminals.length > 1 ? <Segments label={t("results.mine.terminals")} value={terminalId} options={mine.terminals.map((x) => ({ key: x.id, label: x.name }))} onChange={(id) => {
+            {mine.terminals.length > 1 ? (
+              <Segments
+                label={t("results.mine.terminals")}
+                value={terminalId}
+                options={mine.terminals.map((x) => ({
+                  key: x.id,
+                  label: x.name,
+                }))}
+                onChange={(id) => {
                   rememberTerminal(id);
                   setPicked(id);
-                }} /> : null}
-            <FigureTiles figures={mySheetFigures(rows)} label={t("results.mine.figures", { terminal: terminalName })} />
+                }}
+              />
+            ) : null}
+            <FigureTiles
+              figures={mySheetFigures(rows)}
+              label={t("results.mine.figures", { terminal: terminalName })}
+            />
             <MySheetGroups rows={rows} terminalName={terminalName} />
           </>
         )
@@ -125,75 +315,191 @@ export function MySheetsScreen() {
 type Draft = Record<string, string>;
 const key = markKey;
 
-/** The marks grid: students down, components across. Read-only unless `editable`. */
-export function SheetGrid({ sheet, draft, onChange, editable }: { sheet: MarkSheet; draft: Draft; onChange?: (k: string, value: string) => void; editable: boolean }) {
+/** True when no further digit could follow: two whole digits typed (three where the box allows 100 or more and a third could still fit), no point, no "AB". */
+export function markComplete(text: string, maxHundredths: number): boolean {
+  if (!/^\d+$/.test(text)) return false;
+  if (Number(text) * 100 > maxHundredths) return false; // over the box's maximum: stay, so the red box is seen
+  const max = Math.floor(maxHundredths / 100);
+  const digits = text.length;
+  if (digits >= String(max).length && digits >= 2) return true;
+  return digits >= 2 && Number(text) * 10 > max;
+}
+
+/** The last automatic move, so a point typed straight after it goes back to the mark it belongs to (62, then ".5"). */
+type Jump = {
+  from: HTMLInputElement;
+  fromKey: string;
+  to: HTMLInputElement;
+  toBefore: string;
+  at: number;
+};
+let lastJump: Jump | null = null;
+
+/** Moves to the next mark box in the grid (the next component, then the next student's first), once a mark is complete. */
+function advance(
+  input: HTMLInputElement,
+  key: string,
+  maxHundredths: number,
+): Jump | null {
+  if (!markComplete(input.value, maxHundredths)) return null;
+  const boxes = Array.from(
+    input
+      .closest("table")
+      ?.querySelectorAll<HTMLInputElement>("input[data-mark]") ?? [],
+  );
+  const next = boxes[boxes.indexOf(input) + 1];
+  if (!next) return null;
+  const jump = {
+    from: input,
+    fromKey: key,
+    to: next,
+    toBefore: next.value,
+    at: Date.now(),
+  };
+  next.focus();
+  next.select();
+  return jump;
+}
+
+/** A point typed within two seconds of a move, as the first thing in the new box, belongs to the mark just left: the half mark 62.5 can be typed straight through. */
+function pointBack(box: HTMLInputElement): Jump | null {
+  const jump = lastJump;
+  lastJump = null;
+  return jump &&
+    jump.to === box &&
+    Date.now() - jump.at < 2000 &&
+    box.value.startsWith(".") &&
+    /^\d+$/.test(jump.from.value)
+    ? jump
+    : null;
+}
+
+/** The marks grid: students down, components across; on a phone each student is a card with the boxes under the name. Read-only unless `editable`. */
+export function SheetGrid({
+  sheet,
+  draft,
+  onChange,
+  editable,
+}: {
+  sheet: MarkSheet;
+  draft: Draft;
+  onChange?: (k: string, value: string) => void;
+  editable: boolean;
+}) {
   return (
-    <Table
-      caption={t("results.grid.caption", {
+    <div
+      className={styles.gridScroll}
+      tabIndex={0}
+      role="region"
+      aria-label={t("results.grid.caption", {
         subject: sheet.subjectName,
         terminal: sheet.terminal.name,
       })}
     >
-      <thead>
-        <tr>
-          <th scope="col">{t("results.grid.student")}</th>
-          {sheet.components.map((c) => (
-            <th key={c.id} scope="col" className={styles.number}>
-              {t("results.grid.component", { name: partName(c.id), max: formatMarks(c.maxHundredths) })}
-            </th>
-          ))}
-        </tr>
-      </thead>
-      <tbody>
-        {sheet.students.map((s) => (
-          <tr key={s.enrollmentId}>
-            <th scope="row">
-              {s.name}
-              <br />
-              <span className={styles.meta}>{s.sid}</span>
-            </th>
-            {sheet.components.map((c) => {
-              const k = key(s.enrollmentId, c.id);
-              const value = draft[k] ?? "";
-              const parsed = parseMark(value);
-              const bad = parsed === null || (parsed.valueHundredths !== null && parsed.valueHundredths > c.maxHundredths);
-              return (
-                <td key={c.id} className={styles.number}>
-                  {editable ? (
-                    <input
-                      className={styles.markInput}
-                      inputMode="decimal"
-                      autoComplete="off"
-                      aria-label={t("results.grid.markLabel", {
-                        student: s.name,
-                        component: partName(c.id),
-                      })}
-                      aria-invalid={bad ? true : undefined}
-                      value={value}
-                      onChange={(event) => onChange?.(k, event.target.value)}
-                    />
-                  ) : (
-                    value || "–"
-                  )}
-                </td>
-              );
-            })}
+      <table className={styles.grid}>
+        <thead>
+          <tr>
+            <th scope="col">{t("results.grid.student")}</th>
+            {sheet.components.map((c) => (
+              <th key={c.id} scope="col" className={styles.number}>
+                {t("results.grid.component", {
+                  name: partName(c.id),
+                  max: formatMarks(c.maxHundredths),
+                })}
+              </th>
+            ))}
           </tr>
-        ))}
-      </tbody>
-    </Table>
+        </thead>
+        <tbody>
+          {sheet.students.map((s) => (
+            <tr key={s.enrollmentId}>
+              <th scope="row" className={styles.gridName}>
+                {s.name}
+                <br />
+                <span className={styles.meta}>{s.sid}</span>
+              </th>
+              {sheet.components.map((c) => {
+                const k = key(s.enrollmentId, c.id);
+                const value = draft[k] ?? "";
+                const parsed = parseMark(value);
+                const bad =
+                  parsed === null ||
+                  (parsed.valueHundredths !== null &&
+                    parsed.valueHundredths > c.maxHundredths);
+                return (
+                  <td
+                    key={c.id}
+                    className={styles.number}
+                    data-label={t("results.grid.component", {
+                      name: partName(c.id),
+                      max: formatMarks(c.maxHundredths),
+                    })}
+                  >
+                    {editable ? (
+                      <input
+                        data-mark=""
+                        className={styles.markInput}
+                        inputMode="decimal"
+                        autoComplete="off"
+                        aria-label={t("results.grid.markLabel", {
+                          student: s.name,
+                          component: partName(c.id),
+                        })}
+                        aria-invalid={bad ? true : undefined}
+                        value={value}
+                        maxLength={6}
+                        onFocus={(event) => event.target.select()}
+                        onChange={(event) => {
+                          const box = event.target;
+                          const back = pointBack(box);
+                          if (back) {
+                            onChange?.(back.fromKey, `${back.from.value}.`);
+                            onChange?.(k, back.toBefore);
+                            setTimeout(() => {
+                              back.from.focus();
+                              back.from.setSelectionRange(
+                                back.from.value.length,
+                                back.from.value.length,
+                              );
+                            }, 0);
+                            return;
+                          }
+                          onChange?.(k, box.value);
+                          lastJump = advance(box, k, c.maxHundredths);
+                        }}
+                      />
+                    ) : (
+                      value || "–"
+                    )}
+                  </td>
+                );
+              })}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
   );
 }
 
 /** What the grid starts from: every recorded mark as text. */
-export const draftOf = (sheet: MarkSheet): Draft => Object.fromEntries(sheet.students.flatMap((s) => s.marks.map((m) => [key(s.enrollmentId, m.componentId), markText(m)])));
+export const draftOf = (sheet: MarkSheet): Draft =>
+  Object.fromEntries(
+    sheet.students.flatMap((s) =>
+      s.marks.map((m) => [key(s.enrollmentId, m.componentId), markText(m)]),
+    ),
+  );
 
 /** The teacher's grid for one subject, class and terminal (`?class=&subject=&terminal=`): save drafts, then send for review. */
 export function MarkSheetScreen() {
   const { api } = useSession();
   const search = useAddressQuery();
   const params = useMemo(() => new URLSearchParams(search ?? ""), [search]);
-  const [classId, offeringId, terminalId] = [params.get("class") ?? "", params.get("subject") ?? "", params.get("terminal") ?? ""];
+  const [classId, offeringId, terminalId] = [
+    params.get("class") ?? "",
+    params.get("subject") ?? "",
+    params.get("terminal") ?? "",
+  ];
   // Opening a sheet counts as working in its terminal: the Results tab opens there next time.
   useEffect(() => {
     if (terminalId) rememberTerminal(terminalId);
@@ -212,12 +518,30 @@ export function MarkSheetScreen() {
   if (view.status === "ready") {
     const sheet = view.data;
     // A fresh editor for each saved state of the sheet, so the boxes always start from what the server holds.
-    return <SheetEditor key={`${sheet.status}:${JSON.stringify(sheet.students.map((s) => s.marks))}`} sheet={sheet} reload={reload} message={message} setMessage={setMessage} />;
+    return (
+      <SheetEditor
+        key={`${sheet.status}:${JSON.stringify(sheet.students.map((s) => s.marks))}`}
+        sheet={sheet}
+        reload={reload}
+        message={message}
+        setMessage={setMessage}
+      />
+    );
   }
   return (
     <div className={readStyles.page}>
-      <ReadHeader title={t("results.mine.title")} crumbs={[{ label: t("results.mine.title"), href: "/portal/results" }]} />
-      {view.status === "loading" ? <TableSkeleton rows={8} /> : <ReadFailure status={view.status === "forbidden" ? "forbidden" : "failed"} onRetry={() => void reload()} />}
+      <ReadHeader
+        title={t("results.mine.title")}
+        crumbs={[{ label: t("results.mine.title"), href: "/portal/results" }]}
+      />
+      {view.status === "loading" ? (
+        <TableSkeleton rows={8} />
+      ) : (
+        <ReadFailure
+          status={view.status === "forbidden" ? "forbidden" : "failed"}
+          onRetry={() => void reload()}
+        />
+      )}
     </div>
   );
 }
@@ -242,7 +566,11 @@ function SheetEditor({
     for (const s of sheet.students) {
       for (const c of sheet.components) {
         const parsed = parseMark(draft[key(s.enrollmentId, c.id)] ?? "");
-        if (parsed === null || (parsed.valueHundredths !== null && parsed.valueHundredths > c.maxHundredths)) {
+        if (
+          parsed === null ||
+          (parsed.valueHundredths !== null &&
+            parsed.valueHundredths > c.maxHundredths)
+        ) {
           setMessage({
             tone: "bad",
             text: t("results.grid.badMark", {
@@ -259,7 +587,13 @@ function SheetEditor({
         });
       }
     }
-    const sent = await saveMarks(api, sheet.classId, sheet.offeringId, sheet.terminal.id, marks);
+    const sent = await saveMarks(
+      api,
+      sheet.classId,
+      sheet.offeringId,
+      sheet.terminal.id,
+      marks,
+    );
     if (!sent.ok) setMessage({ tone: "bad", text: sentText(sent)! });
     return sent.ok;
   }
@@ -279,41 +613,120 @@ function SheetEditor({
     setBusy("submit");
     setMessage(null);
     if (await save()) {
-      const sent = await submitSheet(api, sheet.classId, sheet.offeringId, sheet.terminal.id);
+      const sent = await submitSheet(
+        api,
+        sheet.classId,
+        sheet.offeringId,
+        sheet.terminal.id,
+      );
       setBusy(null);
-      setMessage(sent.ok ? { tone: "ok", text: t("results.grid.submitted") } : { tone: "bad", text: sentText(sent)! });
+      setMessage(
+        sent.ok
+          ? { tone: "ok", text: t("results.grid.submitted") }
+          : { tone: "bad", text: sentText(sent)! },
+      );
       await reload();
     } else setBusy(null);
   }
 
   const editable = sheet.status === "draft" || sheet.status === "not_started";
-  const missing = sheet.students.length * sheet.components.length - Object.values(draft).filter((v) => v.trim() !== "").length;
+  const missing =
+    sheet.students.length * sheet.components.length -
+    Object.values(draft).filter((v) => v.trim() !== "").length;
   const sentBack = sheet.status === "draft" && sheet.note !== null;
   return (
     <div className={readStyles.page}>
       <ReadHeader
         title={sheet.subjectName}
         subtitle={`${className(sheet)} · ${sheet.terminal.name}`}
-        crumbs={[{ label: t("results.mine.title"), href: "/portal/results" }, { label: sheet.subjectName }]}
-        actions={<StatusWord tone={sentBack ? "bad" : editable ? "warn" : sheet.status === "under_review" ? undefined : "ok"}>{t(sentBack ? "results.status.sentBack" : STATUS_LABEL[sheet.status])}</StatusWord>}
+        crumbs={[
+          { label: t("results.mine.title"), href: "/portal/results" },
+          { label: sheet.subjectName },
+        ]}
+        actions={
+          <StatusWord
+            tone={
+              sentBack
+                ? "bad"
+                : editable
+                  ? "warn"
+                  : sheet.status === "under_review"
+                    ? undefined
+                    : "ok"
+            }
+          >
+            {t(
+              sentBack ? "results.status.sentBack" : STATUS_LABEL[sheet.status],
+            )}
+          </StatusWord>
+        }
       />
-      {sheet.note && editable ? <Notice tone="bad">{t("results.grid.note", { note: sheet.note })}</Notice> : null}
-      {!editable ? <ReadOnlyNote>{t("results.grid.locked")}</ReadOnlyNote> : null}
+      {sheet.note && editable ? (
+        <Notice tone="bad">
+          {t("results.grid.note", { note: sheet.note })}
+        </Notice>
+      ) : null}
+      {!editable ? (
+        <ReadOnlyNote>{t("results.grid.locked")}</ReadOnlyNote>
+      ) : null}
       {sheet.students.length === 0 || sheet.components.length === 0 ? (
         <Panel>
-          <EmptyLine>{t(sheet.components.length === 0 ? "results.grid.noComponents" : "results.grid.noStudents")}</EmptyLine>
+          <EmptyLine>
+            {t(
+              sheet.components.length === 0
+                ? "results.grid.noComponents"
+                : "results.grid.noStudents",
+            )}
+          </EmptyLine>
         </Panel>
       ) : (
-        <Panel title={t("results.grid.title")} labelledBy="sheet-grid" actions={editable ? <span className={readStyles.rowMeta}>{missing > 0 ? t("results.grid.missing", { count: missing }) : t("results.grid.complete")}</span> : null}>
-          {editable ? <p className={readStyles.rowMeta}>{t("results.grid.hint")}</p> : null}
-          {editable ? <MarksExcel sheet={sheet} onFill={(marks) => setDraft((d) => ({ ...d, ...marks }))} /> : null}
-          <SheetGrid sheet={sheet} draft={draft} editable={editable} onChange={(k, value) => setDraft((d) => ({ ...d, [k]: value }))} />
+        <Panel
+          title={t("results.grid.title")}
+          labelledBy="sheet-grid"
+          actions={
+            editable ? (
+              <span className={readStyles.rowMeta}>
+                {missing > 0
+                  ? t("results.grid.missing", { count: missing })
+                  : t("results.grid.complete")}
+              </span>
+            ) : null
+          }
+        >
+          {editable ? (
+            <p className={readStyles.rowMeta}>{t("results.grid.hint")}</p>
+          ) : null}
+          {editable ? (
+            <MarksExcel
+              sheet={sheet}
+              onFill={(marks) => setDraft((d) => ({ ...d, ...marks }))}
+            />
+          ) : null}
+          <SheetGrid
+            sheet={sheet}
+            draft={draft}
+            editable={editable}
+            onChange={(k, value) => setDraft((d) => ({ ...d, [k]: value }))}
+          />
           {editable ? (
             <div className={styles.actions}>
-              <Button className={styles.wrapLabel} onClick={() => void onSubmit()} loading={busy === "submit"} loadingLabel={t("results.saving")} disabled={busy !== null || missing > 0}>
+              <Button
+                className={styles.wrapLabel}
+                onClick={() => void onSubmit()}
+                loading={busy === "submit"}
+                loadingLabel={t("results.saving")}
+                disabled={busy !== null || missing > 0}
+              >
                 {t("results.grid.submit")}
               </Button>
-              <Button className={styles.wrapLabel} variant="secondary" onClick={() => void onSave()} loading={busy === "save"} loadingLabel={t("results.saving")} disabled={busy !== null}>
+              <Button
+                className={styles.wrapLabel}
+                variant="secondary"
+                onClick={() => void onSave()}
+                loading={busy === "save"}
+                loadingLabel={t("results.saving")}
+                disabled={busy !== null}
+              >
                 {t("results.grid.save")}
               </Button>
             </div>

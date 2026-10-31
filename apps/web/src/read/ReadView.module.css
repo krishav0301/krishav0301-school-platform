@@ -102,6 +102,7 @@
   --tile-tint: var(--tint-accent);
   --tile-tone: var(--color-accent);
   position: relative;
+  container-type: inline-size;
   isolation: isolate;
   overflow: hidden;
   display: flex;
@@ -185,11 +186,13 @@
 }
 
 .tileValue {
-  font-size: var(--text-2xl);
+  /* Shrinks with a narrow tile so a figure such as 71.00% fits beside the icon instead of spilling out. */
+  font-size: clamp(var(--text-lg), 9cqi, var(--text-2xl));
   font-weight: var(--weight-heavy);
   letter-spacing: -0.02em;
   line-height: var(--leading-tight);
-  overflow-wrap: break-word;
+  /* A figure such as 71.00% stays whole: its sign never drops to a line of its own. */
+  overflow-wrap: normal;
 }
 
 /* Whole words only (D-030): a word moves to the next line rather than breaking in the middle. */
@@ -439,7 +442,7 @@
 }
 
 .segment {
-  min-height: 2.5rem;
+  min-height: var(--control-height);
   padding: 0 var(--space-4);
   border: 0;
   border-radius: calc(var(--radius-control) - 3px);

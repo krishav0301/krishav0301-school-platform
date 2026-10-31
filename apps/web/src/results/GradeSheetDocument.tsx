@@ -65,6 +65,7 @@ export function GradeSheetDocument({ sheet }: { sheet: GradeSheet }) {
           <dd>{sheet.student.rollNo ?? ""}</dd>
         </dl>
       </div>
+      <p className={styles.swipeHint}>{t("results.doc.swipe")}</p>
       <div className={`${styles.scroll} ${styles.grow}`}>
         <table className={styles.grid}>
           <thead>
