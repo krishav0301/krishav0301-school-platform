@@ -2298,7 +2298,7 @@ export const en = {
   "results.excel.noId": "The sheet needs a Student ID column. Download the sheet and start from it.",
   "results.excel.noMarks": "The sheet has no Theory or Practical column.",
   "results.excel.noRows": "The sheet has no students in it.",
-  "results.grid.hint": "Type each mark, or AB if the student was absent. Save as you go; send it for review when every mark is in.",
+  "results.grid.hint": "Type each mark. If a student was absent, type AB. Save as you go; send it for review when every mark is in.",
   "results.grid.missing": "{count} missing",
   "results.grid.note": "Sent back: {note}",
   "results.grid.locked": "This sheet is with the Co-ordinator, so its marks cannot be changed here.",
