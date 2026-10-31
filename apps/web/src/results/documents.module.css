@@ -95,6 +95,24 @@
   overflow-wrap: anywhere;
 }
 
+/* On a phone the name, class and numbers go one under another, each with the room of the whole line: two half-width
+   columns left the student's name one letter wide. Paper and the PDF capture keep their two columns. */
+@media (max-width: 40rem) {
+  .who {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media print {
+  .who {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+}
+
+.capture .who {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+}
+
 /* A table that keeps its columns: on a narrow screen it scrolls inside its own box, on paper it fits the page. */
 .scroll {
   overflow-x: auto;
