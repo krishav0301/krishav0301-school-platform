@@ -59,19 +59,23 @@ export async function gradeSheetFor(db: D1Database, viewer: { student: string } 
           WHERE mc.publication_id = (SELECT publication_id FROM marks_cards WHERE public_id = ?1) AND ${LATEST}`,
       )
       .bind(cardId),
-    // What the Class Teacher gave for this exam: the class's working days and this student's days present (a final result has none).
+    // What the Class Teacher gave: for an exam's card, that exam's working days and this student's days present; for the final result, the
+    // sums over the year's exams that have both (a student missing an exam's days is left out of that exam, so the percentage stays honest).
     db
       .prepare(
-        `SELECT d.working_days, ta.days_present
+        `SELECT SUM(d.working_days) AS working_days, SUM(ta.days_present) AS days_present
            FROM marks_cards mc JOIN result_publications rp ON rp.id = mc.publication_id JOIN enrollments en ON en.id = mc.enrollment_id
-           JOIN term_attendance_days d ON d.terminal_id = rp.terminal_id AND d.class_id = rp.class_id
-           JOIN term_attendance ta ON ta.terminal_id = rp.terminal_id AND ta.enrollment_id = mc.enrollment_id
+           JOIN classes pc ON pc.id = rp.class_id
+           JOIN terminals t ON t.academic_year_id = pc.academic_year_id AND (rp.terminal_id IS NULL OR t.id = rp.terminal_id)
+           JOIN term_attendance_days d ON d.terminal_id = t.id AND d.class_id = rp.class_id
+           JOIN term_attendance ta ON ta.terminal_id = t.id AND ta.enrollment_id = mc.enrollment_id
           WHERE mc.public_id = ?1 AND en.class_id = rp.class_id`,
       )
       .bind(cardId),
   ]);
   const layout = configOf(school!.results[0] as SchoolRow | undefined);
-  const given = attendance!.results[0] as { working_days: number; days_present: number } | undefined;
+  const sums = attendance!.results[0] as { working_days: number | null; days_present: number | null } | undefined;
+  const given = sums && sums.working_days !== null && sums.days_present !== null ? { working_days: sums.working_days, days_present: sums.days_present } : undefined;
   const row = card!.results[0] as { card_id: string; version: number; body: string; published_at: string; enrollment_id: string; roll_no: number | null; dob_ad: string | null; student_name: string; level_name: string; label: string } | undefined;
   if (!layout || !row) return null;
   const classCards: ClassCard[] = (latest!.results as unknown as { enrollment_id: string; body: string }[]).map((r) => ({ enrollmentId: r.enrollment_id, body: JSON.parse(r.body) as CardBody }));

@@ -400,7 +400,7 @@ export const GradeSheetSchema = z
     rank: z.number().int(),
     classSize: z.number().int(),
     issuedOnBs: z.string().nullable(),
-    /** The days the class worked and the days this student was present, as the Class Teacher gave them for this exam; null when not given (and always for the final result). */
+    /** The days the class worked and the days this student was present, as the Class Teacher gave them for this exam; null when not given. On the final result it is the sum over the year's exams that have both. */
     attendance: z.object({ workingDays: z.number().int(), presentDays: z.number().int(), percentHundredths: z.number().int() }).nullable(),
     /** The paper's colour: the page's own surface, or the theme's soft accent (the school's yellow). */
     paper: z.enum(["plain", "accent"]),

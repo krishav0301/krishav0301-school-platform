@@ -111,6 +111,29 @@ describe("giving the attendance", () => {
   });
 });
 
+describe("the final result", () => {
+  it("sums the working days and the days present over the exams to give the final percentage", async () => {
+    const finalOf = async (c: ClassFixture, i: number) => {
+      const card = ((await (await call("/api/results/me", { cookie: c.pupils[i]!.person.cookie })).json()) as { results: { kind: string; card: { id: string } }[] }).results.find((r) => r.kind === "final")!.card.id;
+      return ((await (await call(`/api/results/grade-sheets/${card}`, { cookie: c.pupils[i]!.person.cookie })).json()) as { attendance: { workingDays: number; presentDays: number; percentHundredths: number } | null }).attendance;
+    };
+    // Exam one (above): 190 working days; pupil 0 was present 190, pupil 1 none given, pupil 2 present 0 (the last correction gave 190, 100, 100 by Support).
+    expect(await finalOf(a, 0)).toEqual({ workingDays: 190, presentDays: 190, percentHundredths: 10_000 });
+    // A second exam in the same year: 100 working days; pupil 0 present 50, pupil 1 present 40, pupil 2 none given.
+    await db.prepare("INSERT INTO terminals (public_id, academic_year_id, name, ordinal) SELECT 'f'||hex(randomblob(15)), academic_year_id, 'Second exam', 9 FROM classes WHERE public_id = ?1").bind(a.classId).run();
+    const second = await db.prepare("SELECT t.id AS id FROM terminals t JOIN classes c ON c.academic_year_id = t.academic_year_id WHERE c.public_id = ?1 AND t.ordinal = 9").bind(a.classId).first<{ id: number }>();
+    const user = await db.prepare("SELECT id FROM users LIMIT 1").first<{ id: number }>();
+    await db.prepare("INSERT INTO term_attendance_days (terminal_id, class_id, working_days, updated_by_user_id, updated_at) SELECT ?1, id, 100, ?2, 'x' FROM classes WHERE public_id = ?3").bind(second!.id, user!.id, a.classId).run();
+    for (const [i, days] of [[0, 50], [1, 40]] as const) {
+      await db.prepare("INSERT INTO term_attendance (terminal_id, enrollment_id, days_present, updated_by_user_id, updated_at) SELECT ?1, id, ?2, ?3, 'x' FROM enrollments WHERE public_id = ?4").bind(second!.id, days, user!.id, a.pupils[i]!.enrollmentId).run();
+    }
+    // Pupil 0: 190 + 50 present of 190 + 100 working = 240 of 290 (82.76). Pupil 1: only the second exam counts: 40 of 100. Pupil 2: only the first: 100 of 190 as corrected above.
+    expect(await finalOf(a, 0)).toEqual({ workingDays: 290, presentDays: 240, percentHundredths: 8276 });
+    expect(await finalOf(a, 1)).toEqual({ workingDays: 100, presentDays: 40, percentHundredths: 4000 });
+    expect((await finalOf(a, 2))?.workingDays).toBe(190);
+  });
+});
+
 describe("who may give it", () => {
   it("is the class's own Class Teacher and Support; nobody else", async () => {
     const body = (c: ClassFixture) => [190, 100, 100].slice(0, c.pupils.length);
