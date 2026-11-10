@@ -5,7 +5,7 @@ import { useState, type ReactNode } from "react";
 
 import { t } from "@/i18n/messages";
 import { GROUP_TONES, GroupCard, GroupList } from "@/read/GroupCard";
-import { OpenLink, ReadTable } from "@/read/ReadView";
+import { OpenLink, ReadTable, readStyles } from "@/read/ReadView";
 
 import type { ClassHub } from "./model";
 
@@ -62,5 +62,29 @@ export function MyMarksByExam({ hub }: { hub: Hub }) {
         />
       )}
     />
+  );
+}
+
+/** The Class Teacher's list of exams, each with a link to give that exam's attendance (working days, then each student's days present). */
+export function AttendanceEntries({ hub }: { hub: Hub }) {
+  return (
+    <>
+      <p className={readStyles.rowMeta}>{t("classes.attendanceHint")}</p>
+      <ReadTable
+        caption={t("classes.attendanceTitle")}
+        rows={hub.terminals}
+        rowKey={(x) => x.id}
+        columns={[
+          { key: "exam", label: t("classes.col.exam"), primary: true, cell: (x) => x.name },
+          {
+            key: "open",
+            label: t("classes.col.open"),
+            align: "end",
+            plain: true,
+            cell: (x) => <OpenLink href={`/portal/results/attendance?class=${hub.class.id}&exam=${x.id}`} label={t("classes.attendanceFor", { exam: x.name })} text={t("classes.attendanceOpen")} />,
+          },
+        ]}
+      />
+    </>
   );
 }

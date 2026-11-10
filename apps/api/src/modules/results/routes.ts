@@ -9,6 +9,7 @@ import { gradeSheetFor, ledgerFor } from "./documents";
 import { reachOf, type Reach } from "./guard";
 import { publishClass } from "./publish";
 import { decideRecheck, listRechecks, requestRecheck } from "./rechecks";
+import { termAttendanceFor, saveTermAttendance } from "./termattendance";
 import { loadSheet, mySheets, reviewBoard, saveMarks, sendBack, sheetPlace, submitSheet, verifySheets } from "./sheets";
 import {
   BulkVerifySchema,
@@ -28,8 +29,10 @@ import {
   RequestRecheckSchema,
   ReviewBoardSchema,
   SaveMarksSchema,
+  SaveTermAttendanceSchema,
   SendBackSchema,
   SetPicksSchema,
+  TermAttendanceSchema,
   Top20Schema,
 } from "./schema";
 import { classSheet, classSheetCsv, ownResults, publishedResults, staffCard, studentResults, top20 } from "./views";
@@ -72,6 +75,7 @@ const PUBLISH = { action: "results.publish" } as const;
 const VIEW = { action: "results.view" } as const;
 const CARD = { action: "results.card.view" } as const;
 const CLASS_SHEET = { action: "results.class_sheet.view" } as const;
+const TERM_ATTENDANCE = { action: "results.attendance.give" } as const;
 const TOP20 = { action: "results.top20.view" } as const;
 const RECHECK = { action: "results.recheck.request" } as const;
 const RECHECK_EDIT = { action: "results.recheck.edit" } as const;
@@ -618,6 +622,46 @@ export function registerResults(app: App): void {
       if (result.ok) return c.json({ ok: true as const }, 200);
       if (result.reason === "cannot_grade") return c.json({ error: "invalid" as const, message: result.message }, 422);
       return fail(c, result);
+    },
+  );
+
+  defineRoute(
+    app,
+    {
+      method: "get",
+      path: "/api/results/classes/{classId}/terminals/{terminalId}/attendance",
+      operationId: "get_term_attendance",
+      tags: ["results"],
+      description: "The attendance the Class Teacher gives for an exam's marks card: the class's working days and each student's days present. Only the person who leads the class (or Support).",
+      access: TERM_ATTENDANCE,
+      request: { params: ClassTerminal },
+      responses: { 200: { description: "The attendance", content: json(TermAttendanceSchema) }, 404: failures[404] },
+    },
+    async (c) => {
+      const { classId, terminalId } = c.req.valid("param");
+      const read = await termAttendanceFor(c.env.DB, c.get("auth")!.userPublicId, c.get("grant")!.institution, classId, terminalId);
+      c.header("Cache-Control", "no-store");
+      return read ? c.json(read, 200) : c.json({ error: "not_found" }, 404);
+    },
+  );
+
+  defineRoute(
+    app,
+    {
+      method: "put",
+      path: "/api/results/classes/{classId}/terminals/{terminalId}/attendance",
+      operationId: "save_term_attendance",
+      tags: ["results"],
+      description:
+        "The Class Teacher gives the class's working days for an exam and each student's days present; the grade-point marks card prints the percentage. Sending it again replaces what was given. A student sent with no days has none given. Not possible once the year is closed.",
+      access: TERM_ATTENDANCE,
+      request: { params: ClassTerminal, body: { required: true, content: json(SaveTermAttendanceSchema) } },
+      responses: { 200: { description: "Saved", content: json(OkSchema) }, ...failures },
+    },
+    async (c) => {
+      const { classId, terminalId } = c.req.valid("param");
+      const result = await saveTermAttendance(c.env.DB, c.env.AUDIT_HMAC_KEY, c.get("auth")!.userPublicId, c.get("grant")!.institution, classId, terminalId, c.req.valid("json"));
+      return result.ok ? c.json({ ok: true as const }, 200) : fail(c, result);
     },
   );
 }

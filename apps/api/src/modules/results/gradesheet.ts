@@ -100,7 +100,13 @@ export interface SheetContext {
   /** The student's roll number now (roll numbers are given after the class is made, so a card published earlier still shows it). */
   rollNo: number | null;
   issuedOnBs: string | null;
+  /** The days given by the Class Teacher for this card's exam, or null when none were given. */
+  attendance?: { workingDays: number; presentDays: number } | null;
 }
+
+/** Attendance as the card prints it: days over working days as a percentage to hundredths. Null when either is missing or no day was worked. Pure. */
+export const attendanceOf = (a: { workingDays: number; presentDays: number } | null | undefined): GradeSheet["attendance"] =>
+  a && a.workingDays > 0 ? { workingDays: a.workingDays, presentDays: Math.min(a.presentDays, a.workingDays), percentHundredths: percentOf(Math.min(a.presentDays, a.workingDays), a.workingDays) } : null;
 
 /** The grade-point marks card of one card, among the class's latest cards. */
 export function buildGradeSheet(config: GradeSheetConfig, ctx: SheetContext, body: CardBody, classCards: ClassCard[]): GradeSheet {
@@ -149,6 +155,7 @@ export function buildGradeSheet(config: GradeSheetConfig, ctx: SheetContext, bod
     rank: ranked.get(ctx.enrollmentId) ?? classCards.length,
     classSize: classCards.length,
     issuedOnBs: ctx.issuedOnBs,
+    attendance: attendanceOf(ctx.attendance),
     paper: config.paper,
     scale: config.scale.map((b, i) => ({ grade: b.grade, from: b.from, upTo: i === 0 ? null : config.scale[i - 1]!.from, pointHundredths: b.pointHundredths, remark: b.remark })),
   };

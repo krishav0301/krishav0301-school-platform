@@ -188,6 +188,7 @@ export const MATRIX = [
   row(G.results, "results.view", "View published results and marks card", 7, { STU: own, COO: inst, ADM: read, SUP: all }),
   row(G.results, "results.card.view", "Open one marks card: the student's own; a Class Teacher's for the class they lead (2026-10-29)", 7, { STU: own, TEA: cls, COO: inst, ADM: read, SUP: all }),
   row(G.results, "results.class_sheet.view", "View a class's published result sheet, every subject (FUT point 19)", 7, { TEA: cls, COO: inst, ADM: read, SUP: all }),
+  row(G.results, "results.attendance.give", "Give the working days and each student's days present for an exam's marks card: the Class Teacher of the class (2026-11-10)", 7, { TEA: cls, SUP: all }),
   row(G.results, "results.top20.view", "Top 20", 7, {
     STU: only(own, "name and rank only, own section, published"),
     COO: inst,

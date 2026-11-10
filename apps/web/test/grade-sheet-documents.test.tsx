@@ -1,10 +1,10 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 
-import { GradeSheetDocument, partCell, rangeText } from "@/results/GradeSheetDocument";
+import { GradeSheetDocument, attendanceText, partCell, rangeText } from "@/results/GradeSheetDocument";
 import { MarkLedgerDocument, columnName, markCell } from "@/results/MarkLedgerDocument";
 import { notForYou } from "@/results/client";
-import { fileSafe, fitOnA4, planSheets } from "@/results/download-pdf";
+import { fileSafe, fitOnA4, planSheets, widthForA4 } from "@/results/download-pdf";
 import { pointTableText, pointText, tenthsText, type GradeSheet, type MarkLedger } from "@/results/model";
 
 /**
@@ -40,6 +40,7 @@ const sheet: GradeSheet = {
   rank: 18,
   classSize: 26,
   issuedOnBs: "2083/05/10",
+  attendance: null,
   paper: "accent",
   scale,
 };
@@ -263,5 +264,36 @@ describe("a document someone may not open", () => {
     expect(notForYou("forbidden")).toEqual({ ok: false, reason: "forbidden" });
     expect(notForYou("not_found")).toEqual({ ok: false, reason: "forbidden" });
     expect(notForYou("failed")).toEqual({ ok: false, reason: "failed" });
+  });
+});
+
+describe("the attendance on the card (the PM, 2026-11-10)", () => {
+  it("prints the percentage and the days it comes from, in the attendance box, once the Class Teacher has given it", () => {
+    const given = { workingDays: 200, presentDays: 187, percentHundredths: 9350 };
+    expect(attendanceText(given)).toBe("93.50% (187 of 200 days)");
+    const html = renderToStaticMarkup(<GradeSheetDocument sheet={{ ...sheet, attendance: given }} />);
+    expect(html).toContain("93.50% (187 of 200 days)");
+    // The box is no longer the blank one for the hand.
+    expect(html).not.toMatch(/<td class="[^"]*blank[^"]*"><\/td><td>77\.00/);
+  });
+  it("leaves the box empty for the hand when nothing was given", () => {
+    expect(attendanceText(null)).toBe("");
+    expect(renderToStaticMarkup(<GradeSheetDocument sheet={sheet} />)).toMatch(/<td class="[^"]*blank[^"]*"><\/td><td>77\.00/);
+  });
+});
+
+describe("the card's PDF has A4's shape (the PM, 2026-11-10)", () => {
+  it("widens a page that is taller than A4 until it is A4-shaped, instead of shrinking it", () => {
+    // The page in the PM's file: about 832 wide and 1500 tall, which a sheet shrank to a narrow strip.
+    const width = widthForA4(832, 1500);
+    expect(width).toBe(1061);
+    expect(width / 1500).toBeGreaterThanOrEqual(210 / 297 - 0.001);
+    const at = fitOnA4(width, 1500);
+    expect(at.width).toBeCloseTo(210, 0);
+    expect(at.height).toBeCloseTo(297, 0);
+  });
+  it("keeps the width of a page already as wide as A4", () => {
+    expect(widthForA4(832, 1176)).toBe(832);
+    expect(widthForA4(1000, 500)).toBe(1000);
   });
 });

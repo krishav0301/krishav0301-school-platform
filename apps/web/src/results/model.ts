@@ -11,6 +11,7 @@ export type Top20 = components["schemas"]["Top20"];
 export type ClassSheet = components["schemas"]["ClassResultSheet"];
 export type GradeSheet = components["schemas"]["GradeSheet"];
 export type MarkLedger = components["schemas"]["MarkLedger"];
+export type TermAttendance = components["schemas"]["TermAttendance"];
 export type RecheckList = components["schemas"]["RecheckList"];
 export type ClassElectives = components["schemas"]["ClassElectives"];
 export type SheetStatus = MarkSheet["status"];

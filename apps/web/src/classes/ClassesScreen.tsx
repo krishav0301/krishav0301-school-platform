@@ -10,7 +10,7 @@ import { t, type MessageKey } from "@/i18n/messages";
 import { AddDialog, Notice } from "@/ui";
 import { EmptyLine, OpenLink, Panel, ReadFailure, ReadHeader, ReadTable, Segments, TableSkeleton, readStyles } from "@/read/ReadView";
 import { ClassSheetView } from "@/results/StaffScreens";
-import { MyMarksByExam, TerminalCards } from "./TerminalGroups";
+import { AttendanceEntries, MyMarksByExam, TerminalCards } from "./TerminalGroups";
 import { ImportStudents } from "./ImportStudents";
 import { useImportJob } from "./import-job";
 import { useSession } from "@/session/SessionProvider";
@@ -91,13 +91,26 @@ export function StudentsTable({ hub, canOpenRecord }: { hub: Pick<ClassHub, "stu
  * opens the marks of their own subjects, exam by exam. Pure apart from the sheets it loads.
  */
 export function ClassResults({ hub }: { hub: Pick<ClassHub, "class" | "viewer" | "mySubjects" | "terminals"> }) {
-  const { term } = useConfig();
+  const { term, config } = useConfig();
+  // The Class Teacher of a school with the grade-point marks card gives each exam's attendance, which that card prints (the PM, 2026-11-10).
+  const attendance = hub.viewer.isClassTeacher && config?.school.gradeSheet && hub.terminals.length > 0 ? <AttendanceEntries hub={hub} /> : null;
   if (hub.terminals.length === 0) return <EmptyLine>{t("classes.noExams")}</EmptyLine>;
   if (hub.viewer.seesAll) {
     const published = hub.terminals.filter((x) => x.published);
-    if (published.length === 0) return <EmptyLine>{t("classes.nothingPublished", { coordinator: term("role.coordinator") })}</EmptyLine>;
+    if (published.length === 0)
+      return (
+        <>
+          {attendance}
+          <EmptyLine>{t("classes.nothingPublished", { coordinator: term("role.coordinator") })}</EmptyLine>
+        </>
+      );
     // A card for each published exam, the class's sheet for it inside.
-    return <TerminalCards terminals={published} body={(x) => <ClassSheetView classId={hub.class.id} terminalId={x.id} exportable={hub.viewer.staff} bare />} />;
+    return (
+      <>
+        {attendance}
+        <TerminalCards terminals={published} body={(x) => <ClassSheetView classId={hub.class.id} terminalId={x.id} exportable={hub.viewer.staff} bare />} />
+      </>
+    );
   }
   if (hub.mySubjects.length === 0) return <EmptyLine>{t("classes.noSubjects")}</EmptyLine>;
   return <MyMarksByExam hub={hub} />;
