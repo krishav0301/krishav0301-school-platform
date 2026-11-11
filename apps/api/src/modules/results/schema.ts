@@ -400,12 +400,16 @@ export const GradeSheetSchema = z
     rank: z.number().int(),
     classSize: z.number().int(),
     issuedOnBs: z.string().nullable(),
+    /** The days the class worked and the days this student was present, as the Class Teacher gave them for this exam; null when not given. On the final result it is the sum over the year's exams that have both. */
+    attendance: z.object({ workingDays: z.number().int(), presentDays: z.number().int(), percentHundredths: z.number().int() }).nullable(),
     /** The paper's colour: the page's own surface, or the theme's soft accent (the school's yellow). */
     paper: z.enum(["plain", "accent"]),
     scale: z.array(z.object({ grade: z.string(), from: z.number().int(), upTo: z.number().int().nullable(), pointHundredths: z.number().int(), remark: z.string() })),
   })
   .openapi("GradeSheet");
 export type GradeSheet = z.infer<typeof GradeSheetSchema>;
+
+const LedgerPart = z.object({ valueHundredths: z.number().int().nullable(), absent: z.boolean() });
 
 /** The class mark ledger: students by subjects, with the marks themselves, the total, the percentage and the rank. */
 export const MarkLedgerSchema = z
@@ -416,14 +420,25 @@ export const MarkLedgerSchema = z
     className: z.string(),
     /** The terminal's name, or null for the final result. */
     examName: z.string().nullable(),
-    subjects: z.array(z.object({ offeringId: z.string(), name: z.string(), code: z.string().nullable() })),
+    /** `hasPractical`: some student's card has a practical part for the subject, so the column splits into TH and PR (the PM, 2026-11-11). */
+    subjects: z.array(z.object({ offeringId: z.string(), name: z.string(), code: z.string().nullable(), hasPractical: z.boolean() })),
     students: z.array(
       z.object({
         enrollmentId: z.string(),
         rollNo: z.number().int().nullable(),
         name: z.string(),
         /** One per subject, in the subjects' order; null when the student does not take it. */
-        marks: z.array(z.object({ valueHundredths: z.number().int(), absent: z.boolean() }).nullable()),
+        marks: z.array(
+          z
+            .object({
+              valueHundredths: z.number().int(),
+              absent: z.boolean(),
+              /** The theory and practical parts of the paper; null when the card has no such part (a final result has neither: its subject is one figure out of 100). */
+              theory: LedgerPart.nullable(),
+              practical: LedgerPart.nullable(),
+            })
+            .nullable(),
+        ),
         totalHundredths: z.number().int(),
         percentHundredths: z.number().int(),
         rank: z.number().int(),
@@ -432,3 +447,38 @@ export const MarkLedgerSchema = z
   })
   .openapi("MarkLedger");
 export type MarkLedger = z.infer<typeof MarkLedgerSchema>;
+
+// --- Attendance for a terminal's marks card (the PM, 2026-11-10) --------------------------------------------------
+
+/** What the Class Teacher gave for one class and exam: the working days, and each student's days present (null: not given yet). */
+export const TermAttendanceSchema = z
+  .object({
+    classId: z.string(),
+    ...Naming,
+    yearLabel: z.string(),
+    terminalId: z.string(),
+    terminalName: z.string(),
+    /** Null until the Class Teacher gives it. */
+    workingDays: z.number().int().nullable(),
+    /** A closed year takes no change. */
+    locked: z.boolean(),
+    students: z.array(z.object({ enrollmentId: z.string(), sid: z.string(), rollNo: z.number().int().nullable(), name: z.string(), daysPresent: z.number().int().nullable() })),
+  })
+  .openapi("TermAttendance");
+export type TermAttendance = z.infer<typeof TermAttendanceSchema>;
+
+export const SaveTermAttendanceSchema = z
+  .strictObject({
+    workingDays: z.number().int("Working days is a whole number").min(1, "Working days must be at least 1").max(366, "Working days cannot be more than 366"),
+    students: z
+      .array(z.strictObject({ enrollmentId: PublicIdSchema, daysPresent: z.number().int("Days present is a whole number").min(0, "Days present cannot be below 0").max(366, "Days present cannot be more than 366").nullable() }))
+      .max(500),
+  })
+  .superRefine((v, ctx) => {
+    v.students.forEach((s, i) => {
+      if (s.daysPresent !== null && s.daysPresent > v.workingDays) ctx.addIssue({ code: "custom", path: ["students", i, "daysPresent"], message: "A student cannot be present on more days than the class worked" });
+    });
+    if (new Set(v.students.map((s) => s.enrollmentId)).size !== v.students.length) ctx.addIssue({ code: "custom", path: ["students"], message: "A student is listed twice" });
+  })
+  .openapi("SaveTermAttendance");
+export type SaveTermAttendance = z.infer<typeof SaveTermAttendanceSchema>;

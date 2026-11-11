@@ -1,6 +1,6 @@
 import type { ApiClient } from "@/api/client";
 
-import type { ClassElectives, ClassSheet, GradeSheet, MarkLedger, MarkSheet, MarksCard, MyMarkSheets, OwnResults, Part, PublishedResults, RecheckList, ReviewBoard, Top20 } from "./model";
+import type { ClassElectives, ClassSheet, GradeSheet, MarkLedger, MarkSheet, MarksCard, MyMarkSheets, OwnResults, Part, PublishedResults, RecheckList, ReviewBoard, TermAttendance, Top20 } from "./model";
 
 /** What the results screens ask of the server, as plain results. Nothing here throws. */
 export type Loaded<T> = { ok: true; data: T } | { ok: false; reason: "forbidden" | "not_found" | "failed" };
@@ -161,3 +161,9 @@ export const setPicks = (api: ApiClient, enrollmentId: string, groupId: string, 
       body: { offeringIds },
     }),
   );
+
+/** The attendance a Class Teacher gives for a class and exam (the days the class worked, each student's days present). */
+export const loadTermAttendance = (api: ApiClient, classId: string, terminalId: string): Promise<Loaded<TermAttendance>> =>
+  load(() => api.GET("/api/results/classes/{classId}/terminals/{terminalId}/attendance", { params: { path: { classId, terminalId } } }));
+export const saveTermAttendance = (api: ApiClient, classId: string, terminalId: string, workingDays: number, students: { enrollmentId: string; daysPresent: number | null }[]) =>
+  send(() => api.PUT("/api/results/classes/{classId}/terminals/{terminalId}/attendance", { params: { path: { classId, terminalId } }, body: { workingDays, students } }));

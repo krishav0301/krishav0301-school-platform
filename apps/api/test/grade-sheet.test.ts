@@ -205,6 +205,7 @@ describe("the mark ledger", () => {
       students[0]!,
       { ...students[1]!, body: card("Pranish", [subject("Eng", 50, 100)]) },
     ]);
-    expect(partial.students[1]!.marks).toEqual([{ valueHundredths: 5000, absent: false }, null, null]);
+    expect(partial.subjects.every((x) => x.hasPractical === false)).toBe(true);
+    expect(partial.students[1]!.marks).toEqual([{ valueHundredths: 5000, absent: false, theory: { valueHundredths: 5000, absent: false }, practical: null }, null, null]);
   });
 });

@@ -2991,6 +2991,24 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/results/classes/{classId}/terminals/{terminalId}/attendance": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description The attendance the Class Teacher gives for an exam's marks card: the class's working days and each student's days present. Only the person who leads the class (or Support). */
+        get: operations["get_term_attendance"];
+        /** @description The Class Teacher gives the class's working days for an exam and each student's days present; the grade-point marks card prints the percentage. Sending it again replaces what was given. A student sent with no days has none given. Not possible once the year is closed. */
+        put: operations["save_term_attendance"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/dashboard/overview": {
         parameters: {
             query?: never;
@@ -5526,6 +5544,11 @@ export interface components {
             rank: number;
             classSize: number;
             issuedOnBs: string | null;
+            attendance: {
+                workingDays: number;
+                presentDays: number;
+                percentHundredths: number;
+            } | null;
             /** @enum {string} */
             paper: "plain" | "accent";
             scale: {
@@ -5551,6 +5574,7 @@ export interface components {
                 offeringId: string;
                 name: string;
                 code: string | null;
+                hasPractical: boolean;
             }[];
             students: {
                 enrollmentId: string;
@@ -5559,6 +5583,14 @@ export interface components {
                 marks: ({
                     valueHundredths: number;
                     absent: boolean;
+                    theory: {
+                        valueHundredths: number | null;
+                        absent: boolean;
+                    } | null;
+                    practical: {
+                        valueHundredths: number | null;
+                        absent: boolean;
+                    } | null;
                 } | null)[];
                 totalHundredths: number;
                 percentHundredths: number;
@@ -5624,6 +5656,31 @@ export interface components {
                 valueHundredths: number | null;
                 /** @default false */
                 absent: boolean;
+            }[];
+        };
+        TermAttendance: {
+            classId: string;
+            programmeName: string;
+            levelName: string;
+            label: string;
+            yearLabel: string;
+            terminalId: string;
+            terminalName: string;
+            workingDays: number | null;
+            locked: boolean;
+            students: {
+                enrollmentId: string;
+                sid: string;
+                rollNo: number | null;
+                name: string;
+                daysPresent: number | null;
+            }[];
+        };
+        SaveTermAttendance: {
+            workingDays: number;
+            students: {
+                enrollmentId: string;
+                daysPresent: number | null;
             }[];
         };
         DashboardOverview: {
@@ -14619,6 +14676,92 @@ export interface operations {
         };
         responses: {
             /** @description Decided */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResultsOk"];
+                };
+            };
+            /** @description No such item, or not one the person may reach */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResultsError"];
+                };
+            };
+            /** @description Not possible in its current state (already decided, already published, not ready, or the year is closed) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResultsError"];
+                };
+            };
+            /** @description Not valid */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResultsInvalid"];
+                };
+            };
+        };
+    };
+    get_term_attendance: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                classId: string;
+                terminalId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The attendance */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TermAttendance"];
+                };
+            };
+            /** @description No such item, or not one the person may reach */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResultsError"];
+                };
+            };
+        };
+    };
+    save_term_attendance: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                classId: string;
+                terminalId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SaveTermAttendance"];
+            };
+        };
+        responses: {
+            /** @description Saved */
             200: {
                 headers: {
                     [name: string]: unknown;

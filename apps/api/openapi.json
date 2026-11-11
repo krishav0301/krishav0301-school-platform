@@ -11106,6 +11106,28 @@
               "null"
             ]
           },
+          "attendance": {
+            "type": [
+              "object",
+              "null"
+            ],
+            "properties": {
+              "workingDays": {
+                "type": "integer"
+              },
+              "presentDays": {
+                "type": "integer"
+              },
+              "percentHundredths": {
+                "type": "integer"
+              }
+            },
+            "required": [
+              "workingDays",
+              "presentDays",
+              "percentHundredths"
+            ]
+          },
           "paper": {
             "type": "string",
             "enum": [
@@ -11165,6 +11187,7 @@
           "rank",
           "classSize",
           "issuedOnBs",
+          "attendance",
           "paper",
           "scale"
         ]
@@ -11232,12 +11255,16 @@
                     "string",
                     "null"
                   ]
+                },
+                "hasPractical": {
+                  "type": "boolean"
                 }
               },
               "required": [
                 "offeringId",
                 "name",
-                "code"
+                "code",
+                "hasPractical"
               ]
             }
           },
@@ -11271,11 +11298,55 @@
                       },
                       "absent": {
                         "type": "boolean"
+                      },
+                      "theory": {
+                        "type": [
+                          "object",
+                          "null"
+                        ],
+                        "properties": {
+                          "valueHundredths": {
+                            "type": [
+                              "integer",
+                              "null"
+                            ]
+                          },
+                          "absent": {
+                            "type": "boolean"
+                          }
+                        },
+                        "required": [
+                          "valueHundredths",
+                          "absent"
+                        ]
+                      },
+                      "practical": {
+                        "type": [
+                          "object",
+                          "null"
+                        ],
+                        "properties": {
+                          "valueHundredths": {
+                            "type": [
+                              "integer",
+                              "null"
+                            ]
+                          },
+                          "absent": {
+                            "type": "boolean"
+                          }
+                        },
+                        "required": [
+                          "valueHundredths",
+                          "absent"
+                        ]
                       }
                     },
                     "required": [
                       "valueHundredths",
-                      "absent"
+                      "absent",
+                      "theory",
+                      "practical"
                     ]
                   }
                 },
@@ -11586,6 +11657,130 @@
         "required": [
           "outcome",
           "reason"
+        ],
+        "additionalProperties": false
+      },
+      "TermAttendance": {
+        "type": "object",
+        "properties": {
+          "classId": {
+            "type": "string"
+          },
+          "programmeName": {
+            "type": "string"
+          },
+          "levelName": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "yearLabel": {
+            "type": "string"
+          },
+          "terminalId": {
+            "type": "string"
+          },
+          "terminalName": {
+            "type": "string"
+          },
+          "workingDays": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "locked": {
+            "type": "boolean"
+          },
+          "students": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "enrollmentId": {
+                  "type": "string"
+                },
+                "sid": {
+                  "type": "string"
+                },
+                "rollNo": {
+                  "type": [
+                    "integer",
+                    "null"
+                  ]
+                },
+                "name": {
+                  "type": "string"
+                },
+                "daysPresent": {
+                  "type": [
+                    "integer",
+                    "null"
+                  ]
+                }
+              },
+              "required": [
+                "enrollmentId",
+                "sid",
+                "rollNo",
+                "name",
+                "daysPresent"
+              ]
+            }
+          }
+        },
+        "required": [
+          "classId",
+          "programmeName",
+          "levelName",
+          "label",
+          "yearLabel",
+          "terminalId",
+          "terminalName",
+          "workingDays",
+          "locked",
+          "students"
+        ]
+      },
+      "SaveTermAttendance": {
+        "type": "object",
+        "properties": {
+          "workingDays": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 366
+          },
+          "students": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "enrollmentId": {
+                  "type": "string",
+                  "pattern": "^[0-9a-f]{32}$"
+                },
+                "daysPresent": {
+                  "type": [
+                    "integer",
+                    "null"
+                  ],
+                  "minimum": 0,
+                  "maximum": 366
+                }
+              },
+              "required": [
+                "enrollmentId",
+                "daysPresent"
+              ],
+              "additionalProperties": false
+            },
+            "maxItems": 500
+          }
+        },
+        "required": [
+          "workingDays",
+          "students"
         ],
         "additionalProperties": false
       },
@@ -24587,6 +24782,136 @@
         "responses": {
           "200": {
             "description": "Decided",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultsOk"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such item, or not one the person may reach",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultsError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Not possible in its current state (already decided, already published, not ready, or the year is closed)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultsError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Not valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultsInvalid"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/results/classes/{classId}/terminals/{terminalId}/attendance": {
+      "get": {
+        "operationId": "get_term_attendance",
+        "tags": [
+          "results"
+        ],
+        "description": "The attendance the Class Teacher gives for an exam's marks card: the class's working days and each student's days present. Only the person who leads the class (or Support).",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{32}$"
+            },
+            "required": true,
+            "name": "classId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{32}$"
+            },
+            "required": true,
+            "name": "terminalId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The attendance",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TermAttendance"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such item, or not one the person may reach",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultsError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "operationId": "save_term_attendance",
+        "tags": [
+          "results"
+        ],
+        "description": "The Class Teacher gives the class's working days for an exam and each student's days present; the grade-point marks card prints the percentage. Sending it again replaces what was given. A student sent with no days has none given. Not possible once the year is closed.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{32}$"
+            },
+            "required": true,
+            "name": "classId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{32}$"
+            },
+            "required": true,
+            "name": "terminalId",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SaveTermAttendance"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Saved",
             "content": {
               "application/json": {
                 "schema": {

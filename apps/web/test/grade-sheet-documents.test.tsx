@@ -1,10 +1,10 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 
-import { GradeSheetDocument, partCell, rangeText } from "@/results/GradeSheetDocument";
-import { MarkLedgerDocument, columnName, markCell } from "@/results/MarkLedgerDocument";
+import { GradeSheetDocument, attendanceText, partCell, rangeText } from "@/results/GradeSheetDocument";
+import { MarkLedgerDocument, columnName, markCell, partCells } from "@/results/MarkLedgerDocument";
 import { notForYou } from "@/results/client";
-import { fileSafe, fitOnA4, planSheets } from "@/results/download-pdf";
+import { fileSafe, fitOnA4, planSheets, widthForA4 } from "@/results/download-pdf";
 import { pointTableText, pointText, tenthsText, type GradeSheet, type MarkLedger } from "@/results/model";
 
 /**
@@ -40,6 +40,7 @@ const sheet: GradeSheet = {
   rank: 18,
   classSize: 26,
   issuedOnBs: "2083/05/10",
+  attendance: null,
   paper: "accent",
   scale,
 };
@@ -120,12 +121,12 @@ const ledger: MarkLedger = {
   className: "Two(B)",
   examName: null,
   subjects: [
-    { offeringId: "eng", name: "English", code: "Eng" },
-    { offeringId: "gk", name: "General Knowledge", code: null },
+    { offeringId: "eng", name: "English", code: "Eng", hasPractical: false },
+    { offeringId: "gk", name: "General Knowledge", code: null, hasPractical: false },
   ],
   students: [
-    { enrollmentId: "a", rollNo: 1, name: "Aadarsh Mandal", marks: [{ valueHundredths: 4100, absent: false }, null], totalHundredths: 4100, percentHundredths: 4100, rank: 29 },
-    { enrollmentId: "b", rollNo: 2, name: "Aadarsh Yadav", marks: [{ valueHundredths: 0, absent: true }, { valueHundredths: 3800, absent: false }], totalHundredths: 3800, percentHundredths: 3800, rank: 30 },
+    { enrollmentId: "a", rollNo: 1, name: "Aadarsh Mandal", marks: [{ valueHundredths: 4100, absent: false, theory: null, practical: null }, null], totalHundredths: 4100, percentHundredths: 4100, rank: 29 },
+    { enrollmentId: "b", rollNo: 2, name: "Aadarsh Yadav", marks: [{ valueHundredths: 0, absent: true, theory: null, practical: null }, { valueHundredths: 3800, absent: false, theory: null, practical: null }], totalHundredths: 3800, percentHundredths: 3800, rank: 30 },
   ],
 };
 
@@ -151,7 +152,7 @@ describe("the mark ledger", () => {
     expect(html).toContain(">41.00<");
     expect(html).toContain(">29<");
     expect(markCell(null)).toBe("");
-    expect(markCell({ valueHundredths: 0, absent: true })).toBe("AB");
+    expect(markCell({ valueHundredths: 0, absent: true, theory: null, practical: null })).toBe("AB");
   });
 
   it("ends with Prepared by, Checked by and Approved by", () => {
@@ -263,5 +264,82 @@ describe("a document someone may not open", () => {
     expect(notForYou("forbidden")).toEqual({ ok: false, reason: "forbidden" });
     expect(notForYou("not_found")).toEqual({ ok: false, reason: "forbidden" });
     expect(notForYou("failed")).toEqual({ ok: false, reason: "failed" });
+  });
+});
+
+describe("the attendance on the card (the PM, 2026-11-10)", () => {
+  it("prints the percentage and the days it comes from, in the attendance box, once the Class Teacher has given it", () => {
+    const given = { workingDays: 200, presentDays: 187, percentHundredths: 9350 };
+    expect(attendanceText(given)).toBe("93.50% (187 of 200 days)");
+    const html = renderToStaticMarkup(<GradeSheetDocument sheet={{ ...sheet, attendance: given }} />);
+    expect(html).toContain("93.50% (187 of 200 days)");
+    // The box is no longer the blank one for the hand.
+    expect(html).not.toMatch(/<td class="[^"]*blank[^"]*"><\/td><td>77\.00/);
+  });
+  it("leaves the box empty for the hand when nothing was given", () => {
+    expect(attendanceText(null)).toBe("");
+    expect(renderToStaticMarkup(<GradeSheetDocument sheet={sheet} />)).toMatch(/<td class="[^"]*blank[^"]*"><\/td><td>77\.00/);
+  });
+});
+
+describe("the card's PDF has A4's shape (the PM, 2026-11-10)", () => {
+  it("widens a page that is taller than A4 until it is A4-shaped, instead of shrinking it", () => {
+    // The page in the PM's file: about 832 wide and 1500 tall, which a sheet shrank to a narrow strip.
+    const width = widthForA4(832, 1500);
+    expect(width).toBe(1061);
+    expect(width / 1500).toBeGreaterThanOrEqual(210 / 297 - 0.001);
+    const at = fitOnA4(width, 1500);
+    expect(at.width).toBeCloseTo(210, 0);
+    expect(at.height).toBeCloseTo(297, 0);
+  });
+  it("keeps the width of a page already as wide as A4", () => {
+    expect(widthForA4(832, 1176)).toBe(832);
+    expect(widthForA4(1000, 500)).toBe(1000);
+  });
+});
+
+describe("the ledger's theory and practical columns (the PM, 2026-11-11)", () => {
+  const part = (v: number | null, absent = false) => ({ valueHundredths: v, absent });
+  const exam: MarkLedger = {
+    ...ledger,
+    examName: "Second Terminal",
+    subjects: [
+      { offeringId: "m", name: "Maths", code: null, hasPractical: false },
+      { offeringId: "c", name: "Computer", code: null, hasPractical: true },
+    ],
+    students: [
+      {
+        enrollmentId: "a",
+        rollNo: 1,
+        name: "Anu Mandal",
+        marks: [
+          { valueHundredths: 2300, absent: false, theory: part(2300), practical: null },
+          { valueHundredths: 9100, absent: false, theory: part(4100), practical: part(5000) },
+        ],
+        totalHundredths: 11_400,
+        percentHundredths: 5700,
+        rank: 1,
+      },
+    ],
+  };
+  const html = renderToStaticMarkup(<MarkLedgerDocument ledger={exam} />);
+
+  it("splits a subject with a practical into TH and PR under its name, and gives a theory-only subject just TH", () => {
+    expect(html).toContain('colSpan="2"');
+    expect(html.match(/>TH</g)).toHaveLength(2);
+    expect(html.match(/>PR</g)).toHaveLength(1);
+    expect(html).toContain("23.00");
+    expect(html).toContain("41.00");
+    expect(html).toContain("50.00");
+  });
+  it("shows each part's own mark, AB for an absent part, and nothing for a subject the student does not take", () => {
+    expect(partCells({ valueHundredths: 0, absent: false, theory: part(3000), practical: part(null, true) }, true)).toEqual(["30.00", "AB"]);
+    expect(partCells(null, true)).toEqual(["", ""]);
+    expect(partCells(null, false)).toEqual([""]);
+    expect(partCells({ valueHundredths: 7700, absent: false, theory: part(7700), practical: null }, true)).toEqual(["77.00", ""]);
+  });
+  it("on the final result, whose subjects have no parts, shows the one figure and no TH/PR labels", () => {
+    expect(partCells({ valueHundredths: 8800, absent: false, theory: null, practical: null }, false)).toEqual(["88.00"]);
+    expect(renderToStaticMarkup(<MarkLedgerDocument ledger={ledger} />)).not.toContain(">TH<");
   });
 });

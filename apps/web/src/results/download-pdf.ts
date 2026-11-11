@@ -27,6 +27,13 @@ export function fitOnA4(w: number, h: number): { x: number; y: number; width: nu
   return { x: Math.max(0, (A4_MM.width - width) / 2), y: MARGIN_MM, width, height: h * scale };
 }
 
+/**
+ * The width a page `height` tall must be drawn at to have A4's shape: a page taller than that is made wider rather than shrunk
+ * on the sheet, which left the card narrow with white bands at the sides (the PM, 2026-11-10). A page already A4-shaped or
+ * wider-than-tall keeps its width. Pure.
+ */
+export const widthForA4 = (width: number, height: number): number => Math.max(width, Math.ceil((height * A4_MM.width) / A4_MM.height));
+
 export interface Slice {
   from: number;
   to: number;
@@ -79,6 +86,15 @@ export async function downloadAsPdf(node: HTMLElement, filename: string, capture
   let paper = "";
   try {
     await new Promise((done) => requestAnimationFrame(() => done(null)));
+    if (!paginate) {
+      // One sheet: if the page is taller than A4's shape, draw it wider until it is not (wider lines wrap less, so a few passes settle it).
+      for (let pass = 0; pass < 4; pass++) {
+        const wanted = widthForA4(node.scrollWidth, node.scrollHeight);
+        if (wanted <= node.scrollWidth) break;
+        node.style.width = `${wanted}px`;
+        await new Promise((done) => requestAnimationFrame(() => done(null)));
+      }
+    }
     const top = node.getBoundingClientRect().top;
     if (paginate) {
       rowBottoms = [...node.querySelectorAll(paginate.rows)].map((r) => (r.getBoundingClientRect().bottom - top) * pixelRatio);
@@ -89,6 +105,7 @@ export async function downloadAsPdf(node: HTMLElement, filename: string, capture
     paper = article ? getComputedStyle(article).backgroundColor : "";
     canvas = await toCanvas(node, { pixelRatio, width: node.scrollWidth, height: node.scrollHeight });
   } finally {
+    node.style.width = "";
     node.classList.remove(captureClass);
   }
 

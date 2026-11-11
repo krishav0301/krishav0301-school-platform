@@ -26,14 +26,18 @@ export function rangeText(band: GradeSheet["scale"][number]): string {
   return t("results.doc.rangeBelow", { from: band.from, to: band.upTo });
 }
 
+/** The attendance as the card prints it: the percentage, and the days it comes from. Empty when the Class Teacher has not given it. Pure. */
+export const attendanceText = (a: GradeSheet["attendance"]): string =>
+  a ? t("results.doc.attendanceValue", { percent: hundredthsText(a.percentHundredths), present: a.presentDays, working: a.workingDays }) : "";
+
 const OTHER_ACTIVITY_ROWS = 8;
 /** A card with this many subjects or more is drawn closer, so it still fits one sheet. */
 export const DENSE_FROM = 13;
 
 /**
  * The marks card as the school prints it, a GRADE-SHEET of grade points (the PM, 2026-10-28). The school's name, grade table,
- * and every figure come from the server, worked out from the stored card; attendance, exam remarks, other activities and
- * the three signatures are left empty for the teacher to fill in by hand on the printed copy. Pure.
+ * and every figure come from the server, worked out from the stored card; exam remarks, other activities and
+ * the three signatures (and the attendance until the Class Teacher gives it) are left empty for the teacher to fill in by hand on the printed copy. Pure.
  */
 export function GradeSheetDocument({ sheet }: { sheet: GradeSheet }) {
   const exam = sheet.examName === null ? t("results.doc.finalExam", { year: sheet.yearLabel }) : t("results.doc.exam", { exam: sheet.examName, year: sheet.yearLabel });
@@ -132,7 +136,7 @@ export function GradeSheetDocument({ sheet }: { sheet: GradeSheet }) {
           <tbody>
             <tr>
               <td>{sheet.issuedOnBs ?? ""}</td>
-              <td className={styles.blank} />
+              <td className={sheet.attendance ? undefined : styles.blank}>{attendanceText(sheet.attendance)}</td>
               <td>{hundredthsText(sheet.percentHundredths)}</td>
               <td>{sheet.division ?? ""}</td>
               <td>{sheet.overallGrade}</td>
