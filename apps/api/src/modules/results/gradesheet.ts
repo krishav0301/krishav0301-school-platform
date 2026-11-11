@@ -175,7 +175,7 @@ export interface LedgerStudent extends ClassCard {
 export function buildLedger(
   config: GradeSheetConfig,
   head: { classId: string; school: MarkLedger["school"]; yearLabel: string; className: string; examName: string | null },
-  subjects: MarkLedger["subjects"],
+  subjects: Omit<MarkLedger["subjects"][number], "hasPractical">[],
   cards: LedgerStudent[],
 ): MarkLedger {
   const figures = cards.map((c) => ({ card: c, subjects: figuresOf(c.body), ...totalsOf(c.body) }));
@@ -191,7 +191,7 @@ export function buildLedger(
     yearLabel: head.yearLabel,
     className: head.className,
     examName: head.examName,
-    subjects: present,
+    subjects: present.map((s) => ({ ...s, hasPractical: figures.some((f) => f.subjects.some((x) => x.offeringId === s.offeringId && x.practical !== null)) })),
     students: figures.map((f) => ({
       enrollmentId: f.card.enrollmentId,
       rollNo: f.card.rollNo,
@@ -200,7 +200,8 @@ export function buildLedger(
         const got = f.subjects.find((x) => x.offeringId === s.offeringId);
         if (!got) return null;
         const absent = got.theory !== null && got.theory.absent && (got.practical === null || got.practical.absent);
-        return { valueHundredths: got.obtainedHundredths, absent };
+        const part = (x: SubjectFigures["theory"]) => (x ? { valueHundredths: x.valueHundredths, absent: x.absent } : null);
+        return { valueHundredths: got.obtainedHundredths, absent, theory: part(got.theory), practical: part(got.practical) };
       }),
       totalHundredths: f.obtained,
       percentHundredths: percentOf(f.obtained, f.full),

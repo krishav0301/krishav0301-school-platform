@@ -409,6 +409,8 @@ export const GradeSheetSchema = z
   .openapi("GradeSheet");
 export type GradeSheet = z.infer<typeof GradeSheetSchema>;
 
+const LedgerPart = z.object({ valueHundredths: z.number().int().nullable(), absent: z.boolean() });
+
 /** The class mark ledger: students by subjects, with the marks themselves, the total, the percentage and the rank. */
 export const MarkLedgerSchema = z
   .object({
@@ -418,14 +420,25 @@ export const MarkLedgerSchema = z
     className: z.string(),
     /** The terminal's name, or null for the final result. */
     examName: z.string().nullable(),
-    subjects: z.array(z.object({ offeringId: z.string(), name: z.string(), code: z.string().nullable() })),
+    /** `hasPractical`: some student's card has a practical part for the subject, so the column splits into TH and PR (the PM, 2026-11-11). */
+    subjects: z.array(z.object({ offeringId: z.string(), name: z.string(), code: z.string().nullable(), hasPractical: z.boolean() })),
     students: z.array(
       z.object({
         enrollmentId: z.string(),
         rollNo: z.number().int().nullable(),
         name: z.string(),
         /** One per subject, in the subjects' order; null when the student does not take it. */
-        marks: z.array(z.object({ valueHundredths: z.number().int(), absent: z.boolean() }).nullable()),
+        marks: z.array(
+          z
+            .object({
+              valueHundredths: z.number().int(),
+              absent: z.boolean(),
+              /** The theory and practical parts of the paper; null when the card has no such part (a final result has neither: its subject is one figure out of 100). */
+              theory: LedgerPart.nullable(),
+              practical: LedgerPart.nullable(),
+            })
+            .nullable(),
+        ),
         totalHundredths: z.number().int(),
         percentHundredths: z.number().int(),
         rank: z.number().int(),

@@ -20,6 +20,21 @@ export const columnName = (s: MarkLedger["subjects"][number]): string => s.code 
 /** A mark as the ledger prints it: to two places, "AB" for an absence, nothing for a subject the student does not take. Pure. */
 export const markCell = (m: MarkLedger["students"][number]["marks"][number]): string => (m === null ? "" : m.absent ? t("results.doc.absent") : hundredthsText(m.valueHundredths));
 
+type Mark = NonNullable<MarkLedger["students"][number]["marks"][number]>;
+type Part = NonNullable<Mark["theory"]>;
+/** A part of a paper: the mark to two places, "AB" for an absence, empty when nothing was entered. Pure. */
+const partText = (p: Part | null): string => (p === null ? "" : p.absent ? t("results.doc.absent") : p.valueHundredths === null ? "" : hundredthsText(p.valueHundredths));
+
+
+/**
+ * A subject's cells for one student: the theory mark, then the practical where the subject has one (the PM, 2026-11-11). A paper with no
+ * parts (the final result's single figure) shows that figure under the one column. Nothing for a subject the student does not take. Pure.
+ */
+export const partCells = (m: Mark | null, hasPractical: boolean): string[] => {
+  const theory = m === null ? "" : m.theory ? partText(m.theory) : markCell(m);
+  return hasPractical ? [theory, partText(m?.practical ?? null)] : [theory];
+};
+
 /**
  * The class's mark ledger as the school prints it (the PM, 2026-10-28): every student's marks in every subject, the total,
  * the percentage and the rank in the class, with the three signatures empty for the people who prepare, check and approve
@@ -54,16 +69,23 @@ export function MarkLedgerDocument({ ledger }: { ledger: MarkLedger }) {
         <table className={`${styles.grid} ${styles.ledgerGrid}`}>
           <thead>
             <tr>
-              <th>{t("results.doc.rollCol")}</th>
-              <th className={styles.left}>{t("results.doc.studentCol")}</th>
+              <th rowSpan={2}>{t("results.doc.rollCol")}</th>
+              <th rowSpan={2} className={styles.left}>
+                {t("results.doc.studentCol")}
+              </th>
               {ledger.subjects.map((s) => (
-                <th key={s.offeringId} title={s.name}>
+                <th key={s.offeringId} title={s.name} colSpan={s.hasPractical ? 2 : 1}>
                   {columnName(s)}
                 </th>
               ))}
-              <th>{t("results.doc.totalCol")}</th>
-              <th>{t("results.doc.perCol")}</th>
-              <th>{t("results.doc.rankCol")}</th>
+              <th rowSpan={2}>{t("results.doc.totalCol")}</th>
+              <th rowSpan={2}>{t("results.doc.perCol")}</th>
+              <th rowSpan={2}>{t("results.doc.rankCol")}</th>
+            </tr>
+            <tr>
+              {ledger.subjects.flatMap((s) =>
+                (s.hasPractical ? [t("results.doc.th"), t("results.doc.pr")] : [t("results.doc.th")]).map((label) => <th key={`${s.offeringId}-${label}`}>{ledger.examName === null ? "" : label}</th>),
+              )}
             </tr>
           </thead>
           <tbody>
@@ -73,9 +95,7 @@ export function MarkLedgerDocument({ ledger }: { ledger: MarkLedger }) {
                 <td className={styles.left}>
                   <span className={styles.nameCell}>{s.name}</span>
                 </td>
-                {s.marks.map((m, i) => (
-                  <td key={ledger.subjects[i]!.offeringId}>{markCell(m)}</td>
-                ))}
+                {s.marks.flatMap((m, i) => partCells(m, ledger.subjects[i]!.hasPractical).map((cell, j) => <td key={`${ledger.subjects[i]!.offeringId}-${j}`}>{cell}</td>))}
                 <td>{hundredthsText(s.totalHundredths)}</td>
                 <td>{hundredthsText(s.percentHundredths)}</td>
                 <td>{s.rank}</td>

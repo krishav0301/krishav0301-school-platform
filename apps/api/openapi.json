@@ -11255,12 +11255,16 @@
                     "string",
                     "null"
                   ]
+                },
+                "hasPractical": {
+                  "type": "boolean"
                 }
               },
               "required": [
                 "offeringId",
                 "name",
-                "code"
+                "code",
+                "hasPractical"
               ]
             }
           },
@@ -11294,11 +11298,55 @@
                       },
                       "absent": {
                         "type": "boolean"
+                      },
+                      "theory": {
+                        "type": [
+                          "object",
+                          "null"
+                        ],
+                        "properties": {
+                          "valueHundredths": {
+                            "type": [
+                              "integer",
+                              "null"
+                            ]
+                          },
+                          "absent": {
+                            "type": "boolean"
+                          }
+                        },
+                        "required": [
+                          "valueHundredths",
+                          "absent"
+                        ]
+                      },
+                      "practical": {
+                        "type": [
+                          "object",
+                          "null"
+                        ],
+                        "properties": {
+                          "valueHundredths": {
+                            "type": [
+                              "integer",
+                              "null"
+                            ]
+                          },
+                          "absent": {
+                            "type": "boolean"
+                          }
+                        },
+                        "required": [
+                          "valueHundredths",
+                          "absent"
+                        ]
                       }
                     },
                     "required": [
                       "valueHundredths",
-                      "absent"
+                      "absent",
+                      "theory",
+                      "practical"
                     ]
                   }
                 },

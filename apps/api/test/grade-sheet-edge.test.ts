@@ -87,6 +87,16 @@ describe("ties, absences and a paper with a practical", () => {
     expect(ledger.students.some((l) => l.marks[0]?.absent === true && l.rank === 4)).toBe(true);
   });
 
+  it("the ledger splits a subject with a practical into its theory and practical, per student (the PM, 2026-11-11)", async () => {
+    const ledger = (await (await call(ledgerPath(a), { cookie: coordinator.cookie })).json()) as { subjects: { hasPractical: boolean }[]; students: { marks: ({ theory: { valueHundredths: number | null; absent: boolean } | null; practical: { valueHundredths: number | null; absent: boolean } | null } | null)[] }[] };
+    expect(ledger.subjects[0]!.hasPractical).toBe(true);
+    const first = ledger.students.map((l) => l.marks[0]!);
+    expect(first.every((m) => m.theory !== null && m.practical !== null)).toBe(true);
+    // The absent student is absent in both parts; the others have a theory mark out of the paper's theory.
+    expect(first.filter((m) => m.theory!.absent && m.practical!.absent)).toHaveLength(1);
+    expect(first.some((m) => m.theory!.valueHundredths === 3000)).toBe(true);
+  });
+
   it("the highest grade point is the class's best, shown on every student's own card", async () => {
     for (let i = 0; i < 5; i++) expect((await sheetOf(a, i)).subjects[0]!.highestPointHundredths).toBe(400);
     expect((await sheetOf(b, 0)).subjects[0]!.highestPointHundredths).toBe(280); // class B's best is 70 per cent: a B, since a mark on a band's number stays in the band below

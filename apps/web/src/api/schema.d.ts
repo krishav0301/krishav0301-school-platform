@@ -5574,6 +5574,7 @@ export interface components {
                 offeringId: string;
                 name: string;
                 code: string | null;
+                hasPractical: boolean;
             }[];
             students: {
                 enrollmentId: string;
@@ -5582,6 +5583,14 @@ export interface components {
                 marks: ({
                     valueHundredths: number;
                     absent: boolean;
+                    theory: {
+                        valueHundredths: number | null;
+                        absent: boolean;
+                    } | null;
+                    practical: {
+                        valueHundredths: number | null;
+                        absent: boolean;
+                    } | null;
                 } | null)[];
                 totalHundredths: number;
                 percentHundredths: number;
