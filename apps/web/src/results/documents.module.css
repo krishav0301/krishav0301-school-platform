@@ -19,6 +19,12 @@
   max-width: 64rem;
 }
 
+/* The ledger's rows stay slim whatever the class size (the PM, 2026-11-11); the signatures keep to the foot of the sheet. */
+.ledger .signatures {
+  margin-top: auto;
+  padding-top: var(--space-6);
+}
+
 /* The school's head: the crest at the left, the name and address in the middle. */
 .head {
   position: relative;
