@@ -24,7 +24,7 @@ export async function classElectives(db: D1Database, reach: Reach, classId: stri
       .bind(classId),
     db
       .prepare(
-        `SELECT en.public_id AS enrollment_id, st.sid, TRIM(st.first_name || ' ' || st.last_name) AS name,
+        `SELECT en.public_id AS enrollment_id, en.roll_no, st.sid, TRIM(st.first_name || ' ' || st.last_name) AS name,
                 (SELECT json_group_array(o.public_id) FROM elective_picks ep JOIN subject_offerings o ON o.id = ep.offering_id
                   WHERE ep.enrollment_id = en.id AND ep.is_active = 1) AS picks
            FROM classes cl JOIN enrollments en ON en.class_id = cl.id AND en.status = 'active' JOIN students st ON st.id = en.student_id
@@ -47,8 +47,9 @@ export async function classElectives(db: D1Database, reach: Reach, classId: stri
       classId: row.public_id,
       ...naming(row),
       groups: byGroup,
-      students: (students!.results as unknown as { enrollment_id: string; sid: string; name: string; picks: string }[]).map((s) => ({
+      students: (students!.results as unknown as { enrollment_id: string; roll_no: number | null; sid: string; name: string; picks: string }[]).map((s) => ({
         enrollmentId: s.enrollment_id,
+        rollNo: s.roll_no,
         sid: s.sid,
         name: s.name,
         picks: JSON.parse(s.picks) as string[],

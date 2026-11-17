@@ -156,8 +156,8 @@ describe("rechecks and electives for the Co-ordinator (D-106)", () => {
     label: "A",
     groups: [{ id: "g1", name: "Science option", pickCount: 1, subjects: [{ offeringId: "o1", name: "Biology" }, { offeringId: "o2", name: "Computer Science" }] }],
     students: [
-      { enrollmentId: "e1", sid: "2083-00001", name: "Asha Rai", picks: ["o1"] },
-      { enrollmentId: "e2", sid: "2083-00002", name: "Bimal Shah", picks: [] },
+      { enrollmentId: "e1", rollNo: 1, sid: "2083-00001", name: "Asha Rai", picks: ["o1"] },
+      { enrollmentId: "e2", rollNo: 2, sid: "2083-00002", name: "Bimal Shah", picks: [] },
     ],
   };
 

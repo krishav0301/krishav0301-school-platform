@@ -222,7 +222,7 @@ export async function classSheet(db: D1Database, reach: Reach, classId: string, 
       .bind(classId, terminalId, reach.institution, reach.sections, classTeacher),
     db
       .prepare(
-        `SELECT en.public_id AS enrollment_id, mc.public_id AS card_id, mc.version, mc.body, mc.percent_hundredths, mc.passed, mc.outcome
+        `SELECT en.public_id AS enrollment_id, en.roll_no, mc.public_id AS card_id, mc.version, mc.body, mc.percent_hundredths, mc.passed, mc.outcome
            FROM classes cl JOIN result_publications rp ON rp.class_id = cl.id LEFT JOIN terminals t ON t.id = rp.terminal_id
            JOIN marks_cards mc ON mc.publication_id = rp.id AND ${LATEST} JOIN enrollments en ON en.id = mc.enrollment_id
           WHERE cl.public_id = ?1 AND (CASE WHEN ?2 IS NULL THEN rp.terminal_id IS NULL ELSE t.public_id = ?2 END)
@@ -232,7 +232,7 @@ export async function classSheet(db: D1Database, reach: Reach, classId: string, 
   ]);
   const h = head!.results[0] as { class_id: string; programme_name: string; level_name: string; label: string; terminal_id: string | null; terminal_name: string | null; pattern: string; published_at: string } | undefined;
   if (!h) return null;
-  const rows = (cards!.results as unknown as { enrollment_id: string; card_id: string; version: number; body: string; percent_hundredths: number; passed: number | null; outcome: string }[]).map((r) => ({
+  const rows = (cards!.results as unknown as { enrollment_id: string; roll_no: number | null; card_id: string; version: number; body: string; percent_hundredths: number; passed: number | null; outcome: string }[]).map((r) => ({
     ...r,
     card: JSON.parse(r.body) as CardBody,
   }));
@@ -253,6 +253,7 @@ export async function classSheet(db: D1Database, reach: Reach, classId: string, 
       cardId: r.card_id,
       sid: r.card.student.sid,
       name: r.card.student.name,
+      rollNo: r.roll_no,
       rank: ranks.get(r.enrollment_id) ?? null,
       percentHundredths: r.percent_hundredths,
       passed: r.passed === null ? null : r.passed === 1,

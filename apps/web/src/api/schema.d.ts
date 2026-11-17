@@ -5198,6 +5198,7 @@ export interface components {
             }[];
             students: {
                 enrollmentId: string;
+                rollNo: number | null;
                 sid: string;
                 name: string;
                 picks: string[];
@@ -5483,6 +5484,7 @@ export interface components {
                 cardId: string;
                 sid: string;
                 name: string;
+                rollNo: number | null;
                 rank: number | null;
                 percentHundredths: number;
                 passed: boolean | null;
