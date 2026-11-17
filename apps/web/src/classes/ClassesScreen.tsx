@@ -7,6 +7,8 @@ import { ClassActivityScreen } from "@/classwork/ClassActivityScreen";
 import { useConfig } from "@/config/ConfigProvider";
 import { useAddressQuery } from "@/content/address";
 import { t, type MessageKey } from "@/i18n/messages";
+import { SortSelect } from "@/people/SortSelect";
+import { sortStudents, type StudentSort } from "@/people/student-sort";
 import { AddDialog, Notice } from "@/ui";
 import { EmptyLine, OpenLink, Panel, ReadFailure, ReadHeader, ReadTable, Segments, TableSkeleton, readStyles } from "@/read/ReadView";
 import { ClassSheetView } from "@/results/StaffScreens";
@@ -60,11 +62,14 @@ const TAB_LABEL: Record<ClassTab, MessageKey> = {
 
 /** The students of a class: roll number and name, and the SID for those who see the whole class. Pure. */
 export function StudentsTable({ hub, canOpenRecord }: { hub: Pick<ClassHub, "students" | "viewer">; canOpenRecord: boolean }) {
+  const [sort, setSort] = useState<StudentSort>("roll");
   if (hub.students.length === 0) return <EmptyLine>{t("classes.noStudents")}</EmptyLine>;
   return (
+    <>
+    {hub.students.length > 1 ? <SortSelect value={sort} onChange={setSort} options={hub.viewer.seesAll ? ["roll", "name", "nameDesc", "sid"] : ["roll", "name", "nameDesc"]} /> : null}
     <ReadTable
       caption={t("classes.tab.students")}
-      rows={hub.students}
+      rows={sortStudents(hub.students, sort)}
       rowKey={(s) => s.enrollmentId}
       columns={[
         { key: "roll", label: t("classes.col.roll"), cell: (s) => (s.rollNo === null ? "—" : String(s.rollNo)) },
@@ -83,6 +88,7 @@ export function StudentsTable({ hub, canOpenRecord }: { hub: Pick<ClassHub, "stu
           : []),
       ]}
     />
+    </>
   );
 }
 

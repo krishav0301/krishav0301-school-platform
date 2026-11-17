@@ -15,6 +15,8 @@ import {
 } from "@/read/ReadView";
 import { useSession } from "@/session/SessionProvider";
 import { useLoad } from "@/setup/useLoad";
+import { SortSelect } from "@/people/SortSelect";
+import { sortStudents, type StudentSort } from "@/people/student-sort";
 import { Button, Notice } from "@/ui";
 
 import { gateFailure, loadTermAttendance, saveTermAttendance } from "./client";
@@ -73,6 +75,7 @@ function Editor({
   const { api } = useSession();
   const [draft, setDraft] = useState<Draft>(() => draftOf(attendance));
   const [busy, setBusy] = useState(false);
+  const [sort, setSort] = useState<StudentSort>("roll");
   const [message, setMessage] = useState<{
     tone: "ok" | "bad";
     text: string;
@@ -174,6 +177,13 @@ function Editor({
         ) : (
           <>
             <p className={readStyles.rowMeta}>{t("results.attendance.hint")}</p>
+            {attendance.students.length > 1 ? (
+              <SortSelect
+                value={sort}
+                onChange={setSort}
+                options={["roll", "name", "nameDesc", "sid"]}
+              />
+            ) : null}
             <div
               className={styles.gridScroll}
               tabIndex={0}
@@ -193,7 +203,7 @@ function Editor({
                   </tr>
                 </thead>
                 <tbody>
-                  {attendance.students.map((s) => {
+                  {sortStudents(attendance.students, sort).map((s) => {
                     const value = draft.present[s.enrollmentId] ?? "";
                     const working = parseDays(draft.working, 1);
                     const parsed = parseDays(value, 0);

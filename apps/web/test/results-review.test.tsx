@@ -165,7 +165,7 @@ describe("rechecks and electives for the Co-ordinator (D-106)", () => {
     const html = inContext(<ElectivesView data={electives} onSaved={noop} />);
     expect(html).toContain(">Asha Rai</h3>");
     expect(html).toContain("2083-00002");
-    expect((html.match(/<select/g) ?? []).length).toBe(2);
+    expect((html.match(/<select/g) ?? []).length).toBe(3); // two pickers and the "Sort by" box
     expect(electiveFigures(electives).map((f) => f.value)).toEqual(["2", "1", "1"]);
     expect(inContext(<ElectivesView data={{ ...electives, groups: [] }} onSaved={noop} />)).toContain("no elective groups");
   });
