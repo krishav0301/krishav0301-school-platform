@@ -28,6 +28,8 @@ import {
 } from "@/read/ReadView";
 import { useSession } from "@/session/SessionProvider";
 import { useLoad } from "@/setup/useLoad";
+import { SortSelect } from "@/people/SortSelect";
+import { sortStudents, type StudentSort } from "@/people/student-sort";
 import { Button, Notice } from "@/ui";
 
 import { readLastTerminal, rememberTerminal } from "./last-terminal";
@@ -386,7 +388,14 @@ export function SheetGrid({
   onChange?: (k: string, value: string) => void;
   editable: boolean;
 }) {
+  const [sort, setSort] = useState<StudentSort>("roll");
+  const students = sortStudents(
+    sheet.students.map((s) => ({ ...s, marks: s.marks.some((m) => m.valueHundredths !== null) ? s.marks.reduce((n, m) => n + (m.valueHundredths ?? 0), 0) : null })),
+    sort,
+  );
   return (
+    <>
+    {students.length > 1 ? <SortSelect value={sort} onChange={setSort} options={["roll", "marksDesc", "marksAsc", "name", "nameDesc", "sid"]} /> : null}
     <div
       className={styles.gridScroll}
       tabIndex={0}
@@ -411,7 +420,7 @@ export function SheetGrid({
           </tr>
         </thead>
         <tbody>
-          {sheet.students.map((s) => (
+          {students.map((s) => (
             <tr key={s.enrollmentId}>
               <th scope="row" className={styles.gridName}>
                 {s.name}
@@ -479,6 +488,7 @@ export function SheetGrid({
         </tbody>
       </table>
     </div>
+    </>
   );
 }
 

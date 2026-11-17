@@ -1171,3 +1171,8 @@
 .top[data-solo] {
   grid-template-columns: minmax(0, 1fr);
 }
+
+.sortRow {
+  max-width: 16rem;
+  margin-bottom: var(--space-3);
+}
