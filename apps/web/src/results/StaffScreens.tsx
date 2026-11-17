@@ -130,10 +130,10 @@ export function SheetTable({ sheet }: { sheet: ClassSheet }) {
   const isFinal = sheet.terminal === null;
   // A final result starts in rank order; an exam's sheet starts in the order the server gives.
   const [sort, setSort] = useState<StudentSort>(isFinal ? "rank" : "server");
-  const students = sort === "server" ? sheet.students : sortStudents(sheet.students, sort);
+  const students = sort === "server" ? sheet.students : sortStudents(sheet.students.map((x) => ({ ...x, marks: x.percentHundredths })), sort);
   return (
     <>
-    {sheet.students.length > 1 ? <SortSelect value={sort} onChange={setSort} options={isFinal ? ["rank", "name", "nameDesc", "sid"] : ["server", "name", "nameDesc", "sid"]} /> : null}
+    {sheet.students.length > 1 ? <SortSelect value={sort} onChange={setSort} options={isFinal ? ["rank", "marksDesc", "marksAsc", "name", "nameDesc", "sid"] : ["server", "marksDesc", "marksAsc", "name", "nameDesc", "sid"]} /> : null}
     <div className={readStyles.scroll} data-scroll tabIndex={0} role="region" aria-label={t("results.sheets.caption", { name: className(sheet), terminal: sheetName(sheet) })}>
       <table className={readStyles.sheet}>
         <caption className="sr-only">{t("results.sheets.caption", { name: className(sheet), terminal: sheetName(sheet) })}</caption>

@@ -389,10 +389,13 @@ export function SheetGrid({
   editable: boolean;
 }) {
   const [sort, setSort] = useState<StudentSort>("roll");
-  const students = sortStudents(sheet.students, sort);
+  const students = sortStudents(
+    sheet.students.map((s) => ({ ...s, marks: s.marks.some((m) => m.valueHundredths !== null) ? s.marks.reduce((n, m) => n + (m.valueHundredths ?? 0), 0) : null })),
+    sort,
+  );
   return (
     <>
-    {students.length > 1 ? <SortSelect value={sort} onChange={setSort} options={["roll", "name", "nameDesc", "sid"]} /> : null}
+    {students.length > 1 ? <SortSelect value={sort} onChange={setSort} options={["roll", "marksDesc", "marksAsc", "name", "nameDesc", "sid"]} /> : null}
     <div
       className={styles.gridScroll}
       tabIndex={0}

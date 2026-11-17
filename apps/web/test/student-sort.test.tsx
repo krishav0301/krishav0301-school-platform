@@ -49,6 +49,11 @@ describe("sortStudents", () => {
       "2083-00001",
       "2083-00010",
     ]));
+  it("marks sort high to low or low to high, with no marks last", () => {
+    const m = [{ name: "A", marks: 50 }, { name: "B", marks: null }, { name: "C", marks: 90 }];
+    expect(sortStudents(m, "marksDesc").map((r) => r.name)).toEqual(["C", "A", "B"]);
+    expect(sortStudents(m, "marksAsc").map((r) => r.name)).toEqual(["A", "C", "B"]);
+  });
   it("server keeps the order given, and never changes the input", () => {
     const copy = [...rows];
     expect(sortStudents(rows, "server")).toEqual(rows);
