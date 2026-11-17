@@ -16,7 +16,7 @@ export const ClassElectivesSchema = z
     classId: z.string(),
     ...Naming,
     groups: z.array(z.object({ id: z.string(), name: z.string(), pickCount: z.number().int(), subjects: z.array(z.object({ offeringId: z.string(), name: z.string() })) })),
-    students: z.array(z.object({ enrollmentId: z.string(), sid: z.string(), name: z.string(), picks: z.array(z.string()) })),
+    students: z.array(z.object({ enrollmentId: z.string(), rollNo: z.number().int().nullable(), sid: z.string(), name: z.string(), picks: z.array(z.string()) })),
   })
   .openapi("ClassElectives");
 export type ClassElectives = z.infer<typeof ClassElectivesSchema>;
@@ -269,6 +269,8 @@ export const ClassSheetSchema = z
         cardId: z.string(),
         sid: z.string(),
         name: z.string(),
+        /** The student's roll number now (not the card's snapshot), for the sheet's roll-number order. */
+        rollNo: z.number().int().nullable(),
         /** The rank in the class on the final result (passed students only); null on a terminal. */
         rank: z.number().int().nullable(),
         percentHundredths: z.number().int(),

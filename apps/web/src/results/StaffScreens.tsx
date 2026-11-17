@@ -128,12 +128,12 @@ export function ClassSheetsScreen() {
  */
 export function SheetTable({ sheet }: { sheet: ClassSheet }) {
   const isFinal = sheet.terminal === null;
-  // A final result starts in rank order; an exam's sheet starts in the order the server gives.
-  const [sort, setSort] = useState<StudentSort>(isFinal ? "rank" : "server");
-  const students = sort === "server" ? sheet.students : sortStudents(sheet.students.map((x) => ({ ...x, marks: x.percentHundredths })), sort);
+  // A final result starts in rank order; an exam's sheet starts in roll-number order.
+  const [sort, setSort] = useState<StudentSort>(isFinal ? "rank" : "roll");
+  const students = sortStudents(sheet.students.map((x) => ({ ...x, marks: x.percentHundredths })), sort);
   return (
     <>
-    {sheet.students.length > 1 ? <SortSelect value={sort} onChange={setSort} options={isFinal ? ["rank", "marksDesc", "marksAsc", "name", "nameDesc", "sid"] : ["server", "marksDesc", "marksAsc", "name", "nameDesc", "sid"]} /> : null}
+    {sheet.students.length > 1 ? <SortSelect value={sort} onChange={setSort} options={isFinal ? ["rank", "roll", "marksDesc", "marksAsc", "name", "nameDesc", "sid"] : ["roll", "marksDesc", "marksAsc", "name", "nameDesc", "sid"]} /> : null}
     <div className={readStyles.scroll} data-scroll tabIndex={0} role="region" aria-label={t("results.sheets.caption", { name: className(sheet), terminal: sheetName(sheet) })}>
       <table className={readStyles.sheet}>
         <caption className="sr-only">{t("results.sheets.caption", { name: className(sheet), terminal: sheetName(sheet) })}</caption>
@@ -479,14 +479,14 @@ function ClassElectivesView({ classId }: { classId: string }) {
 
 /** One class's students, each with a picker for each elective group, and the group's state in words. Pure. */
 export function ElectivesView({ data, onSaved }: { data: ClassElectives; onSaved: () => void }) {
-  const [sort, setSort] = useState<StudentSort>("name");
+  const [sort, setSort] = useState<StudentSort>("roll");
   if (data.groups.length === 0) return <EmptyLine>{t("results.electives.noGroups")}</EmptyLine>;
   if (data.students.length === 0) return <EmptyLine>{t("results.grid.noStudents")}</EmptyLine>;
   return (
     <>
       <FigureTiles figures={electiveFigures(data)} label={t("results.electives.figures")} />
       <Panel title={className(data)} labelledBy="electives-class">
-        {data.students.length > 1 ? <SortSelect value={sort} onChange={setSort} options={["name", "nameDesc", "sid"]} /> : null}
+        {data.students.length > 1 ? <SortSelect value={sort} onChange={setSort} options={["roll", "name", "nameDesc", "sid"]} /> : null}
         <ul className={readStyles.rows}>
           {sortStudents(data.students, sort).map((s) => (
             <li key={s.enrollmentId} className={`${readStyles.rowItem} ${styles.pickRow}`}>

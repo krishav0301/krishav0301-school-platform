@@ -195,8 +195,8 @@ describe("the Principal reads results (D-104, after the PM's topic 7 reference)"
       { offeringId: "o2", name: "Physics" },
     ],
     students: [
-      { enrollmentId: "e1", cardId: "k1", sid: "2083-00001", name: "Aarav Mandal", rank: 1, percentHundredths: 8850, passed: true, outcome: "A", version: 1, subjects: [{ offeringId: "o1", grade: "A", percentHundredths: 8500 }, { offeringId: "o2", grade: "A+", percentHundredths: 9200 }] },
-      { enrollmentId: "e2", cardId: "k2", sid: "2083-00002", name: "Sita Chaudhary", rank: 1, percentHundredths: 8850, passed: true, outcome: "A", version: 2, subjects: [{ offeringId: "o1", grade: "A+", percentHundredths: 9100 }, null] },
+      { enrollmentId: "e1", cardId: "k1", sid: "2083-00001", name: "Aarav Mandal", rollNo: 1, rank: 1, percentHundredths: 8850, passed: true, outcome: "A", version: 1, subjects: [{ offeringId: "o1", grade: "A", percentHundredths: 8500 }, { offeringId: "o2", grade: "A+", percentHundredths: 9200 }] },
+      { enrollmentId: "e2", cardId: "k2", sid: "2083-00002", name: "Sita Chaudhary", rollNo: 2, rank: 1, percentHundredths: 8850, passed: true, outcome: "A", version: 2, subjects: [{ offeringId: "o1", grade: "A+", percentHundredths: 9100 }, null] },
     ],
   };
 
@@ -210,6 +210,13 @@ describe("the Principal reads results (D-104, after the PM's topic 7 reference)"
     expect(html).toContain(">Corrected<");
     expect(html).toContain("data-sticky"); // the student column stays in view while the subjects scroll
     expect(html).toMatch(/role="region"[^>]*tabindex="0"|tabindex="0"[^>]*role="region"/i);
+  });
+
+  it("an exam's class sheet starts in roll-number order, and offers it as a sort", () => {
+    const rolled = { ...sheet, terminal: { id: "t1", name: "First terminal" }, students: [{ ...sheet.students[0]!, rollNo: 5, rank: null, passed: null }, { ...sheet.students[1]!, rollNo: 2, rank: null, passed: null }] };
+    const html = inContext(<SheetTable sheet={rolled} />, as("admin"));
+    expect(html.indexOf("Sita Chaudhary")).toBeLessThan(html.indexOf("Aarav Mandal"));
+    expect(html).toContain("Roll number");
   });
 
   it("an exam's class sheet is for information: no rank column", () => {

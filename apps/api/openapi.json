@@ -9505,6 +9505,12 @@
                 "enrollmentId": {
                   "type": "string"
                 },
+                "rollNo": {
+                  "type": [
+                    "integer",
+                    "null"
+                  ]
+                },
                 "sid": {
                   "type": "string"
                 },
@@ -9520,6 +9526,7 @@
               },
               "required": [
                 "enrollmentId",
+                "rollNo",
                 "sid",
                 "name",
                 "picks"
@@ -10807,6 +10814,12 @@
                 "name": {
                   "type": "string"
                 },
+                "rollNo": {
+                  "type": [
+                    "integer",
+                    "null"
+                  ]
+                },
                 "rank": {
                   "type": [
                     "integer",
@@ -10868,6 +10881,7 @@
                 "cardId",
                 "sid",
                 "name",
+                "rollNo",
                 "rank",
                 "percentHundredths",
                 "passed",
