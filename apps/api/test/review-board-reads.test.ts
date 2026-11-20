@@ -6,7 +6,7 @@ import { addSubject, enterAndSubmit, examTerm, pattern, resultsClass, sheetIdOf,
 import { enrol, type ClassFixture } from "./schoolday-helpers";
 
 /**
- * The Co-ordinator's review board (D-192). On 2026-11-20 Lahan's database went over the free plan's 5,000,000 rows read
+ * The Co-ordinator's review board (D-192). On 2026-11-20 a live school's database went over the free plan's 5,000,000 rows read
  * in a day: the board read about 150,000 rows per load, because it asked "is the class ready to publish?" once for
  * every subject row, and each asking rescanned every subject and every mark of the class. The board now works that out
  * once per class from the rows it already has. These tests hold the rule (it must agree with what publishing allows)
@@ -117,7 +117,7 @@ describe("the review board's reads", () => {
     const board = await reviewBoard(meter.db, { institution: 1, sections: null }, first);
     expect(board.classes.find((c) => c.classId === fixture.classId)!.ready).toBe(true);
     // Before D-192 this load read 3,347 rows (the ready check ran once per subject row); now 648. The old cost grew with
-    // the square of the subjects in a class, which is how one load of Lahan's board read about 150,000.
+    // the square of the subjects in a class, which is how one load of a live school's board read about 150,000.
     expect(meter.rowsRead()).toBeLessThan(1200);
   }, 180_000);
 });

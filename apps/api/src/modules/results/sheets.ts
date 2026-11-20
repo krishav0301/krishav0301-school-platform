@@ -331,7 +331,7 @@ export async function reviewBoard(db: D1Database, reach: Reach, terminalId: stri
   // Ready to publish is worked out here, once per class, from the rows already read (D-192). The rows are exactly the
   // class's needed subjects (`neededSubjects` in guard.ts: active, at the class's level, taken by an active student),
   // each with its one sheet and its count of missing marks, so this is `readyToPublish` without asking it again for
-  // every subject row: that rescanned every mark of the class per row and used up Lahan's daily reads on 2026-11-20.
+  // every subject row: that rescanned every mark of the class per row and used up a live school's daily reads (D-192).
   // Publishing itself still checks `readyToPublish` in its own batch, so the board can never let a class through early.
   const classes: ReviewBoard["classes"] = [];
   for (const r of results) {
