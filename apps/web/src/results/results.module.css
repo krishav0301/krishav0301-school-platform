@@ -335,3 +335,11 @@ a.wrapLabel {
     color: var(--color-text-muted);
   }
 }
+
+/* The class sheet's actions (Mark ledger, Download all marks cards, Export) as one group that wraps on a narrow screen (D-197). */
+.sheetActions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
