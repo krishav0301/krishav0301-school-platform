@@ -2872,6 +2872,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/results/classes/{classId}/terminals/{terminalId}/grade-sheets": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Every student's marks card of the class for a published terminal, as grade-point GRADE-SHEETs in roll-number order, each the same as that student's own card. A Class Teacher reads their own class's. Not found for a school whose file has no such layout. */
+        get: operations["get_class_grade_sheets"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/results/classes/{classId}/final/grade-sheets": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Every student's marks card of the class for the final result, as grade-point GRADE-SHEETs in roll-number order, each the same as that student's own card. A Class Teacher reads their own class's. Not found for a school whose file has no such layout. */
+        get: operations["get_class_final_grade_sheets"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/results/classes/{classId}/terminals/{terminalId}/sheet.csv": {
         parameters: {
             query?: never;
@@ -5599,6 +5633,9 @@ export interface components {
                 percentHundredths: number;
                 rank: number;
             }[];
+        };
+        ClassGradeSheets: {
+            sheets: components["schemas"]["GradeSheet"][];
         };
         Top20: {
             pools: {
@@ -14443,6 +14480,69 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["MarkLedger"];
+                };
+            };
+            /** @description No such item, or not one the person may reach */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResultsError"];
+                };
+            };
+        };
+    };
+    get_class_grade_sheets: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                classId: string;
+                terminalId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The class's marks cards */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClassGradeSheets"];
+                };
+            };
+            /** @description No such item, or not one the person may reach */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResultsError"];
+                };
+            };
+        };
+    };
+    get_class_final_grade_sheets: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                classId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The class's marks cards */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClassGradeSheets"];
                 };
             };
             /** @description No such item, or not one the person may reach */

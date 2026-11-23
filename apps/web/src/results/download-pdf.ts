@@ -71,6 +71,60 @@ export interface Paginate {
   header: string;
 }
 
+const nextFrame = () => new Promise((done) => requestAnimationFrame(() => done(null)));
+
+/** One sheet: if the page is taller than A4's shape, draw it wider until it is not (wider lines wrap less, so a few passes settle it). */
+async function widenToA4(node: HTMLElement): Promise<void> {
+  for (let pass = 0; pass < 4; pass++) {
+    const wanted = widthForA4(node.scrollWidth, node.scrollHeight);
+    if (wanted <= node.scrollWidth) break;
+    node.style.width = `${wanted}px`;
+    await nextFrame();
+  }
+}
+
+/**
+ * Many one-sheet documents (a whole class's marks cards, D-195) as one A4 PDF, a sheet each, in the order given. Each is drawn as
+ * the single download draws it, then kept as a JPEG on the paper's own colour (a PNG of 70 cards would be far too big to send),
+ * and its picture let go before the next, so a long class does not hold every picture at once. `onProgress` hears each sheet done.
+ */
+export async function downloadSheetsAsPdf(nodes: readonly HTMLElement[], filename: string, captureClass: string, onProgress?: (done: number, total: number) => void): Promise<void> {
+  const [{ toCanvas, getFontEmbedCSS }, { jsPDF }] = await Promise.all([import("html-to-image"), import("jspdf")]);
+  const pdf = new jsPDF({ unit: "mm", format: "a4", orientation: "portrait", compress: true });
+  // Every card uses the same fonts: read and embed them once, not once a card (most of the time a card took).
+  const fontEmbedCSS = nodes[0] ? await getFontEmbedCSS(nodes[0]) : undefined;
+  for (const [i, node] of nodes.entries()) {
+    node.classList.add(captureClass);
+    let canvas: HTMLCanvasElement;
+    let paper = "";
+    try {
+      await nextFrame();
+      await widenToA4(node);
+      const article = node.querySelector("article");
+      paper = article ? getComputedStyle(article).backgroundColor : "";
+      canvas = await toCanvas(node, { pixelRatio: 1.5, width: node.scrollWidth, height: node.scrollHeight, fontEmbedCSS });
+    } finally {
+      node.style.width = "";
+      node.classList.remove(captureClass);
+    }
+    // A JPEG has no clear parts: lay the picture on the paper's colour, or on the page's own background where the card has none.
+    const flat = document.createElement("canvas");
+    flat.width = canvas.width;
+    flat.height = canvas.height;
+    const g = flat.getContext("2d")!;
+    const solid = (c: string) => c !== "" && c !== "transparent" && !/, 0\)$/.test(c);
+    g.fillStyle = solid(paper) ? paper : getComputedStyle(document.body).backgroundColor;
+    g.fillRect(0, 0, flat.width, flat.height);
+    g.drawImage(canvas, 0, 0);
+    const at = fitOnA4(flat.width, flat.height);
+    if (i > 0) pdf.addPage();
+    pdf.addImage(flat.toDataURL("image/jpeg", 0.8), "JPEG", at.x, at.y, at.width, at.height);
+    canvas.width = flat.width = 0; // let the pictures go now, not when the whole class is done
+    onProgress?.(i + 1, nodes.length);
+  }
+  pdf.save(`${filename}.pdf`);
+}
+
 /**
  * `captureClass` lays the page out for the picture: whole tables, no scroll boxes, as wide as the widest table needs. It is on
  * the page only while the picture is taken, so the person sees nothing change. `paginate` is for a long table: without it the
@@ -85,16 +139,8 @@ export async function downloadAsPdf(node: HTMLElement, filename: string, capture
   let header = { top: 0, bottom: 0 };
   let paper = "";
   try {
-    await new Promise((done) => requestAnimationFrame(() => done(null)));
-    if (!paginate) {
-      // One sheet: if the page is taller than A4's shape, draw it wider until it is not (wider lines wrap less, so a few passes settle it).
-      for (let pass = 0; pass < 4; pass++) {
-        const wanted = widthForA4(node.scrollWidth, node.scrollHeight);
-        if (wanted <= node.scrollWidth) break;
-        node.style.width = `${wanted}px`;
-        await new Promise((done) => requestAnimationFrame(() => done(null)));
-      }
-    }
+    await nextFrame();
+    if (!paginate) await widenToA4(node);
     const top = node.getBoundingClientRect().top;
     if (paginate) {
       rowBottoms = [...node.querySelectorAll(paginate.rows)].map((r) => (r.getBoundingClientRect().bottom - top) * pixelRatio);

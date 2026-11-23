@@ -413,6 +413,9 @@ export const GradeSheetSchema = z
   .openapi("GradeSheet");
 export type GradeSheet = z.infer<typeof GradeSheetSchema>;
 
+/** Every student's marks card of a class for one exam (or the final), in roll-number order, for one PDF of the class (D-195). */
+export const ClassGradeSheetsSchema = z.object({ sheets: z.array(GradeSheetSchema) }).openapi("ClassGradeSheets");
+
 const LedgerPart = z.object({ valueHundredths: z.number().int().nullable(), absent: z.boolean() });
 
 /** The class mark ledger: students by subjects, with the marks themselves, the total, the percentage and the rank. */
