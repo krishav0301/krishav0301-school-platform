@@ -1,3 +1,4 @@
+import { authorize } from "../../core/permissions";
 import { defineRoute } from "../../core/routes";
 import type { App } from "../../core/types";
 import { getClassHub, listClassHub } from "./class-hub";
@@ -42,7 +43,8 @@ export function registerClassHub(app: App): void {
     },
     async (c) => {
       c.header("Cache-Control", "no-store");
-      const hub = await getClassHub(c.env.DB, c.get("grant")!, c.get("auth")!.userPublicId, c.req.valid("param").id);
+      const auth = c.get("auth")!;
+      const hub = await getClassHub(c.env.DB, c.get("grant")!, auth.userPublicId, c.req.valid("param").id, authorize(auth.roles, "results.attendance.give"));
       return hub ? c.json(hub, 200) : c.json({ error: "not_found" }, 404);
     },
   );

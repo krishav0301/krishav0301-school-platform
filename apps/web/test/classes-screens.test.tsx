@@ -26,7 +26,7 @@ const place = { id: "c1", termId: "t1", termLabel: "2083", courseId: "co1", leve
 const subject = (offeringId: string, name: string) => ({ offeringId, name });
 const hub = (over: Partial<ClassHub> = {}): ClassHub => ({
   class: place,
-  viewer: { seesAll: true, attendance: true, isClassTeacher: true, staff: false },
+  viewer: { seesAll: true, attendance: true, isClassTeacher: true, staff: false, examAttendance: true },
   subjects: [subject("o1", "English"), subject("o2", "Chemistry")],
   mySubjects: [subject("o1", "English"), subject("o2", "Chemistry")],
   taughtSubjects: [],
@@ -44,13 +44,13 @@ describe("the tabs each person sees (the PM's rules)", () => {
     expect(classTabs(hub())).toEqual(["students", "attendance", "results"]);
   });
   it("a subject teacher: Students, Classwork, Results; never Attendance", () => {
-    expect(classTabs(hub({ viewer: { seesAll: false, attendance: false, isClassTeacher: false, staff: false }, taughtSubjects: [subject("o2", "Chemistry")] }))).toEqual(["students", "classwork", "results"]);
+    expect(classTabs(hub({ viewer: { seesAll: false, attendance: false, isClassTeacher: false, staff: false, examAttendance: false }, taughtSubjects: [subject("o2", "Chemistry")] }))).toEqual(["students", "classwork", "results"]);
   });
   it("the Principal and the Co-ordinator: every tab", () => {
-    expect(classTabs(hub({ viewer: { seesAll: true, attendance: true, isClassTeacher: false, staff: true } }))).toEqual(["students", "attendance", "classwork", "results"]);
+    expect(classTabs(hub({ viewer: { seesAll: true, attendance: true, isClassTeacher: false, staff: true, examAttendance: false } }))).toEqual(["students", "attendance", "classwork", "results"]);
   });
   it("a results-only school (the PM, 2026-10-11): the Principal sees Students and Results, with no Attendance or Classwork tab", () => {
-    const principal = hub({ viewer: { seesAll: true, attendance: true, isClassTeacher: false, staff: true } });
+    const principal = hub({ viewer: { seesAll: true, attendance: true, isClassTeacher: false, staff: true, examAttendance: false } });
     expect(classTabs(principal, { attendance: false, classwork: false })).toEqual(["students", "results"]);
     expect(classTabs(principal, { attendance: false, classwork: true })).toEqual(["students", "classwork", "results"]);
     expect(classTabs(principal, { attendance: true, classwork: false })).toEqual(["students", "attendance", "results"]);
@@ -117,17 +117,17 @@ describe("inside a class", () => {
     const all = inContext(<StudentsTable hub={hub()} canOpenRecord={false} />);
     expect(all).toContain("2083-00001");
     expect(all).toContain("Sita Yadav");
-    const names = inContext(<StudentsTable hub={hub({ viewer: { seesAll: false, attendance: false, isClassTeacher: false, staff: false }, students: hub().students.map((s) => ({ ...s, sid: null, studentId: null })) })} canOpenRecord={false} />);
+    const names = inContext(<StudentsTable hub={hub({ viewer: { seesAll: false, attendance: false, isClassTeacher: false, staff: false, examAttendance: false }, students: hub().students.map((s) => ({ ...s, sid: null, studentId: null })) })} canOpenRecord={false} />);
     expect(names).toContain("Sita Yadav");
     expect(names).not.toContain(">SID<");
     expect(names).not.toContain("Record");
   });
   it("the Co-ordinator and the Principal can open a student's record from the list", () => {
-    expect(inContext(<StudentsTable hub={hub({ viewer: { seesAll: true, attendance: true, isClassTeacher: false, staff: true } })} canOpenRecord />)).toContain('href="/portal/admissions/student?id=s1"');
+    expect(inContext(<StudentsTable hub={hub({ viewer: { seesAll: true, attendance: true, isClassTeacher: false, staff: true, examAttendance: false } })} canOpenRecord />)).toContain('href="/portal/admissions/student?id=s1"');
   });
   it("results: nothing published yet says who publishes; a subject teacher opens their own marks exam by exam", () => {
     expect(inContext(<ClassResults hub={hub()} />)).toContain("Results show here once the Co-ordinator publishes them.");
-    const own = inContext(<ClassResults hub={hub({ viewer: { seesAll: false, attendance: false, isClassTeacher: false, staff: false }, mySubjects: [subject("o2", "Chemistry")] })} />);
+    const own = inContext(<ClassResults hub={hub({ viewer: { seesAll: false, attendance: false, isClassTeacher: false, staff: false, examAttendance: false }, mySubjects: [subject("o2", "Chemistry")] })} />);
     expect(own).toContain('href="/portal/results/sheet?class=c1&amp;subject=o2&amp;terminal=t1"');
     expect(own).not.toContain("English");
   });
@@ -140,7 +140,7 @@ describe("the class's Results tab, grouped by exam", () => {
     { id: "t2", name: "Second Terminal", published: true },
     { id: "t3", name: "Third Terminal", published: false },
   ];
-  const teacher = { seesAll: false, attendance: false, isClassTeacher: false, staff: false };
+  const teacher = { seesAll: false, attendance: false, isClassTeacher: false, staff: false, examAttendance: false };
 
   it("a subject teacher sees a card for each exam, the first open with their subjects, the rest closed", () => {
     const html = inContext(<ClassResults hub={hub({ viewer: teacher, terminals: exams, mySubjects: [subject("o2", "Chemistry"), subject("o3", "Physics")] })} />);
@@ -175,5 +175,27 @@ describe("Setup's Classes tab", () => {
     const screen = read("classes", "ClassesScreen.tsx");
     expect(screen).toContain("canManage ? <AddClassDialog");
     expect(read("classes", "AddClassDialog.tsx")).toContain("<AddDialog");
+  });
+});
+
+describe("the link to give an exam's attendance follows the rule, not the Class Teacher alone (the PM, 2026-11-23, D-198)", () => {
+  const withCard = { ...config, school: { ...config.school, gradeSheet: { paper: "accent" } } } as unknown as PublicConfig;
+  const render = (viewer: ClassHub["viewer"]) =>
+    renderToStaticMarkup(
+      <ConfigContext.Provider value={makeConfigValue("ready", withCard)}>
+        <SessionContext.Provider value={fakeSession({ status: "signedIn", me: { id: "user-1", name: "Someone", roles: [{ role: "super_admin", scope: "institution" }] } })}>
+          <ClassResults hub={hub({ viewer })} />
+        </SessionContext.Provider>
+      </ConfigContext.Provider>,
+    );
+
+  it("the Super Admin, who is no Class Teacher, gets the Attendance link for the class", () => {
+    const html = render({ seesAll: true, attendance: true, isClassTeacher: false, staff: true, examAttendance: true });
+    expect(html).toContain("Attendance for the marks card");
+    expect(html).toContain("/portal/results/attendance?class=c1&amp;exam=t1");
+  });
+
+  it("a Co-ordinator, who sees the whole class but may not give its attendance, gets no link", () => {
+    expect(render({ seesAll: true, attendance: true, isClassTeacher: false, staff: true, examAttendance: false })).not.toContain("/portal/results/attendance");
   });
 });

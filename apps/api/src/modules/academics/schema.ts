@@ -528,7 +528,14 @@ export const ClassHubSchema = z
     class: ClassPlaceSchema,
     /** What the person sees: everything (the Class Teacher, the Co-ordinator, the Principal) or a subject teacher's part. */
     /** `staff`: the Principal, a Co-ordinator or Support, who reach the class as a whole (not by teaching in it). */
-    viewer: z.object({ seesAll: z.boolean(), attendance: z.boolean(), isClassTeacher: z.boolean(), staff: z.boolean() }),
+    viewer: z.object({
+      seesAll: z.boolean(),
+      attendance: z.boolean(),
+      isClassTeacher: z.boolean(),
+      staff: z.boolean(),
+      /** Whether this person may give the class's exam attendance (`results.attendance.give`), so the page shows the link (D-198). */
+      examAttendance: z.boolean(),
+    }),
     subjects: z.array(HubSubjectSchema),
     /** The subjects whose marks the person sees: every one (published, for a Class Teacher), or a subject teacher's own. */
     mySubjects: z.array(HubSubjectSchema),

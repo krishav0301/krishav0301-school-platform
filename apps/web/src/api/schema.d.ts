@@ -3801,6 +3801,7 @@ export interface components {
                 attendance: boolean;
                 isClassTeacher: boolean;
                 staff: boolean;
+                examAttendance: boolean;
             };
             subjects: {
                 offeringId: string;

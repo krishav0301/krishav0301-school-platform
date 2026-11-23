@@ -1,4 +1,4 @@
-import type { Grant } from "../../core/permissions";
+import { canAccessSection, type Grant } from "../../core/permissions";
 import type { ClassHub, ClassHubList } from "./schema";
 
 /**
@@ -16,7 +16,7 @@ const IN_REACH = `(?1 = 1 OR s.key IN (SELECT value FROM json_each(?2))
 
 const reachParams = (grant: Grant, actor: string) => [grant.institution ? 1 : 0, JSON.stringify(grant.sections), actor, grant.assigned ? 1 : 0] as const;
 
-const CLASS_COLUMNS = `cl.public_id AS id, ay.public_id AS term_id, ay.label AS term_label, p.public_id AS course_id, l.public_id AS level_id, s.name AS wing, p.name AS course, l.name AS level, cl.label AS section,
+const CLASS_COLUMNS = `cl.public_id AS id, ay.public_id AS term_id, ay.label AS term_label, p.public_id AS course_id, l.public_id AS level_id, s.name AS wing, s.key AS wing_key, p.name AS course, l.name AS level, cl.label AS section,
         ct.full_name AS class_teacher, ct.public_id AS class_teacher_id,
         (SELECT COUNT(*) FROM enrollments en WHERE en.class_id = cl.id AND en.status = 'active') AS students`;
 const CLASS_JOINS = `FROM classes cl
@@ -33,6 +33,7 @@ interface ClassRow {
   course_id: string;
   level_id: string;
   wing: string;
+  wing_key: string;
   course: string;
   level: string;
   section: string;
@@ -70,7 +71,12 @@ export async function listClassHub(db: D1Database, grant: Grant, actor: string):
 }
 
 /** One class as its page, or null when it is not one the person opens (the same as a missing class). One round trip. */
-export async function getClassHub(db: D1Database, grant: Grant, actor: string, classId: string): Promise<ClassHub | null> {
+/**
+ * `attendanceGrant`: the person's grant for `results.attendance.give`, so the page offers the link to give an exam's attendance
+ * to exactly those the rule lets through: the class's own Class Teacher, and a role that gives it for every class in its reach
+ * (Support today, so the Super Admin gives every class's attendance from one account; the PM, 2026-11-23, D-198).
+ */
+export async function getClassHub(db: D1Database, grant: Grant, actor: string, classId: string, attendanceGrant: Grant | null = null): Promise<ClassHub | null> {
   const [cls, subjects, mine, terminals, students] = await db.batch([
     db.prepare(`SELECT ${CLASS_COLUMNS} ${CLASS_JOINS} WHERE cl.public_id = ?5 AND ay.status <> 'closed' AND ${IN_REACH}`).bind(...reachParams(grant, actor), classId),
     db
@@ -108,11 +114,12 @@ export async function getClassHub(db: D1Database, grant: Grant, actor: string, c
   // Everything of the class: its Class Teacher, and staff who reach it as a whole (not merely by teaching in it).
   const staff = grant.institution || grant.sections.length > 0;
   const seesAll = isClassTeacher || staff;
+  const examAttendance = isClassTeacher || (attendanceGrant !== null && !attendanceGrant.classOnly && canAccessSection(attendanceGrant, row.wing_key));
   const allSubjects = (subjects!.results as { offering_id: string; name: string }[]).map((r) => ({ offeringId: r.offering_id, name: r.name }));
   const taught = new Set((mine!.results as { offering_id: string }[]).map((r) => r.offering_id));
   return {
     class: toClass(row),
-    viewer: { seesAll, attendance: seesAll, isClassTeacher, staff },
+    viewer: { seesAll, attendance: seesAll, isClassTeacher, staff, examAttendance },
     subjects: allSubjects,
     mySubjects: seesAll ? allSubjects : allSubjects.filter((s) => taught.has(s.offeringId)),
     // Classwork stays a teacher's own subjects, a Class Teacher's too (the PM, FUT point 19).
