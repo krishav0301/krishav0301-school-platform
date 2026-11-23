@@ -1,5 +1,7 @@
 import { rowsOf, type DashboardPart } from "../../core/dashboard";
 import { adToBsText } from "../../core/dates";
+import { PUBLICATION_OF_CLASS, SCHOOL, classAttendance, configOf, daysByStudent, type SchoolRow } from "./documents";
+import { classRanks } from "./gradesheet";
 import { rankResults } from "./grading";
 import { CLASS_JOINS, NAMING_COLUMNS, naming, sectionInReach, top20On, type Reach } from "./guard";
 import type { CardBody, ClassSheet, MarksCard, OwnResults, PublishedResults, Top20 } from "./schema";
@@ -210,7 +212,7 @@ export async function top20(db: D1Database, viewer: { student: string } | { reac
  * `classTeacher`: only a class this person leads (a Class Teacher reading their own class, FUT point 19).
  */
 export async function classSheet(db: D1Database, reach: Reach, classId: string, terminalId: string | null, classTeacher: string | null = null): Promise<ClassSheet | null> {
-  const [head, cards] = await db.batch([
+  const [head, cards, school, attendance] = await db.batch([
     db
       .prepare(
         `SELECT cl.public_id AS class_id, ${NAMING_COLUMNS}, t.public_id AS terminal_id, t.name AS terminal_name, rp.pattern, rp.published_at
@@ -229,6 +231,9 @@ export async function classSheet(db: D1Database, reach: Reach, classId: string, 
           ORDER BY en.roll_no, en.id`,
       )
       .bind(classId, terminalId),
+    // A school with its own marks card ranks the screen as the card does (D-196): its layout, and everyone's days for a tie.
+    db.prepare(SCHOOL),
+    db.prepare(classAttendance(PUBLICATION_OF_CLASS)).bind(classId, terminalId),
   ]);
   const h = head!.results[0] as { class_id: string; programme_name: string; level_name: string; label: string; terminal_id: string | null; terminal_name: string | null; pattern: string; published_at: string } | undefined;
   if (!h) return null;
@@ -240,7 +245,13 @@ export async function classSheet(db: D1Database, reach: Reach, classId: string, 
   for (const r of rows) for (const s of r.card.subjects) if (!subjects.some((x) => x.offeringId === s.offeringId)) subjects.push({ offeringId: s.offeringId, name: s.name });
   subjects.sort((a, b) => a.name.localeCompare(b.name));
   const isFinal = h.terminal_id === null;
-  const ranks = isFinal ? new Map(rankResults(rows.map((r) => ({ id: r.enrollment_id, score: r.percent_hundredths, passed: r.passed === 1 }))).map((r) => [r.id, r.rank])) : new Map<string, number>();
+  const layout = configOf(school!.results[0] as SchoolRow | undefined);
+  const days = daysByStudent(attendance!.results);
+  const ranks = !isFinal
+    ? new Map<string, number>()
+    : layout
+      ? classRanks(layout.config, rows.map((r) => ({ enrollmentId: r.enrollment_id, body: r.card, attendance: days.get(r.enrollment_id) ?? null })))
+      : new Map(rankResults(rows.map((r) => ({ id: r.enrollment_id, score: r.percent_hundredths, passed: r.passed === 1 }))).map((r) => [r.id, r.rank]));
   return {
     classId: h.class_id,
     ...naming(h),

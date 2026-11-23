@@ -14,13 +14,13 @@ const bsOf = (iso: string) => adToBsText(iso.slice(0, 10));
 /** The latest card of each (publication, enrollment): a join condition on `mc`. */
 const LATEST = `mc.version = (SELECT MAX(v.version) FROM marks_cards v WHERE v.publication_id = mc.publication_id AND v.enrollment_id = mc.enrollment_id)`;
 
-interface SchoolRow {
+export interface SchoolRow {
   name: string;
   grade_sheet_json: string | null;
 }
 
 /** The school's layout, or null when its file has none (or one that no longer reads). */
-function configOf(row: SchoolRow | undefined): { school: GradeSheet["school"]; config: GradeSheetConfig } | null {
+export function configOf(row: SchoolRow | undefined): { school: GradeSheet["school"]; config: GradeSheetConfig } | null {
   if (!row?.grade_sheet_json) return null;
   const parsed = GradeSheetConfigSchema.safeParse(JSON.parse(row.grade_sheet_json));
   if (!parsed.success) return null;
@@ -30,7 +30,35 @@ function configOf(row: SchoolRow | undefined): { school: GradeSheet["school"]; c
 /** "Two(B)" the way the paper writes a class: the level, and the section's letter in brackets. */
 const classText = (r: { level_name: string; label: string }) => (r.label ? `${r.level_name}(${r.label})` : r.level_name);
 
-const SCHOOL = `SELECT name, grade_sheet_json FROM school WHERE id = 1`;
+export const SCHOOL = `SELECT name, grade_sheet_json FROM school WHERE id = 1`;
+
+/**
+ * What the Class Teacher gave, for every student with a card in one publication (`publication` is an SQL expression for its id):
+ * for an exam's cards that exam's working days and the student's days present; for the final the sums over the year's exams that
+ * have both (an exam a student has no days for is left out of that student's sums, so the percentage stays honest). For the card's
+ * attendance box and for breaking a tie in marks (D-189, D-196).
+ */
+export const classAttendance = (publication: string) =>
+  `SELECT en.public_id AS enrollment_id, SUM(d.working_days) AS working_days, SUM(ta.days_present) AS days_present
+     FROM result_publications rp JOIN classes pc ON pc.id = rp.class_id
+     JOIN marks_cards mc ON mc.publication_id = rp.id AND ${LATEST} JOIN enrollments en ON en.id = mc.enrollment_id
+     JOIN terminals ty ON ty.academic_year_id = pc.academic_year_id AND (rp.terminal_id IS NULL OR ty.id = rp.terminal_id)
+     JOIN term_attendance_days d ON d.terminal_id = ty.id AND d.class_id = rp.class_id
+     JOIN term_attendance ta ON ta.terminal_id = ty.id AND ta.enrollment_id = mc.enrollment_id
+    WHERE rp.id = (${publication}) AND en.class_id = rp.class_id
+    GROUP BY en.public_id`;
+
+/** The publication of a class (?1) for a terminal (?2), or for its final result (?2 null). */
+export const PUBLICATION_OF_CLASS = `SELECT rp2.id FROM result_publications rp2 JOIN classes c2 ON c2.id = rp2.class_id LEFT JOIN terminals t2 ON t2.id = rp2.terminal_id
+  WHERE c2.public_id = ?1 AND (CASE WHEN ?2 IS NULL THEN rp2.terminal_id IS NULL ELSE t2.public_id = ?2 END)`;
+
+/** Days given, by enrollment, from a `classAttendance` result: only students with both sums. */
+export const daysByStudent = (rows: unknown[]): Map<string, { workingDays: number; presentDays: number }> =>
+  new Map(
+    (rows as { enrollment_id: string; working_days: number | null; days_present: number | null }[])
+      .filter((r) => r.working_days !== null && r.days_present !== null)
+      .map((r) => [r.enrollment_id, { workingDays: r.working_days!, presentDays: r.days_present! }]),
+  );
 
 /**
  * The marks card of one card id as a grade-point sheet. `viewer`: a student, found by their sign-in and shown only their own
@@ -59,32 +87,20 @@ export async function gradeSheetFor(db: D1Database, viewer: { student: string } 
           WHERE mc.publication_id = (SELECT publication_id FROM marks_cards WHERE public_id = ?1) AND ${LATEST}`,
       )
       .bind(cardId),
-    // What the Class Teacher gave: for an exam's card, that exam's working days and this student's days present; for the final result, the
-    // sums over the year's exams that have both (a student missing an exam's days is left out of that exam, so the percentage stays honest).
-    db
-      .prepare(
-        `SELECT SUM(d.working_days) AS working_days, SUM(ta.days_present) AS days_present
-           FROM marks_cards mc JOIN result_publications rp ON rp.id = mc.publication_id JOIN enrollments en ON en.id = mc.enrollment_id
-           JOIN classes pc ON pc.id = rp.class_id
-           JOIN terminals t ON t.academic_year_id = pc.academic_year_id AND (rp.terminal_id IS NULL OR t.id = rp.terminal_id)
-           JOIN term_attendance_days d ON d.terminal_id = t.id AND d.class_id = rp.class_id
-           JOIN term_attendance ta ON ta.terminal_id = t.id AND ta.enrollment_id = mc.enrollment_id
-          WHERE mc.public_id = ?1 AND en.class_id = rp.class_id`,
-      )
-      .bind(cardId),
+    // The whole class's days: this student's for the attendance box, everyone's for breaking a tie in marks (D-196).
+    db.prepare(classAttendance(`SELECT publication_id FROM marks_cards WHERE public_id = ?1`)).bind(cardId),
   ]);
   const layout = configOf(school!.results[0] as SchoolRow | undefined);
-  const sums = attendance!.results[0] as { working_days: number | null; days_present: number | null } | undefined;
-  const given = sums && sums.working_days !== null && sums.days_present !== null ? { working_days: sums.working_days, days_present: sums.days_present } : undefined;
+  const days = daysByStudent(attendance!.results);
   const row = card!.results[0] as { card_id: string; version: number; body: string; published_at: string; enrollment_id: string; roll_no: number | null; dob_ad: string | null; student_name: string; level_name: string; label: string } | undefined;
   if (!layout || !row) return null;
-  const classCards: ClassCard[] = (latest!.results as unknown as { enrollment_id: string; body: string }[]).map((r) => ({ enrollmentId: r.enrollment_id, body: JSON.parse(r.body) as CardBody }));
+  const classCards: ClassCard[] = (latest!.results as unknown as { enrollment_id: string; body: string }[]).map((r) => ({ enrollmentId: r.enrollment_id, body: JSON.parse(r.body) as CardBody, attendance: days.get(r.enrollment_id) ?? null }));
   const body = JSON.parse(row.body) as CardBody;
   // Asked for an older version: it stands in place of that student's latest, so the sheet shows what that card said.
-  const among = classCards.some((c) => c.enrollmentId === row.enrollment_id) ? classCards.map((c) => (c.enrollmentId === row.enrollment_id ? { ...c, body } : c)) : [...classCards, { enrollmentId: row.enrollment_id, body }];
+  const among = classCards.some((c) => c.enrollmentId === row.enrollment_id) ? classCards.map((c) => (c.enrollmentId === row.enrollment_id ? { ...c, body } : c)) : [...classCards, { enrollmentId: row.enrollment_id, body, attendance: days.get(row.enrollment_id) ?? null }];
   return buildGradeSheet(
     layout.config,
-    { school: layout.school, cardId: row.card_id, version: row.version, enrollmentId: row.enrollment_id, className: classText(row), dateOfBirthBs: row.dob_ad ? bsOf(row.dob_ad) : null, rollNo: row.roll_no, studentName: row.student_name, issuedOnBs: bsOf(row.published_at), attendance: given ? { workingDays: given.working_days, presentDays: given.days_present } : null },
+    { school: layout.school, cardId: row.card_id, version: row.version, enrollmentId: row.enrollment_id, className: classText(row), dateOfBirthBs: row.dob_ad ? bsOf(row.dob_ad) : null, rollNo: row.roll_no, studentName: row.student_name, issuedOnBs: bsOf(row.published_at), attendance: days.get(row.enrollment_id) ?? null },
     body,
     among,
   );
@@ -95,7 +111,7 @@ export async function gradeSheetFor(db: D1Database, viewer: { student: string } 
  * person leads. Null when not published, not in reach, or the school has no such layout.
  */
 export async function ledgerFor(db: D1Database, reach: Reach, classId: string, terminalId: string | null, classTeacher: string | null = null): Promise<MarkLedger | null> {
-  const [school, head, cards, offerings] = await db.batch([
+  const [school, head, cards, offerings, attendance] = await db.batch([
     db.prepare(SCHOOL),
     db
       .prepare(
@@ -123,13 +139,16 @@ export async function ledgerFor(db: D1Database, reach: Reach, classId: string, t
           WHERE cl.public_id = ?1 ORDER BY o.id`,
       )
       .bind(classId),
+    // Everyone's days, for breaking a tie in marks (D-196).
+    db.prepare(classAttendance(PUBLICATION_OF_CLASS)).bind(classId, terminalId),
   ]);
   const layout = configOf(school!.results[0] as SchoolRow | undefined);
   const h = head!.results[0] as { class_id: string; level_name: string; label: string; year_label: string; terminal_name: string | null } | undefined;
   if (!layout || !h) return null;
+  const days = daysByStudent(attendance!.results);
   const students: LedgerStudent[] = (cards!.results as unknown as { enrollment_id: string; roll_no: number | null; student_name: string; body: string }[]).map((r) => {
     const body = JSON.parse(r.body) as CardBody;
-    return { enrollmentId: r.enrollment_id, body, name: r.student_name, rollNo: r.roll_no };
+    return { enrollmentId: r.enrollment_id, body, name: r.student_name, rollNo: r.roll_no, attendance: days.get(r.enrollment_id) ?? null };
   });
   const subjects = (offerings!.results as unknown as { offering_id: string; name: string; code: string | null }[]).map((o) => ({ offeringId: o.offering_id, name: o.name, code: o.code }));
   return buildLedger(layout.config, { classId: h.class_id, school: layout.school, yearLabel: h.year_label, className: classText(h), examName: h.terminal_name }, subjects, students);
@@ -163,29 +182,14 @@ export async function classGradeSheetsFor(db: D1Database, reach: Reach, classId:
           ORDER BY en.roll_no IS NULL, en.roll_no, en.id`,
       )
       .bind(classId, terminalId),
-    // As in gradeSheetFor: an exam's working days and each student's days present, or for the final the sums over the year's exams that have both.
-    db
-      .prepare(
-        `SELECT en.public_id AS enrollment_id, SUM(d.working_days) AS working_days, SUM(ta.days_present) AS days_present
-           FROM classes cl JOIN result_publications rp ON rp.class_id = cl.id LEFT JOIN terminals rt ON rt.id = rp.terminal_id
-           JOIN marks_cards mc ON mc.publication_id = rp.id AND ${LATEST} JOIN enrollments en ON en.id = mc.enrollment_id
-           JOIN terminals ty ON ty.academic_year_id = cl.academic_year_id AND (rp.terminal_id IS NULL OR ty.id = rp.terminal_id)
-           JOIN term_attendance_days d ON d.terminal_id = ty.id AND d.class_id = rp.class_id
-           JOIN term_attendance ta ON ta.terminal_id = ty.id AND ta.enrollment_id = mc.enrollment_id
-          WHERE cl.public_id = ?1 AND (CASE WHEN ?2 IS NULL THEN rp.terminal_id IS NULL ELSE rt.public_id = ?2 END) AND en.class_id = rp.class_id
-          GROUP BY en.public_id`,
-      )
-      .bind(classId, terminalId),
+    // Everyone's days: each card's attendance box, and breaking a tie in marks (D-196).
+    db.prepare(classAttendance(PUBLICATION_OF_CLASS)).bind(classId, terminalId),
   ]);
   const layout = configOf(school!.results[0] as SchoolRow | undefined);
   if (!layout || !head!.results[0]) return null;
   const rows = cards!.results as unknown as { card_id: string; version: number; body: string; published_at: string; enrollment_id: string; roll_no: number | null; dob_ad: string | null; student_name: string; level_name: string; label: string }[];
-  const days = new Map(
-    (attendance!.results as unknown as { enrollment_id: string; working_days: number | null; days_present: number | null }[])
-      .filter((r) => r.working_days !== null && r.days_present !== null)
-      .map((r) => [r.enrollment_id, { workingDays: r.working_days!, presentDays: r.days_present! }]),
-  );
-  const classCards: ClassCard[] = rows.map((r) => ({ enrollmentId: r.enrollment_id, body: JSON.parse(r.body) as CardBody }));
+  const days = daysByStudent(attendance!.results);
+  const classCards: ClassCard[] = rows.map((r) => ({ enrollmentId: r.enrollment_id, body: JSON.parse(r.body) as CardBody, attendance: days.get(r.enrollment_id) ?? null }));
   return rows.map((row, i) =>
     buildGradeSheet(
       layout.config,

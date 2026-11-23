@@ -43,6 +43,11 @@ export const GradeSheetSchema = z
     boundary: z.enum(["from", "above"]).default("from"),
     /** `dense`: tied students share a rank and the next rank follows (1, 2, 2, 3); `competition`: it skips (1, 2, 2, 4). */
     rankStyle: z.enum(["dense", "competition"]).default("competition"),
+    /**
+     * Equal marks: `none` shares the rank; `attendance` puts the better attendance (days present over working days, as the
+     * Class Teacher gave them) ahead, and a student with none given after one with some; equal or none given still share (D-196).
+     */
+    rankTieBreak: z.enum(["none", "attendance"]).default("none"),
   })
   .superRefine((g, ctx) => {
     const down = (list: { from: number }[]) => list.every((x, i) => i === 0 || x.from < list[i - 1]!.from);
