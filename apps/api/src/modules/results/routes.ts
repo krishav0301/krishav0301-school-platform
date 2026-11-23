@@ -5,7 +5,7 @@ import type { Grant } from "../../core/permissions";
 import { defineRoute } from "../../core/routes";
 import type { App, AppEnv } from "../../core/types";
 import { classElectives, setPicks } from "./electives";
-import { gradeSheetFor, ledgerFor } from "./documents";
+import { classGradeSheetsFor, gradeSheetFor, ledgerFor } from "./documents";
 import { reachOf, type Reach } from "./guard";
 import { publishClass } from "./publish";
 import { decideRecheck, listRechecks, requestRecheck } from "./rechecks";
@@ -18,6 +18,7 @@ import {
   DecideRecheckSchema,
   GradeSheetSchema,
   MarkLedgerSchema,
+  ClassGradeSheetsSchema,
   MarkSheetSchema,
   MarksCardSchema,
   MyMarkSheetsSchema,
@@ -478,6 +479,37 @@ export function registerResults(app: App): void {
       return ledger ? c.json(ledger, 200) : c.json({ error: "not_found" }, 404);
     },
   );
+
+  // The whole class's marks cards, for one PDF of every student's GRADE-SHEET (the PM, 2026-11-23, D-195): the same people and reach
+  // as the ledger (the class's own Class Teacher, the Co-ordinator, the Principal, Support).
+  for (const final of [false, true]) {
+    defineRoute(
+      app,
+      {
+        method: "get",
+        path: final ? "/api/results/classes/{classId}/final/grade-sheets" : "/api/results/classes/{classId}/terminals/{terminalId}/grade-sheets",
+        operationId: final ? "get_class_final_grade_sheets" : "get_class_grade_sheets",
+        tags: ["results"],
+        description: `Every student's marks card of the class for ${final ? "the final result" : "a published terminal"}, as grade-point GRADE-SHEETs in roll-number order, each the same as that student's own card. A Class Teacher reads their own class's. Not found for a school whose file has no such layout.`,
+        access: CLASS_SHEET,
+        request: { params: final ? ClassOnly : ClassTerminal },
+        responses: { 200: { description: "The class's marks cards", content: json(ClassGradeSheetsSchema) }, 404: failures[404] },
+      },
+      async (c) => {
+        const grant = c.get("grant")!;
+        const staff = staffReach(grant);
+        const params = c.req.valid("param") as { classId: string; terminalId?: string };
+        const terminal = final ? null : params.terminalId!;
+        const sheets = staff
+          ? await classGradeSheetsFor(c.env.DB, staff, params.classId, terminal)
+          : grant.classOnly
+            ? await classGradeSheetsFor(c.env.DB, { institution: 1, sections: null }, params.classId, terminal, c.get("auth")!.userPublicId)
+            : null;
+        c.header("Cache-Control", "no-store");
+        return sheets ? c.json({ sheets }, 200) : c.json({ error: "not_found" }, 404);
+      },
+    );
+  }
 
   defineRoute(
     app,

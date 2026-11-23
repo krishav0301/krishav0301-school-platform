@@ -11396,6 +11396,20 @@
           "students"
         ]
       },
+      "ClassGradeSheets": {
+        "type": "object",
+        "properties": {
+          "sheets": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/GradeSheet"
+            }
+          }
+        },
+        "required": [
+          "sheets"
+        ]
+      },
       "Top20": {
         "type": "object",
         "properties": {
@@ -24471,6 +24485,99 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/MarkLedger"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such item, or not one the person may reach",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultsError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/results/classes/{classId}/terminals/{terminalId}/grade-sheets": {
+      "get": {
+        "operationId": "get_class_grade_sheets",
+        "tags": [
+          "results"
+        ],
+        "description": "Every student's marks card of the class for a published terminal, as grade-point GRADE-SHEETs in roll-number order, each the same as that student's own card. A Class Teacher reads their own class's. Not found for a school whose file has no such layout.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{32}$"
+            },
+            "required": true,
+            "name": "classId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{32}$"
+            },
+            "required": true,
+            "name": "terminalId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The class's marks cards",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClassGradeSheets"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such item, or not one the person may reach",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultsError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/results/classes/{classId}/final/grade-sheets": {
+      "get": {
+        "operationId": "get_class_final_grade_sheets",
+        "tags": [
+          "results"
+        ],
+        "description": "Every student's marks card of the class for the final result, as grade-point GRADE-SHEETs in roll-number order, each the same as that student's own card. A Class Teacher reads their own class's. Not found for a school whose file has no such layout.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{32}$"
+            },
+            "required": true,
+            "name": "classId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The class's marks cards",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClassGradeSheets"
                 }
               }
             }

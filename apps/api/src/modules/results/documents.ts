@@ -134,3 +134,64 @@ export async function ledgerFor(db: D1Database, reach: Reach, classId: string, t
   const subjects = (offerings!.results as unknown as { offering_id: string; name: string; code: string | null }[]).map((o) => ({ offeringId: o.offering_id, name: o.name, code: o.code }));
   return buildLedger(layout.config, { classId: h.class_id, school: layout.school, yearLabel: h.year_label, className: classText(h), examName: h.terminal_name }, subjects, students);
 }
+
+/**
+ * Every student's marks card of a class for a terminal, or for the final result (`terminalId` null), as grade-point sheets in
+ * roll-number order: one PDF of the whole class (the PM, 2026-11-23, D-195). Each sheet is exactly what `gradeSheetFor` gives for
+ * that student's latest card. One round trip. Reach as for the ledger. Null when not published, not in reach, or the school has
+ * no such layout.
+ */
+export async function classGradeSheetsFor(db: D1Database, reach: Reach, classId: string, terminalId: string | null, classTeacher: string | null = null): Promise<GradeSheet[] | null> {
+  const exam = `(CASE WHEN ?2 IS NULL THEN rp.terminal_id IS NULL ELSE t.public_id = ?2 END)`;
+  const [school, head, cards, attendance] = await db.batch([
+    db.prepare(SCHOOL),
+    db
+      .prepare(
+        `SELECT cl.public_id AS class_id
+           FROM classes cl ${CLASS_JOINS} JOIN result_publications rp ON rp.class_id = cl.id LEFT JOIN terminals t ON t.id = rp.terminal_id
+          WHERE cl.public_id = ?1 AND ${exam} AND ${sectionInReach(3)}
+            AND (?5 IS NULL OR cl.class_teacher_user_id = (SELECT id FROM users WHERE public_id = ?5))`,
+      )
+      .bind(classId, terminalId, reach.institution, reach.sections, classTeacher),
+    db
+      .prepare(
+        `SELECT mc.public_id AS card_id, mc.version, mc.body, rp.published_at, en.public_id AS enrollment_id, en.roll_no, st.dob_ad,
+                trim(st.first_name || ' ' || COALESCE(st.middle_name || ' ', '') || st.last_name) AS student_name, ${NAMING_COLUMNS}
+           FROM classes cl ${CLASS_JOINS} JOIN result_publications rp ON rp.class_id = cl.id LEFT JOIN terminals t ON t.id = rp.terminal_id
+           JOIN marks_cards mc ON mc.publication_id = rp.id AND ${LATEST} JOIN enrollments en ON en.id = mc.enrollment_id JOIN students st ON st.id = en.student_id
+          WHERE cl.public_id = ?1 AND ${exam}
+          ORDER BY en.roll_no IS NULL, en.roll_no, en.id`,
+      )
+      .bind(classId, terminalId),
+    // As in gradeSheetFor: an exam's working days and each student's days present, or for the final the sums over the year's exams that have both.
+    db
+      .prepare(
+        `SELECT en.public_id AS enrollment_id, SUM(d.working_days) AS working_days, SUM(ta.days_present) AS days_present
+           FROM classes cl JOIN result_publications rp ON rp.class_id = cl.id LEFT JOIN terminals rt ON rt.id = rp.terminal_id
+           JOIN marks_cards mc ON mc.publication_id = rp.id AND ${LATEST} JOIN enrollments en ON en.id = mc.enrollment_id
+           JOIN terminals ty ON ty.academic_year_id = cl.academic_year_id AND (rp.terminal_id IS NULL OR ty.id = rp.terminal_id)
+           JOIN term_attendance_days d ON d.terminal_id = ty.id AND d.class_id = rp.class_id
+           JOIN term_attendance ta ON ta.terminal_id = ty.id AND ta.enrollment_id = mc.enrollment_id
+          WHERE cl.public_id = ?1 AND (CASE WHEN ?2 IS NULL THEN rp.terminal_id IS NULL ELSE rt.public_id = ?2 END) AND en.class_id = rp.class_id
+          GROUP BY en.public_id`,
+      )
+      .bind(classId, terminalId),
+  ]);
+  const layout = configOf(school!.results[0] as SchoolRow | undefined);
+  if (!layout || !head!.results[0]) return null;
+  const rows = cards!.results as unknown as { card_id: string; version: number; body: string; published_at: string; enrollment_id: string; roll_no: number | null; dob_ad: string | null; student_name: string; level_name: string; label: string }[];
+  const days = new Map(
+    (attendance!.results as unknown as { enrollment_id: string; working_days: number | null; days_present: number | null }[])
+      .filter((r) => r.working_days !== null && r.days_present !== null)
+      .map((r) => [r.enrollment_id, { workingDays: r.working_days!, presentDays: r.days_present! }]),
+  );
+  const classCards: ClassCard[] = rows.map((r) => ({ enrollmentId: r.enrollment_id, body: JSON.parse(r.body) as CardBody }));
+  return rows.map((row, i) =>
+    buildGradeSheet(
+      layout.config,
+      { school: layout.school, cardId: row.card_id, version: row.version, enrollmentId: row.enrollment_id, className: classText(row), dateOfBirthBs: row.dob_ad ? bsOf(row.dob_ad) : null, rollNo: row.roll_no, studentName: row.student_name, issuedOnBs: bsOf(row.published_at), attendance: days.get(row.enrollment_id) ?? null },
+      classCards[i]!.body,
+      classCards,
+    ),
+  );
+}

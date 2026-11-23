@@ -55,6 +55,11 @@ export const loadLedger = (api: ApiClient, classId: string, terminalId: string |
   terminalId === null
     ? load(() => api.GET("/api/results/classes/{classId}/final/ledger", { params: { path: { classId } } }))
     : load(() => api.GET("/api/results/classes/{classId}/terminals/{terminalId}/ledger", { params: { path: { classId, terminalId } } }));
+/** Every student's marks card of a class, as GRADE-SHEETs in roll-number order, for one PDF of the class (D-195). */
+export const loadClassGradeSheets = (api: ApiClient, classId: string, terminalId: string | null): Promise<Loaded<{ sheets: GradeSheet[] }>> =>
+  terminalId === null
+    ? load(() => api.GET("/api/results/classes/{classId}/final/grade-sheets", { params: { path: { classId } } }))
+    : load(() => api.GET("/api/results/classes/{classId}/terminals/{terminalId}/grade-sheets", { params: { path: { classId, terminalId } } }));
 /** The Top 20 ranks the final result only (D-117). */
 export const loadTop20 = (api: ApiClient): Promise<Loaded<Top20>> => load(() => api.GET("/api/results/top20"));
 /** A class's sheet for one terminal, or for the final result (`terminalId` null). */
