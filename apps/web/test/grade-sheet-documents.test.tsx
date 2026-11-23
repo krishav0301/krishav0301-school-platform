@@ -36,6 +36,7 @@ const sheet: GradeSheet = {
   percentHundredths: 7700,
   division: "First Division",
   overallGrade: "B+",
+  overallRemark: "Very Good",
   averagePointTenths: 32,
   rank: 18,
   classSize: 26,
@@ -72,7 +73,7 @@ describe("the grade-sheet", () => {
     expect(html).toContain(">200.00<"); // the total of the full marks, to two places as on the paper
   });
 
-  it("gives the percentage, division, average grade point and rank as x/y, and leaves attendance and remarks empty for the hand", () => {
+  it("gives the percentage, division, average grade point and rank as x/y, leaves attendance empty for the hand, and prints the exam remark (D-194)", () => {
     expect(html).toContain("77.00");
     expect(html).toContain("First Division");
     expect(html).toContain("3.2");
@@ -80,7 +81,7 @@ describe("the grade-sheet", () => {
     expect(html).toContain("2083/05/10");
     expect(html).toMatch(/Attendance<\/th>/);
     expect(html).toMatch(/<td class="[^"]*blank[^"]*"><\/td>/);
-    expect(html).toMatch(/Exam remarks/);
+    expect(html).toMatch(/Exam remarks<\/th><td colSpan="6" class="[^"]*remarks[^"]*">Very Good<\/td>/i);
   });
 
   it("prints the grade table as the school's, with every range, point and remark, then the empty Other activities table and the three signatures", () => {

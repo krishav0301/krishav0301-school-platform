@@ -36,7 +36,7 @@ export const DENSE_FROM = 13;
 
 /**
  * The marks card as the school prints it, a GRADE-SHEET of grade points (the PM, 2026-10-28). The school's name, grade table,
- * and every figure come from the server, worked out from the stored card; exam remarks, other activities and
+ * and every figure come from the server, worked out from the stored card (the exam remark is the grade table's remark for the percentage, D-194); other activities and
  * the three signatures (and the attendance until the Class Teacher gives it) are left empty for the teacher to fill in by hand on the printed copy. Pure.
  */
 export function GradeSheetDocument({ sheet }: { sheet: GradeSheet }) {
@@ -147,7 +147,9 @@ export function GradeSheetDocument({ sheet }: { sheet: GradeSheet }) {
             </tr>
             <tr>
               <th>{t("results.doc.remarks")}</th>
-              <td colSpan={6} className={styles.remarks} />
+              <td colSpan={6} className={styles.remarks}>
+                {sheet.overallRemark}
+              </td>
             </tr>
           </tbody>
         </table>
