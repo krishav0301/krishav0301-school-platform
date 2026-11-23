@@ -71,8 +71,8 @@ describe("the whole class's marks cards", () => {
     const sheets = ((await response.json()) as { sheets: Sheet[] }).sheets;
     expect(sheets.map((s) => s.student.rollNo)).toEqual([1, 2, 3, 4]);
     for (const [i, roll] of [4, 3, 2, 1].entries()) expect(sheets[roll - 1]).toEqual(await ownSheet(a, i, "terminal"));
-    // Ties share a rank, the attendance is the one given, and a student without days has none.
-    expect(sheets.map((s) => s.rank)).toEqual([1, 2, 1, 3]);
+    // Pupils 1 and 3 tie on 90 per cent; Lahan breaks the tie by attendance (D-196): pupil 3 had 100 days, pupil 1 had 80.
+    expect(sheets.map((s) => s.rank)).toEqual([1, 3, 2, 4]);
     expect(sheets.map((s) => s.attendance?.presentDays ?? null)).toEqual([100, null, 80, 90]);
   });
 
@@ -87,6 +87,33 @@ describe("the whole class's marks cards", () => {
     const sheets = await sheetsOf(b, coordinator);
     expect(sheets).toHaveLength(2);
     expect(sheets.map((s) => s.student.name).sort()).toEqual((await Promise.all([0, 1].map((i) => ownSheet(b, i, "terminal")))).map((s) => s.student.name).sort());
+  });
+});
+
+describe("equal marks ranked by attendance (D-196)", () => {
+  it("the card, the ledger and the class cards give the same ranks", async () => {
+    const ledgerRanks = ((await (await call(ledger(a), { cookie: coordinator.cookie })).json()) as { students: { rank: number }[] }).students.map((s) => s.rank);
+    expect(ledgerRanks).toEqual([1, 3, 2, 4]);
+    expect((await ownSheet(a, 1, "terminal")).rank).toBe(2);
+    expect((await ownSheet(a, 3, "terminal")).rank).toBe(1);
+  });
+
+  it("the results screen's final rank is the final card's rank, for every student (the PM: \"make all rank same\")", async () => {
+    const sheet = (await (await call(`/api/results/classes/${a.classId}/final/sheet`, { cookie: coordinator.cookie })).json()) as { students: { enrollmentId: string; rank: number | null }[] };
+    for (const [i, pupil] of a.pupils.entries()) {
+      const card = await ownSheet(a, i, "final");
+      expect(sheet.students.find((s) => s.enrollmentId === pupil.enrollmentId)!.rank).toBe(card.rank);
+    }
+    // The tie on 90 per cent is broken the same way on the screen as on paper.
+    expect([1, 3].map((i) => sheet.students.find((s) => s.enrollmentId === a.pupils[i]!.enrollmentId)!.rank)).toEqual([2, 1]);
+  });
+
+  it("a correction to the attendance moves the rank the next time the card is opened", async () => {
+    const put = (present: (number | null)[]) =>
+      call(`/api/results/classes/${a.classId}/terminals/${terminalId}/attendance`, { method: "PUT", cookie: a.classTeacher.cookie, body: { workingDays: 100, students: a.pupils.map((p, i) => ({ enrollmentId: p.enrollmentId, daysPresent: present[i] ?? null })) } });
+    expect((await put([90, 100, null, 80])).status).toBe(200);
+    expect([(await ownSheet(a, 1, "terminal")).rank, (await ownSheet(a, 3, "terminal")).rank]).toEqual([1, 2]);
+    expect((await put([90, 80, null, 100])).status).toBe(200); // as the other tests expect
   });
 });
 

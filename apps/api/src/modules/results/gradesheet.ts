@@ -59,11 +59,29 @@ export function subjectPoint(config: GradeSheetConfig, s: SubjectFigures): Band 
   return s.passed ? bandFor(config, s.obtainedHundredths, s.fullHundredths) : lowest(config.scale);
 }
 
-/** Ranks by a ratio, highest first. Ties share a rank; `dense` then continues with the next number, `competition` skips. */
-export function rankByRatio<T extends { id: string; obtained: number; full: number }>(rows: T[], style: "dense" | "competition"): Map<string, number> {
-  const greater = (a: T, b: T) => a.obtained * b.full > b.obtained * a.full;
-  const same = (a: T, b: T) => a.obtained * b.full === b.obtained * a.full;
-  const sorted = [...rows].sort((a, b) => (greater(a, b) ? -1 : greater(b, a) ? 1 : 0));
+export interface DaysGiven {
+  workingDays: number;
+  presentDays: number;
+}
+
+/** Above zero when `a` goes ahead of `b`: the higher share of days present; days given go ahead of none; none and none are equal. */
+function attendanceOrder(a: DaysGiven | null | undefined, b: DaysGiven | null | undefined): number {
+  const has = (x: DaysGiven | null | undefined): x is DaysGiven => !!x && x.workingDays > 0;
+  if (!has(a) || !has(b)) return Number(has(a)) - Number(has(b));
+  return Math.min(a.presentDays, a.workingDays) * b.workingDays - Math.min(b.presentDays, b.workingDays) * a.workingDays;
+}
+
+/**
+ * Ranks by a ratio, highest first. Ties share a rank; `dense` then continues with the next number, `competition` skips. With
+ * `attendance` (D-196), equal marks are put in order by attendance first, and share only when that is equal too (or none was given).
+ */
+export function rankByRatio<T extends { id: string; obtained: number; full: number; attendance?: DaysGiven | null }>(rows: T[], style: "dense" | "competition", tieBreak: "none" | "attendance" = "none"): Map<string, number> {
+  const order = (a: T, b: T) => {
+    const marks = a.obtained * b.full - b.obtained * a.full;
+    return marks !== 0 || tieBreak === "none" ? marks : attendanceOrder(a.attendance, b.attendance);
+  };
+  const same = (a: T, b: T) => order(a, b) === 0;
+  const sorted = [...rows].sort((a, b) => Math.sign(order(b, a)));
   const ranks = new Map<string, number>();
   let rank = 0;
   sorted.forEach((row, i) => {
@@ -79,6 +97,8 @@ const totals = (subjects: SubjectFigures[]) => ({ obtained: subjects.reduce((a, 
 export interface ClassCard {
   enrollmentId: string;
   body: CardBody;
+  /** The days the Class Teacher gave for this card's exam (summed for the final), for breaking a tie in marks (D-196). */
+  attendance?: DaysGiven | null;
 }
 
 /** The highest grade point in each subject over the class's cards. */
@@ -108,6 +128,17 @@ export interface SheetContext {
 export const attendanceOf = (a: { workingDays: number; presentDays: number } | null | undefined): GradeSheet["attendance"] =>
   a && a.workingDays > 0 ? { workingDays: a.workingDays, presentDays: Math.min(a.presentDays, a.workingDays), percentHundredths: percentOf(Math.min(a.presentDays, a.workingDays), a.workingDays) } : null;
 
+/**
+ * Each student's rank in the class, the one rule the card, the ledger and the results screen share for a school with this layout
+ * (the PM, 2026-11-23: "make all rank same", D-196): by share of full marks, ties broken as the school's file says.
+ */
+export const classRanks = (config: GradeSheetConfig, cards: readonly ClassCard[]): Map<string, number> =>
+  rankByRatio(
+    cards.map((c) => ({ id: c.enrollmentId, ...totalsOf(c.body), attendance: c.attendance ?? null })),
+    config.rankStyle,
+    config.rankTieBreak,
+  );
+
 /** The grade-point marks card of one card, among the class's latest cards. */
 export function buildGradeSheet(config: GradeSheetConfig, ctx: SheetContext, body: CardBody, classCards: ClassCard[]): GradeSheet {
   const subjects = figuresOf(body);
@@ -132,10 +163,7 @@ export function buildGradeSheet(config: GradeSheetConfig, ctx: SheetContext, bod
   const percentHundredths = percentOf(obtained, full);
   const division = config.divisions.find((d) => reaches("from", obtained, full, d.from))?.name ?? null;
   const pointSum = lines.reduce((a, l) => a + l.pointHundredths, 0);
-  const ranked = rankByRatio(
-    classCards.map((c) => ({ id: c.enrollmentId, ...totalsOf(c.body) })),
-    config.rankStyle,
-  );
+  const ranked = classRanks(config, classCards);
   return {
     cardId: ctx.cardId,
     version: ctx.version,
@@ -180,10 +208,7 @@ export function buildLedger(
   cards: LedgerStudent[],
 ): MarkLedger {
   const figures = cards.map((c) => ({ card: c, subjects: figuresOf(c.body), ...totalsOf(c.body) }));
-  const ranks = rankByRatio(
-    figures.map((f) => ({ id: f.card.enrollmentId, obtained: f.obtained, full: f.full })),
-    config.rankStyle,
-  );
+  const ranks = classRanks(config, cards);
   // Only subjects some card has are columns, so a subject nobody took never appears.
   const present = subjects.filter((s) => figures.some((f) => f.subjects.some((x) => x.offeringId === s.offeringId)));
   return {
