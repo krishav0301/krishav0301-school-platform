@@ -159,12 +159,12 @@ describe("odd cards", () => {
     expect(bandFor(lahan, 0, 0).grade).toBe("NG");
   });
 
-  it("a student marked absent in everything is NG in every subject, with no division", () => {
+  it("a student marked absent in everything is NG in every subject, and Fail (D-193)", () => {
     const absent = { maxHundredths: 10_000, valueHundredths: null, absent: true };
     const c = card("away", [{ ...subject("a", 0, 10_000), theory: absent }, { ...subject("b", 0, 10_000), theory: absent }]);
     const s = buildGradeSheet(lahan, ctx("e"), c, [{ enrollmentId: "e", body: c }]);
     expect(s.subjects.map((x) => x.finalGrade)).toEqual(["NG", "NG"]);
-    expect(s.division).toBeNull();
+    expect(s.division).toBe("Fail");
     expect(s.averagePointTenths).toBe(0);
   });
 
@@ -175,6 +175,7 @@ describe("odd cards", () => {
     const s = buildGradeSheet(plain, ctx("e"), c, [{ enrollmentId: "e", body: c }]);
     expect(s.division).toBeNull();
     expect(s.overallGrade).toBe("NG");
+    expect(s.overallRemark).toBe("Not Graded");
   });
 
   it("marks above the full mark (which entry refuses) still cannot exceed the top grade", () => {

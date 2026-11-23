@@ -11105,6 +11105,9 @@
           "overallGrade": {
             "type": "string"
           },
+          "overallRemark": {
+            "type": "string"
+          },
           "averagePointTenths": {
             "type": "integer"
           },
@@ -11197,6 +11200,7 @@
           "percentHundredths",
           "division",
           "overallGrade",
+          "overallRemark",
           "averagePointTenths",
           "rank",
           "classSize",
