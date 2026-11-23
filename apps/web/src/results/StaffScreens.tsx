@@ -19,6 +19,7 @@ import { SortSelect } from "@/people/SortSelect";
 import { sortStudents, type StudentSort } from "@/people/student-sort";
 import { Button, Checkbox, Field, Notice, Select, buttonClass } from "@/ui";
 
+import { ClassCardsButton } from "./ClassCardsButton";
 import { decideRecheck, gateFailure, loadClassSheet, loadElectives, loadRechecks, setPicks } from "./client";
 import { sentText } from "./MarkSheetScreen";
 import { PublishedList, PublishedResultsLoader } from "./PublishedResults";
@@ -213,20 +214,22 @@ export function ClassSheetView({ classId, terminalId, exportable = true, bare = 
       actions={
         // The mark ledger is for everyone who reads the class sheet (a Class Teacher too); the Excel file only for those who may export.
         config?.school.gradeSheet || exportable ? (
-          <>
+          <div className={styles.sheetActions}>
             {config?.school.gradeSheet ? (
               <Link className={`${buttonClass({ variant: "secondary" })} ${styles.wrapLabel}`} href={`/portal/results/ledger?class=${classId}&exam=${isFinal ? FINAL : terminalId}`} aria-label={t("results.doc.openLedgerLabel")}>
                 <Printer aria-hidden width={18} height={18} />
                 {t("results.doc.openLedger")}
               </Link>
             ) : null}
+            {/* Every student's marks card as one PDF, beside the ledger (the PM, 2026-11-23, D-197): the same people read both. */}
+            {config?.school.gradeSheet ? <ClassCardsButton classId={classId} terminalId={isFinal ? null : terminalId} className={styles.wrapLabel} /> : null}
             {exportable ? (
               <a className={`${buttonClass({ variant: "secondary" })} ${styles.wrapLabel}`} href={isFinal ? `/api/results/classes/${classId}/final/sheet.csv` : `/api/results/classes/${classId}/terminals/${terminalId}/sheet.csv`} download>
                 <Download aria-hidden width={18} height={18} />
                 {t("results.sheets.export")}
               </a>
             ) : null}
-          </>
+          </div>
         ) : undefined
       }
     >

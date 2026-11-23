@@ -1,8 +1,7 @@
 "use client";
 
-import { Download, Files, Printer } from "lucide-react";
+import { Download, Printer } from "lucide-react";
 import { useCallback, useMemo, useRef, useState } from "react";
-import { flushSync } from "react-dom";
 
 import { useAddressQuery } from "@/content/address";
 import { t } from "@/i18n/messages";
@@ -10,11 +9,10 @@ import { useSession } from "@/session/SessionProvider";
 import { Gate, useLoad } from "@/setup/useLoad";
 import { Button, Notice } from "@/ui";
 
-import { gateFailure, loadClassGradeSheets, loadLedger, notForYou } from "./client";
+import { gateFailure, loadLedger, notForYou } from "./client";
 import styles from "./documents.module.css";
-import { downloadAsPdf, downloadSheetsAsPdf, fileSafe } from "./download-pdf";
-import { GradeSheetDocument } from "./GradeSheetDocument";
-import { hundredthsText, type GradeSheet, type MarkLedger } from "./model";
+import { downloadAsPdf, fileSafe } from "./download-pdf";
+import { hundredthsText, type MarkLedger } from "./model";
 
 /** What heads a subject's column: the short name the school set (Eng, Nep, Sci), else the subject's name. Pure. */
 export const columnName = (s: MarkLedger["subjects"][number]): string => s.code ?? s.name;
@@ -143,32 +141,6 @@ export function MarkLedgerScreen() {
     }
     setBusy(false);
   }
-  // The whole class's marks cards as one PDF (the PM, 2026-11-23, D-195): fetched only when asked, drawn out of sight one
-  // GRADE-SHEET each, pictured one by one, then let go.
-  const stage = useRef<HTMLDivElement>(null);
-  const [cards, setCards] = useState<GradeSheet[] | null>(null);
-  const [making, setMaking] = useState<{ done: number; total: number } | null>(null);
-  const [classBusy, setClassBusy] = useState(false);
-  async function downloadClass(ledger: MarkLedger) {
-    setClassBusy(true);
-    setFailed(false);
-    try {
-      const got = await loadClassGradeSheets(api, classId, exam === "final" ? null : exam);
-      if (!got.ok) throw new Error(got.reason);
-      flushSync(() => {
-        setCards(got.data.sheets);
-        setMaking({ done: 0, total: got.data.sheets.length });
-      });
-      const nodes = [...(stage.current?.children ?? [])] as HTMLElement[];
-      await Promise.all(nodes.flatMap((n) => [...n.querySelectorAll("img")].map((img) => img.decode().catch(() => undefined))));
-      await downloadSheetsAsPdf(nodes, fileSafe("Marks cards", ledger.className, ledger.examName ?? "final", ledger.yearLabel), styles.capture, (done, total) => setMaking({ done, total }));
-    } catch {
-      setFailed(true);
-    }
-    setCards(null);
-    setMaking(null);
-    setClassBusy(false);
-  }
   return (
     <Gate view={view} onRetry={() => void reload()}>
       {(ledger) => (
@@ -182,28 +154,11 @@ export function MarkLedgerScreen() {
               <Download aria-hidden width={18} height={18} />
               {t("results.doc.download")}
             </Button>
-            <Button variant="secondary" className={styles.wrapLabel} loading={classBusy} onClick={() => void downloadClass(ledger)}>
-              <Files aria-hidden width={18} height={18} />
-              {t("results.doc.downloadClassCards")}
-            </Button>
             <Button variant="secondary" onClick={() => window.print()}>
               <Printer aria-hidden width={18} height={18} />
               {t("results.doc.print")}
             </Button>
           </div>
-          {/* The one place the progress is said, so a screen reader hears it once. */}
-          <p className={`${styles.progress} ${styles.noPrint}`} role="status">
-            {making ? t("results.doc.makingCards", making) : classBusy ? t("results.doc.fetchingCards") : ""}
-          </p>
-          {cards ? (
-            <div ref={stage} className={styles.offstage} aria-hidden>
-              {cards.map((sheet) => (
-                <div key={sheet.cardId}>
-                  <GradeSheetDocument sheet={sheet} />
-                </div>
-              ))}
-            </div>
-          ) : null}
         </>
       )}
     </Gate>
