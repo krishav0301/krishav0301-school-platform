@@ -104,6 +104,8 @@ describe("sensitive rules, stated independently (docs/source/sample-creation-inf
     "marks.enter": ["TEA"],
     "marks.verify": ["COO", "SUP"],
     "results.publish": ["COO", "SUP"],
+    // Taking a published exam back is the Principal's (and Support's), never the Co-ordinator's who publishes it (D-199).
+    "results.take_back": ["ADM", "SUP"],
     // A recheck is the student's to ask and the Co-ordinator's to decide; the Co-ordinator also records elective picks (D-056).
     "results.recheck.request": ["STU"],
     "results.recheck.edit": ["COO", "SUP"],

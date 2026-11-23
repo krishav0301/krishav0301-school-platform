@@ -116,6 +116,10 @@ export function OwnResultsScreen() {
       />
       {view.status === "loading" ? <TableSkeleton rows={6} tiles={3} /> : null}
       {view.status === "failed" || view.status === "forbidden" ? <ReadFailure status={view.status} onRetry={() => void reload()} /> : null}
+      {/* Results taken back to be corrected (D-199): said plainly, never shown until they are published again. */}
+      {own?.beingCorrected.map((r) => (
+        <Notice key={`${r.yearLabel}|${r.terminalName ?? ""}`}>{t("results.own.beingCorrected", { name: r.terminalName === null ? t("results.own.finalHeading", { year: r.yearLabel }) : t("results.own.heading", { terminal: r.terminalName, year: r.yearLabel }) })}</Notice>
+      ))}
       {own && own.results.length === 0 ? (
         <Panel>
           <EmptyLine>{t("results.own.none")}</EmptyLine>

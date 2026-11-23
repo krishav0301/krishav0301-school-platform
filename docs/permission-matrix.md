@@ -129,6 +129,7 @@ The Co-ordinator has **no** fees access at all.
 | Enter marks (until verified) (`marks.enter`) | — | assigned | — | — | — | — | 7 |
 | Verify, send back, bulk approve (`marks.verify`) | — | — | inst | — | — | ✓ | 7 |
 | Publish a whole class (all subjects verified) (`results.publish`) | — | — | inst | — | — | ✓ | 7 |
+| Take a published exam back to be corrected: chosen subjects back to their teachers (D-199) (`results.take_back`) | — | — | — | — | ✓ | ✓ | 7 |
 | View published results and marks card (`results.view`) | own | — | inst | — | read | ✓ | 7 |
 | Open one marks card: the student's own; a Class Teacher's for the class they lead (2026-10-29) (`results.card.view`) | own | class | inst | — | read | ✓ | 7 |
 | View a class's published result sheet, every subject (FUT point 19) (`results.class_sheet.view`) | — | class | inst | — | read | ✓ | 7 |

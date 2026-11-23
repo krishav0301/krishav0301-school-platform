@@ -1,6 +1,6 @@
 "use client";
 
-import { CircleCheck, Download, Hourglass, PenLine, Printer, UsersRound } from "lucide-react";
+import { CircleCheck, Download, Hourglass, PenLine, Printer, Undo2, UsersRound } from "lucide-react";
 import Link from "next/link";
 import { useCallback, useMemo, useState } from "react";
 
@@ -20,7 +20,7 @@ import { sortStudents, type StudentSort } from "@/people/student-sort";
 import { Button, Checkbox, Field, Notice, Select, buttonClass } from "@/ui";
 
 import { ClassCardsButton } from "./ClassCardsButton";
-import { decideRecheck, gateFailure, loadClassSheet, loadElectives, loadRechecks, setPicks } from "./client";
+import { decideRecheck, gateFailure, loadClassSheet, loadElectives, loadRechecks, setPicks, takeBack } from "./client";
 import { sentText } from "./MarkSheetScreen";
 import { PublishedList, PublishedResultsLoader } from "./PublishedResults";
 import { RECHECK_LABEL, className, hundredthsText, markText, parseMark, partName, scoreText, type ClassElectives, type ClassSheet, type RecheckList } from "./model";
@@ -193,10 +193,14 @@ export function SheetTable({ sheet }: { sheet: ClassSheet }) {
 
 /** One published sheet. `exportable`: offer the CSV, which needs the reports permission (not a Class Teacher's, FUT point 19). */
 export function ClassSheetView({ classId, terminalId, exportable = true, bare = false }: { classId: string; terminalId: string; exportable?: boolean; bare?: boolean }) {
-  const { api } = useSession();
+  const { api, me } = useSession();
   const { config } = useConfig();
   const [missing, setMissing] = useState(false);
+  const [takingBack, setTakingBack] = useState(false);
+  const [takenBack, setTakenBack] = useState<string | null>(null);
   const isFinal = terminalId === FINAL;
+  // Taking an exam back is the Principal's and Support's (D-199); the final is made from the exams, so it is taken back through one of them.
+  const mayTakeBack = !isFinal && (me?.roles.some((r) => r.role === "admin" || r.role === "super_admin") ?? false);
   const loadNow = useCallback(async () => {
     const result = await loadClassSheet(api, classId, isFinal ? null : terminalId);
     setMissing(!result.ok && result.reason === "not_found");
@@ -204,7 +208,7 @@ export function ClassSheetView({ classId, terminalId, exportable = true, bare = 
   }, [api, classId, terminalId, isFinal]);
   const { view, reload } = useLoad<ClassSheet>(loadNow);
   if (view.status === "loading") return <TableSkeleton rows={6} />;
-  if (view.status === "failed" && missing) return <EmptyLine>{t("results.sheets.notPublished")}</EmptyLine>;
+  if (view.status === "failed" && missing) return takenBack ? <Notice tone="ok">{takenBack}</Notice> : <EmptyLine>{t("results.sheets.notPublished")}</EmptyLine>;
   if (view.status !== "ready") return <ReadFailure status={view.status} onRetry={() => void reload()} />;
   const sheet = view.data;
   return (
@@ -213,7 +217,7 @@ export function ClassSheetView({ classId, terminalId, exportable = true, bare = 
       labelledBy="sheet-heading"
       actions={
         // The mark ledger is for everyone who reads the class sheet (a Class Teacher too); the Excel file only for those who may export.
-        config?.school.gradeSheet || exportable ? (
+        config?.school.gradeSheet || exportable || mayTakeBack ? (
           <div className={styles.sheetActions}>
             {config?.school.gradeSheet ? (
               <Link className={`${buttonClass({ variant: "secondary" })} ${styles.wrapLabel}`} href={`/portal/results/ledger?class=${classId}&exam=${isFinal ? FINAL : terminalId}`} aria-label={t("results.doc.openLedgerLabel")}>
@@ -229,13 +233,97 @@ export function ClassSheetView({ classId, terminalId, exportable = true, bare = 
                 {t("results.sheets.export")}
               </a>
             ) : null}
+            {mayTakeBack ? (
+              <Button variant="secondary" className={styles.wrapLabel} aria-label={t("results.takeBack.openLabel", { name: className(sheet), terminal: sheetName(sheet) })} onClick={() => setTakingBack(true)}>
+                <Undo2 aria-hidden width={18} height={18} />
+                {t("results.takeBack.open")}
+              </Button>
+            ) : null}
           </div>
         ) : undefined
       }
     >
       <SheetTable sheet={sheet} />
       <p className={readStyles.subtitle}>{t(isFinal ? "results.sheets.ties" : "results.sheets.forInformation")}</p>
+      {takingBack ? (
+        <TakeBackPanel
+          sheet={sheet}
+          onClose={() => setTakingBack(false)}
+          onDone={(text) => {
+            setTakingBack(false);
+            setTakenBack(text);
+            void reload();
+          }}
+        />
+      ) : null}
     </Panel>
+  );
+}
+
+/**
+ * Taking a published exam back to be corrected (D-199), in a side panel: tick the subjects entered wrongly, say why, and
+ * take it back. The panel is the confirmation: nothing happens until its one button is pressed.
+ */
+export function TakeBackPanel({ sheet, onClose, onDone }: { sheet: ClassSheet; onClose: () => void; onDone: (text: string) => void }) {
+  const { api } = useSession();
+  const { term } = useConfig();
+  const [chosen, setChosen] = useState<Set<string>>(() => new Set());
+  const [reason, setReason] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [message, setMessage] = useState<string | null>(null);
+  const ready = chosen.size > 0 && reason.trim().length >= 3 && !busy;
+
+  async function send() {
+    if (!sheet.terminal) return;
+    setBusy(true);
+    const sent = await takeBack(api, sheet.classId, sheet.terminal.id, { reason: reason.trim(), offeringIds: [...chosen] });
+    setBusy(false);
+    if (sent.ok) {
+      const names = sheet.subjects.filter((x) => chosen.has(x.offeringId)).map((x) => x.name);
+      return onDone(t("results.takeBack.done", { subjects: names.join(", "), coordinator: term("role.coordinator") }));
+    }
+    if (sent.error === "open_rechecks") return setMessage(t("results.takeBack.openRechecks", { coordinator: term("role.coordinator") }));
+    if (sent.error === "already_taken_back") return setMessage(t("results.takeBack.already"));
+    if (sent.error === "year_closed") return setMessage(t("results.closed"));
+    setMessage(sent.message ?? t(sent.error === "failed" ? "results.failed" : "results.refused"));
+  }
+
+  return (
+    <SidePanel
+      title={t("results.takeBack.title")}
+      subtitle={`${className(sheet)} · ${sheetName(sheet)}`}
+      busy={busy}
+      onClose={onClose}
+      foot={
+        <Button fullWidth disabled={!ready} loading={busy} loadingLabel={t("results.saving")} onClick={() => void send()}>
+          {t("results.takeBack.confirm")}
+        </Button>
+      }
+    >
+      {message ? <Notice tone="bad">{message}</Notice> : null}
+      <p className={readStyles.rowMeta}>{t("results.takeBack.intro")}</p>
+      <p className={readStyles.rowMeta}>{t("results.takeBack.finalToo")}</p>
+      <PanelSection title={t("results.takeBack.subjects")}>
+        {sheet.subjects.map((x) => (
+          <Checkbox
+            key={x.offeringId}
+            label={x.name}
+            checked={chosen.has(x.offeringId)}
+            onChange={(event) => {
+              const on = event.target.checked;
+              setChosen((was) => {
+                const next = new Set(was);
+                if (on) next.add(x.offeringId);
+                else next.delete(x.offeringId);
+                return next;
+              });
+              setMessage(null);
+            }}
+          />
+        ))}
+      </PanelSection>
+      <Field label={t("results.takeBack.reason")} hint={t("results.takeBack.reasonHint")} value={reason} maxLength={500} onChange={(event) => setReason(event.target.value)} />
+    </SidePanel>
   );
 }
 

@@ -103,6 +103,8 @@ export const ReviewBoardSchema = z
         /** The class's final result is out (published with its last terminal). */
         finalPublished: z.boolean(),
         ready: z.boolean(),
+        /** The Principal took this exam's published result back to be corrected (D-199): their reason. Null when it is not taken back. */
+        takenBack: z.string().nullable(),
         subjects: z.array(
           z.object({
             offeringId: z.string(),
@@ -122,6 +124,14 @@ export type ReviewBoard = z.infer<typeof ReviewBoardSchema>;
 export const SendBackSchema = z.strictObject({ note: Reason("note") }).openapi("SendBackSheet");
 export const BulkVerifySchema = z.strictObject({ sheetIds: z.array(PublicIdSchema).min(1).max(200) }).openapi("BulkVerify");
 export const PublishSchema = z.strictObject({ terminalId: PublicIdSchema }).openapi("PublishClass");
+/** Taking a published exam back (D-199): the subjects to send back to their teachers, and why. */
+export const TakeBackSchema = z
+  .strictObject({
+    reason: Reason("reason"),
+    offeringIds: z.array(PublicIdSchema).min(1, "Choose at least one subject to send back").max(60),
+  })
+  .openapi("TakeBackResults");
+export type TakeBack = z.input<typeof TakeBackSchema>;
 
 // --- What people read (slice 4) ----------------------------------------------------------------------
 
@@ -235,6 +245,8 @@ export const OwnResultsSchema = z
         rechecks: z.array(RecheckSummarySchema),
       }),
     ),
+    /** Results taken back to be corrected (D-199): not shown until they are published again. */
+    beingCorrected: z.array(z.object({ yearLabel: z.string(), terminalName: z.string().nullable() })),
   })
   .openapi("OwnResults");
 export type OwnResults = z.infer<typeof OwnResultsSchema>;

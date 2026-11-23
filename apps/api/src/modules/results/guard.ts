@@ -87,3 +87,15 @@ export const missingCount = (terminal: string): string =>
 export const teacherName = `(SELECT tu.full_name FROM teacher_assignments ta JOIN users tu ON tu.id = ta.teacher_user_id WHERE ta.class_id = cl.id AND ta.offering_id = o.id AND ta.is_active = 1)`;
 
 export const top20On = `COALESCE((SELECT enabled FROM module_switches WHERE key = 'top20'), 1) = 1`;
+
+/**
+ * Publication `rp` (an alias) is shown: not taken back (D-199). An exam's publication is hidden while its own withdrawal is
+ * open; the class's final result while any withdrawal of the class is open, because the final is made from every exam.
+ */
+export const shown = (rp: string): string =>
+  `NOT EXISTS (SELECT 1 FROM result_withdrawals w WHERE w.class_id = ${rp}.class_id AND w.republished_at IS NULL AND (${rp}.terminal_id IS NULL OR w.terminal_id = ${rp}.terminal_id))`;
+
+/** The person `?${n}` is an active Admin (the Principal) or an active Super Admin, from the database (D-199). */
+export const principalFor = (n: number): string =>
+  `EXISTS (SELECT 1 FROM users pu JOIN role_assignments pa ON pa.user_id = pu.id
+            WHERE pu.public_id = ?${n} AND pu.is_active = 1 AND pa.is_active = 1 AND pa.role IN ('admin', 'super_admin'))`;

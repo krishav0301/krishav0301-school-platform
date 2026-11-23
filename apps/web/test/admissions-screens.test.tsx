@@ -347,7 +347,7 @@ describe("a student's results on their record (the PM, 2026-10-11)", () => {
   });
 
   it("says plainly when nothing is published yet", () => {
-    expect(inContext(<RecordResultsView results={{ results: [] }} />)).toContain("No result has been published for this student yet.");
+    expect(inContext(<RecordResultsView results={{ results: [], beingCorrected: [] }} />)).toContain("No result has been published for this student yet.");
   });
 });
 

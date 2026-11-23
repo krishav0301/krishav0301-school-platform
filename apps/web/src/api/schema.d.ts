@@ -2736,6 +2736,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/results/classes/{classId}/terminals/{terminalId}/take-back": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Takes a class's published exam back to be corrected (D-199), for the Principal and Support: the chosen subjects go back to their teachers as drafts with the reason as the note, the rest wait as verified, and nobody sees the exam's result, or the class's final, until the Co-ordinator publishes it again. Nothing is deleted; publishing again adds the next version of every card. Refused while a recheck of the exam is open, or while another of the class's exams is taken back. */
+        post: operations["take_back_class_results"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/results/me": {
         parameters: {
             query?: never;
@@ -5340,6 +5357,7 @@ export interface components {
                 published: boolean;
                 finalPublished: boolean;
                 ready: boolean;
+                takenBack: string | null;
                 subjects: {
                     offeringId: string;
                     subjectName: string;
@@ -5360,6 +5378,10 @@ export interface components {
         PublishClass: {
             terminalId: string;
         };
+        TakeBackResults: {
+            reason: string;
+            offeringIds: string[];
+        };
         OwnResults: {
             results: {
                 publicationId: string;
@@ -5378,6 +5400,10 @@ export interface components {
                     requestedAt: string;
                     decisionReason: string | null;
                 }[];
+            }[];
+            beingCorrected: {
+                yearLabel: string;
+                terminalName: string | null;
             }[];
         };
         MarksCard: {
@@ -14234,6 +14260,63 @@ export interface operations {
                         publicationId: string;
                         cards: number;
                         finalPublicationId: string | null;
+                    };
+                };
+            };
+            /** @description No such item, or not one the person may reach */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResultsError"];
+                };
+            };
+            /** @description Not possible in its current state (already decided, already published, not ready, or the year is closed) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResultsError"];
+                };
+            };
+            /** @description Not valid */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResultsInvalid"];
+                };
+            };
+        };
+    };
+    take_back_class_results: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                classId: string;
+                terminalId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TakeBackResults"];
+            };
+        };
+        responses: {
+            /** @description Taken back */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        withdrawalId: string;
+                        sentBack: number;
                     };
                 };
             };
