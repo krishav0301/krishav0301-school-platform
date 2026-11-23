@@ -374,8 +374,8 @@ const GradeSheetSubject = z.object({
 
 /**
  * The marks card as the school prints it: a GRADE-SHEET of grade points (the PM, 2026-10-28). Worked out from the stored
- * snapshot and the school's own scale; nothing is stored. Attendance and exam remarks and other activities are filled in
- * by hand on the printed copy.
+ * snapshot and the school's own scale; nothing is stored. The exam remark is the grade table's remark for the percentage
+ * (D-194); other activities are filled in by hand on the printed copy.
  */
 export const GradeSheetSchema = z
   .object({
@@ -392,10 +392,12 @@ export const GradeSheetSchema = z
     totalObtainedHundredths: z.number().int(),
     /** Total obtained over total full marks, in hundredths of a percent. */
     percentHundredths: z.number().int(),
-    /** Null when the student failed a subject, or the percentage is below the lowest division. */
+    /** By the whole percentage alone (D-193); null when it is below the lowest division, or the card has no marks. */
     division: z.string().nullable(),
     /** The letter of the whole percentage. */
     overallGrade: z.string(),
+    /** The grade table's remark for the whole percentage, printed as the exam remark (D-194). */
+    overallRemark: z.string(),
     /** The mean of the subjects' grade points, to a tenth (3.4 is 34). */
     averagePointTenths: z.number().int(),
     /** Rank in the class, and how many are ranked. */

@@ -49,8 +49,8 @@ describe("the Lahan Manakamana school file", () => {
     expect(contrastRatio(light.text, light.accentSoft)).toBeGreaterThanOrEqual(7);
     expect(sheet.scale.map((b) => b.grade)).toEqual(["A+", "A", "B+", "B", "C+", "C", "D+", "NG"]);
     expect(sheet.scale.map((b) => b.pointHundredths)).toEqual([400, 360, 320, 280, 240, 200, 160, 0]);
-    expect(sheet.divisions.map((d) => [d.name, d.from])).toEqual([["Distinction", 80], ["First Division", 60], ["Second Division", 45], ["Third Division", 35]]);
-    expect(sheet.divisions.map((d) => d.name)).toEqual(["Distinction", "First Division", "Second Division", "Third Division"]);
+    expect(sheet.divisions.map((d) => [d.name, d.from])).toEqual([["Distinction", 80], ["First Division", 60], ["Second Division", 50], ["Third Division", 40], ["Fail", 0]]);
+    expect(sheet.divisions.map((d) => d.name)).toEqual(["Distinction", "First Division", "Second Division", "Third Division", "Fail"]);
     expect(parsePack(royalJson).school.gradeSheet).toBeUndefined();
     expect(parsePack(sampleJson).school.gradeSheet).toBeUndefined();
   });
