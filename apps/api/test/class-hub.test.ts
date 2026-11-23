@@ -139,3 +139,29 @@ describe("the whole-class result sheet (FUT point 19: published only)", () => {
   });
 });
 
+
+describe("who gets the link to give an exam's attendance on a class page (the PM, 2026-11-23, D-198)", () => {
+  // The rule is the matrix's `results.attendance.give`: the class's own Class Teacher, and Support for every class. The page
+  // shows the link to exactly those, so the Super Admin gives every class's attendance from one account.
+  const flag = async (who: Person, id: string) => ((await (await open(who, id)).json()) as { viewer: { examAttendance: boolean } }).viewer.examAttendance;
+  let support: Person;
+  beforeAll(async () => {
+    support = await person("super_admin", "institution");
+  });
+
+  it("the class's own Class Teacher, and Support for every class in either wing", async () => {
+    expect(await flag(plus2.classTeacher, plus2.classId)).toBe(true);
+    expect(await flag(support, plus2.classId)).toBe(true);
+    expect(await flag(support, bachelors.classId)).toBe(true);
+  });
+
+  it("nobody else: a subject teacher, the Co-ordinators and the Principal open the class but get no link", async () => {
+    for (const who of [subjectTeacher, coordinator, plus2Coordinator, principal]) expect(await flag(who, plus2.classId)).toBe(false);
+  });
+
+  it("the link's page agrees: Support may give the attendance the page shows the link for", async () => {
+    const terms = (await (await open(support, plus2.classId)).json()) as { terminals: { id: string }[] };
+    const exam = terms.terminals[0]?.id;
+    if (exam) expect((await call(`/api/results/classes/${plus2.classId}/terminals/${exam}/attendance`, { cookie: support.cookie })).status).not.toBe(403);
+  });
+});

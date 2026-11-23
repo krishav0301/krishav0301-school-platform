@@ -98,8 +98,9 @@ export function StudentsTable({ hub, canOpenRecord }: { hub: Pick<ClassHub, "stu
  */
 export function ClassResults({ hub }: { hub: Pick<ClassHub, "class" | "viewer" | "mySubjects" | "terminals"> }) {
   const { term, config } = useConfig();
-  // The Class Teacher of a school with the grade-point marks card gives each exam's attendance, which that card prints (the PM, 2026-11-10).
-  const attendance = hub.viewer.isClassTeacher && config?.school.gradeSheet && hub.terminals.length > 0 ? <AttendanceEntries hub={hub} /> : null;
+  // Whoever may give the class's exam attendance (its Class Teacher, and the Super Admin for every class, D-198) gets the link,
+  // in a school with the grade-point marks card, which prints it (the PM, 2026-11-10).
+  const attendance = hub.viewer.examAttendance && config?.school.gradeSheet && hub.terminals.length > 0 ? <AttendanceEntries hub={hub} /> : null;
   if (hub.terminals.length === 0) return <EmptyLine>{t("classes.noExams")}</EmptyLine>;
   if (hub.viewer.seesAll) {
     const published = hub.terminals.filter((x) => x.published);

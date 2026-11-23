@@ -2911,13 +2911,17 @@
               },
               "staff": {
                 "type": "boolean"
+              },
+              "examAttendance": {
+                "type": "boolean"
               }
             },
             "required": [
               "seesAll",
               "attendance",
               "isClassTeacher",
-              "staff"
+              "staff",
+              "examAttendance"
             ]
           },
           "subjects": {
