@@ -7,8 +7,8 @@ import type { CardBody, GradeSheet, MarkLedger } from "./schema";
  * compared with a band by cross-multiplying (no rounding decides a grade), and rounded half up only to be shown.
  *
  * OPEN: a subject whose card says it failed its own pass marks shows NG and a grade point of 0, as the card's letter does.
- * A division is "this percentage and above" (80 is Distinction), whatever the grade edges do; the PM confirmed the four cut-offs
- * (2026-10-29). A student who failed a subject gets none.
+ * A division is "this percentage and above" (80 is Distinction), whatever the grade edges do, and goes by the whole percentage
+ * alone: a failed subject shows NG on its own line but does not take the division away (the PM, 2026-11-23, D-193).
  * OPEN: the average grade point is the plain mean of the subjects' points, to a tenth, as the paper's cards add up.
  */
 
@@ -160,9 +160,8 @@ export function buildGradeSheet(config: GradeSheetConfig, ctx: SheetContext, bod
     };
   });
   const { obtained, full } = totals(subjects);
-  const failed = lines.some((l, i) => !subjects[i]!.passed || l.finalGrade === lowest(config.scale).grade);
   const percentHundredths = percentOf(obtained, full);
-  const division = failed ? null : (config.divisions.find((d) => reaches("from", obtained, full, d.from))?.name ?? null);
+  const division = config.divisions.find((d) => reaches("from", obtained, full, d.from))?.name ?? null;
   const pointSum = lines.reduce((a, l) => a + l.pointHundredths, 0);
   const ranked = classRanks(config, classCards);
   return {
@@ -179,6 +178,8 @@ export function buildGradeSheet(config: GradeSheetConfig, ctx: SheetContext, bod
     percentHundredths,
     division,
     overallGrade: bandFor(config, obtained, full).grade,
+    // The exam remark printed on the card: the grade table's remark for the whole percentage (the PM, 2026-11-23, D-194).
+    overallRemark: bandFor(config, obtained, full).remark,
     averagePointTenths: lines.length === 0 ? 0 : Math.floor((2 * pointSum + 10 * lines.length) / (20 * lines.length)),
     rank: ranked.get(ctx.enrollmentId) ?? classCards.length,
     classSize: classCards.length,

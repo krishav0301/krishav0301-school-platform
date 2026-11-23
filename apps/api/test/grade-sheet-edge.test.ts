@@ -78,10 +78,10 @@ describe("ties, absences and a paper with a practical", () => {
     expect((await sheetOf(a, 0)).subjects[0]).toMatchObject({ theoryGrade: "A+", practicalGrade: "A+", finalGrade: "A+", pointHundredths: 400 });
   });
 
-  it("an absent student: absence in both parts, NG and a point of 0, no division, zero marks, and still on the ledger", async () => {
+  it("an absent student: absence in both parts, NG and a point of 0, Fail, zero marks, and still on the ledger", async () => {
     const s = await sheetOf(a, 2);
     expect(s.subjects[0]).toMatchObject({ theory: { absent: true }, practical: { absent: true }, finalGrade: "NG", pointHundredths: 0 });
-    expect([s.division, s.totalObtainedHundredths]).toEqual([null, 0]);
+    expect([s.division, s.totalObtainedHundredths]).toEqual(["Fail", 0]);
     const ledger = (await (await call(ledgerPath(a), { cookie: coordinator.cookie })).json()) as { students: { marks: ({ absent: boolean } | null)[]; rank: number }[] };
     expect(ledger.students).toHaveLength(5);
     expect(ledger.students.some((l) => l.marks[0]?.absent === true && l.rank === 4)).toBe(true);
@@ -248,7 +248,7 @@ describe("a recheck changes the next version, and both documents follow it", () 
 });
 
 describe("pass marks per subject (Lahan's school setting)", () => {
-  it("a subject below its own pass marks is NG with a point of 0 even when the whole percentage would pass, and no division follows", async () => {
+  it("a subject below its own pass marks is NG with a point of 0 even when the whole percentage would pass, and the division still follows the percentage (D-193)", async () => {
     await setSchool(true);
     const t = await examTerm(pattern(false, [{ name: "First Terminal Examination", weight: 100, hasPractical: false }]));
     const c = await resultsClass("plus2", 2, t);
@@ -263,7 +263,7 @@ describe("pass marks per subject (Lahan's school setting)", () => {
     const failing = (await (await call(`/api/results/grade-sheets/${await cardOf(c, 0)}`, { cookie: coordinator.cookie })).json()) as Sheet;
     expect(failing.subjects.map((s) => s.finalGrade)).toEqual(["NG", "A+"]);
     expect(failing.subjects[0]!.pointHundredths).toBe(0);
-    expect(failing.division).toBeNull();
+    expect(failing.division).toBe("First Division");
     expect(failing.percentHundredths).toBe(7500);
     await setSchool(false);
   });

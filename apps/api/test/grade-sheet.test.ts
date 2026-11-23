@@ -200,20 +200,32 @@ describe("the grade sheet of the UKG card", () => {
     expect(sheet.scale[7]).toMatchObject({ grade: "NG", from: 0, upTo: 35, pointHundredths: 0 });
   });
 
-  it("divisions are \"this percentage and above\": 80 is Distinction, 60 First, 45 Second, 35 Third, below 35 none, whatever the grade edges do", () => {
+  it("divisions are \"this percentage and above\" (D-193): 80 is Distinction, 60 First, 50 Second, 40 Third, below 40 Fail, whatever the grade edges do", () => {
     const at = (percent: number) => {
       const c = card("d", [subject("a", percent * 100, 10_000)]);
       return buildGradeSheet(lahan, sheetCtx("d"), c, [{ enrollmentId: "d", body: c }]).division;
     };
-    expect([100, 80, 79.99, 60, 59.99, 45, 44.99, 36].map(at)).toEqual(["Distinction", "Distinction", "First Division", "First Division", "Second Division", "Second Division", "Third Division", "Third Division"]);
-    expect(at(35.01)).toBe("Third Division");
-    expect(at(34)).toBeNull(); // a student below 35 per cent in the one subject has failed it
+    expect([100, 80, 79.99, 60, 59.99, 50, 49.99, 40].map(at)).toEqual(["Distinction", "Distinction", "First Division", "First Division", "Second Division", "Second Division", "Third Division", "Third Division"]);
+    expect([39.99, 35, 0].map(at)).toEqual(["Fail", "Fail", "Fail"]);
   });
 
-  it("gives no division to a student who failed a subject, and NG with a grade point of 0 to a subject that failed its own pass marks", () => {
+  it("the exam remark is the grade table's remark for the whole percentage, on the same edges as the overall grade (D-194)", () => {
+    const at = (percent: number) => {
+      const c = card("r", [subject("a", percent * 100, 10_000)]);
+      const s = buildGradeSheet(lahan, sheetCtx("r"), c, [{ enrollmentId: "r", body: c }]);
+      return [s.overallGrade, s.overallRemark];
+    };
+    expect(at(95)).toEqual(["A+", "Outstanding"]);
+    expect(at(85)).toEqual(["A", "Excellent"]);
+    expect(at(70.01)).toEqual(["B+", "Very Good"]);
+    expect(at(70)).toEqual(["B", "Good"]); // exactly on a line stays in the band below, as Lahan's grades do
+    expect(at(20)).toEqual(["NG", "Not Graded"]);
+  });
+
+  it("gives the division by the whole percentage even when a subject failed (D-193), and NG with a grade point of 0 to a subject that failed its own pass marks", () => {
     const failing = card("F", [subject("English", 90, 100), subject("Math", 60, 100, false)]);
     const s = buildGradeSheet(lahan, sheetCtx("f"), failing, [{ enrollmentId: "f", body: failing }]);
-    expect(s.division).toBeNull();
+    expect(s.division).toBe("First Division"); // 150 of 200 is 75 per cent
     expect(s.subjects[1]).toMatchObject({ finalGrade: "NG", pointHundredths: 0 });
   });
 

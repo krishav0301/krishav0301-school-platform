@@ -16,8 +16,8 @@ const SectionKey = z.string().regex(/^[a-z][a-z0-9_]{0,30}$/, "lower-case letter
 /**
  * The grade-point marks card and the mark ledger (the PM, 2026-10-28, the first school). The scale lists the letters
  * highest first: each starts at a whole percent, carries its grade point in hundredths (4.00 is 400) and its remark;
- * the last starts at 0, so every mark gets a letter. Divisions are listed highest first too; a result below the last is
- * given none.
+ * the last starts at 0, so every mark gets a letter. Divisions are listed highest first too and go by the whole percentage
+ * alone; a result below the last is given none (a list may end with one starting at 0, such as "Fail", D-193).
  */
 export const GradeSheetSchema = z
   .strictObject({
@@ -32,7 +32,7 @@ export const GradeSheetSchema = z
       .array(z.strictObject({ grade: z.string().min(1).max(4), from: z.number().int().min(0).max(100), pointHundredths: z.number().int().min(0).max(1000), remark: z.string().min(1).max(40) }))
       .min(2)
       .max(12),
-    divisions: z.array(z.strictObject({ name: z.string().min(1).max(40), from: z.number().int().min(1).max(100) })).max(6).default([]),
+    divisions: z.array(z.strictObject({ name: z.string().min(1).max(40), from: z.number().int().min(0).max(100) })).max(6).default([]),
     /** The marks card's paper: `plain` (the page's own surface) or `accent` (the theme's soft accent colour, the school's yellow). */
     paper: z.enum(["plain", "accent"]).default("plain"),
     /**

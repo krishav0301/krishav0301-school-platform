@@ -31,8 +31,9 @@
       "divisions": [
         { "name": "Distinction", "from": 80 },
         { "name": "First Division", "from": 60 },
-        { "name": "Second Division", "from": 45 },
-        { "name": "Third Division", "from": 35 }
+        { "name": "Second Division", "from": 50 },
+        { "name": "Third Division", "from": 40 },
+        { "name": "Fail", "from": 0 }
       ]
     }
   },

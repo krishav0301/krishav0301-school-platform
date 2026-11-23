@@ -5576,6 +5576,7 @@ export interface components {
             percentHundredths: number;
             division: string | null;
             overallGrade: string;
+            overallRemark: string;
             averagePointTenths: number;
             rank: number;
             classSize: number;
