@@ -47,10 +47,10 @@ describe("the tabs each person sees (the PM's rules)", () => {
     expect(classTabs(hub({ viewer: { seesAll: false, attendance: false, isClassTeacher: false, staff: false, examAttendance: false }, taughtSubjects: [subject("o2", "Chemistry")] }))).toEqual(["students", "classwork", "results"]);
   });
   it("the Principal and the Co-ordinator: every tab", () => {
-    expect(classTabs(hub({ viewer: { seesAll: true, attendance: true, isClassTeacher: false, staff: true } }))).toEqual(["students", "attendance", "classwork", "results"]);
+    expect(classTabs(hub({ viewer: { seesAll: true, attendance: true, isClassTeacher: false, staff: true, examAttendance: false } }))).toEqual(["students", "attendance", "classwork", "results"]);
   });
   it("a results-only school (the PM, 2026-10-11): the Principal sees Students and Results, with no Attendance or Classwork tab", () => {
-    const principal = hub({ viewer: { seesAll: true, attendance: true, isClassTeacher: false, staff: true } });
+    const principal = hub({ viewer: { seesAll: true, attendance: true, isClassTeacher: false, staff: true, examAttendance: false } });
     expect(classTabs(principal, { attendance: false, classwork: false })).toEqual(["students", "results"]);
     expect(classTabs(principal, { attendance: false, classwork: true })).toEqual(["students", "classwork", "results"]);
     expect(classTabs(principal, { attendance: true, classwork: false })).toEqual(["students", "attendance", "results"]);
@@ -123,7 +123,7 @@ describe("inside a class", () => {
     expect(names).not.toContain("Record");
   });
   it("the Co-ordinator and the Principal can open a student's record from the list", () => {
-    expect(inContext(<StudentsTable hub={hub({ viewer: { seesAll: true, attendance: true, isClassTeacher: false, staff: true } })} canOpenRecord />)).toContain('href="/portal/admissions/student?id=s1"');
+    expect(inContext(<StudentsTable hub={hub({ viewer: { seesAll: true, attendance: true, isClassTeacher: false, staff: true, examAttendance: false } })} canOpenRecord />)).toContain('href="/portal/admissions/student?id=s1"');
   });
   it("results: nothing published yet says who publishes; a subject teacher opens their own marks exam by exam", () => {
     expect(inContext(<ClassResults hub={hub()} />)).toContain("Results show here once the Co-ordinator publishes them.");
@@ -140,7 +140,7 @@ describe("the class's Results tab, grouped by exam", () => {
     { id: "t2", name: "Second Terminal", published: true },
     { id: "t3", name: "Third Terminal", published: false },
   ];
-  const teacher = { seesAll: false, attendance: false, isClassTeacher: false, staff: false };
+  const teacher = { seesAll: false, attendance: false, isClassTeacher: false, staff: false, examAttendance: false };
 
   it("a subject teacher sees a card for each exam, the first open with their subjects, the rest closed", () => {
     const html = inContext(<ClassResults hub={hub({ viewer: teacher, terminals: exams, mySubjects: [subject("o2", "Chemistry"), subject("o3", "Physics")] })} />);

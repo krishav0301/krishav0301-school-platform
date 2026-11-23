@@ -31,7 +31,7 @@ describe("the Give roll numbers button", () => {
 
 describe("the students of a class before and after numbering", () => {
   const hub = (rolls: (number | null)[]) => ({
-    viewer: { seesAll: true, attendance: true, isClassTeacher: false, staff: true },
+    viewer: { seesAll: true, attendance: true, isClassTeacher: false, staff: true, examAttendance: false },
     students: rolls.map((rollNo, i) => ({ enrollmentId: `e${i}`, rollNo, name: `Student ${i}`, sid: `2083-0000${i}`, studentId: `s${i}` })),
   });
 
