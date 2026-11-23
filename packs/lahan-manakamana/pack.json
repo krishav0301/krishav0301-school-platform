@@ -17,6 +17,7 @@
       "paper": "accent",
       "boundary": "above",
       "rankStyle": "dense",
+      "rankTieBreak": "attendance",
       "scale": [
         { "grade": "A+", "from": 90, "pointHundredths": 400, "remark": "Outstanding" },
         { "grade": "A", "from": 80, "pointHundredths": 360, "remark": "Excellent" },

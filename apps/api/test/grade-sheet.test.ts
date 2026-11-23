@@ -120,6 +120,50 @@ describe("ranks", () => {
   });
 });
 
+describe("equal marks ranked by attendance (D-196, the PM, 2026-11-23)", () => {
+  const at = (working: number, present: number) => ({ workingDays: working, presentDays: present });
+  const row = (id: string, obtained: number, attendance: { workingDays: number; presentDays: number } | null) => ({ id, obtained, full: 100, attendance });
+  const ranks = (rows: ReturnType<typeof row>[], style: "dense" | "competition" = "dense") => {
+    const r = rankByRatio(rows, style, "attendance");
+    return rows.map((x) => r.get(x.id));
+  };
+
+  it("the better attendance goes ahead on equal marks, and the next rank follows (dense) or skips (competition)", () => {
+    const rows = [row("a", 80, at(100, 80)), row("b", 80, at(100, 95)), row("c", 70, at(100, 100))];
+    expect(ranks(rows)).toEqual([2, 1, 3]);
+    expect(ranks(rows, "competition")).toEqual([2, 1, 3]);
+  });
+
+  it("marks always come first: full attendance never lifts lower marks", () => {
+    expect(ranks([row("a", 81, at(100, 1)), row("b", 80, at(100, 100))])).toEqual([1, 2]);
+  });
+
+  it("compares attendance as a share of the working days, so 45 of 50 equals 90 of 100 and they still share", () => {
+    expect(ranks([row("a", 80, at(50, 45)), row("b", 80, at(100, 90)), row("c", 60, null)])).toEqual([1, 1, 2]);
+  });
+
+  it("a student whose attendance was not given goes after one whose was; two with none share", () => {
+    expect(ranks([row("a", 80, null), row("b", 80, at(100, 10)), row("c", 80, null), row("d", 50, null)])).toEqual([2, 1, 2, 3]);
+  });
+
+  it("is an order: same marks, one given and one not, and a third in between never loops", () => {
+    // a ahead of c (both given), and both given ahead of b (none): one order, a, c, b.
+    expect(ranks([row("a", 80, at(100, 90)), row("b", 80, null), row("c", 80, at(100, 80))])).toEqual([1, 3, 2]);
+  });
+
+  it("without the tie-break (another school), equal marks share whatever the attendance", () => {
+    const r = rankByRatio([row("a", 80, at(100, 50)), row("b", 80, at(100, 100))], "dense");
+    expect([r.get("a"), r.get("b")]).toEqual([1, 1]);
+  });
+
+  it("Lahan's school file turns it on; the format's default leaves it off", () => {
+    expect(lahan.rankTieBreak).toBe("attendance");
+    const { rankTieBreak, ...rest } = lahanJson.school.gradeSheet as Record<string, unknown>;
+    expect(rankTieBreak).toBe("attendance");
+    expect(parsePack({ ...lahanJson, school: { ...lahanJson.school, gradeSheet: rest } }).school.gradeSheet!.rankTieBreak).toBe("none");
+  });
+});
+
 describe("the grade sheet of the UKG card", () => {
   // Nitesh Ram, UKG-A: English 70, Nepali 89, Science 90, Mathematics 91, Conversation 35 of 50, Hand writing 75, Social studies 95.
   const nitesh = card("Nitesh Ram", [subject("English", 70, 100), subject("Nepali", 89, 100), subject("Science", 90, 100), subject("Mathematics", 91, 100), subject("Conversation", 35, 50), subject("Hand writing", 75, 100), subject("Social studies", 95, 100)]);
