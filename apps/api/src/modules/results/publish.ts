@@ -199,7 +199,7 @@ const insertCards = (db: D1Database, publicationId: string, cards: CardRow[], at
 
 export type PublishResult =
   | { ok: true; publicationId: string; cards: number; finalPublicationId: string | null }
-  | { ok: false; reason: "not_found" | "year_closed" | "already_published" | "no_pattern" | "not_ready" }
+  | { ok: false; reason: "not_found" | "year_closed" | "already_published" | "no_pattern" | "not_ready" | "taken_back_elsewhere" }
   | { ok: false; reason: "cannot_grade"; message: string };
 
 export async function publishClass(db: D1Database, auditKey: string, me: string, classId: string, terminalId: string): Promise<PublishResult> {
@@ -208,6 +208,11 @@ export async function publishClass(db: D1Database, auditKey: string, me: string,
       .prepare(
         `SELECT ${HEAD_COLUMNS}, ${coordinatorFor(3, "pv.section_id")} AS allowed, (${readyToPublish("t.id")}) AS ready, t.name AS terminal_name, t.weight,
                 EXISTS (SELECT 1 FROM result_publications rp WHERE rp.class_id = cl.id AND rp.terminal_id = t.id) AS published,
+                (SELECT rp.public_id FROM result_publications rp WHERE rp.class_id = cl.id AND rp.terminal_id = t.id) AS publication_id,
+                (SELECT rp.public_id FROM result_publications rp WHERE rp.class_id = cl.id AND rp.terminal_id IS NULL) AS final_id,
+                (SELECT w.public_id FROM result_withdrawals w WHERE w.class_id = cl.id AND w.terminal_id = t.id AND w.republished_at IS NULL) AS withdrawal_id,
+                (SELECT w.reason FROM result_withdrawals w WHERE w.class_id = cl.id AND w.terminal_id = t.id AND w.republished_at IS NULL) AS withdrawal_reason,
+                EXISTS (SELECT 1 FROM result_withdrawals w WHERE w.class_id = cl.id AND w.terminal_id <> t.id AND w.republished_at IS NULL) AS taken_back_elsewhere,
                 (SELECT COUNT(*) FROM terminals o2 WHERE o2.academic_year_id = ay.id AND o2.weight IS NOT NULL AND o2.id <> t.id
                     AND NOT EXISTS (SELECT 1 FROM result_publications rp WHERE rp.class_id = cl.id AND rp.terminal_id = o2.id)) AS others_unpublished
            FROM classes cl ${CLASS_JOINS} ${HEAD_JOINS}
@@ -218,13 +223,30 @@ export async function publishClass(db: D1Database, auditKey: string, me: string,
     // Every terminal's marks: this terminal's for its cards, all of them for the final when this is the last.
     marksQuery(db, classId, null, null),
   ]);
-  const head = headResult!.results[0] as unknown as (ClassHead & { allowed: number; ready: number; published: number; others_unpublished: number; terminal_name: string; weight: number | null }) | undefined;
+  const head = headResult!.results[0] as unknown as
+    | (ClassHead & {
+        allowed: number;
+        ready: number;
+        published: number;
+        others_unpublished: number;
+        terminal_name: string;
+        weight: number | null;
+        publication_id: string | null;
+        final_id: string | null;
+        withdrawal_id: string | null;
+        withdrawal_reason: string | null;
+        taken_back_elsewhere: number;
+      })
+    | undefined;
   if (!head || head.allowed !== 1) return { ok: false, reason: "not_found" };
   if (head.year_status === "closed") return { ok: false, reason: "year_closed" };
-  if (head.published === 1) return { ok: false, reason: "already_published" };
+  // Another exam of the class is taken back (D-199): its final result would be made from marks still being corrected.
+  if (head.taken_back_elsewhere === 1) return { ok: false, reason: "taken_back_elsewhere" };
+  if (head.published === 1 && !head.withdrawal_id) return { ok: false, reason: "already_published" };
   const pattern = patternOf(head);
   if (!pattern || head.weight === null) return { ok: false, reason: "no_pattern" };
   if (head.ready !== 1) return { ok: false, reason: "not_ready" };
+  if (head.withdrawal_id) return republish(db, auditKey, me, classId, terminalId, head as ClassHead & RepublishHead, pattern, marksResult!.results as unknown as MarkRow[]);
   const isLast = head.others_unpublished === 0;
 
   const rows = marksResult!.results as unknown as MarkRow[];
@@ -259,7 +281,8 @@ export async function publishClass(db: D1Database, auditKey: string, me: string,
          SELECT ?4, cl.id, t.id, ?5, (SELECT id FROM users WHERE public_id = ?3), ?6
            FROM classes cl ${CLASS_JOINS} JOIN terminals t ON t.academic_year_id = cl.academic_year_id AND t.public_id = ?2
           WHERE cl.public_id = ?1 AND ${coordinatorFor(3, "pv.section_id")} AND ${readyToPublish("t.id")}
-            AND EXISTS (SELECT 1 FROM exam_patterns ep WHERE ep.academic_year_id = cl.academic_year_id)`,
+            AND EXISTS (SELECT 1 FROM exam_patterns ep WHERE ep.academic_year_id = cl.academic_year_id)
+            AND NOT EXISTS (SELECT 1 FROM result_withdrawals w WHERE w.class_id = cl.id AND w.republished_at IS NULL)`,
       )
       .bind(classId, terminalId, me, publicationId, snapshot, at),
     db
@@ -307,6 +330,101 @@ export async function publishClass(db: D1Database, auditKey: string, me: string,
     const message = error instanceof Error ? error.message : String(error);
     if (/academic year is closed/i.test(message)) return { ok: false, reason: "year_closed" };
     if (/UNIQUE constraint failed: result_publications/i.test(message)) return { ok: false, reason: "already_published" };
+    throw error;
+  }
+}
+
+interface RepublishHead {
+  terminal_name: string;
+  weight: number;
+  publication_id: string;
+  final_id: string | null;
+  withdrawal_id: string;
+  withdrawal_reason: string;
+}
+
+/**
+ * Publishing a taken-back exam again (D-199). The publication stays; every active student gets the next version of their
+ * exam card (a student who joined since gets their first), and of their final card when the class's final is out, made
+ * from the marks as they are now under the term's pattern, with the reason the result was taken back. The withdrawal is
+ * closed and the sheets are published again, all in one batch, and only while every subject is verified.
+ */
+async function republish(db: D1Database, auditKey: string, me: string, classId: string, terminalId: string, head: ClassHead & RepublishHead, pattern: PatternSnapshot, rows: MarkRow[]): Promise<PublishResult> {
+  const terminalCards: CardRow[] = [];
+  const finalCards: CardRow[] = [];
+  try {
+    for (const student of groupPapers(
+      rows.filter((r) => r.terminal_id === terminalId),
+      false,
+    )) {
+      const { result, body } = terminalCard(head, pattern, { name: head.terminal_name, weight: head.weight }, student);
+      terminalCards.push({ e: student.enrollmentId, id: newPublicId(), p: result.percentHundredths, s: result.passed === null ? null : result.passed ? 1 : 0, o: result.outcome, b: JSON.stringify(body) });
+    }
+    if (head.final_id) {
+      for (const student of groupPapers(rows, true)) {
+        const { result, body } = finalCard(head, pattern, student);
+        finalCards.push({ e: student.enrollmentId, id: newPublicId(), p: result.percentHundredths, s: result.passed ? 1 : 0, o: result.outcome, b: JSON.stringify(body) });
+      }
+    }
+  } catch (error) {
+    return { ok: false, reason: "cannot_grade", message: error instanceof Error ? error.message : String(error) };
+  }
+
+  const at = new Date().toISOString();
+  // Each later statement acts only if this request closed the withdrawal (the same batch: a lost race writes nothing).
+  const closed = `EXISTS (SELECT 1 FROM result_withdrawals w WHERE w.public_id = ?9 AND w.republished_at = ?3)`;
+  const nextCards = (publicationId: string, cards: CardRow[]) =>
+    db
+      .prepare(
+        `INSERT INTO marks_cards (public_id, publication_id, enrollment_id, version, percent_hundredths, passed, outcome, body, reason, created_by_user_id, created_at)
+         SELECT json_extract(j.value, '$.id'), rp.id, en.id,
+                1 + COALESCE((SELECT MAX(v.version) FROM marks_cards v WHERE v.publication_id = rp.id AND v.enrollment_id = en.id), 0),
+                json_extract(j.value, '$.p'), json_extract(j.value, '$.s'), json_extract(j.value, '$.o'), json_extract(j.value, '$.b'),
+                CASE WHEN EXISTS (SELECT 1 FROM marks_cards v WHERE v.publication_id = rp.id AND v.enrollment_id = en.id) THEN ?4 END,
+                (SELECT id FROM users WHERE public_id = ?5), ?3
+           FROM result_publications rp JOIN json_each(?2) j
+           JOIN enrollments en ON en.public_id = json_extract(j.value, '$.e') AND en.class_id = rp.class_id
+          WHERE rp.public_id = ?1 AND ${closed}`,
+      )
+      .bind(publicationId, JSON.stringify(cards), at, head.withdrawal_reason, me, null, null, null, head.withdrawal_id);
+  const statements: D1PreparedStatement[] = [
+    db
+      .prepare(
+        `UPDATE result_withdrawals SET republished_by_user_id = (SELECT id FROM users WHERE public_id = ?2), republished_at = ?3
+          WHERE public_id = ?1 AND republished_at IS NULL
+            AND EXISTS (SELECT 1 FROM classes cl ${CLASS_JOINS} WHERE cl.id = result_withdrawals.class_id
+                          AND ${coordinatorFor(2, "pv.section_id")} AND ${readyToPublish("result_withdrawals.terminal_id")})`,
+      )
+      .bind(head.withdrawal_id, me, at),
+    db
+      .prepare(
+        `UPDATE mark_sheets SET status = 'published', updated_at = ?3
+          WHERE status = 'verified' AND EXISTS (SELECT 1 FROM result_withdrawals w WHERE w.public_id = ?9 AND w.republished_at = ?3 AND w.class_id = mark_sheets.class_id AND w.terminal_id = mark_sheets.terminal_id)`,
+      )
+      .bind(null, null, at, null, null, null, null, null, head.withdrawal_id),
+    nextCards(head.publication_id, terminalCards),
+  ];
+  if (head.final_id) statements.push(nextCards(head.final_id, finalCards));
+  try {
+    const { applied } = await recordAudit(
+      db,
+      auditKey,
+      {
+        action: "results.republished",
+        entityType: "class",
+        entityPublicId: classId,
+        actorPublicId: me,
+        summary: head.final_id ? `Results published again for ${head.terminal_name}, and the final result` : `Results published again for ${head.terminal_name}`,
+        reason: head.withdrawal_reason,
+        after: { terminalId, publicationId: head.publication_id, finalPublicationId: head.final_id, withdrawalId: head.withdrawal_id, cards: terminalCards.length, finalCards: finalCards.length },
+      },
+      statements,
+      { onlyIfLastChanged: true },
+    );
+    return applied ? { ok: true, publicationId: head.publication_id, cards: terminalCards.length, finalPublicationId: head.final_id } : { ok: false, reason: "not_ready" };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    if (/academic year is closed/i.test(message)) return { ok: false, reason: "year_closed" };
     throw error;
   }
 }

@@ -287,7 +287,9 @@ const MISSING = `SELECT cl.public_id AS class_id, t.public_id AS exam_id, t.name
                    LEFT JOIN terminals t ON t.academic_year_id = ay.id
                   WHERE ay.public_id = ?1
                     AND EXISTS (SELECT 1 FROM enrollments en WHERE en.class_id = cl.id AND en.status = 'active')
-                    AND (t.id IS NULL OR NOT EXISTS (SELECT 1 FROM result_publications rp WHERE rp.class_id = cl.id AND rp.terminal_id = t.id))`;
+                    AND (t.id IS NULL OR NOT EXISTS (SELECT 1 FROM result_publications rp WHERE rp.class_id = cl.id AND rp.terminal_id = t.id
+                                                   -- A result taken back to be corrected (D-199) is not published until it is published again.
+                                                   AND NOT EXISTS (SELECT 1 FROM result_withdrawals w WHERE w.class_id = rp.class_id AND w.republished_at IS NULL AND w.terminal_id = rp.terminal_id)))`;
 
 /** What still stops the term from closing. One round trip. */
 export async function closeCheck(db: D1Database, publicId: string): Promise<CloseCheck | null> {

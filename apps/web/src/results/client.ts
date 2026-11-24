@@ -133,6 +133,20 @@ export const publishClass = (api: ApiClient, classId: string, terminalId: string
       body: { terminalId },
     }),
   );
+/**
+ * Takes a class's published exam back to be corrected (D-199): the Principal's and Support's. Answers the API's own reason
+ * when it is refused ("open_rechecks", "already_taken_back", ...), so the screen can say it in words.
+ */
+export async function takeBack(api: ApiClient, classId: string, terminalId: string, body: { reason: string; offeringIds: string[] }): Promise<{ ok: true } | { ok: false; error: string; message: string | null }> {
+  try {
+    const { error, response } = await api.POST("/api/results/classes/{classId}/terminals/{terminalId}/take-back", { params: { path: { classId, terminalId } }, body });
+    if (response.ok) return { ok: true };
+    const answer = (error && typeof error === "object" ? error : {}) as { error?: string; message?: string };
+    return { ok: false, error: response.status >= 500 ? "failed" : (answer.error ?? "failed"), message: answer.message ?? null };
+  } catch {
+    return { ok: false, error: "failed", message: null };
+  }
+}
 export const requestRecheck = (api: ApiClient, publicationId: string, offeringId: string, reason: string) =>
   send(() =>
     api.POST("/api/results/publications/{publicationId}/rechecks", {

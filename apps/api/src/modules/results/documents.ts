@@ -1,7 +1,7 @@
 import { GradeSheetSchema as GradeSheetConfigSchema, type GradeSheetConfig } from "../../core/config/pack";
 import { adToBsText } from "../../core/dates";
 import { buildGradeSheet, buildLedger, type ClassCard, type LedgerStudent } from "./gradesheet";
-import { CLASS_JOINS, NAMING_COLUMNS, sectionInReach, type Reach } from "./guard";
+import { CLASS_JOINS, NAMING_COLUMNS, sectionInReach, shown, type Reach } from "./guard";
 import type { CardBody, GradeSheet, MarkLedger } from "./schema";
 
 /**
@@ -76,7 +76,7 @@ export async function gradeSheetFor(db: D1Database, viewer: { student: string } 
            FROM marks_cards mc JOIN result_publications rp ON rp.id = mc.publication_id JOIN classes cl ON cl.id = rp.class_id ${CLASS_JOINS}
            JOIN enrollments en ON en.id = mc.enrollment_id JOIN students st ON st.id = en.student_id
           WHERE mc.public_id = ?1
-            AND ((?2 IS NOT NULL AND st.user_id = (SELECT id FROM users WHERE public_id = ?2)) OR (?2 IS NULL AND ${sectionInReach(3)} AND (?5 IS NULL OR cl.class_teacher_user_id = (SELECT id FROM users WHERE public_id = ?5))))`,
+            AND ((?2 IS NOT NULL AND st.user_id = (SELECT id FROM users WHERE public_id = ?2) AND ${shown("rp")}) OR (?2 IS NULL AND ${sectionInReach(3)} AND (?5 IS NULL OR cl.class_teacher_user_id = (SELECT id FROM users WHERE public_id = ?5))))`,
       )
       .bind(cardId, student, reach.institution, reach.sections, classTeacher),
     // Every student's latest card in the same publication: for the highest grade point, the rank and the class size. Only totals are kept.
@@ -118,7 +118,7 @@ export async function ledgerFor(db: D1Database, reach: Reach, classId: string, t
         `SELECT cl.public_id AS class_id, ${NAMING_COLUMNS}, ay.label AS year_label, t.name AS terminal_name
            FROM classes cl ${CLASS_JOINS} JOIN academic_years ay ON ay.id = cl.academic_year_id JOIN result_publications rp ON rp.class_id = cl.id
            LEFT JOIN terminals t ON t.id = rp.terminal_id
-          WHERE cl.public_id = ?1 AND (CASE WHEN ?2 IS NULL THEN rp.terminal_id IS NULL ELSE t.public_id = ?2 END) AND ${sectionInReach(3)}
+          WHERE cl.public_id = ?1 AND (CASE WHEN ?2 IS NULL THEN rp.terminal_id IS NULL ELSE t.public_id = ?2 END) AND ${sectionInReach(3)} AND ${shown("rp")}
             AND (?5 IS NULL OR cl.class_teacher_user_id = (SELECT id FROM users WHERE public_id = ?5))`,
       )
       .bind(classId, terminalId, reach.institution, reach.sections, classTeacher),
@@ -168,7 +168,7 @@ export async function classGradeSheetsFor(db: D1Database, reach: Reach, classId:
       .prepare(
         `SELECT cl.public_id AS class_id
            FROM classes cl ${CLASS_JOINS} JOIN result_publications rp ON rp.class_id = cl.id LEFT JOIN terminals t ON t.id = rp.terminal_id
-          WHERE cl.public_id = ?1 AND ${exam} AND ${sectionInReach(3)}
+          WHERE cl.public_id = ?1 AND ${exam} AND ${sectionInReach(3)} AND ${shown("rp")}
             AND (?5 IS NULL OR cl.class_teacher_user_id = (SELECT id FROM users WHERE public_id = ?5))`,
       )
       .bind(classId, terminalId, reach.institution, reach.sections, classTeacher),

@@ -8,6 +8,7 @@ import { classElectives, setPicks } from "./electives";
 import { classGradeSheetsFor, gradeSheetFor, ledgerFor } from "./documents";
 import { reachOf, type Reach } from "./guard";
 import { publishClass } from "./publish";
+import { takeBackResults } from "./takeback";
 import { decideRecheck, listRechecks, requestRecheck } from "./rechecks";
 import { termAttendanceFor, saveTermAttendance } from "./termattendance";
 import { loadSheet, mySheets, reviewBoard, saveMarks, sendBack, sheetPlace, submitSheet, verifySheets } from "./sheets";
@@ -26,6 +27,7 @@ import {
   PublicIdSchema,
   PublishedResultsSchema,
   PublishSchema,
+  TakeBackSchema,
   RecheckListSchema,
   RequestRecheckSchema,
   ReviewBoardSchema,
@@ -73,6 +75,7 @@ const ELECTIVES = { action: "results.electives.set" } as const;
 const ENTER = { action: "marks.enter" } as const;
 const VERIFY = { action: "marks.verify" } as const;
 const PUBLISH = { action: "results.publish" } as const;
+const TAKE_BACK = { action: "results.take_back" } as const;
 const VIEW = { action: "results.view" } as const;
 const CARD = { action: "results.card.view" } as const;
 const CLASS_SHEET = { action: "results.class_sheet.view" } as const;
@@ -296,6 +299,27 @@ export function registerResults(app: App): void {
       const result = await publishClass(c.env.DB, c.env.AUDIT_HMAC_KEY, c.get("auth")!.userPublicId, c.req.valid("param").classId, c.req.valid("json").terminalId);
       if (result.ok) return c.json({ publicationId: result.publicationId, cards: result.cards, finalPublicationId: result.finalPublicationId }, 201);
       if (result.reason === "cannot_grade") return c.json({ error: "invalid" as const, message: result.message }, 422);
+      return fail(c, result);
+    },
+  );
+
+  defineRoute(
+    app,
+    {
+      method: "post",
+      path: "/api/results/classes/{classId}/terminals/{terminalId}/take-back",
+      operationId: "take_back_class_results",
+      tags: ["results"],
+      description:
+        "Takes a class's published exam back to be corrected (D-199), for the Principal and Support: the chosen subjects go back to their teachers as drafts with the reason as the note, the rest wait as verified, and nobody sees the exam's result, or the class's final, until the Co-ordinator publishes it again. Nothing is deleted; publishing again adds the next version of every card. Refused while a recheck of the exam is open, or while another of the class's exams is taken back.",
+      access: TAKE_BACK,
+      request: { params: z.object({ classId: PublicIdSchema, terminalId: PublicIdSchema }), body: { required: true, content: json(TakeBackSchema) } },
+      responses: { 201: { description: "Taken back", content: json(z.object({ withdrawalId: z.string(), sentBack: z.number().int() })) }, ...failures },
+    },
+    async (c) => {
+      const { classId, terminalId } = c.req.valid("param");
+      const result = await takeBackResults(c.env.DB, c.env.AUDIT_HMAC_KEY, c.get("auth")!.userPublicId, classId, terminalId, c.req.valid("json"));
+      if (result.ok) return c.json({ withdrawalId: result.withdrawalId, sentBack: result.sentBack }, 201);
       return fail(c, result);
     },
   );

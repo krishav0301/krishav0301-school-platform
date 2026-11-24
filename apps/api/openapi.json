@@ -9995,6 +9995,12 @@
                 "ready": {
                   "type": "boolean"
                 },
+                "takenBack": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
                 "subjects": {
                   "type": "array",
                   "items": {
@@ -10051,6 +10057,7 @@
                 "published",
                 "finalPublished",
                 "ready",
+                "takenBack",
                 "subjects"
               ]
             }
@@ -10104,6 +10111,30 @@
         },
         "required": [
           "terminalId"
+        ],
+        "additionalProperties": false
+      },
+      "TakeBackResults": {
+        "type": "object",
+        "properties": {
+          "reason": {
+            "type": "string",
+            "minLength": 3,
+            "maxLength": 500
+          },
+          "offeringIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{32}$"
+            },
+            "minItems": 1,
+            "maxItems": 60
+          }
+        },
+        "required": [
+          "reason",
+          "offeringIds"
         ],
         "additionalProperties": false
       },
@@ -10193,10 +10224,32 @@
                 "rechecks"
               ]
             }
+          },
+          "beingCorrected": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "yearLabel": {
+                  "type": "string"
+                },
+                "terminalName": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                }
+              },
+              "required": [
+                "yearLabel",
+                "terminalName"
+              ]
+            }
           }
         },
         "required": [
-          "results"
+          "results",
+          "beingCorrected"
         ]
       },
       "MarksCard": {
@@ -24160,6 +24213,99 @@
                     "publicationId",
                     "cards",
                     "finalPublicationId"
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such item, or not one the person may reach",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultsError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Not possible in its current state (already decided, already published, not ready, or the year is closed)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultsError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Not valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultsInvalid"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/results/classes/{classId}/terminals/{terminalId}/take-back": {
+      "post": {
+        "operationId": "take_back_class_results",
+        "tags": [
+          "results"
+        ],
+        "description": "Takes a class's published exam back to be corrected (D-199), for the Principal and Support: the chosen subjects go back to their teachers as drafts with the reason as the note, the rest wait as verified, and nobody sees the exam's result, or the class's final, until the Co-ordinator publishes it again. Nothing is deleted; publishing again adds the next version of every card. Refused while a recheck of the exam is open, or while another of the class's exams is taken back.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{32}$"
+            },
+            "required": true,
+            "name": "classId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{32}$"
+            },
+            "required": true,
+            "name": "terminalId",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TakeBackResults"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Taken back",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "withdrawalId": {
+                      "type": "string"
+                    },
+                    "sentBack": {
+                      "type": "integer"
+                    }
+                  },
+                  "required": [
+                    "withdrawalId",
+                    "sentBack"
                   ]
                 }
               }

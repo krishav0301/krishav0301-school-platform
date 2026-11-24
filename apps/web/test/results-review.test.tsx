@@ -45,6 +45,7 @@ const cls = (over: Partial<Cls> = {}): Cls => ({
   label: "A",
   published: false,
   finalPublished: false,
+  takenBack: null,
   ready: false,
   subjects: [subject("o1", "Biology", "under_review"), subject("o2", "Physics", "verified"), subject("o3", "Nepali", "not_started", { teacherName: null, missing: 4 })],
   ...over,
