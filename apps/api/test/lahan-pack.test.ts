@@ -43,10 +43,8 @@ describe("the Lahan Manakamana school file", () => {
     expect(sheet.address).toBe("Lahan Municipality-8, Siraha");
     expect(sheet.rankStyle).toBe("dense");
     expect(sheet.boundary).toBe("above"); // the grades the shared cards award: a mark on a band's number stays in the band below (PM, 2026-10-29)
-    // The marks card is on the school's yellow (the theme's soft accent), and its text must read on it.
-    expect(sheet.paper).toBe("accent");
-    const light = (lahanJson.theme as { light: { text: string; textMuted: string; accentSoft: string } }).light;
-    expect(contrastRatio(light.text, light.accentSoft)).toBeGreaterThanOrEqual(7);
+    // The marks card is on plain white paper, not the school's yellow (the PM, 2026-11-24, D-200).
+    expect(sheet.paper).toBe("plain");
     expect(sheet.scale.map((b) => b.grade)).toEqual(["A+", "A", "B+", "B", "C+", "C", "D+", "NG"]);
     expect(sheet.scale.map((b) => b.pointHundredths)).toEqual([400, 360, 320, 280, 240, 200, 160, 0]);
     expect(sheet.divisions.map((d) => [d.name, d.from])).toEqual([["Distinction", 80], ["First Division", 60], ["Second Division", 50], ["Third Division", 40], ["Fail", 0]]);

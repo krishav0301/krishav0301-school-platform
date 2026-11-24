@@ -52,7 +52,7 @@ describe("the pack's grade sheet", () => {
     expect(GradeSheetSchema.parse(base).paper).toBe("plain");
     expect(GradeSheetSchema.parse({ ...base, paper: "accent" }).paper).toBe("accent");
     expect(GradeSheetSchema.safeParse({ ...base, paper: "#ffd800" }).success).toBe(false);
-    expect(lahan.paper).toBe("accent");
+    expect(lahan.paper).toBe("plain"); // white since the PM asked, 2026-11-24 (D-200)
   });
 
   it("refuses a scale that is out of order, repeats a grade, or does not reach 0", () => {
