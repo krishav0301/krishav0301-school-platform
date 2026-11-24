@@ -5,6 +5,7 @@ import { useCallback, useId, useMemo, useState } from "react";
 
 import classStyles from "@/classes/classes.module.css";
 import { bareSection, sectionBadge } from "@/classes/model";
+import { useConfig } from "@/config/ConfigProvider";
 import { useAddressQuery } from "@/content/address";
 import { t } from "@/i18n/messages";
 import accessStyles from "@/people/people-access.module.css";
@@ -89,6 +90,7 @@ export function BoardClassPanel({
   onPublish: () => void;
   startOpen?: boolean;
 }) {
+  const { term } = useConfig();
   const state = classState(cls);
   const holding = cls.subjects.filter((s) => s.status !== "verified" && s.status !== "published");
   const done = cls.subjects.length - holding.length;
@@ -155,6 +157,7 @@ export function BoardClassPanel({
             </div>
           ) : (
             <div className={styles.publishRow}>
+              {cls.takenBack ? <Notice>{t("results.review.takenBack", { admin: term("role.admin"), reason: cls.takenBack })}</Notice> : null}
               {!cls.ready ? (
                 <p className={readStyles.rowMeta}>
                   {t("results.review.waiting", { subjects: holding.map((s) => `${s.subjectName} (${t(STATUS_LABEL[s.status])})`).join(", ") || t("results.review.marksMissing") })}

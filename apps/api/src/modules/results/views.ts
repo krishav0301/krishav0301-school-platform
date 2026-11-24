@@ -3,7 +3,7 @@ import { adToBsText } from "../../core/dates";
 import { PUBLICATION_OF_CLASS, SCHOOL, classAttendance, configOf, daysByStudent, type SchoolRow } from "./documents";
 import { classRanks } from "./gradesheet";
 import { rankResults } from "./grading";
-import { CLASS_JOINS, NAMING_COLUMNS, naming, sectionInReach, top20On, type Reach } from "./guard";
+import { CLASS_JOINS, NAMING_COLUMNS, naming, sectionInReach, shown, top20On, type Reach } from "./guard";
 import type { CardBody, ClassSheet, MarksCard, OwnResults, PublishedResults, Top20 } from "./schema";
 
 /**
@@ -37,14 +37,14 @@ const toCard = (r: CardRow): MarksCard => ({
 
 /** The student's own published results, every term, newest first: each terminal, then the final. Found from the sign-in. */
 export async function ownResults(db: D1Database, me: string): Promise<OwnResults> {
-  const [cards, rechecks] = await db.batch([
+  const [cards, rechecks, corrected] = await db.batch([
     db
       .prepare(
         `SELECT rp.public_id AS publication_id, ay.label AS year_label, t.name AS terminal_name,
                 mc.public_id AS card_id, mc.version, mc.body, mc.reason, mc.created_at, rp.published_at
            FROM students st JOIN enrollments en ON en.student_id = st.id JOIN academic_years ay ON ay.id = en.academic_year_id
            JOIN marks_cards mc ON mc.enrollment_id = en.id AND ${LATEST}
-           JOIN result_publications rp ON rp.id = mc.publication_id LEFT JOIN terminals t ON t.id = rp.terminal_id
+           JOIN result_publications rp ON rp.id = mc.publication_id AND ${shown("rp")} LEFT JOIN terminals t ON t.id = rp.terminal_id
           WHERE st.user_id = (SELECT id FROM users WHERE public_id = ?1)
           ORDER BY ay.start_date DESC, ay.id DESC, rp.terminal_id IS NULL DESC, t.ordinal DESC`,
       )
@@ -60,14 +60,24 @@ export async function ownResults(db: D1Database, me: string): Promise<OwnResults
           ORDER BY r.id DESC`,
       )
       .bind(me),
+    // Results taken back to be corrected (D-199): named, never shown, until they are published again.
+    db
+      .prepare(
+        `SELECT ay.label AS year_label, t.name AS terminal_name
+           FROM students st JOIN enrollments en ON en.student_id = st.id JOIN academic_years ay ON ay.id = en.academic_year_id
+           JOIN result_publications rp ON rp.class_id = en.class_id AND NOT ${shown("rp")} LEFT JOIN terminals t ON t.id = rp.terminal_id
+          WHERE st.user_id = (SELECT id FROM users WHERE public_id = ?1) AND EXISTS (SELECT 1 FROM marks_cards mc WHERE mc.publication_id = rp.id AND mc.enrollment_id = en.id)
+          ORDER BY ay.start_date DESC, ay.id DESC, rp.terminal_id IS NULL DESC, t.ordinal DESC`,
+      )
+      .bind(me),
   ]);
-  return toOwnResults(cards!.results as unknown as ResultRow[], rechecks!.results as unknown as RecheckRow[]);
+  return { ...toOwnResults(cards!.results as unknown as ResultRow[], rechecks!.results as unknown as RecheckRow[]), beingCorrected: (corrected!.results as { year_label: string; terminal_name: string | null }[]).map((r) => ({ yearLabel: r.year_label, terminalName: r.terminal_name })) };
 }
 
 type ResultRow = CardRow & { publication_id: string; year_label: string; terminal_name: string | null };
 type RecheckRow = { id: string; publication_id: string; offering_id: string; subject_name: string; reason: string; status: "open" | "changed" | "unchanged"; requested_at: string; decision_reason: string | null };
 
-function toOwnResults(cards: readonly ResultRow[], checks: readonly RecheckRow[]): OwnResults {
+function toOwnResults(cards: readonly ResultRow[], checks: readonly RecheckRow[]): Omit<OwnResults, "beingCorrected"> {
   return {
     results: cards.map((r) => ({
       publicationId: r.publication_id,
@@ -103,14 +113,15 @@ export async function studentResults(db: D1Database, reach: Reach, studentId: st
            FROM students st JOIN enrollments en ON en.student_id = st.id JOIN academic_years ay ON ay.id = en.academic_year_id
            JOIN classes cl ON cl.id = en.class_id ${CLASS_JOINS}
            JOIN marks_cards mc ON mc.enrollment_id = en.id AND ${LATEST}
-           JOIN result_publications rp ON rp.id = mc.publication_id LEFT JOIN terminals t ON t.id = rp.terminal_id
+           JOIN result_publications rp ON rp.id = mc.publication_id AND ${shown("rp")} LEFT JOIN terminals t ON t.id = rp.terminal_id
           WHERE st.public_id = ?1 AND ${sectionInReach(2)}
           ORDER BY ay.start_date DESC, ay.id DESC, rp.terminal_id IS NULL DESC, t.ordinal DESC`,
       )
       .bind(studentId, reach.institution, reach.sections),
   ]);
   if (visible!.results.length === 0) return null;
-  return toOwnResults(cards!.results as unknown as ResultRow[], []);
+  // Staff see no list of what is being corrected here: the Co-ordinator's board says it.
+  return { ...toOwnResults(cards!.results as unknown as ResultRow[], []), beingCorrected: [] };
 }
 
 /** One card by id, for staff whose sections reach its class, or a Class Teacher (`classTeacher`) for a class they lead. Any version (a recheck keeps the old ones). */
@@ -157,7 +168,7 @@ export async function top20(db: D1Database, viewer: { student: string } | { reac
           `SELECT ay.id AS term_id, s.key AS section_key, lv.ordinal AS level_ordinal
              FROM students st JOIN enrollments en ON en.student_id = st.id JOIN academic_years ay ON ay.id = en.academic_year_id AND ay.status = 'active'
              JOIN classes cl ON cl.id = en.class_id ${CLASS_JOINS}
-             JOIN result_publications rp ON rp.class_id = cl.id AND rp.terminal_id IS NULL
+             JOIN result_publications rp ON rp.class_id = cl.id AND rp.terminal_id IS NULL AND ${shown("rp")}
             WHERE st.user_id = (SELECT id FROM users WHERE public_id = ?1)`,
         )
         .bind(viewer.student)
@@ -175,7 +186,7 @@ export async function top20(db: D1Database, viewer: { student: string } | { reac
          JOIN academic_years ay ON ay.id = cl.academic_year_id AND ay.status = 'active'
          JOIN marks_cards mc ON mc.publication_id = rp.id AND ${LATEST}
          JOIN enrollments en ON en.id = mc.enrollment_id JOIN students st ON st.id = en.student_id
-        WHERE rp.terminal_id IS NULL AND ${isStudent ? "ay.id = ?1 AND s.key = ?2 AND lv.ordinal = ?3" : sectionInReach(1)}
+        WHERE rp.terminal_id IS NULL AND ${shown("rp")} AND ${isStudent ? "ay.id = ?1 AND s.key = ?2 AND lv.ordinal = ?3" : sectionInReach(1)}
         ORDER BY ay.start_date, ay.id, s.ordering, lv.ordinal`,
     )
     .bind(...(isStudent ? [own!.term_id, own!.section_key, own!.level_ordinal] : [viewer.reach.institution, viewer.reach.sections]))
@@ -218,7 +229,7 @@ export async function classSheet(db: D1Database, reach: Reach, classId: string, 
         `SELECT cl.public_id AS class_id, ${NAMING_COLUMNS}, t.public_id AS terminal_id, t.name AS terminal_name, rp.pattern, rp.published_at
            FROM classes cl ${CLASS_JOINS} JOIN result_publications rp ON rp.class_id = cl.id
            LEFT JOIN terminals t ON t.id = rp.terminal_id
-          WHERE cl.public_id = ?1 AND (CASE WHEN ?2 IS NULL THEN rp.terminal_id IS NULL ELSE t.public_id = ?2 END) AND ${sectionInReach(3)}
+          WHERE cl.public_id = ?1 AND (CASE WHEN ?2 IS NULL THEN rp.terminal_id IS NULL ELSE t.public_id = ?2 END) AND ${sectionInReach(3)} AND ${shown("rp")}
             AND (?5 IS NULL OR cl.class_teacher_user_id = (SELECT id FROM users WHERE public_id = ?5))`,
       )
       .bind(classId, terminalId, reach.institution, reach.sections, classTeacher),
@@ -332,7 +343,8 @@ export function resultsDashboardPart(db: D1Database): DashboardPart<ResultsDashb
     statements: [
       db.prepare(
         `SELECT COUNT(*) AS publications, MAX(rp.published_at) AS lastPublishedAt
-           FROM result_publications rp JOIN classes cl ON cl.id = rp.class_id JOIN academic_years ay ON ay.id = cl.academic_year_id AND ay.status = 'active'`,
+           FROM result_publications rp JOIN classes cl ON cl.id = rp.class_id JOIN academic_years ay ON ay.id = cl.academic_year_id AND ay.status = 'active'
+          WHERE ${shown("rp")}`,
       ),
       db.prepare(
         `SELECT pv.public_id AS id, pv.name, COUNT(mc.id) AS cards, COALESCE(SUM(mc.passed), 0) AS passed,
@@ -340,7 +352,7 @@ export function resultsDashboardPart(db: D1Database): DashboardPart<ResultsDashb
            FROM marks_cards mc JOIN result_publications rp ON rp.id = mc.publication_id AND rp.terminal_id IS NULL JOIN classes cl ON cl.id = rp.class_id
            JOIN academic_years ay ON ay.id = cl.academic_year_id AND ay.status = 'active'
            JOIN levels lv ON lv.id = cl.level_id JOIN programmes pv ON pv.id = lv.programme_id
-          WHERE mc.version = (SELECT MAX(m2.version) FROM marks_cards m2 WHERE m2.publication_id = mc.publication_id AND m2.enrollment_id = mc.enrollment_id)
+          WHERE ${shown("rp")} AND mc.version = (SELECT MAX(m2.version) FROM marks_cards m2 WHERE m2.publication_id = mc.publication_id AND m2.enrollment_id = mc.enrollment_id)
           GROUP BY pv.id ORDER BY pv.ordering`,
       ),
       // A sheet is expected for every switched-on subject of an active class's level, in each exam the term has; it counts as
@@ -377,7 +389,7 @@ export async function publishedResults(db: D1Database, reach: Reach, classTeache
               (SELECT COUNT(*) FROM marks_cards mc WHERE mc.publication_id = rp.id AND ${LATEST}) AS cards
          FROM result_publications rp JOIN classes cl ON cl.id = rp.class_id ${CLASS_JOINS} JOIN academic_years ay ON ay.id = cl.academic_year_id
          LEFT JOIN terminals t ON t.id = rp.terminal_id
-        WHERE ${sectionInReach(1)} AND (?3 IS NULL OR cl.class_teacher_user_id = (SELECT id FROM users WHERE public_id = ?3))
+        WHERE ${sectionInReach(1)} AND ${shown("rp")} AND (?3 IS NULL OR cl.class_teacher_user_id = (SELECT id FROM users WHERE public_id = ?3))
         ORDER BY rp.published_at DESC, rp.id DESC`,
     )
     .bind(reach.institution, reach.sections, classTeacher)

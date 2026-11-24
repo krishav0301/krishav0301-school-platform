@@ -1,6 +1,6 @@
 import { recordAudit } from "../../core/audit";
 import { newPublicId } from "../../core/ids";
-import { CLASS_JOINS, NAMING_COLUMNS, coordinatorFor, missingCount, naming, sectionInReach, takes, teacherName, teaches, type Reach } from "./guard";
+import { CLASS_JOINS, NAMING_COLUMNS, coordinatorFor, missingCount, naming, sectionInReach, shown, takes, teacherName, teaches, type Reach } from "./guard";
 import { BulkVerifySchema, SaveMarksSchema, SendBackSchema, type MarkSheet, type MyMarkSheets, type Part, type ReviewBoard, type SaveMarks, type SheetStatus } from "./schema";
 
 /**
@@ -303,8 +303,9 @@ export async function reviewBoard(db: D1Database, reach: Reach, terminalId: stri
       `SELECT cl.public_id AS class_id, ${NAMING_COLUMNS},
               o.public_id AS offering_id, sb.name AS subject_name, ${teacherName} AS teacher_name,
               ms.public_id AS sheet_id, ms.status, ${missingCount("t.id")} AS missing,
-              EXISTS (SELECT 1 FROM result_publications rp WHERE rp.class_id = cl.id AND rp.terminal_id = t.id) AS published,
-              EXISTS (SELECT 1 FROM result_publications rp WHERE rp.class_id = cl.id AND rp.terminal_id IS NULL) AS final_published
+              EXISTS (SELECT 1 FROM result_publications rp WHERE rp.class_id = cl.id AND rp.terminal_id = t.id AND ${shown("rp")}) AS published,
+              EXISTS (SELECT 1 FROM result_publications rp WHERE rp.class_id = cl.id AND rp.terminal_id IS NULL AND ${shown("rp")}) AS final_published,
+              (SELECT w.reason FROM result_withdrawals w WHERE w.class_id = cl.id AND w.terminal_id = t.id AND w.republished_at IS NULL) AS taken_back
          FROM classes cl ${CLASS_JOINS} JOIN academic_years ay ON ay.id = cl.academic_year_id
          JOIN terminals t ON t.academic_year_id = ay.id AND t.public_id = ?3
          JOIN subject_offerings o ON o.level_id = cl.level_id AND o.is_active = 1 JOIN subjects sb ON sb.id = o.subject_id
@@ -327,6 +328,7 @@ export async function reviewBoard(db: D1Database, reach: Reach, terminalId: stri
       missing: number;
       published: number;
       final_published: number;
+      taken_back: string | null;
     }>();
   // Ready to publish is worked out here, once per class, from the rows already read (D-192). The rows are exactly the
   // class's needed subjects (`neededSubjects` in guard.ts: active, at the class's level, taken by an active student),
@@ -337,7 +339,7 @@ export async function reviewBoard(db: D1Database, reach: Reach, terminalId: stri
   for (const r of results) {
     let entry = classes[classes.length - 1];
     if (!entry || entry.classId !== r.class_id) {
-      classes.push((entry = { classId: r.class_id, ...naming(r), published: r.published === 1, finalPublished: r.final_published === 1, ready: false, subjects: [] }));
+      classes.push((entry = { classId: r.class_id, ...naming(r), published: r.published === 1, finalPublished: r.final_published === 1, ready: false, takenBack: r.taken_back, subjects: [] }));
     }
     entry.subjects.push({ offeringId: r.offering_id, subjectName: r.subject_name, teacherName: r.teacher_name, sheetId: r.sheet_id, status: r.status ?? "not_started", missing: r.missing });
   }
@@ -390,7 +392,7 @@ export async function sendBack(db: D1Database, auditKey: string, me: string, she
     .prepare(
       `UPDATE mark_sheets SET status = 'draft', note = ?3, verified_by_user_id = NULL, verified_at = NULL, updated_at = ?4
         WHERE public_id = ?1 AND status IN ('under_review', 'verified') AND ${coordinatorFor(2, SHEET_SECTION)}
-          AND NOT EXISTS (SELECT 1 FROM result_publications rp WHERE rp.class_id = mark_sheets.class_id AND rp.terminal_id = mark_sheets.terminal_id)`,
+          AND NOT EXISTS (SELECT 1 FROM result_publications rp WHERE rp.class_id = mark_sheets.class_id AND rp.terminal_id = mark_sheets.terminal_id AND ${shown("rp")})`,
     )
     .bind(sheetId, me, parsed.data.note, new Date().toISOString());
   try {

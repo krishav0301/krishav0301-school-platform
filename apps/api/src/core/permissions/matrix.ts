@@ -185,6 +185,7 @@ export const MATRIX = [
   row(G.results, "marks.enter", "Enter marks (until verified)", 7, { TEA: assigned }),
   row(G.results, "marks.verify", "Verify, send back, bulk approve", 7, { COO: inst, SUP: all }),
   row(G.results, "results.publish", "Publish a whole class (all subjects verified)", 7, { COO: inst, SUP: all }),
+  row(G.results, "results.take_back", "Take a published exam back to be corrected: chosen subjects back to their teachers (D-199)", 7, { ADM: all, SUP: all }),
   row(G.results, "results.view", "View published results and marks card", 7, { STU: own, COO: inst, ADM: read, SUP: all }),
   row(G.results, "results.card.view", "Open one marks card: the student's own; a Class Teacher's for the class they lead (2026-10-29)", 7, { STU: own, TEA: cls, COO: inst, ADM: read, SUP: all }),
   row(G.results, "results.class_sheet.view", "View a class's published result sheet, every subject (FUT point 19)", 7, { TEA: cls, COO: inst, ADM: read, SUP: all }),
